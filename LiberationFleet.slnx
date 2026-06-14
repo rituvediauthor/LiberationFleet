@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="liberationfleet.client/liberationfleet.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="LiberationFleet.Server/LiberationFleet.Server.csproj" />
+</Solution>
