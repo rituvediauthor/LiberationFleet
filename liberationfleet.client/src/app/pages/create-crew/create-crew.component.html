@@ -1,0 +1,59 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Create Crew</h1>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="name">Crew Name</label>
+          <input id="name" type="text" formControlName="name" class="form-input" placeholder="Enter crew name">
+          <span class="error-text" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+            Crew name is required
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="maxSize">Crew Size</label>
+          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" min="2" max="100" step="1">
+          <span class="error-text" *ngIf="form.get('maxSize')?.invalid && form.get('maxSize')?.touched">
+            Size must be between 2 and 100
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="privacy">Privacy</label>
+          <select id="privacy" formControlName="privacy" class="form-input">
+            <option value="Public">Public</option>
+            <option value="Private">Private</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="scope">Location Type</label>
+          <select id="scope" formControlName="scope" class="form-input">
+            <option value="Online">Online</option>
+            <option value="Local">Local</option>
+          </select>
+        </div>
+
+        <ng-container *ngIf="isLocal">
+          <div class="form-group">
+            <label for="zipCode">Zip Code</label>
+            <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric" placeholder="5-digit zip">
+            <span class="error-text" *ngIf="form.get('zipCode')?.invalid && form.get('zipCode')?.touched">
+              Enter a valid 5-digit zip code
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="radiusMiles">Distance (miles)</label>
+            <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+            <span class="error-text" *ngIf="form.get('radiusMiles')?.invalid && form.get('radiusMiles')?.touched">
+              Distance must be between 1 and 500 miles
+            </span>
+          </div>
+        </ng-container>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

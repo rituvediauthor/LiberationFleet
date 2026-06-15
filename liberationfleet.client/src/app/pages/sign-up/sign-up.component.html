@@ -1,0 +1,100 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="signUpButton">
+  <div class="sign-up-container">
+    <div class="form-card">
+      <h1>Sign Up</h1>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            class="form-input"
+            placeholder="Choose a username">
+          <span class="error-text" *ngIf="form.get('username')?.hasError('required') && form.get('username')?.touched">
+            Username is required
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="form-input"
+            placeholder="Enter your email">
+          <span class="error-text" *ngIf="form.get('email')?.hasError('required') && form.get('email')?.touched">
+            Email is required
+          </span>
+          <span class="error-text" *ngIf="form.get('email')?.hasError('email') && form.get('email')?.touched">
+            Please enter a valid email
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            class="form-input"
+            placeholder="Create a strong password">
+          <div class="password-requirements" *ngIf="form.get('password')?.touched">
+            <p class="requirement" [class.valid]="hasPasswordRequirement('uppercase')">
+              <span class="check">{{ hasPasswordRequirement('uppercase') ? '✓' : '○' }}</span> At least one uppercase letter
+            </p>
+            <p class="requirement" [class.valid]="hasPasswordRequirement('lowercase')">
+              <span class="check">{{ hasPasswordRequirement('lowercase') ? '✓' : '○' }}</span> At least one lowercase letter
+            </p>
+            <p class="requirement" [class.valid]="hasPasswordRequirement('number')">
+              <span class="check">{{ hasPasswordRequirement('number') ? '✓' : '○' }}</span> At least one number
+            </p>
+            <p class="requirement" [class.valid]="hasPasswordRequirement('special')">
+              <span class="check">{{ hasPasswordRequirement('special') ? '✓' : '○' }}</span> At least one special character
+            </p>
+            <p class="requirement" [class.valid]="hasPasswordRequirement('length')">
+              <span class="check">{{ hasPasswordRequirement('length') ? '✓' : '○' }}</span> At least 8 characters
+            </p>
+          </div>
+          <span class="error-text" *ngIf="form.get('password')?.hasError('required') && form.get('password')?.touched">
+            Password is required
+          </span>
+          <span class="error-text" *ngIf="form.get('password')?.hasError('passwordStrength') && form.get('password')?.touched">
+            Password must meet all requirements
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            formControlName="confirmPassword"
+            class="form-input"
+            placeholder="Confirm your password">
+          <span class="error-text" *ngIf="form.get('confirmPassword')?.hasError('required') && form.get('confirmPassword')?.touched">
+            Please confirm your password
+          </span>
+          <span class="error-text" *ngIf="form.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
+            Passwords do not match
+          </span>
+        </div>
+
+        <div class="checkbox-group">
+          <input
+            id="privacy"
+            type="checkbox"
+            formControlName="privacyPolicyAccepted">
+          <label for="privacy" class="checkbox-label">
+            I agree to the <a href="#" class="privacy-link" (click)="showPrivacyPolicy($event)">Privacy Policy</a>
+          </label>
+        </div>
+        <span class="error-text" *ngIf="form.get('privacyPolicyAccepted')?.hasError('required') && form.get('privacyPolicyAccepted')?.touched">
+          You must agree to the Privacy Policy
+        </span>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

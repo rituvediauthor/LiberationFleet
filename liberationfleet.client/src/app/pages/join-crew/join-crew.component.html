@@ -1,0 +1,79 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="joinButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Join Crew</h1>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <span class="group-label">How would you like to join?</span>
+          <label class="radio-option">
+            <input type="radio" formControlName="mode" value="find">
+            Find a crew
+          </label>
+          <label class="radio-option">
+            <input type="radio" formControlName="mode" value="code">
+            Use a code
+          </label>
+        </div>
+
+        <ng-container *ngIf="!isFindMode">
+          <div class="form-group">
+            <label for="joinCode">Crew ID Code</label>
+            <input id="joinCode" type="text" formControlName="joinCode" class="form-input" placeholder="Enter crew code">
+            <span class="hint-text">Private crews can be joined with an exact code match.</span>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="isFindMode">
+          <div class="form-group">
+            <label for="scope">Search Type</label>
+            <select id="scope" formControlName="scope" class="form-input">
+              <option value="Online">Online</option>
+              <option value="Local">Local</option>
+            </select>
+          </div>
+
+          <ng-container *ngIf="isLocal">
+            <div class="form-group">
+              <label for="zipCode">Zip Code</label>
+              <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric" placeholder="5-digit zip">
+            </div>
+
+            <div class="form-group">
+              <label for="radiusMiles">Max Radius (miles)</label>
+              <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+            </div>
+          </ng-container>
+
+          <div class="search-status" *ngIf="isSearching">Searching...</div>
+
+          <div class="results-section" *ngIf="hasSearched && !isSearching">
+            <p class="results-summary">{{ searchMessage }} ({{ totalCount }} total)</p>
+
+            <ul class="results-list" *ngIf="searchResults.length > 0">
+              <li *ngFor="let crew of searchResults">
+                <button
+                  type="button"
+                  class="result-item"
+                  [class.selected]="selectedCrew?.id === crew.id"
+                  (click)="selectCrew(crew)">
+                  <span class="result-name">{{ crew.name }}</span>
+                  <span class="result-meta">
+                    {{ crew.memberCount }}/{{ crew.maxSize }} members · {{ crew.scope }}
+                    <ng-container *ngIf="crew.distanceMiles != null"> · {{ crew.distanceMiles }} mi</ng-container>
+                  </span>
+                </button>
+              </li>
+            </ul>
+
+            <div class="pagination" *ngIf="totalPages > 1">
+              <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">Previous</button>
+              <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+              <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+            </div>
+          </div>
+        </ng-container>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

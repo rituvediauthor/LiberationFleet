@@ -1,0 +1,18 @@
+<app-nav-layout activeTab="crew">
+  <div class="crew-home">
+    <div class="hero" *ngIf="membership?.hasCrew; else noCrew">
+      <h1>{{ membership?.crewName }}</h1>
+      <p class="subtitle">You're a member of this crew. Crew dashboard coming soon...</p>
+    </div>
+    <ng-template #noCrew>
+      <div class="hero">
+        <h1>Welcome to LiberationFleet</h1>
+        <p class="subtitle">You're not in a crew yet. Create one or join an existing crew to get started.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="action-btn primary" (click)="goToCreateCrew()">Create Crew</button>
+        <button type="button" class="action-btn secondary" (click)="goToJoinCrew()">Join Crew</button>
+      </div>
+    </ng-template>
+  </div>
+</app-nav-layout>

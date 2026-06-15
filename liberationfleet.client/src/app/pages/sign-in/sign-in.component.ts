@@ -1,0 +1,71 @@
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../components/toast/toast.component';
+
+@Component({
+  selector: 'app-sign-in',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RouterLink],
+  templateUrl: './sign-in.component.html',
+  styleUrl: './sign-in.component.css'
+})
+export class SignInComponent {
+  form: FormGroup;
+  backButton: ActionBarButton;
+  signInButton: ActionBarButton;
+  isLoading = false;
+
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private toastService = inject(ToastService);
+
+  constructor() {
+    this.form = this.fb.group({
+      usernameOrEmail: ['', Validators.required],
+      password: ['', Validators.required]
+    });
+
+    this.backButton = {
+      label: 'back',
+      type: 'back',
+      onClick: () => this.navigateBack()
+    };
+
+    this.signInButton = {
+      label: 'Sign In',
+      type: 'primary',
+      disabled: false,
+      onClick: () => this.onSubmit()
+    };
+  }
+
+  onSubmit() {
+    if (this.form.invalid || this.isLoading) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.signInButton.disabled = true;
+
+    this.authService.login(this.form.value).subscribe({
+      next: () => {
+        this.toastService.success('Sign in successful!');
+        this.router.navigate(['/app/crew']);
+      },
+      error: (error) => {
+        this.toastService.error(error.error?.message || 'Sign in failed');
+        this.isLoading = false;
+        this.signInButton.disabled = false;
+      }
+    });
+  }
+
+  private navigateBack() {
+    this.router.navigate(['/']);
+  }
+}

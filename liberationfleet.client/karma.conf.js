@@ -35,6 +35,16 @@
     logLevel: config.LOG_INFO,
     autoWatch: true,
     browsers: ['Chrome'],
+    customLaunchers: {
+      ChromeHeadless: {
+        base: 'Chrome',
+        flags: [
+          '--headless',
+          '--disable-gpu',
+          '--no-sandbox'
+        ]
+      }
+    },
     singleRun: false,
     restartOnFileChange: true,
     listenAddress: 'localhost',

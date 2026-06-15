@@ -1,0 +1,19 @@
+<div class="nav-layout">
+  <div class="nav-content">
+    <div class="nav-content-inner">
+      <ng-content></ng-content>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <a routerLink="/app/crew" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
+      <span class="nav-label">Crew</span>
+    </a>
+    <a routerLink="/app/friends" routerLinkActive="active" class="nav-item">
+      <span class="nav-label">Friends</span>
+    </a>
+    <a routerLink="/app/profile" routerLinkActive="active" class="nav-item">
+      <span class="nav-label">Profile</span>
+    </a>
+  </nav>
+</div>

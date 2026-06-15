@@ -19,6 +19,10 @@
 **/node_modules
 **/npm-debug.log
 **/obj
+**/publish-test
+**/coverage
+**/.angular
+LiberationFleet.Server.Tests
 **/secrets.dev.yaml
 **/values.dev.yaml
 LICENSE

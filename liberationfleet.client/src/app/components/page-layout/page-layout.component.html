@@ -1,0 +1,28 @@
+<div class="page-layout">
+  <div class="page-content">
+    <div class="page-content-inner">
+      <ng-content></ng-content>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button
+      *ngIf="backButton"
+      class="action-button back-button"
+      (click)="backButton.onClick && backButton.onClick()"
+      [disabled]="backButton.disabled"
+      type="button"
+      aria-label="Go back">
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+    </button>
+
+    <button
+      *ngIf="primaryButton"
+      class="action-button primary-button"
+      (click)="primaryButton.onClick && primaryButton.onClick()"
+      [disabled]="primaryButton.disabled"
+      type="button">
+      {{ primaryButton.label }}
+    </button>
+  </div>
+</div>

@@ -1,6 +1,0 @@
-@LiberationFleet.Server_HostAddress = http://localhost:5157
-
-GET {{LiberationFleet.Server_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

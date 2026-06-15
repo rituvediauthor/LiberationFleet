@@ -1,0 +1,39 @@
+.landing-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-section {
+  max-width: 600px;
+}
+
+h1 {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+p {
+  font-size: 18px;
+  color: #666;
+  margin: 12px 0;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #999;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 36px;
+  }
+
+  p {
+    font-size: 16px;
+  }
+}

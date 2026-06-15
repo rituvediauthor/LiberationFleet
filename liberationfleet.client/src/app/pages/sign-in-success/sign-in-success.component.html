@@ -1,0 +1,15 @@
+<app-page-layout [primaryButton]="logoutButton">
+  <div class="success-container">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h1>Sign In Successful!</h1>
+      <p>Welcome back, {{ currentUser?.username || 'User' }}!</p>
+      <p class="email">{{ currentUser?.email }}</p>
+
+      <div class="next-steps">
+        <p>You are now signed in to LiberationFleet.</p>
+        <p class="placeholder">Additional features and crew management coming soon...</p>
+      </div>
+    </div>
+  </div>
+</app-page-layout>

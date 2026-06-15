@@ -359,5 +359,27 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+# Docker local environment files
+.env
+
+# Local development and test database runtime data (schema migrations stay in source control)
+data/
+**/data/mssql/
+**/data/sqlite/
+**/sqldata/
+**/App_Data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.bak
+*.bacpac
+*.dacpac
+**/database/dumps/
+**/database/backups/
+appsettings.*.local.json
+**/secrets.json
+
 # Fody - auto-generated XML schema
 FodyWeavers.xsd

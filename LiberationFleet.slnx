@@ -4,4 +4,5 @@
     <Deploy />
   </Project>
   <Project Path="LiberationFleet.Server/LiberationFleet.Server.csproj" />
+  <Project Path="LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj" />
 </Solution>

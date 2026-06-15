@@ -1,0 +1,148 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+namespace LiberationFleet.Server.Tests.TestHelpers;
+
+public static class HandlerTestFixture
+{
+    public static Mock<IUserRepository> CreateUserRepositoryMock()
+    {
+        return new Mock<IUserRepository>(MockBehavior.Strict);
+    }
+
+    public static Mock<ICrewRepository> CreateCrewRepositoryMock()
+    {
+        return new Mock<ICrewRepository>(MockBehavior.Strict);
+    }
+
+    public static Mock<ICrewMembershipRepository> CreateCrewMembershipRepositoryMock()
+    {
+        return new Mock<ICrewMembershipRepository>(MockBehavior.Strict);
+    }
+
+    public static Mock<ICurrentUserService> CreateCurrentUserServiceMock(int? userId = 1)
+    {
+        var mock = new Mock<ICurrentUserService>(MockBehavior.Strict);
+        mock.Setup(c => c.UserId).Returns(userId);
+        return mock;
+    }
+
+    public static Mock<IZipCodeDistanceService> CreateZipCodeDistanceServiceMock(double distanceMiles = 10)
+    {
+        var mock = new Mock<IZipCodeDistanceService>(MockBehavior.Strict);
+        mock.Setup(z => z.TryGetDistanceMiles(It.IsAny<string>(), It.IsAny<string>(), out distanceMiles))
+            .Returns(true);
+        return mock;
+    }
+
+    public static Mock<IUnitOfWork> CreateUnitOfWorkMock()
+    {
+        var mock = new Mock<IUnitOfWork>(MockBehavior.Strict);
+        mock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        return mock;
+    }
+
+    public static Mock<IPasswordHasher> CreatePasswordHasherMock(
+        string hashedPassword = "hashed-password",
+        bool verifyResult = true)
+    {
+        var mock = new Mock<IPasswordHasher>(MockBehavior.Strict);
+        mock.Setup(h => h.Hash(It.IsAny<string>())).Returns(hashedPassword);
+        mock.Setup(h => h.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(verifyResult);
+        return mock;
+    }
+
+    public static Mock<ITokenService> CreateTokenServiceMock(string token = "jwt-token")
+    {
+        var mock = new Mock<ITokenService>(MockBehavior.Strict);
+        mock.Setup(t => t.GenerateJwtToken(It.IsAny<User>())).Returns(token);
+        return mock;
+    }
+
+    public static Mock<IPasswordResetTokenRepository> CreatePasswordResetTokenRepositoryMock()
+    {
+        return new Mock<IPasswordResetTokenRepository>(MockBehavior.Strict);
+    }
+
+    public static ILogger<T> CreateNullLogger<T>() => Microsoft.Extensions.Logging.Abstractions.NullLogger<T>.Instance;
+
+    public static User CreateUser(
+        int id = 1,
+        string username = "testuser",
+        string email = "test@example.com",
+        string passwordHash = "hashed-password")
+    {
+        return new User
+        {
+            Id = id,
+            Username = username,
+            Email = email,
+            PasswordHash = passwordHash,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+    }
+
+    public static PasswordResetToken CreateResetToken(
+        User user,
+        string token = "reset-token",
+        bool isUsed = false,
+        DateTime? expiresAt = null)
+    {
+        return new PasswordResetToken
+        {
+            Id = 1,
+            UserId = user.Id,
+            User = user,
+            Token = token,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = expiresAt ?? DateTime.UtcNow.AddHours(1),
+            IsUsed = isUsed
+        };
+    }
+
+    public static Crew CreateCrew(
+        int id = 1,
+        string name = "Test Crew",
+        int maxSize = 10,
+        CrewPrivacy privacy = CrewPrivacy.Public,
+        CrewScope scope = CrewScope.Online,
+        string? zipCode = null,
+        int? radiusMiles = null,
+        string joinCode = "ABC12345",
+        int createdByUserId = 1)
+    {
+        return new Crew
+        {
+            Id = id,
+            Name = name,
+            MaxSize = maxSize,
+            Privacy = privacy,
+            Scope = scope,
+            ZipCode = zipCode,
+            RadiusMiles = radiusMiles,
+            JoinCode = joinCode,
+            CreatedByUserId = createdByUserId,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    public static CrewMembership CreateMembership(User user, Crew crew, bool isBanned = false)
+    {
+        return new CrewMembership
+        {
+            Id = 1,
+            UserId = user.Id,
+            User = user,
+            CrewId = crew.Id,
+            Crew = crew,
+            IsBanned = isBanned,
+            JoinedAt = DateTime.UtcNow
+        };
+    }
+}
