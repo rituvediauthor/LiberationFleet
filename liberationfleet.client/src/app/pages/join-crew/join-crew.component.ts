@@ -9,6 +9,7 @@ import { ToastService } from '../../components/toast/toast.component';
 import { Crew, CrewScope } from '../../models/crew.model';
 
 type JoinMode = 'find' | 'code';
+const JOIN_CODE_LENGTH = 8;
 
 @Component({
   selector: 'app-join-crew',
@@ -18,9 +19,11 @@ type JoinMode = 'find' | 'code';
   styleUrl: './join-crew.component.css'
 })
 export class JoinCrewComponent implements OnInit {
+  readonly joinCodeLength = JOIN_CODE_LENGTH;
+
   form: FormGroup;
   backButton: ActionBarButton;
-  joinButton: ActionBarButton;
+  joinButton!: ActionBarButton;
 
   searchResults: Crew[] = [];
   selectedCrew: Crew | null = null;
@@ -51,25 +54,22 @@ export class JoinCrewComponent implements OnInit {
       type: 'back',
       onClick: () => this.router.navigate(['/app/crew'])
     };
-
-    this.joinButton = {
-      label: 'Join',
-      type: 'primary',
-      disabled: true,
-      onClick: () => this.onJoin()
-    };
   }
 
   ngOnInit() {
+    this.updateJoinButton();
+
     this.form.get('mode')?.valueChanges.subscribe(() => {
       this.resetSearch();
       this.updateLocalValidators();
       this.updateJoinButton();
+      this.refreshSearchIfNeeded();
     });
 
     this.form.get('scope')?.valueChanges.subscribe(() => {
       this.updateLocalValidators();
       this.resetSearch();
+      this.refreshSearchIfNeeded();
     });
 
     this.form.valueChanges.pipe(debounceTime(400)).subscribe(() => {
@@ -80,6 +80,7 @@ export class JoinCrewComponent implements OnInit {
     });
 
     this.updateLocalValidators();
+    this.refreshSearchIfNeeded();
   }
 
   get isFindMode(): boolean {
@@ -88,6 +89,14 @@ export class JoinCrewComponent implements OnInit {
 
   get isLocal(): boolean {
     return this.form.get('scope')?.value === 'Local';
+  }
+
+  onJoinCodeInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const normalized = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, JOIN_CODE_LENGTH);
+    if (input.value !== normalized) {
+      this.form.patchValue({ joinCode: normalized }, { emitEvent: true });
+    }
   }
 
   private updateLocalValidators() {
@@ -111,17 +120,20 @@ export class JoinCrewComponent implements OnInit {
   }
 
   private updateJoinButton() {
-    if (this.isJoining) {
-      this.joinButton.disabled = true;
-      return;
-    }
+    const disabled = this.isJoining || (this.isFindMode
+      ? this.selectedCrew === null
+      : this.normalizeJoinCode(this.form.get('joinCode')?.value).length !== JOIN_CODE_LENGTH);
 
-    if (this.isFindMode) {
-      this.joinButton.disabled = this.selectedCrew === null;
-    } else {
-      const code = (this.form.get('joinCode')?.value ?? '').trim();
-      this.joinButton.disabled = code.length < 4;
-    }
+    this.joinButton = {
+      label: 'Join',
+      type: 'primary',
+      disabled,
+      onClick: () => this.onJoin()
+    };
+  }
+
+  private normalizeJoinCode(value: unknown): string {
+    return String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, JOIN_CODE_LENGTH);
   }
 
   canSearch(): boolean {
@@ -136,6 +148,12 @@ export class JoinCrewComponent implements OnInit {
     }
 
     return true;
+  }
+
+  private refreshSearchIfNeeded() {
+    if (this.canSearch()) {
+      this.runSearch(1);
+    }
   }
 
   runSearch(page: number) {
@@ -203,7 +221,7 @@ export class JoinCrewComponent implements OnInit {
 
     const payload = this.isFindMode
       ? { crewId: this.selectedCrew!.id }
-      : { joinCode: (this.form.get('joinCode')?.value as string).trim().toUpperCase() };
+      : { joinCode: this.normalizeJoinCode(this.form.get('joinCode')?.value) };
 
     this.crewService.join(payload).subscribe({
       next: (result) => {
@@ -217,10 +235,22 @@ export class JoinCrewComponent implements OnInit {
         }
       },
       error: (error) => {
-        this.toastService.error(error.error?.message || 'Failed to join crew');
+        this.toastService.error(this.extractErrorMessage(error));
         this.isJoining = false;
         this.updateJoinButton();
       }
     });
+  }
+
+  private extractErrorMessage(error: { error?: { message?: string; errors?: Record<string, string[]> } }): string {
+    const validationErrors = error.error?.errors;
+    if (validationErrors) {
+      const firstError = Object.values(validationErrors).flat()[0];
+      if (firstError) {
+        return firstError;
+      }
+    }
+
+    return error.error?.message || 'Failed to join crew';
   }
 }

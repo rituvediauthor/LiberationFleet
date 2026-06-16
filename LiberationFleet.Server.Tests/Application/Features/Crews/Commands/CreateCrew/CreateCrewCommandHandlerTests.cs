@@ -55,6 +55,9 @@ public class CreateCrewCommandHandlerTests
 
         Crew? capturedCrew = null;
         crewRepository
+            .Setup(r => r.GetByJoinCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Crew?)null);
+        crewRepository
             .Setup(r => r.AddAsync(It.IsAny<Crew>(), It.IsAny<CancellationToken>()))
             .Callback<Crew, CancellationToken>((crew, _) =>
             {
@@ -106,6 +109,9 @@ public class CreateCrewCommandHandlerTests
 
         Crew? capturedCrew = null;
         crewRepository
+            .Setup(r => r.GetByJoinCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Crew?)null);
+        crewRepository
             .Setup(r => r.AddAsync(It.IsAny<Crew>(), It.IsAny<CancellationToken>()))
             .Callback<Crew, CancellationToken>((crew, _) =>
             {
@@ -131,6 +137,45 @@ public class CreateCrewCommandHandlerTests
         capturedCrew!.Scope.Should().Be(CrewScope.Local);
         capturedCrew.ZipCode.Should().Be("90210");
         capturedCrew.RadiusMiles.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGeneratedJoinCodeAlreadyExists_RetriesUntilUnique()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
+        var attempts = 0;
+
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CrewMembership?)null);
+
+        crewRepository
+            .Setup(r => r.GetByJoinCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                attempts++;
+                return attempts == 1 ? HandlerTestFixture.CreateCrew() : null;
+            });
+
+        crewRepository
+            .Setup(r => r.AddAsync(It.IsAny<Crew>(), It.IsAny<CancellationToken>()))
+            .Callback<Crew, CancellationToken>((crew, _) => crew.Id = 1)
+            .Returns(Task.CompletedTask);
+
+        membershipRepository
+            .Setup(r => r.AddAsync(It.IsAny<CrewMembership>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler(currentUserId: user.Id, crewRepository: crewRepository, membershipRepository: membershipRepository, unitOfWork: unitOfWork);
+
+        var result = await handler.Handle(ValidCommand(), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        attempts.Should().Be(2);
+        crewRepository.Verify(r => r.GetByJoinCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     private static CreateCrewCommand ValidCommand() => new()

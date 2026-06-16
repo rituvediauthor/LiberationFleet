@@ -6,5 +6,7 @@ public interface ICrewMembershipRepository
 {
     Task<CrewMembership?> GetActiveMembershipAsync(int userId, CancellationToken cancellationToken = default);
     Task<bool> IsUserBannedFromCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default);
+    Task<bool> IsUserInCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CrewMembership>> GetActiveMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
     Task AddAsync(CrewMembership membership, CancellationToken cancellationToken = default);
 }

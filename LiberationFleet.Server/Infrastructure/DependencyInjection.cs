@@ -1,5 +1,4 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
-using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Infrastructure.Data;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
@@ -28,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<ICrewRepository, CrewRepository>();
         services.AddScoped<ICrewMembershipRepository, CrewMembershipRepository>();
+        services.AddScoped<IGiftRepository, GiftRepository>();
+        services.AddScoped<IPaymentPlatformRepository, PaymentPlatformRepository>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddSingleton<IZipCodeDistanceService, ZipCodeDistanceService>();
         services.AddScoped<ITokenService, JwtTokenService>();

@@ -1,0 +1,99 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGift;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
+using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Tests.TestHelpers;
+using Moq;
+
+namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Queries.GetCrewGiftLog;
+
+public class GetCrewGiftLogQueryHandlerTests
+{
+    [Fact]
+    public async Task Handle_WhenUserIsNotAuthenticated_ReturnsFailure()
+    {
+        var handler = CreateHandler(currentUserId: null);
+
+        var result = await handler.Handle(new GetCrewGiftLogQuery(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Be("Unauthorized.");
+    }
+
+    [Fact]
+    public async Task Handle_WhenUserHasNoCrew_ReturnsFailure()
+    {
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CrewMembership?)null);
+
+        var handler = CreateHandler(membershipRepository: membershipRepository);
+
+        var result = await handler.Handle(new GetCrewGiftLogQuery(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Be("You are not in a crew.");
+    }
+
+    [Fact]
+    public async Task Handle_WhenUserHasCrew_ReturnsGiftLogFromDatabase()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew();
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
+        var recipient = HandlerTestFixture.CreateUser(id: 2, username: "Ritu");
+
+        var gift = new Gift
+        {
+            Id = 1,
+            CrewId = crew.Id,
+            GiverUserId = user.Id,
+            GiverUser = user,
+            RecipientUserId = recipient.Id,
+            RecipientUser = recipient,
+            Type = GiftType.Direct,
+            Amount = 25,
+            PaymentPlatformId = 1,
+            PaymentPlatform = new PaymentPlatform { Id = 1, Name = "PayPal" },
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(membership);
+
+        var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.GetLogByCrewIdAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Gift> { gift });
+
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            membershipRepository: membershipRepository,
+            giftRepository: giftRepository);
+
+        var result = await handler.Handle(new GetCrewGiftLogQuery(), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Items.Should().ContainSingle();
+        result.Items[0].Message.Should().Contain("PayPal");
+    }
+
+    private static GetCrewGiftLogQueryHandler CreateHandler(
+        int? currentUserId = 1,
+        Mock<ICrewMembershipRepository>? membershipRepository = null,
+        Mock<IGiftRepository>? giftRepository = null)
+    {
+        membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
+
+        return new GetCrewGiftLogQueryHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
+            membershipRepository.Object,
+            giftRepository.Object);
+    }
+}

@@ -1,9 +1,50 @@
 <app-nav-layout activeTab="crew">
   <div class="crew-home">
-    <div class="hero" *ngIf="membership?.hasCrew; else noCrew">
-      <h1>{{ membership?.crewName }}</h1>
-      <p class="subtitle">You're a member of this crew. Crew dashboard coming soon...</p>
-    </div>
+    <ng-container *ngIf="membership?.hasCrew; else noCrew">
+      <div class="crew-dashboard">
+        <button type="button" class="edit-btn" (click)="goToEditCrew()" aria-label="Edit crew details">
+          <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+        </button>
+
+        <header class="crew-header">
+          <h1 class="crew-name">{{ membership?.crewName }}</h1>
+          <p class="join-code-label">Join code</p>
+          <p class="join-code">{{ membership?.joinCode }}</p>
+        </header>
+
+        <div class="info-widget">
+          <span class="info-label">Next aid</span>
+          <p class="info-text">{{ nextAid?.recipientName }} needs ${{ nextAid?.amount }}</p>
+        </div>
+
+        <nav class="crew-menu" aria-label="Crew actions">
+          <button type="button" class="menu-link" (click)="goToGiftLog()">
+            <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Gift Log</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToChats()">
+            <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Chats</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToProposals()">
+            <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Proposals</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToProjects()">
+            <i class="fa-solid fa-diagram-project menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Projects</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+        </nav>
+      </div>
+    </ng-container>
+
     <ng-template #noCrew>
       <div class="hero">
         <h1>Welcome to LiberationFleet</h1>

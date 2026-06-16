@@ -4,23 +4,28 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { CrewHomeComponent } from './crew-home.component';
 import { CrewService } from '../../services/crew.service';
-import { createCrewServiceMock } from '../../testing/test-helpers';
+import { GiftService } from '../../services/gift.service';
+import { createCrewServiceMock, createGiftServiceMock } from '../../testing/test-helpers';
 
 describe('CrewHomeComponent', () => {
   let fixture: ComponentFixture<CrewHomeComponent>;
   let component: CrewHomeComponent;
   let crewService: jasmine.SpyObj<CrewService>;
+  let giftService: jasmine.SpyObj<GiftService>;
   let router: Router;
 
   beforeEach(async () => {
     crewService = createCrewServiceMock();
+    giftService = createGiftServiceMock();
     crewService.getMembership.and.returnValue(of({ hasCrew: false }));
+    giftService.getNextAidInfo.and.returnValue({ recipientName: 'Ritu', amount: 20 });
 
     await TestBed.configureTestingModule({
       imports: [CrewHomeComponent],
       providers: [
         provideRouter([]),
-        { provide: CrewService, useValue: crewService }
+        { provide: CrewService, useValue: crewService },
+        { provide: GiftService, useValue: giftService }
       ]
     }).compileComponents();
 
@@ -45,12 +50,25 @@ describe('CrewHomeComponent', () => {
     expect(buttons[1].textContent).toContain('Join Crew');
   });
 
-  it('should show crew name when user has a crew', () => {
-    crewService.getMembership.and.returnValue(of({ hasCrew: true, crewId: 1, crewName: 'Alpha Fleet' }));
+  it('should show crew dashboard when user has a crew', () => {
+    crewService.getMembership.and.returnValue(of({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Alpha Fleet',
+      joinCode: 'ALPHA123'
+    }));
     component.ngOnInit();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Alpha Fleet');
+    expect(fixture.nativeElement.querySelector('.join-code')?.textContent).toContain('ALPHA123');
+    expect(fixture.nativeElement.querySelector('.crew-name')?.textContent).toContain('Alpha Fleet');
+    expect(fixture.nativeElement.querySelector('.info-text')?.textContent).toContain('Ritu needs $20');
+    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(4);
+  });
+
+  it('should navigate to gift log', () => {
+    component.goToGiftLog();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
   });
 
   it('should navigate to create crew page', () => {

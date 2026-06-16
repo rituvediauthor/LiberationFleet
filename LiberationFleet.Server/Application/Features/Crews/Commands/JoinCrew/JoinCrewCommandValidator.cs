@@ -13,8 +13,7 @@ public class JoinCrewCommandValidator : AbstractValidator<JoinCrewCommand>
         When(x => !string.IsNullOrWhiteSpace(x.JoinCode), () =>
         {
             RuleFor(x => x.JoinCode)
-                .MinimumLength(4).WithMessage("Join code must be at least 4 characters")
-                .MaximumLength(32).WithMessage("Join code must be 32 characters or fewer");
+                .Length(8).WithMessage("Join code must be exactly 8 characters");
         });
     }
 }

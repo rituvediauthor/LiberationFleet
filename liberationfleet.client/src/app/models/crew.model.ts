@@ -18,6 +18,7 @@ export interface CrewMembershipStatus {
   hasCrew: boolean;
   crewId?: number;
   crewName?: string;
+  joinCode?: string;
 }
 
 export interface CreateCrewRequest {

@@ -24,6 +24,28 @@ public static class HandlerTestFixture
         return new Mock<ICrewMembershipRepository>(MockBehavior.Strict);
     }
 
+    public static Mock<IGiftRepository> CreateGiftRepositoryMock()
+    {
+        return new Mock<IGiftRepository>(MockBehavior.Strict);
+    }
+
+    public static Mock<IPaymentPlatformRepository> CreatePaymentPlatformRepositoryMock(bool exists = true)
+    {
+        var mock = new Mock<IPaymentPlatformRepository>(MockBehavior.Strict);
+        mock.Setup(r => r.ExistsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(exists);
+        mock.Setup(r => r.GetAllOrderedAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PaymentPlatform>
+            {
+                new() { Id = 1, Name = "PayPal", SortOrder = 1 },
+                new() { Id = 2, Name = "Cash App", SortOrder = 2 },
+                new() { Id = 3, Name = "Venmo", SortOrder = 3 },
+                new() { Id = 4, Name = "Zelle", SortOrder = 4 },
+                new() { Id = 5, Name = "Other", SortOrder = 5 }
+            });
+        return mock;
+    }
+
     public static Mock<ICurrentUserService> CreateCurrentUserServiceMock(int? userId = 1)
     {
         var mock = new Mock<ICurrentUserService>(MockBehavior.Strict);

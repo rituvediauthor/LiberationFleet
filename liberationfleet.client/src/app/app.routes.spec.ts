@@ -8,8 +8,12 @@ import { SignInSuccessComponent } from './pages/sign-in-success/sign-in-success.
 import { CrewHomeComponent } from './pages/crew-home/crew-home.component';
 import { FriendsComponent } from './pages/friends/friends.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
+import { GiftLogComponent } from './pages/gift-log/gift-log.component';
+import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
+import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { authGuard } from './guards/auth.guard';
 
 describe('app.routes', () => {
@@ -27,7 +31,7 @@ describe('app.routes', () => {
   });
 
   it('should define authenticated app routes with authGuard', () => {
-    const appRoutes = ['app/crew', 'app/friends', 'app/profile', 'app/crew/create', 'app/crew/join'];
+    const appRoutes = ['app/crew', 'app/friends', 'app/profile', 'app/profile/user', 'app/profile/activity', 'app/profile/preferences', 'app/crew/create', 'app/crew/join'];
 
     for (const path of appRoutes) {
       const route = routes.find(r => r.path === path);
@@ -36,9 +40,16 @@ describe('app.routes', () => {
 
     expect(routes.find(r => r.path === 'app/crew')?.component).toBe(CrewHomeComponent);
     expect(routes.find(r => r.path === 'app/friends')?.component).toBe(FriendsComponent);
-    expect(routes.find(r => r.path === 'app/profile')?.component).toBe(ProfileComponent);
+    expect(routes.find(r => r.path === 'app/profile')?.component).toBe(UserHomeComponent);
+    expect(routes.find(r => r.path === 'app/profile/user')?.component).toBe(ProfileComponent);
+    expect(routes.find(r => r.path === 'app/profile/activity')?.component).toBe(PlaceholderPageComponent);
+    expect(routes.find(r => r.path === 'app/profile/preferences')?.component).toBe(PlaceholderPageComponent);
     expect(routes.find(r => r.path === 'app/crew/create')?.component).toBe(CreateCrewComponent);
     expect(routes.find(r => r.path === 'app/crew/join')?.component).toBe(JoinCrewComponent);
+    expect(routes.find(r => r.path === 'app/crew/gift-log')?.component).toBe(GiftLogComponent);
+    expect(routes.find(r => r.path === 'app/crew/gift-log/record')?.component).toBe(RecordGiftComponent);
+    expect(routes.find(r => r.path === 'app/crew/edit')?.component).toBe(PlaceholderPageComponent);
+    expect(routes.find(r => r.path === 'app/crew/chats')?.component).toBe(PlaceholderPageComponent);
   });
 
   it('should redirect unknown paths to root', () => {

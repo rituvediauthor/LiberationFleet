@@ -62,12 +62,21 @@ describe('CrewService', () => {
     req.flush({ success: true, items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0, message: 'No crews found' });
   });
 
-  it('join should POST join payload', () => {
+  it('join should POST join payload by crew id', () => {
     service.join({ crewId: 5 }).subscribe();
 
     const req = httpMock.expectOne('/api/crews/join');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ crewId: 5 });
+    req.flush({ success: true, message: 'Joined crew successfully' });
+  });
+
+  it('join should POST join payload by join code only', () => {
+    service.join({ joinCode: 'alpha123' }).subscribe();
+
+    const req = httpMock.expectOne('/api/crews/join');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ joinCode: 'ALPHA123' });
     req.flush({ success: true, message: 'Joined crew successfully' });
   });
 });

@@ -7,6 +7,22 @@ namespace LiberationFleet.Server.Tests.TestHelpers;
 
 public static class TestDbContextFactory
 {
+    public static async Task SeedPaymentPlatformsAsync(ApplicationDbContext context)
+    {
+        if (await context.PaymentPlatforms.AnyAsync())
+        {
+            return;
+        }
+
+        context.PaymentPlatforms.AddRange(
+            new PaymentPlatform { Id = 1, Name = "PayPal", SortOrder = 1 },
+            new PaymentPlatform { Id = 2, Name = "Cash App", SortOrder = 2 },
+            new PaymentPlatform { Id = 3, Name = "Venmo", SortOrder = 3 },
+            new PaymentPlatform { Id = 4, Name = "Zelle", SortOrder = 4 },
+            new PaymentPlatform { Id = 5, Name = "Other", SortOrder = 5 });
+        await context.SaveChangesAsync();
+    }
+
     public static ApplicationDbContext Create(string? databaseName = null)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -22,6 +38,7 @@ public static class TestDbContextFactory
         string passwordHash = "hashed-password")
     {
         var context = Create();
+        await SeedPaymentPlatformsAsync(context);
         var user = new User
         {
             Username = username,

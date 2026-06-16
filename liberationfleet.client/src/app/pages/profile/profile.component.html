@@ -1,6 +1,103 @@
-<app-nav-layout activeTab="profile">
-  <div class="placeholder-page">
-    <h1>Profile</h1>
-    <p>Personal profile pages coming soon...</p>
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="form-container" *ngIf="isLoading">
+    <p class="status-message">Loading profile...</p>
   </div>
-</app-nav-layout>
+
+  <div class="form-container" *ngIf="!isLoading && loadError">
+    <p class="status-message error">{{ loadError }}</p>
+  </div>
+
+  <div class="form-container" *ngIf="form && profile && !isLoading">
+    <div class="form-card">
+      <h1>Profile</h1>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" formControlName="username" class="form-input">
+          <span class="hint-text">Must be unique across the platform</span>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" formControlName="email" class="form-input">
+        </div>
+
+        <section class="section">
+          <h2>Payment Platforms</h2>
+          <p class="section-hint">Add platforms you use and your username or tag on each.</p>
+
+          <div class="platform-row" *ngFor="let account of paymentPlatforms">
+            <select [(ngModel)]="account.platformId" [ngModelOptions]="{standalone: true}" class="form-input" (ngModelChange)="onPaymentPlatformChange()">
+              <option *ngFor="let p of platformOptions" [ngValue]="p.id">{{ p.name }}</option>
+            </select>
+            <input
+              [(ngModel)]="account.handle"
+              [ngModelOptions]="{standalone: true}"
+              class="form-input"
+              placeholder="Username or tag"
+              (ngModelChange)="onPaymentPlatformChange()">
+            <button type="button" class="icon-btn" (click)="removePaymentPlatform(account.id)" aria-label="Remove platform">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <button type="button" class="text-btn" (click)="addPaymentPlatform()">+ Add platform</button>
+        </section>
+
+        <div class="readonly-grid" *ngIf="stats">
+          <div class="readonly-item">
+            <span class="readonly-label">Sacrifices (last year)</span>
+            <span class="readonly-value">{{ stats.sacrificeCount }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
+            <span class="readonly-value">${{ stats.averageMonthlyContributions }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Membership status</span>
+            <span class="readonly-value">{{ stats.membershipStatus ? 'Active' : 'Inactive' }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Lifetime contributions</span>
+            <span class="readonly-value">${{ stats.lifetimeContributions }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Reception (last year)</span>
+            <span class="readonly-value">${{ stats.receptionLastYear }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Percent boost</span>
+            <span class="readonly-value">+{{ stats.percentBoost }}%</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Priority score</span>
+            <span class="readonly-value">{{ stats.priorityScore }}</span>
+          </div>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="inNeedOfAid">
+            In need of aid
+          </label>
+          <span class="hint-text">Defaults to on when average monthly contributions are below $20</span>
+        </div>
+
+        <div class="form-group">
+          <label for="emergencyLevel">Emergency level (0–3)</label>
+          <input id="emergencyLevel" type="number" formControlName="emergencyLevel" class="form-input" min="0" max="3" step="1">
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="needsSurvivalAid">
+            Needs survival aid
+          </label>
+        </div>
+
+        <button type="button" class="logout-btn" (click)="onLogout()">Log out</button>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

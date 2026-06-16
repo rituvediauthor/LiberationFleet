@@ -33,6 +33,28 @@ public class UserRepository : IUserRepository
         return _context.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
+    public Task<User?> GetByIdWithProfileAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return _context.Users
+            .Include(u => u.PaymentPlatforms)
+                .ThenInclude(p => p.PaymentPlatform)
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+    }
+
+    public Task<bool> IsUsernameTakenByOtherUserAsync(string username, int userId, CancellationToken cancellationToken = default)
+    {
+        return _context.Users.AnyAsync(
+            u => u.Username == username && u.Id != userId,
+            cancellationToken);
+    }
+
+    public Task<bool> IsEmailTakenByOtherUserAsync(string email, int userId, CancellationToken cancellationToken = default)
+    {
+        return _context.Users.AnyAsync(
+            u => u.Email == email && u.Id != userId,
+            cancellationToken);
+    }
+
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await _context.Users.AddAsync(user, cancellationToken);
@@ -40,7 +62,11 @@ public class UserRepository : IUserRepository
 
     public Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
-        _context.Users.Update(user);
+        if (_context.Entry(user).State == EntityState.Detached)
+        {
+            _context.Users.Update(user);
+        }
+
         return Task.CompletedTask;
     }
 }

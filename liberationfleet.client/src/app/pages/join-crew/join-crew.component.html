@@ -12,15 +12,24 @@
           </label>
           <label class="radio-option">
             <input type="radio" formControlName="mode" value="code">
-            Use a code
+            Join with code
           </label>
         </div>
 
         <ng-container *ngIf="!isFindMode">
           <div class="form-group">
-            <label for="joinCode">Crew ID Code</label>
-            <input id="joinCode" type="text" formControlName="joinCode" class="form-input" placeholder="Enter crew code">
-            <span class="hint-text">Private crews can be joined with an exact code match.</span>
+            <label for="joinCode">Join code</label>
+            <input
+              id="joinCode"
+              type="text"
+              formControlName="joinCode"
+              class="form-input join-code-input"
+              [attr.maxlength]="joinCodeLength"
+              autocapitalize="characters"
+              spellcheck="false"
+              placeholder="8-character code"
+              (input)="onJoinCodeInput($event)">
+            <span class="hint-text">Enter the join code shown on your crew's home page.</span>
           </div>
         </ng-container>
 

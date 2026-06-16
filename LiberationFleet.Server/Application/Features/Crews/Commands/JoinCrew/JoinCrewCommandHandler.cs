@@ -45,7 +45,13 @@ public class JoinCrewCommandHandler : IRequestHandler<JoinCrewCommand, CrewOpera
 
         if (crew is null)
         {
-            return new CrewOperationResponse { Success = false, Message = "Crew not found" };
+            return new CrewOperationResponse
+            {
+                Success = false,
+                Message = !string.IsNullOrWhiteSpace(request.JoinCode)
+                    ? "No crew found with that join code"
+                    : "Crew not found"
+            };
         }
 
         if (await _membershipRepository.IsUserBannedFromCrewAsync(userId.Value, crew.Id, cancellationToken))

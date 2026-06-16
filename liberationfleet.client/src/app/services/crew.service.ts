@@ -31,6 +31,14 @@ export class CrewService {
   }
 
   join(request: JoinCrewRequest): Observable<CrewOperationResult> {
-    return this.http.post<CrewOperationResult>(`${this.apiUrl}/join`, request);
+    if (request.joinCode?.trim()) {
+      return this.http.post<CrewOperationResult>(`${this.apiUrl}/join`, {
+        joinCode: request.joinCode.trim().toUpperCase()
+      });
+    }
+
+    return this.http.post<CrewOperationResult>(`${this.apiUrl}/join`, {
+      crewId: request.crewId
+    });
   }
 }

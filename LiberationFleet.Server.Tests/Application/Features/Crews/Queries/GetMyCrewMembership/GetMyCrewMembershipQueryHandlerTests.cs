@@ -38,7 +38,7 @@ public class GetMyCrewMembershipQueryHandlerTests
     public async Task Handle_WhenUserHasCrew_ReturnsMembershipDetails()
     {
         var user = HandlerTestFixture.CreateUser();
-        var crew = HandlerTestFixture.CreateCrew(name: "Fleet Bravo");
+        var crew = HandlerTestFixture.CreateCrew(name: "Fleet Bravo", joinCode: "BRAVO123");
         var membership = HandlerTestFixture.CreateMembership(user, crew);
 
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
@@ -53,6 +53,7 @@ public class GetMyCrewMembershipQueryHandlerTests
         result.HasCrew.Should().BeTrue();
         result.CrewId.Should().Be(crew.Id);
         result.CrewName.Should().Be("Fleet Bravo");
+        result.JoinCode.Should().Be("BRAVO123");
     }
 
     private static GetMyCrewMembershipQueryHandler CreateHandler(

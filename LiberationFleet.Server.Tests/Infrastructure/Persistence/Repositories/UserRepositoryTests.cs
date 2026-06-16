@@ -109,4 +109,37 @@ public class UserRepositoryTests
 
         context.Users.Single().Username.Should().Be("updateduser");
     }
+
+    [Fact]
+    public async Task GetByIdWithProfileAsync_ReturnsUserWithPaymentPlatforms()
+    {
+        await using var context = await TestDbContextFactory.CreateWithUserAsync();
+        var user = context.Users.Single();
+        context.UserPaymentPlatforms.Add(new Domain.Entities.UserPaymentPlatform
+        {
+            UserId = user.Id,
+            PaymentPlatformId = 1,
+            PaymentPlatform = new Domain.Entities.PaymentPlatform { Id = 1, Name = "PayPal" },
+            Handle = "user@example.com"
+        });
+        await context.SaveChangesAsync();
+
+        var repository = new UserRepository(context);
+        var loaded = await repository.GetByIdWithProfileAsync(user.Id);
+
+        loaded.Should().NotBeNull();
+        loaded!.PaymentPlatforms.Should().ContainSingle(p => p.PaymentPlatformId == 1);
+    }
+
+    [Fact]
+    public async Task IsUsernameTakenByOtherUserAsync_WhenAnotherUserHasUsername_ReturnsTrue()
+    {
+        await using var context = await TestDbContextFactory.CreateWithUserAsync(username: "existing");
+        var repository = new UserRepository(context);
+        var otherUserId = context.Users.Single().Id + 99;
+
+        var taken = await repository.IsUsernameTakenByOtherUserAsync("existing", otherUserId);
+
+        taken.Should().BeTrue();
+    }
 }

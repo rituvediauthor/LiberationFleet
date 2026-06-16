@@ -1,0 +1,27 @@
+<app-nav-layout activeTab="profile">
+  <div class="user-home">
+    <header class="user-header">
+      <h1>User</h1>
+    </header>
+
+    <nav class="user-menu" aria-label="User actions">
+      <button type="button" class="menu-link" (click)="goToUserProfile()">
+        <i class="fa-solid fa-user menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">User Profile</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="goToActivityCenter()">
+        <i class="fa-solid fa-clock-rotate-left menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Activity center</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="goToPreferences()">
+        <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Preferences</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+    </nav>
+  </div>
+</app-nav-layout>

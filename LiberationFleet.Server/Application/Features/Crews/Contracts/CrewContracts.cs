@@ -19,6 +19,7 @@ public class CrewMembershipStatusDto
     public bool HasCrew { get; set; }
     public int? CrewId { get; set; }
     public string? CrewName { get; set; }
+    public string? JoinCode { get; set; }
 }
 
 public class CrewOperationResponse

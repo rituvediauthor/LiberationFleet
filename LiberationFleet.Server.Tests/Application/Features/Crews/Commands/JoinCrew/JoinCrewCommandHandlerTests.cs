@@ -151,6 +151,43 @@ public class JoinCrewCommandHandlerTests
         unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenValidJoinByCode_AddsMembership()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew(joinCode: "ALPHA123");
+        var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
+        var membershipRepository = SetupNoExistingMembership(user.Id);
+        var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
+
+        crewRepository
+            .Setup(r => r.GetByJoinCodeAsync("ALPHA123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(crew);
+
+        membershipRepository
+            .Setup(r => r.IsUserBannedFromCrewAsync(user.Id, crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        crewRepository
+            .Setup(r => r.CountMembersAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        CrewMembership? capturedMembership = null;
+        membershipRepository
+            .Setup(r => r.AddAsync(It.IsAny<CrewMembership>(), It.IsAny<CancellationToken>()))
+            .Callback<CrewMembership, CancellationToken>((m, _) => capturedMembership = m)
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler(currentUserId: user.Id, crewRepository: crewRepository, membershipRepository: membershipRepository, unitOfWork: unitOfWork);
+
+        var result = await handler.Handle(new JoinCrewCommand { JoinCode = "alpha123" }, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Crew!.JoinCode.Should().Be("ALPHA123");
+        capturedMembership!.CrewId.Should().Be(crew.Id);
+        crewRepository.Verify(r => r.GetByJoinCodeAsync("ALPHA123", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     private static Mock<ICrewMembershipRepository> SetupNoExistingMembership(int userId)
     {
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();

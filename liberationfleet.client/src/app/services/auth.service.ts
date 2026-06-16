@@ -56,6 +56,10 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  updateCurrentUser(user: User): void {
+    this.currentUserSubject.next(user);
+  }
+
   private loadToken(): void {
     const token = this.getToken();
     if (token) {

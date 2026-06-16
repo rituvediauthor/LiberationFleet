@@ -52,7 +52,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             Scope = scope,
             ZipCode = scope == CrewScope.Local ? request.ZipCode : null,
             RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null,
-            JoinCode = GenerateJoinCode(),
+            JoinCode = await GenerateUniqueJoinCodeAsync(cancellationToken),
             CreatedByUserId = userId.Value,
             CreatedAt = DateTime.UtcNow
         };
@@ -75,6 +75,21 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             Message = "Crew created successfully",
             Crew = MapCrew(crew, 1)
         };
+    }
+
+    private async Task<string> GenerateUniqueJoinCodeAsync(CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 10;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var code = GenerateJoinCode();
+            if (await _crewRepository.GetByJoinCodeAsync(code, cancellationToken) is null)
+            {
+                return code;
+            }
+        }
+
+        throw new InvalidOperationException("Unable to generate a unique join code.");
     }
 
     private static string GenerateJoinCode()

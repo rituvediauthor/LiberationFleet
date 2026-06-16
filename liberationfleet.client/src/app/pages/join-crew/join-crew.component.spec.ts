@@ -17,6 +17,15 @@ describe('JoinCrewComponent', () => {
   beforeEach(async () => {
     crewService = createCrewServiceMock();
     toastService = createToastServiceMock();
+    crewService.search.and.returnValue(of({
+      success: true,
+      message: 'No crews found',
+      items: [],
+      page: 1,
+      pageSize: 10,
+      totalCount: 0,
+      totalPages: 0
+    }));
 
     await TestBed.configureTestingModule({
       imports: [JoinCrewComponent],
@@ -40,7 +49,16 @@ describe('JoinCrewComponent', () => {
     expect(component.joinButton.disabled).toBeTrue();
   });
 
-  it('should search online crews when in find mode', fakeAsync(() => {
+  it('should search online crews on page load', () => {
+    expect(crewService.search).toHaveBeenCalledWith(jasmine.objectContaining({
+      scope: 'Online',
+      page: 1,
+      pageSize: 10
+    }));
+    expect(component.hasSearched).toBeTrue();
+  });
+
+  it('should search online crews when search criteria changes', fakeAsync(() => {
     crewService.search.and.returnValue(of({
       success: true,
       message: 'Crews found',
@@ -57,6 +75,12 @@ describe('JoinCrewComponent', () => {
     expect(crewService.search).toHaveBeenCalledWith(jasmine.objectContaining({ scope: 'Online', page: 1, pageSize: 10 }));
     expect(component.searchResults.length).toBe(1);
   }));
+
+  it('should not search on page load when join code mode is selected', () => {
+    crewService.search.calls.reset();
+    component.form.patchValue({ mode: 'code' });
+    expect(crewService.search).not.toHaveBeenCalled();
+  });
 
   it('should enable join button when crew is selected', () => {
     component.selectCrew({ id: 1, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' });
@@ -76,12 +100,22 @@ describe('JoinCrewComponent', () => {
 
   it('should join by code in code mode', fakeAsync(() => {
     crewService.join.and.returnValue(of({ success: true, message: 'Joined crew successfully' }));
-    component.form.patchValue({ mode: 'code', joinCode: 'join1234' });
+    component.form.patchValue({ mode: 'code', joinCode: 'JOIN1234' });
     tick(400);
 
     component.onJoin();
 
     expect(crewService.join).toHaveBeenCalledWith({ joinCode: 'JOIN1234' });
+  }));
+
+  it('should keep join disabled until join code is 8 characters', fakeAsync(() => {
+    component.form.patchValue({ mode: 'code', joinCode: 'JOIN12' });
+    tick(400);
+    expect(component.joinButton.disabled).toBeTrue();
+
+    component.form.patchValue({ joinCode: 'JOIN1234' });
+    tick(400);
+    expect(component.joinButton.disabled).toBeFalse();
   }));
 
   it('should show error toast on join failure', fakeAsync(() => {

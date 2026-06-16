@@ -1,0 +1,82 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="logButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Record Gift</h1>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <label for="amount">Gift Amount ($)</label>
+          <input id="amount" type="number" formControlName="amount" class="form-input" min="0.01" step="0.01" placeholder="0.00">
+          <span class="error-text" *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched">
+            Enter a valid amount
+          </span>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="completingAsMiddleman">
+            Are you a middle man completing a gift?
+          </label>
+        </div>
+
+        <div class="form-group" *ngIf="isCompletingAsMiddleman">
+          <label for="pendingGiftId">Pending gift to complete</label>
+          <select id="pendingGiftId" formControlName="pendingGiftId" class="form-input">
+            <option value="">Select a pending gift</option>
+            <option *ngFor="let gift of pendingGifts" [value]="gift.id">
+              {{ gift.initiatorName }} → {{ gift.recipientName }} (${{ gift.amount }})
+            </option>
+          </select>
+        </div>
+
+        <ng-container *ngIf="!isCompletingAsMiddleman">
+          <div class="form-group">
+            <label for="recipientId">Recipient</label>
+            <select id="recipientId" formControlName="recipientId" class="form-input">
+              <option value="">Select crew member</option>
+              <option *ngFor="let member of crewMembers" [value]="member.id">{{ member.username }}</option>
+            </select>
+            <span class="error-text" *ngIf="form.get('recipientId')?.invalid && form.get('recipientId')?.touched">
+              Recipient is required
+            </span>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="useMiddleman">
+              Use middle man?
+            </label>
+          </div>
+
+          <div class="form-group" *ngIf="useMiddleman">
+            <label for="middlemanId">Middle man</label>
+            <select id="middlemanId" formControlName="middlemanId" class="form-input">
+              <option value="">Select middle man</option>
+              <option *ngFor="let member of middlemanOptions" [value]="member.id">{{ member.username }}</option>
+            </select>
+          </div>
+        </ng-container>
+
+        <div class="form-group">
+          <label for="paymentPlatformId">Payment Platform</label>
+          <select id="paymentPlatformId" formControlName="paymentPlatformId" class="form-input">
+            <option value="">Select platform</option>
+            <option *ngFor="let platform of platforms" [ngValue]="platform.id">{{ platform.name }}</option>
+          </select>
+          <span class="error-text" *ngIf="form.get('paymentPlatformId')?.invalid && form.get('paymentPlatformId')?.touched">
+            Platform is required
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showConfirmDialog"
+  title="Alert"
+  message="This only records a gift that was already given by means outside of this app."
+  confirmLabel="Okay"
+  (confirmed)="onConfirmLog()"
+  (dismissed)="onDismissDialog()">
+</app-confirm-dialog>

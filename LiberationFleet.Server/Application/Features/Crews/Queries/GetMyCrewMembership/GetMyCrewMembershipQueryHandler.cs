@@ -36,7 +36,8 @@ public class GetMyCrewMembershipQueryHandler : IRequestHandler<GetMyCrewMembersh
         {
             HasCrew = true,
             CrewId = membership.CrewId,
-            CrewName = membership.Crew.Name
+            CrewName = membership.Crew.Name,
+            JoinCode = membership.Crew.JoinCode
         };
     }
 }
