@@ -5,7 +5,7 @@ namespace LiberationFleet.Server.Application.Features.Profile;
 
 public static class ProfileMapper
 {
-    public static UserProfileDto MapUser(User user, UserGiftStats giftStats, bool hasActiveCrewMembership)
+    public static UserProfileDto MapUser(User user, UserGiftStats giftStats, bool isMember, decimal priorityScore)
     {
         return new UserProfileDto
         {
@@ -25,21 +25,21 @@ public static class ProfileMapper
             InNeedOfAid = user.InNeedOfAid,
             EmergencyLevel = user.EmergencyLevel,
             NeedsSurvivalAid = user.NeedsSurvivalAid,
-            Stats = BuildStats(giftStats, hasActiveCrewMembership)
+            Stats = BuildStats(giftStats, isMember, user.PercentBonus, priorityScore)
         };
     }
 
-    private static UserProfileStatsDto BuildStats(UserGiftStats giftStats, bool hasActiveCrewMembership)
+    private static UserProfileStatsDto BuildStats(UserGiftStats giftStats, bool isMember, int percentBonus, decimal priorityScore)
     {
         return new UserProfileStatsDto
         {
             SacrificeCount = giftStats.SacrificeCountLastYear,
             AverageMonthlyContributions = Math.Round(giftStats.ContributionsLast3Months / 3m, 2),
-            MembershipStatus = hasActiveCrewMembership,
+            MembershipStatus = isMember,
             LifetimeContributions = giftStats.LifetimeContributions,
             ReceptionLastYear = giftStats.ReceptionLastYear,
-            PercentBoost = 0,
-            PriorityScore = 0
+            PercentBoost = percentBonus,
+            PriorityScore = (int)Math.Round(priorityScore)
         };
     }
 }

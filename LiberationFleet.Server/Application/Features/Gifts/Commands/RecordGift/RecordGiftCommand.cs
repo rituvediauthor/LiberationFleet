@@ -8,4 +8,5 @@ public record RecordGiftCommand(
     int PaymentPlatformId,
     int? RecipientId,
     int? MiddlemanId,
-    int? CompletingGiftId) : IRequest<GiftOperationResponse>;
+    int? CompletingGiftId,
+    bool IsSurvivalThreshold = false) : IRequest<GiftOperationResponse>;

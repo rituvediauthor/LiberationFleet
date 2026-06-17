@@ -44,6 +44,7 @@ export interface RecordGiftRequest {
   middlemanId?: number;
   completingGiftId?: number;
   paymentPlatformId: number;
+  isSurvivalThreshold?: boolean;
 }
 
 export interface GiftLogResponse {
@@ -61,4 +62,22 @@ export interface GiftOperationResponse {
 export interface NextAidInfo {
   recipientName: string;
   amount: number;
+}
+
+export interface RecipientNeed {
+  userId: number;
+  username: string;
+  amountNeeded: number;
+  isSurvivalThreshold: boolean;
+  receptionOrderPosition: number;
+  commonPaymentPlatforms: number[];
+  suggestedMiddlemanId?: number;
+  suggestedMiddlemanName?: string;
+  paymentNote: string;
+}
+
+export interface ReceptionOrderResponse {
+  success: boolean;
+  message: string;
+  recipients: RecipientNeed[];
 }

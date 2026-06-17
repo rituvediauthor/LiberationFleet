@@ -9,7 +9,8 @@ import {
   NextAidInfo,
   PaymentPlatformOption,
   PendingMiddlemanGift,
-  RecordGiftRequest
+  RecordGiftRequest,
+  ReceptionOrderResponse
 } from '../models/gift.model';
 
 @Injectable({
@@ -18,6 +19,7 @@ import {
 export class GiftService {
   private readonly apiUrl = '/api/gifts';
   private readonly paymentPlatformsUrl = '/api/payment-platforms';
+  private readonly recipientsUrl = '/api/recipients';
 
   constructor(private http: HttpClient) {}
 
@@ -37,6 +39,10 @@ export class GiftService {
 
   getPendingMiddlemanGifts(): Observable<PendingMiddlemanGift[]> {
     return this.http.get<PendingMiddlemanGift[]>(`${this.apiUrl}/pending-middleman`);
+  }
+
+  getReceptionOrder(limit: number = 30): Observable<ReceptionOrderResponse> {
+    return this.http.get<ReceptionOrderResponse>(`${this.recipientsUrl}/reception-order?limit=${limit}`);
   }
 
   getLogs(): Observable<GiftLogEntry[]> {
@@ -64,12 +70,14 @@ export class GiftService {
       recipientId: number | null;
       middlemanId: number | null;
       completingGiftId: number | null;
+      isSurvivalThreshold: boolean;
     } = {
       amount: request.amount,
       paymentPlatformId: request.paymentPlatformId,
       recipientId: null,
       middlemanId: null,
-      completingGiftId: null
+      completingGiftId: null,
+      isSurvivalThreshold: request.isSurvivalThreshold ?? false
     };
 
     if (request.completingGiftId) {

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -12,6 +13,7 @@ public class RecordGiftCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     IPaymentPlatformRepository paymentPlatformRepository,
+    IReceptionOrderService receptionOrderService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftCommand request, CancellationToken cancellationToken)
@@ -50,6 +52,7 @@ public class RecordGiftCommandHandler(
             request.MiddlemanId,
             request.Amount,
             request.PaymentPlatformId,
+            request.IsSurvivalThreshold,
             cancellationToken);
     }
 
@@ -86,11 +89,15 @@ public class RecordGiftCommandHandler(
             Amount = initiated.Amount,
             PaymentPlatformId = paymentPlatformId,
             InitiatedGiftId = initiated.Id,
+            IsSurvivalThreshold = initiated.IsSurvivalThreshold,
+            CountsTowardReception = true,
             CreatedAt = DateTime.UtcNow
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await receptionOrderService.UpdateReceptionAmountsAsync(gift.Id);
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse
@@ -108,6 +115,7 @@ public class RecordGiftCommandHandler(
         int? middlemanId,
         decimal amount,
         int paymentPlatformId,
+        bool isSurvivalThreshold,
         CancellationToken cancellationToken)
     {
         if (recipientId == userId)
@@ -149,11 +157,18 @@ public class RecordGiftCommandHandler(
             Type = middlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
             Amount = amount,
             PaymentPlatformId = paymentPlatformId,
+            IsSurvivalThreshold = isSurvivalThreshold,
+            CountsTowardReception = middlemanId.HasValue ? false : true,
             CreatedAt = DateTime.UtcNow
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (gift.Type == GiftType.Direct)
+        {
+            await receptionOrderService.UpdateReceptionAmountsAsync(gift.Id);
+        }
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse

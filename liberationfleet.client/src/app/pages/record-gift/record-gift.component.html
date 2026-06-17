@@ -1,71 +1,104 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="logButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="recordButton">
   <div class="form-container">
     <div class="form-card">
-      <h1>Record Gift</h1>
+      <h1>Record Gifts</h1>
 
-      <form [formGroup]="form">
-        <div class="form-group">
-          <label for="amount">Gift Amount ($)</label>
-          <input id="amount" type="number" formControlName="amount" class="form-input" min="0.01" step="0.01" placeholder="0.00">
-          <span class="error-text" *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched">
-            Enter a valid amount
-          </span>
+      <div *ngIf="loading" class="loading-message">
+        Loading reception order...
+      </div>
+
+      <form [formGroup]="form" *ngIf="!loading">
+        <div class="custom-gift-section">
+          <h2>Custom Gift</h2>
+          <p class="help-text">If someone else already satisfied a gift below, record it here:</p>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="customRecipientId">Recipient</label>
+              <select id="customRecipientId" formControlName="customRecipientId" class="form-input">
+                <option value="">Select crew member</option>
+                <option *ngFor="let member of crewMembers" [value]="member.id">{{ member.username }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="customAmount">Amount ($)</label>
+              <input id="customAmount" type="number" formControlName="customAmount" class="form-input" min="0.01" step="0.01" placeholder="0.00">
+            </div>
+
+            <div class="form-group">
+              <label for="customPaymentPlatformId">Platform</label>
+              <select id="customPaymentPlatformId" formControlName="customPaymentPlatformId" class="form-input">
+                <option value="">Select platform</option>
+                <option *ngFor="let platform of platforms" [ngValue]="platform.id">{{ platform.name }}</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="completingAsMiddleman">
-            Are you a middle man completing a gift?
-          </label>
-        </div>
+        <div class="recipients-section">
+          <h2>Reception Order</h2>
+          <p class="help-text">Record gifts in order of who needs them most:</p>
 
-        <div class="form-group" *ngIf="isCompletingAsMiddleman">
-          <label for="pendingGiftId">Pending gift to complete</label>
-          <select id="pendingGiftId" formControlName="pendingGiftId" class="form-input">
-            <option value="">Select a pending gift</option>
-            <option *ngFor="let gift of pendingGifts" [value]="gift.id">
-              {{ gift.initiatorName }} → {{ gift.recipientName }} (${{ gift.amount }})
-            </option>
-          </select>
-        </div>
+          <div class="recipient-list" formArrayName="recipientGifts">
+            <div *ngFor="let recipient of recipients; let i = index" class="recipient-entry" [formGroupName]="i">
+              <div class="recipient-header">
+                <div class="recipient-info">
+                  <span class="recipient-name">{{ recipient.username }}</span>
+                  <span class="recipient-badge" [class.survival-badge]="recipient.isSurvivalThreshold">
+                    {{ recipient.isSurvivalThreshold ? 'Survival Threshold' : 'Cycle' }}
+                  </span>
+                  <span class="recipient-amount">${{ recipient.amountNeeded.toFixed(2) }} needed</span>
+                </div>
+              </div>
 
-        <ng-container *ngIf="!isCompletingAsMiddleman">
-          <div class="form-group">
-            <label for="recipientId">Recipient</label>
-            <select id="recipientId" formControlName="recipientId" class="form-input">
-              <option value="">Select crew member</option>
-              <option *ngFor="let member of crewMembers" [value]="member.id">{{ member.username }}</option>
-            </select>
-            <span class="error-text" *ngIf="form.get('recipientId')?.invalid && form.get('recipientId')?.touched">
-              Recipient is required
-            </span>
+              <div class="recipient-payment-info">
+                <span class="payment-note">{{ recipient.paymentNote }}</span>
+              </div>
+
+              <div class="recipient-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label [for]="'amount-' + i">Gift Amount ($)</label>
+                    <input 
+                      [id]="'amount-' + i" 
+                      type="number" 
+                      formControlName="amount" 
+                      class="form-input" 
+                      min="0.01" 
+                      step="0.01" 
+                      placeholder="0.00">
+                  </div>
+
+                  <div class="form-group" *ngIf="recipient.commonPaymentPlatforms.length === 0 && !recipient.suggestedMiddlemanId">
+                    <label [for]="'platform-' + i">Platform</label>
+                    <select [id]="'platform-' + i" formControlName="paymentPlatformId" class="form-input">
+                      <option *ngFor="let platform of platforms" [ngValue]="platform.id">{{ platform.name }}</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" *ngIf="recipient.commonPaymentPlatforms.length > 0">
+                    <label [for]="'platform-' + i">Platform (Direct)</label>
+                    <select [id]="'platform-' + i" formControlName="paymentPlatformId" class="form-input">
+                      <option *ngFor="let platformId of recipient.commonPaymentPlatforms" [ngValue]="platformId">
+                        {{ platforms.find(p => p.id === platformId)?.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" *ngIf="recipient.suggestedMiddlemanId">
+                    <label>Via Middleman</label>
+                    <div class="middleman-display">{{ getMiddlemanName(recipient) }}</div>
+                    <input type="hidden" formControlName="middlemanId">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="recipients.length === 0" class="no-recipients">
+              No recipients in the reception order at this time.
+            </div>
           </div>
-
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" formControlName="useMiddleman">
-              Use middle man?
-            </label>
-          </div>
-
-          <div class="form-group" *ngIf="useMiddleman">
-            <label for="middlemanId">Middle man</label>
-            <select id="middlemanId" formControlName="middlemanId" class="form-input">
-              <option value="">Select middle man</option>
-              <option *ngFor="let member of middlemanOptions" [value]="member.id">{{ member.username }}</option>
-            </select>
-          </div>
-        </ng-container>
-
-        <div class="form-group">
-          <label for="paymentPlatformId">Payment Platform</label>
-          <select id="paymentPlatformId" formControlName="paymentPlatformId" class="form-input">
-            <option value="">Select platform</option>
-            <option *ngFor="let platform of platforms" [ngValue]="platform.id">{{ platform.name }}</option>
-          </select>
-          <span class="error-text" *ngIf="form.get('paymentPlatformId')?.invalid && form.get('paymentPlatformId')?.touched">
-            Platform is required
-          </span>
         </div>
       </form>
     </div>
@@ -75,7 +108,7 @@
 <app-confirm-dialog
   [visible]="showConfirmDialog"
   title="Alert"
-  message="This only records a gift that was already given by means outside of this app."
+  message="This only records gifts that were already given by means outside of this app."
   confirmLabel="Okay"
   (confirmed)="onConfirmLog()"
   (dismissed)="onDismissDialog()">

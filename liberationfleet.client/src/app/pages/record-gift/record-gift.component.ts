@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
@@ -8,11 +8,17 @@ import { GiftService } from '../../services/gift.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
 import {
-  CrewMember,
+  RecipientNeed,
   PaymentPlatformOption,
-  PendingMiddlemanGift,
-  RecordGiftRequest
+  RecordGiftRequest,
+  CrewMember
 } from '../../models/gift.model';
+
+interface RecipientFormEntry {
+  recipient: RecipientNeed;
+  amount: number;
+  middlemanId?: number;
+}
 
 @Component({
   selector: 'app-record-gift',
@@ -24,16 +30,17 @@ import {
 export class RecordGiftComponent implements OnInit {
   form!: FormGroup;
   backButton!: ActionBarButton;
-  logButton!: ActionBarButton;
+  recordButton!: ActionBarButton;
 
-  crewMembers: CrewMember[] = [];
-  middlemanOptions: CrewMember[] = [];
-  pendingGifts: PendingMiddlemanGift[] = [];
+  recipients: RecipientNeed[] = [];
   platforms: PaymentPlatformOption[] = [];
+  crewMembers: CrewMember[] = [];
   showConfirmDialog = false;
   isRecording = false;
+  loading = true;
 
-  activeUser: CrewMember = { id: 0, username: '' };
+  activeUserId = 0;
+  customRecipientId: number | null = null;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -44,36 +51,17 @@ export class RecordGiftComponent implements OnInit {
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
       if (user) {
-        this.activeUser = { id: user.id, username: user.username };
+        this.activeUserId = user.id;
+        this.loadData();
       }
-      this.refreshOptions();
     });
 
     this.form = this.fb.group({
-      amount: ['', [Validators.required, Validators.min(0.01)]],
-      recipientId: [''],
-      useMiddleman: [false],
-      middlemanId: [''],
-      completingAsMiddleman: [false],
-      pendingGiftId: [''],
-      paymentPlatformId: ['', Validators.required]
+      customAmount: [''],
+      customRecipientId: [''],
+      customPaymentPlatformId: [''],
+      recipientGifts: this.fb.array([])
     });
-
-    this.giftService.getPaymentPlatforms().subscribe({
-      next: platforms => {
-        this.platforms = platforms;
-        if (platforms.length > 0 && !this.form.get('paymentPlatformId')?.value) {
-          this.form.patchValue({ paymentPlatformId: platforms[0].id }, { emitEvent: false });
-        }
-      },
-      error: () => this.toastService.error('Failed to load payment platforms')
-    });
-
-    this.form.get('useMiddleman')?.valueChanges.subscribe(() => this.onUseMiddlemanChange());
-    this.form.get('completingAsMiddleman')?.valueChanges.subscribe(() => this.onCompletingChange());
-    this.form.get('recipientId')?.valueChanges.subscribe(() => this.refreshMiddlemanOptions());
-    this.form.get('middlemanId')?.valueChanges.subscribe(() => this.refreshRecipientOptions());
-    this.form.get('pendingGiftId')?.valueChanges.subscribe(pendingGiftId => this.onPendingGiftSelected(pendingGiftId));
 
     this.backButton = {
       label: '←',
@@ -81,237 +69,166 @@ export class RecordGiftComponent implements OnInit {
       onClick: () => this.router.navigate(['/app/crew/gift-log'])
     };
 
-    this.updateLogButton();
-
-    this.form.statusChanges.subscribe(() => this.updateLogButton());
-    this.form.valueChanges.subscribe(() => this.updateLogButton());
-    this.updateValidators();
-    this.refreshOptions();
+    this.updateRecordButton();
+    this.form.valueChanges.subscribe(() => this.updateRecordButton());
   }
 
-  get isCompletingAsMiddleman(): boolean {
-    return !!this.form.get('completingAsMiddleman')?.value;
-  }
+  private loadData() {
+    this.loading = true;
 
-  get useMiddleman(): boolean {
-    return !!this.form.get('useMiddleman')?.value && !this.isCompletingAsMiddleman;
-  }
+    this.giftService.getPaymentPlatforms().subscribe({
+      next: platforms => {
+        this.platforms = platforms;
+      },
+      error: () => this.toastService.error('Failed to load payment platforms')
+    });
 
-  private refreshOptions() {
-    if (!this.activeUser.id) {
-      return;
-    }
-
-    this.giftService.getCrewMembers(this.activeUser.id).subscribe({
+    this.giftService.getCrewMembers(this.activeUserId).subscribe({
       next: members => {
         this.crewMembers = members;
-        this.refreshMiddlemanOptions();
-        this.refreshRecipientOptions();
-      }
+      },
+      error: () => this.toastService.error('Failed to load crew members')
     });
 
-    this.giftService.getPendingMiddlemanGifts().subscribe({
-      next: gifts => {
-        this.pendingGifts = gifts;
-      }
-    });
-  }
-
-  private refreshRecipientOptions() {
-    if (!this.activeUser.id || !this.form) {
-      return;
-    }
-
-    const middlemanId = Number(this.form.get('middlemanId')?.value);
-    this.giftService.getCrewMembers(this.activeUser.id).subscribe({
-      next: members => {
-        this.crewMembers = members.filter(m => !middlemanId || m.id !== middlemanId);
+    this.giftService.getReceptionOrder(30).subscribe({
+      next: response => {
+        if (response.success) {
+          this.recipients = response.recipients;
+          this.initializeRecipientForms();
+        } else {
+          this.toastService.error(response.message);
+        }
+        this.loading = false;
+      },
+      error: () => {
+        this.toastService.error('Failed to load reception order');
+        this.loading = false;
       }
     });
   }
 
-  private refreshMiddlemanOptions() {
-    if (!this.activeUser.id || !this.form) {
-      return;
-    }
+  private initializeRecipientForms() {
+    const recipientArray = this.form.get('recipientGifts') as FormArray;
+    recipientArray.clear();
 
-    const recipientId = Number(this.form.get('recipientId')?.value);
-    this.giftService.getCrewMembers(this.activeUser.id).subscribe({
-      next: members => {
-        this.middlemanOptions = members.filter(m => !recipientId || m.id !== recipientId);
-      }
+    this.recipients.forEach(recipient => {
+      recipientArray.push(this.fb.group({
+        recipientId: [recipient.userId],
+        amount: [''],
+        paymentPlatformId: [this.platforms.length > 0 ? this.platforms[0].id : ''],
+        middlemanId: [recipient.suggestedMiddlemanId || ''],
+        isSurvivalThreshold: [recipient.isSurvivalThreshold]
+      }));
     });
   }
 
-  private onUseMiddlemanChange() {
-    if (this.form.get('useMiddleman')?.value) {
-      this.form.patchValue({ completingAsMiddleman: false, pendingGiftId: '' }, { emitEvent: false });
-    } else {
-      this.form.patchValue({ middlemanId: '' }, { emitEvent: false });
-    }
-    this.updateValidators();
-    this.updateLogButton();
+  get recipientGifts(): FormArray {
+    return this.form.get('recipientGifts') as FormArray;
   }
 
-  private onCompletingChange() {
-    if (this.form.get('completingAsMiddleman')?.value) {
-      this.form.patchValue({
-        useMiddleman: false,
-        recipientId: '',
-        middlemanId: ''
-      }, { emitEvent: false });
-    } else {
-      this.form.patchValue({ pendingGiftId: '' }, { emitEvent: false });
-    }
-    this.updateValidators();
-    this.updateLogButton();
+  getRecipientFormGroup(index: number): FormGroup {
+    return this.recipientGifts.at(index) as FormGroup;
   }
 
-  private onPendingGiftSelected(pendingGiftId: string | number) {
-    if (!this.isCompletingAsMiddleman || !pendingGiftId) {
-      return;
-    }
-
-    const pendingGift = this.pendingGifts.find(g => g.id === Number(pendingGiftId));
-    if (!pendingGift) {
-      return;
-    }
-
-    this.form.patchValue({
-      amount: pendingGift.amount,
-      paymentPlatformId: this.platforms.find(p => p.name === pendingGift.platform)?.id
-        ?? this.form.get('paymentPlatformId')?.value
-        ?? ''
-    }, { emitEvent: true });
-  }
-
-  private updateValidators() {
-    const completing = this.isCompletingAsMiddleman;
-    const recipient = this.form.get('recipientId');
-    const middleman = this.form.get('middlemanId');
-    const pending = this.form.get('pendingGiftId');
-
-    if (completing) {
-      recipient?.clearValidators();
-      middleman?.clearValidators();
-      pending?.setValidators([Validators.required]);
-    } else {
-      recipient?.setValidators([Validators.required]);
-      pending?.clearValidators();
-      if (this.useMiddleman) {
-        middleman?.setValidators([Validators.required]);
-      } else {
-        middleman?.clearValidators();
-      }
-    }
-
-    recipient?.updateValueAndValidity({ emitEvent: false });
-    middleman?.updateValueAndValidity({ emitEvent: false });
-    pending?.updateValueAndValidity({ emitEvent: false });
-    this.updateLogButton();
-  }
-
-  private updateLogButton() {
-    const disabled = !this.form || this.form.invalid || this.isRecording;
-    this.logButton = {
-      label: 'Log Gift',
+  private updateRecordButton() {
+    const hasEntries = this.hasGiftsToRecord();
+    this.recordButton = {
+      label: 'Record Gift(s)',
       type: 'primary',
-      disabled,
-      onClick: () => this.onLogGiftClick()
+      disabled: !hasEntries || this.isRecording,
+      onClick: () => this.openConfirmDialog()
     };
   }
 
-  onLogGiftClick() {
-    if (this.form.invalid || this.isRecording) {
-      return;
+  private hasGiftsToRecord(): boolean {
+    const customAmount = this.form.get('customAmount')?.value;
+    if (customAmount && customAmount > 0) {
+      return true;
     }
-    this.showConfirmDialog = true;
+
+    for (let i = 0; i < this.recipientGifts.length; i++) {
+      const group = this.recipientGifts.at(i) as FormGroup;
+      const amount = group.get('amount')?.value;
+      if (amount && amount > 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
-  onConfirmLog() {
-    this.showConfirmDialog = false;
-    if (this.form.invalid || this.isRecording) {
-      return;
-    }
-
-    const request = this.buildRecordGiftRequest();
-    if (!request) {
-      this.toastService.error('Please complete all required gift fields.');
-      return;
-    }
-
-    this.isRecording = true;
-    this.updateLogButton();
-
-    this.giftService.recordGift(request).subscribe({
-      next: result => {
-        if (result.success) {
-          this.toastService.success(result.message || 'Gift recorded');
-          this.router.navigate(['/app/crew/gift-log']);
-          return;
-        }
-        this.toastService.error(result.message || 'Failed to record gift');
-        this.isRecording = false;
-        this.updateLogButton();
-      },
-      error: error => {
-        this.toastService.error(this.extractErrorMessage(error));
-        this.isRecording = false;
-        this.updateLogButton();
-      }
-    });
+  openConfirmDialog() {
+    this.showConfirmDialog = true;
   }
 
   onDismissDialog() {
     this.showConfirmDialog = false;
   }
 
-  private buildRecordGiftRequest(): RecordGiftRequest | null {
-    const v = this.form.getRawValue();
-    const amount = Number(v.amount);
-    const paymentPlatformId = Number(v.paymentPlatformId);
+  async onConfirmLog() {
+    this.showConfirmDialog = false;
+    this.isRecording = true;
 
-    if (!amount || amount <= 0 || !paymentPlatformId) {
-      return null;
+    const giftsToRecord: RecordGiftRequest[] = [];
+
+    const customAmount = this.form.get('customAmount')?.value;
+    const customRecipientId = this.form.get('customRecipientId')?.value;
+    const customPlatformId = this.form.get('customPaymentPlatformId')?.value;
+
+    if (customAmount && customAmount > 0 && customRecipientId && customPlatformId) {
+      giftsToRecord.push({
+        amount: parseFloat(customAmount),
+        recipientId: parseInt(customRecipientId),
+        paymentPlatformId: parseInt(customPlatformId),
+        isSurvivalThreshold: false
+      });
     }
 
-    if (this.isCompletingAsMiddleman) {
-      const completingGiftId = Number(v.pendingGiftId);
-      if (!completingGiftId) {
-        return null;
+    for (let i = 0; i < this.recipientGifts.length; i++) {
+      const group = this.recipientGifts.at(i) as FormGroup;
+      const amount = group.get('amount')?.value;
+      
+      if (amount && amount > 0) {
+        const recipientId = group.get('recipientId')?.value;
+        const paymentPlatformId = group.get('paymentPlatformId')?.value;
+        const middlemanId = group.get('middlemanId')?.value;
+        const isSurvivalThreshold = group.get('isSurvivalThreshold')?.value;
+
+        giftsToRecord.push({
+          amount: parseFloat(amount),
+          recipientId: parseInt(recipientId),
+          paymentPlatformId: parseInt(paymentPlatformId),
+          middlemanId: middlemanId ? parseInt(middlemanId) : undefined,
+          isSurvivalThreshold: isSurvivalThreshold
+        });
       }
-
-      return {
-        amount,
-        paymentPlatformId,
-        completingGiftId
-      };
     }
 
-    const recipientId = Number(v.recipientId);
-    if (!recipientId) {
-      return null;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const gift of giftsToRecord) {
+      try {
+        await this.giftService.recordGift(gift).toPromise();
+        successCount++;
+      } catch (error) {
+        failCount++;
+      }
     }
 
-    const middlemanId = this.useMiddleman && v.middlemanId ? Number(v.middlemanId) : undefined;
+    this.isRecording = false;
 
-    return {
-      amount,
-      paymentPlatformId,
-      recipientId,
-      middlemanId
-    };
+    if (successCount > 0) {
+      this.toastService.success(`Recorded ${successCount} gift(s)`);
+      this.router.navigate(['/app/crew/gift-log']);
+    }
+
+    if (failCount > 0) {
+      this.toastService.error(`Failed to record ${failCount} gift(s)`);
+    }
   }
 
-  private extractErrorMessage(error: { error?: { message?: string; errors?: Record<string, string[]> } }): string {
-    const validationErrors = error.error?.errors;
-    if (validationErrors) {
-      const firstError = Object.values(validationErrors).flat()[0];
-      if (firstError) {
-        return firstError;
-      }
-    }
-
-    return error.error?.message || 'Failed to record gift';
+  getMiddlemanName(recipient: RecipientNeed): string {
+    return recipient.suggestedMiddlemanName || 'Unknown';
   }
 }

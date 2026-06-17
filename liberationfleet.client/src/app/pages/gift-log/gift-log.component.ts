@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { GiftService } from '../../services/gift.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry } from '../../models/gift.model';
 
 @Component({
@@ -22,10 +23,12 @@ export class GiftLogComponent implements OnInit {
   errorMessage = '';
   backButton!: ActionBarButton;
   recordButton!: ActionBarButton;
+  completingGiftId: number | null = null;
 
   private router = inject(Router);
   private giftService = inject(GiftService);
   private authService = inject(AuthService);
+  private toastService = inject(ToastService);
 
   ngOnInit() {
     this.backButton = {
@@ -82,5 +85,16 @@ export class GiftLogComponent implements OnInit {
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
+  }
+
+  isInitiatedByUser(entry: GiftLogEntry): boolean {
+    return entry.type === 'initiated' && entry.middlemanId === this.activeUserId;
+  }
+
+  completeGift(giftId: number) {
+    this.completingGiftId = giftId;
+    this.router.navigate(['/app/crew/gift-log/complete'], { 
+      queryParams: { giftId }
+    });
   }
 }

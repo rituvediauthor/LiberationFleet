@@ -11,6 +11,12 @@
           [class.highlighted]="isHighlighted(entry)">
           <p class="log-message">{{ entry.message }}</p>
           <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
+          <button 
+            *ngIf="isInitiatedByUser(entry)" 
+            class="complete-button"
+            (click)="completeGift(entry.id)">
+            Gift Completed
+          </button>
         </div>
       </div>
     </div>
