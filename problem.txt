@@ -1,0 +1,55 @@
+This application's core distinguishing feature is its ability to facilitate a particular system of mutual aid. We will be implementing that system into the application now. 
+First, let's define some phrases. 
+There are two primary types of giving and a few sub types. The two primary types are “Cycle Gifts” and “Survival Threshold Gifts”. 
+A survival threshold is an amount a crewmate might be due to receive at the start of each month if they are registered as a threshold recipient. The amount is equal to the total monthly giving capacity across all crewmates (each crewmate's monthly giving capacity is equal to the total monetary value of gifts they have given over the past three months divided by three (average monthly across the last three months)) divided by two and then divided by the total number of crewmates registered to receive survival threshold aid. At the start of the month (on the first), crewmates who are due to receive survival threshold aid are moved to the front of the recipient order and are themselves ordered by priority score (From highest priority score to the lowest). The amount each crewmate needs is equal to the survival threshold amount minus whatever survival threshold aid they have received so far this month. In the event that a new month begins before survival thresholds are fully satisfied, the new entrees are to be tacked onto the end of the existing ones, coming after the existing ones in the recipient order (basically, the existing survival thresholds need to be satisfied as they are before the new survival threshold entries are worked on. 
+
+For example, 
+Savannah needs $19 – Survival threshold
+Dave needs $22 – Survival threshold
+Savannah needs $200 – Cycle
+Dave needs $310 – Cycle
+
+In this example, if the survival threshold amount is 22, then Savannah has already received $3 in survival threshold aid. Also, if the Cycle cap is $310 then Savannah has already received $110. Now let's say the month ends in this state.
+
+New reception order:
+Savannah needs $19 – Survival threshold
+Dave needs $22 – Survival threshold
+Savannah needs $22 – Survival threshold
+Dave needs $22 – Survival threshold
+Savannah needs $200 – Cycle
+Dave needs $310 – Cycle
+
+A “cycle” is whatever span of time it takes for a crewmate to receive aid up to the “cycle cap” the cycle cap is equal to the total monthly giving capacity across all crewmates (each crewmate's monthly giving capacity is equal to the total monetary value of gifts they have given over the past three months divided by three (average monthly across the last three months)) times two. A cycle gift is any gift given towards a crewmate’s cycle.
+Here is where things can get a bit confusing, so pay close attention. Both cycle gifts and survival threshold gifts contribute towards a crewmate's total reception amount for the current season. Over the span of a season a crewmate can only receive cycle gifts if their reception amount total is less than the cycle cap. However, even after receiving aid up to the cycle cap, the crewmate can continue to receive aid in excess of the cycle cap in the form of survival threshold gifts.
+Another point of note. Users should not be restricted to a maximum amount when recording a gift. For example, if Dave is only slated to receive $20 but Savannah just wants to give $25 to Dave, she should be able to record that gift. So, there should not be a validator that restricts gift amounts based on need amount. 
+Gift sub types include direct gifts, going from one crewmate directly to another in the event that they share a payment platform, and middle-manned gifts, going from one crewmate to another through a crewmate that shares a giving platform with both crewmates (this intermediary crewmate works as a bridge between the two other crewmates). 
+Example:
+Crewmate A only has Paypal
+Crewmate B only has Cashapp
+Crewmate C has both Paypal and Cashapp
+Crewmate A gives $30 to Crewmate B through Crewmate C
+A user can record a middle man gift in the Record gift screen.
+There are some crewmates who are members and some who are not. The distinguishing factor is members have contributed financially to some degree either this season or last season. However, there can be honorary members who other crewmates can vote into membership via passing a proposal to do so (the proposal and voting part of the system will not yet be implemented as a part of this prompt, furthermore there is no functional difference between honorary members and regular members). Members have a different cycle cap than non-members. 
+The cycle cap of members is equal to the total monthly giving capacity across all crewmates (each crewmate's monthly giving capacity is equal to the total monetary value of gifts they have given over the past three months divided by three (average monthly across the last three months)) times two. 
+The cycle cap of non-members is equal to the total monthly giving capacity across all crewmates (each crewmate's monthly giving capacity is equal to the total monetary value of gifts they have given over the past three months divided by three (average monthly across the last three months)) divided by two.
+Now, let’s cover the “Priority Score” that each crewmate has. First, the priority score of each crewmate is frozen at the start of each season and will only be recalculated under two conditions. First, a new season begins. Second, the crewmate’s emergency level changes. Upon a changed emergency level the crewmate will be moved up or down the reception order. The soonest point the crewmate can be moved to is behind the crewmate who’s cycle it is, even if the new priority score is higher than that of the crewmate whose cycle it is. Any crewmate who starts a cycle will complete theirs before anyone else's cycle will begin. 
+The priority score is calculated using the following algorithms:
+If the crewmate has the role of  “organizer”, their score is -1.
+If the crewmate is listed as not being in need, their score is -2.
+Otherwise the cremate’s priority score equals
+(Total lifetime contribution amount of all crewmates in this crew * emergency level) + Membership status (1 if any kind of member, otherwise 0)+ This crewmate’s contribution amount + survival threshold amount * (1-(Percent bonus/ 100))
+Survival threshold amount is the total monthly giving capacity across all crewmates (each crewmate's monthly giving capacity is equal to the total monetary value of gifts they have given over the past three months divided by three (average monthly across the last three months)) divided by two and then divided by the total number of crewmates registered to receive survival threshold aid.
+A season is however long it takes for each crewmate to receive gifts up to or over the cycle cap amount for that season. Once each crewmate has concluded a cycle, meaning this reception amount for that season is greater than the cycle cap, one season ends and a new one begins. 
+Percent bonus is determined by a system we are not going to develop at this time. So it can be assumed to be 0 for the time being. 
+The organizer role is a crewmate role that is assigned to the first crewmate to join the crew. It can also be passed onto a different crewmate in the event that they leave or a different crewmate is voted into the role. However, we are not going to work about the role shifting hands. Only make sure it gets assigned to the first crewmate of a crew upon crew creation.
+Let's identify the impact of this system on the existing application. 
+The record gift page
+We will be refactoring this page to display a list of crewmates going in order from the crewmate whose turn it is to receive aid right now, on to the next crewmate, positioned beneath the current recipient, whose turn it will be to receive aid as determined by the system described above, and so on out to 30 entries. Each entry will include the username of the crewmate, the amount of aid that crewmateis due in accordance with the system, whether or not the entry is survival threshold or cycle, a text box to enter the gift amount the user is looking to record, if there is not a payment platform in common between the two users but there is a crewmate with payment platforms such that they can work as a middle man then there will be a drop down with that crewmate selected by default unless there are multiple possible middle men then the use must make a selection form no default. If no payment platform is in common and no suitable middle man exists, then a note will display in the entry saying “no suitable middle-man”. The “Are you a middle man completing a gift?” The check box will be removed as we are moving that functionality elsewhere. 
+In the event that the user gives a gift only to find someone else already satisfied that gift, they can create a custom gift in the same sort of way they can with the current functionality via an entry above the person who is due to receive a gift. In this entry, the user can use a recipient drop down to select the crewmate (from their crew) they are giving to. 
+Once the user has entered the gift amounts they are recording into the entries they are recording for, they can click the action button at the bottom which will be updated from “Log Gift” To “Record Gift(s)”.
+The Gift Log page
+Here we will be updating functionality to make it so that when a middle maned gift has been recorded, and the active user was selected as the middle man, when they see the record for the gift associated to them as the middle man, they see a button at the bottom of the entry, “Gift Completed”.
+“Gift Completed” will mark the entry with the status of Completed for all crewmates to see. Important note, the gift will be counted as contributed the moment it is created but will not count towards the recipient’s reception amount until Completed. Completed indicates that the middle-man sent the gift to the correct recipient.
+User Profile page
+The stats will display the proper priority score for the user.
+It is your job to develop a solution that implements the system of giving, scores, and reception order into the existing code base and database as well as to refactor the pages as described above.
