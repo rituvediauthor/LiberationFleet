@@ -6,13 +6,18 @@ namespace LiberationFleet.Server.Application.Features.Gifts;
 
 public static class GiftMapper
 {
-    public static GiftLogEntryDto MapGift(Gift gift)
+    public static GiftLogEntryDto MapGift(
+        Gift gift,
+        bool canCompleteAsMiddleman = false,
+        string? status = null)
     {
         var relatedUserIds = new List<int> { gift.GiverUserId, gift.RecipientUserId };
         if (gift.MiddlemanUserId.HasValue)
         {
             relatedUserIds.Add(gift.MiddlemanUserId.Value);
         }
+
+        var entryStatus = status ?? (gift.Type == GiftType.Initiated ? "pending" : "completed");
 
         return new GiftLogEntryDto
         {
@@ -27,8 +32,10 @@ public static class GiftMapper
             Amount = gift.Amount,
             Platform = gift.PaymentPlatform.Name,
             Timestamp = gift.CreatedAt,
-            Message = FormatMessage(gift),
-            RelatedUserIds = relatedUserIds
+            Message = FormatMessage(gift, entryStatus),
+            RelatedUserIds = relatedUserIds,
+            CanCompleteAsMiddleman = canCompleteAsMiddleman,
+            Status = entryStatus
         };
     }
 
@@ -43,12 +50,12 @@ public static class GiftMapper
         Platform = gift.PaymentPlatform.Name
     };
 
-    private static string FormatMessage(Gift gift)
+    private static string FormatMessage(Gift gift, string status)
     {
         var amount = gift.Amount.ToString("0.##");
         var platform = gift.PaymentPlatform.Name;
 
-        return gift.Type switch
+        var baseMessage = gift.Type switch
         {
             GiftType.Direct =>
                 $"{gift.GiverUser.Username} gave ${amount} to {gift.RecipientUser.Username} via {platform}",
@@ -58,5 +65,17 @@ public static class GiftMapper
                 $"{gift.MiddlemanUser!.Username} completed {gift.GiverUser.Username}'s ${amount} gift to {gift.RecipientUser.Username} via {platform.ToUpperInvariant()}",
             _ => string.Empty
         };
+
+        if (gift.Type == GiftType.Initiated && status == "completed")
+        {
+            return $"{baseMessage} (Completed)";
+        }
+
+        if (gift.Type == GiftType.Initiated && status == "pending")
+        {
+            return $"{baseMessage} (Pending)";
+        }
+
+        return baseMessage;
     }
 }

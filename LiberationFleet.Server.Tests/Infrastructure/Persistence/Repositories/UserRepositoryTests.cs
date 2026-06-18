@@ -119,7 +119,6 @@ public class UserRepositoryTests
         {
             UserId = user.Id,
             PaymentPlatformId = 1,
-            PaymentPlatform = new Domain.Entities.PaymentPlatform { Id = 1, Name = "PayPal" },
             Handle = "user@example.com"
         });
         await context.SaveChangesAsync();

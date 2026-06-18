@@ -21,6 +21,8 @@ public class GiftLogEntryDto
     public DateTime Timestamp { get; set; }
     public string Message { get; set; } = string.Empty;
     public IReadOnlyList<int> RelatedUserIds { get; set; } = Array.Empty<int>();
+    public bool CanCompleteAsMiddleman { get; set; }
+    public string? Status { get; set; }
 }
 
 public class PendingMiddlemanGiftDto

@@ -20,6 +20,24 @@ export class ProfileService {
     return this.http.put<ProfileOperationResult>(this.apiUrl, request);
   }
 
+  saveProfile(profile: UserProfile): Observable<ProfileOperationResult> {
+    return this.updateProfile({
+      username: profile.username,
+      email: profile.email,
+      inNeedOfAid: profile.inNeedOfAid,
+      emergencyLevel: profile.emergencyLevel,
+      needsSurvivalAid: profile.needsSurvivalAid,
+      paymentPlatforms: profile.paymentPlatforms
+        .filter(p => p.platformId > 0 && p.handle.trim())
+        .map(p => ({
+          id: p.id > 0 ? p.id : 0,
+          platformId: p.platformId,
+          platform: p.platform,
+          handle: p.handle.trim()
+        }))
+    });
+  }
+
   createPaymentPlatformAccount(): PaymentPlatformAccount {
     return {
       id: this.nextTempPlatformId--,

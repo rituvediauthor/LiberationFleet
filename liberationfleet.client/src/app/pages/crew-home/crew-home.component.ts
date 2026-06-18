@@ -26,7 +26,9 @@ export class CrewHomeComponent implements OnInit {
     this.crewService.getMembership().subscribe(status => {
       this.membership = status;
       if (status.hasCrew) {
-        this.nextAid = this.giftService.getNextAidInfo();
+        this.giftService.getNextAidInfo().subscribe({
+          next: info => this.nextAid = info
+        });
       }
     });
   }
@@ -44,7 +46,7 @@ export class CrewHomeComponent implements OnInit {
   }
 
   goToGiftLog() {
-    this.router.navigate(['/app/crew/gift-log']);
+    this.giftService.navigateToGiftLogEntry(this.router);
   }
 
   goToChats() {

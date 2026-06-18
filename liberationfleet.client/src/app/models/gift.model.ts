@@ -1,4 +1,6 @@
 export type GiftLogType = 'direct' | 'initiated' | 'completed';
+export type ReceptionEntryType = 'survivalThreshold' | 'cycle';
+export type GiftEntryStatus = 'pending' | 'completed';
 
 export type PaymentPlatform = string;
 
@@ -26,6 +28,8 @@ export interface GiftLogEntry {
   timestamp: Date;
   message: string;
   relatedUserIds: number[];
+  canCompleteAsMiddleman?: boolean;
+  status?: GiftEntryStatus;
 }
 
 export interface PendingMiddlemanGift {
@@ -44,6 +48,56 @@ export interface RecordGiftRequest {
   middlemanId?: number;
   completingGiftId?: number;
   paymentPlatformId: number;
+}
+
+export interface GiftRecordItem {
+  amount: number;
+  paymentPlatformId: number;
+  recipientId: number;
+  middlemanId?: number;
+  isCustom: boolean;
+  entryType?: ReceptionEntryType;
+}
+
+export interface MiddlemanOption {
+  userId: number;
+  username: string;
+}
+
+export interface ReceptionOrderEntry {
+  userId: number;
+  username: string;
+  amountNeeded: number;
+  entryType: ReceptionEntryType;
+  thresholdId?: number;
+  cycleUserId?: number;
+  middlemanOptions: MiddlemanOption[];
+  defaultMiddlemanId?: number;
+  noSuitableMiddleman: boolean;
+  giverPlatformIds: number[];
+  recipientPlatformIds: number[];
+}
+
+export interface SeasonStatus {
+  seasonStarted: boolean;
+  userInSeason: boolean;
+  userSeasonReady: boolean;
+  readyCount: number;
+  canStartSeason: boolean;
+  estimatedMonthlyContribution?: number;
+}
+
+export interface SeasonSetupSaveResult {
+  success: boolean;
+  message: string;
+  status?: SeasonStatus;
+}
+
+export interface SeasonReadyResult {
+  success: boolean;
+  message: string;
+  seasonStarted: boolean;
+  status?: SeasonStatus;
 }
 
 export interface GiftLogResponse {

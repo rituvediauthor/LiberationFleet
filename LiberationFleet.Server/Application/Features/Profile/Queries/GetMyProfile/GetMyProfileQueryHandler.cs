@@ -10,17 +10,20 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
     private readonly IUserRepository _userRepository;
     private readonly IGiftRepository _giftRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
+    private readonly IMutualAidService _mutualAidService;
     private readonly ICurrentUserService _currentUserService;
 
     public GetMyProfileQueryHandler(
         IUserRepository userRepository,
         IGiftRepository giftRepository,
         ICrewMembershipRepository membershipRepository,
+        IMutualAidService mutualAidService,
         ICurrentUserService currentUserService)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
         _membershipRepository = membershipRepository;
+        _mutualAidService = mutualAidService;
         _currentUserService = currentUserService;
     }
 
@@ -41,6 +44,28 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         var giftStats = await _giftRepository.GetUserGiftStatsAsync(userId.Value, cancellationToken);
         var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
 
-        return ProfileMapper.MapUser(user, giftStats, membership is not null);
+        var isFinancialMember = false;
+        var priorityScore = 0m;
+        if (membership is not null)
+        {
+            isFinancialMember = await _mutualAidService.IsFinancialMemberAsync(
+                userId.Value,
+                membership.CrewId,
+                membership,
+                cancellationToken);
+            priorityScore = await _mutualAidService.GetPriorityScoreForUserAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken,
+                excludeActiveSeasonContributions: membership.IsInSeason);
+        }
+
+        return ProfileMapper.MapUser(
+            user,
+            giftStats,
+            membership is not null,
+            isFinancialMember,
+            priorityScore,
+            user.PercentBonus);
     }
 }

@@ -61,6 +61,20 @@ public static class HandlerTestFixture
         return mock;
     }
 
+    public static Mock<IMutualAidService> CreateMutualAidServiceMock()
+    {
+        var mock = new Mock<IMutualAidService>(MockBehavior.Loose);
+        mock.Setup(m => m.ApplyGiftReceptionAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mock.Setup(m => m.OnCrewmatePriorityChangedAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mock.Setup(m => m.GetPriorityScoreForUserAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0m);
+        mock.Setup(m => m.IsFinancialMemberAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CrewMembership>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        return mock;
+    }
+
     public static Mock<IUnitOfWork> CreateUnitOfWorkMock()
     {
         var mock = new Mock<IUnitOfWork>(MockBehavior.Strict);

@@ -12,6 +12,7 @@ public class RecordGiftCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     IPaymentPlatformRepository paymentPlatformRepository,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftCommand request, CancellationToken cancellationToken)
@@ -86,11 +87,15 @@ public class RecordGiftCommandHandler(
             Amount = initiated.Amount,
             PaymentPlatformId = paymentPlatformId,
             InitiatedGiftId = initiated.Id,
+            IsSurvivalThreshold = initiated.IsSurvivalThreshold,
+            IsCustomGift = initiated.IsCustomGift,
+            CountsTowardReception = true,
             CreatedAt = DateTime.UtcNow
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse
@@ -154,6 +159,11 @@ public class RecordGiftCommandHandler(
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (!middlemanId.HasValue)
+        {
+            await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
+        }
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse

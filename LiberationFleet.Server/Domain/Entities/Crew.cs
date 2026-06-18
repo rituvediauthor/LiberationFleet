@@ -14,6 +14,10 @@ public class Crew
     public string JoinCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool SeasonStarted { get; set; }
+    public DateTime? CurrentSeasonStartDate { get; set; }
+    public decimal SeasonMemberCycleCap { get; set; }
+    public decimal SeasonNonMemberCycleCap { get; set; }
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();

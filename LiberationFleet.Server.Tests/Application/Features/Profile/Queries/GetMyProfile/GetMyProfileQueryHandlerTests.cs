@@ -94,7 +94,7 @@ public class GetMyProfileQueryHandlerTests
         result.Stats.AverageMonthlyContributions.Should().Be(30);
         result.Stats.SacrificeCount.Should().Be(3);
         result.Stats.ReceptionLastYear.Should().Be(40);
-        result.Stats.MembershipStatus.Should().BeTrue();
+        result.Stats.MembershipStatus.Should().BeFalse();
     }
 
     private static GetMyProfileQueryHandler CreateHandler(
@@ -111,6 +111,7 @@ public class GetMyProfileQueryHandlerTests
             userRepository.Object,
             giftRepository.Object,
             membershipRepository.Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
     }
 

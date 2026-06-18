@@ -11,6 +11,14 @@
           [class.highlighted]="isHighlighted(entry)">
           <p class="log-message">{{ entry.message }}</p>
           <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
+          <button
+            *ngIf="entry.canCompleteAsMiddleman && entry.status === 'pending'"
+            type="button"
+            class="complete-btn"
+            [disabled]="completingGiftId === entry.id"
+            (click)="completeGift(entry)">
+            Gift Completed
+          </button>
         </div>
       </div>
     </div>

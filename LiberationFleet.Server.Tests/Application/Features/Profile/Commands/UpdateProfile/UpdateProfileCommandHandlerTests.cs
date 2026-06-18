@@ -112,6 +112,7 @@ public class UpdateProfileCommandHandlerTests
             membershipRepository.Object,
             paymentPlatformRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             unitOfWork.Object);
     }
 

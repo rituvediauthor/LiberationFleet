@@ -28,8 +28,10 @@ public static class DependencyInjection
         services.AddScoped<ICrewRepository, CrewRepository>();
         services.AddScoped<ICrewMembershipRepository, CrewMembershipRepository>();
         services.AddScoped<IGiftRepository, GiftRepository>();
+        services.AddScoped<IMutualAidRepository, MutualAidRepository>();
         services.AddScoped<IPaymentPlatformRepository, PaymentPlatformRepository>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IMutualAidService, Application.Services.MutualAidService>();
         services.AddSingleton<IZipCodeDistanceService, ZipCodeDistanceService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();

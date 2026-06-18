@@ -65,6 +65,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             UserId = userId.Value,
             CrewId = crew.Id,
             IsBanned = false,
+            IsOrganizer = true,
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

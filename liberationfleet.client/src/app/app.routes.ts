@@ -13,6 +13,8 @@ import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
+import { SeasonSetupComponent } from './pages/season-setup/season-setup.component';
+import { JoinSeasonComponent } from './pages/join-season/join-season.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { authGuard } from './guards/auth.guard';
 
@@ -92,6 +94,16 @@ export const routes: Routes = [
   {
     path: 'app/crew/gift-log',
     component: GiftLogComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/season-setup',
+    component: SeasonSetupComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/join-season',
+    component: JoinSeasonComponent,
     canActivate: [authGuard]
   },
   {

@@ -14,6 +14,9 @@ public class Gift
     public int PaymentPlatformId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? InitiatedGiftId { get; set; }
+    public bool IsSurvivalThreshold { get; set; }
+    public bool CountsTowardReception { get; set; } = true;
+    public bool IsCustomGift { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User GiverUser { get; set; } = null!;

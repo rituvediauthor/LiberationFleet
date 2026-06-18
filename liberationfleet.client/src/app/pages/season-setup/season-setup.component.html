@@ -1,0 +1,52 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="form-container" *ngIf="isLoading">
+    <p class="status-text">Loading…</p>
+  </div>
+
+  <div class="form-container" *ngIf="!isLoading">
+    <div class="form-card">
+      <h1>Season Setup</h1>
+      <p class="intro-text">
+        In order to start using mutual aid functions, at least three crewmates need to:
+        have payment platforms registered to their profile and enter an estimate of how much
+        money they will be able to contribute on a monthly basis, then mark themselves as ready.
+      </p>
+      <p class="ready-count">{{ readyCount }} of 3 crewmates ready</p>
+
+      <form [formGroup]="form">
+        <section class="section">
+          <h2>Payment Platforms</h2>
+          <div class="platform-row" *ngFor="let account of paymentPlatforms">
+            <select [(ngModel)]="account.platformId" [ngModelOptions]="{standalone: true}" class="form-input" (ngModelChange)="onPaymentPlatformChange()">
+              <option *ngFor="let p of platformOptions" [ngValue]="p.id">{{ p.name }}</option>
+            </select>
+            <input
+              [(ngModel)]="account.handle"
+              [ngModelOptions]="{standalone: true}"
+              class="form-input"
+              placeholder="Username or tag"
+              (ngModelChange)="onPaymentPlatformChange()">
+            <button type="button" class="icon-btn" (click)="removePaymentPlatform(account.id)" aria-label="Remove platform">×</button>
+          </div>
+          <button type="button" class="text-btn" (click)="addPaymentPlatform()">+ Add platform</button>
+        </section>
+
+        <div class="form-group">
+          <label for="estimate">Estimated monthly contribution ($)</label>
+          <input id="estimate" type="number" formControlName="estimatedMonthlyContribution" class="form-input" min="0.01" step="0.01">
+        </div>
+
+        <div class="ready-checkbox-row">
+          <input
+            id="season-ready"
+            type="checkbox"
+            [(ngModel)]="seasonReady"
+            [ngModelOptions]="{standalone: true}"
+            [disabled]="seasonStarted || isSubmitting"
+            (ngModelChange)="onSeasonReadyChange()">
+          <label for="season-ready">Ready to start the season</label>
+        </div>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

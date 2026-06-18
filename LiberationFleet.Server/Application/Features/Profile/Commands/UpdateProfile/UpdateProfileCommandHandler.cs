@@ -13,6 +13,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
     private readonly ICrewMembershipRepository _membershipRepository;
     private readonly IPaymentPlatformRepository _paymentPlatformRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IMutualAidService _mutualAidService;
     private readonly IUnitOfWork _unitOfWork;
 
     public UpdateProfileCommandHandler(
@@ -21,6 +22,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         ICrewMembershipRepository membershipRepository,
         IPaymentPlatformRepository paymentPlatformRepository,
         ICurrentUserService currentUserService,
+        IMutualAidService mutualAidService,
         IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
@@ -28,6 +30,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         _membershipRepository = membershipRepository;
         _paymentPlatformRepository = paymentPlatformRepository;
         _currentUserService = currentUserService;
+        _mutualAidService = mutualAidService;
         _unitOfWork = unitOfWork;
     }
 
@@ -54,6 +57,9 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         {
             return new ProfileOperationResponse { Success = false, Message = "Email is already registered" };
         }
+
+        var previousEmergencyLevel = user.EmergencyLevel;
+        var previousInNeedOfAid = user.InNeedOfAid;
 
         user.Username = request.Username.Trim();
         user.Email = request.Email.Trim();
@@ -86,13 +92,33 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         await _userRepository.UpdateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (previousEmergencyLevel != user.EmergencyLevel || previousInNeedOfAid != user.InNeedOfAid)
+        {
+            await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
+        }
+
         var reloaded = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
         UserProfileDto? profile = null;
         if (reloaded is not null)
         {
             var giftStats = await _giftRepository.GetUserGiftStatsAsync(userId.Value, cancellationToken);
             var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
-            profile = ProfileMapper.MapUser(reloaded, giftStats, membership is not null);
+            var isFinancialMember = membership is not null
+                && await _mutualAidService.IsFinancialMemberAsync(userId.Value, membership.CrewId, membership, cancellationToken);
+            var priorityScore = membership is not null
+                ? await _mutualAidService.GetPriorityScoreForUserAsync(
+                    userId.Value,
+                    membership.CrewId,
+                    cancellationToken,
+                    excludeActiveSeasonContributions: membership.IsInSeason)
+                : 0m;
+            profile = ProfileMapper.MapUser(
+                reloaded,
+                giftStats,
+                membership is not null,
+                isFinancialMember,
+                priorityScore,
+                reloaded.PercentBonus);
         }
 
         return new ProfileOperationResponse

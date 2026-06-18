@@ -12,6 +12,7 @@ public class User
     public bool InNeedOfAid { get; set; } = true;
     public int EmergencyLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }
+    public int PercentBonus { get; set; }
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();

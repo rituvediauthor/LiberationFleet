@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGift;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
@@ -38,11 +39,13 @@ public class RecordGiftCommandHandlerIntegrationTests
             var membershipRepository = new CrewMembershipRepository(context);
             var giftRepository = new GiftRepository(context);
             var paymentPlatformRepository = new PaymentPlatformRepository(context);
+            var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
             var handler = new RecordGiftCommandHandler(
                 HandlerTestFixture.CreateCurrentUserServiceMock(giver.Id).Object,
                 membershipRepository,
                 giftRepository,
                 paymentPlatformRepository,
+                mutualAidService,
                 context);
 
             var result = await handler.Handle(
@@ -114,11 +117,13 @@ public class RecordGiftCommandHandlerIntegrationTests
             var membershipRepository = new CrewMembershipRepository(context);
             var giftRepository = new GiftRepository(context);
             var paymentPlatformRepository = new PaymentPlatformRepository(context);
+            var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
             var handler = new RecordGiftCommandHandler(
                 HandlerTestFixture.CreateCurrentUserServiceMock(middleman.Id).Object,
                 membershipRepository,
                 giftRepository,
                 paymentPlatformRepository,
+                mutualAidService,
                 context);
 
             var result = await handler.Handle(

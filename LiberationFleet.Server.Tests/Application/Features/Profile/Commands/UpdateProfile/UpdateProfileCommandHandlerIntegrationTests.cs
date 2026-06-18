@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
@@ -23,12 +24,15 @@ public class UpdateProfileCommandHandlerIntegrationTests
         await context.SaveChangesAsync();
 
         var userRepository = new UserRepository(context);
+        var membershipRepository = new CrewMembershipRepository(context);
+        var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
         var handler = new UpdateProfileCommandHandler(
             userRepository,
             new GiftRepository(context),
-            new CrewMembershipRepository(context),
+            membershipRepository,
             new PaymentPlatformRepository(context),
             HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
+            mutualAidService,
             context);
 
         var result = await handler.Handle(new UpdateProfileCommand

@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using MediatR;
+using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 
@@ -19,14 +20,30 @@ public class GetCrewGiftLogQueryHandler(
             return new GiftLogResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var membership = await membershipRepository.GetActiveMembershipAsync(currentUser.UserId.Value, cancellationToken);
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
         {
             return new GiftLogResponse { Success = false, Message = "You are not in a crew." };
         }
 
         var gifts = await giftRepository.GetLogByCrewIdAsync(membership.CrewId, cancellationToken);
-        var items = gifts.Select(GiftMapper.MapGift).ToList();
+        var completedInitiatedIds = gifts
+            .Where(g => g.Type == GiftType.Completed && g.InitiatedGiftId.HasValue)
+            .Select(g => g.InitiatedGiftId!.Value)
+            .ToHashSet();
+
+        var items = gifts.Select(gift =>
+        {
+            var isPendingMiddleman = gift.Type == GiftType.Initiated
+                && gift.MiddlemanUserId == userId
+                && !completedInitiatedIds.Contains(gift.Id);
+            var status = gift.Type == GiftType.Initiated
+                ? (completedInitiatedIds.Contains(gift.Id) ? "completed" : "pending")
+                : "completed";
+
+            return GiftMapper.MapGift(gift, isPendingMiddleman, status);
+        }).ToList();
 
         return new GiftLogResponse
         {

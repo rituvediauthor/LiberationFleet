@@ -97,6 +97,7 @@ public class RecordGiftCommandHandlerTests
             membershipRepository.Object,
             giftRepository.Object,
             paymentPlatformRepository.Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             unitOfWork.Object);
     }
 }
