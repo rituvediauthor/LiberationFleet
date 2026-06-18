@@ -1,0 +1,12 @@
+<div class="dev-toolbar" *ngIf="visible" [class.busy]="busy">
+  <span class="dev-label">DEV</span>
+  <button
+    type="button"
+    class="dev-btn"
+    *ngFor="let action of actions"
+    [class.destructive]="action.destructive"
+    [disabled]="busy"
+    (click)="action.run()">
+    {{ action.label }}
+  </button>
+</div>

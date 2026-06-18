@@ -4,20 +4,23 @@ namespace LiberationFleet.Server.Application.Services;
 
 public static class MutualAidCalculationService
 {
-    public static decimal GetMemberCycleCap(decimal totalMonthlyGivingCapacity) =>
-        totalMonthlyGivingCapacity * 2m;
+    public static decimal GetMemberCycleCap(decimal totalMonthlyContributions) =>
+        totalMonthlyContributions * 2m;
 
-    public static decimal GetNonMemberCycleCap(decimal totalMonthlyGivingCapacity) =>
-        totalMonthlyGivingCapacity / 2m;
+    public static decimal GetNonMemberCycleCap(decimal totalMonthlyContributions) =>
+        totalMonthlyContributions * 2m;
 
-    public static decimal GetSurvivalThresholdAmount(decimal totalMonthlyGivingCapacity, int thresholdRecipientCount)
+    public static decimal GetTotalMonthlyContributions(IEnumerable<decimal> estimatedMonthlyContributions) =>
+        estimatedMonthlyContributions.Sum();
+
+    public static decimal GetSurvivalThresholdAmount(decimal totalMonthlyContributions, int thresholdRecipientCount)
     {
         if (thresholdRecipientCount <= 0)
         {
             return 0m;
         }
 
-        return totalMonthlyGivingCapacity / 2m / thresholdRecipientCount;
+        return totalMonthlyContributions / 2m / thresholdRecipientCount;
     }
 
     public static decimal GetEffectiveMemberCycleCap(decimal seasonStartCap, decimal currentCalculatedCap) =>

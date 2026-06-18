@@ -1,4 +1,6 @@
-﻿<div class="app-container">
+﻿<app-dev-toolbar (visibilityChange)="showDevToolbar = $event"></app-dev-toolbar>
+
+<div class="app-container" [class.with-dev-toolbar]="showDevToolbar">
   <router-outlet></router-outlet>
   <app-toast-container></app-toast-container>
 </div>

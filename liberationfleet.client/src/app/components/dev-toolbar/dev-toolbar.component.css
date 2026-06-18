@@ -1,0 +1,55 @@
+.dev-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 12px;
+  background: #1f2937;
+  border-bottom: 2px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.dev-toolbar.busy {
+  opacity: 0.85;
+}
+
+.dev-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f59e0b;
+  margin-right: 4px;
+}
+
+.dev-btn {
+  border: 1px solid #4b5563;
+  background: #374151;
+  color: #f9fafb;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dev-btn:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+.dev-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dev-btn.destructive {
+  border-color: #b91c1c;
+  background: #7f1d1d;
+}
+
+.dev-btn.destructive:hover:not(:disabled) {
+  background: #991b1b;
+}

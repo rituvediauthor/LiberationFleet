@@ -161,4 +161,16 @@ public class MutualAidRepository : IMutualAidRepository
 
         return (maxPosition ?? -1) + 1;
     }
+
+    public async Task<(int Year, int Month)?> GetLatestThresholdMonthAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var latest = await _context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == crewId)
+            .OrderByDescending(t => t.Year)
+            .ThenByDescending(t => t.Month)
+            .Select(t => new { t.Year, t.Month })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return latest is null ? null : (latest.Year, latest.Month);
+    }
 }

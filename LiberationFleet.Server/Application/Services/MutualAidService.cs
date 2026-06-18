@@ -6,10 +6,10 @@ using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Services;
 
-public class MutualAidService(
+public partial class MutualAidService(
     IMutualAidRepository mutualAidRepository,
     ICrewMembershipRepository membershipRepository,
-    IUnitOfWork unitOfWork) : IMutualAidService
+    IUnitOfWork unitOfWork) : IMutualAidService, IMutualAidDevService
 {
     public async Task<SeasonStatusDto> GetSeasonStatusAsync(int userId, CancellationToken cancellationToken = default)
     {
@@ -55,7 +55,7 @@ public class MutualAidService(
             return Array.Empty<ReceptionOrderEntryDto>();
         }
 
-        await EnsureMonthlyThresholdsAsync(crew, cancellationToken);
+        await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
 
         var allMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crew.Id, cancellationToken);
         var memberPlatforms = allMembers.Select(m => new CrewMemberPlatforms
@@ -341,6 +341,8 @@ public class MutualAidService(
         }
 
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        crew.SeasonMemberCycleCap = capacityContext.MemberCycleCap;
+        crew.SeasonNonMemberCycleCap = capacityContext.NonMemberCycleCap;
         var cycles = await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate.Value, cancellationToken);
 
         foreach (var cycle in cycles)
@@ -609,10 +611,10 @@ public class MutualAidService(
             }, cancellationToken);
         }
 
-        await CreateMonthlyThresholdsForParticipantsAsync(crew, participants, capacityContext, cancellationToken);
+        await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
     }
 
-    private async Task EnsureMonthlyThresholdsAsync(Crew crew, CancellationToken cancellationToken)
+    private async Task TryCreateFirstOfMonthThresholdsAsync(Crew crew, CancellationToken cancellationToken)
     {
         if (!crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
         {
@@ -620,64 +622,58 @@ public class MutualAidService(
         }
 
         var now = DateTime.UtcNow;
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
-        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
-
-        foreach (var member in participants.Where(m => m.User.NeedsSurvivalAid))
+        if (now.Day != 1)
         {
-            if (await mutualAidRepository.HasThresholdForMonthAsync(crew.Id, member.UserId, now.Year, now.Month, cancellationToken))
-            {
-                continue;
-            }
-
-            var nextPosition = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
-            await mutualAidRepository.AddThresholdAsync(new MonthlySurvivalThreshold
-            {
-                CrewId = crew.Id,
-                UserId = member.UserId,
-                Year = now.Year,
-                Month = now.Month,
-                ThresholdAmount = capacityContext.SurvivalThresholdAmount,
-                ReceivedAmount = 0m,
-                ReceptionOrderPosition = nextPosition,
-                Satisfied = false
-            }, cancellationToken);
+            return;
         }
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await CreateMonthlyThresholdsForMonthAsync(crew, now.Year, now.Month, cancellationToken);
     }
 
-    private async Task CreateMonthlyThresholdsForParticipantsAsync(
+    private async Task CreateMonthlyThresholdsForMonthAsync(
         Crew crew,
-        IReadOnlyList<CrewMembership> participants,
-        CapacityContext capacityContext,
+        int year,
+        int month,
         CancellationToken cancellationToken)
     {
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         if (capacityContext.SurvivalThresholdAmount <= 0)
         {
             return;
         }
 
-        var now = DateTime.UtcNow;
         var survivalRecipients = participants
             .Where(m => m.User.NeedsSurvivalAid)
             .OrderByDescending(m => m.CurrentPriorityScore)
             .ToList();
 
-        var position = 0;
+        var created = false;
+        var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
         foreach (var member in survivalRecipients)
         {
+            if (await mutualAidRepository.HasThresholdForMonthAsync(crew.Id, member.UserId, year, month, cancellationToken))
+            {
+                continue;
+            }
+
             await mutualAidRepository.AddThresholdAsync(new MonthlySurvivalThreshold
             {
                 CrewId = crew.Id,
                 UserId = member.UserId,
-                Year = now.Year,
-                Month = now.Month,
+                Year = year,
+                Month = month,
                 ThresholdAmount = capacityContext.SurvivalThresholdAmount,
                 ReceivedAmount = 0m,
                 ReceptionOrderPosition = position++,
                 Satisfied = false
             }, cancellationToken);
+            created = true;
+        }
+
+        if (created)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -922,23 +918,17 @@ public class MutualAidService(
             participants = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
         }
 
-        decimal totalCapacity = 0m;
-        foreach (var member in participants)
-        {
-            var contributions = await mutualAidRepository.GetContributionsLast3MonthsAsync(member.UserId, crew.Id, cancellationToken);
-            totalCapacity += MutualAidCalculationService.CalculateMonthlyGivingCapacity(
-                contributions,
-                member.EstimatedMonthlyContribution);
-        }
+        decimal totalContributions = MutualAidCalculationService.GetTotalMonthlyContributions(
+            participants.Select(m => m.EstimatedMonthlyContribution ?? 0m));
 
         var thresholdRecipients = participants.Count(m => m.User.NeedsSurvivalAid);
-        var survivalThreshold = MutualAidCalculationService.GetSurvivalThresholdAmount(totalCapacity, thresholdRecipients);
-        var memberCap = MutualAidCalculationService.GetMemberCycleCap(totalCapacity);
-        var nonMemberCap = MutualAidCalculationService.GetNonMemberCycleCap(totalCapacity);
+        var survivalThreshold = MutualAidCalculationService.GetSurvivalThresholdAmount(totalContributions, thresholdRecipients);
+        var memberCap = MutualAidCalculationService.GetMemberCycleCap(totalContributions);
+        var nonMemberCap = MutualAidCalculationService.GetNonMemberCycleCap(totalContributions);
 
         return new CapacityContext
         {
-            TotalMonthlyGivingCapacity = totalCapacity,
+            TotalMonthlyGivingCapacity = totalContributions,
             SurvivalThresholdAmount = survivalThreshold,
             MemberCycleCap = memberCap,
             NonMemberCycleCap = nonMemberCap

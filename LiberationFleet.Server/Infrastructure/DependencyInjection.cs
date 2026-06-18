@@ -31,7 +31,9 @@ public static class DependencyInjection
         services.AddScoped<IMutualAidRepository, MutualAidRepository>();
         services.AddScoped<IPaymentPlatformRepository, PaymentPlatformRepository>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
-        services.AddScoped<IMutualAidService, Application.Services.MutualAidService>();
+        services.AddScoped<Application.Services.MutualAidService>();
+        services.AddScoped<IMutualAidService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());
+        services.AddScoped<IMutualAidDevService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());
         services.AddSingleton<IZipCodeDistanceService, ZipCodeDistanceService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
