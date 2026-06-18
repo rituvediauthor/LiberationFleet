@@ -1,0 +1,18 @@
+<Project>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Domain\**\*.cs" LinkBase="Server" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Application\**\*.cs" LinkBase="Server" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Infrastructure\**\*.cs" LinkBase="Server" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Program.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Controllers\**\*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Infrastructure\Data\Migrations\**\*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Application\Features\Profile\Commands\UpdateProfile\UpdateProfileCommandHandler.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Application\DependencyInjection.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Infrastructure\DependencyInjection.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Application\Features\Auth\**\*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Infrastructure\Security\CurrentUserService.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)..\LiberationFleet.Server\Infrastructure\Security\JwtTokenService.cs" />
+  </ItemGroup>
+</Project>
