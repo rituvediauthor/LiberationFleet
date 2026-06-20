@@ -22,7 +22,6 @@ public class RecordGiftsCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
-    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftsCommand request, CancellationToken cancellationToken)
@@ -95,16 +94,15 @@ public class RecordGiftsCommandHandler(
                 IsSurvivalThreshold = isSurvivalThreshold,
                 IsCustomGift = item.IsCustom,
                 CountsTowardReception = countsTowardReception,
+                CountsTowardContribution = true,
+                VerificationStatus = item.IsCustom
+                    ? GiftVerificationStatus.Verified
+                    : GiftVerificationStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
 
             await giftRepository.AddAsync(gift, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            if (countsTowardReception)
-            {
-                await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
-            }
 
             lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         }

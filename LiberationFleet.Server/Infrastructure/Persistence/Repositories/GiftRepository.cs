@@ -115,6 +115,27 @@ public class GiftRepository : IGiftRepository
             g => g.InitiatedGiftId == initiatedGiftId && g.Type == GiftType.Completed,
             cancellationToken);
 
+    public Task<Gift?> GetCompletedGiftForInitiatedAsync(int initiatedGiftId, CancellationToken cancellationToken = default) =>
+        _context.Gifts
+            .Include(g => g.GiverUser)
+            .Include(g => g.RecipientUser)
+            .Include(g => g.MiddlemanUser)
+            .Include(g => g.CrewPaymentPlatform)
+            .FirstOrDefaultAsync(
+                g => g.InitiatedGiftId == initiatedGiftId && g.Type == GiftType.Completed,
+                cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, Gift>> GetCompletedGiftsByInitiatedIdsAsync(
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var completed = await _context.Gifts
+            .Where(g => g.CrewId == crewId && g.Type == GiftType.Completed && g.InitiatedGiftId != null)
+            .ToListAsync(cancellationToken);
+
+        return completed.ToDictionary(g => g.InitiatedGiftId!.Value);
+    }
+
     public async Task AddAsync(Gift gift, CancellationToken cancellationToken = default)
     {
         await _context.Gifts.AddAsync(gift, cancellationToken);

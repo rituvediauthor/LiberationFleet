@@ -17,6 +17,7 @@ public interface IMutualAidService
     Task<SeasonSetupSaveResultDto> SaveSeasonSetupAsync(int userId, decimal estimatedMonthlyContribution, CancellationToken cancellationToken = default);
     Task<SeasonSetupSaveResultDto> ClearSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default);
+    Task ApplyGiftReceptionForUserAsync(Gift gift, int recipientUserId, CancellationToken cancellationToken = default);
     Task OnCrewmatePriorityChangedAsync(int userId, CancellationToken cancellationToken = default);
     Task RecalculateCapsAfterMembershipChangeAsync(int crewId, CancellationToken cancellationToken = default);
     Task<decimal> GetPriorityScoreForUserAsync(

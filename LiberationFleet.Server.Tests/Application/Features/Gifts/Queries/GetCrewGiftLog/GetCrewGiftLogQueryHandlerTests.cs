@@ -81,6 +81,9 @@ public class GetCrewGiftLogQueryHandlerTests
         giftRepository
             .Setup(r => r.GetCompletedInitiatedGiftIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<int>());
+        giftRepository
+            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, Gift>());
 
         var handler = CreateHandler(
             currentUserId: user.Id,

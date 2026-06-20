@@ -13,7 +13,6 @@ public class RecordGiftCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
-    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftCommand request, CancellationToken cancellationToken)
@@ -89,6 +88,11 @@ public class RecordGiftCommandHandler(
             return new GiftOperationResponse { Success = false, Message = "Selected payment platform is not shared with the recipient." };
         }
 
+        if (initiated.VerificationStatus != GiftVerificationStatus.MiddlemanReceivedFunds)
+        {
+            return new GiftOperationResponse { Success = false, Message = "Confirm that you received the funds before completing this gift." };
+        }
+
         var gift = new Gift
         {
             CrewId = crewId,
@@ -102,19 +106,20 @@ public class RecordGiftCommandHandler(
             IsSurvivalThreshold = initiated.IsSurvivalThreshold,
             IsCustomGift = initiated.IsCustomGift,
             CountsTowardReception = true,
+            CountsTowardContribution = true,
+            VerificationStatus = GiftVerificationStatus.AwaitingRecipientVerification,
             CreatedAt = DateTime.UtcNow
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse
         {
             Success = true,
-            Message = "Gift completed.",
-            Entry = saved is not null ? GiftMapper.MapGift(saved) : null
+            Message = "Gift completed. Awaiting recipient confirmation.",
+            Entry = saved is not null ? GiftMapper.MapGift(saved, viewerUserId: userId, initiatedParent: initiated) : null
         };
     }
 
@@ -157,6 +162,7 @@ public class RecordGiftCommandHandler(
             }
         }
 
+        var countsTowardReception = !middlemanId.HasValue;
         var gift = new Gift
         {
             CrewId = crewId,
@@ -166,16 +172,14 @@ public class RecordGiftCommandHandler(
             Type = middlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
             Amount = amount,
             CrewPaymentPlatformId = paymentPlatformId,
+            CountsTowardReception = countsTowardReception,
+            CountsTowardContribution = true,
+            VerificationStatus = GiftVerificationStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        if (!middlemanId.HasValue)
-        {
-            await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
-        }
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse

@@ -333,6 +333,21 @@ public partial class MutualAidService(
 
     public async Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default)
     {
+        if (gift.ReceptionApplied)
+        {
+            return;
+        }
+
+        await ApplyGiftReceptionForUserAsync(gift, gift.RecipientUserId, cancellationToken);
+        gift.ReceptionApplied = true;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ApplyGiftReceptionForUserAsync(
+        Gift gift,
+        int recipientUserId,
+        CancellationToken cancellationToken = default)
+    {
         if (!gift.CountsTowardReception || gift.IsCustomGift)
         {
             return;
@@ -346,7 +361,7 @@ public partial class MutualAidService(
 
         var cycle = await mutualAidRepository.GetSeasonCycleAsync(
             gift.CrewId,
-            gift.RecipientUserId,
+            recipientUserId,
             crew.CurrentSeasonStartDate.Value,
             cancellationToken);
 
@@ -360,12 +375,12 @@ public partial class MutualAidService(
         if (gift.IsSurvivalThreshold)
         {
             cycle.SurvivalThresholdReceived += gift.Amount;
-            await ApplyToThresholdAsync(gift, cancellationToken);
+            await ApplyToThresholdForUserAsync(gift, recipientUserId, cancellationToken);
         }
         else
         {
             var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
-            var effectiveCap = await GetEffectiveCycleCapForUserAsync(gift.RecipientUserId, crew, capacityContext, cancellationToken);
+            var effectiveCap = await GetEffectiveCycleCapForUserAsync(recipientUserId, crew, capacityContext, cancellationToken);
 
             if (cycle.TotalReceptionAmount - gift.Amount < effectiveCap)
             {
@@ -383,7 +398,7 @@ public partial class MutualAidService(
         }
 
         var capacity = await BuildCapacityContextAsync(crew, cancellationToken);
-        var cap = await GetEffectiveCycleCapForUserAsync(gift.RecipientUserId, crew, capacity, cancellationToken);
+        var cap = await GetEffectiveCycleCapForUserAsync(recipientUserId, crew, capacity, cancellationToken);
         UpdateCycleCompletion(cycle, cap);
 
         await TryEndSeasonAsync(crew, cancellationToken);
@@ -780,10 +795,13 @@ public partial class MutualAidService(
         }
     }
 
-    private async Task ApplyToThresholdAsync(Gift gift, CancellationToken cancellationToken)
+    private Task ApplyToThresholdAsync(Gift gift, CancellationToken cancellationToken) =>
+        ApplyToThresholdForUserAsync(gift, gift.RecipientUserId, cancellationToken);
+
+    private async Task ApplyToThresholdForUserAsync(Gift gift, int userId, CancellationToken cancellationToken)
     {
         var thresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(gift.CrewId, cancellationToken);
-        var threshold = thresholds.FirstOrDefault(t => t.UserId == gift.RecipientUserId);
+        var threshold = thresholds.FirstOrDefault(t => t.UserId == userId);
         if (threshold is null)
         {
             return;

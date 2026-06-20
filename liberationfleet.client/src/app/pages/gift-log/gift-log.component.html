@@ -1,46 +1,74 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="recordButton" [fillHeight]="true">
-  <div class="gift-log-page">
-    <h1 class="page-title">Gift Log</h1>
-    <p *ngIf="loading" class="status-text">Loading gift log…</p>
-    <p *ngIf="errorMessage" class="error-text">{{ errorMessage }}</p>
-
-    <div class="log-container" #logContainer *ngIf="!loading && !errorMessage">
-      <p *ngIf="loadingMore" class="loading-more-text">Loading older gifts…</p>
-      <div class="log-inner">
-        <div
-          *ngFor="let entry of entries; let i = index"
-          class="log-entry"
-          [class.highlighted]="isHighlighted(entry)">
-          <div
-            *ngIf="hasMore && i === loadMoreTriggerIndex"
-            #loadMoreSentinel
-            class="load-more-sentinel"
-            aria-hidden="true"></div>
-          <p class="log-message">{{ entry.message }}</p>
-          <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
-          <div
-            *ngIf="entry.canCompleteAsMiddleman && entry.status === 'pending'"
-            class="complete-row">
-            <select
-              class="platform-select"
-              [(ngModel)]="completionPlatformSelections[entry.id]">
-              <option [ngValue]="''">Select payment platform</option>
-              <option
-                *ngFor="let option of entry.completionPlatformOptions"
-                [ngValue]="option.id">
-                {{ option.name }}
-              </option>
-            </select>
-            <button
-              type="button"
-              class="complete-btn"
-              [disabled]="completingGiftId === entry.id || !canComplete(entry)"
-              (click)="completeGift(entry)">
-              Gift Completed
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</app-page-layout>
+<app-page-layout [backButton]="backButton" [primaryButton]="recordButton" [fillHeight]="true">
+  <div class="gift-log-page">
+    <h1 class="page-title">Gift Log</h1>
+    <p *ngIf="loading" class="status-text">Loading gift log…</p>
+    <p *ngIf="errorMessage" class="error-text">{{ errorMessage }}</p>
+
+    <div class="log-container" #logContainer *ngIf="!loading && !errorMessage">
+      <p *ngIf="loadingMore" class="loading-more-text">Loading older gifts…</p>
+      <div class="log-inner">
+        <div
+          *ngFor="let entry of entries; let i = index"
+          class="log-entry"
+          [class.highlighted]="isHighlighted(entry)"
+          [class.flagged-not-complete]="entry.displayFlag === 'notComplete'"
+          [class.flagged-cant-complete]="entry.displayFlag === 'cantComplete'">
+          <div
+            *ngIf="hasMore && i === loadMoreTriggerIndex"
+            #loadMoreSentinel
+            class="load-more-sentinel"
+            aria-hidden="true"></div>
+          <p class="log-message">{{ entry.message }}</p>
+          <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
+
+          <div *ngIf="entry.availableActions?.length" class="verification-row">
+            <button
+              *ngIf="hasAction(entry, 'confirmReceived')"
+              type="button"
+              class="verify-btn received-btn"
+              [disabled]="verifyingGiftId === entry.id"
+              (click)="verifyGift(entry, 'confirmReceived')">
+              Received
+            </button>
+            <button
+              *ngIf="hasAction(entry, 'confirmNotReceived')"
+              type="button"
+              class="verify-btn not-received-btn"
+              [disabled]="verifyingGiftId === entry.id"
+              (click)="verifyGift(entry, 'confirmNotReceived')">
+              Not Received
+            </button>
+            <button
+              *ngIf="hasAction(entry, 'cantComplete')"
+              type="button"
+              class="verify-btn cant-complete-btn"
+              [disabled]="verifyingGiftId === entry.id"
+              (click)="verifyGift(entry, 'cantComplete')">
+              Can't Complete
+            </button>
+
+            <div *ngIf="hasAction(entry, 'completeTransfer')" class="complete-transfer-row">
+              <select
+                class="platform-select"
+                [(ngModel)]="completionPlatformSelections[entry.id]">
+                <option [ngValue]="''">Select payment platform</option>
+                <option
+                  *ngFor="let option of entry.completionPlatformOptions"
+                  [ngValue]="option.id">
+                  {{ option.name }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="verify-btn complete-btn"
+                [disabled]="verifyingGiftId === entry.id || !canCompleteTransfer(entry)"
+                (click)="verifyGift(entry, 'completeTransfer')">
+                Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-page-layout>

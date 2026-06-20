@@ -86,6 +86,7 @@ public class MutualAidRepository : IMutualAidRepository
         return await _context.Gifts
             .Where(g => g.CrewId == crewId
                 && g.GiverUserId == userId
+                && g.CountsTowardContribution
                 && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated)
                 && g.CreatedAt >= threeMonthsAgo)
             .SumAsync(g => g.Amount, cancellationToken);
@@ -100,6 +101,7 @@ public class MutualAidRepository : IMutualAidRepository
         var query = _context.Gifts.Where(g =>
             g.CrewId == crewId
             && g.GiverUserId == userId
+            && g.CountsTowardContribution
             && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated));
 
         if (before.HasValue)
@@ -117,6 +119,7 @@ public class MutualAidRepository : IMutualAidRepository
     {
         var query = _context.Gifts.Where(g =>
             g.CrewId == crewId
+            && g.CountsTowardContribution
             && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated));
 
         if (before.HasValue)
@@ -132,6 +135,7 @@ public class MutualAidRepository : IMutualAidRepository
         var query = _context.Gifts.Where(g =>
             g.CrewId == crewId
             && g.GiverUserId == userId
+            && g.CountsTowardContribution
             && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated)
             && g.CreatedAt >= since);
 

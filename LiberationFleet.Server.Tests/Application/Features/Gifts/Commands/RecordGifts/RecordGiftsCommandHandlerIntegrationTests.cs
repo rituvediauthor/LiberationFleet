@@ -1,6 +1,5 @@
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
-using LiberationFleet.Server.Application.Services;
-using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
@@ -11,22 +10,21 @@ namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.Recor
 public class RecordGiftsCommandHandlerIntegrationTests
 {
     [Fact]
-    public async Task Handle_WhenRecordingDirectGift_PersistsGiftAndUpdatesCycle()
+    public async Task Handle_WhenRecordingDirectGift_DoesNotUpdateCycleUntilRecipientVerifies()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
 
         var membershipRepository = new CrewMembershipRepository(fixture.Context);
         var giftRepository = new GiftRepository(fixture.Context);
         var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(fixture.Context);
-        var handler = new RecordGiftsCommandHandler(
+        var recordHandler = new RecordGiftsCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Alice.Id).Object,
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
-            fixture.Service,
             fixture.Context);
 
-        var result = await handler.Handle(
+        var result = await recordHandler.Handle(
             new RecordGiftsCommand(
             [
                 new GiftRecordItem(
@@ -43,7 +41,24 @@ public class RecordGiftsCommandHandlerIntegrationTests
 
         var gift = await fixture.Context.Gifts.SingleAsync();
         gift.Type.Should().Be(GiftType.Direct);
-        gift.Amount.Should().Be(50);
+        gift.VerificationStatus.Should().Be(GiftVerificationStatus.Pending);
+
+        var cycleBeforeVerify = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        cycleBeforeVerify.CycleReceived.Should().Be(0m);
+
+        var verifyHandler = new VerifyGiftCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Bob.Id).Object,
+            membershipRepository,
+            giftRepository,
+            crewPaymentPlatformRepository,
+            fixture.Service,
+            fixture.Context);
+
+        var verifyResult = await verifyHandler.Handle(
+            new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),
+            CancellationToken.None);
+
+        verifyResult.Success.Should().BeTrue();
 
         var cycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
         cycle.CycleReceived.Should().Be(50m);
@@ -62,7 +77,6 @@ public class RecordGiftsCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
-            fixture.Service,
             fixture.Context);
 
         var result = await handler.Handle(
@@ -90,7 +104,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
     }
 
     [Fact]
-    public async Task Handle_WhenRecordingSurvivalThresholdGift_MarksGiftAsThreshold()
+    public async Task Handle_WhenRecordingSurvivalThresholdGift_AppliesThresholdAfterRecipientVerifies()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
         await fixture.AddUnsatisfiedThresholdAsync(fixture.Bob, thresholdAmount: 75m);
@@ -98,15 +112,14 @@ public class RecordGiftsCommandHandlerIntegrationTests
         var membershipRepository = new CrewMembershipRepository(fixture.Context);
         var giftRepository = new GiftRepository(fixture.Context);
         var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(fixture.Context);
-        var handler = new RecordGiftsCommandHandler(
+        var recordHandler = new RecordGiftsCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Carol.Id).Object,
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
-            fixture.Service,
             fixture.Context);
 
-        var result = await handler.Handle(
+        var result = await recordHandler.Handle(
             new RecordGiftsCommand(
             [
                 new GiftRecordItem(
@@ -123,6 +136,23 @@ public class RecordGiftsCommandHandlerIntegrationTests
 
         var gift = await fixture.Context.Gifts.SingleAsync();
         gift.IsSurvivalThreshold.Should().BeTrue();
+
+        var thresholdBeforeVerify = await fixture.Context.MonthlySurvivalThresholds.SingleAsync();
+        thresholdBeforeVerify.ReceivedAmount.Should().Be(0m);
+
+        var verifyHandler = new VerifyGiftCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Bob.Id).Object,
+            membershipRepository,
+            giftRepository,
+            crewPaymentPlatformRepository,
+            fixture.Service,
+            fixture.Context);
+
+        var verifyResult = await verifyHandler.Handle(
+            new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),
+            CancellationToken.None);
+
+        verifyResult.Success.Should().BeTrue();
 
         var threshold = await fixture.Context.MonthlySurvivalThresholds.SingleAsync();
         threshold.ReceivedAmount.Should().Be(20m);

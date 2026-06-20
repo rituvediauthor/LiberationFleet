@@ -10,6 +10,7 @@ import {
   GiftLogResponse,
   GiftOperationResponse,
   GiftRecordItem,
+  GiftVerificationAction,
   NextAidInfo,
   PaymentPlatformOption,
   PendingMiddlemanGift,
@@ -118,6 +119,17 @@ export class GiftService {
 
   completeMiddlemanGift(giftId: number, paymentPlatformId: number): Observable<GiftOperationResponse> {
     return this.http.post<GiftOperationResponse>(`${this.apiUrl}/${giftId}/complete`, { paymentPlatformId });
+  }
+
+  verifyGift(
+    giftId: number,
+    action: GiftVerificationAction,
+    paymentPlatformId?: number
+  ): Observable<GiftOperationResponse> {
+    return this.http.post<GiftOperationResponse>(`${this.apiUrl}/${giftId}/verify`, {
+      action,
+      paymentPlatformId: paymentPlatformId ?? null
+    });
   }
 
   recordGift(request: RecordGiftRequest): Observable<GiftOperationResponse> {

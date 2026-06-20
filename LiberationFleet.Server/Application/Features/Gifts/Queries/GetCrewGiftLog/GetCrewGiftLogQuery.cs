@@ -1,7 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
-using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -38,24 +38,39 @@ public class GetCrewGiftLogQueryHandler(
             request.BeforeCreatedAt,
             request.BeforeId,
             cancellationToken);
-        var completedInitiatedIds = await giftRepository.GetCompletedInitiatedGiftIdsAsync(membership.CrewId, cancellationToken);
+
+        var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(membership.CrewId, cancellationToken);
+
+        var initiatedParents = page.Items
+            .Where(g => g.Type == GiftType.Initiated)
+            .ToDictionary(g => g.Id, g => g);
+
+        var missingParentIds = page.Items
+            .Where(g => g.Type == GiftType.Completed && g.InitiatedGiftId.HasValue)
+            .Select(g => g.InitiatedGiftId!.Value)
+            .Where(id => !initiatedParents.ContainsKey(id))
+            .Distinct()
+            .ToList();
+
+        foreach (var parentId in missingParentIds)
+        {
+            var parent = await giftRepository.GetByIdWithUsersAsync(parentId, cancellationToken);
+            if (parent is not null)
+            {
+                initiatedParents[parentId] = parent;
+            }
+        }
 
         var items = page.Items.Select(gift =>
         {
-            var isPendingMiddleman = gift.Type == GiftType.Initiated
-                && gift.MiddlemanUserId == userId
-                && !completedInitiatedIds.Contains(gift.Id);
-            var status = gift.Type == GiftType.Initiated
-                ? (completedInitiatedIds.Contains(gift.Id) ? "completed" : "pending")
-                : "completed";
-
-            IReadOnlyList<PaymentPlatformOptionDto>? completionOptions = null;
-            if (isPendingMiddleman && gift.MiddlemanUser is not null && gift.RecipientUser is not null)
+            completedByInitiated.TryGetValue(gift.Id, out var completedChild);
+            Gift? initiatedParent = null;
+            if (gift.Type == GiftType.Completed && gift.InitiatedGiftId.HasValue)
             {
-                completionOptions = CrewPaymentPlatformService.GetCommonPlatforms(gift.MiddlemanUser, gift.RecipientUser);
+                initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
             }
 
-            return GiftMapper.MapGift(gift, isPendingMiddleman, status, completionOptions);
+            return GiftMapper.MapGift(gift, userId, completedChild, initiatedParent);
         }).ToList();
 
         return new GiftLogResponse

@@ -5,7 +5,11 @@ using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewMembers;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetPendingMiddlemanGifts;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetNextAid;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
+using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrder;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -81,5 +85,34 @@ public class GiftsController : ControllerBase
     {
         var result = await _mediator.Send(new CompleteMiddlemanGiftCommand(giftId, body.PaymentPlatformId));
         return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{giftId:int}/verify")]
+    public async Task<IActionResult> VerifyGift(int giftId, [FromBody] VerifyGiftRequest body)
+    {
+        if (!TryParseVerificationAction(body.Action, out var action))
+        {
+            return BadRequest(new GiftOperationResponse { Success = false, Message = "Invalid verification action." });
+        }
+
+        var result = await _mediator.Send(new VerifyGiftCommand(giftId, action, body.PaymentPlatformId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    private static bool TryParseVerificationAction(string action, out GiftVerificationAction parsed)
+    {
+        parsed = action switch
+        {
+            GiftVerificationUiHelper.ActionConfirmReceived => GiftVerificationAction.ConfirmReceived,
+            GiftVerificationUiHelper.ActionConfirmNotReceived => GiftVerificationAction.ConfirmNotReceived,
+            GiftVerificationUiHelper.ActionCompleteTransfer => GiftVerificationAction.CompleteTransfer,
+            GiftVerificationUiHelper.ActionCantComplete => GiftVerificationAction.CantComplete,
+            _ => default
+        };
+
+        return action is GiftVerificationUiHelper.ActionConfirmReceived
+            or GiftVerificationUiHelper.ActionConfirmNotReceived
+            or GiftVerificationUiHelper.ActionCompleteTransfer
+            or GiftVerificationUiHelper.ActionCantComplete;
     }
 }

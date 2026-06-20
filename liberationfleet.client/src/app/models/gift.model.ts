@@ -1,6 +1,12 @@
 export type GiftLogType = 'direct' | 'initiated' | 'completed';
 export type ReceptionEntryType = 'survivalThreshold' | 'cycle';
-export type GiftEntryStatus = 'pending' | 'completed';
+export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete';
+export type GiftDisplayFlag = 'notComplete' | 'cantComplete';
+export type GiftVerificationAction =
+  | 'confirmReceived'
+  | 'confirmNotReceived'
+  | 'completeTransfer'
+  | 'cantComplete';
 
 export type PaymentPlatform = string;
 
@@ -29,8 +35,10 @@ export interface GiftLogEntry {
   timestamp: Date;
   message: string;
   relatedUserIds: number[];
-  canCompleteAsMiddleman?: boolean;
   status?: GiftEntryStatus;
+  verificationStatus?: string;
+  displayFlag?: GiftDisplayFlag | null;
+  availableActions?: GiftVerificationAction[];
   completionPlatformOptions?: PaymentPlatformOption[];
 }
 

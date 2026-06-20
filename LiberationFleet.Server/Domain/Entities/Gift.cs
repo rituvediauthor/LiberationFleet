@@ -17,6 +17,9 @@ public class Gift
     public bool IsSurvivalThreshold { get; set; }
     public bool CountsTowardReception { get; set; } = true;
     public bool IsCustomGift { get; set; }
+    public bool CountsTowardContribution { get; set; } = true;
+    public bool ReceptionApplied { get; set; }
+    public GiftVerificationStatus VerificationStatus { get; set; } = GiftVerificationStatus.Pending;
 
     public Crew Crew { get; set; } = null!;
     public User GiverUser { get; set; } = null!;

@@ -88,7 +88,7 @@ public class CompleteMiddlemanGiftCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenValid_CompletesGiftAndAppliesReception()
+    public async Task Handle_WhenValid_CompletesGiftWithoutApplyingReception()
     {
         var middleman = CreateUserWithPlatform(3, 10, "Cash App");
         var recipient = CreateUserWithPlatform(2, 10, "Cash App");
@@ -96,6 +96,7 @@ public class CompleteMiddlemanGiftCommandHandlerTests
         var crew = HandlerTestFixture.CreateCrew();
         var initiated = CreateInitiatedGift(giver, recipient, middlemanUserId: middleman.Id, middlemanUser: middleman);
         initiated.CrewId = crew.Id;
+        initiated.VerificationStatus = GiftVerificationStatus.MiddlemanReceivedFunds;
 
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         membershipRepository
@@ -126,13 +127,10 @@ public class CompleteMiddlemanGiftCommandHandlerTests
                 return savedGift;
             });
 
-        var mutualAidService = HandlerTestFixture.CreateMutualAidServiceMock();
-
         var handler = CreateHandler(
             currentUserId: middleman.Id,
             membershipRepository: membershipRepository,
-            giftRepository: giftRepository,
-            mutualAidService: mutualAidService);
+            giftRepository: giftRepository);
 
         var result = await handler.Handle(
             new CompleteMiddlemanGiftCommand(initiated.Id, 10),
@@ -143,9 +141,7 @@ public class CompleteMiddlemanGiftCommandHandlerTests
         savedGift!.Type.Should().Be(GiftType.Completed);
         savedGift.CountsTowardReception.Should().BeTrue();
         savedGift.InitiatedGiftId.Should().Be(initiated.Id);
-        mutualAidService.Verify(
-            m => m.ApplyGiftReceptionAsync(It.Is<Gift>(g => g.Type == GiftType.Completed), It.IsAny<CancellationToken>()),
-            Times.Once);
+        savedGift.VerificationStatus.Should().Be(GiftVerificationStatus.AwaitingRecipientVerification);
     }
 
     private static CompleteMiddlemanGiftCommandHandler CreateHandler(
@@ -153,13 +149,11 @@ public class CompleteMiddlemanGiftCommandHandlerTests
         Mock<ICrewMembershipRepository>? membershipRepository = null,
         Mock<IGiftRepository>? giftRepository = null,
         Mock<ICrewPaymentPlatformRepository>? crewPaymentPlatformRepository = null,
-        Mock<IMutualAidService>? mutualAidService = null,
         Mock<IUnitOfWork>? unitOfWork = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
         crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
-        mutualAidService ??= HandlerTestFixture.CreateMutualAidServiceMock();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
 
         if (membershipRepository.Setups.Count == 0)
@@ -174,7 +168,6 @@ public class CompleteMiddlemanGiftCommandHandlerTests
             membershipRepository.Object,
             giftRepository.Object,
             crewPaymentPlatformRepository.Object,
-            mutualAidService.Object,
             unitOfWork.Object);
     }
 

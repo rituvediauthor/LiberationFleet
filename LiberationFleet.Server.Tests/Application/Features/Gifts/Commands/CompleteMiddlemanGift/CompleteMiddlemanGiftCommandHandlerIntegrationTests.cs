@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Gifts.Commands.CompleteMiddlemanGift;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
@@ -9,7 +10,7 @@ namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.Compl
 public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
 {
     [Fact]
-    public async Task Handle_WhenMiddlemanCompletesGift_PersistsCompletedGiftAndUpdatesCycle()
+    public async Task Handle_WhenMiddlemanCompletesGift_PersistsCompletedGiftWithoutUpdatingCycleUntilRecipientVerifies()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
 
@@ -23,6 +24,8 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             Amount = 40m,
             CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
             CountsTowardReception = false,
+            CountsTowardContribution = true,
+            VerificationStatus = GiftVerificationStatus.MiddlemanReceivedFunds,
             CreatedAt = DateTime.UtcNow
         };
         fixture.Context.Gifts.Add(initiated);
@@ -36,7 +39,6 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
-            fixture.Service,
             fixture.Context);
 
         var result = await handler.Handle(
@@ -51,7 +53,24 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
 
         completed.InitiatedGiftId.Should().Be(initiated.Id);
         completed.CrewPaymentPlatformId.Should().Be(fixture.Platforms["Venmo"].Id);
-        completed.CountsTowardReception.Should().BeTrue();
+        completed.VerificationStatus.Should().Be(GiftVerificationStatus.AwaitingRecipientVerification);
+
+        var cycleBeforeVerify = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        cycleBeforeVerify.CycleReceived.Should().Be(0m);
+
+        var verifyHandler = new VerifyGiftCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Bob.Id).Object,
+            membershipRepository,
+            giftRepository,
+            crewPaymentPlatformRepository,
+            fixture.Service,
+            fixture.Context);
+
+        var verifyResult = await verifyHandler.Handle(
+            new VerifyGiftCommand(completed.Id, GiftVerificationAction.ConfirmReceived),
+            CancellationToken.None);
+
+        verifyResult.Success.Should().BeTrue();
 
         var cycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
         cycle.CycleReceived.Should().Be(40m);
@@ -71,6 +90,7 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             Type = GiftType.Initiated,
             Amount = 40m,
             CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            VerificationStatus = GiftVerificationStatus.MiddlemanReceivedFunds,
             CreatedAt = DateTime.UtcNow
         };
         fixture.Context.Gifts.Add(initiated);
@@ -84,7 +104,6 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
-            fixture.Service,
             fixture.Context);
 
         var result = await handler.Handle(

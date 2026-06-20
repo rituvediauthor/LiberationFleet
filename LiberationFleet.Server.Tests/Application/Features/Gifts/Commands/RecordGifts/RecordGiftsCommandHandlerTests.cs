@@ -11,7 +11,7 @@ namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.Recor
 public class RecordGiftsCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_WhenRecordingDirectGift_AddsGiftAndAppliesReception()
+    public async Task Handle_WhenRecordingDirectGift_AddsGiftWithoutApplyingReception()
     {
         var giver = HandlerTestFixture.CreateUser(id: 1);
         var recipient = HandlerTestFixture.CreateUser(id: 2);
@@ -44,13 +44,10 @@ public class RecordGiftsCommandHandlerTests
                 return savedGift;
             });
 
-        var mutualAidService = HandlerTestFixture.CreateMutualAidServiceMock();
-
         var handler = CreateHandler(
             currentUserId: giver.Id,
             membershipRepository: membershipRepository,
-            giftRepository: giftRepository,
-            mutualAidService: mutualAidService);
+            giftRepository: giftRepository);
 
         var result = await handler.Handle(
             new RecordGiftsCommand(
@@ -63,9 +60,7 @@ public class RecordGiftsCommandHandlerTests
         savedGift.Should().NotBeNull();
         savedGift!.Type.Should().Be(GiftType.Direct);
         savedGift.CountsTowardReception.Should().BeTrue();
-        mutualAidService.Verify(
-            m => m.ApplyGiftReceptionAsync(It.Is<Gift>(g => g.Amount == 30), It.IsAny<CancellationToken>()),
-            Times.Once);
+        savedGift.VerificationStatus.Should().Be(GiftVerificationStatus.Pending);
     }
 
     [Fact]
@@ -109,13 +104,10 @@ public class RecordGiftsCommandHandlerTests
                 return savedGift;
             });
 
-        var mutualAidService = HandlerTestFixture.CreateMutualAidServiceMock();
-
         var handler = CreateHandler(
             currentUserId: giver.Id,
             membershipRepository: membershipRepository,
-            giftRepository: giftRepository,
-            mutualAidService: mutualAidService);
+            giftRepository: giftRepository);
 
         var result = await handler.Handle(
             new RecordGiftsCommand(
@@ -127,9 +119,6 @@ public class RecordGiftsCommandHandlerTests
         result.Success.Should().BeTrue();
         savedGift!.Type.Should().Be(GiftType.Initiated);
         savedGift.CountsTowardReception.Should().BeFalse();
-        mutualAidService.Verify(
-            m => m.ApplyGiftReceptionAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]
@@ -246,13 +235,10 @@ public class RecordGiftsCommandHandlerTests
                 CreatedAt = DateTime.UtcNow
             });
 
-        var mutualAidService = HandlerTestFixture.CreateMutualAidServiceMock();
-
         var handler = CreateHandler(
             currentUserId: giver.Id,
             membershipRepository: membershipRepository,
-            giftRepository: giftRepository,
-            mutualAidService: mutualAidService);
+            giftRepository: giftRepository);
 
         var result = await handler.Handle(
             new RecordGiftsCommand(
@@ -265,9 +251,6 @@ public class RecordGiftsCommandHandlerTests
         result.Success.Should().BeTrue();
         result.Message.Should().Be("2 gifts recorded.");
         giftRepository.Verify(r => r.AddAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        mutualAidService.Verify(
-            m => m.ApplyGiftReceptionAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2));
     }
 
     private static RecordGiftsCommandHandler CreateHandler(
@@ -275,13 +258,11 @@ public class RecordGiftsCommandHandlerTests
         Mock<ICrewMembershipRepository>? membershipRepository = null,
         Mock<IGiftRepository>? giftRepository = null,
         Mock<ICrewPaymentPlatformRepository>? crewPaymentPlatformRepository = null,
-        Mock<IMutualAidService>? mutualAidService = null,
         Mock<IUnitOfWork>? unitOfWork = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
         crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
-        mutualAidService ??= HandlerTestFixture.CreateMutualAidServiceMock();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
 
         return new RecordGiftsCommandHandler(
@@ -289,7 +270,6 @@ public class RecordGiftsCommandHandlerTests
             membershipRepository.Object,
             giftRepository.Object,
             crewPaymentPlatformRepository.Object,
-            mutualAidService.Object,
             unitOfWork.Object);
     }
 }

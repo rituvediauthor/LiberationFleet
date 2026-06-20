@@ -9,7 +9,9 @@ public static class GiftMapper
 {
     public static GiftLogEntryDto MapGift(
         Gift gift,
-        bool canCompleteAsMiddleman = false,
+        int? viewerUserId = null,
+        Gift? completedChild = null,
+        Gift? initiatedParent = null,
         string? status = null,
         IReadOnlyList<PaymentPlatformOptionDto>? completionPlatformOptions = null)
     {
@@ -19,7 +21,30 @@ public static class GiftMapper
             relatedUserIds.Add(gift.MiddlemanUserId.Value);
         }
 
-        var entryStatus = status ?? (gift.Type == GiftType.Initiated ? "pending" : "completed");
+        var entryStatus = status ?? ResolveStatus(gift, completedChild);
+        var displayFlag = GiftVerificationUiHelper.GetDisplayFlag(gift);
+        IReadOnlyList<string> availableActions = Array.Empty<string>();
+
+        if (viewerUserId.HasValue)
+        {
+            availableActions = GiftVerificationUiHelper.GetAvailableActions(
+                gift,
+                viewerUserId.Value,
+                completedChild,
+                initiatedParent);
+        }
+
+        if (viewerUserId.HasValue
+            && gift.Type == GiftType.Initiated
+            && gift.MiddlemanUserId == viewerUserId
+            && completedChild is null
+            && gift.VerificationStatus == GiftVerificationStatus.MiddlemanReceivedFunds
+            && completionPlatformOptions is null
+            && gift.MiddlemanUser is not null
+            && gift.RecipientUser is not null)
+        {
+            completionPlatformOptions = CrewPaymentPlatformService.GetCommonPlatforms(gift.MiddlemanUser, gift.RecipientUser);
+        }
 
         return new GiftLogEntryDto
         {
@@ -34,10 +59,12 @@ public static class GiftMapper
             Amount = gift.Amount,
             Platform = gift.CrewPaymentPlatform.Name,
             Timestamp = gift.CreatedAt,
-            Message = FormatMessage(gift, entryStatus),
+            Message = FormatMessage(gift, entryStatus, displayFlag),
             RelatedUserIds = relatedUserIds,
-            CanCompleteAsMiddleman = canCompleteAsMiddleman,
             Status = entryStatus,
+            VerificationStatus = gift.VerificationStatus.ToString(),
+            DisplayFlag = displayFlag,
+            AvailableActions = availableActions,
             CompletionPlatformOptions = completionPlatformOptions is null
                 ? Array.Empty<GiftPlatformOptionDto>()
                 : completionPlatformOptions.Select(p => new GiftPlatformOptionDto { Id = p.Id, Name = p.Name }).ToList()
@@ -55,7 +82,27 @@ public static class GiftMapper
         Platform = gift.CrewPaymentPlatform.Name
     };
 
-    private static string FormatMessage(Gift gift, string status)
+    private static string ResolveStatus(Gift gift, Gift? completedChild)
+    {
+        if (gift.Type == GiftType.Initiated)
+        {
+            if (gift.VerificationStatus == GiftVerificationStatus.MiddlemanCannotComplete)
+            {
+                return "cantComplete";
+            }
+
+            return completedChild is not null ? "completed" : "pending";
+        }
+
+        if (gift.Type == GiftType.Completed)
+        {
+            return gift.VerificationStatus == GiftVerificationStatus.Verified ? "completed" : "pending";
+        }
+
+        return gift.VerificationStatus == GiftVerificationStatus.Verified ? "completed" : "pending";
+    }
+
+    private static string FormatMessage(Gift gift, string status, string? displayFlag)
     {
         var amount = gift.Amount.ToString("0.##");
         var platform = gift.CrewPaymentPlatform.Name;
@@ -71,6 +118,16 @@ public static class GiftMapper
             _ => string.Empty
         };
 
+        if (displayFlag == GiftVerificationUiHelper.FlagNotComplete)
+        {
+            return $"{baseMessage} (Not Complete)";
+        }
+
+        if (displayFlag == GiftVerificationUiHelper.FlagCantComplete)
+        {
+            return $"{baseMessage} (Can't Complete)";
+        }
+
         if (gift.Type == GiftType.Initiated && status == "completed")
         {
             return $"{baseMessage} (Completed)";
@@ -79,6 +136,11 @@ public static class GiftMapper
         if (gift.Type == GiftType.Initiated && status == "pending")
         {
             return $"{baseMessage} (Pending)";
+        }
+
+        if (gift.Type == GiftType.Completed && status == "pending")
+        {
+            return $"{baseMessage} (Awaiting confirmation)";
         }
 
         return baseMessage;

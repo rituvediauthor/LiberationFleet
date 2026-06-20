@@ -22,8 +22,10 @@ public class GiftLogEntryDto
     public DateTime Timestamp { get; set; }
     public string Message { get; set; } = string.Empty;
     public IReadOnlyList<int> RelatedUserIds { get; set; } = Array.Empty<int>();
-    public bool CanCompleteAsMiddleman { get; set; }
     public string? Status { get; set; }
+    public string VerificationStatus { get; set; } = string.Empty;
+    public string? DisplayFlag { get; set; }
+    public IReadOnlyList<string> AvailableActions { get; set; } = Array.Empty<string>();
     public IReadOnlyList<GiftPlatformOptionDto> CompletionPlatformOptions { get; set; } = Array.Empty<GiftPlatformOptionDto>();
 }
 

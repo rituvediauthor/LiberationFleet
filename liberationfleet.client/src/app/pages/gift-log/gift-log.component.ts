@@ -16,7 +16,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { GiftService } from '../../services/gift.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { GiftLogEntry } from '../../models/gift.model';
+import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
 
 @Component({
   selector: 'app-gift-log',
@@ -35,7 +35,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingMore = false;
   hasMore = false;
   errorMessage = '';
-  completingGiftId: number | null = null;
+  verifyingGiftId: number | null = null;
   completionPlatformSelections: Record<number, number | ''> = {};
   backButton!: ActionBarButton;
   recordButton!: ActionBarButton;
@@ -127,38 +127,42 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  canComplete(entry: GiftLogEntry): boolean {
-    if (!entry.canCompleteAsMiddleman || entry.status !== 'pending') {
-      return false;
-    }
+  canCompleteTransfer(entry: GiftLogEntry): boolean {
     const platformId = this.completionPlatformSelections[entry.id];
     return !!platformId;
   }
 
-  completeGift(entry: GiftLogEntry) {
-    if (this.completingGiftId) return;
+  hasAction(entry: GiftLogEntry, action: GiftVerificationAction): boolean {
+    return entry.availableActions?.includes(action) ?? false;
+  }
 
-    const platformId = Number(this.completionPlatformSelections[entry.id]);
-    if (!platformId) {
-      this.toastService.error('Select a payment platform before completing this gift.');
-      return;
+  verifyGift(entry: GiftLogEntry, action: GiftVerificationAction) {
+    if (this.verifyingGiftId) return;
+
+    let paymentPlatformId: number | undefined;
+    if (action === 'completeTransfer') {
+      paymentPlatformId = Number(this.completionPlatformSelections[entry.id]);
+      if (!paymentPlatformId) {
+        this.toastService.error('Select a payment platform before completing this gift.');
+        return;
+      }
     }
 
-    this.completingGiftId = entry.id;
-    this.giftService.completeMiddlemanGift(entry.id, platformId).subscribe({
+    this.verifyingGiftId = entry.id;
+    this.giftService.verifyGift(entry.id, action, paymentPlatformId).subscribe({
       next: result => {
-        this.completingGiftId = null;
+        this.verifyingGiftId = null;
         if (result.success) {
-          this.toastService.success(result.message || 'Gift completed');
+          this.toastService.success(result.message || 'Gift updated');
           delete this.completionPlatformSelections[entry.id];
           this.loadGiftLog();
           return;
         }
-        this.toastService.error(result.message || 'Failed to complete gift');
+        this.toastService.error(result.message || 'Failed to update gift');
       },
       error: () => {
-        this.completingGiftId = null;
-        this.toastService.error('Failed to complete gift');
+        this.verifyingGiftId = null;
+        this.toastService.error('Failed to update gift');
       }
     });
   }
@@ -225,7 +229,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyCompletionDefaults(entries: GiftLogEntry[]) {
     entries.forEach(entry => {
-      if (entry.canCompleteAsMiddleman && entry.completionPlatformOptions?.length === 1) {
+      if (entry.availableActions?.includes('completeTransfer') && entry.completionPlatformOptions?.length === 1) {
         this.completionPlatformSelections[entry.id] = entry.completionPlatformOptions[0].id;
       }
     });

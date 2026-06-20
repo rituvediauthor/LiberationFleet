@@ -40,13 +40,11 @@ public class RecordGiftCommandHandlerIntegrationTests
             var membershipRepository = new CrewMembershipRepository(context);
             var giftRepository = new GiftRepository(context);
             var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(context);
-            var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
             var handler = new RecordGiftCommandHandler(
                 HandlerTestFixture.CreateCurrentUserServiceMock(giver.Id).Object,
                 membershipRepository,
                 giftRepository,
                 crewPaymentPlatformRepository,
-                mutualAidService,
                 context);
 
             var result = await handler.Handle(
@@ -126,6 +124,7 @@ public class RecordGiftCommandHandlerIntegrationTests
                 Type = GiftType.Initiated,
                 Amount = 30,
                 CrewPaymentPlatformId = platforms["Cash App"].Id,
+                VerificationStatus = GiftVerificationStatus.MiddlemanReceivedFunds,
                 CreatedAt = DateTime.UtcNow
             };
             context.Gifts.Add(initiated);
@@ -134,13 +133,11 @@ public class RecordGiftCommandHandlerIntegrationTests
             var membershipRepository = new CrewMembershipRepository(context);
             var giftRepository = new GiftRepository(context);
             var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(context);
-            var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
             var handler = new RecordGiftCommandHandler(
                 HandlerTestFixture.CreateCurrentUserServiceMock(middleman.Id).Object,
                 membershipRepository,
                 giftRepository,
                 crewPaymentPlatformRepository,
-                mutualAidService,
                 context);
 
             var result = await handler.Handle(
