@@ -1,12 +1,16 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
-using MediatR;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
+using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 
-public record GetCrewGiftLogQuery : IRequest<GiftLogResponse>;
+public record GetCrewGiftLogQuery(
+    int Limit = 50,
+    DateTime? BeforeCreatedAt = null,
+    int? BeforeId = null) : IRequest<GiftLogResponse>;
 
 public class GetCrewGiftLogQueryHandler(
     ICurrentUserService currentUser,
@@ -27,13 +31,16 @@ public class GetCrewGiftLogQueryHandler(
             return new GiftLogResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var gifts = await giftRepository.GetLogByCrewIdAsync(membership.CrewId, cancellationToken);
-        var completedInitiatedIds = gifts
-            .Where(g => g.Type == GiftType.Completed && g.InitiatedGiftId.HasValue)
-            .Select(g => g.InitiatedGiftId!.Value)
-            .ToHashSet();
+        var limit = request.Limit <= 0 ? 50 : Math.Min(request.Limit, 100);
+        var page = await giftRepository.GetLogPageByCrewIdAsync(
+            membership.CrewId,
+            limit,
+            request.BeforeCreatedAt,
+            request.BeforeId,
+            cancellationToken);
+        var completedInitiatedIds = await giftRepository.GetCompletedInitiatedGiftIdsAsync(membership.CrewId, cancellationToken);
 
-        var items = gifts.Select(gift =>
+        var items = page.Items.Select(gift =>
         {
             var isPendingMiddleman = gift.Type == GiftType.Initiated
                 && gift.MiddlemanUserId == userId
@@ -42,14 +49,21 @@ public class GetCrewGiftLogQueryHandler(
                 ? (completedInitiatedIds.Contains(gift.Id) ? "completed" : "pending")
                 : "completed";
 
-            return GiftMapper.MapGift(gift, isPendingMiddleman, status);
+            IReadOnlyList<PaymentPlatformOptionDto>? completionOptions = null;
+            if (isPendingMiddleman && gift.MiddlemanUser is not null && gift.RecipientUser is not null)
+            {
+                completionOptions = CrewPaymentPlatformService.GetCommonPlatforms(gift.MiddlemanUser, gift.RecipientUser);
+            }
+
+            return GiftMapper.MapGift(gift, isPendingMiddleman, status, completionOptions);
         }).ToList();
 
         return new GiftLogResponse
         {
             Success = true,
             Message = "Gift log loaded.",
-            Items = items
+            Items = items,
+            HasMore = page.HasMore
         };
     }
 }

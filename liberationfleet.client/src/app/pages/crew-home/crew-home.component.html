@@ -12,15 +12,28 @@
           <p class="join-code">{{ membership?.joinCode }}</p>
         </header>
 
-        <div class="info-widget">
+        <div class="info-widget" *ngIf="seasonStarted">
           <span class="info-label">Next aid</span>
-          <p class="info-text">{{ nextAid?.recipientName }} needs ${{ nextAid?.amount }}</p>
+          <p class="info-text">{{ nextAidHeadline }}</p>
+          <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
         </div>
+
+        <button type="button" class="menu-link" (click)="goToRules()">
+          <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
+          <span class="menu-label">Rules</span>
+          <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+        </button>
 
         <nav class="crew-menu" aria-label="Crew actions">
           <button type="button" class="menu-link" (click)="goToGiftLog()">
             <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
             <span class="menu-label">Gift Log</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToLibraryOfThings()">
+            <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Library of Things</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
@@ -30,15 +43,27 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link" (click)="goToProposals()">
-            <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
-            <span class="menu-label">Proposals</span>
+          <button type="button" class="menu-link" (click)="goToForums()">
+            <i class="fa-solid fa-rectangle-list menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Forums</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
           <button type="button" class="menu-link" (click)="goToProjects()">
             <i class="fa-solid fa-diagram-project menu-icon" aria-hidden="true"></i>
             <span class="menu-label">Projects</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToProposals()">
+            <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Proposals</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToCrewmates()">
+            <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Crewmates</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
         </nav>

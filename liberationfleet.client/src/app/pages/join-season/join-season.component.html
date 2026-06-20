@@ -17,10 +17,19 @@
       <form [formGroup]="form">
         <section class="section">
           <h2>Payment Platforms</h2>
+          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
           <div class="platform-row" *ngFor="let account of paymentPlatforms">
             <select [(ngModel)]="account.platformId" [ngModelOptions]="{standalone: true}" class="form-input" (ngModelChange)="onPaymentPlatformChange()">
+              <option [ngValue]="customPlatformOptionId">Add custom platform…</option>
               <option *ngFor="let p of platformOptions" [ngValue]="p.id">{{ p.name }}</option>
             </select>
+            <input
+              *ngIf="isCustomPlatform(account)"
+              [(ngModel)]="account.customPlatformName"
+              [ngModelOptions]="{standalone: true}"
+              class="form-input"
+              placeholder="Platform name"
+              (ngModelChange)="onPaymentPlatformChange()">
             <input
               [(ngModel)]="account.handle"
               [ngModelOptions]="{standalone: true}"

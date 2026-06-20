@@ -4,8 +4,10 @@ public class PaymentPlatformAccountDto
 {
     public int Id { get; set; }
     public int PlatformId { get; set; }
+    public string? CustomPlatformName { get; set; }
     public string Platform { get; set; } = string.Empty;
     public string Handle { get; set; } = string.Empty;
+    public bool IsPreferred { get; set; }
 }
 
 public class UserProfileStatsDto

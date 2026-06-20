@@ -22,6 +22,7 @@ public class MutualAidRepository : IMutualAidRepository
         await _context.CrewMemberships
             .Include(m => m.User)
             .ThenInclude(u => u.PaymentPlatforms)
+                .ThenInclude(p => p.CrewPaymentPlatform)
             .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsInSeason)
             .ToListAsync(cancellationToken);
 
@@ -29,6 +30,7 @@ public class MutualAidRepository : IMutualAidRepository
         await _context.CrewMemberships
             .Include(m => m.User)
             .ThenInclude(u => u.PaymentPlatforms)
+                .ThenInclude(p => p.CrewPaymentPlatform)
             .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsSeasonReady)
             .ToListAsync(cancellationToken);
 
@@ -36,6 +38,7 @@ public class MutualAidRepository : IMutualAidRepository
         await _context.CrewMemberships
             .Include(m => m.User)
             .ThenInclude(u => u.PaymentPlatforms)
+                .ThenInclude(p => p.CrewPaymentPlatform)
             .Where(m => m.CrewId == crewId && !m.IsBanned)
             .ToListAsync(cancellationToken);
 

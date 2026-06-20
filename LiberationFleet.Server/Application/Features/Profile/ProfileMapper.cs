@@ -23,9 +23,10 @@ public static class ProfileMapper
                 .Select(p => new PaymentPlatformAccountDto
                 {
                     Id = p.Id,
-                    PlatformId = p.PaymentPlatformId,
-                    Platform = p.PaymentPlatform?.Name ?? string.Empty,
-                    Handle = p.Handle
+                    PlatformId = p.CrewPaymentPlatformId,
+                    Platform = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                    Handle = p.Handle,
+                    IsPreferred = p.IsPreferred
                 })
                 .ToList(),
             InNeedOfAid = user.InNeedOfAid,

@@ -96,6 +96,19 @@ label {
   font-style: italic;
 }
 
+.no-viable-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+.preferred-info {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #555;
+}
+
 .status-text {
   color: #666;
 }

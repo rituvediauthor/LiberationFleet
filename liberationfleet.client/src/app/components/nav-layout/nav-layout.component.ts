@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
-export type NavTab = 'crew' | 'friends' | 'profile';
+export type NavTab = 'crew' | 'friends' | 'notifications' | 'profile';
 
 @Component({
   selector: 'app-nav-layout',

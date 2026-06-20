@@ -15,6 +15,7 @@ import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { SeasonSetupComponent } from './pages/season-setup/season-setup.component';
 import { JoinSeasonComponent } from './pages/join-season/join-season.component';
+import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { authGuard } from './guards/auth.guard';
 
@@ -51,6 +52,11 @@ export const routes: Routes = [
   {
     path: 'app/friends',
     component: FriendsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/notifications',
+    component: NotificationsComponent,
     canActivate: [authGuard]
   },
   {
@@ -128,6 +134,30 @@ export const routes: Routes = [
     component: PlaceholderPageComponent,
     canActivate: [authGuard],
     data: { title: 'Projects', backTo: '/app/crew' }
+  },
+  {
+    path: 'app/crew/forums',
+    component: PlaceholderPageComponent,
+    canActivate: [authGuard],
+    data: { title: 'Forums', backTo: '/app/crew' }
+  },
+  {
+    path: 'app/crew/crewmates',
+    component: PlaceholderPageComponent,
+    canActivate: [authGuard],
+    data: { title: 'Crewmates', backTo: '/app/crew' }
+  },
+  {
+    path: 'app/crew/rules',
+    component: PlaceholderPageComponent,
+    canActivate: [authGuard],
+    data: { title: 'Rules', backTo: '/app/crew' }
+  },
+  {
+    path: 'app/crew/library-of-things',
+    component: PlaceholderPageComponent,
+    canActivate: [authGuard],
+    data: { title: 'Library of Things', backTo: '/app/crew' }
   },
   {
     path: '**',

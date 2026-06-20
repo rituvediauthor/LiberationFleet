@@ -21,7 +21,7 @@ public class RecordGiftsCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
-    IPaymentPlatformRepository paymentPlatformRepository,
+    ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
@@ -53,7 +53,7 @@ public class RecordGiftsCommandHandler(
                 return new GiftOperationResponse { Success = false, Message = "Gift amounts must be greater than zero." };
             }
 
-            if (!await paymentPlatformRepository.ExistsAsync(item.PaymentPlatformId, cancellationToken))
+            if (!await crewPaymentPlatformRepository.ExistsForCrewAsync(membership.CrewId, item.PaymentPlatformId, cancellationToken))
             {
                 return new GiftOperationResponse { Success = false, Message = "Invalid payment platform." };
             }
@@ -91,7 +91,7 @@ public class RecordGiftsCommandHandler(
                 MiddlemanUserId = item.MiddlemanId,
                 Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
                 Amount = item.Amount,
-                PaymentPlatformId = item.PaymentPlatformId,
+                CrewPaymentPlatformId = item.PaymentPlatformId,
                 IsSurvivalThreshold = isSurvivalThreshold,
                 IsCustomGift = item.IsCustom,
                 CountsTowardReception = countsTowardReception,

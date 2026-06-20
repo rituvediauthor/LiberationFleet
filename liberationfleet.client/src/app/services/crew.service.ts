@@ -9,6 +9,7 @@ import {
   JoinCrewRequest,
   SearchCrewsRequest
 } from '../models/crew.model';
+import { PaymentPlatformOption } from '../models/gift.model';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +21,11 @@ export class CrewService {
 
   getMembership(): Observable<CrewMembershipStatus> {
     return this.http.get<CrewMembershipStatus>(`${this.apiUrl}/membership`);
+  }
+
+  getPaymentPlatforms(otherCrewmatesOnly = false): Observable<PaymentPlatformOption[]> {
+    const params = otherCrewmatesOnly ? { otherCrewmatesOnly: 'true' } : undefined;
+    return this.http.get<PaymentPlatformOption[]>(`${this.apiUrl}/payment-platforms`, { params });
   }
 
   create(request: CreateCrewRequest): Observable<CrewOperationResult> {

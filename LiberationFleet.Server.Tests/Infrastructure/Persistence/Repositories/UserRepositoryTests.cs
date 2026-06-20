@@ -113,21 +113,24 @@ public class UserRepositoryTests
     [Fact]
     public async Task GetByIdWithProfileAsync_ReturnsUserWithPaymentPlatforms()
     {
-        await using var context = await TestDbContextFactory.CreateWithUserAsync();
-        var user = context.Users.Single();
-        context.UserPaymentPlatforms.Add(new Domain.Entities.UserPaymentPlatform
+        var (context, user, crew) = await TestDbContextFactory.CreateWithCrewAsync();
+        await using (context)
         {
-            UserId = user.Id,
-            PaymentPlatformId = 1,
-            Handle = "user@example.com"
-        });
-        await context.SaveChangesAsync();
+            var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
+            context.UserPaymentPlatforms.Add(new Domain.Entities.UserPaymentPlatform
+            {
+                UserId = user.Id,
+                CrewPaymentPlatformId = platforms["PayPal"].Id,
+                Handle = "user@example.com"
+            });
+            await context.SaveChangesAsync();
 
-        var repository = new UserRepository(context);
-        var loaded = await repository.GetByIdWithProfileAsync(user.Id);
+            var repository = new UserRepository(context);
+            var loaded = await repository.GetByIdWithProfileAsync(user.Id);
 
-        loaded.Should().NotBeNull();
-        loaded!.PaymentPlatforms.Should().ContainSingle(p => p.PaymentPlatformId == 1);
+            loaded.Should().NotBeNull();
+            loaded!.PaymentPlatforms.Should().ContainSingle(p => p.CrewPaymentPlatformId == platforms["PayPal"].Id);
+        }
     }
 
     [Fact]

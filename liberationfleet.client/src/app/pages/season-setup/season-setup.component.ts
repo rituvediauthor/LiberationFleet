@@ -7,7 +7,8 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
+import { CrewService } from '../../services/crew.service';
+import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption, SeasonReadyResult, SeasonSetupSaveResult } from '../../models/gift.model';
 
 @Component({
@@ -31,7 +32,9 @@ export class SeasonSetupComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private crewService = inject(CrewService);
   private giftService = inject(GiftService);
+  readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
 
@@ -48,7 +51,7 @@ export class SeasonSetupComponent implements OnInit {
 
     this.updateSaveButton();
 
-    this.giftService.getPaymentPlatforms().subscribe({
+    this.crewService.getPaymentPlatforms(true).subscribe({
       next: platforms => this.platformOptions = platforms
     });
 
@@ -90,7 +93,15 @@ export class SeasonSetupComponent implements OnInit {
 
   get hasValidPlatforms(): boolean {
     return this.paymentPlatforms.length > 0
-      && this.paymentPlatforms.every(p => p.platformId > 0 && p.handle.trim());
+      && this.paymentPlatforms.every(p => {
+        const hasHandle = !!p.handle.trim();
+        const hasPlatform = p.platformId > 0 || !!p.customPlatformName?.trim();
+        return hasHandle && hasPlatform;
+      });
+  }
+
+  isCustomPlatform(account: PaymentPlatformAccount): boolean {
+    return this.profileService.isCustomPlatform(account);
   }
 
   addPaymentPlatform() {

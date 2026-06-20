@@ -17,6 +17,7 @@ import { NextAidInfo } from '../../models/gift.model';
 export class CrewHomeComponent implements OnInit {
   membership: CrewMembershipStatus | null = null;
   nextAid: NextAidInfo | null = null;
+  seasonStarted = false;
 
   private router = inject(Router);
   private crewService = inject(CrewService);
@@ -26,11 +27,52 @@ export class CrewHomeComponent implements OnInit {
     this.crewService.getMembership().subscribe(status => {
       this.membership = status;
       if (status.hasCrew) {
-        this.giftService.getNextAidInfo().subscribe({
-          next: info => this.nextAid = info
+        this.giftService.getSeasonStatus().subscribe({
+          next: seasonStatus => {
+            this.seasonStarted = seasonStatus.seasonStarted;
+            if (seasonStatus.seasonStarted) {
+              this.giftService.getNextAidInfo().subscribe({
+                next: info => this.nextAid = info
+              });
+            }
+          }
         });
       }
     });
+  }
+
+  get nextAidHeadline(): string {
+    if (!this.nextAid) {
+      return 'No aid needed right now';
+    }
+    if (this.nextAid.isCurrentUserRecipient) {
+      return `You're next! $${this.nextAid.amount} still needed`;
+    }
+    return `${this.nextAid.recipientName} needs $${this.nextAid.amount}`;
+  }
+
+  get nextAidPlatformLine(): string | null {
+    if (!this.nextAid || this.nextAid.isCurrentUserRecipient) {
+      return null;
+    }
+
+    switch (this.nextAid.platformDisplayKind) {
+      case 'preferred':
+      case 'common':
+        if (this.nextAid.platformName && this.nextAid.platformHandle) {
+          return `${this.nextAid.platformName}: ${this.nextAid.platformHandle}`;
+        }
+        if (this.nextAid.platformName) {
+          return this.nextAid.platformName;
+        }
+        return null;
+      case 'middlemanNeeded':
+        return 'Middle-man needed';
+      case 'unavailable':
+        return 'No payment platform';
+      default:
+        return null;
+    }
   }
 
   goToCreateCrew() {
@@ -59,5 +101,21 @@ export class CrewHomeComponent implements OnInit {
 
   goToProjects() {
     this.router.navigate(['/app/crew/projects']);
+  }
+
+  goToForums() {
+    this.router.navigate(['/app/crew/forums']);
+  }
+
+  goToCrewmates() {
+    this.router.navigate(['/app/crew/crewmates']);
+  }
+
+  goToRules() {
+    this.router.navigate(['/app/crew/rules']);
+  }
+
+  goToLibraryOfThings() {
+    this.router.navigate(['/app/crew/library-of-things']);
   }
 }

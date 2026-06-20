@@ -4,6 +4,7 @@ public class CrewMemberDto
 {
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
+    public IReadOnlyList<int> PlatformIds { get; set; } = Array.Empty<int>();
 }
 
 public class GiftLogEntryDto
@@ -23,6 +24,13 @@ public class GiftLogEntryDto
     public IReadOnlyList<int> RelatedUserIds { get; set; } = Array.Empty<int>();
     public bool CanCompleteAsMiddleman { get; set; }
     public string? Status { get; set; }
+    public IReadOnlyList<GiftPlatformOptionDto> CompletionPlatformOptions { get; set; } = Array.Empty<GiftPlatformOptionDto>();
+}
+
+public class GiftPlatformOptionDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 public class PendingMiddlemanGiftDto
@@ -41,6 +49,7 @@ public class GiftLogResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public IReadOnlyList<GiftLogEntryDto> Items { get; set; } = Array.Empty<GiftLogEntryDto>();
+    public bool HasMore { get; set; }
 }
 
 public class GiftOperationResponse

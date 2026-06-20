@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Commands.JoinCrew;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetCrewPaymentPlatforms;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 using LiberationFleet.Server.Application.Features.Crews.Queries.SearchCrews;
 using MediatR;
@@ -32,6 +33,13 @@ public class CrewsController : ControllerBase
     {
         var result = await _mediator.Send(command);
         return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("payment-platforms")]
+    public async Task<IActionResult> GetPaymentPlatforms([FromQuery] bool otherCrewmatesOnly = false)
+    {
+        var result = await _mediator.Send(new GetCrewPaymentPlatformsQuery(otherCrewmatesOnly));
+        return Ok(result);
     }
 
     [HttpPost("search")]

@@ -46,6 +46,47 @@ public static class HandlerTestFixture
         return mock;
     }
 
+    public static Mock<ICrewPaymentPlatformRepository> CreateCrewPaymentPlatformRepositoryMock(
+        bool exists = true,
+        int crewId = 1)
+    {
+        var mock = new Mock<ICrewPaymentPlatformRepository>(MockBehavior.Strict);
+        mock.Setup(r => r.ExistsForCrewAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(exists);
+        mock.Setup(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int id, CancellationToken _) => new CrewPaymentPlatform
+            {
+                Id = id,
+                CrewId = crewId,
+                Name = id switch
+                {
+                    1 => "PayPal",
+                    2 => "Cash App",
+                    3 => "Venmo",
+                    _ => "Platform"
+                }
+            });
+        mock.Setup(r => r.GetByCrewAndNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CrewPaymentPlatform?)null);
+        mock.Setup(r => r.AddAsync(It.IsAny<CrewPaymentPlatform>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CrewPaymentPlatform platform, CancellationToken _) =>
+            {
+                platform.Id = 99;
+                return platform;
+            });
+        return mock;
+    }
+
+    public static CrewPaymentPlatform CreateCrewPaymentPlatform(int id = 1, int crewId = 1, string name = "PayPal")
+    {
+        return new CrewPaymentPlatform
+        {
+            Id = id,
+            CrewId = crewId,
+            Name = name
+        };
+    }
+
     public static Mock<ICurrentUserService> CreateCurrentUserServiceMock(int? userId = 1)
     {
         var mock = new Mock<ICurrentUserService>(MockBehavior.Strict);

@@ -7,7 +7,8 @@ import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry } from '../../models/gift.model';
-import { PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
+import { CrewService } from '../../services/crew.service';
+import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 
 @Component({
@@ -31,7 +32,9 @@ export class JoinSeasonComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private crewService = inject(CrewService);
   private giftService = inject(GiftService);
+  readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
 
@@ -58,13 +61,13 @@ export class JoinSeasonComponent implements OnInit {
       }
     });
 
-    this.giftService.getPaymentPlatforms().subscribe({
+    this.crewService.getPaymentPlatforms(true).subscribe({
       next: platforms => this.platformOptions = platforms
     });
 
     this.giftService.getLogs().subscribe({
-      next: entries => {
-        this.entries = entries;
+      next: page => {
+        this.entries = page.items;
         setTimeout(() => this.scrollToBottom(), 0);
       }
     });
@@ -121,9 +124,17 @@ export class JoinSeasonComponent implements OnInit {
     }
   }
 
+  isCustomPlatform(account: PaymentPlatformAccount): boolean {
+    return this.profileService.isCustomPlatform(account);
+  }
+
   private updateReadyButton() {
     const hasPlatforms = this.paymentPlatforms.length > 0
-      && this.paymentPlatforms.every(p => p.platformId > 0 && p.handle.trim());
+      && this.paymentPlatforms.every(p => {
+        const hasHandle = !!p.handle.trim();
+        const hasPlatform = p.platformId > 0 || !!p.customPlatformName?.trim();
+        return hasHandle && hasPlatform;
+      });
     const disabled = this.isSubmitting || this.form.invalid || !hasPlatforms;
     this.readyButton = {
       label: 'Ready',

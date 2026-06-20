@@ -1,24 +1,44 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="recordButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="recordButton" [fillHeight]="true">
   <div class="gift-log-page">
     <h1 class="page-title">Gift Log</h1>
     <p *ngIf="loading" class="status-text">Loading gift log…</p>
     <p *ngIf="errorMessage" class="error-text">{{ errorMessage }}</p>
+
     <div class="log-container" #logContainer *ngIf="!loading && !errorMessage">
+      <p *ngIf="loadingMore" class="loading-more-text">Loading older gifts…</p>
       <div class="log-inner">
         <div
-          *ngFor="let entry of entries"
+          *ngFor="let entry of entries; let i = index"
           class="log-entry"
           [class.highlighted]="isHighlighted(entry)">
+          <div
+            *ngIf="hasMore && i === loadMoreTriggerIndex"
+            #loadMoreSentinel
+            class="load-more-sentinel"
+            aria-hidden="true"></div>
           <p class="log-message">{{ entry.message }}</p>
           <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
-          <button
+          <div
             *ngIf="entry.canCompleteAsMiddleman && entry.status === 'pending'"
-            type="button"
-            class="complete-btn"
-            [disabled]="completingGiftId === entry.id"
-            (click)="completeGift(entry)">
-            Gift Completed
-          </button>
+            class="complete-row">
+            <select
+              class="platform-select"
+              [(ngModel)]="completionPlatformSelections[entry.id]">
+              <option [ngValue]="''">Select payment platform</option>
+              <option
+                *ngFor="let option of entry.completionPlatformOptions"
+                [ngValue]="option.id">
+                {{ option.name }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="complete-btn"
+              [disabled]="completingGiftId === entry.id || !canComplete(entry)"
+              (click)="completeGift(entry)">
+              Gift Completed
+            </button>
+          </div>
         </div>
       </div>
     </div>

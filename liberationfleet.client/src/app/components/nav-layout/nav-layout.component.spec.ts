@@ -24,10 +24,12 @@ describe('NavLayoutComponent', () => {
 
   it('should render bottom navigation links', () => {
     const links = fixture.nativeElement.querySelectorAll('.nav-item');
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(4);
     expect(links[0].getAttribute('href')).toContain('/app/crew');
     expect(links[1].getAttribute('href')).toContain('/app/friends');
-    expect(links[2].getAttribute('href')).toContain('/app/profile');
+    expect(links[2].getAttribute('href')).toContain('/app/notifications');
+    expect(links[3].getAttribute('href')).toContain('/app/profile');
+    expect(fixture.nativeElement.querySelectorAll('.nav-icon').length).toBe(4);
   });
 
   it('should project content into nav layout', () => {

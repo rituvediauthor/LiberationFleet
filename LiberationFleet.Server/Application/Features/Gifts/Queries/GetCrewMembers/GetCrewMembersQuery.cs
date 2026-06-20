@@ -30,7 +30,8 @@ public class GetCrewMembersQueryHandler(
             .Select(m => new CrewMemberDto
             {
                 Id = m.UserId,
-                Username = m.User.Username
+                Username = m.User.Username,
+                PlatformIds = m.User.PaymentPlatforms.Select(p => p.CrewPaymentPlatformId).ToList()
             })
             .OrderBy(m => m.Username)
             .ToList();

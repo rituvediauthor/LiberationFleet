@@ -16,6 +16,7 @@ public class RecordGiftCommandHandlerIntegrationTests
         var (context, giver, crew) = await TestDbContextFactory.CreateWithCrewAsync();
         await using (context)
         {
+            var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
             var recipient = new User
             {
                 Username = "Ritu",
@@ -38,18 +39,18 @@ public class RecordGiftCommandHandlerIntegrationTests
 
             var membershipRepository = new CrewMembershipRepository(context);
             var giftRepository = new GiftRepository(context);
-            var paymentPlatformRepository = new PaymentPlatformRepository(context);
+            var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(context);
             var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
             var handler = new RecordGiftCommandHandler(
                 HandlerTestFixture.CreateCurrentUserServiceMock(giver.Id).Object,
                 membershipRepository,
                 giftRepository,
-                paymentPlatformRepository,
+                crewPaymentPlatformRepository,
                 mutualAidService,
                 context);
 
             var result = await handler.Handle(
-                new RecordGiftCommand(45, 1, recipient.Id, null, null),
+                new RecordGiftCommand(45, platforms["PayPal"].Id, recipient.Id, null, null),
                 CancellationToken.None);
 
             result.Success.Should().BeTrue();
@@ -57,14 +58,14 @@ public class RecordGiftCommandHandlerIntegrationTests
             var gifts = await context.Gifts
                 .Include(g => g.GiverUser)
                 .Include(g => g.RecipientUser)
-                .Include(g => g.PaymentPlatform)
+                .Include(g => g.CrewPaymentPlatform)
                 .Where(g => g.CrewId == crew.Id)
                 .ToListAsync();
 
             gifts.Should().ContainSingle();
             gifts[0].Type.Should().Be(GiftType.Direct);
             gifts[0].Amount.Should().Be(45);
-            gifts[0].PaymentPlatform.Name.Should().Be("PayPal");
+            gifts[0].CrewPaymentPlatform.Name.Should().Be("PayPal");
             gifts[0].GiverUserId.Should().Be(giver.Id);
             gifts[0].RecipientUserId.Should().Be(recipient.Id);
         }
@@ -76,6 +77,7 @@ public class RecordGiftCommandHandlerIntegrationTests
         var (context, giver, crew) = await TestDbContextFactory.CreateWithCrewAsync();
         await using (context)
         {
+            var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
             var recipient = new User
             {
                 Username = "Ritu",
@@ -100,6 +102,21 @@ public class RecordGiftCommandHandlerIntegrationTests
                 new CrewMembership { UserId = middleman.Id, CrewId = crew.Id, IsBanned = false, JoinedAt = DateTime.UtcNow });
             await context.SaveChangesAsync();
 
+            context.UserPaymentPlatforms.AddRange(
+                new UserPaymentPlatform
+                {
+                    UserId = middleman.Id,
+                    CrewPaymentPlatformId = platforms["Cash App"].Id,
+                    Handle = "@middle"
+                },
+                new UserPaymentPlatform
+                {
+                    UserId = recipient.Id,
+                    CrewPaymentPlatformId = platforms["Cash App"].Id,
+                    Handle = "@recipient"
+                });
+            await context.SaveChangesAsync();
+
             var initiated = new Gift
             {
                 CrewId = crew.Id,
@@ -108,7 +125,7 @@ public class RecordGiftCommandHandlerIntegrationTests
                 MiddlemanUserId = middleman.Id,
                 Type = GiftType.Initiated,
                 Amount = 30,
-                PaymentPlatformId = 2,
+                CrewPaymentPlatformId = platforms["Cash App"].Id,
                 CreatedAt = DateTime.UtcNow
             };
             context.Gifts.Add(initiated);
@@ -116,30 +133,30 @@ public class RecordGiftCommandHandlerIntegrationTests
 
             var membershipRepository = new CrewMembershipRepository(context);
             var giftRepository = new GiftRepository(context);
-            var paymentPlatformRepository = new PaymentPlatformRepository(context);
+            var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(context);
             var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
             var handler = new RecordGiftCommandHandler(
                 HandlerTestFixture.CreateCurrentUserServiceMock(middleman.Id).Object,
                 membershipRepository,
                 giftRepository,
-                paymentPlatformRepository,
+                crewPaymentPlatformRepository,
                 mutualAidService,
                 context);
 
             var result = await handler.Handle(
-                new RecordGiftCommand(30, 3, null, null, initiated.Id),
+                new RecordGiftCommand(30, platforms["Cash App"].Id, null, null, initiated.Id),
                 CancellationToken.None);
 
             result.Success.Should().BeTrue();
 
             var completed = await context.Gifts
-                .Include(g => g.PaymentPlatform)
+                .Include(g => g.CrewPaymentPlatform)
                 .Where(g => g.Type == GiftType.Completed)
                 .SingleAsync();
 
             completed.InitiatedGiftId.Should().Be(initiated.Id);
             completed.Amount.Should().Be(30);
-            completed.PaymentPlatform.Name.Should().Be("Venmo");
+            completed.CrewPaymentPlatform.Name.Should().Be("Cash App");
             completed.MiddlemanUserId.Should().Be(middleman.Id);
         }
     }

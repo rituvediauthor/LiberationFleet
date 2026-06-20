@@ -94,10 +94,24 @@ label {
 
 .platform-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr auto auto;
   gap: 8px;
   margin-bottom: 10px;
   align-items: center;
+}
+
+.preferred-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  white-space: nowrap;
+}
+
+.preferred-label input {
+  accent-color: #007AFF;
 }
 
 .icon-btn {

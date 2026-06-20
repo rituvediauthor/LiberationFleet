@@ -6,8 +6,8 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
-import { GiftService } from '../../services/gift.service';
+import { CrewService } from '../../services/crew.service';
+import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 
 @Component({
@@ -31,11 +31,12 @@ export class ProfileComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
-  private giftService = inject(GiftService);
+  private crewService = inject(CrewService);
+  readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.giftService.getPaymentPlatforms().subscribe({
+    this.crewService.getPaymentPlatforms(true).subscribe({
       next: platforms => this.platformOptions = platforms,
       error: () => this.toastService.error('Failed to load payment platforms')
     });
@@ -144,6 +145,16 @@ export class ProfileComponent implements OnInit {
     this.updateSaveButton();
   }
 
+  setPreferredPlatform(accountId: number) {
+    if (!this.profile) return;
+    this.profileService.setPreferredPlatform(this.profile, accountId);
+    this.updateSaveButton();
+  }
+
+  isCustomPlatform(account: PaymentPlatformAccount): boolean {
+    return this.profileService.isCustomPlatform(account);
+  }
+
   private loadProfile() {
     this.isLoading = true;
     this.loadError = '';
@@ -193,23 +204,38 @@ export class ProfileComponent implements OnInit {
 
   private getPaymentPlatformsForSave() {
     return this.paymentPlatforms
-      .filter(p => p.platformId > 0 && p.handle.trim())
+      .filter(p => p.handle.trim() && (p.platformId > 0 || p.customPlatformName?.trim()))
       .map(p => ({
         id: p.id > 0 ? p.id : 0,
-        platformId: p.platformId,
-        platform: this.platformOptions.find(option => option.id === p.platformId)?.name ?? p.platform,
-        handle: p.handle.trim()
+        platformId: p.platformId === CUSTOM_PLATFORM_OPTION_ID ? 0 : p.platformId,
+        customPlatformName: p.platformId === CUSTOM_PLATFORM_OPTION_ID ? p.customPlatformName?.trim() : undefined,
+        platform: p.platformId === CUSTOM_PLATFORM_OPTION_ID
+          ? (p.customPlatformName?.trim() ?? '')
+          : (this.platformOptions.find(option => option.id === p.platformId)?.name ?? p.platform),
+        handle: p.handle.trim(),
+        isPreferred: !!p.isPreferred
       }));
   }
 
   private getPaymentPlatformValidationError(): string | null {
     const hasPartial = this.paymentPlatforms.some(p => {
-      const hasPlatform = p.platformId > 0;
       const hasHandle = !!p.handle.trim();
+      const hasPlatform = p.platformId > 0 || !!p.customPlatformName?.trim();
       return hasPlatform !== hasHandle;
     });
 
-    return hasPartial ? 'Each payment platform needs both a platform and a handle.' : null;
+    if (hasPartial) {
+      return 'Each payment platform needs both a platform and a handle.';
+    }
+
+    const hasInvalidCustom = this.paymentPlatforms.some(
+      p => p.platformId === CUSTOM_PLATFORM_OPTION_ID && p.handle.trim() && !p.customPlatformName?.trim()
+    );
+    if (hasInvalidCustom) {
+      return 'Custom platforms need a platform name.';
+    }
+
+    return null;
   }
 
   private extractErrorMessage(error: { error?: { message?: string; errors?: Record<string, string[]> } }): string {

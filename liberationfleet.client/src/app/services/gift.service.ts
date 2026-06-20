@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, map } from 'rxjs';
 import {
   CrewMember,
   GiftLogEntry,
+  GiftLogPage,
+  GiftLogQueryOptions,
   GiftLogResponse,
   GiftOperationResponse,
   GiftRecordItem,
@@ -64,14 +66,7 @@ export class GiftService {
   }
 
   getNextAidInfo(): Observable<NextAidInfo | null> {
-    return this.getReceptionOrder(1).pipe(
-      map(entries => {
-        if (entries.length === 0) {
-          return null;
-        }
-        return { recipientName: entries[0].username, amount: entries[0].amountNeeded };
-      })
-    );
+    return this.http.get<NextAidInfo | null>(`${this.apiUrl}/next-aid`);
   }
 
   getCrewMembers(activeUserId: number): Observable<CrewMember[]> {
@@ -88,16 +83,27 @@ export class GiftService {
     return this.http.get<PendingMiddlemanGift[]>(`${this.apiUrl}/pending-middleman`);
   }
 
-  getLogs(): Observable<GiftLogEntry[]> {
-    return this.http.get<GiftLogResponse>(`${this.apiUrl}/log`).pipe(
+  getLogs(options?: GiftLogQueryOptions): Observable<GiftLogPage> {
+    let params = new HttpParams().set('limit', (options?.limit ?? 50).toString());
+    if (options?.beforeCreatedAt) {
+      params = params.set('beforeCreatedAt', options.beforeCreatedAt);
+    }
+    if (options?.beforeId != null) {
+      params = params.set('beforeId', options.beforeId.toString());
+    }
+
+    return this.http.get<GiftLogResponse>(`${this.apiUrl}/log`, { params }).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.message || 'Failed to load gift log');
         }
-        return response.items.map(entry => ({
-          ...entry,
-          timestamp: new Date(entry.timestamp)
-        }));
+        return {
+          hasMore: response.hasMore,
+          items: response.items.map(entry => ({
+            ...entry,
+            timestamp: new Date(entry.timestamp)
+          }))
+        };
       })
     );
   }
@@ -110,8 +116,8 @@ export class GiftService {
     return this.http.post<GiftOperationResponse>(`${this.apiUrl}/batch`, { gifts });
   }
 
-  completeMiddlemanGift(giftId: number): Observable<GiftOperationResponse> {
-    return this.http.post<GiftOperationResponse>(`${this.apiUrl}/${giftId}/complete`, {});
+  completeMiddlemanGift(giftId: number, paymentPlatformId: number): Observable<GiftOperationResponse> {
+    return this.http.post<GiftOperationResponse>(`${this.apiUrl}/${giftId}/complete`, { paymentPlatformId });
   }
 
   recordGift(request: RecordGiftRequest): Observable<GiftOperationResponse> {

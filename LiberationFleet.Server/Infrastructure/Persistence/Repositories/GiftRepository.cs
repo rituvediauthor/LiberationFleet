@@ -16,22 +16,76 @@ public class GiftRepository : IGiftRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<Gift>> GetLogByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
-        await _context.Gifts
+    public async Task<GiftLogPage> GetLogPageByCrewIdAsync(
+        int crewId,
+        int limit,
+        DateTime? beforeCreatedAt = null,
+        int? beforeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Gifts
             .Include(g => g.GiverUser)
+                .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.RecipientUser)
+                .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.MiddlemanUser)
-            .Include(g => g.PaymentPlatform)
-            .Where(g => g.CrewId == crewId)
-            .OrderBy(g => g.CreatedAt)
+                .ThenInclude(u => u!.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
+            .Include(g => g.CrewPaymentPlatform)
+            .Where(g => g.CrewId == crewId);
+
+        if (beforeCreatedAt.HasValue && beforeId.HasValue)
+        {
+            query = query.Where(g =>
+                g.CreatedAt < beforeCreatedAt.Value
+                || (g.CreatedAt == beforeCreatedAt.Value && g.Id < beforeId.Value));
+        }
+
+        var fetched = await query
+            .OrderByDescending(g => g.CreatedAt)
+            .ThenByDescending(g => g.Id)
+            .Take(limit + 1)
             .ToListAsync(cancellationToken);
+
+        var hasMore = fetched.Count > limit;
+        if (hasMore)
+        {
+            fetched = fetched.Take(limit).ToList();
+        }
+
+        fetched.Reverse();
+
+        return new GiftLogPage
+        {
+            Items = fetched,
+            HasMore = hasMore
+        };
+    }
+
+    public async Task<IReadOnlySet<int>> GetCompletedInitiatedGiftIdsAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var ids = await _context.Gifts
+            .Where(g => g.CrewId == crewId && g.Type == GiftType.Completed && g.InitiatedGiftId != null)
+            .Select(g => g.InitiatedGiftId!.Value)
+            .ToListAsync(cancellationToken);
+
+        return ids.ToHashSet();
+    }
 
     public Task<Gift?> GetByIdWithUsersAsync(int id, CancellationToken cancellationToken = default) =>
         _context.Gifts
             .Include(g => g.GiverUser)
+                .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.RecipientUser)
+                .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.MiddlemanUser)
-            .Include(g => g.PaymentPlatform)
+                .ThenInclude(u => u!.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
+            .Include(g => g.CrewPaymentPlatform)
             .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<Gift>> GetPendingMiddlemanGiftsAsync(
@@ -47,7 +101,7 @@ public class GiftRepository : IGiftRepository
         return await _context.Gifts
             .Include(g => g.GiverUser)
             .Include(g => g.RecipientUser)
-            .Include(g => g.PaymentPlatform)
+            .Include(g => g.CrewPaymentPlatform)
             .Where(g => g.CrewId == crewId
                 && g.Type == GiftType.Initiated
                 && g.MiddlemanUserId == middlemanUserId

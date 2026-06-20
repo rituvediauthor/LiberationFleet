@@ -1,0 +1,15 @@
+.placeholder-page {
+  text-align: center;
+  padding: 48px 16px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  color: #333;
+}
+
+p {
+  margin: 0;
+  color: #666;
+}

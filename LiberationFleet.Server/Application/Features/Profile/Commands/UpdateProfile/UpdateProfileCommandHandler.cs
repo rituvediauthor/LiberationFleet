@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 
@@ -11,7 +12,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
     private readonly IUserRepository _userRepository;
     private readonly IGiftRepository _giftRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
-    private readonly IPaymentPlatformRepository _paymentPlatformRepository;
+    private readonly ICrewPaymentPlatformRepository _crewPaymentPlatformRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IMutualAidService _mutualAidService;
     private readonly IUnitOfWork _unitOfWork;
@@ -20,7 +21,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         IUserRepository userRepository,
         IGiftRepository giftRepository,
         ICrewMembershipRepository membershipRepository,
-        IPaymentPlatformRepository paymentPlatformRepository,
+        ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
         ICurrentUserService currentUserService,
         IMutualAidService mutualAidService,
         IUnitOfWork unitOfWork)
@@ -28,7 +29,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         _userRepository = userRepository;
         _giftRepository = giftRepository;
         _membershipRepository = membershipRepository;
-        _paymentPlatformRepository = paymentPlatformRepository;
+        _crewPaymentPlatformRepository = crewPaymentPlatformRepository;
         _currentUserService = currentUserService;
         _mutualAidService = mutualAidService;
         _unitOfWork = unitOfWork;
@@ -58,6 +59,12 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             return new ProfileOperationResponse { Success = false, Message = "Email is already registered" };
         }
 
+        var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
+        if (membership is null)
+        {
+            return new ProfileOperationResponse { Success = false, Message = "You must be in a crew to manage payment platforms." };
+        }
+
         var previousEmergencyLevel = user.EmergencyLevel;
         var previousInNeedOfAid = user.InNeedOfAid;
 
@@ -68,25 +75,53 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         user.NeedsSurvivalAid = request.NeedsSurvivalAid;
 
         var paymentPlatforms = request.PaymentPlatforms
-            .Where(p => p.PlatformId > 0 && !string.IsNullOrWhiteSpace(p.Handle))
+            .Where(p => !string.IsNullOrWhiteSpace(p.Handle)
+                && (p.PlatformId > 0 || !string.IsNullOrWhiteSpace(p.CustomPlatformName)))
             .ToList();
 
-        foreach (var platform in paymentPlatforms)
-        {
-            if (!await _paymentPlatformRepository.ExistsAsync(platform.PlatformId, cancellationToken))
-            {
-                return new ProfileOperationResponse { Success = false, Message = "Invalid payment platform." };
-            }
-        }
-
         user.PaymentPlatforms.Clear();
+        var preferredAssigned = false;
+
         foreach (var platform in paymentPlatforms)
         {
+            CrewPaymentPlatform crewPlatform;
+            if (!string.IsNullOrWhiteSpace(platform.CustomPlatformName))
+            {
+                crewPlatform = await CrewPaymentPlatformService.EnsurePlatformAsync(
+                    _crewPaymentPlatformRepository,
+                    _unitOfWork,
+                    membership.CrewId,
+                    platform.CustomPlatformName,
+                    cancellationToken);
+            }
+            else
+            {
+                var existing = await _crewPaymentPlatformRepository.GetByIdAsync(platform.PlatformId, cancellationToken);
+                if (existing is null || existing.CrewId != membership.CrewId)
+                {
+                    return new ProfileOperationResponse { Success = false, Message = "Invalid payment platform for your crew." };
+                }
+
+                crewPlatform = existing;
+            }
+
+            var isPreferred = platform.IsPreferred && !preferredAssigned;
+            if (isPreferred)
+            {
+                preferredAssigned = true;
+            }
+
             user.PaymentPlatforms.Add(new UserPaymentPlatform
             {
-                PaymentPlatformId = platform.PlatformId,
-                Handle = platform.Handle.Trim()
+                CrewPaymentPlatformId = crewPlatform.Id,
+                Handle = platform.Handle.Trim(),
+                IsPreferred = isPreferred
             });
+        }
+
+        if (!preferredAssigned && user.PaymentPlatforms.Count > 0)
+        {
+            user.PaymentPlatforms.First().IsPreferred = true;
         }
 
         await _userRepository.UpdateAsync(user, cancellationToken);
@@ -102,20 +137,20 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         if (reloaded is not null)
         {
             var giftStats = await _giftRepository.GetUserGiftStatsAsync(userId.Value, cancellationToken);
-            var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
-            var isFinancialMember = membership is not null
-                && await _mutualAidService.IsFinancialMemberAsync(userId.Value, membership.CrewId, membership, cancellationToken);
-            var priorityScore = membership is not null
-                ? await _mutualAidService.GetPriorityScoreForUserAsync(
-                    userId.Value,
-                    membership.CrewId,
-                    cancellationToken,
-                    excludeActiveSeasonContributions: membership.IsInSeason)
-                : 0m;
+            var isFinancialMember = await _mutualAidService.IsFinancialMemberAsync(
+                userId.Value,
+                membership.CrewId,
+                membership,
+                cancellationToken);
+            var priorityScore = await _mutualAidService.GetPriorityScoreForUserAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken,
+                excludeActiveSeasonContributions: membership.IsInSeason);
             profile = ProfileMapper.MapUser(
                 reloaded,
                 giftStats,
-                membership is not null,
+                true,
                 isFinancialMember,
                 priorityScore,
                 reloaded.PercentBonus);

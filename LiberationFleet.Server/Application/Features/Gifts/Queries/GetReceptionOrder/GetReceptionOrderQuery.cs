@@ -17,6 +17,11 @@ public class GetReceptionOrderQueryHandler(
             return Array.Empty<ReceptionOrderEntryDto>();
         }
 
-        return await mutualAidService.GetReceptionOrderAsync(currentUser.UserId.Value, request.Limit, cancellationToken);
+        return await mutualAidService.GetReceptionOrderAsync(
+            currentUser.UserId.Value,
+            request.Limit,
+            requireGiverInSeason: true,
+            excludeSelfAsRecipient: true,
+            cancellationToken);
     }
 }

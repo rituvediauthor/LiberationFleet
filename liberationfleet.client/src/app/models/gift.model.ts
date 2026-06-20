@@ -12,6 +12,7 @@ export interface PaymentPlatformOption {
 export interface CrewMember {
   id: number;
   username: string;
+  platformIds: number[];
 }
 
 export interface GiftLogEntry {
@@ -30,6 +31,7 @@ export interface GiftLogEntry {
   relatedUserIds: number[];
   canCompleteAsMiddleman?: boolean;
   status?: GiftEntryStatus;
+  completionPlatformOptions?: PaymentPlatformOption[];
 }
 
 export interface PendingMiddlemanGift {
@@ -59,9 +61,17 @@ export interface GiftRecordItem {
   entryType?: ReceptionEntryType;
 }
 
+export interface PlatformAccount {
+  platformId: number;
+  name: string;
+  handle: string;
+}
+
 export interface MiddlemanOption {
   userId: number;
   username: string;
+  commonPlatformIds: number[];
+  platformAccounts: PlatformAccount[];
 }
 
 export interface ReceptionOrderEntry {
@@ -76,6 +86,10 @@ export interface ReceptionOrderEntry {
   noSuitableMiddleman: boolean;
   giverPlatformIds: number[];
   recipientPlatformIds: number[];
+  commonPlatformIds: number[];
+  recipientPreferredPlatformName?: string;
+  recipientPreferredPlatformHandle?: string;
+  recipientPlatformAccounts: PlatformAccount[];
 }
 
 export interface SeasonStatus {
@@ -104,6 +118,18 @@ export interface GiftLogResponse {
   success: boolean;
   message: string;
   items: GiftLogEntry[];
+  hasMore: boolean;
+}
+
+export interface GiftLogPage {
+  items: GiftLogEntry[];
+  hasMore: boolean;
+}
+
+export interface GiftLogQueryOptions {
+  limit?: number;
+  beforeCreatedAt?: string;
+  beforeId?: number;
 }
 
 export interface GiftOperationResponse {
@@ -115,4 +141,8 @@ export interface GiftOperationResponse {
 export interface NextAidInfo {
   recipientName: string;
   amount: number;
+  isCurrentUserRecipient?: boolean;
+  platformDisplayKind?: 'none' | 'preferred' | 'common' | 'middlemanNeeded' | 'unavailable';
+  platformName?: string;
+  platformHandle?: string;
 }

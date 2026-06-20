@@ -1,6 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
-using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGift;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -56,8 +55,8 @@ public class GetCrewGiftLogQueryHandlerTests
             RecipientUser = recipient,
             Type = GiftType.Direct,
             Amount = 25,
-            PaymentPlatformId = 1,
-            PaymentPlatform = new PaymentPlatform { Id = 1, Name = "PayPal" },
+            CrewPaymentPlatformId = 1,
+            CrewPaymentPlatform = HandlerTestFixture.CreateCrewPaymentPlatform(1, crew.Id, "PayPal"),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -68,8 +67,20 @@ public class GetCrewGiftLogQueryHandlerTests
 
         var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
         giftRepository
-            .Setup(r => r.GetLogByCrewIdAsync(crew.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Gift> { gift });
+            .Setup(r => r.GetLogPageByCrewIdAsync(
+                crew.Id,
+                It.IsAny<int>(),
+                null,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GiftLogPage
+            {
+                Items = new List<Gift> { gift },
+                HasMore = false
+            });
+        giftRepository
+            .Setup(r => r.GetCompletedInitiatedGiftIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
 
         var handler = CreateHandler(
             currentUserId: user.Id,

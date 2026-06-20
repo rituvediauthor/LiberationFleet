@@ -32,8 +32,8 @@ public class GetMyProfileQueryHandlerTests
             new()
             {
                 Id = 1,
-                PaymentPlatformId = 1,
-                PaymentPlatform = new PaymentPlatform { Id = 1, Name = "PayPal" },
+                CrewPaymentPlatformId = 1,
+                CrewPaymentPlatform = HandlerTestFixture.CreateCrewPaymentPlatform(1, 1, "PayPal"),
                 Handle = "james@example.com"
             }
         };

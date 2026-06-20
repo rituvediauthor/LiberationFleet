@@ -6,7 +6,13 @@ namespace LiberationFleet.Server.Application.Common.Interfaces;
 public interface IMutualAidService
 {
     Task<SeasonStatusDto> GetSeasonStatusAsync(int userId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ReceptionOrderEntryDto>> GetReceptionOrderAsync(int userId, int limit = 30, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReceptionOrderEntryDto>> GetReceptionOrderAsync(
+        int userId,
+        int limit = 30,
+        bool requireGiverInSeason = true,
+        bool excludeSelfAsRecipient = true,
+        CancellationToken cancellationToken = default);
+    Task<NextAidDto?> GetNextAidAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonReadyResultDto> MarkSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonSetupSaveResultDto> SaveSeasonSetupAsync(int userId, decimal estimatedMonthlyContribution, CancellationToken cancellationToken = default);
     Task<SeasonSetupSaveResultDto> ClearSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
@@ -65,12 +71,44 @@ public class ReceptionOrderEntryDto
     public bool NoSuitableMiddleman { get; set; }
     public IReadOnlyList<int> GiverPlatformIds { get; set; } = Array.Empty<int>();
     public IReadOnlyList<int> RecipientPlatformIds { get; set; } = Array.Empty<int>();
+    public IReadOnlyList<int> CommonPlatformIds { get; set; } = Array.Empty<int>();
+    public string? RecipientPreferredPlatformName { get; set; }
+    public string? RecipientPreferredPlatformHandle { get; set; }
+    public IReadOnlyList<PlatformAccountDto> RecipientPlatformAccounts { get; set; } = Array.Empty<PlatformAccountDto>();
+}
+
+public class PlatformAccountDto
+{
+    public int PlatformId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Handle { get; set; } = string.Empty;
 }
 
 public class MiddlemanOptionDto
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public IReadOnlyList<int> CommonPlatformIds { get; set; } = Array.Empty<int>();
+    public IReadOnlyList<PlatformAccountDto> PlatformAccounts { get; set; } = Array.Empty<PlatformAccountDto>();
+}
+
+public class NextAidDto
+{
+    public string RecipientName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public bool IsCurrentUserRecipient { get; set; }
+    public string PlatformDisplayKind { get; set; } = NextAidPlatformDisplayKind.None;
+    public string? PlatformName { get; set; }
+    public string? PlatformHandle { get; set; }
+}
+
+public static class NextAidPlatformDisplayKind
+{
+    public const string None = "none";
+    public const string Preferred = "preferred";
+    public const string Common = "common";
+    public const string MiddlemanNeeded = "middlemanNeeded";
+    public const string Unavailable = "unavailable";
 }
 
 public class CrewMemberPlatforms
@@ -78,4 +116,8 @@ public class CrewMemberPlatforms
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
     public IReadOnlyList<int> PlatformIds { get; set; } = Array.Empty<int>();
+    public IReadOnlyList<PlatformAccountDto> PlatformAccounts { get; set; } = Array.Empty<PlatformAccountDto>();
+    public int? PreferredPlatformId { get; set; }
+    public string? PreferredPlatformName { get; set; }
+    public string? PreferredPlatformHandle { get; set; }
 }

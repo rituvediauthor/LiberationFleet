@@ -110,6 +110,20 @@ public static class TestDbContextFactory
         return (context, user, crew);
     }
 
+    public static async Task<Dictionary<string, CrewPaymentPlatform>> SeedCrewPaymentPlatformsAsync(
+        ApplicationDbContext context,
+        int crewId)
+    {
+        var names = new[] { "PayPal", "Cash App", "Venmo", "Zelle", "Other" };
+        var platforms = names.ToDictionary(
+            name => name,
+            name => new CrewPaymentPlatform { CrewId = crewId, Name = name });
+
+        context.CrewPaymentPlatforms.AddRange(platforms.Values);
+        await context.SaveChangesAsync();
+        return platforms;
+    }
+
     public static async Task<ApplicationDbContext> CreateWithDashboardCrewsAsync()
     {
         var context = await CreateWithUserAsync();

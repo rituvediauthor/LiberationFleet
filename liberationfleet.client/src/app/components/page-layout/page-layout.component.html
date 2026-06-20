@@ -1,6 +1,6 @@
 <div class="page-layout">
-  <div class="page-content">
-    <div class="page-content-inner">
+  <div class="page-content" [class.page-content-fill]="fillHeight">
+    <div class="page-content-inner" [class.page-content-inner-fill]="fillHeight">
       <ng-content></ng-content>
     </div>
   </div>

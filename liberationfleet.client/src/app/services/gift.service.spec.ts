@@ -35,17 +35,19 @@ describe('GiftService', () => {
   });
 
   it('should load gift log entries from the API', () => {
-    service.getLogs().subscribe(entries => {
-      expect(entries.length).toBe(1);
-      expect(entries[0].message).toBe('James gave $30 to Ritu via PayPal');
-      expect(entries[0].timestamp instanceof Date).toBeTrue();
+    service.getLogs().subscribe(page => {
+      expect(page.items.length).toBe(1);
+      expect(page.hasMore).toBeFalse();
+      expect(page.items[0].message).toBe('James gave $30 to Ritu via PayPal');
+      expect(page.items[0].timestamp instanceof Date).toBeTrue();
     });
 
-    const req = httpMock.expectOne('/api/gifts/log');
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/gifts/log') && r.params.get('limit') === '50');
     expect(req.request.method).toBe('GET');
     req.flush({
       success: true,
       message: 'Gift log loaded.',
+      hasMore: false,
       items: [{
         id: 1,
         type: 'direct',
@@ -60,6 +62,24 @@ describe('GiftService', () => {
         relatedUserIds: [1, 2]
       }]
     });
+  });
+
+  it('should request older gift log pages with cursor params', () => {
+    service.getLogs({
+      limit: 50,
+      beforeCreatedAt: '2026-06-01T00:00:00.000Z',
+      beforeId: 42
+    }).subscribe(page => {
+      expect(page.items.length).toBe(0);
+      expect(page.hasMore).toBeTrue();
+    });
+
+    const req = httpMock.expectOne(r =>
+      r.url.startsWith('/api/gifts/log')
+      && r.params.get('limit') === '50'
+      && r.params.get('beforeCreatedAt') === '2026-06-01T00:00:00.000Z'
+      && r.params.get('beforeId') === '42');
+    req.flush({ success: true, message: 'Gift log loaded.', hasMore: true, items: [] });
   });
 
   it('should record a gift through the API', () => {

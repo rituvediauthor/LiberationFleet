@@ -39,7 +39,7 @@ public class RecordGiftCommandHandlerTests
                 savedGift!.Id = id;
                 savedGift.GiverUser = giver;
                 savedGift.RecipientUser = recipient;
-                savedGift.PaymentPlatform = new PaymentPlatform { Id = 1, Name = "PayPal" };
+                savedGift.CrewPaymentPlatform = HandlerTestFixture.CreateCrewPaymentPlatform(1, crew.Id, "PayPal");
                 return savedGift;
             });
 
@@ -84,19 +84,19 @@ public class RecordGiftCommandHandlerTests
         int? currentUserId = 1,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
         Mock<IGiftRepository>? giftRepository = null,
-        Mock<IPaymentPlatformRepository>? paymentPlatformRepository = null,
+        Mock<ICrewPaymentPlatformRepository>? crewPaymentPlatformRepository = null,
         Mock<IUnitOfWork>? unitOfWork = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
-        paymentPlatformRepository ??= HandlerTestFixture.CreatePaymentPlatformRepositoryMock();
+        crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
 
         return new RecordGiftCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             membershipRepository.Object,
             giftRepository.Object,
-            paymentPlatformRepository.Object,
+            crewPaymentPlatformRepository.Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             unitOfWork.Object);
     }

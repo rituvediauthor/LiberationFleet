@@ -1,5 +1,16 @@
-import { Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  QueryList,
+  ViewChild,
+  ViewChildren
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { GiftService } from '../../services/gift.service';
@@ -10,20 +21,29 @@ import { GiftLogEntry } from '../../models/gift.model';
 @Component({
   selector: 'app-gift-log',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, FormsModule, PageLayoutComponent],
   templateUrl: './gift-log.component.html',
   styleUrl: './gift-log.component.css'
 })
-export class GiftLogComponent implements OnInit {
+export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('logContainer') logContainer?: ElementRef<HTMLDivElement>;
+  @ViewChildren('loadMoreSentinel') loadMoreSentinels?: QueryList<ElementRef<HTMLElement>>;
 
   entries: GiftLogEntry[] = [];
   activeUserId = 0;
   loading = true;
+  loadingMore = false;
+  hasMore = false;
   errorMessage = '';
   completingGiftId: number | null = null;
+  completionPlatformSelections: Record<number, number | ''> = {};
   backButton!: ActionBarButton;
   recordButton!: ActionBarButton;
+
+  private readonly pageSize = 50;
+  private intersectionObserver?: IntersectionObserver;
+  private sentinelChangesSubscription?: { unsubscribe(): void };
+  private scrollToBottomOnNextRender = false;
 
   private router = inject(Router);
   private giftService = inject(GiftService);
@@ -66,6 +86,34 @@ export class GiftLogComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit() {
+    this.intersectionObserver = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          this.loadOlderEntries();
+        }
+      },
+      { root: this.logContainer?.nativeElement, threshold: 0.01 }
+    );
+
+    this.sentinelChangesSubscription = this.loadMoreSentinels?.changes.subscribe(() => {
+      this.observeLoadMoreSentinel();
+      if (this.scrollToBottomOnNextRender) {
+        this.scrollToBottomOnNextRender = false;
+        this.scrollToBottom();
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.intersectionObserver?.disconnect();
+    this.sentinelChangesSubscription?.unsubscribe();
+  }
+
+  get loadMoreTriggerIndex(): number {
+    return this.entries.length > 9 ? 9 : 0;
+  }
+
   isHighlighted(entry: GiftLogEntry): boolean {
     return this.giftService.isUserRelated(entry, this.activeUserId);
   }
@@ -79,15 +127,30 @@ export class GiftLogComponent implements OnInit {
     });
   }
 
+  canComplete(entry: GiftLogEntry): boolean {
+    if (!entry.canCompleteAsMiddleman || entry.status !== 'pending') {
+      return false;
+    }
+    const platformId = this.completionPlatformSelections[entry.id];
+    return !!platformId;
+  }
+
   completeGift(entry: GiftLogEntry) {
     if (this.completingGiftId) return;
 
+    const platformId = Number(this.completionPlatformSelections[entry.id]);
+    if (!platformId) {
+      this.toastService.error('Select a payment platform before completing this gift.');
+      return;
+    }
+
     this.completingGiftId = entry.id;
-    this.giftService.completeMiddlemanGift(entry.id).subscribe({
+    this.giftService.completeMiddlemanGift(entry.id, platformId).subscribe({
       next: result => {
         this.completingGiftId = null;
         if (result.success) {
           this.toastService.success(result.message || 'Gift completed');
+          delete this.completionPlatformSelections[entry.id];
           this.loadGiftLog();
           return;
         }
@@ -102,13 +165,20 @@ export class GiftLogComponent implements OnInit {
 
   private loadGiftLog() {
     this.loading = true;
+    this.loadingMore = false;
     this.errorMessage = '';
 
-    this.giftService.getLogs().subscribe({
-      next: entries => {
-        this.entries = entries;
+    this.giftService.getLogs({ limit: this.pageSize }).subscribe({
+      next: page => {
+        this.entries = page.items;
+        this.hasMore = page.hasMore;
+        this.applyCompletionDefaults(page.items);
         this.loading = false;
-        setTimeout(() => this.scrollToBottom(), 0);
+        this.scrollToBottomOnNextRender = true;
+        setTimeout(() => {
+          this.observeLoadMoreSentinel();
+          this.scrollToBottom();
+        }, 0);
       },
       error: err => {
         this.loading = false;
@@ -117,10 +187,70 @@ export class GiftLogComponent implements OnInit {
     });
   }
 
+  private loadOlderEntries() {
+    if (this.loading || this.loadingMore || !this.hasMore || this.entries.length === 0) {
+      return;
+    }
+
+    const oldest = this.entries[0];
+    const container = this.logContainer?.nativeElement;
+    const previousScrollHeight = container?.scrollHeight ?? 0;
+    const previousScrollTop = container?.scrollTop ?? 0;
+
+    this.loadingMore = true;
+    this.giftService.getLogs({
+      limit: this.pageSize,
+      beforeCreatedAt: oldest.timestamp.toISOString(),
+      beforeId: oldest.id
+    }).subscribe({
+      next: page => {
+        this.applyCompletionDefaults(page.items);
+        this.entries = [...page.items, ...this.entries];
+        this.hasMore = page.hasMore;
+        this.loadingMore = false;
+
+        if (container) {
+          requestAnimationFrame(() => {
+            container.scrollTop = previousScrollTop + (container.scrollHeight - previousScrollHeight);
+            this.observeLoadMoreSentinel();
+          });
+        }
+      },
+      error: () => {
+        this.loadingMore = false;
+        this.toastService.error('Failed to load older gifts');
+      }
+    });
+  }
+
+  private applyCompletionDefaults(entries: GiftLogEntry[]) {
+    entries.forEach(entry => {
+      if (entry.canCompleteAsMiddleman && entry.completionPlatformOptions?.length === 1) {
+        this.completionPlatformSelections[entry.id] = entry.completionPlatformOptions[0].id;
+      }
+    });
+  }
+
+  private observeLoadMoreSentinel() {
+    if (!this.intersectionObserver || !this.hasMore) {
+      return;
+    }
+
+    this.intersectionObserver.disconnect();
+    const sentinel = this.loadMoreSentinels?.first?.nativeElement;
+    if (sentinel) {
+      this.intersectionObserver.observe(sentinel);
+    }
+  }
+
   private scrollToBottom() {
     const el = this.logContainer?.nativeElement;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
+    if (!el) {
+      return;
     }
+
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
   }
 }

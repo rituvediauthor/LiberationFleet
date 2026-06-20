@@ -41,10 +41,17 @@ public partial class MutualAidService(
     public async Task<IReadOnlyList<ReceptionOrderEntryDto>> GetReceptionOrderAsync(
         int userId,
         int limit = 30,
+        bool requireGiverInSeason = true,
+        bool excludeSelfAsRecipient = true,
         CancellationToken cancellationToken = default)
     {
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null || !membership.IsInSeason)
+        if (membership is null)
+        {
+            return Array.Empty<ReceptionOrderEntryDto>();
+        }
+
+        if (requireGiverInSeason && !membership.IsInSeason)
         {
             return Array.Empty<ReceptionOrderEntryDto>();
         }
@@ -58,12 +65,7 @@ public partial class MutualAidService(
         await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
 
         var allMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crew.Id, cancellationToken);
-        var memberPlatforms = allMembers.Select(m => new CrewMemberPlatforms
-        {
-            UserId = m.UserId,
-            Username = m.User.Username,
-            PlatformIds = m.User.PaymentPlatforms.Select(p => p.PaymentPlatformId).ToList()
-        }).ToList();
+        var memberPlatforms = allMembers.Select(CrewPaymentPlatformService.MapCrewMemberPlatforms).ToList();
 
         var giverPlatforms = memberPlatforms.FirstOrDefault(m => m.UserId == userId)?.PlatformIds ?? Array.Empty<int>();
         var entries = new List<ReceptionOrderEntryDto>();
@@ -129,7 +131,88 @@ public partial class MutualAidService(
                 memberPlatforms));
         }
 
-        return entries.Take(limit).ToList();
+        var result = entries.AsEnumerable();
+        if (excludeSelfAsRecipient)
+        {
+            result = result.Where(e => e.UserId != userId);
+        }
+
+        return result.Take(limit).ToList();
+    }
+
+    public async Task<NextAidDto?> GetNextAidAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return null;
+        }
+
+        var crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted)
+        {
+            return null;
+        }
+
+        var entries = await GetReceptionOrderAsync(
+            userId,
+            1,
+            requireGiverInSeason: false,
+            excludeSelfAsRecipient: false,
+            cancellationToken);
+        var first = entries.FirstOrDefault();
+        if (first is null)
+        {
+            return null;
+        }
+
+        var platformDisplay = ResolveNextAidPlatformDisplay(first, userId);
+
+        return new NextAidDto
+        {
+            RecipientName = first.Username,
+            Amount = first.AmountNeeded,
+            IsCurrentUserRecipient = first.UserId == userId,
+            PlatformDisplayKind = platformDisplay.Kind,
+            PlatformName = platformDisplay.Name,
+            PlatformHandle = platformDisplay.Handle
+        };
+    }
+
+    private static (string Kind, string? Name, string? Handle) ResolveNextAidPlatformDisplay(
+        ReceptionOrderEntryDto entry,
+        int viewerUserId)
+    {
+        if (entry.UserId == viewerUserId)
+        {
+            return (NextAidPlatformDisplayKind.None, null, null);
+        }
+
+        if (entry.CommonPlatformIds.Count > 0)
+        {
+            if (!string.IsNullOrEmpty(entry.RecipientPreferredPlatformName))
+            {
+                var preferred = entry.RecipientPlatformAccounts
+                    .FirstOrDefault(a => a.Name == entry.RecipientPreferredPlatformName);
+                if (preferred is not null)
+                {
+                    return (NextAidPlatformDisplayKind.Preferred, preferred.Name, preferred.Handle);
+                }
+            }
+
+            var common = entry.RecipientPlatformAccounts.FirstOrDefault();
+            if (common is not null)
+            {
+                return (NextAidPlatformDisplayKind.Common, common.Name, common.Handle);
+            }
+        }
+
+        if (entry.MiddlemanOptions.Count > 0)
+        {
+            return (NextAidPlatformDisplayKind.MiddlemanNeeded, null, null);
+        }
+
+        return (NextAidPlatformDisplayKind.Unavailable, null, null);
     }
 
     public async Task<SeasonReadyResultDto> MarkSeasonReadyAsync(
@@ -475,14 +558,28 @@ public partial class MutualAidService(
         IReadOnlyList<int> giverPlatformIds,
         IReadOnlyList<CrewMemberPlatforms> members)
     {
-        var recipientPlatforms = members.FirstOrDefault(m => m.UserId == recipientUserId)?.PlatformIds ?? Array.Empty<int>();
+        var recipientMember = members.FirstOrDefault(m => m.UserId == recipientUserId);
+        var recipientPlatforms = recipientMember?.PlatformIds ?? Array.Empty<int>();
         var middlemanIds = FindMiddlemen(giverUserId, recipientUserId, members);
         var middlemanOptions = members
             .Where(m => middlemanIds.Contains(m.UserId))
-            .Select(m => new MiddlemanOptionDto { UserId = m.UserId, Username = m.Username })
+            .Select(m =>
+            {
+                var sharedIds = giverPlatformIds.Intersect(m.PlatformIds).ToHashSet();
+                return new MiddlemanOptionDto
+                {
+                    UserId = m.UserId,
+                    Username = m.Username,
+                    CommonPlatformIds = sharedIds.ToList(),
+                    PlatformAccounts = m.PlatformAccounts
+                        .Where(p => sharedIds.Contains(p.PlatformId))
+                        .ToList()
+                };
+            })
             .ToList();
 
-        var hasDirectPlatform = giverPlatformIds.Intersect(recipientPlatforms).Any();
+        var commonPlatformIds = giverPlatformIds.Intersect(recipientPlatforms).ToList();
+        var hasDirectPlatform = commonPlatformIds.Count > 0;
 
         return new ReceptionOrderEntryDto
         {
@@ -496,7 +593,13 @@ public partial class MutualAidService(
             DefaultMiddlemanId = middlemanOptions.Count == 1 ? middlemanOptions[0].UserId : null,
             NoSuitableMiddleman = !hasDirectPlatform && middlemanOptions.Count == 0,
             GiverPlatformIds = giverPlatformIds.ToList(),
-            RecipientPlatformIds = recipientPlatforms.ToList()
+            RecipientPlatformIds = recipientPlatforms.ToList(),
+            CommonPlatformIds = commonPlatformIds,
+            RecipientPreferredPlatformName = recipientMember?.PreferredPlatformName,
+            RecipientPreferredPlatformHandle = recipientMember?.PreferredPlatformHandle,
+            RecipientPlatformAccounts = recipientMember?.PlatformAccounts
+                .Where(p => commonPlatformIds.Contains(p.PlatformId))
+                .ToList() ?? []
         };
     }
 

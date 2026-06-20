@@ -1,10 +1,14 @@
 import { PaymentPlatform } from './gift.model';
 
+export const CUSTOM_PLATFORM_OPTION_ID = 0;
+
 export interface PaymentPlatformAccount {
   id: number;
   platformId: number;
   platform: PaymentPlatform | string;
   handle: string;
+  isPreferred?: boolean;
+  customPlatformName?: string;
 }
 
 export interface UserProfile {

@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Features.Gifts.Commands.CompleteMiddlem
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewMembers;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetPendingMiddlemanGifts;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetNextAid;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrder;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -24,9 +25,12 @@ public class GiftsController : ControllerBase
     }
 
     [HttpGet("log")]
-    public async Task<IActionResult> GetLog()
+    public async Task<IActionResult> GetLog(
+        [FromQuery] int limit = 50,
+        [FromQuery] DateTime? beforeCreatedAt = null,
+        [FromQuery] int? beforeId = null)
     {
-        var result = await _mediator.Send(new GetCrewGiftLogQuery());
+        var result = await _mediator.Send(new GetCrewGiftLogQuery(limit, beforeCreatedAt, beforeId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -42,6 +46,13 @@ public class GiftsController : ControllerBase
     {
         var gifts = await _mediator.Send(new GetPendingMiddlemanGiftsQuery());
         return Ok(gifts);
+    }
+
+    [HttpGet("next-aid")]
+    public async Task<IActionResult> GetNextAid()
+    {
+        var result = await _mediator.Send(new GetNextAidQuery());
+        return Ok(result);
     }
 
     [HttpGet("reception-order")]
@@ -66,9 +77,9 @@ public class GiftsController : ControllerBase
     }
 
     [HttpPost("{giftId:int}/complete")]
-    public async Task<IActionResult> CompleteMiddlemanGift(int giftId)
+    public async Task<IActionResult> CompleteMiddlemanGift(int giftId, [FromBody] CompleteMiddlemanGiftRequest body)
     {
-        var result = await _mediator.Send(new CompleteMiddlemanGiftCommand(giftId));
+        var result = await _mediator.Send(new CompleteMiddlemanGiftCommand(giftId, body.PaymentPlatformId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

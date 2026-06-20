@@ -18,7 +18,14 @@ describe('CrewHomeComponent', () => {
     crewService = createCrewServiceMock();
     giftService = createGiftServiceMock();
     crewService.getMembership.and.returnValue(of({ hasCrew: false }));
-    giftService.getNextAidInfo.and.returnValue({ recipientName: 'Ritu', amount: 20 });
+    giftService.getSeasonStatus.and.returnValue(of({ seasonStarted: true }));
+    giftService.getNextAidInfo.and.returnValue(of({
+      recipientName: 'Ritu',
+      amount: 20,
+      platformDisplayKind: 'preferred',
+      platformName: 'Venmo',
+      platformHandle: '@ritu'
+    }));
 
     await TestBed.configureTestingModule({
       imports: [CrewHomeComponent],
@@ -63,7 +70,8 @@ describe('CrewHomeComponent', () => {
     expect(fixture.nativeElement.querySelector('.join-code')?.textContent).toContain('ALPHA123');
     expect(fixture.nativeElement.querySelector('.crew-name')?.textContent).toContain('Alpha Fleet');
     expect(fixture.nativeElement.querySelector('.info-text')?.textContent).toContain('Ritu needs $20');
-    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(4);
+    expect(fixture.nativeElement.querySelector('.info-platform')?.textContent).toContain('Venmo: @ritu');
+    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(8);
   });
 
   it('should navigate to gift log', () => {

@@ -13,52 +13,56 @@ public class UpdateProfileCommandHandlerIntegrationTests
     [Fact]
     public async Task Handle_WhenValid_PersistsAllFieldsToDatabase()
     {
-        await using var context = await TestDbContextFactory.CreateWithUserAsync();
-        var user = context.Users.Single();
-        context.UserPaymentPlatforms.Add(new UserPaymentPlatform
+        var (context, user, crew) = await TestDbContextFactory.CreateWithCrewAsync();
+        await using (context)
         {
-            UserId = user.Id,
-            PaymentPlatformId = 1,
-            Handle = "old@example.com"
-        });
-        await context.SaveChangesAsync();
+            var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
+            context.UserPaymentPlatforms.Add(new UserPaymentPlatform
+            {
+                UserId = user.Id,
+                CrewPaymentPlatformId = platforms["PayPal"].Id,
+                Handle = "old@example.com"
+            });
+            await context.SaveChangesAsync();
 
-        var userRepository = new UserRepository(context);
-        var membershipRepository = new CrewMembershipRepository(context);
-        var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
-        var handler = new UpdateProfileCommandHandler(
-            userRepository,
-            new GiftRepository(context),
-            membershipRepository,
-            new PaymentPlatformRepository(context),
-            HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
-            mutualAidService,
-            context);
+            var userRepository = new UserRepository(context);
+            var membershipRepository = new CrewMembershipRepository(context);
+            var mutualAidService = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
+            var handler = new UpdateProfileCommandHandler(
+                userRepository,
+                new GiftRepository(context),
+                membershipRepository,
+                new CrewPaymentPlatformRepository(context),
+                HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
+                mutualAidService,
+                context);
 
-        var result = await handler.Handle(new UpdateProfileCommand
-        {
-            Username = "newname",
-            Email = "new@example.com",
-            InNeedOfAid = false,
-            EmergencyLevel = 2,
-            NeedsSurvivalAid = true,
-            PaymentPlatforms =
-            [
-                new PaymentPlatformAccountDto { PlatformId = 3, Handle = "@new" }
-            ]
-        }, CancellationToken.None);
+            var result = await handler.Handle(new UpdateProfileCommand
+            {
+                Username = "newname",
+                Email = "new@example.com",
+                InNeedOfAid = false,
+                EmergencyLevel = 2,
+                NeedsSurvivalAid = true,
+                PaymentPlatforms =
+                [
+                    new PaymentPlatformAccountDto { PlatformId = platforms["Venmo"].Id, Handle = "@new" }
+                ]
+            }, CancellationToken.None);
 
-        result.Success.Should().BeTrue();
+            result.Success.Should().BeTrue();
 
-        var reloaded = await context.Users
-            .Include(u => u.PaymentPlatforms)
-            .SingleAsync(u => u.Id == user.Id);
+            var reloaded = await context.Users
+                .Include(u => u.PaymentPlatforms)
+                .SingleAsync(u => u.Id == user.Id);
 
-        reloaded.Username.Should().Be("newname");
-        reloaded.Email.Should().Be("new@example.com");
-        reloaded.InNeedOfAid.Should().BeFalse();
-        reloaded.EmergencyLevel.Should().Be(2);
-        reloaded.NeedsSurvivalAid.Should().BeTrue();
-        reloaded.PaymentPlatforms.Should().ContainSingle(p => p.PaymentPlatformId == 3 && p.Handle == "@new");
+            reloaded.Username.Should().Be("newname");
+            reloaded.Email.Should().Be("new@example.com");
+            reloaded.InNeedOfAid.Should().BeFalse();
+            reloaded.EmergencyLevel.Should().Be(2);
+            reloaded.NeedsSurvivalAid.Should().BeTrue();
+            reloaded.PaymentPlatforms.Should().ContainSingle(p =>
+                p.CrewPaymentPlatformId == platforms["Venmo"].Id && p.Handle == "@new");
+        }
     }
 }

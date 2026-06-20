@@ -37,7 +37,7 @@ public class UserRepository : IUserRepository
     {
         return _context.Users
             .Include(u => u.PaymentPlatforms)
-                .ThenInclude(p => p.PaymentPlatform)
+                .ThenInclude(p => p.CrewPaymentPlatform)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 

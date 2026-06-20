@@ -39,13 +39,15 @@ public class UpdateProfileCommandHandlerTests
     public async Task Handle_WhenValid_UpdatesUserAndPaymentPlatforms()
     {
         var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew();
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
         user.PaymentPlatforms = new List<UserPaymentPlatform>
         {
             new()
             {
                 Id = 1,
-                PaymentPlatformId = 1,
-                PaymentPlatform = new PaymentPlatform { Id = 1, Name = "PayPal" },
+                CrewPaymentPlatformId = 1,
+                CrewPaymentPlatform = HandlerTestFixture.CreateCrewPaymentPlatform(1, crew.Id, "PayPal"),
                 Handle = "old"
             }
         };
@@ -71,7 +73,11 @@ public class UpdateProfileCommandHandlerTests
             .Setup(r => r.GetByIdWithProfileAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => updatedUser ?? user);
 
-        var handler = CreateHandler(currentUserId: user.Id, userRepository: userRepository, unitOfWork: unitOfWork);
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            userRepository: userRepository,
+            unitOfWork: unitOfWork,
+            membershipRepository: SetupMembershipWithCrew(user, crew));
 
         var result = await handler.Handle(new UpdateProfileCommand
         {
@@ -88,7 +94,7 @@ public class UpdateProfileCommandHandlerTests
 
         result.Success.Should().BeTrue();
         user.Username.Should().Be("updateduser");
-        user.PaymentPlatforms.Should().ContainSingle(p => p.PaymentPlatformId == 3 && p.Handle == "@updated");
+        user.PaymentPlatforms.Should().ContainSingle(p => p.CrewPaymentPlatformId == 3 && p.Handle == "@updated");
         unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -98,19 +104,19 @@ public class UpdateProfileCommandHandlerTests
         Mock<IUnitOfWork>? unitOfWork = null,
         Mock<IGiftRepository>? giftRepository = null,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
-        Mock<IPaymentPlatformRepository>? paymentPlatformRepository = null)
+        Mock<ICrewPaymentPlatformRepository>? crewPaymentPlatformRepository = null)
     {
         userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
         giftRepository ??= SetupDefaultGiftRepository(currentUserId);
         membershipRepository ??= SetupDefaultMembershipRepository(currentUserId);
-        paymentPlatformRepository ??= HandlerTestFixture.CreatePaymentPlatformRepositoryMock();
+        crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
 
         return new UpdateProfileCommandHandler(
             userRepository.Object,
             giftRepository.Object,
             membershipRepository.Object,
-            paymentPlatformRepository.Object,
+            crewPaymentPlatformRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             unitOfWork.Object);
@@ -139,6 +145,16 @@ public class UpdateProfileCommandHandlerTests
                 .ReturnsAsync((CrewMembership?)null);
         }
 
+        return membershipRepository;
+    }
+
+    private static Mock<ICrewMembershipRepository> SetupMembershipWithCrew(User user, Crew crew)
+    {
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(membership);
         return membershipRepository;
     }
 }

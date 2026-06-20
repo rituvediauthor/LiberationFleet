@@ -5,7 +5,13 @@ namespace LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 
 public interface IGiftRepository
 {
-    Task<IReadOnlyList<Gift>> GetLogByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
+    Task<GiftLogPage> GetLogPageByCrewIdAsync(
+        int crewId,
+        int limit,
+        DateTime? beforeCreatedAt = null,
+        int? beforeId = null,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlySet<int>> GetCompletedInitiatedGiftIdsAsync(int crewId, CancellationToken cancellationToken = default);
     Task<Gift?> GetByIdWithUsersAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Gift>> GetPendingMiddlemanGiftsAsync(int middlemanUserId, int crewId, CancellationToken cancellationToken = default);
     Task<bool> HasCompletedInitiatedGiftAsync(int initiatedGiftId, CancellationToken cancellationToken = default);

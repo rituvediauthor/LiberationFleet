@@ -8,7 +8,7 @@ namespace LiberationFleet.Server.Tests.Infrastructure.Persistence.Repositories;
 public class GiftRepositoryTests
 {
     [Fact]
-    public async Task GetUserGiftStatsAsync_CountsDirectAndCompletedContributions()
+    public async Task GetLogPageByCrewIdAsync_ReturnsNewestEntriesInAscendingOrder()
     {
         var (context, giver, crew) = await TestDbContextFactory.CreateWithCrewAsync();
         await using (context)
@@ -24,109 +24,45 @@ public class GiftRepositoryTests
             context.Users.Add(recipient);
             await context.SaveChangesAsync();
 
-            var now = DateTime.UtcNow;
-            context.Gifts.AddRange(
-                new Gift
-                {
-                    CrewId = crew.Id,
-                    GiverUserId = giver.Id,
-                    RecipientUserId = recipient.Id,
-                    Type = GiftType.Direct,
-                    Amount = 50,
-                    PaymentPlatformId = 1,
-                    CreatedAt = now.AddMonths(-1)
-                },
-                new Gift
-                {
-                    CrewId = crew.Id,
-                    GiverUserId = giver.Id,
-                    RecipientUserId = recipient.Id,
-                    Type = GiftType.Direct,
-                    Amount = 25,
-                    PaymentPlatformId = 3,
-                    CreatedAt = now.AddMonths(-2)
-                },
-                new Gift
-                {
-                    CrewId = crew.Id,
-                    GiverUserId = giver.Id,
-                    RecipientUserId = recipient.Id,
-                    Type = GiftType.Initiated,
-                    Amount = 100,
-                    PaymentPlatformId = 1,
-                    CreatedAt = now.AddMonths(-1)
-                },
-                new Gift
-                {
-                    CrewId = crew.Id,
-                    GiverUserId = recipient.Id,
-                    RecipientUserId = giver.Id,
-                    Type = GiftType.Direct,
-                    Amount = 10,
-                    PaymentPlatformId = 1,
-                    CreatedAt = now.AddMonths(-1)
-                });
+            var platform = new CrewPaymentPlatform { CrewId = crew.Id, Name = "PayPal" };
+            context.CrewPaymentPlatforms.Add(platform);
             await context.SaveChangesAsync();
 
-            var repository = new GiftRepository(context);
-
-            var stats = await repository.GetUserGiftStatsAsync(giver.Id);
-
-            stats.LifetimeContributions.Should().Be(75);
-            stats.SacrificeCountLastYear.Should().Be(2);
-            stats.ContributionsLast3Months.Should().Be(75);
-            stats.ReceptionLastYear.Should().Be(10);
-        }
-    }
-
-    [Fact]
-    public async Task GetUserGiftStatsAsync_ExcludesGiftsOutsideTimeWindows()
-    {
-        var (context, giver, crew) = await TestDbContextFactory.CreateWithCrewAsync();
-        await using (context)
-        {
-            var recipient = new User
+            var baseTime = DateTime.UtcNow.AddDays(-5);
+            for (var i = 1; i <= 55; i++)
             {
-                Username = "recipient",
-                Email = "recipient@example.com",
-                PasswordHash = "hash",
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-            context.Users.Add(recipient);
-            await context.SaveChangesAsync();
-
-            var now = DateTime.UtcNow;
-            context.Gifts.AddRange(
-                new Gift
+                context.Gifts.Add(new Gift
                 {
                     CrewId = crew.Id,
                     GiverUserId = giver.Id,
                     RecipientUserId = recipient.Id,
                     Type = GiftType.Direct,
-                    Amount = 30,
-                    PaymentPlatformId = 1,
-                    CreatedAt = now.AddYears(-2)
-                },
-                new Gift
-                {
-                    CrewId = crew.Id,
-                    GiverUserId = giver.Id,
-                    RecipientUserId = recipient.Id,
-                    Type = GiftType.Direct,
-                    Amount = 20,
-                    PaymentPlatformId = 1,
-                    CreatedAt = now.AddMonths(-5)
+                    Amount = i,
+                    CrewPaymentPlatformId = platform.Id,
+                    CreatedAt = baseTime.AddMinutes(i)
                 });
+            }
             await context.SaveChangesAsync();
 
             var repository = new GiftRepository(context);
+            var firstPage = await repository.GetLogPageByCrewIdAsync(crew.Id, 50);
 
-            var stats = await repository.GetUserGiftStatsAsync(giver.Id);
+            firstPage.HasMore.Should().BeTrue();
+            firstPage.Items.Should().HaveCount(50);
+            firstPage.Items.First().Amount.Should().Be(6);
+            firstPage.Items.Last().Amount.Should().Be(55);
 
-            stats.LifetimeContributions.Should().Be(50);
-            stats.SacrificeCountLastYear.Should().Be(1);
-            stats.ContributionsLast3Months.Should().Be(0);
+            var oldest = firstPage.Items.First();
+            var secondPage = await repository.GetLogPageByCrewIdAsync(
+                crew.Id,
+                50,
+                oldest.CreatedAt,
+                oldest.Id);
+
+            secondPage.HasMore.Should().BeFalse();
+            secondPage.Items.Should().HaveCount(5);
+            secondPage.Items.First().Amount.Should().Be(1);
+            secondPage.Items.Last().Amount.Should().Be(5);
         }
     }
 }

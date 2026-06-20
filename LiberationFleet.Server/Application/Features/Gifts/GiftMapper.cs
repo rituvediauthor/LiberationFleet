@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -9,7 +10,8 @@ public static class GiftMapper
     public static GiftLogEntryDto MapGift(
         Gift gift,
         bool canCompleteAsMiddleman = false,
-        string? status = null)
+        string? status = null,
+        IReadOnlyList<PaymentPlatformOptionDto>? completionPlatformOptions = null)
     {
         var relatedUserIds = new List<int> { gift.GiverUserId, gift.RecipientUserId };
         if (gift.MiddlemanUserId.HasValue)
@@ -30,12 +32,15 @@ public static class GiftMapper
             MiddlemanId = gift.MiddlemanUserId,
             MiddlemanName = gift.MiddlemanUser?.Username,
             Amount = gift.Amount,
-            Platform = gift.PaymentPlatform.Name,
+            Platform = gift.CrewPaymentPlatform.Name,
             Timestamp = gift.CreatedAt,
             Message = FormatMessage(gift, entryStatus),
             RelatedUserIds = relatedUserIds,
             CanCompleteAsMiddleman = canCompleteAsMiddleman,
-            Status = entryStatus
+            Status = entryStatus,
+            CompletionPlatformOptions = completionPlatformOptions is null
+                ? Array.Empty<GiftPlatformOptionDto>()
+                : completionPlatformOptions.Select(p => new GiftPlatformOptionDto { Id = p.Id, Name = p.Name }).ToList()
         };
     }
 
@@ -47,13 +52,13 @@ public static class GiftMapper
         RecipientId = gift.RecipientUserId,
         RecipientName = gift.RecipientUser.Username,
         Amount = gift.Amount,
-        Platform = gift.PaymentPlatform.Name
+        Platform = gift.CrewPaymentPlatform.Name
     };
 
     private static string FormatMessage(Gift gift, string status)
     {
         var amount = gift.Amount.ToString("0.##");
-        var platform = gift.PaymentPlatform.Name;
+        var platform = gift.CrewPaymentPlatform.Name;
 
         var baseMessage = gift.Type switch
         {

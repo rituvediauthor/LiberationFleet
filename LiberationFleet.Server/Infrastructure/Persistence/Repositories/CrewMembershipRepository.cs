@@ -32,6 +32,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
     public async Task<IReadOnlyList<CrewMembership>> GetActiveMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.CrewMemberships
             .Include(m => m.User)
+                .ThenInclude(u => u.PaymentPlatforms)
             .Where(m => m.CrewId == crewId && !m.IsBanned)
             .ToListAsync(cancellationToken);
 

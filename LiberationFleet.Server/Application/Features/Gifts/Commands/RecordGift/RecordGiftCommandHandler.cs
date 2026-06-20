@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -11,7 +12,7 @@ public class RecordGiftCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
-    IPaymentPlatformRepository paymentPlatformRepository,
+    ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftCommand, GiftOperationResponse>
 {
@@ -22,16 +23,16 @@ public class RecordGiftCommandHandler(
             return new GiftOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (!await paymentPlatformRepository.ExistsAsync(request.PaymentPlatformId, cancellationToken))
-        {
-            return new GiftOperationResponse { Success = false, Message = "Invalid payment platform." };
-        }
-
         var userId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
         {
             return new GiftOperationResponse { Success = false, Message = "You are not in a crew." };
+        }
+
+        if (!await crewPaymentPlatformRepository.ExistsForCrewAsync(membership.CrewId, request.PaymentPlatformId, cancellationToken))
+        {
+            return new GiftOperationResponse { Success = false, Message = "Invalid payment platform." };
         }
 
         if (request.CompletingGiftId.HasValue)
@@ -77,6 +78,17 @@ public class RecordGiftCommandHandler(
             return new GiftOperationResponse { Success = false, Message = "This gift has already been completed." };
         }
 
+        if (initiated.MiddlemanUser is null || initiated.RecipientUser is null)
+        {
+            return new GiftOperationResponse { Success = false, Message = "Pending gift not found." };
+        }
+
+        var commonPlatforms = CrewPaymentPlatformService.GetCommonPlatforms(initiated.MiddlemanUser, initiated.RecipientUser);
+        if (!commonPlatforms.Any(p => p.Id == paymentPlatformId))
+        {
+            return new GiftOperationResponse { Success = false, Message = "Selected payment platform is not shared with the recipient." };
+        }
+
         var gift = new Gift
         {
             CrewId = crewId,
@@ -85,7 +97,7 @@ public class RecordGiftCommandHandler(
             MiddlemanUserId = userId,
             Type = GiftType.Completed,
             Amount = initiated.Amount,
-            PaymentPlatformId = paymentPlatformId,
+            CrewPaymentPlatformId = paymentPlatformId,
             InitiatedGiftId = initiated.Id,
             IsSurvivalThreshold = initiated.IsSurvivalThreshold,
             IsCustomGift = initiated.IsCustomGift,
@@ -153,7 +165,7 @@ public class RecordGiftCommandHandler(
             MiddlemanUserId = middlemanId,
             Type = middlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
             Amount = amount,
-            PaymentPlatformId = paymentPlatformId,
+            CrewPaymentPlatformId = paymentPlatformId,
             CreatedAt = DateTime.UtcNow
         };
 
