@@ -364,6 +364,8 @@ MigrationBackup/
 
 # Local development and test database runtime data (schema migrations stay in source control)
 data/
+!liberationfleet.server/infrastructure/data/
+!liberationfleet.server/infrastructure/data/appdbcontext.cs
 **/data/mssql/
 **/data/sqlite/
 **/sqldata/
