@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Application.Features.Crypto.Contracts;
+
 namespace LiberationFleet.Server.Application.Features.Gifts.Contracts;
 
 public class CrewMemberDto
@@ -27,6 +29,8 @@ public class GiftLogEntryDto
     public string? DisplayFlag { get; set; }
     public IReadOnlyList<string> AvailableActions { get; set; } = Array.Empty<string>();
     public IReadOnlyList<GiftPlatformOptionDto> CompletionPlatformOptions { get; set; } = Array.Empty<GiftPlatformOptionDto>();
+    public bool HasEncryptedContent { get; set; }
+    public EncryptedPayloadDto? EncryptedPayload { get; set; }
 }
 
 public class GiftPlatformOptionDto

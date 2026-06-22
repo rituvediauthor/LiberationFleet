@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -15,7 +16,8 @@ public record GetCrewGiftLogQuery(
 public class GetCrewGiftLogQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IGiftRepository giftRepository) : IRequestHandler<GetCrewGiftLogQuery, GiftLogResponse>
+    IGiftRepository giftRepository,
+    ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewGiftLogQuery, GiftLogResponse>
 {
     public async Task<GiftLogResponse> Handle(GetCrewGiftLogQuery request, CancellationToken cancellationToken)
     {
@@ -61,6 +63,14 @@ public class GetCrewGiftLogQueryHandler(
             }
         }
 
+        var giftIds = page.Items.Select(g => g.Id.ToString()).ToList();
+        var envelopes = await cryptoRepository.GetEnvelopesAsync(
+            EncryptedContentType.GiftLogEntry,
+            giftIds,
+            membership.CrewId,
+            cancellationToken);
+        var envelopeByGiftId = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
         var items = page.Items.Select(gift =>
         {
             completedByInitiated.TryGetValue(gift.Id, out var completedChild);
@@ -70,7 +80,19 @@ public class GetCrewGiftLogQueryHandler(
                 initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
             }
 
-            return GiftMapper.MapGift(gift, userId, completedChild, initiatedParent);
+            var entry = GiftMapper.MapGift(gift, userId, completedChild, initiatedParent);
+            if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
+            {
+                entry.HasEncryptedContent = true;
+                entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
+                entry.GiverName = string.Empty;
+                entry.RecipientName = string.Empty;
+                entry.MiddlemanName = null;
+                entry.Platform = string.Empty;
+                entry.Message = string.Empty;
+            }
+
+            return entry;
         }).ToList();
 
         return new GiftLogResponse

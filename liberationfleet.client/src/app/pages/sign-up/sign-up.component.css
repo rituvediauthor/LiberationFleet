@@ -109,6 +109,82 @@ label {
   text-decoration: underline;
 }
 
+.privacy-link:hover {
+  text-decoration: underline;
+}
+
+.privacy-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+}
+
+.privacy-dialog-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 640px;
+  width: 100%;
+  max-height: min(85vh, 720px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.privacy-dialog-title {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+}
+
+.privacy-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.privacy-dialog-loading {
+  margin: 24px;
+  color: #666;
+  font-size: 14px;
+}
+
+.privacy-dialog-text {
+  margin: 0;
+  padding: 16px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #444;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.privacy-dialog-button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #007AFF;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.privacy-dialog-button:hover {
+  background: #0056b3;
+}
+
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;

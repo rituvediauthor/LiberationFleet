@@ -1,7 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
@@ -41,9 +43,13 @@ export class SignUpComponent {
   backButton: ActionBarButton;
   signUpButton: ActionBarButton;
   isLoading = false;
+  showPrivacyPolicyModal = false;
+  privacyPolicyText = '';
+  privacyPolicyLoading = false;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private http = inject(HttpClient);
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private toastService = inject(ToastService);
@@ -99,7 +105,36 @@ export class SignUpComponent {
 
   showPrivacyPolicy(event: Event) {
     event.preventDefault();
-    alert('Privacy Policy\n\nThis is a placeholder for the privacy policy.');
+    void this.openPrivacyPolicy();
+  }
+
+  closePrivacyPolicy() {
+    this.showPrivacyPolicyModal = false;
+  }
+
+  onPrivacyBackdropClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('privacy-dialog-backdrop')) {
+      this.closePrivacyPolicy();
+    }
+  }
+
+  private async openPrivacyPolicy() {
+    this.showPrivacyPolicyModal = true;
+
+    if (this.privacyPolicyText) {
+      return;
+    }
+
+    this.privacyPolicyLoading = true;
+    try {
+      this.privacyPolicyText = await firstValueFrom(
+        this.http.get('/assets/privacy-policy.txt', { responseType: 'text' })
+      );
+    } catch {
+      this.privacyPolicyText = 'Unable to load the Privacy Policy. Please try again later.';
+    } finally {
+      this.privacyPolicyLoading = false;
+    }
   }
 
   onSubmit() {
@@ -118,8 +153,13 @@ export class SignUpComponent {
     };
 
     this.userService.create(formData).subscribe({
-      next: (response) => {
+      next: async (response) => {
         this.authService.establishSession(response);
+        try {
+          await this.authService.initializeEncryption(formData.password, true);
+        } catch {
+          this.toastService.error('Account created, but encryption setup failed.');
+        }
         this.toastService.success('Account created successfully!');
         this.router.navigate(['/app/crew']);
       },

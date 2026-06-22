@@ -85,10 +85,20 @@ public class GetCrewGiftLogQueryHandlerTests
             .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, Gift>());
 
+        var cryptoRepository = new Mock<ICryptoRepository>();
+        cryptoRepository
+            .Setup(r => r.GetEnvelopesAsync(
+                EncryptedContentType.GiftLogEntry,
+                It.IsAny<IReadOnlyList<string>>(),
+                crew.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
+
         var handler = CreateHandler(
             currentUserId: user.Id,
             membershipRepository: membershipRepository,
-            giftRepository: giftRepository);
+            giftRepository: giftRepository,
+            cryptoRepository: cryptoRepository);
 
         var result = await handler.Handle(new GetCrewGiftLogQuery(), CancellationToken.None);
 
@@ -100,14 +110,24 @@ public class GetCrewGiftLogQueryHandlerTests
     private static GetCrewGiftLogQueryHandler CreateHandler(
         int? currentUserId = 1,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
-        Mock<IGiftRepository>? giftRepository = null)
+        Mock<IGiftRepository>? giftRepository = null,
+        Mock<ICryptoRepository>? cryptoRepository = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
+        cryptoRepository ??= new Mock<ICryptoRepository>();
+        cryptoRepository
+            .Setup(r => r.GetEnvelopesAsync(
+                It.IsAny<EncryptedContentType>(),
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
 
         return new GetCrewGiftLogQueryHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             membershipRepository.Object,
-            giftRepository.Object);
+            giftRepository.Object,
+            cryptoRepository.Object);
     }
 }

@@ -97,4 +97,18 @@
       </form>
     </div>
   </div>
+
+  <div
+    class="privacy-dialog-backdrop"
+    *ngIf="showPrivacyPolicyModal"
+    (click)="onPrivacyBackdropClick($event)">
+    <div class="privacy-dialog-card" role="dialog" aria-modal="true" aria-labelledby="privacy-policy-title">
+      <h2 id="privacy-policy-title" class="privacy-dialog-title">Privacy Policy</h2>
+      <div class="privacy-dialog-body">
+        <p *ngIf="privacyPolicyLoading" class="privacy-dialog-loading">Loading...</p>
+        <pre *ngIf="!privacyPolicyLoading" class="privacy-dialog-text">{{ privacyPolicyText }}</pre>
+      </div>
+      <button type="button" class="privacy-dialog-button" (click)="closePrivacyPolicy()">Close</button>
+    </div>
+  </div>
 </app-page-layout>

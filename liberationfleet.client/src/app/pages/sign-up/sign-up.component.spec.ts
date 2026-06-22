@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -15,6 +16,7 @@ describe('SignUpComponent', () => {
   let userService: jasmine.SpyObj<UserService>;
   let toastService: jasmine.SpyObj<ToastService>;
   let router: Router;
+  let httpMock: HttpTestingController;
 
   beforeEach(async () => {
     authService = createAuthServiceMock();
@@ -22,7 +24,7 @@ describe('SignUpComponent', () => {
     toastService = createToastServiceMock();
 
     await TestBed.configureTestingModule({
-      imports: [SignUpComponent],
+      imports: [SignUpComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         { provide: AuthService, useValue: authService },
@@ -32,11 +34,16 @@ describe('SignUpComponent', () => {
     }).compileComponents();
 
     router = TestBed.inject(Router);
+    httpMock = TestBed.inject(HttpTestingController);
     spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
 
     fixture = TestBed.createComponent(SignUpComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    httpMock.verify();
   });
 
   function fillValidForm(): void {
@@ -117,15 +124,21 @@ describe('SignUpComponent', () => {
     expect(component.isLoading).toBeFalse();
   });
 
-  it('showPrivacyPolicy should prevent default and show alert', () => {
+  it('showPrivacyPolicy should open modal and load policy text', async () => {
     const event = new Event('click');
     spyOn(event, 'preventDefault');
-    spyOn(window, 'alert');
 
     component.showPrivacyPolicy(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
-    expect(window.alert).toHaveBeenCalled();
+    expect(component.showPrivacyPolicyModal).toBeTrue();
+
+    const req = httpMock.expectOne('/assets/privacy-policy.txt');
+    expect(req.request.method).toBe('GET');
+    req.flush('Privacy policy content');
+
+    await fixture.whenStable();
+    expect(component.privacyPolicyText).toBe('Privacy policy content');
   });
 
   it('should navigate back to sign-in', () => {

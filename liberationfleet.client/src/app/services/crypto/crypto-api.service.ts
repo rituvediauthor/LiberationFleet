@@ -1,0 +1,86 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import {
+  CrewKeyState,
+  CryptoOperationResponse,
+  EncryptedContentEnvelope,
+  EncryptedContentType,
+  UserKeyBundle,
+  UserPrivateKeyBackup
+} from '../../models/crypto.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CryptoApiService {
+  private readonly apiUrl = '/api/crypto';
+
+  constructor(private http: HttpClient) {}
+
+  upsertPublicKey(identityPublicKey: string, keyVersion = 1): Observable<CryptoOperationResponse> {
+    return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/keys/public`, {
+      identityPublicKey,
+      keyVersion
+    });
+  }
+
+  getPublicKey(userId: number): Observable<UserKeyBundle> {
+    return this.http.get<UserKeyBundle>(`${this.apiUrl}/keys/public/${userId}`);
+  }
+
+  getCrewPublicKeys(crewId: number): Observable<UserKeyBundle[]> {
+    return this.http.get<UserKeyBundle[]>(`${this.apiUrl}/keys/public/crew/${crewId}`);
+  }
+
+  upsertPrivateKeyBackup(backup: UserPrivateKeyBackup): Observable<CryptoOperationResponse> {
+    return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/keys/backup`, backup);
+  }
+
+  getMyPrivateKeyBackup(): Observable<UserPrivateKeyBackup> {
+    return this.http.get<UserPrivateKeyBackup>(`${this.apiUrl}/keys/backup`);
+  }
+
+  upsertCrewKeyDistribution(
+    crewId: number,
+    payload: {
+      userId: number;
+      keyVersion: number;
+      wrappedCrewKey: string;
+      wrapNonce: string;
+    }
+  ): Observable<CryptoOperationResponse> {
+    return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/crew-keys/${crewId}`, payload);
+  }
+
+  getCrewKeyState(crewId: number): Observable<CrewKeyState> {
+    return this.http.get<CrewKeyState>(`${this.apiUrl}/crew-keys/${crewId}`);
+  }
+
+  upsertEncryptedContent(payload: {
+    contentType: EncryptedContentType;
+    resourceId: string;
+    crewId?: number | null;
+    keyVersion: number;
+    nonce: string;
+    ciphertext: string;
+  }): Observable<CryptoOperationResponse> {
+    return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/content`, payload);
+  }
+
+  getEncryptedContents(
+    contentType: EncryptedContentType,
+    resourceIds: string[],
+    crewId?: number | null
+  ): Observable<EncryptedContentEnvelope[]> {
+    let params = new HttpParams()
+      .set('contentType', contentType)
+      .set('resourceIds', resourceIds.join(','));
+
+    if (crewId != null) {
+      params = params.set('crewId', crewId.toString());
+    }
+
+    return this.http.get<EncryptedContentEnvelope[]>(`${this.apiUrl}/content`, { params });
+  }
+}

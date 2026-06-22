@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AuthResult, User } from '../models/user.model';
+import { CryptoSessionService } from './crypto/crypto-session.service';
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -18,7 +19,7 @@ export class AuthService {
   private readonly currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private cryptoSession: CryptoSessionService) {
     this.loadToken();
   }
 
@@ -37,6 +38,7 @@ export class AuthService {
 
   logout(): void {
     this.removeToken();
+    this.cryptoSession.clearSession();
     this.currentUserSubject.next(null);
   }
 
@@ -54,6 +56,19 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  async initializeEncryption(password: string, isNewAccount: boolean): Promise<void> {
+    if (isNewAccount) {
+      await this.cryptoSession.provisionIdentityKeys(password);
+      return;
+    }
+
+    try {
+      await this.cryptoSession.unlockFromPassword(password);
+    } catch {
+      await this.cryptoSession.provisionIdentityKeys(password);
+    }
   }
 
   updateCurrentUser(user: User): void {

@@ -14,6 +14,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { GiftService } from '../../services/gift.service';
+import { CrewService } from '../../services/crew.service';
+import { GiftLogCryptoService } from '../../services/crypto/gift-log-crypto.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
@@ -36,6 +38,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   hasMore = false;
   errorMessage = '';
   verifyingGiftId: number | null = null;
+  crewId = 0;
   completionPlatformSelections: Record<number, number | ''> = {};
   backButton!: ActionBarButton;
   recordButton!: ActionBarButton;
@@ -47,6 +50,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private router = inject(Router);
   private giftService = inject(GiftService);
+  private crewService = inject(CrewService);
+  private giftLogCrypto = inject(GiftLogCryptoService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
 
@@ -77,7 +82,16 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           this.router.navigate(['/app/crew/join-season']);
           return;
         }
-        this.loadGiftLog();
+        this.crewService.getMembership().subscribe({
+          next: membership => {
+            this.crewId = membership.crewId ?? 0;
+            this.loadGiftLog();
+          },
+          error: () => {
+            this.errorMessage = 'Failed to load crew membership';
+            this.loading = false;
+          }
+        });
       },
       error: () => {
         this.errorMessage = 'Failed to load season status';
@@ -150,11 +164,14 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.verifyingGiftId = entry.id;
     this.giftService.verifyGift(entry.id, action, paymentPlatformId).subscribe({
-      next: result => {
+      next: async result => {
         this.verifyingGiftId = null;
         if (result.success) {
           this.toastService.success(result.message || 'Gift updated');
           delete this.completionPlatformSelections[entry.id];
+          if (result.entry && this.crewId > 0) {
+            await this.giftLogCrypto.encryptAndStoreEntry(result.entry, this.crewId);
+          }
           this.loadGiftLog();
           return;
         }
@@ -173,8 +190,13 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.errorMessage = '';
 
     this.giftService.getLogs({ limit: this.pageSize }).subscribe({
-      next: page => {
-        this.entries = page.items;
+      next: async page => {
+        let items = page.items;
+        if (this.crewId > 0) {
+          items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
+          await this.giftLogCrypto.backfillUnencryptedEntries(items, this.crewId, this.activeUserId);
+        }
+        this.entries = items;
         this.hasMore = page.hasMore;
         this.applyCompletionDefaults(page.items);
         this.loading = false;
@@ -207,9 +229,13 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       beforeCreatedAt: oldest.timestamp.toISOString(),
       beforeId: oldest.id
     }).subscribe({
-      next: page => {
-        this.applyCompletionDefaults(page.items);
-        this.entries = [...page.items, ...this.entries];
+      next: async page => {
+        let items = page.items;
+        if (this.crewId > 0) {
+          items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
+        }
+        this.applyCompletionDefaults(items);
+        this.entries = [...items, ...this.entries];
         this.hasMore = page.hasMore;
         this.loadingMore = false;
 

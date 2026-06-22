@@ -1,0 +1,158 @@
+LIBERATION FLEET PRIVACY POLICY
+
+Last updated: June 21, 2026
+
+This Privacy Policy describes how Liberation Fleet ("we," "us," or "our") collects, uses, stores, and shares information when you use the Liberation Fleet application and related services (the "Service").
+
+By creating an account or using the Service, you agree to this Privacy Policy. If you do not agree, do not use the Service.
+
+IMPORTANT: Liberation Fleet is a mutual-aid coordination tool. We are not a bank, credit union, money transmitter, or payment processor. Gifts are recorded and coordinated through the Service, but payments occur on third-party platforms (such as PayPal, Venmo, Cash App, or Zelle) outside of our control.
+
+
+1. WHO THIS POLICY APPLIES TO
+
+This policy applies to anyone who registers for an account, joins a crew, or otherwise uses the Service.
+
+
+2. INFORMATION WE COLLECT
+
+2.1 Account and profile information
+When you sign up, we collect:
+- Username
+- Email address
+- Password (stored only as a secure one-way hash; we do not store your plain-text password)
+
+You may also provide profile and mutual-aid information, including:
+- Whether you are in need of aid
+- Emergency level and survival-aid preferences
+- Payment platform handles you choose to share with your crew (for example, a Venmo username)
+- Other profile settings you enter in the app
+
+2.2 Crew and membership information
+If you create or join a crew, we collect:
+- Crew name, size limits, privacy setting (public or private), and scope (online or local)
+- Join codes
+- Optional location information such as zip code and search radius for local crews
+- Your role and status in the crew (organizer, honorary member, season participation, estimated monthly contribution, priority scores, and related season data)
+
+2.3 Gift and mutual-aid records
+To operate gift logging, verification, reception order, survival thresholds, and seasonal cycles, we store gift and mutual-aid data on our servers, including:
+- Who gave a gift, who received it, and any middleman involved (by user account)
+- Gift amounts
+- Whether a gift was direct, initiated through a middleman, or completed by a middleman
+- Whether a gift applied to a survival threshold or a cycle
+- Payment platform used
+- Gift verification status and timestamps
+- Aggregated reception and contribution totals used for mutual-aid calculations
+
+This structural gift and mutual-aid information is stored on our servers in readable form so the Service can calculate reception order, contributions, and season rules. It is not hidden from our systems.
+
+2.4 Encrypted content (end-to-end encryption)
+We also support encryption for certain user-generated display content. For gift log entries, this may include encrypted versions of:
+- Display names shown in the log
+- The human-readable gift message text
+- Payment platform name as shown in the log
+
+We store:
+- Your public encryption key
+- A password-protected backup of your private encryption key (we cannot read your private key without your password)
+- Crew encryption keys wrapped for each crew member
+- Encrypted content envelopes (ciphertext only)
+
+We do not hold the keys needed to decrypt crew content. Only you and other members of your crew who have valid keys can decrypt that display content on their devices.
+
+Encryption does not currently extend to gift amounts, participant identities stored in gift records, or mutual-aid calculation data described in section 2.3.
+
+2.5 Technical and usage information
+We automatically collect certain technical information needed to operate the Service, such as:
+- Authentication tokens issued when you sign in
+- Server logs (for example, IP address, browser or device type, request timestamps, and error logs)
+- Information required to maintain security and prevent abuse
+
+2.6 Communications
+If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests.
+
+
+3. HOW WE USE INFORMATION
+
+We use the information we collect to:
+- Create and manage your account
+- Authenticate you and maintain your session
+- Enable you to create, join, and participate in crews
+- Record gifts and run mutual-aid features (reception order, thresholds, cycles, verification workflows, and season management)
+- Display information to you and to other members of your crew as the app is designed to do
+- Operate encryption key exchange and store encrypted content on your behalf
+- Respond to support requests and secure the Service
+- Comply with applicable law and enforce our terms
+
+We do not sell your personal information.
+
+
+4. WHO CAN SEE YOUR INFORMATION
+
+4.1 Within your crew
+Much of the information in the Service is shared with other members of crews you join, including usernames, payment handles you provide, gift activity, and mutual-aid status relevant to your crew's season.
+
+4.2 Crew discovery
+If a crew is set to "Public," certain crew details (such as name, size, and scope) may be visible to other users searching for crews. Private crews are not listed in public search results.
+
+4.3 Service operators
+Authorized administrators and hosting providers may access server-stored data as needed to operate, secure, and maintain the Service. Because much gift and mutual-aid data is stored in readable form on our servers, it could be accessed by someone with database or administrative access.
+
+4.4 Legal and safety
+We may disclose information if we believe it is reasonably necessary to comply with law, respond to lawful requests, protect the rights and safety of users or the public, or investigate fraud or security issues.
+
+
+5. HOW WE PROTECT INFORMATION
+
+We use administrative, technical, and organizational measures intended to protect information, including:
+- Password hashing for account credentials
+- HTTPS encryption for data in transit between your browser and our servers
+- Access controls on our systems
+- Client-side encryption for certain display content, as described in section 2.4
+
+No method of transmission or storage is completely secure. A security incident could expose information stored on our servers, including gift amounts and who gave to whom, even when some display text is encrypted.
+
+
+6. WHAT WE DO NOT COLLECT OR PROCESS
+
+- We do not process card payments or hold your money.
+- We do not receive full payment credentials from PayPal, Venmo, or similar services through normal use of the app.
+- We are not responsible for the privacy practices of third-party payment platforms you use to send or receive money.
+
+
+7. DATA RETENTION
+
+We retain information for as long as your account is active or as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. You may request account deletion by contacting us; some information may be retained where required by law or for legitimate business purposes (such as security logs).
+
+
+8. YOUR CHOICES
+
+- You can update certain profile and payment information in the app.
+- You can leave a crew or stop using the Service.
+- Your encryption keys are unlocked with your password during a session; if you do not sign in again after closing the browser, encrypted display content may not be readable until you unlock encryption again.
+- You may decline to accept this policy, but you will not be able to register for an account.
+
+
+9. CHILDREN
+
+The Service is not intended for children under 13 (or the minimum age required in your jurisdiction). We do not knowingly collect personal information from children.
+
+
+10. CHANGES TO THIS POLICY
+
+We may update this Privacy Policy from time to time. We will revise the "Last updated" date when we do. Continued use of the Service after changes become effective means you accept the updated policy.
+
+
+11. CONTACT
+
+If you have questions about this Privacy Policy or our data practices, contact the Liberation Fleet project administrators through the contact method provided in the app or on the project website.
+
+
+SUMMARY (NOT A SUBSTITUTE FOR THE FULL POLICY)
+
+- We store account, crew, gift, and mutual-aid data on our servers.
+- Gift amounts and who gave to whom are stored in readable form for app features to work.
+- Some gift log display text may be encrypted so we cannot read it.
+- Crew members can see information relevant to your shared mutual-aid activity.
+- We are not a bank or payment processor; payments happen on external platforms.

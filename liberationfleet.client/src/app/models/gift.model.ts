@@ -1,3 +1,5 @@
+import { EncryptedPayload } from './crypto.model';
+
 export type GiftLogType = 'direct' | 'initiated' | 'completed';
 export type ReceptionEntryType = 'survivalThreshold' | 'cycle';
 export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete';
@@ -40,6 +42,8 @@ export interface GiftLogEntry {
   displayFlag?: GiftDisplayFlag | null;
   availableActions?: GiftVerificationAction[];
   completionPlatformOptions?: PaymentPlatformOption[];
+  hasEncryptedContent?: boolean;
+  encryptedPayload?: EncryptedPayload | null;
 }
 
 export interface PendingMiddlemanGift {

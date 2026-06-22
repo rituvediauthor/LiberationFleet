@@ -22,6 +22,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Gift> Gifts => Set<Gift>();
     public DbSet<SeasonCycle> SeasonCycles => Set<SeasonCycle>();
     public DbSet<MonthlySurvivalThreshold> MonthlySurvivalThresholds => Set<MonthlySurvivalThreshold>();
+    public DbSet<UserKeyBundle> UserKeyBundles => Set<UserKeyBundle>();
+    public DbSet<UserPrivateKeyBackup> UserPrivateKeyBackups => Set<UserPrivateKeyBackup>();
+    public DbSet<CrewKeyDistribution> CrewKeyDistributions => Set<CrewKeyDistribution>();
+    public DbSet<EncryptedContentEnvelope> EncryptedContentEnvelopes => Set<EncryptedContentEnvelope>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -193,6 +197,69 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserKeyBundle>(entity =>
+        {
+            entity.HasKey(e => e.UserId);
+            entity.Property(e => e.IdentityPublicKey).IsRequired();
+            entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.HasOne(e => e.User)
+                .WithOne()
+                .HasForeignKey<UserKeyBundle>(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserPrivateKeyBackup>(entity =>
+        {
+            entity.HasKey(e => e.UserId);
+            entity.Property(e => e.Salt).IsRequired();
+            entity.Property(e => e.Iv).IsRequired();
+            entity.Property(e => e.Ciphertext).IsRequired();
+            entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.HasOne(e => e.User)
+                .WithOne()
+                .HasForeignKey<UserPrivateKeyBackup>(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CrewKeyDistribution>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.CrewId, e.UserId, e.KeyVersion }).IsUnique();
+            entity.Property(e => e.WrappedCrewKey).IsRequired();
+            entity.Property(e => e.WrapNonce).IsRequired();
+            entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.WrappedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.WrappedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EncryptedContentEnvelope>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ContentType, e.ResourceId }).IsUnique();
+            entity.Property(e => e.ResourceId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Nonce).IsRequired();
+            entity.Property(e => e.Ciphertext).IsRequired();
+            entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
