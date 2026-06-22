@@ -17,6 +17,10 @@ import { SeasonSetupComponent } from './pages/season-setup/season-setup.componen
 import { JoinSeasonComponent } from './pages/join-season/join-season.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
+import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
+import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
+import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
+import { ProposalDetailComponent } from './pages/proposals/proposal-detail/proposal-detail.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -125,9 +129,23 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew/proposals',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Proposals', backTo: '/app/crew' }
+    component: ProposalsTypeComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/proposals/list/:status',
+    component: ProposalsListComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/proposals/create',
+    component: CreateProposalComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/proposals/:id',
+    component: ProposalDetailComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/crew/projects',

@@ -1,0 +1,22 @@
+using LiberationFleet.Server.Domain.Enums;
+
+namespace LiberationFleet.Server.Domain.Entities;
+
+public class Proposal
+{
+    public int Id { get; set; }
+    public int CrewId { get; set; }
+    public int AuthorUserId { get; set; }
+    public ProposalStatus Status { get; set; } = ProposalStatus.Pending;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ApprovalTimerEndsAt { get; set; }
+    public int ApproveCount { get; set; }
+    public int DisapproveCount { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Crew Crew { get; set; } = null!;
+    public User AuthorUser { get; set; } = null!;
+    public ICollection<ProposalVote> Votes { get; set; } = new List<ProposalVote>();
+    public ICollection<ProposalComment> Comments { get; set; } = new List<ProposalComment>();
+}

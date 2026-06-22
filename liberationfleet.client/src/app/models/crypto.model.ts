@@ -9,7 +9,8 @@ export type EncryptedContentType =
   | 'LibraryItem'
   | 'ImageAsset'
   | 'AudioAsset'
-  | 'VideoAsset';
+  | 'VideoAsset'
+  | 'ProposalComment';
 
 export interface UserKeyBundle {
   userId: number;

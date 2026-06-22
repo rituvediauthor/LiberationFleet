@@ -1,0 +1,32 @@
+<div class="attachment-picker">
+  <div class="attachment-actions">
+    <label class="attach-btn">
+      Add images
+      <input type="file" accept="image/*" multiple hidden (change)="onImageSelected($event)" />
+    </label>
+    <label class="attach-btn">
+      Add video
+      <input type="file" accept="video/*" hidden (change)="onVideoSelected($event)" />
+    </label>
+    <button
+      type="button"
+      class="attach-btn"
+      *ngIf="!audioRecorder.isRecording"
+      (click)="startRecording()">
+      Record audio
+    </button>
+  </div>
+
+  <div class="recording-panel" *ngIf="audioRecorder.isRecording">
+    <span class="recording-indicator">Recording {{ audioRecorder.formatElapsed() }} / 3:00</span>
+    <button type="button" class="attach-btn stop-btn" (click)="stopRecording()">Stop</button>
+    <button type="button" class="attach-btn cancel-btn" (click)="cancelRecording()">Cancel</button>
+  </div>
+
+  <ul class="attachment-list" *ngIf="attachments.length > 0">
+    <li *ngFor="let attachment of attachments; let i = index">
+      <span>{{ attachmentLabel(attachment) }}</span>
+      <button type="button" class="remove-btn" (click)="removeAttachment(i)">Remove</button>
+    </li>
+  </ul>
+</div>

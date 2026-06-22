@@ -1,0 +1,26 @@
+<app-page-layout [backButton]="backButton">
+  <div class="proposals-type-page">
+    <h1 class="page-title">Proposals</h1>
+    <p class="page-subtitle">Browse proposals by status</p>
+
+    <nav class="status-menu" aria-label="Proposal status">
+      <button type="button" class="menu-link" (click)="openStatus('Approved')">
+        <i class="fa-solid fa-circle-check menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Approved</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openStatus('Pending')">
+        <i class="fa-solid fa-clock menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Pending</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openStatus('Rejected')">
+        <i class="fa-solid fa-circle-xmark menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Rejected</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+    </nav>
+  </div>
+</app-page-layout>

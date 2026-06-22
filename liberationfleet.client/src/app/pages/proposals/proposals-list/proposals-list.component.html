@@ -1,0 +1,41 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
+  <div class="proposals-list-page">
+    <h1 class="page-title">{{ statusLabel }} Proposals</h1>
+
+    <p *ngIf="loading" class="state-text">Loading proposals...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No proposals yet.</p>
+
+    <div class="proposal-cards" *ngIf="!loading && items.length > 0">
+      <button
+        type="button"
+        class="proposal-card"
+        *ngFor="let item of items"
+        (click)="openProposal(item)">
+        <div class="card-top">
+          <div class="card-main">
+            <p class="card-meta">
+              <span class="author">{{ item.authorUsername }}</span>
+              <span class="dot">·</span>
+              <span>{{ formatActivity(item.lastActivityAt) }}</span>
+            </p>
+            <h2 class="card-title">{{ item.title || 'Untitled proposal' }}</h2>
+            <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
+            <p class="vote-line">
+              <span class="approve">{{ item.approveCount }} approve</span>
+              <span class="dot">·</span>
+              <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
+            </p>
+            <p class="timer" *ngIf="countdownText(item) as countdown">
+              Auto-approval in {{ countdown }}
+            </p>
+          </div>
+          <div class="card-thumb" *ngIf="item.thumbnailUrl">
+            <img [src]="item.thumbnailUrl" alt="" />
+          </div>
+          <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
+        </div>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

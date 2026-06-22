@@ -26,6 +26,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<UserPrivateKeyBackup> UserPrivateKeyBackups => Set<UserPrivateKeyBackup>();
     public DbSet<CrewKeyDistribution> CrewKeyDistributions => Set<CrewKeyDistribution>();
     public DbSet<EncryptedContentEnvelope> EncryptedContentEnvelopes => Set<EncryptedContentEnvelope>();
+    public DbSet<Proposal> Proposals => Set<Proposal>();
+    public DbSet<ProposalVote> ProposalVotes => Set<ProposalVote>();
+    public DbSet<ProposalComment> ProposalComments => Set<ProposalComment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -259,6 +262,51 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Proposal>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasDefaultValue(ProposalStatus.Pending);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProposalVote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ProposalId, e.UserId }).IsUnique();
+            entity.HasOne(e => e.Proposal)
+                .WithMany(p => p.Votes)
+                .HasForeignKey(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Proposal)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(e => e.ParentCommentId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

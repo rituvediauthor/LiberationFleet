@@ -64,6 +64,7 @@ public static class CryptoMapper
         EncryptedContentTypeDto.ImageAsset => EncryptedContentType.ImageAsset,
         EncryptedContentTypeDto.AudioAsset => EncryptedContentType.AudioAsset,
         EncryptedContentTypeDto.VideoAsset => EncryptedContentType.VideoAsset,
+        EncryptedContentTypeDto.ProposalComment => EncryptedContentType.ProposalComment,
         _ => EncryptedContentType.GiftLogEntry
     };
 
@@ -80,6 +81,7 @@ public static class CryptoMapper
         EncryptedContentType.ImageAsset => EncryptedContentTypeDto.ImageAsset,
         EncryptedContentType.AudioAsset => EncryptedContentTypeDto.AudioAsset,
         EncryptedContentType.VideoAsset => EncryptedContentTypeDto.VideoAsset,
+        EncryptedContentType.ProposalComment => EncryptedContentTypeDto.ProposalComment,
         _ => EncryptedContentTypeDto.GiftLogEntry
     };
 }

@@ -57,7 +57,8 @@ public enum EncryptedContentTypeDto
     LibraryItem = 7,
     ImageAsset = 8,
     AudioAsset = 9,
-    VideoAsset = 10
+    VideoAsset = 10,
+    ProposalComment = 11
 }
 
 public class CryptoOperationResponse

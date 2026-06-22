@@ -1,0 +1,22 @@
+<div class="attachment-grid" [class.compact]="compact" *ngIf="attachments.length > 0">
+  <figure class="attachment-item" *ngFor="let attachment of attachments">
+    <img
+      *ngIf="attachment.type === 'image' && attachment.dataUrl"
+      [src]="attachment.dataUrl"
+      [alt]="attachment.fileName || 'Image attachment'" />
+    <video
+      *ngIf="attachment.type === 'video' && attachment.dataUrl"
+      [src]="attachment.dataUrl"
+      controls
+      preload="metadata"></video>
+    <audio
+      *ngIf="attachment.type === 'audio' && attachment.dataUrl"
+      [src]="attachment.dataUrl"
+      controls
+      preload="metadata"></audio>
+    <p class="attachment-fallback" *ngIf="!attachment.dataUrl">
+      {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
+    </p>
+    <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
+  </figure>
+</div>

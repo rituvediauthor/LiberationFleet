@@ -1,0 +1,67 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Domain.Enums;
+using MediatR;
+
+namespace LiberationFleet.Server.Application.Features.Proposals.Queries.GetCrewProposals;
+
+public record GetCrewProposalsQuery(string Status) : IRequest<ProposalListResponse>;
+
+public class GetCrewProposalsQueryHandler(
+    ICurrentUserService currentUser,
+    ICrewMembershipRepository membershipRepository,
+    IProposalRepository proposalRepository,
+    ICryptoRepository cryptoRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
+{
+    public async Task<ProposalListResponse> Handle(GetCrewProposalsQuery request, CancellationToken cancellationToken)
+    {
+        if (!currentUser.UserId.HasValue)
+        {
+            return new ProposalListResponse { Success = false, Message = "Unauthorized." };
+        }
+
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return new ProposalListResponse { Success = false, Message = "You are not in a crew." };
+        }
+
+        var status = ProposalMapper.ParseStatus(request.Status);
+        var proposals = await proposalRepository.GetByCrewAndStatusAsync(membership.CrewId, status, cancellationToken);
+        var utcNow = DateTime.UtcNow;
+
+        foreach (var proposal in proposals)
+        {
+            ProposalVotingService.TryAutoApproveOnTimer(proposal, utcNow);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var resourceIds = proposals.Select(p => p.Id.ToString()).ToList();
+        var envelopes = await cryptoRepository.GetEnvelopesAsync(
+            EncryptedContentType.Proposal,
+            resourceIds,
+            membership.CrewId,
+            cancellationToken);
+        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
+        var items = new List<ProposalListItemDto>();
+        foreach (var proposal in proposals)
+        {
+            envelopeById.TryGetValue(proposal.Id.ToString(), out var envelope);
+            var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
+            var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
+            items.Add(ProposalMapper.MapListItem(proposal, envelope, currentUserVote));
+        }
+
+        return new ProposalListResponse
+        {
+            Success = true,
+            Message = "Proposals loaded.",
+            Items = items
+        };
+    }
+}
