@@ -274,6 +274,72 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("EncryptedContentEnvelopes");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ForumPostId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("ForumPostId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.ToTable("ForumComments");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("CrewId");
+
+                    b.ToTable("ForumPosts");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Gift", b =>
                 {
                     b.Property<int>("Id")
@@ -483,6 +549,76 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                             Name = "Other",
                             SortOrder = 5
                         });
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectPostId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("ProjectPostId");
+
+                    b.ToTable("ProjectComments");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("CrewId");
+
+                    b.ToTable("ProjectPosts");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Proposal", b =>
@@ -885,6 +1021,51 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Crew");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumComment", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ForumPost", "ForumPost")
+                        .WithMany("Comments")
+                        .HasForeignKey("ForumPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ForumComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("ForumPost");
+
+                    b.Navigation("ParentComment");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumPost", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Crew");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Gift", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
@@ -962,6 +1143,51 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectComment", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ProjectComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ProjectPost", "ProjectPost")
+                        .WithMany("Comments")
+                        .HasForeignKey("ProjectPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("ProjectPost");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectPost", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Crew");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Proposal", b =>
@@ -1098,6 +1324,26 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Gifts");
 
                     b.Navigation("UserAccounts");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumComment", b =>
+                {
+                    b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumPost", b =>
+                {
+                    b.Navigation("Comments");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectComment", b =>
+                {
+                    b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectPost", b =>
+                {
+                    b.Navigation("Comments");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Proposal", b =>

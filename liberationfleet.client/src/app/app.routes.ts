@@ -21,6 +21,9 @@ import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposa
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
 import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
 import { ProposalDetailComponent } from './pages/proposals/proposal-detail/proposal-detail.component';
+import { DiscussionListComponent } from './pages/crew-discussion/discussion-list/discussion-list.component';
+import { DiscussionCreateComponent } from './pages/crew-discussion/discussion-create/discussion-create.component';
+import { DiscussionDetailComponent } from './pages/crew-discussion/discussion-detail/discussion-detail.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -149,15 +152,39 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew/projects',
-    component: PlaceholderPageComponent,
+    component: DiscussionListComponent,
     canActivate: [authGuard],
-    data: { title: 'Projects', backTo: '/app/crew' }
+    data: { discussionKind: 'projects' }
+  },
+  {
+    path: 'app/crew/projects/create',
+    component: DiscussionCreateComponent,
+    canActivate: [authGuard],
+    data: { discussionKind: 'projects' }
+  },
+  {
+    path: 'app/crew/projects/:id',
+    component: DiscussionDetailComponent,
+    canActivate: [authGuard],
+    data: { discussionKind: 'projects' }
   },
   {
     path: 'app/crew/forums',
-    component: PlaceholderPageComponent,
+    component: DiscussionListComponent,
     canActivate: [authGuard],
-    data: { title: 'Forums', backTo: '/app/crew' }
+    data: { discussionKind: 'forums' }
+  },
+  {
+    path: 'app/crew/forums/create',
+    component: DiscussionCreateComponent,
+    canActivate: [authGuard],
+    data: { discussionKind: 'forums' }
+  },
+  {
+    path: 'app/crew/forums/:id',
+    component: DiscussionDetailComponent,
+    canActivate: [authGuard],
+    data: { discussionKind: 'forums' }
   },
   {
     path: 'app/crew/crewmates',

@@ -112,3 +112,11 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-recovery-key-display
+  [visible]="showRecoveryKeyModal"
+  [recoveryPhrase]="pendingRecoveryPhrase"
+  title="Save your recovery key"
+  confirmLabel="I have saved my recovery key in a safe place"
+  (confirmed)="onRecoveryKeyConfirmed()">
+</app-recovery-key-display>

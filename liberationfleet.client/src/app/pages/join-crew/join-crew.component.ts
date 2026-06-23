@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { CrewService } from '../../services/crew.service';
+import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { Crew, CrewScope } from '../../models/crew.model';
 
@@ -38,6 +39,7 @@ export class JoinCrewComponent implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private crewService = inject(CrewService);
+  private crewCryptoSync = inject(CrewCryptoSyncService);
   private toastService = inject(ToastService);
 
   constructor() {
@@ -224,8 +226,12 @@ export class JoinCrewComponent implements OnInit {
       : { joinCode: this.normalizeJoinCode(this.form.get('joinCode')?.value) };
 
     this.crewService.join(payload).subscribe({
-      next: (result) => {
+      next: async (result) => {
         if (result.success) {
+          const crewId = result.crew?.id ?? this.selectedCrew?.id;
+          if (crewId) {
+            await this.crewCryptoSync.prepareNewMemberAccess(crewId);
+          }
           this.toastService.success(result.message);
           this.router.navigate(['/app/crew']);
         } else {

@@ -132,9 +132,17 @@ export class GiftLogCryptoService {
     crewId: number,
     activeUserId: number
   ): Promise<void> {
+    if (!this.cryptoSession.isUnlocked() || activeUserId <= 0) {
+      return;
+    }
+
     const targets = entries.filter(entry => !entry.hasEncryptedContent && entry.giverId === activeUserId);
     for (const entry of targets) {
-      await this.encryptAndStoreEntry(entry, crewId);
+      try {
+        await this.encryptAndStoreEntry(entry, crewId);
+      } catch {
+        // Backfill is best-effort; do not block gift log display on a single failure.
+      }
     }
   }
 

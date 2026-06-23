@@ -29,6 +29,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Proposal> Proposals => Set<Proposal>();
     public DbSet<ProposalVote> ProposalVotes => Set<ProposalVote>();
     public DbSet<ProposalComment> ProposalComments => Set<ProposalComment>();
+    public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
+    public DbSet<ForumComment> ForumComments => Set<ForumComment>();
+    public DbSet<ProjectPost> ProjectPosts => Set<ProjectPost>();
+    public DbSet<ProjectComment> ProjectComments => Set<ProjectComment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -299,6 +303,68 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.Proposal)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(e => e.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ForumPost>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ForumComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.ForumPost)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(e => e.ForumPostId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(e => e.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProjectPost>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProjectComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.HasOne(e => e.ProjectPost)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(e => e.ProjectPostId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()

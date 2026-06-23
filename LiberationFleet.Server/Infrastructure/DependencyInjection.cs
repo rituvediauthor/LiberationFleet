@@ -33,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<ICrewPaymentPlatformRepository, CrewPaymentPlatformRepository>();
         services.AddScoped<ICryptoRepository, CryptoRepository>();
         services.AddScoped<IProposalRepository, ProposalRepository>();
+        services.AddScoped<IForumRepository, ForumRepository>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<Application.Services.MutualAidService>();
         services.AddScoped<IMutualAidService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());

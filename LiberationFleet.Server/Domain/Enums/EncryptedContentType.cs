@@ -17,5 +17,7 @@ public enum EncryptedContentType
     ImageAsset = 8,
     AudioAsset = 9,
     VideoAsset = 10,
-    ProposalComment = 11
+    ProposalComment = 11,
+    ForumComment = 12,
+    ProjectComment = 13
 }

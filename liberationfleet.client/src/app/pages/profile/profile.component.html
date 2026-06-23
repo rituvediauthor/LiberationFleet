@@ -61,6 +61,41 @@
           <button type="button" class="text-btn" (click)="addPaymentPlatform()">+ Add platform</button>
         </section>
 
+        <section class="section encryption-section">
+          <h2>Encryption</h2>
+          <p class="section-hint">
+            Your 12-word recovery key decrypts crew posts, proposals, forums, and encrypted gift messages.
+            It is separate from your login password.
+          </p>
+
+          <div class="encryption-status">
+            <span class="status-label">Status</span>
+            <span class="status-value" [class.unlocked]="encryptionUnlocked">
+              {{ encryptionUnlocked ? 'Unlocked on this device' : 'Locked' }}
+            </span>
+          </div>
+
+          <div class="encryption-status" *ngIf="backupWrapVersion !== null">
+            <span class="status-label">Backup type</span>
+            <span class="status-value">
+              {{ backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD ? 'Legacy (login password)' : 'Recovery key' }}
+            </span>
+          </div>
+
+          <p class="legacy-migration-note" *ngIf="backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD && encryptionUnlocked">
+            Your account still uses your login password for encryption backup.
+            Generate a recovery key below so password resets cannot affect your encrypted data.
+          </p>
+
+          <button
+            type="button"
+            class="text-btn"
+            [disabled]="!encryptionUnlocked || rotatingRecoveryKey"
+            (click)="startRecoveryKeyRotation()">
+            {{ backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD ? 'Set up recovery key' : 'Generate new recovery key' }}
+          </button>
+        </section>
+
         <div class="readonly-grid" *ngIf="stats">
           <div class="readonly-item">
             <span class="readonly-label">Sacrifices (last year)</span>
@@ -117,3 +152,11 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-recovery-key-display
+  [visible]="showRecoveryKeyModal"
+  [recoveryPhrase]="pendingRecoveryPhrase"
+  [title]="backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD ? 'Save your new recovery key' : 'Save your new recovery key'"
+  confirmLabel="I have saved this recovery key in a safe place"
+  (confirmed)="onRecoveryKeyRotationConfirmed()">
+</app-recovery-key-display>

@@ -1,0 +1,33 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
+  <div class="discussion-list-page">
+    <h1 class="page-title">{{ config.labelPlural }}</h1>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No posts yet.</p>
+
+    <div class="post-cards" *ngIf="!loading && items.length > 0">
+      <button
+        type="button"
+        class="post-card"
+        *ngFor="let item of items"
+        (click)="openPost(item)">
+        <div class="card-top">
+          <div class="card-main">
+            <p class="card-meta">
+              <span class="author">{{ item.authorUsername }}</span>
+              <span class="dot">·</span>
+              <span>{{ formatActivity(item.lastActivityAt) }}</span>
+            </p>
+            <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+            <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
+          </div>
+          <div class="card-thumb" *ngIf="item.thumbnailUrl">
+            <img [src]="item.thumbnailUrl" alt="" />
+          </div>
+          <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
+        </div>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

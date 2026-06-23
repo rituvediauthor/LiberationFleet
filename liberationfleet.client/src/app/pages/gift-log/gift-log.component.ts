@@ -19,6 +19,7 @@ import { GiftLogCryptoService } from '../../services/crypto/gift-log-crypto.serv
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
+import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
 
 @Component({
   selector: 'app-gift-log',
@@ -54,8 +55,12 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private giftLogCrypto = inject(GiftLogCryptoService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private encryptionContent = inject(EncryptionContentService);
+  private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
+    this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadGiftLog());
+
     this.backButton = {
       label: '←',
       type: 'back',
@@ -83,9 +88,11 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
         this.crewService.getMembership().subscribe({
-          next: membership => {
+          next: async membership => {
             this.crewId = membership.crewId ?? 0;
+            await this.encryptionContent.whenReady();
             this.loadGiftLog();
+            this.encryptionReload?.markInitialLoadDone();
           },
           error: () => {
             this.errorMessage = 'Failed to load crew membership';
@@ -122,6 +129,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy() {
     this.intersectionObserver?.disconnect();
     this.sentinelChangesSubscription?.unsubscribe();
+    this.encryptionReload?.subscription.unsubscribe();
   }
 
   get loadMoreTriggerIndex(): number {
@@ -191,20 +199,25 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.giftService.getLogs({ limit: this.pageSize }).subscribe({
       next: async page => {
-        let items = page.items;
-        if (this.crewId > 0) {
-          items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
-          await this.giftLogCrypto.backfillUnencryptedEntries(items, this.crewId, this.activeUserId);
+        try {
+          let items = page.items;
+          if (this.crewId > 0) {
+            items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
+            void this.giftLogCrypto.backfillUnencryptedEntries(items, this.crewId, this.activeUserId);
+          }
+          this.entries = items;
+          this.hasMore = page.hasMore;
+          this.applyCompletionDefaults(page.items);
+          this.scrollToBottomOnNextRender = true;
+          setTimeout(() => {
+            this.observeLoadMoreSentinel();
+            this.scrollToBottom();
+          }, 0);
+        } catch {
+          this.errorMessage = 'Failed to decrypt gift log';
+        } finally {
+          this.loading = false;
         }
-        this.entries = items;
-        this.hasMore = page.hasMore;
-        this.applyCompletionDefaults(page.items);
-        this.loading = false;
-        this.scrollToBottomOnNextRender = true;
-        setTimeout(() => {
-          this.observeLoadMoreSentinel();
-          this.scrollToBottom();
-        }, 0);
       },
       error: err => {
         this.loading = false;

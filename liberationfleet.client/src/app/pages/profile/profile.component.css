@@ -177,6 +177,37 @@ label {
   background: #fff5f5;
 }
 
+.encryption-section .encryption-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.status-label {
+  color: #666;
+}
+
+.status-value {
+  font-weight: 600;
+  color: #333;
+}
+
+.status-value.unlocked {
+  color: #1b7f3a;
+}
+
+.legacy-migration-note {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #7a5200;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .status-message {
   text-align: center;
   color: #666;

@@ -48,18 +48,20 @@ To operate gift logging, verification, reception order, survival thresholds, and
 This structural gift and mutual-aid information is stored on our servers in readable form so the Service can calculate reception order, contributions, and season rules. It is not hidden from our systems.
 
 2.4 Encrypted content (end-to-end encryption)
-We also support encryption for certain user-generated display content. For gift log entries, this may include encrypted versions of:
+We also support encryption for certain user-generated content, including crew proposals, forums, projects, and gift log display fields. For gift log entries, this may include encrypted versions of:
 - Display names shown in the log
 - The human-readable gift message text
 - Payment platform name as shown in the log
 
 We store:
 - Your public encryption key
-- A password-protected backup of your private encryption key (we cannot read your private key without your password)
+- An encrypted backup of your private encryption key (wrapped with your 12-word recovery key; we cannot read your private key without it)
 - Crew encryption keys wrapped for each crew member
 - Encrypted content envelopes (ciphertext only)
 
-We do not hold the keys needed to decrypt crew content. Only you and other members of your crew who have valid keys can decrypt that display content on their devices.
+Your login password is used only for authentication. It is not used to encrypt your private key backup on new accounts. Resetting your login password does not change or recover your recovery key.
+
+We do not hold the keys needed to decrypt crew content. Only you and other members of your crew who have valid keys can decrypt that content on their devices.
 
 Encryption does not currently extend to gift amounts, participant identities stored in gift records, or mutual-aid calculation data described in section 2.3.
 
@@ -69,8 +71,8 @@ We automatically collect certain technical information needed to operate the Ser
 - Server logs (for example, IP address, browser or device type, request timestamps, and error logs)
 - Information required to maintain security and prevent abuse
 
-2.6 Communications
-If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests.
+2.6 Communications and account recovery
+If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests. Password reset changes your login credentials only. It does not restore access to encrypted content; you still need your recovery key for that.
 
 
 3. HOW WE USE INFORMATION
@@ -130,7 +132,8 @@ We retain information for as long as your account is active or as needed to prov
 
 - You can update certain profile and payment information in the app.
 - You can leave a crew or stop using the Service.
-- Your encryption keys are unlocked with your password during a session; if you do not sign in again after closing the browser, encrypted display content may not be readable until you unlock encryption again.
+- Encrypted content is unlocked with your 12-word recovery key on each device (or for the browser session if you choose to remember it). Your login password does not decrypt crew content on new accounts.
+- If you lose your recovery key, we cannot restore access to encrypted content.
 - You may decline to accept this policy, but you will not be able to register for an account.
 
 

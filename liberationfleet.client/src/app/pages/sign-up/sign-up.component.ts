@@ -5,9 +5,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractContro
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -34,7 +36,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 @Component({
   selector: 'app-sign-up',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent],
   templateUrl: './sign-up.component.html',
   styleUrl: './sign-up.component.css'
 })
@@ -46,6 +48,8 @@ export class SignUpComponent {
   showPrivacyPolicyModal = false;
   privacyPolicyText = '';
   privacyPolicyLoading = false;
+  showRecoveryKeyModal = false;
+  pendingRecoveryPhrase = '';
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -156,12 +160,15 @@ export class SignUpComponent {
       next: async (response) => {
         this.authService.establishSession(response);
         try {
-          await this.authService.initializeEncryption(formData.password, true);
+          this.pendingRecoveryPhrase = await generateRecoveryPhrase();
+          this.showRecoveryKeyModal = true;
         } catch {
-          this.toastService.error('Account created, but encryption setup failed.');
+          this.toastService.error('Account created, but recovery key generation failed.');
+          this.router.navigate(['/app/crew']);
+        } finally {
+          this.isLoading = false;
+          this.signUpButton.disabled = !this.form.valid;
         }
-        this.toastService.success('Account created successfully!');
-        this.router.navigate(['/app/crew']);
       },
       error: (error) => {
         this.toastService.error(error.error?.message || 'Sign up failed');
@@ -173,5 +180,22 @@ export class SignUpComponent {
 
   private navigateBack() {
     this.router.navigate(['/sign-in']);
+  }
+
+  async onRecoveryKeyConfirmed() {
+    if (!this.pendingRecoveryPhrase) {
+      return;
+    }
+
+    try {
+      await this.authService.setupNewAccountEncryption(this.pendingRecoveryPhrase, true);
+      this.pendingRecoveryPhrase = '';
+      this.showRecoveryKeyModal = false;
+      this.toastService.success('Account created successfully!');
+      this.router.navigate(['/app/crew']);
+    } catch {
+      this.toastService.error('Account created, but encryption setup failed. Sign in and contact support if this persists.');
+      this.router.navigate(['/sign-in']);
+    }
   }
 }

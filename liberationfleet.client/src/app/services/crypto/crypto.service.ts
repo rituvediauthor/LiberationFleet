@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from './crypto-encoding.util';
+import { BACKUP_WRAP_LEGACY_PASSWORD, BACKUP_WRAP_RECOVERY_KEY } from './recovery-key.util';
 
 const IDENTITY_ALGORITHM: EcKeyGenParams = { name: 'ECDH', namedCurve: 'P-256' };
 const AES_ALGORITHM = 'AES-GCM';
@@ -65,14 +66,19 @@ export class CryptoService {
     );
   }
 
-  async wrapPrivateKeyBackup(privateKey: CryptoKey, password: string): Promise<{
+  async wrapPrivateKeyBackup(
+    privateKey: CryptoKey,
+    secret: string,
+    wrapVersion: number = BACKUP_WRAP_RECOVERY_KEY
+  ): Promise<{
     salt: string;
     iv: string;
     ciphertext: string;
+    keyVersion: number;
   }> {
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const aesKey = await this.derivePasswordKey(password, salt);
+    const aesKey = await this.deriveSecretKey(secret, salt, wrapVersion);
     const pkcs8 = await this.exportPrivateKeyPkcs8(privateKey);
     const encrypted = await crypto.subtle.encrypt(
       { name: AES_ALGORITHM, iv },
@@ -83,18 +89,20 @@ export class CryptoService {
     return {
       salt: bytesToBase64(salt),
       iv: bytesToBase64(iv),
-      ciphertext: bytesToBase64(new Uint8Array(encrypted))
+      ciphertext: bytesToBase64(new Uint8Array(encrypted)),
+      keyVersion: wrapVersion
     };
   }
 
   async unwrapPrivateKeyBackup(
-    backup: { salt: string; iv: string; ciphertext: string },
-    password: string
+    backup: { salt: string; iv: string; ciphertext: string; keyVersion?: number },
+    secret: string
   ): Promise<CryptoKey> {
+    const wrapVersion = backup.keyVersion ?? BACKUP_WRAP_LEGACY_PASSWORD;
     const salt = base64ToBytes(backup.salt);
     const iv = base64ToBytes(backup.iv);
     const ciphertext = base64ToBytes(backup.ciphertext);
-    const aesKey = await this.derivePasswordKey(password, salt);
+    const aesKey = await this.deriveSecretKey(secret, salt, wrapVersion);
     const pkcs8 = await crypto.subtle.decrypt(
       { name: AES_ALGORITHM, iv },
       aesKey,
@@ -171,27 +179,54 @@ export class CryptoService {
     return JSON.parse(bytesToUtf8(new Uint8Array(decrypted))) as T;
   }
 
-  private async derivePasswordKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
-    const passwordKey = await crypto.subtle.importKey(
+  private async deriveSecretKey(secret: string, salt: Uint8Array, wrapVersion: number): Promise<CryptoKey> {
+    const info = wrapVersion === BACKUP_WRAP_RECOVERY_KEY
+      ? utf8ToBytes('lf-recovery-key-wrap-v2')
+      : utf8ToBytes('lf-login-password-wrap-v1');
+
+    const secretKey = await crypto.subtle.importKey(
       'raw',
-      utf8ToBytes(password),
+      utf8ToBytes(secret),
       'PBKDF2',
       false,
       ['deriveKey']
     );
 
-    return crypto.subtle.deriveKey(
+    const derivedBits = await crypto.subtle.deriveBits(
       {
         name: 'PBKDF2',
         salt,
         iterations: PBKDF2_ITERATIONS,
         hash: 'SHA-256'
       },
-      passwordKey,
+      secretKey,
+      256
+    );
+
+    const hkdfKey = await crypto.subtle.importKey(
+      'raw',
+      new Uint8Array(derivedBits),
+      { name: 'HKDF' },
+      false,
+      ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(),
+        info
+      },
+      hkdfKey,
       { name: AES_ALGORITHM, length: 256 },
       false,
       ['encrypt', 'decrypt']
     );
+  }
+
+  private async derivePasswordKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+    return this.deriveSecretKey(password, salt, BACKUP_WRAP_LEGACY_PASSWORD);
   }
 
   private async deriveSharedAesKey(

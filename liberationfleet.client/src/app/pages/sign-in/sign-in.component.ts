@@ -53,12 +53,7 @@ export class SignInComponent {
     this.signInButton.disabled = true;
 
     this.authService.login(this.form.value).subscribe({
-      next: async () => {
-        try {
-          await this.authService.initializeEncryption(this.form.get('password')?.value, false);
-        } catch {
-          this.toastService.error('Signed in, but encryption unlock failed.');
-        }
+      next: () => {
         this.toastService.success('Sign in successful!');
         this.router.navigate(['/app/crew']);
       },

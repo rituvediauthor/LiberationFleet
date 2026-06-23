@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
 import { clearAuthStorage } from '../testing/test-helpers';
+import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -77,12 +78,12 @@ describe('AuthService', () => {
     expect(latestUser).toBeNull();
   });
 
-  it('setToken and removeToken should manage localStorage', () => {
+  it('setToken and removeToken should manage persistent storage', () => {
     service.setToken('abc');
-    expect(localStorage.getItem('auth_token')).toBe('abc');
+    expect(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)).toBe('abc');
 
     service.removeToken();
-    expect(localStorage.getItem('auth_token')).toBeNull();
+    expect(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)).toBeNull();
   });
 });
 
@@ -92,7 +93,7 @@ describe('AuthService token loading', () => {
 
   beforeEach(() => {
     clearAuthStorage();
-    localStorage.setItem('auth_token', 'stored-token');
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, 'stored-token');
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],

@@ -41,8 +41,11 @@ export function createToastServiceMock(): jasmine.SpyObj<ToastService> {
   ]);
 }
 
+import { AUTH_TOKEN_STORAGE_KEY, SESSION_RECOVERY_PHRASE_STORAGE_KEY } from '../services/storage/storage-keys';
+
 export function clearAuthStorage(): void {
-  localStorage.removeItem('auth_token');
+  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  sessionStorage.removeItem(SESSION_RECOVERY_PHRASE_STORAGE_KEY);
 }
 
 export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {

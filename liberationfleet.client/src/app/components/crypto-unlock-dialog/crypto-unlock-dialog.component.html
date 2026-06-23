@@ -1,0 +1,46 @@
+<div class="dialog-backdrop" *ngIf="visible">
+  <div class="dialog" role="dialog" aria-labelledby="crypto-unlock-title">
+    <h2 id="crypto-unlock-title">Unlock encrypted content</h2>
+    <p class="dialog-note" *ngIf="!legacyMode">
+      Enter your 12-word recovery key to decrypt crew posts, proposals, forums, and encrypted gift messages.
+      This is separate from your login password.
+    </p>
+    <p class="dialog-note legacy-note" *ngIf="legacyMode">
+      This account still uses your login password for encryption backup.
+      Enter your login password below, then set a new recovery key from your profile.
+    </p>
+
+    <label class="field" *ngIf="!legacyMode">
+      <span>Recovery key</span>
+      <textarea
+        [(ngModel)]="recoveryPhrase"
+        rows="3"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="twelve words separated by spaces"></textarea>
+    </label>
+
+    <label class="field" *ngIf="legacyMode">
+      <span>Login password (legacy backup)</span>
+      <input
+        type="password"
+        [(ngModel)]="legacyPassword"
+        (keyup.enter)="onUnlock()"
+        autocomplete="current-password"
+        placeholder="Account login password" />
+    </label>
+
+    <label class="remember">
+      <input type="checkbox" [(ngModel)]="rememberOnDevice" />
+      Remember on this device for this browser session
+    </label>
+
+    <button type="button" class="unlock-btn" [disabled]="unlocking" (click)="onUnlock()">
+      {{ unlocking ? 'Unlocking...' : 'Unlock' }}
+    </button>
+
+    <button type="button" class="link-btn" (click)="toggleLegacyMode()">
+      {{ legacyMode ? 'Use recovery key instead' : 'Older account? Use login password' }}
+    </button>
+  </div>
+</div>

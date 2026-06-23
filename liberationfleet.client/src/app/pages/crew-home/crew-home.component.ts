@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
+import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
+import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { NextAidInfo } from '../../models/gift.model';
 
@@ -22,8 +24,17 @@ export class CrewHomeComponent implements OnInit {
   private router = inject(Router);
   private crewService = inject(CrewService);
   private giftService = inject(GiftService);
+  private crewCryptoSync = inject(CrewCryptoSyncService);
+  private cryptoSession = inject(CryptoSessionService);
 
   ngOnInit() {
+    void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+    this.cryptoSession.unlocked$.subscribe(unlocked => {
+      if (unlocked) {
+        void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+      }
+    });
+
     this.crewService.getMembership().subscribe(status => {
       this.membership = status;
       if (status.hasCrew) {

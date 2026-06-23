@@ -71,6 +71,13 @@ label {
   color: #0056b3;
 }
 
+.recovery-note {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #666;
+}
+
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;

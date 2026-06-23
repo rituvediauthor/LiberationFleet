@@ -3,17 +3,24 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
+import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
+import {
+  BACKUP_WRAP_LEGACY_PASSWORD,
+  BACKUP_WRAP_RECOVERY_KEY,
+  generateRecoveryPhrase
+} from '../../services/crypto/recovery-key.util';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -26,12 +33,21 @@ export class ProfileComponent implements OnInit {
   loadError = '';
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
+  backupWrapVersion: number | null = null;
+  encryptionUnlocked = false;
+  showRecoveryKeyModal = false;
+  pendingRecoveryPhrase = '';
+  rotatingRecoveryKey = false;
+
+  readonly BACKUP_WRAP_LEGACY_PASSWORD = BACKUP_WRAP_LEGACY_PASSWORD;
+  readonly BACKUP_WRAP_RECOVERY_KEY = BACKUP_WRAP_RECOVERY_KEY;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
   private crewService = inject(CrewService);
+  private cryptoSession = inject(CryptoSessionService);
   readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private toastService = inject(ToastService);
 
@@ -55,6 +71,44 @@ export class ProfileComponent implements OnInit {
     };
 
     this.loadProfile();
+    void this.loadEncryptionStatus();
+    this.cryptoSession.unlocked$.subscribe(unlocked => {
+      this.encryptionUnlocked = unlocked;
+    });
+  }
+
+  async startRecoveryKeyRotation() {
+    if (!this.encryptionUnlocked || this.rotatingRecoveryKey) {
+      this.toastService.error('Unlock encryption before changing your recovery key.');
+      return;
+    }
+
+    this.rotatingRecoveryKey = true;
+    try {
+      this.pendingRecoveryPhrase = await generateRecoveryPhrase();
+      this.showRecoveryKeyModal = true;
+    } catch {
+      this.toastService.error('Failed to generate a new recovery key.');
+    } finally {
+      this.rotatingRecoveryKey = false;
+    }
+  }
+
+  async onRecoveryKeyRotationConfirmed() {
+    if (!this.pendingRecoveryPhrase) {
+      return;
+    }
+
+    try {
+      await this.authService.rotateRecoveryPhrase(this.pendingRecoveryPhrase);
+      await this.authService.unlockWithRecoveryPhrase(this.pendingRecoveryPhrase, true);
+      this.pendingRecoveryPhrase = '';
+      this.showRecoveryKeyModal = false;
+      this.backupWrapVersion = BACKUP_WRAP_RECOVERY_KEY;
+      this.toastService.success('Recovery key updated. Store the new key safely; the old one no longer works.');
+    } catch {
+      this.toastService.error('Failed to update recovery key.');
+    }
   }
 
   get paymentPlatforms(): PaymentPlatformAccount[] {
@@ -153,6 +207,11 @@ export class ProfileComponent implements OnInit {
 
   isCustomPlatform(account: PaymentPlatformAccount): boolean {
     return this.profileService.isCustomPlatform(account);
+  }
+
+  private async loadEncryptionStatus() {
+    this.encryptionUnlocked = this.cryptoSession.isUnlocked();
+    this.backupWrapVersion = await this.authService.getBackupWrapVersion();
   }
 
   private loadProfile() {
