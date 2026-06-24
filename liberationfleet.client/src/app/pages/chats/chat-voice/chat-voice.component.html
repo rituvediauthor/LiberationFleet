@@ -1,0 +1,17 @@
+<app-page-layout [backButton]="backButton">
+  <div class="chat-voice-page">
+    <h1>{{ roomName }}</h1>
+    <p class="notice">
+      Live voice chat is coming soon. For now you can create voice rooms and see who is in your crew.
+    </p>
+
+    <p *ngIf="loading" class="state-text">Loading participants...</p>
+
+    <ul class="participant-list" *ngIf="!loading">
+      <li *ngFor="let member of members" class="participant">
+        <span class="avatar">{{ member.username.charAt(0).toUpperCase() }}</span>
+        <span class="name">{{ member.username }}</span>
+      </li>
+    </ul>
+  </div>
+</app-page-layout>

@@ -91,15 +91,24 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
 
     this.discussionService.getPosts(this.config).subscribe({
       next: async items => {
-        if (this.crewId > 0) {
-          this.items = await this.discussionCrypto.decryptListItems(
-            items as ProposalListItem[],
-            this.crewId
-          ) as DiscussionListItem[];
-        } else {
-          this.items = items;
+        try {
+          if (this.crewId > 0) {
+            this.items = await this.discussionCrypto.decryptListItems(
+              items as ProposalListItem[],
+              this.crewId
+            ) as DiscussionListItem[];
+          } else {
+            this.items = items;
+          }
+        } catch (error: unknown) {
+          this.items = [];
+          this.errorMessage = error instanceof Error
+            ? error.message
+            : `Failed to decrypt ${this.config.labelPlural.toLowerCase()}`;
+          this.toastService.error(this.errorMessage);
+        } finally {
+          this.loading = false;
         }
-        this.loading = false;
       },
       error: err => {
         this.loading = false;

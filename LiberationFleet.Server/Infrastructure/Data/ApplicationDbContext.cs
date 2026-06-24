@@ -33,6 +33,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
     public DbSet<ProjectPost> ProjectPosts => Set<ProjectPost>();
     public DbSet<ProjectComment> ProjectComments => Set<ProjectComment>();
+    public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
+    public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -373,6 +375,36 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.ParentComment)
                 .WithMany(c => c.Replies)
                 .HasForeignKey(e => e.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ChatRoom>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ChatRoomMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.HasIndex(e => new { e.ChatRoomId, e.Id });
+            entity.HasOne(e => e.ChatRoom)
+                .WithMany(r => r.Messages)
+                .HasForeignKey(e => e.ChatRoomId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

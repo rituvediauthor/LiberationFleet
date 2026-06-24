@@ -113,6 +113,7 @@ describe('SignUpComponent', () => {
       confirmPassword: validSignUpPassword
     });
     expect(authService.establishSession).toHaveBeenCalledWith(response);
+    expect(authService.setupNewAccountEncryption).toHaveBeenCalled();
     expect(component.showRecoveryKeyModal).toBeTrue();
     expect(component.pendingRecoveryPhrase.split(' ').length).toBe(12);
     expect(router.navigate).not.toHaveBeenCalled();
@@ -120,7 +121,6 @@ describe('SignUpComponent', () => {
     await component.onRecoveryKeyConfirmed();
     fixture.detectChanges();
 
-    expect(authService.setupNewAccountEncryption).toHaveBeenCalled();
     expect(toastService.success).toHaveBeenCalledWith('Account created successfully!');
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });

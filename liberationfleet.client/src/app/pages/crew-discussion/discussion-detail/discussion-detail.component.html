@@ -1,4 +1,17 @@
-<div class="discussion-detail-page" *ngIf="!loading && post as p">
+<div class="discussion-detail-page" *ngIf="loading || loadError">
+  <div class="detail-action-bar">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+  </div>
+  <p class="loading-text" *ngIf="loading">Loading post...</p>
+  <div class="error-state" *ngIf="!loading && loadError">
+    <p>{{ loadError }}</p>
+    <button type="button" class="action-btn secondary" (click)="retryLoad()">Try again</button>
+  </div>
+</div>
+
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && post as p">
   <div class="detail-scroll">
     <div class="post-content-card">
       <div class="post-header" *ngIf="!editing">
@@ -136,5 +149,3 @@
     </button>
   </div>
 </div>
-
-<p class="loading-text" *ngIf="loading">Loading post...</p>

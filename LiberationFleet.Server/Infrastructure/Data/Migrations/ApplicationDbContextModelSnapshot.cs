@@ -22,6 +22,79 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoom", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("RoomType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CrewId");
+
+                    b.ToTable("ChatRooms");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoomMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChatRoomId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("ChatRoomId", "Id");
+
+                    b.ToTable("ChatRoomMessages");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
                 {
                     b.Property<int>("Id")
@@ -935,6 +1008,44 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("UserPrivateKeyBackups");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoom", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Crew");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoomMessage", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ChatRoom", "ChatRoom")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatRoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("ChatRoom");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatedByUser")
@@ -1312,6 +1423,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoom", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>

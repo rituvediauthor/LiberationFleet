@@ -189,7 +189,7 @@ export class CryptoService {
       utf8ToBytes(secret),
       'PBKDF2',
       false,
-      ['deriveKey']
+      ['deriveBits']
     );
 
     const derivedBits = await crypto.subtle.deriveBits(

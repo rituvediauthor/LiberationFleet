@@ -1,0 +1,62 @@
+.chat-list-page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.page-title {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+
+.state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: #c62828;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fafafa;
+  text-align: left;
+  cursor: pointer;
+}
+
+.room-card:hover {
+  background: #f3f7ff;
+  border-color: #c9ddff;
+}
+
+.room-main h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.room-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.room-type {
+  font-weight: 600;
+  color: #007AFF;
+}

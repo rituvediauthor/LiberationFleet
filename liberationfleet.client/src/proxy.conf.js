@@ -13,6 +13,15 @@ const PROXY_CONFIG = [
     target,
     secure: false,
     changeOrigin: true
+  },
+  {
+    context: [
+      "/hubs"
+    ],
+    target,
+    secure: false,
+    changeOrigin: true,
+    ws: true
   }
 ]
 

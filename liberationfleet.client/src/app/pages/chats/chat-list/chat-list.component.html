@@ -1,0 +1,23 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
+  <div class="chat-list-page">
+    <h1 class="page-title">Chats</h1>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && rooms.length === 0" class="state-text">No chat rooms yet.</p>
+
+    <div class="room-list" *ngIf="!loading && rooms.length > 0">
+      <button type="button" class="room-card" *ngFor="let room of rooms" (click)="openRoom(room)">
+        <div class="room-main">
+          <h2>{{ room.name }}</h2>
+          <p class="room-meta">
+            <span class="room-type">{{ roomTypeLabel(room) }}</span>
+            <span>·</span>
+            <span>{{ formatActivity(room.lastActivityAt) }}</span>
+          </p>
+        </div>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

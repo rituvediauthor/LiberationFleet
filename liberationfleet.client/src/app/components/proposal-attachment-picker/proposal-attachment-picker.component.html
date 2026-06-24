@@ -1,12 +1,13 @@
 <div class="attachment-picker">
   <div class="attachment-actions">
     <label class="attach-btn">
-      Add images
-      <input type="file" accept="image/*" multiple hidden (change)="onImageSelected($event)" />
-    </label>
-    <label class="attach-btn">
-      Add video
-      <input type="file" accept="video/*" hidden (change)="onVideoSelected($event)" />
+      Attach file
+      <input
+        type="file"
+        accept="image/*,video/*,audio/*"
+        multiple
+        hidden
+        (change)="onFileSelected($event)" />
     </label>
     <button
       type="button"

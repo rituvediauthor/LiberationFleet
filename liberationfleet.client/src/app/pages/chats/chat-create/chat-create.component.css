@@ -1,0 +1,36 @@
+.chat-create-page {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-size: 28px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.field input,
+.field select {
+  font-weight: 400;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.error-text {
+  display: block;
+  margin-top: -12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #c62828;
+}

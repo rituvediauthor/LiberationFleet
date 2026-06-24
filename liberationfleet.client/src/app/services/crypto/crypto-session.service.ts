@@ -1,9 +1,13 @@
 import { Injectable } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
 import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
-import { CrewKeyState, UserKeyBundle } from '../../models/crypto.model';
+import { CrewKeyDistribution, CrewKeyState, UserKeyBundle } from '../../models/crypto.model';
+import { AppStorageService, StorageScope } from '../storage/app-storage.service';
+import { AUTH_TOKEN_STORAGE_KEY } from '../storage/storage-keys';
+import { getUserIdFromToken } from '../../utils/jwt.util';
 import {
   BACKUP_WRAP_LEGACY_PASSWORD,
   BACKUP_WRAP_RECOVERY_KEY,
@@ -33,7 +37,8 @@ export class CryptoSessionService {
 
   constructor(
     private cryptoService: CryptoService,
-    private cryptoApi: CryptoApiService
+    private cryptoApi: CryptoApiService,
+    private storage: AppStorageService
   ) {}
 
   isUnlocked(): boolean {
@@ -64,12 +69,13 @@ export class CryptoSessionService {
       BACKUP_WRAP_RECOVERY_KEY
     );
     await firstValueFrom(this.cryptoApi.upsertPublicKey(this.identityPublicKeySpki));
-    await firstValueFrom(this.cryptoApi.upsertPrivateKeyBackup({
+    const backupResult = await firstValueFrom(this.cryptoApi.upsertPrivateKeyBackup({
       salt: backup.salt,
       iv: backup.iv,
       ciphertext: backup.ciphertext,
       keyVersion: backup.keyVersion
     }));
+    this.assertCryptoOperationSucceeded(backupResult, 'Failed to save encryption backup.');
 
     this.backupWrapVersion = BACKUP_WRAP_RECOVERY_KEY;
     this.unlockedSubject.next(true);
@@ -146,19 +152,20 @@ export class CryptoSessionService {
     const publicKeyByUserId = new Map(publicKeys.map(key => [key.userId, key]));
 
     if (state.myDistribution) {
-      const keyVersion = state.myDistribution.keyVersion;
-      const wrapperPublicKey = publicKeyByUserId.get(state.myDistribution.wrappedByUserId);
-      if (!wrapperPublicKey) {
-        throw new Error('Missing public key for crew key author.');
+      try {
+        return await this.unwrapDistribution(
+          crewId,
+          state.myDistribution,
+          publicKeyByUserId
+        );
+      } catch {
+        // Distribution may have been wrapped for a previous identity key pair.
       }
+    }
 
-      const crewKeyBytes = await this.cryptoService.unwrapCrewKey(
-        state.myDistribution.wrappedCrewKey,
-        state.myDistribution.wrapNonce,
-        wrapperPublicKey.identityPublicKey,
-        this.identityPrivateKey!
-      );
-      return await this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes);
+    const soloRecovery = await this.tryRecoverSoloCrewKey(crewId, state, publicKeys);
+    if (soloRecovery) {
+      return soloRecovery;
     }
 
     if ((state.latestKeyVersion ?? 0) > 0) {
@@ -218,17 +225,85 @@ export class CryptoSessionService {
   }
 
   private async unlockFromSecret(secret: string, expectedWrapVersion: number): Promise<void> {
-    const backup = await firstValueFrom(this.cryptoApi.getMyPrivateKeyBackup());
+    let backup;
+    try {
+      backup = await firstValueFrom(this.cryptoApi.getMyPrivateKeyBackup());
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        if (expectedWrapVersion !== BACKUP_WRAP_RECOVERY_KEY) {
+          throw new Error('Incorrect unlock method for this account.');
+        }
+        await this.provisionIdentityKeysWithRecoveryPhrase(secret);
+        return;
+      }
+      throw error;
+    }
+
     const wrapVersion = backup.keyVersion ?? BACKUP_WRAP_LEGACY_PASSWORD;
     if (wrapVersion !== expectedWrapVersion) {
       throw new Error('Incorrect unlock method for this account.');
     }
 
-    this.identityPrivateKey = await this.cryptoService.unwrapPrivateKeyBackup(backup, secret);
+    try {
+      this.identityPrivateKey = await this.cryptoService.unwrapPrivateKeyBackup(backup, secret);
+    } catch {
+      throw new Error('Invalid recovery key. Check all 12 words and try again.');
+    }
+
     this.identityPublicKeySpki = await this.cryptoService.exportPublicKeyFromPrivateKey(this.identityPrivateKey);
     await firstValueFrom(this.cryptoApi.upsertPublicKey(this.identityPublicKeySpki));
     this.backupWrapVersion = wrapVersion;
     this.unlockedSubject.next(true);
+  }
+
+  private async unwrapDistribution(
+    crewId: number,
+    distribution: CrewKeyDistribution,
+    publicKeyByUserId: Map<number, UserKeyBundle>
+  ): Promise<CrewKeyMaterial> {
+    const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId);
+    if (!wrapperPublicKey) {
+      throw new Error('Missing public key for crew key author.');
+    }
+
+    const crewKeyBytes = await this.cryptoService.unwrapCrewKey(
+      distribution.wrappedCrewKey,
+      distribution.wrapNonce,
+      wrapperPublicKey.identityPublicKey,
+      this.identityPrivateKey!
+    );
+    return this.cacheCrewKeyMaterial(crewId, distribution.keyVersion, crewKeyBytes);
+  }
+
+  private async tryRecoverSoloCrewKey(
+    crewId: number,
+    state: CrewKeyState,
+    publicKeys: UserKeyBundle[]
+  ): Promise<CrewKeyMaterial | null> {
+    const currentUserId = this.getCurrentUserId();
+    if (!currentUserId || publicKeys.length !== 1 || publicKeys[0].userId !== currentUserId) {
+      return null;
+    }
+
+    const nextVersion = Math.max(state.latestKeyVersion ?? 0, 0) + 1;
+    const crewKeyBytes = this.cryptoService.generateCrewKeyBytes();
+    await this.uploadCrewKeyDistributions(crewId, nextVersion, crewKeyBytes, publicKeys);
+    return this.cacheCrewKeyMaterial(crewId, nextVersion, crewKeyBytes);
+  }
+
+  private getCurrentUserId(): number | null {
+    const token = this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
+    return token ? getUserIdFromToken(token) : null;
+  }
+
+  private assertCryptoOperationSucceeded(
+    response: { success?: boolean; Success?: boolean; message?: string; Message?: string },
+    fallbackMessage: string
+  ): void {
+    const success = response.success ?? response.Success ?? false;
+    if (!success) {
+      throw new Error(response.message ?? response.Message ?? fallbackMessage);
+    }
   }
 
   private async uploadCrewKeyDistributions(

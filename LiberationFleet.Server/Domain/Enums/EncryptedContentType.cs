@@ -19,5 +19,6 @@ public enum EncryptedContentType
     VideoAsset = 10,
     ProposalComment = 11,
     ForumComment = 12,
-    ProjectComment = 13
+    ProjectComment = 13,
+    ChatRoomName = 14
 }

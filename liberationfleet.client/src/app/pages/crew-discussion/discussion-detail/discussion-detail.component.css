@@ -261,7 +261,17 @@ h1 {
 }
 
 .loading-text {
-  padding: 24px;
+  padding: 24px 20px;
   text-align: center;
   color: #666;
+}
+
+.error-state {
+  padding: 24px 20px;
+  text-align: center;
+  color: #666;
+}
+
+.error-state p {
+  margin: 0 0 16px;
 }

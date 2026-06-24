@@ -172,9 +172,17 @@ export class AuthService {
 
     try {
       await this.cryptoSession.unlockFromRecoveryPhrase(stored);
-    } catch {
-      this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+    } catch (error: unknown) {
+      if (this.shouldClearRememberedRecoveryPhrase(error)) {
+        this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+      }
     }
+  }
+
+  private shouldClearRememberedRecoveryPhrase(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : '';
+    return message.includes('Invalid recovery key')
+      || message.includes('Incorrect unlock method');
   }
 
   private resetEncryptionReady(): void {

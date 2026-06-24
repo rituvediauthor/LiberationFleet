@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Infrastructure.Realtime;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Infrastructure.Data;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
@@ -35,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<IProposalRepository, ProposalRepository>();
         services.AddScoped<IForumRepository, ForumRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IChatRepository, ChatRepository>();
+        services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<Application.Services.MutualAidService>();
         services.AddScoped<IMutualAidService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());

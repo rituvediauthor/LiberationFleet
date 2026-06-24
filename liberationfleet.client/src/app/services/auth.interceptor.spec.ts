@@ -2,13 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthInterceptor } from './auth.interceptor';
-import { AuthService } from './auth.service';
+import { AppStorageService, StorageScope } from './storage/app-storage.service';
+import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
 import { clearAuthStorage } from '../testing/test-helpers';
 
 describe('AuthInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
-  let authService: AuthService;
+  let storage: AppStorageService;
 
   beforeEach(() => {
     clearAuthStorage();
@@ -16,14 +17,14 @@ describe('AuthInterceptor', () => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
-        AuthService,
+        AppStorageService,
         { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
       ]
     });
 
     http = TestBed.inject(HttpClient);
     httpMock = TestBed.inject(HttpTestingController);
-    authService = TestBed.inject(AuthService);
+    storage = TestBed.inject(AppStorageService);
   });
 
   afterEach(() => {
@@ -32,7 +33,7 @@ describe('AuthInterceptor', () => {
   });
 
   it('should add Authorization header when token exists', () => {
-    authService.setToken('bearer-token');
+    storage.set(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY, 'bearer-token');
 
     http.get('/api/protected').subscribe();
 

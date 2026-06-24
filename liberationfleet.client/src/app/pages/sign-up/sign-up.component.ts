@@ -175,9 +175,12 @@ export class SignUpComponent {
 
       this.authService.establishSession(authResult);
       this.pendingRecoveryPhrase = generateRecoveryPhrase();
+      await this.authService.setupNewAccountEncryption(this.pendingRecoveryPhrase, true);
       this.showRecoveryKeyModal = true;
     } catch (error: unknown) {
-      const message = (error as { error?: { message?: string } })?.error?.message || 'Sign up failed';
+      const message = (error as { error?: { message?: string } })?.error?.message
+        || (error instanceof Error ? error.message : null)
+        || 'Sign up failed';
       this.toastService.error(message);
     } finally {
       this.isLoading = false;
@@ -220,17 +223,10 @@ export class SignUpComponent {
       return;
     }
 
-    try {
-      await this.authService.setupNewAccountEncryption(this.pendingRecoveryPhrase, true);
-      this.pendingRecoveryPhrase = '';
-      this.showRecoveryKeyModal = false;
-      this.toastService.success('Account created successfully!');
-      this.router.navigate(['/app/crew']);
-    } catch {
-      this.toastService.error('Account created, but encryption setup failed. Sign in and contact support if this persists.');
-      this.router.navigate(['/sign-in']);
-    } finally {
-      this.cdr.detectChanges();
-    }
+    this.pendingRecoveryPhrase = '';
+    this.showRecoveryKeyModal = false;
+    this.toastService.success('Account created successfully!');
+    this.router.navigate(['/app/crew']);
+    this.cdr.detectChanges();
   }
 }

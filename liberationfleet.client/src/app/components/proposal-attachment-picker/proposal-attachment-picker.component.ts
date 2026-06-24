@@ -34,7 +34,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     this.audioRecorder.cancel();
   }
 
-  onImageSelected(event: Event) {
+  onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const files = input.files;
     if (!files) {
@@ -42,9 +42,15 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     }
 
     Array.from(files).forEach(file => {
+      const type = this.resolveAttachmentType(file);
+      if (!type) {
+        this.toastService.error(`Unsupported file type: ${file.name}`);
+        return;
+      }
+
       this.attachments.push({
         file,
-        type: 'image',
+        type,
         resourceId: this.proposalCrypto.createResourceId(),
         previewUrl: URL.createObjectURL(file)
       });
@@ -52,20 +58,44 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     input.value = '';
   }
 
-  onVideoSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
+  private resolveAttachmentType(file: File): PendingAttachment['type'] | null {
+    const mime = file.type.toLowerCase();
+    if (mime.startsWith('image/')) {
+      return 'image';
+    }
+    if (mime.startsWith('video/')) {
+      return 'video';
+    }
+    if (mime.startsWith('audio/')) {
+      return 'audio';
     }
 
-    this.attachments.push({
-      file,
-      type: 'video',
-      resourceId: this.proposalCrypto.createResourceId(),
-      previewUrl: URL.createObjectURL(file)
-    });
-    input.value = '';
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+      case 'bmp':
+      case 'heic':
+        return 'image';
+      case 'mp4':
+      case 'mov':
+      case 'webm':
+      case 'mkv':
+      case 'avi':
+        return 'video';
+      case 'mp3':
+      case 'wav':
+      case 'm4a':
+      case 'ogg':
+      case 'aac':
+      case 'flac':
+        return 'audio';
+      default:
+        return null;
+    }
   }
 
   async startRecording() {

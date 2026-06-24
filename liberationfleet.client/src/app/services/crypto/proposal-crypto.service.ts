@@ -56,7 +56,12 @@ export class ProposalCryptoService {
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
     const decrypted = await this.decryptListItem(proposal, crewKey);
-    const payload = await this.decryptProposalPayload(proposal, crewKey);
+    let payload: ProposalEncryptedPayload | null = null;
+    try {
+      payload = await this.decryptProposalPayload(proposal, crewKey);
+    } catch {
+      payload = null;
+    }
 
     const comments = await Promise.all(
       proposal.comments.map(comment => this.decryptComment(comment, crewKey, crewId))
@@ -64,11 +69,13 @@ export class ProposalCryptoService {
 
     const attachments = payload?.attachments ?? [];
     const resolvedAttachments = await this.decryptAttachments(crewId, attachments);
+    const unableToDecrypt = proposal.hasEncryptedContent && !payload;
 
     return {
       ...proposal,
       ...decrypted,
-      description: payload?.description ?? '',
+      title: unableToDecrypt ? '[Unable to decrypt]' : decrypted.title,
+      description: payload?.description ?? (unableToDecrypt ? '[Unable to decrypt]' : ''),
       attachments,
       resolvedAttachments,
       comments

@@ -24,6 +24,10 @@ import { ProposalDetailComponent } from './pages/proposals/proposal-detail/propo
 import { DiscussionListComponent } from './pages/crew-discussion/discussion-list/discussion-list.component';
 import { DiscussionCreateComponent } from './pages/crew-discussion/discussion-create/discussion-create.component';
 import { DiscussionDetailComponent } from './pages/crew-discussion/discussion-detail/discussion-detail.component';
+import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
+import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
+import { ChatTextComponent } from './pages/chats/chat-text/chat-text.component';
+import { ChatVoiceComponent } from './pages/chats/chat-voice/chat-voice.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -126,9 +130,23 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew/chats',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Chats', backTo: '/app/crew' }
+    component: ChatListComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/chats/create',
+    component: ChatCreateComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/chats/:id/voice',
+    component: ChatVoiceComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/chats/:id',
+    component: ChatTextComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/crew/proposals',

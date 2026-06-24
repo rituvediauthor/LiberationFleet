@@ -31,9 +31,13 @@ export class CryptoUnlockDialogComponent {
     try {
       await this.authService.unlockWithRecoveryPhrase(this.recoveryPhrase, this.rememberOnDevice);
       this.recoveryPhrase = '';
+      this.toastService.success('Encryption unlocked');
       this.unlocked.emit();
-    } catch {
-      this.toastService.error('Invalid recovery key. Check all 12 words and try again.');
+    } catch (error: unknown) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Invalid recovery key. Check all 12 words and try again.';
+      this.toastService.error(message);
     } finally {
       this.unlocking = false;
     }

@@ -1,0 +1,22 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
+  <div class="chat-create-page">
+    <h1>Create chat room</h1>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label class="field">
+        <span>Type</span>
+        <select formControlName="roomType">
+          <option *ngFor="let type of roomTypes" [value]="type.value">{{ type.label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Name</span>
+        <input type="text" formControlName="name" maxlength="120" placeholder="General, Planning, Hangout..." />
+      </label>
+      <span class="error-text" *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')">
+        Name is required
+      </span>
+    </form>
+  </div>
+</app-page-layout>

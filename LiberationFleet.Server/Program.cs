@@ -1,7 +1,9 @@
 using LiberationFleet.Server.Api.Exceptions;
 using LiberationFleet.Server.Application;
+using LiberationFleet.Server.Hubs;
 using LiberationFleet.Server.Infrastructure;
 using LiberationFleet.Server.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -30,6 +32,21 @@ builder.Services.AddAuthentication("Bearer")
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -45,7 +62,8 @@ if (corsOrigins.Length > 0)
         {
             policy.WithOrigins(corsOrigins)
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials();
         });
     });
 }
@@ -57,6 +75,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -85,6 +104,7 @@ if (!app.Environment.IsEnvironment("Docker"))
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 app.MapFallbackToFile("/index.html");
 
 app.Run();

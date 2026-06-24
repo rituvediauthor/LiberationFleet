@@ -35,6 +35,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   config!: DiscussionConfig;
   post: DiscussionDetail | null = null;
   loading = true;
+  loadError = '';
   crewId = 0;
   authorDisplayName = '';
   commentText = '';
@@ -284,23 +285,38 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     return Boolean(this.commentText.trim() || this.commentAttachments.length > 0);
   }
 
+  retryLoad(): void {
+    this.loadPost();
+  }
+
   private loadPost() {
     this.loading = true;
+    this.loadError = '';
     this.discussionService.getPost(this.config, this.postId).subscribe({
       next: async post => {
-        if (this.crewId > 0) {
-          this.post = await this.discussionCrypto.decryptDetail(
-            post as ProposalDetail,
-            this.crewId
-          ) as DiscussionDetail;
-        } else {
-          this.post = post;
+        try {
+          if (this.crewId > 0) {
+            this.post = await this.discussionCrypto.decryptDetail(
+              post as ProposalDetail,
+              this.crewId
+            ) as DiscussionDetail;
+          } else {
+            this.post = post;
+          }
+        } catch (error: unknown) {
+          this.post = null;
+          this.loadError = error instanceof Error
+            ? error.message
+            : 'Failed to decrypt post';
+          this.toastService.error(this.loadError);
+        } finally {
+          this.loading = false;
         }
-        this.loading = false;
       },
       error: err => {
         this.loading = false;
-        this.toastService.error(err?.message ?? 'Failed to load post');
+        this.loadError = err?.message ?? 'Failed to load post';
+        this.toastService.error(this.loadError);
       }
     });
   }
