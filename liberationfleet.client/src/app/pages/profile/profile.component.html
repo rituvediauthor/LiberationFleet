@@ -75,24 +75,12 @@
             </span>
           </div>
 
-          <div class="encryption-status" *ngIf="backupWrapVersion !== null">
-            <span class="status-label">Backup type</span>
-            <span class="status-value">
-              {{ backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD ? 'Legacy (login password)' : 'Recovery key' }}
-            </span>
-          </div>
-
-          <p class="legacy-migration-note" *ngIf="backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD && encryptionUnlocked">
-            Your account still uses your login password for encryption backup.
-            Generate a recovery key below so password resets cannot affect your encrypted data.
-          </p>
-
           <button
             type="button"
             class="text-btn"
             [disabled]="!encryptionUnlocked || rotatingRecoveryKey"
             (click)="startRecoveryKeyRotation()">
-            {{ backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD ? 'Set up recovery key' : 'Generate new recovery key' }}
+            Generate new recovery key
           </button>
         </section>
 
@@ -156,7 +144,7 @@
 <app-recovery-key-display
   [visible]="showRecoveryKeyModal"
   [recoveryPhrase]="pendingRecoveryPhrase"
-  [title]="backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD ? 'Save your new recovery key' : 'Save your new recovery key'"
+  title="Save your new recovery key"
   confirmLabel="I have saved this recovery key in a safe place"
   (confirmed)="onRecoveryKeyRotationConfirmed()">
 </app-recovery-key-display>

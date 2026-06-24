@@ -1,3 +1,5 @@
+import { BIP39_WORDLIST } from './bip39-wordlist';
+
 export const BACKUP_WRAP_LEGACY_PASSWORD = 1;
 export const BACKUP_WRAP_RECOVERY_KEY = 2;
 
@@ -10,21 +12,7 @@ export async function loadBip39Wordlist(): Promise<string[]> {
     return cachedWordlist;
   }
 
-  const response = await fetch('/assets/bip39-english.txt');
-  if (!response.ok) {
-    throw new Error('Failed to load recovery wordlist.');
-  }
-
-  const text = await response.text();
-  cachedWordlist = text
-    .split(/\r?\n/)
-    .map(word => word.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (cachedWordlist.length < 2048) {
-    throw new Error('Recovery wordlist is invalid.');
-  }
-
+  cachedWordlist = [...BIP39_WORDLIST];
   return cachedWordlist;
 }
 
@@ -53,30 +41,25 @@ export async function validateRecoveryPhrase(phrase: string): Promise<boolean> {
   return words.every(word => wordSet.has(word));
 }
 
-export async function generateRecoveryPhrase(): Promise<string> {
-  const wordlist = await loadBip39Wordlist();
-  const entropy = crypto.getRandomValues(new Uint8Array(16));
-  const indices = entropyToWordIndices(entropy, WORD_COUNT);
-
-  return indices.map(index => wordlist[index]).join(' ');
+export function generateRecoveryPhrase(): string {
+  const indices = randomWordIndices(WORD_COUNT);
+  return indices.map(index => BIP39_WORDLIST[index]).join(' ');
 }
 
-function entropyToWordIndices(entropy: Uint8Array, count: number): number[] {
+function randomWordIndices(count: number): number[] {
   const indices: number[] = [];
   let bitBuffer = 0;
   let bitCount = 0;
-  let byteIndex = 0;
 
   while (indices.length < count) {
-    while (bitCount < 11 && byteIndex < entropy.length) {
-      bitBuffer = (bitBuffer << 8) | entropy[byteIndex++];
+    while (bitCount < 11) {
+      const byte = crypto.getRandomValues(new Uint8Array(1))[0];
+      bitBuffer = (bitBuffer << 8) | byte;
       bitCount += 8;
     }
 
-    if (bitCount >= 11) {
-      bitCount -= 11;
-      indices.push((bitBuffer >> bitCount) & 0x7ff);
-    }
+    bitCount -= 11;
+    indices.push((bitBuffer >> bitCount) & 0x7ff);
   }
 
   return indices;

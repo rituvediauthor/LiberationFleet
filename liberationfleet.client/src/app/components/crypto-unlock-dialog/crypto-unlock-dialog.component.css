@@ -92,19 +92,3 @@
   font-weight: 400;
   color: #444;
 }
-
-.legacy-note {
-  color: #8a5a00;
-}
-
-.link-btn {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-  border: none;
-  background: transparent;
-  color: #007AFF;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-}

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
@@ -10,6 +10,7 @@ import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
+import { AuthResult } from '../../models/user.model';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -57,6 +58,7 @@ export class SignUpComponent {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private toastService = inject(ToastService);
+  private cdr = inject(ChangeDetectorRef);
 
   constructor() {
     this.form = this.fb.group({
@@ -83,7 +85,7 @@ export class SignUpComponent {
     };
 
     this.form.statusChanges.subscribe(() => {
-      this.signUpButton.disabled = !this.form.valid || this.isLoading;
+      this.updateSignUpButton();
     });
   }
 
@@ -138,6 +140,7 @@ export class SignUpComponent {
       this.privacyPolicyText = 'Unable to load the Privacy Policy. Please try again later.';
     } finally {
       this.privacyPolicyLoading = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -146,8 +149,13 @@ export class SignUpComponent {
       return;
     }
 
+    void this.completeSignUp();
+  }
+
+  private async completeSignUp() {
     this.isLoading = true;
-    this.signUpButton.disabled = true;
+    this.updateSignUpButton();
+    this.cdr.detectChanges();
 
     const formData = {
       username: this.form.get('username')?.value,
@@ -156,26 +164,51 @@ export class SignUpComponent {
       confirmPassword: this.form.get('confirmPassword')?.value
     };
 
-    this.userService.create(formData).subscribe({
-      next: async (response) => {
-        this.authService.establishSession(response);
-        try {
-          this.pendingRecoveryPhrase = await generateRecoveryPhrase();
-          this.showRecoveryKeyModal = true;
-        } catch {
-          this.toastService.error('Account created, but recovery key generation failed.');
-          this.router.navigate(['/app/crew']);
-        } finally {
-          this.isLoading = false;
-          this.signUpButton.disabled = !this.form.valid;
-        }
-      },
-      error: (error) => {
-        this.toastService.error(error.error?.message || 'Sign up failed');
-        this.isLoading = false;
-        this.signUpButton.disabled = !this.form.valid;
+    try {
+      const response = await firstValueFrom(this.userService.create(formData));
+      const authResult = this.normalizeAuthResult(response);
+
+      if (!authResult.success || !authResult.token) {
+        this.toastService.error(authResult.message || 'Sign up failed');
+        return;
       }
-    });
+
+      this.authService.establishSession(authResult);
+      this.pendingRecoveryPhrase = generateRecoveryPhrase();
+      this.showRecoveryKeyModal = true;
+    } catch (error: unknown) {
+      const message = (error as { error?: { message?: string } })?.error?.message || 'Sign up failed';
+      this.toastService.error(message);
+    } finally {
+      this.isLoading = false;
+      this.updateSignUpButton();
+      this.cdr.detectChanges();
+    }
+  }
+
+  private normalizeAuthResult(response: AuthResult): AuthResult {
+    const raw = response as AuthResult & {
+      Success?: boolean;
+      Message?: string;
+      Token?: string;
+      User?: AuthResult['user'];
+    };
+
+    return {
+      success: response.success ?? raw.Success ?? false,
+      message: response.message ?? raw.Message,
+      token: response.token ?? raw.Token,
+      user: response.user ?? raw.User
+    };
+  }
+
+  private updateSignUpButton() {
+    this.signUpButton = {
+      label: 'Sign Up',
+      type: 'primary',
+      disabled: !this.form.valid || this.isLoading,
+      onClick: () => this.onSubmit()
+    };
   }
 
   private navigateBack() {
@@ -196,6 +229,8 @@ export class SignUpComponent {
     } catch {
       this.toastService.error('Account created, but encryption setup failed. Sign in and contact support if this persists.');
       this.router.navigate(['/sign-in']);
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 }

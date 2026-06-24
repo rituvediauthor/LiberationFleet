@@ -11,11 +11,7 @@ import { CrewService } from '../../services/crew.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
-import {
-  BACKUP_WRAP_LEGACY_PASSWORD,
-  BACKUP_WRAP_RECOVERY_KEY,
-  generateRecoveryPhrase
-} from '../../services/crypto/recovery-key.util';
+import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 
 @Component({
   selector: 'app-profile',
@@ -33,14 +29,10 @@ export class ProfileComponent implements OnInit {
   loadError = '';
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
-  backupWrapVersion: number | null = null;
   encryptionUnlocked = false;
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
   rotatingRecoveryKey = false;
-
-  readonly BACKUP_WRAP_LEGACY_PASSWORD = BACKUP_WRAP_LEGACY_PASSWORD;
-  readonly BACKUP_WRAP_RECOVERY_KEY = BACKUP_WRAP_RECOVERY_KEY;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -85,7 +77,7 @@ export class ProfileComponent implements OnInit {
 
     this.rotatingRecoveryKey = true;
     try {
-      this.pendingRecoveryPhrase = await generateRecoveryPhrase();
+      this.pendingRecoveryPhrase = generateRecoveryPhrase();
       this.showRecoveryKeyModal = true;
     } catch {
       this.toastService.error('Failed to generate a new recovery key.');
@@ -104,7 +96,6 @@ export class ProfileComponent implements OnInit {
       await this.authService.unlockWithRecoveryPhrase(this.pendingRecoveryPhrase, true);
       this.pendingRecoveryPhrase = '';
       this.showRecoveryKeyModal = false;
-      this.backupWrapVersion = BACKUP_WRAP_RECOVERY_KEY;
       this.toastService.success('Recovery key updated. Store the new key safely; the old one no longer works.');
     } catch {
       this.toastService.error('Failed to update recovery key.');
@@ -211,7 +202,6 @@ export class ProfileComponent implements OnInit {
 
   private async loadEncryptionStatus() {
     this.encryptionUnlocked = this.cryptoSession.isUnlocked();
-    this.backupWrapVersion = await this.authService.getBackupWrapVersion();
   }
 
   private loadProfile() {

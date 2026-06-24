@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { ToastContainerComponent } from './components/toast/toast.component';
 import { DevToolbarComponent } from './components/dev-toolbar/dev-toolbar.component';
 import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/crypto-unlock-dialog.component';
@@ -22,26 +23,40 @@ export class AppComponent implements OnInit {
   private authService = inject(AuthService);
   private cryptoSession = inject(CryptoSessionService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
+  private router = inject(Router);
 
   ngOnInit() {
     void this.authService.getEncryptionReady().then(() => {
       this.syncUnlockDialog();
-      void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+      void this.syncCrewCryptoIfInApp();
     });
+
     this.cryptoSession.unlocked$.subscribe(unlocked => {
       this.syncUnlockDialog();
       if (unlocked) {
-        void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+        void this.syncCrewCryptoIfInApp();
       }
     });
+
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe(() => this.syncUnlockDialog());
   }
 
   onCryptoUnlocked() {
     this.syncUnlockDialog();
-    void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+    void this.syncCrewCryptoIfInApp();
   }
 
   private syncUnlockDialog() {
-    this.showCryptoUnlock = this.authService.needsEncryptionUnlock();
+    const inAuthenticatedApp = this.router.url.startsWith('/app');
+    this.showCryptoUnlock = inAuthenticatedApp && this.authService.needsEncryptionUnlock();
+  }
+
+  private syncCrewCryptoIfInApp() {
+    if (!this.router.url.startsWith('/app')) {
+      return;
+    }
+    void this.crewCryptoSync.syncActiveCrewKeyDistributions();
   }
 }

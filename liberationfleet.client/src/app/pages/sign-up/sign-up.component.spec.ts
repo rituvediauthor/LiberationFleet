@@ -96,12 +96,15 @@ describe('SignUpComponent', () => {
     expect(component.form.hasError('passwordMismatch')).toBeTrue();
   });
 
-  it('should register and navigate on success', () => {
+  it('should register, show recovery key, then navigate on confirm', async () => {
     const response = { success: true, token: 'jwt', user: { id: 1, username: 'newuser', email: 'new@example.com' } };
     userService.create.and.returnValue(of(response));
+    authService.setupNewAccountEncryption.and.returnValue(Promise.resolve());
     fillValidForm();
 
     component.onSubmit();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     expect(userService.create).toHaveBeenCalledWith({
       username: 'newuser',
@@ -110,15 +113,24 @@ describe('SignUpComponent', () => {
       confirmPassword: validSignUpPassword
     });
     expect(authService.establishSession).toHaveBeenCalledWith(response);
+    expect(component.showRecoveryKeyModal).toBeTrue();
+    expect(component.pendingRecoveryPhrase.split(' ').length).toBe(12);
+    expect(router.navigate).not.toHaveBeenCalled();
+
+    await component.onRecoveryKeyConfirmed();
+    fixture.detectChanges();
+
+    expect(authService.setupNewAccountEncryption).toHaveBeenCalled();
     expect(toastService.success).toHaveBeenCalledWith('Account created successfully!');
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
-  it('should show error toast on registration failure', () => {
+  it('should show error toast on registration failure', async () => {
     userService.create.and.returnValue(throwError(() => ({ error: { message: 'Email already registered' } })));
     fillValidForm();
 
     component.onSubmit();
+    await fixture.whenStable();
 
     expect(toastService.error).toHaveBeenCalledWith('Email already registered');
     expect(component.isLoading).toBeFalse();

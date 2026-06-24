@@ -5,7 +5,6 @@ import { tap } from 'rxjs/operators';
 import { AuthResult, User } from '../models/user.model';
 import { CryptoSessionService } from './crypto/crypto-session.service';
 import {
-  BACKUP_WRAP_LEGACY_PASSWORD,
   BACKUP_WRAP_RECOVERY_KEY,
   normalizeRecoveryPhrase,
   validateRecoveryPhrase
@@ -17,6 +16,7 @@ import {
   AUTH_TOKEN_STORAGE_KEY,
   SESSION_RECOVERY_PHRASE_STORAGE_KEY
 } from './storage/storage-keys';
+import { isJwtExpired } from '../utils/jwt.util';
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -119,14 +119,6 @@ export class AuthService {
     this.resetEncryptionReady();
   }
 
-  async unlockWithLegacyPassword(password: string, rememberOnDevice = false): Promise<void> {
-    await this.cryptoSession.unlockFromLegacyPassword(password);
-    if (rememberOnDevice) {
-      this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, `legacy:${password}`);
-    }
-    this.resetEncryptionReady();
-  }
-
   async rotateRecoveryPhrase(recoveryPhrase: string): Promise<void> {
     const normalized = normalizeRecoveryPhrase(recoveryPhrase);
     if (!(await validateRecoveryPhrase(normalized))) {
@@ -141,7 +133,7 @@ export class AuthService {
   async getBackupWrapVersion(): Promise<number> {
     try {
       const backup = await firstValueFrom(this.cryptoApi.getMyPrivateKeyBackup());
-      return backup.keyVersion ?? BACKUP_WRAP_LEGACY_PASSWORD;
+      return backup.keyVersion ?? BACKUP_WRAP_RECOVERY_KEY;
     } catch {
       return BACKUP_WRAP_RECOVERY_KEY;
     }
@@ -153,10 +145,19 @@ export class AuthService {
 
   private loadToken(): void {
     const token = this.getToken();
-    if (token) {
-      this.currentUserSubject.next(null);
-      void this.getEncryptionReady();
+    if (!token) {
+      return;
     }
+
+    if (isJwtExpired(token)) {
+      this.removeToken();
+      this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+      this.cryptoSession.clearSession();
+      return;
+    }
+
+    this.currentUserSubject.next(null);
+    void this.getEncryptionReady();
   }
 
   private async ensureEncryptionReady(): Promise<void> {
@@ -170,11 +171,7 @@ export class AuthService {
     }
 
     try {
-      if (stored.startsWith('legacy:')) {
-        await this.cryptoSession.unlockFromLegacyPassword(stored.slice('legacy:'.length));
-      } else {
-        await this.cryptoSession.unlockFromRecoveryPhrase(stored);
-      }
+      await this.cryptoSession.unlockFromRecoveryPhrase(stored);
     } catch {
       this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
     }

@@ -11,6 +11,7 @@ export function createAuthServiceMock(): jasmine.SpyObj<AuthService> {
     'login',
     'logout',
     'establishSession',
+    'setupNewAccountEncryption',
     'getToken',
     'setToken',
     'removeToken',
