@@ -53,6 +53,8 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'app/crew/edit')?.component).toBe(PlaceholderPageComponent);
     expect(routes.find(r => r.path === 'app/crew/chats')?.component).toBe(ChatListComponent);
     expect(routes.find(r => r.path === 'app/crew/chats/create')?.component).toBe(ChatCreateComponent);
+    expect(routes.find(r => r.path === 'app/crew')?.pathMatch).toBe('full');
+    expect(routes.find(r => r.path === 'app/crew/chats')?.pathMatch).toBe('full');
   });
 
   it('should redirect unknown paths to root', () => {

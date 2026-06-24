@@ -58,6 +58,7 @@ export const routes: Routes = [
   {
     path: 'app/crew',
     component: CrewHomeComponent,
+    pathMatch: 'full',
     canActivate: [authGuard]
   },
   {
@@ -73,6 +74,7 @@ export const routes: Routes = [
   {
     path: 'app/profile',
     component: UserHomeComponent,
+    pathMatch: 'full',
     canActivate: [authGuard]
   },
   {
@@ -111,6 +113,7 @@ export const routes: Routes = [
   {
     path: 'app/crew/gift-log',
     component: GiftLogComponent,
+    pathMatch: 'full',
     canActivate: [authGuard]
   },
   {
@@ -131,6 +134,7 @@ export const routes: Routes = [
   {
     path: 'app/crew/chats',
     component: ChatListComponent,
+    pathMatch: 'full',
     canActivate: [authGuard]
   },
   {
@@ -151,6 +155,7 @@ export const routes: Routes = [
   {
     path: 'app/crew/proposals',
     component: ProposalsTypeComponent,
+    pathMatch: 'full',
     canActivate: [authGuard]
   },
   {
@@ -171,6 +176,7 @@ export const routes: Routes = [
   {
     path: 'app/crew/projects',
     component: DiscussionListComponent,
+    pathMatch: 'full',
     canActivate: [authGuard],
     data: { discussionKind: 'projects' }
   },
@@ -189,6 +195,7 @@ export const routes: Routes = [
   {
     path: 'app/crew/forums',
     component: DiscussionListComponent,
+    pathMatch: 'full',
     canActivate: [authGuard],
     data: { discussionKind: 'forums' }
   },

@@ -88,4 +88,29 @@ describe('CrewHomeComponent', () => {
     component.goToJoinCrew();
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew/join']);
   });
+
+  it('should route the chats menu button to the chat list page', async () => {
+    crewService.getMembership.and.returnValue(of({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Alpha Fleet',
+      joinCode: 'ALPHA123'
+    }));
+
+    const navigateByUrlSpy = spyOn(router, 'navigateByUrl').and.returnValue(Promise.resolve(true));
+
+    fixture = TestBed.createComponent(CrewHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const chatsButton = Array.from(fixture.nativeElement.querySelectorAll('.menu-link'))
+      .find((button: Element) => button.textContent?.includes('Chats')) as HTMLButtonElement | undefined;
+
+    expect(chatsButton).toBeDefined();
+
+    chatsButton?.click();
+    await fixture.whenStable();
+
+    expect(navigateByUrlSpy).toHaveBeenCalled();
+  });
 });
