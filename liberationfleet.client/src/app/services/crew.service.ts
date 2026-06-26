@@ -7,7 +7,8 @@ import {
   CrewOperationResult,
   CrewSearchResult,
   JoinCrewRequest,
-  SearchCrewsRequest
+  SearchCrewsRequest,
+  UpdateCrewRequest
 } from '../models/crew.model';
 import { PaymentPlatformOption } from '../models/gift.model';
 
@@ -21,6 +22,18 @@ export class CrewService {
 
   getMembership(): Observable<CrewMembershipStatus> {
     return this.http.get<CrewMembershipStatus>(`${this.apiUrl}/membership`);
+  }
+
+  getCurrentCrew(): Observable<CrewOperationResult> {
+    return this.http.get<CrewOperationResult>(`${this.apiUrl}/current`);
+  }
+
+  updateCrew(request: UpdateCrewRequest): Observable<CrewOperationResult> {
+    return this.http.put<CrewOperationResult>(`${this.apiUrl}/current`, request);
+  }
+
+  leaveCrew(): Observable<CrewOperationResult> {
+    return this.http.post<CrewOperationResult>(`${this.apiUrl}/leave`, {});
   }
 
   getPaymentPlatforms(otherCrewmatesOnly = false): Observable<PaymentPlatformOption[]> {

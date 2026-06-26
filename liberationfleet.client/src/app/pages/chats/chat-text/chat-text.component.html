@@ -1,12 +1,7 @@
 <div class="chat-text-page">
-  <header class="chat-header">
-    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
-    </button>
-    <h1>{{ roomName }}</h1>
-  </header>
-
   <div class="message-scroll" #messageScroll>
+    <h1 class="room-title">{{ roomName }}</h1>
+
     <p class="state-text" *ngIf="loading">Loading messages...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
     <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>
@@ -32,10 +27,14 @@
   </div>
 
   <div class="chat-action-bar">
-    <div class="composer" [class.expanded]="composerFocused">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+
+    <div class="composer" [class.expanded]="composerExpanded">
       <textarea
         class="message-input"
-        [class.expanded]="composerFocused"
+        [class.expanded]="composerExpanded"
         [(ngModel)]="messageText"
         (focus)="onComposerFocus()"
         (blur)="onComposerBlur()"
@@ -43,15 +42,17 @@
         rows="1"></textarea>
 
       <app-proposal-attachment-picker
-        *ngIf="composerFocused"
         class="message-attachment-picker"
-        [attachments]="messageAttachments">
+        [class.collapsed]="!composerExpanded"
+        [attachments]="messageAttachments"
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
       </app-proposal-attachment-picker>
     </div>
 
     <button
       type="button"
       class="send-btn"
+      *ngIf="composerExpanded"
       [disabled]="sending || !canSend()"
       (click)="sendMessage()">
       Send

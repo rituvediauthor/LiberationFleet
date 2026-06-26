@@ -2,6 +2,9 @@
   <div class="dialog-card" role="alertdialog" aria-modal="true" [attr.aria-label]="title">
     <h2 class="dialog-title">{{ title }}</h2>
     <p class="dialog-message">{{ message }}</p>
-    <button type="button" class="dialog-button" (click)="onConfirm()">{{ confirmLabel }}</button>
+    <div class="dialog-actions" [class.has-cancel]="cancelLabel">
+      <button *ngIf="cancelLabel" type="button" class="dialog-button cancel" (click)="cancelled.emit()">{{ cancelLabel }}</button>
+      <button type="button" class="dialog-button" (click)="onConfirm()">{{ confirmLabel }}</button>
+    </div>
   </div>
 </div>

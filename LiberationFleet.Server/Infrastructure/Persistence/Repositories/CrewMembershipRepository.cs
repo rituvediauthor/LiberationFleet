@@ -33,6 +33,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
         await _context.CrewMemberships
             .Include(m => m.User)
                 .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Where(m => m.CrewId == crewId && !m.IsBanned)
             .ToListAsync(cancellationToken);
 
@@ -40,4 +41,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
     {
         await _context.CrewMemberships.AddAsync(membership, cancellationToken);
     }
+
+    public void Remove(CrewMembership membership) =>
+        _context.CrewMemberships.Remove(membership);
 }

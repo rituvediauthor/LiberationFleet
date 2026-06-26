@@ -134,6 +134,47 @@ label {
   padding: 0;
 }
 
+.role-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.role-list li {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  background: #f3f3f3;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.role-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.role-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #cfd8ff;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #007AFF;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.role-btn.demote {
+  border-color: #e0b4b4;
+  background: #fff5f5;
+  color: #c62828;
+}
+
 .readonly-grid {
   display: grid;
   gap: 12px;

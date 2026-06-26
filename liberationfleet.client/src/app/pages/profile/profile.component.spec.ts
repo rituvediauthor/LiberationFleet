@@ -26,15 +26,17 @@ describe('ProfileComponent', () => {
     username: 'James',
     email: 'james@example.com',
     paymentPlatforms: [{ id: 1, platformId: 1, platform: 'PayPal', handle: 'james@example.com' }],
+    roles: ['Organizer'],
     inNeedOfAid: true,
     emergencyLevel: 0,
     needsSurvivalAid: false,
+    isSurvivalThresholdRecipient: false,
     stats: {
-      sacrificeCount: 0,
+      sacrificeCountLastSeason: 0,
       averageMonthlyContributions: 0,
       membershipStatus: false,
       lifetimeContributions: 0,
-      receptionLastYear: 0,
+      receptionThisYear: 0,
       percentBoost: 0,
       priorityScore: 0
     }
@@ -89,8 +91,8 @@ describe('ProfileComponent', () => {
     expect(component.profile?.username).toBe('James');
   });
 
-  it('should enable save after profile loads', () => {
-    expect(component.saveButton.disabled).toBeFalse();
+  it('should keep save disabled until profile changes', () => {
+    expect(component.saveButton.disabled).toBeTrue();
   });
 
   it('should save all edited profile fields to the API', () => {
@@ -101,7 +103,7 @@ describe('ProfileComponent', () => {
       emergencyLevel: 2,
       needsSurvivalAid: true
     });
-
+    component['updateSaveButton']();
     component.onSave();
 
     expect(profileService.updateProfile).toHaveBeenCalledWith({

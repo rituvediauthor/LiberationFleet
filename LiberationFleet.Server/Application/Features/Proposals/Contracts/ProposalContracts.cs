@@ -13,6 +13,9 @@ public class ProposalListItemDto
     public int DisapproveCount { get; set; }
     public DateTime? ApprovalTimerEndsAt { get; set; }
     public bool HasEncryptedContent { get; set; }
+    public bool HasPlaintextContent { get; set; }
+    public string? Title { get; set; }
+    public string? DescriptionPreview { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
     public string? CurrentUserVote { get; set; }
 }
@@ -20,6 +23,7 @@ public class ProposalListItemDto
 public class ProposalDetailDto : ProposalListItemDto
 {
     public DateTime CreatedAt { get; set; }
+    public string? Description { get; set; }
     public bool CanEdit { get; set; }
     public bool CanDelete { get; set; }
     public IReadOnlyList<ProposalCommentDto> Comments { get; set; } = Array.Empty<ProposalCommentDto>();

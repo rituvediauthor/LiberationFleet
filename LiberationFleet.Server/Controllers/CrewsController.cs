@@ -1,6 +1,10 @@
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Commands.JoinCrew;
+using LiberationFleet.Server.Application.Features.Crews.Commands.LeaveCrew;
+using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
+using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetCrewPaymentPlatforms;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrew;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 using LiberationFleet.Server.Application.Features.Crews.Queries.SearchCrews;
 using MediatR;
@@ -26,6 +30,36 @@ public class CrewsController : ControllerBase
     {
         var result = await _mediator.Send(new GetMyCrewMembershipQuery());
         return Ok(result);
+    }
+
+    [HttpGet("current")]
+    public async Task<IActionResult> GetCurrentCrew()
+    {
+        var result = await _mediator.Send(new GetMyCrewQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("current")]
+    public async Task<IActionResult> UpdateCurrentCrew([FromBody] UpdateCrewRequest body)
+    {
+        var result = await _mediator.Send(new UpdateCrewCommand(
+            body.Name,
+            body.MaxSize,
+            body.Privacy,
+            body.Scope,
+            body.ZipCode,
+            body.RadiusMiles,
+            body.AllowSurvivalThresholds,
+            body.RequireApprovalForEdits,
+            body.InNeedDefaultThreshold));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("leave")]
+    public async Task<IActionResult> LeaveCrew()
+    {
+        var result = await _mediator.Send(new LeaveCrewCommand());
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost]

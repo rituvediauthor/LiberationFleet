@@ -12,6 +12,9 @@ export interface Crew {
   radiusMiles?: number;
   joinCode: string;
   distanceMiles?: number;
+  allowSurvivalThresholds?: boolean;
+  requireApprovalForEdits?: boolean;
+  inNeedDefaultThreshold?: number;
 }
 
 export interface CrewMembershipStatus {
@@ -52,6 +55,20 @@ export interface CrewOperationResult {
   success: boolean;
   message: string;
   crew?: Crew;
+  proposalsSubmitted?: boolean;
+  proposalsCreated?: number;
+}
+
+export interface UpdateCrewRequest {
+  name: string;
+  maxSize: number;
+  privacy: CrewPrivacy;
+  scope: CrewScope;
+  zipCode?: string;
+  radiusMiles?: number;
+  allowSurvivalThresholds: boolean;
+  requireApprovalForEdits: boolean;
+  inNeedDefaultThreshold: number;
 }
 
 export interface JoinCrewRequest {

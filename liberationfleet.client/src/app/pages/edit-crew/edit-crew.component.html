@@ -1,0 +1,89 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="form-container">
+    <p *ngIf="loading" class="status-message">Loading crew settings...</p>
+    <p *ngIf="!loading && loadError" class="status-message error">{{ loadError }}</p>
+
+    <div class="form-card" *ngIf="!loading && !loadError">
+      <h1>Edit Crew</h1>
+
+      <form [formGroup]="form">
+        <div class="form-group readonly-group">
+          <label>Join code</label>
+          <p class="join-code">{{ joinCode }}</p>
+        </div>
+
+        <div class="form-group">
+          <label for="name">Crew name</label>
+          <input id="name" type="text" formControlName="name" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="maxSize">Crew size</label>
+          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" [attr.min]="memberCount > 2 ? memberCount : 2" max="100" step="1">
+          <span class="hint-text" *ngIf="memberCount > 0">Crew size cannot be less than the current member count ({{ memberCount }}).</span>
+        </div>
+
+        <div class="form-group">
+          <label for="privacy">Crew privacy</label>
+          <select id="privacy" formControlName="privacy" class="form-input">
+            <option value="Public">Public</option>
+            <option value="Private">Private</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="scope">Crew location type</label>
+          <select id="scope" formControlName="scope" class="form-input">
+            <option value="Online">Online</option>
+            <option value="Local">Local</option>
+          </select>
+        </div>
+
+        <ng-container *ngIf="isLocal">
+          <div class="form-group">
+            <label for="zipCode">Zip code</label>
+            <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric">
+          </div>
+
+          <div class="form-group">
+            <label for="radiusMiles">Distance (miles)</label>
+            <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+          </div>
+        </ng-container>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="allowSurvivalThresholds">
+            Allow survival thresholds
+          </label>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="requireApprovalForEdits">
+            Require approval for crew edits
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="inNeedDefaultThreshold">In-need default threshold ($)</label>
+          <input id="inNeedDefaultThreshold" type="number" formControlName="inNeedDefaultThreshold" class="form-input" min="0" step="1">
+          <span class="hint-text">Crewmates whose avg. monthly contributions (3 mo) fall below this are automatically marked in need of aid.</span>
+        </div>
+      </form>
+
+      <button type="button" class="leave-btn" (click)="onLeaveCrew()">Leave crew</button>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showLeaveDialog"
+  title="Leave crew?"
+  message="Are you sure you want to leave this crew?"
+  confirmLabel="Leave crew"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmLeave()"
+  (cancelled)="onCancelLeave()"
+  (dismissed)="onCancelLeave()">
+</app-confirm-dialog>

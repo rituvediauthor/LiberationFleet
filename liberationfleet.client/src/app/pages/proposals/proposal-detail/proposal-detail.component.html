@@ -1,174 +1,175 @@
-<div class="proposal-detail-page" *ngIf="!loading && proposal as p">
-  <div class="detail-scroll">
-    <div class="proposal-content-card">
-      <div class="proposal-header" *ngIf="!editing">
-        <p class="meta">
-          <span class="author">{{ p.authorUsername }}</span>
-          <span>·</span>
-          <span>{{ p.createdAt | date:'medium' }}</span>
-        </p>
-        <h1>{{ p.title }}</h1>
-        <p class="vote-summary">
-          <span class="approve">{{ p.approveCount }} approve</span>
-          <span>·</span>
-          <span class="disapprove">{{ p.disapproveCount }} disapprove</span>
-        </p>
-        <p class="timer" *ngIf="countdownText() as countdown">Auto-approval in {{ countdown }}</p>
-      </div>
-
-      <div class="edit-form" *ngIf="editing">
-        <h2>Edit proposal</h2>
-        <label class="edit-field">
-          <span>Title</span>
-          <input type="text" [(ngModel)]="editTitle" maxlength="200" />
-        </label>
-        <label class="edit-field">
-          <span>Description</span>
-          <textarea [(ngModel)]="editDescription" rows="8" maxlength="10000"></textarea>
-        </label>
-
-        <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
-          <p class="section-label">Current attachments</p>
-          <ul>
-            <li *ngFor="let attachment of keptEditAttachments; let i = index">
-              <span>{{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}</span>
-              <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
-            </li>
-          </ul>
-        </div>
-
-        <p class="section-label">Add attachments</p>
-        <app-proposal-attachment-picker [attachments]="newEditAttachments"></app-proposal-attachment-picker>
-
-        <div class="edit-actions">
-          <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
-          <button type="button" class="action-btn primary" (click)="saveEdit()" [disabled]="savingEdit">Save</button>
-        </div>
-      </div>
-
-      <div class="proposal-body" *ngIf="!editing">
-        <p class="description">{{ p.description }}</p>
-      </div>
-
-      <div class="attachments" *ngIf="!editing && p.resolvedAttachments?.length">
-        <button type="button" class="attachments-toggle" (click)="toggleAttachments()">
-          {{ attachmentsExpanded ? 'Hide' : 'View' }} attachments ({{ p.resolvedAttachments?.length }})
-        </button>
-        <app-proposal-attachment-display
-          *ngIf="attachmentsExpanded"
-          [attachments]="p.resolvedAttachments ?? []">
-        </app-proposal-attachment-display>
-      </div>
-
-      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete)">
-        <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit proposal</button>
-        <button type="button" class="danger-btn" *ngIf="p.canDelete" (click)="deleteProposal()">Delete proposal</button>
-      </div>
-    </div>
-
-    <section class="comments-section">
-      <h2>Comments</h2>
-      <div class="comments-list">
-        <article class="comment" *ngFor="let comment of p.comments">
-          <p class="comment-meta">
-            <strong>{{ comment.authorUsername }}</strong>
-            <span>·</span>
-            <span>{{ comment.createdAt | date:'short' }}</span>
-          </p>
-          <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
-          <app-proposal-attachment-display
-            [attachments]="comment.resolvedAttachments ?? []"
-            [compact]="true">
-          </app-proposal-attachment-display>
-          <div class="comment-actions">
-            <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
-            <button
-              type="button"
-              class="link-btn"
-              *ngIf="comment.replyCount > 0"
-              (click)="toggleReplies(comment)">
-              {{ comment.repliesExpanded ? 'Hide' : 'View' }} {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
-            </button>
-          </div>
-
-          <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
-            <article class="comment reply" *ngFor="let reply of comment.replies">
-              <p class="comment-meta">
-                <strong>{{ reply.authorUsername }}</strong>
-                <span>·</span>
-                <span>{{ reply.createdAt | date:'short' }}</span>
-              </p>
-              <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
-              <app-proposal-attachment-display
-                [attachments]="reply.resolvedAttachments ?? []"
-                [compact]="true">
-              </app-proposal-attachment-display>
-            </article>
-          </div>
-        </article>
-      </div>
-    </section>
-  </div>
-
-  <div class="detail-action-bar" *ngIf="!editing">
-    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
-    </button>
-
-    <div class="comment-composer" [class.expanded]="commentFocused">
-      <textarea
-        class="comment-input"
-        [class.expanded]="commentFocused"
-        [(ngModel)]="commentText"
-        (focus)="onCommentFocus()"
-        (blur)="onCommentBlur()"
-        [placeholder]="replyParentId ? 'Write a reply...' : 'Comment...'"
-        rows="1"></textarea>
-
-      <app-proposal-attachment-picker
-        *ngIf="commentFocused"
-        class="comment-attachment-picker"
-        [attachments]="commentAttachments">
-      </app-proposal-attachment-picker>
-    </div>
-
-    <button
-      type="button"
-      class="action-btn primary"
-      *ngIf="commentFocused"
-      [disabled]="posting || !canPostComment()"
-      (click)="postComment()">
-      Post
-    </button>
-
-    <button
-      type="button"
-      class="action-btn secondary"
-      *ngIf="!commentFocused"
-      (click)="openVoteDialog()">
-      Vote
-    </button>
-  </div>
-</div>
-
-<p class="loading-text" *ngIf="loading">Loading proposal...</p>
-
-<div class="vote-dialog-backdrop" *ngIf="showVoteDialog" (click)="closeVoteDialog()">
-  <div class="vote-dialog" role="dialog" (click)="$event.stopPropagation()">
-    <h2>Cast your vote</h2>
-    <p class="vote-note">Votes are anonymous to other crew members.</p>
-    <label class="vote-option">
-      <input type="radio" name="vote" value="approve" [(ngModel)]="selectedVote" />
-      Approve
-    </label>
-    <label class="vote-option">
-      <input type="radio" name="vote" value="disapprove" [(ngModel)]="selectedVote" />
-      Disapprove
-    </label>
-    <div class="vote-actions">
-      <button type="button" class="action-btn secondary" (click)="closeVoteDialog()">Cancel</button>
-      <button type="button" class="action-btn primary" [disabled]="!selectedVote" (click)="submitVote()">Submit</button>
-    </div>
-  </div>
-</div>
-
+<div class="proposal-detail-page" *ngIf="!loading && proposal as p">
+  <div class="detail-scroll">
+    <div class="proposal-content-card">
+      <div class="proposal-header" *ngIf="!editing">
+        <p class="meta">
+          <span class="author">{{ p.authorUsername }}</span>
+          <span>·</span>
+          <span>{{ p.createdAt | date:'medium' }}</span>
+        </p>
+        <h1>{{ p.title }}</h1>
+        <p class="vote-summary">
+          <span class="approve">{{ p.approveCount }} approve</span>
+          <span>·</span>
+          <span class="disapprove">{{ p.disapproveCount }} disapprove</span>
+        </p>
+        <p class="timer" *ngIf="countdownText() as countdown">Auto-approval in {{ countdown }}</p>
+      </div>
+
+      <div class="edit-form" *ngIf="editing">
+        <h2>Edit proposal</h2>
+        <label class="edit-field">
+          <span>Title</span>
+          <input type="text" [(ngModel)]="editTitle" maxlength="200" />
+        </label>
+        <label class="edit-field">
+          <span>Description</span>
+          <textarea [(ngModel)]="editDescription" rows="8" maxlength="10000"></textarea>
+        </label>
+
+        <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+          <p class="section-label">Current attachments</p>
+          <ul>
+            <li *ngFor="let attachment of keptEditAttachments; let i = index">
+              <span>{{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}</span>
+              <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
+            </li>
+          </ul>
+        </div>
+
+        <p class="section-label">Add attachments</p>
+        <app-proposal-attachment-picker [attachments]="newEditAttachments"></app-proposal-attachment-picker>
+
+        <div class="edit-actions">
+          <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
+          <button type="button" class="action-btn primary" (click)="saveEdit()" [disabled]="savingEdit">Save</button>
+        </div>
+      </div>
+
+      <div class="proposal-body" *ngIf="!editing">
+        <p class="description">{{ p.description }}</p>
+      </div>
+
+      <div class="attachments" *ngIf="!editing && p.resolvedAttachments?.length">
+        <button type="button" class="attachments-toggle" (click)="toggleAttachments()">
+          {{ attachmentsExpanded ? 'Hide' : 'View' }} attachments ({{ p.resolvedAttachments?.length }})
+        </button>
+        <app-proposal-attachment-display
+          *ngIf="attachmentsExpanded"
+          [attachments]="p.resolvedAttachments ?? []">
+        </app-proposal-attachment-display>
+      </div>
+
+      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete)">
+        <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit proposal</button>
+        <button type="button" class="danger-btn" *ngIf="p.canDelete" (click)="deleteProposal()">Delete proposal</button>
+      </div>
+    </div>
+
+    <section class="comments-section">
+      <h2>Comments</h2>
+      <div class="comments-list">
+        <article class="comment" *ngFor="let comment of p.comments">
+          <p class="comment-meta">
+            <strong>{{ comment.authorUsername }}</strong>
+            <span>·</span>
+            <span>{{ comment.createdAt | date:'short' }}</span>
+          </p>
+          <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
+          <app-proposal-attachment-display
+            [attachments]="comment.resolvedAttachments ?? []"
+            [compact]="true">
+          </app-proposal-attachment-display>
+          <div class="comment-actions">
+            <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
+            <button
+              type="button"
+              class="link-btn"
+              *ngIf="comment.replyCount > 0"
+              (click)="toggleReplies(comment)">
+              {{ comment.repliesExpanded ? 'Hide' : 'View' }} {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+            </button>
+          </div>
+
+          <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
+            <article class="comment reply" *ngFor="let reply of comment.replies">
+              <p class="comment-meta">
+                <strong>{{ reply.authorUsername }}</strong>
+                <span>·</span>
+                <span>{{ reply.createdAt | date:'short' }}</span>
+              </p>
+              <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
+              <app-proposal-attachment-display
+                [attachments]="reply.resolvedAttachments ?? []"
+                [compact]="true">
+              </app-proposal-attachment-display>
+            </article>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <div class="detail-action-bar" *ngIf="!editing">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+
+    <div class="comment-composer" [class.expanded]="commentExpanded">
+      <textarea
+        class="comment-input"
+        [class.expanded]="commentExpanded"
+        [(ngModel)]="commentText"
+        (focus)="onCommentFocus()"
+        (blur)="onCommentBlur()"
+        [placeholder]="replyParentId ? 'Write a reply...' : 'Comment...'"
+        rows="1"></textarea>
+
+      <app-proposal-attachment-picker
+        class="comment-attachment-picker"
+        [class.collapsed]="!commentExpanded"
+        [attachments]="commentAttachments"
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+      </app-proposal-attachment-picker>
+    </div>
+
+    <button
+      type="button"
+      class="action-btn primary"
+      *ngIf="commentExpanded"
+      [disabled]="posting || !canPostComment()"
+      (click)="postComment()">
+      Post
+    </button>
+
+    <button
+      type="button"
+      class="action-btn secondary"
+      *ngIf="!commentExpanded"
+      (click)="openVoteDialog()">
+      Vote
+    </button>
+  </div>
+</div>
+
+<p class="loading-text" *ngIf="loading">Loading proposal...</p>
+
+<div class="vote-dialog-backdrop" *ngIf="showVoteDialog" (click)="closeVoteDialog()">
+  <div class="vote-dialog" role="dialog" (click)="$event.stopPropagation()">
+    <h2>Cast your vote</h2>
+    <p class="vote-note">Votes are anonymous to other crew members.</p>
+    <label class="vote-option">
+      <input type="radio" name="vote" value="approve" [(ngModel)]="selectedVote" />
+      Approve
+    </label>
+    <label class="vote-option">
+      <input type="radio" name="vote" value="disapprove" [(ngModel)]="selectedVote" />
+      Disapprove
+    </label>
+    <div class="vote-actions">
+      <button type="button" class="action-btn secondary" (click)="closeVoteDialog()">Cancel</button>
+      <button type="button" class="action-btn primary" [disabled]="!selectedVote" (click)="submitVote()">Submit</button>
+    </div>
+  </div>
+</div>
+

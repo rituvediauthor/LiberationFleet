@@ -18,5 +18,6 @@ export interface ActionBarButton {
 export class PageLayoutComponent {
   @Input() backButton: ActionBarButton | null = null;
   @Input() primaryButton: ActionBarButton | null = null;
+  @Input() secondaryButton: ActionBarButton | null = null;
   @Input() fillHeight = false;
 }

@@ -9,9 +9,10 @@ import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
-import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
+import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
+import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 
 @Component({
   selector: 'app-profile',
@@ -33,6 +34,8 @@ export class ProfileComponent implements OnInit {
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
   rotatingRecoveryKey = false;
+  private initialFormValues: unknown = null;
+  private initialPaymentPlatforms: PaymentPlatformSnapshot[] = [];
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -110,6 +113,18 @@ export class ProfileComponent implements OnInit {
     return this.profile?.stats;
   }
 
+  get roles(): string[] {
+    return this.profile?.roles ?? [];
+  }
+
+  onNominate() {
+    this.toastService.error('Nominate is not available yet.');
+  }
+
+  onDemote() {
+    this.toastService.error('Demote is not available yet.');
+  }
+
   addPaymentPlatform() {
     if (!this.profile) {
       return;
@@ -166,6 +181,7 @@ export class ProfileComponent implements OnInit {
             emergencyLevel: result.profile.emergencyLevel,
             needsSurvivalAid: result.profile.needsSurvivalAid
           });
+          this.captureInitialState();
           this.authService.updateCurrentUser({
             id: result.profile.id,
             username: result.profile.username,
@@ -217,6 +233,7 @@ export class ProfileComponent implements OnInit {
           email: profile.email
         });
         this.buildForm(profile);
+        this.captureInitialState();
         this.isLoading = false;
         this.updateSaveButton();
       },
@@ -242,13 +259,54 @@ export class ProfileComponent implements OnInit {
   }
 
   private updateSaveButton() {
-    const disabled = !this.form || this.form.invalid || this.isLoading || this.isSaving;
+    const paymentPlatformError = this.getPaymentPlatformValidationError();
+    const disabled = !this.form
+      || this.isLoading
+      || this.isSaving
+      || this.form.invalid
+      || !!paymentPlatformError
+      || !this.hasProfileChanges();
+
     this.saveButton = {
       label: 'Save',
       type: 'primary',
       disabled,
       onClick: () => this.onSave()
     };
+  }
+
+  private captureInitialState() {
+    if (!this.form || !this.profile) {
+      return;
+    }
+
+    this.initialFormValues = this.form.getRawValue();
+    this.initialPaymentPlatforms = this.serializePlatforms(this.profile.paymentPlatforms);
+  }
+
+  private hasProfileChanges(): boolean {
+    if (!this.form || !this.profile || this.initialFormValues === null) {
+      return false;
+    }
+
+    const formChanged = formValuesChanged(this.form, this.initialFormValues);
+    const platformsChanged = !valuesEqual(
+      this.serializePlatforms(this.profile.paymentPlatforms),
+      this.initialPaymentPlatforms
+    );
+    return formChanged || platformsChanged;
+  }
+
+  private serializePlatforms(platforms: PaymentPlatformAccount[]): PaymentPlatformSnapshot[] {
+    return platforms
+      .map(p => ({
+        id: p.id,
+        platformId: p.platformId,
+        customPlatformName: p.customPlatformName?.trim() ?? '',
+        handle: p.handle.trim(),
+        isPreferred: !!p.isPreferred
+      }))
+      .sort((a, b) => a.id - b.id);
   }
 
   private getPaymentPlatformsForSave() {

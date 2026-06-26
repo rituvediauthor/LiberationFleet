@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -7,11 +9,12 @@ public static class ProfileMapper
 {
     public static UserProfileDto MapUser(
         User user,
-        UserGiftStats giftStats,
-        bool hasActiveCrewMembership,
+        CrewmateGiftStatsDto giftStats,
+        CrewMembership? membership,
         bool isFinancialMember,
         decimal priorityScore,
-        int percentBoost)
+        int percentBoost,
+        bool isSurvivalThresholdRecipient)
     {
         return new UserProfileDto
         {
@@ -29,26 +32,28 @@ public static class ProfileMapper
                     IsPreferred = p.IsPreferred
                 })
                 .ToList(),
+            Roles = membership is null ? Array.Empty<string>() : CrewRoleMapper.MapRoles(membership),
             InNeedOfAid = user.InNeedOfAid,
             EmergencyLevel = user.EmergencyLevel,
             NeedsSurvivalAid = user.NeedsSurvivalAid,
+            IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             Stats = BuildStats(giftStats, isFinancialMember, priorityScore, percentBoost)
         };
     }
 
     private static UserProfileStatsDto BuildStats(
-        UserGiftStats giftStats,
+        CrewmateGiftStatsDto giftStats,
         bool isFinancialMember,
         decimal priorityScore,
         int percentBoost)
     {
         return new UserProfileStatsDto
         {
-            SacrificeCount = giftStats.SacrificeCountLastYear,
-            AverageMonthlyContributions = Math.Round(giftStats.ContributionsLast3Months / 3m, 2),
+            SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
+            AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = giftStats.LifetimeContributions,
-            ReceptionLastYear = giftStats.ReceptionLastYear,
+            ReceptionThisYear = giftStats.ReceptionThisYear,
             PercentBoost = percentBoost,
             PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero)
         };

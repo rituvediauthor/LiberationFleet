@@ -186,6 +186,10 @@ h1 {
   display: block;
 }
 
+.comment-attachment-picker.collapsed {
+  display: none;
+}
+
 .comment-attachment-picker ::ng-deep .attachment-actions,
 .comment-attachment-picker ::ng-deep .recording-panel {
   margin-bottom: 0;

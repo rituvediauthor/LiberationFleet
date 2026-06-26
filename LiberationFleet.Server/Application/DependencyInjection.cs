@@ -1,5 +1,7 @@
 using FluentValidation;
 using LiberationFleet.Server.Application.Common.Behaviors;
+using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Rules;
 using MediatR;
 
 namespace LiberationFleet.Server.Application;
@@ -13,6 +15,8 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddScoped<CrewSettingsProposalService>();
+        services.AddScoped<CrewRulesProposalService>();
 
         return services;
     }

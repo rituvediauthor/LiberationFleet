@@ -24,6 +24,18 @@
         </div>
 
         <section class="section">
+          <h2>Roles</h2>
+          <p *ngIf="!roles.length" class="section-hint">No special roles.</p>
+          <ul class="role-list" *ngIf="roles.length">
+            <li *ngFor="let role of roles">{{ role }}</li>
+          </ul>
+          <div class="role-actions">
+            <button type="button" class="role-btn" (click)="onNominate()">Nominate</button>
+            <button type="button" class="role-btn demote" (click)="onDemote()">Demote</button>
+          </div>
+        </section>
+
+        <section class="section">
           <h2>Payment Platforms</h2>
           <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
 
@@ -86,8 +98,8 @@
 
         <div class="readonly-grid" *ngIf="stats">
           <div class="readonly-item">
-            <span class="readonly-label">Sacrifices (last year)</span>
-            <span class="readonly-value">{{ stats.sacrificeCount }}</span>
+            <span class="readonly-label">Sacrifices last season</span>
+            <span class="readonly-value">{{ stats.sacrificeCountLastSeason }}</span>
           </div>
           <div class="readonly-item">
             <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
@@ -102,8 +114,8 @@
             <span class="readonly-value">${{ stats.lifetimeContributions }}</span>
           </div>
           <div class="readonly-item">
-            <span class="readonly-label">Reception (last year)</span>
-            <span class="readonly-value">${{ stats.receptionLastYear }}</span>
+            <span class="readonly-label">Reception this year</span>
+            <span class="readonly-value">${{ stats.receptionThisYear }}</span>
           </div>
           <div class="readonly-item">
             <span class="readonly-label">Percent boost</span>
@@ -112,6 +124,10 @@
           <div class="readonly-item">
             <span class="readonly-label">Priority score</span>
             <span class="readonly-value">{{ stats.priorityScore }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Survival threshold recipient</span>
+            <span class="readonly-value">{{ profile.isSurvivalThresholdRecipient ? 'Yes' : 'No' }}</span>
           </div>
         </div>
 

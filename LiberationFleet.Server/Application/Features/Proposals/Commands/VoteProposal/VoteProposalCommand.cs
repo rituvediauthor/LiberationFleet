@@ -1,5 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using MediatR;
@@ -12,6 +14,8 @@ public class VoteProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
+    CrewSettingsProposalService crewSettingsProposalService,
+    CrewRulesProposalService crewRulesProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<VoteProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(VoteProposalCommand request, CancellationToken cancellationToken)
@@ -82,7 +86,14 @@ public class VoteProposalCommandHandler(
 
         proposal.LastActivityAt = utcNow;
         var eligibleCount = await proposalRepository.GetActiveCrewMemberCountAsync(proposal.CrewId, cancellationToken);
+        var statusBefore = proposal.Status;
         ProposalVotingService.RecalculateStatus(proposal, eligibleCount, utcNow);
+        await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
+            proposal,
+            statusBefore,
+            crewSettingsProposalService,
+            crewRulesProposalService,
+            cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

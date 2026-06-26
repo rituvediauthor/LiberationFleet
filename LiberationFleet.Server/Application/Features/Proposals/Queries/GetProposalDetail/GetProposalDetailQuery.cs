@@ -1,6 +1,9 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -13,6 +16,8 @@ public class GetProposalDetailQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
+    CrewSettingsProposalService crewSettingsProposalService,
+    CrewRulesProposalService crewRulesProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -35,13 +40,32 @@ public class GetProposalDetailQueryHandler(
         }
 
         var utcNow = DateTime.UtcNow;
+        var statusBefore = proposal.Status;
         ProposalVotingService.TryAutoApproveOnTimer(proposal, utcNow);
+        await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
+            proposal,
+            statusBefore,
+            crewSettingsProposalService,
+            crewRulesProposalService,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var proposalEnvelope = await cryptoRepository.GetEnvelopeAsync(
-            EncryptedContentType.Proposal,
-            proposal.Id.ToString(),
-            cancellationToken);
+        EncryptedContentEnvelope? proposalEnvelope = null;
+        if (proposal.Kind == ProposalKind.General)
+        {
+            proposalEnvelope = await cryptoRepository.GetEnvelopeAsync(
+                EncryptedContentType.Proposal,
+                proposal.Id.ToString(),
+                cancellationToken);
+        }
+
+        var crewSettingChange = proposal.Kind == ProposalKind.CrewSettingChange
+            ? await proposalRepository.GetCrewSettingChangeByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewRuleChange = proposal.Kind == ProposalKind.CrewRuleChange
+            ? await proposalRepository.GetCrewRuleChangeByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
 
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
         var topLevel = comments.Where(c => !c.ParentCommentId.HasValue).ToList();
@@ -67,7 +91,7 @@ public class GetProposalDetailQueryHandler(
         {
             Success = true,
             Message = "Proposal loaded.",
-            Proposal = ProposalMapper.MapDetail(proposal, proposalEnvelope, commentDtos, userId, currentUserVote)
+            Proposal = ProposalMapper.MapDetail(proposal, proposalEnvelope, commentDtos, userId, crewSettingChange, crewRuleChange, currentUserVote)
         };
     }
 }

@@ -28,6 +28,12 @@ import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
 import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
 import { ChatTextComponent } from './pages/chats/chat-text/chat-text.component';
 import { ChatVoiceComponent } from './pages/chats/chat-voice/chat-voice.component';
+import { RuleListComponent } from './pages/rules/rule-list/rule-list.component';
+import { RuleCreateComponent } from './pages/rules/rule-create/rule-create.component';
+import { RuleEditComponent } from './pages/rules/rule-edit/rule-edit.component';
+import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
+import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-list.component';
+import { CrewmateDetailComponent } from './pages/crewmates/crewmate-detail/crewmate-detail.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -106,9 +112,8 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew/edit',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Edit Crew', backTo: '/app/crew' }
+    component: EditCrewComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/crew/gift-log',
@@ -213,15 +218,30 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew/crewmates',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Crewmates', backTo: '/app/crew' }
+    component: CrewmateListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/crewmates/:id',
+    component: CrewmateDetailComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/crew/rules',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Rules', backTo: '/app/crew' }
+    component: RuleListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/rules/create',
+    component: RuleCreateComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/rules/:id/edit',
+    component: RuleEditComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/crew/library-of-things',

@@ -37,6 +37,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   authorDisplayName = '';
   commentText = '';
   commentFocused = false;
+  pickingFile = false;
   replyParentId: number | null = null;
   showVoteDialog = false;
   selectedVote: ProposalVoteChoice | '' = '';
@@ -147,11 +148,30 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
   onCommentBlur() {
     setTimeout(() => {
+      if (this.pickingFile) {
+        return;
+      }
       if (!this.commentText.trim() && this.commentAttachments.length === 0) {
         this.commentFocused = false;
         this.replyParentId = null;
       }
     }, 150);
+  }
+
+  onFileDialogOpenChange(open: boolean) {
+    this.pickingFile = open;
+    if (open) {
+      this.commentFocused = true;
+      return;
+    }
+    if (!this.commentText.trim() && this.commentAttachments.length === 0) {
+      this.commentFocused = false;
+      this.replyParentId = null;
+    }
+  }
+
+  get commentExpanded(): boolean {
+    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0;
   }
 
   startReply(comment: ProposalComment) {

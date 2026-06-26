@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using MediatR;
 
@@ -10,6 +11,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
     private readonly IUserRepository _userRepository;
     private readonly IGiftRepository _giftRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
+    private readonly IMutualAidRepository _mutualAidRepository;
     private readonly IMutualAidService _mutualAidService;
     private readonly ICurrentUserService _currentUserService;
 
@@ -17,12 +19,14 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         IUserRepository userRepository,
         IGiftRepository giftRepository,
         ICrewMembershipRepository membershipRepository,
+        IMutualAidRepository mutualAidRepository,
         IMutualAidService mutualAidService,
         ICurrentUserService currentUserService)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
         _membershipRepository = membershipRepository;
+        _mutualAidRepository = mutualAidRepository;
         _mutualAidService = mutualAidService;
         _currentUserService = currentUserService;
     }
@@ -41,31 +45,46 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             return null;
         }
 
-        var giftStats = await _giftRepository.GetUserGiftStatsAsync(userId.Value, cancellationToken);
         var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
 
         var isFinancialMember = false;
         var priorityScore = 0m;
+        var giftStats = new CrewmateGiftStatsDto();
+        var isSurvivalRecipient = false;
+
         if (membership is not null)
         {
+            giftStats = await _giftRepository.GetCrewmateGiftStatsAsync(
+                userId.Value,
+                membership.CrewId,
+                membership.Crew?.CurrentSeasonStartDate,
+                cancellationToken);
+
             isFinancialMember = await _mutualAidService.IsFinancialMemberAsync(
                 userId.Value,
                 membership.CrewId,
                 membership,
                 cancellationToken);
+
             priorityScore = await _mutualAidService.GetPriorityScoreForUserAsync(
                 userId.Value,
                 membership.CrewId,
                 cancellationToken,
                 excludeActiveSeasonContributions: membership.IsInSeason);
+
+            var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
+                membership.CrewId,
+                cancellationToken);
+            isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
         }
 
         return ProfileMapper.MapUser(
             user,
             giftStats,
-            membership is not null,
+            membership,
             isFinancialMember,
             priorityScore,
-            user.PercentBonus);
+            user.PercentBonus,
+            isSurvivalRecipient);
     }
 }

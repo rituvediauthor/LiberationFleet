@@ -64,4 +64,60 @@ public class ProposalRepository : IProposalRepository
         await _context.ProposalComments.AddAsync(comment, cancellationToken);
 
     public void RemoveVote(ProposalVote vote) => _context.ProposalVotes.Remove(vote);
+
+    public Task<ProposalCrewSettingChange?> GetCrewSettingChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewSettingChanges
+            .FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewSettingChange>> GetCrewSettingChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewSettingChange>();
+        }
+
+        var changes = await _context.ProposalCrewSettingChanges
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return changes.ToDictionary(c => c.ProposalId);
+    }
+
+    public async Task AddCrewSettingChangeAsync(
+        ProposalCrewSettingChange change,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewSettingChanges.AddAsync(change, cancellationToken);
+
+    public Task<ProposalCrewRuleChange?> GetCrewRuleChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewRuleChanges
+            .FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewRuleChange>> GetCrewRuleChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewRuleChange>();
+        }
+
+        var changes = await _context.ProposalCrewRuleChanges
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return changes.ToDictionary(c => c.ProposalId);
+    }
+
+    public async Task AddCrewRuleChangeAsync(
+        ProposalCrewRuleChange change,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewRuleChanges.AddAsync(change, cancellationToken);
 }

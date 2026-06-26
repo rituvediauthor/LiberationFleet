@@ -12,11 +12,11 @@ public class PaymentPlatformAccountDto
 
 public class UserProfileStatsDto
 {
-    public int SacrificeCount { get; set; }
+    public int SacrificeCountLastSeason { get; set; }
     public decimal AverageMonthlyContributions { get; set; }
     public bool MembershipStatus { get; set; }
     public decimal LifetimeContributions { get; set; }
-    public decimal ReceptionLastYear { get; set; }
+    public decimal ReceptionThisYear { get; set; }
     public int PercentBoost { get; set; }
     public int PriorityScore { get; set; }
 }
@@ -27,9 +27,11 @@ public class UserProfileDto
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public IReadOnlyList<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = Array.Empty<PaymentPlatformAccountDto>();
+    public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
     public bool InNeedOfAid { get; set; }
     public int EmergencyLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }
+    public bool IsSurvivalThresholdRecipient { get; set; }
     public UserProfileStatsDto Stats { get; set; } = new();
 }
 

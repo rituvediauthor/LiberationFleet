@@ -12,7 +12,7 @@
 </div>
 
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && post as p">
-  <div class="detail-scroll">
+  <div class="detail-scroll" #detailScroll>
     <div class="post-content-card">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
@@ -122,10 +122,10 @@
       <i class="fa-solid fa-angle-left"></i>
     </button>
 
-    <div class="comment-composer" [class.expanded]="commentFocused">
+    <div class="comment-composer" [class.expanded]="commentExpanded">
       <textarea
         class="comment-input"
-        [class.expanded]="commentFocused"
+        [class.expanded]="commentExpanded"
         [(ngModel)]="commentText"
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
@@ -133,16 +133,17 @@
         rows="1"></textarea>
 
       <app-proposal-attachment-picker
-        *ngIf="commentFocused"
         class="comment-attachment-picker"
-        [attachments]="commentAttachments">
+        [class.collapsed]="!commentExpanded"
+        [attachments]="commentAttachments"
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
       </app-proposal-attachment-picker>
     </div>
 
     <button
       type="button"
       class="action-btn primary"
-      *ngIf="commentFocused"
+      *ngIf="commentExpanded"
       [disabled]="posting || !canPostComment()"
       (click)="postComment()">
       Post

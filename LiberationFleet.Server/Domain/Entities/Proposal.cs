@@ -7,6 +7,7 @@ public class Proposal
     public int Id { get; set; }
     public int CrewId { get; set; }
     public int AuthorUserId { get; set; }
+    public ProposalKind Kind { get; set; } = ProposalKind.General;
     public ProposalStatus Status { get; set; } = ProposalStatus.Pending;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
@@ -19,4 +20,6 @@ public class Proposal
     public User AuthorUser { get; set; } = null!;
     public ICollection<ProposalVote> Votes { get; set; } = new List<ProposalVote>();
     public ICollection<ProposalComment> Comments { get; set; } = new List<ProposalComment>();
+    public ProposalCrewSettingChange? CrewSettingChange { get; set; }
+    public ProposalCrewRuleChange? CrewRuleChange { get; set; }
 }

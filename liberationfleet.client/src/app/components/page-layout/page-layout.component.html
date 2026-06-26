@@ -19,10 +19,20 @@
     <button
       *ngIf="primaryButton"
       class="action-button primary-button"
+      [class.has-secondary]="secondaryButton"
       (click)="primaryButton.onClick && primaryButton.onClick()"
       [disabled]="primaryButton.disabled"
       type="button">
       {{ primaryButton.label }}
+    </button>
+
+    <button
+      *ngIf="secondaryButton"
+      class="action-button secondary-button"
+      (click)="secondaryButton.onClick && secondaryButton.onClick()"
+      [disabled]="secondaryButton.disabled"
+      type="button">
+      {{ secondaryButton.label }}
     </button>
   </div>
 </div>

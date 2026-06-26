@@ -113,6 +113,31 @@
   opacity: 0.6;
 }
 
+.primary-button.has-secondary {
+  transform: translateX(calc(-50% - 40px));
+}
+
+.secondary-button {
+  position: absolute;
+  right: 20px;
+  z-index: 1;
+  background: transparent;
+  color: #c62828;
+  border: 1px solid #e0b4b4;
+  min-width: 90px;
+  max-width: min(120px, calc(50vw - 60px));
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #fff5f5;
+  border-color: #c62828;
+}
+
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 600px) {
   .page-layout {
     --action-bar-height: 64px;

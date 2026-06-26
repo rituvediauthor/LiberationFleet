@@ -1,6 +1,9 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -13,6 +16,8 @@ public class GetCrewProposalsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
+    CrewSettingsProposalService crewSettingsProposalService,
+    CrewRulesProposalService crewRulesProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
     public async Task<ProposalListResponse> Handle(GetCrewProposalsQuery request, CancellationToken cancellationToken)
@@ -35,12 +40,22 @@ public class GetCrewProposalsQueryHandler(
 
         foreach (var proposal in proposals)
         {
+            var statusBefore = proposal.Status;
             ProposalVotingService.TryAutoApproveOnTimer(proposal, utcNow);
+            await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
+                proposal,
+                statusBefore,
+                crewSettingsProposalService,
+                crewRulesProposalService,
+                cancellationToken);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var resourceIds = proposals.Select(p => p.Id.ToString()).ToList();
+        var resourceIds = proposals
+            .Where(p => p.Kind == ProposalKind.General)
+            .Select(p => p.Id.ToString())
+            .ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.Proposal,
             resourceIds,
@@ -48,13 +63,28 @@ public class GetCrewProposalsQueryHandler(
             cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
+        var crewSettingChanges = await proposalRepository.GetCrewSettingChangesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewSettingChange).Select(p => p.Id),
+            cancellationToken);
+
+        var crewRuleChanges = await proposalRepository.GetCrewRuleChangesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewRuleChange).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
-            envelopeById.TryGetValue(proposal.Id.ToString(), out var envelope);
+            EncryptedContentEnvelope? envelope = null;
+            if (proposal.Kind == ProposalKind.General)
+            {
+                envelopeById.TryGetValue(proposal.Id.ToString(), out envelope);
+            }
+
+            crewSettingChanges.TryGetValue(proposal.Id, out var crewSettingChange);
+            crewRuleChanges.TryGetValue(proposal.Id, out var crewRuleChange);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
-            items.Add(ProposalMapper.MapListItem(proposal, envelope, currentUserVote));
+            items.Add(ProposalMapper.MapListItem(proposal, envelope, crewSettingChange, crewRuleChange, currentUserVote));
         }
 
         return new ProposalListResponse

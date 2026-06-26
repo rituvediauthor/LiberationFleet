@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -18,6 +18,8 @@ import {
 } from '../../../models/crew-discussion.model';
 import { ProposalComment, ProposalDetail } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
+import { AuthService } from '../../../services/auth.service';
+import { getUserIdFromToken } from '../../../utils/jwt.util';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -32,6 +34,8 @@ import { EncryptionContentService, EncryptionReloadHandle } from '../../../servi
   styleUrl: './discussion-detail.component.css'
 })
 export class DiscussionDetailComponent implements OnInit, OnDestroy {
+  @ViewChild('detailScroll') detailScroll?: ElementRef<HTMLElement>;
+
   config!: DiscussionConfig;
   post: DiscussionDetail | null = null;
   loading = true;
@@ -40,6 +44,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   authorDisplayName = '';
   commentText = '';
   commentFocused = false;
+  pickingFile = false;
   replyParentId: number | null = null;
   attachmentsExpanded = true;
   posting = false;
@@ -59,6 +64,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
+  private authService = inject(AuthService);
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
@@ -109,11 +115,30 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
 
   onCommentBlur() {
     setTimeout(() => {
+      if (this.pickingFile) {
+        return;
+      }
       if (!this.commentText.trim() && this.commentAttachments.length === 0) {
         this.commentFocused = false;
         this.replyParentId = null;
       }
     }, 150);
+  }
+
+  onFileDialogOpenChange(open: boolean) {
+    this.pickingFile = open;
+    if (open) {
+      this.commentFocused = true;
+      return;
+    }
+    if (!this.commentText.trim() && this.commentAttachments.length === 0) {
+      this.commentFocused = false;
+      this.replyParentId = null;
+    }
+  }
+
+  get commentExpanded(): boolean {
+    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0;
   }
 
   startReply(comment: DiscussionComment) {
@@ -198,31 +223,39 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const body = this.commentText.trim();
+    const pendingAttachments = [...this.commentAttachments];
+    const parentCommentId = this.replyParentId;
+
     this.posting = true;
     try {
       const encrypted = await this.discussionCrypto.encryptCommentPayload(
         this.crewId,
         {
-          body: this.commentText.trim(),
+          body,
           authorDisplayName: this.authorDisplayName
         },
-        this.commentAttachments
+        pendingAttachments
       );
 
       this.discussionService.postComment(this.config, this.post.id, {
-        parentCommentId: this.replyParentId,
+        parentCommentId,
         nonce: encrypted.nonce,
         ciphertext: encrypted.ciphertext
       }).subscribe({
         next: result => {
           this.posting = false;
           if (result.success) {
+            if (result.commentId) {
+              this.insertPostedComment(result.commentId, body, pendingAttachments, parentCommentId);
+            } else {
+              this.refreshPostPreservingScroll();
+            }
             this.commentText = '';
             this.commentAttachments = [];
             this.commentFocused = false;
             this.replyParentId = null;
             this.toastService.success('Comment posted');
-            this.loadPost();
             return;
           }
           this.toastService.error(result.message || 'Failed to post comment');
@@ -289,9 +322,97 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.loadPost();
   }
 
-  private loadPost() {
-    this.loading = true;
-    this.loadError = '';
+  private insertPostedComment(
+    commentId: number,
+    body: string,
+    pendingAttachments: PendingAttachment[],
+    parentCommentId: number | null
+  ) {
+    if (!this.post) {
+      return;
+    }
+
+    const token = this.authService.getToken();
+    const authorUserId = token ? getUserIdFromToken(token) ?? 0 : 0;
+    const newComment: DiscussionComment = {
+      id: commentId,
+      authorUserId,
+      authorUsername: this.authorDisplayName,
+      parentCommentId,
+      createdAt: new Date(),
+      replyCount: 0,
+      hasEncryptedContent: true,
+      body,
+      resolvedAttachments: pendingAttachments.map(attachment => ({
+        resourceId: attachment.resourceId,
+        type: attachment.type,
+        fileName: attachment.file?.name,
+        mimeType: attachment.file?.type,
+        dataUrl: attachment.previewUrl
+      }))
+    };
+
+    if (!parentCommentId) {
+      this.post = {
+        ...this.post,
+        comments: [...this.post.comments, newComment]
+      };
+      return;
+    }
+
+    this.post = {
+      ...this.post,
+      comments: this.post.comments.map(comment => {
+        if (comment.id !== parentCommentId) {
+          return comment;
+        }
+
+        return {
+          ...comment,
+          replyCount: comment.replyCount + 1,
+          repliesExpanded: true,
+          replies: [...(comment.replies ?? []), newComment]
+        };
+      })
+    };
+  }
+
+  private refreshPostPreservingScroll() {
+    const scrollEl = this.detailScroll?.nativeElement;
+    const scrollTop = scrollEl?.scrollTop ?? 0;
+    const expandedCommentIds = new Set(
+      this.post?.comments
+        .filter(comment => comment.repliesExpanded)
+        .map(comment => comment.id) ?? []
+    );
+
+    this.loadPost({
+      silent: true,
+      onLoaded: () => {
+        if (!this.post) {
+          return;
+        }
+
+        this.post.comments = this.post.comments.map(comment => ({
+          ...comment,
+          repliesExpanded: expandedCommentIds.has(comment.id) ? true : comment.repliesExpanded
+        }));
+
+        requestAnimationFrame(() => {
+          if (scrollEl) {
+            scrollEl.scrollTop = scrollTop;
+          }
+        });
+      }
+    });
+  }
+
+  private loadPost(options?: { silent?: boolean; onLoaded?: () => void }) {
+    if (!options?.silent) {
+      this.loading = true;
+      this.loadError = '';
+    }
+
     this.discussionService.getPost(this.config, this.postId).subscribe({
       next: async post => {
         try {
@@ -303,18 +424,25 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
           } else {
             this.post = post;
           }
+          options?.onLoaded?.();
         } catch (error: unknown) {
-          this.post = null;
+          if (!options?.silent) {
+            this.post = null;
+          }
           this.loadError = error instanceof Error
             ? error.message
             : 'Failed to decrypt post';
           this.toastService.error(this.loadError);
         } finally {
-          this.loading = false;
+          if (!options?.silent) {
+            this.loading = false;
+          }
         }
       },
       error: err => {
-        this.loading = false;
+        if (!options?.silent) {
+          this.loading = false;
+        }
         this.loadError = err?.message ?? 'Failed to load post';
         this.toastService.error(this.loadError);
       }

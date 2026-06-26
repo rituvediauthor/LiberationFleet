@@ -26,13 +26,26 @@ export class ProposalCryptoService {
   ) {}
 
   async decryptListItems(items: ProposalListItem[], crewId: number): Promise<ProposalListItem[]> {
+    const mapPlaintext = (item: ProposalListItem): ProposalListItem => ({
+      ...item,
+      title: item.title ?? 'Editing crew settings',
+      descriptionPreview: item.descriptionPreview ?? '',
+      authorUsername: 'Anonymous'
+    });
+
     if (!this.cryptoSession.isUnlocked()) {
-      return items.map(item => ({
-        ...item,
-        title: '[Encrypted]',
-        descriptionPreview: '[Unlock encryption to view]',
-        authorUsername: item.authorUsername || '[Encrypted]'
-      }));
+      return items.map(item => {
+        if (item.hasPlaintextContent) {
+          return mapPlaintext(item);
+        }
+
+        return {
+          ...item,
+          title: '[Encrypted]',
+          descriptionPreview: '[Unlock encryption to view]',
+          authorUsername: 'Anonymous'
+        };
+      });
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
@@ -40,6 +53,16 @@ export class ProposalCryptoService {
   }
 
   async decryptDetail(proposal: ProposalDetail, crewId: number): Promise<ProposalDetail> {
+    if (proposal.hasPlaintextContent) {
+      return {
+        ...proposal,
+        title: proposal.title ?? 'Editing crew settings',
+        description: proposal.description ?? proposal.descriptionPreview ?? '',
+        authorUsername: 'Anonymous',
+        comments: proposal.comments
+      };
+    }
+
     if (!this.cryptoSession.isUnlocked()) {
       return {
         ...proposal,
@@ -113,6 +136,15 @@ export class ProposalCryptoService {
   }
 
   private async decryptListItem(item: ProposalListItem, crewKey: CryptoKey): Promise<ProposalListItem> {
+    if (item.hasPlaintextContent) {
+      return {
+        ...item,
+        title: item.title ?? 'Editing crew settings',
+        descriptionPreview: item.descriptionPreview ?? '',
+        authorUsername: 'Anonymous'
+      };
+    }
+
     if (!item.hasEncryptedContent || !item.encryptedPayload) {
       return item;
     }
@@ -128,7 +160,7 @@ export class ProposalCryptoService {
         ...item,
         title: payload.title,
         descriptionPreview: payload.description.slice(0, 100),
-        authorUsername: payload.authorDisplayName ?? item.authorUsername,
+        authorUsername: 'Anonymous',
         thumbnailUrl
       };
     } catch {

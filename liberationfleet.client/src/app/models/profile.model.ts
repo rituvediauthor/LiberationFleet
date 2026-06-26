@@ -2,6 +2,14 @@ import { PaymentPlatform } from './gift.model';
 
 export const CUSTOM_PLATFORM_OPTION_ID = 0;
 
+export interface PaymentPlatformSnapshot {
+  id: number;
+  platformId: number;
+  customPlatformName: string;
+  handle: string;
+  isPreferred: boolean;
+}
+
 export interface PaymentPlatformAccount {
   id: number;
   platformId: number;
@@ -16,18 +24,20 @@ export interface UserProfile {
   username: string;
   email: string;
   paymentPlatforms: PaymentPlatformAccount[];
+  roles: string[];
   inNeedOfAid: boolean;
   emergencyLevel: number;
   needsSurvivalAid: boolean;
+  isSurvivalThresholdRecipient: boolean;
   stats: UserProfileStats;
 }
 
 export interface UserProfileStats {
-  sacrificeCount: number;
+  sacrificeCountLastSeason: number;
   averageMonthlyContributions: number;
   membershipStatus: boolean;
   lifetimeContributions: number;
-  receptionLastYear: number;
+  receptionThisYear: number;
   percentBoost: number;
   priorityScore: number;
 }

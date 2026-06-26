@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -19,4 +20,9 @@ public interface IGiftRepository
     Task<IReadOnlyDictionary<int, Gift>> GetCompletedGiftsByInitiatedIdsAsync(int crewId, CancellationToken cancellationToken = default);
     Task AddAsync(Gift gift, CancellationToken cancellationToken = default);
     Task<UserGiftStats> GetUserGiftStatsAsync(int userId, CancellationToken cancellationToken = default);
+    Task<CrewmateGiftStatsDto> GetCrewmateGiftStatsAsync(
+        int userId,
+        int crewId,
+        DateTime? seasonStartDate,
+        CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Queries.GetMyProfile;
@@ -63,17 +64,17 @@ public class GetMyProfileQueryHandlerTests
             .Setup(r => r.GetByIdWithProfileAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        var giftStats = new UserGiftStats
+        var giftStats = new CrewmateGiftStatsDto
         {
             LifetimeContributions = 150,
-            SacrificeCountLastYear = 3,
-            ContributionsLast3Months = 90,
-            ReceptionLastYear = 40
+            SacrificeCountLastSeason = 3,
+            AverageMonthlyContributions = 30,
+            ReceptionThisYear = 40
         };
 
         var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
         giftRepository
-            .Setup(r => r.GetUserGiftStatsAsync(user.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(giftStats);
 
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
@@ -92,8 +93,8 @@ public class GetMyProfileQueryHandlerTests
         result.Should().NotBeNull();
         result!.Stats.LifetimeContributions.Should().Be(150);
         result.Stats.AverageMonthlyContributions.Should().Be(30);
-        result.Stats.SacrificeCount.Should().Be(3);
-        result.Stats.ReceptionLastYear.Should().Be(40);
+        result.Stats.SacrificeCountLastSeason.Should().Be(3);
+        result.Stats.ReceptionThisYear.Should().Be(40);
         result.Stats.MembershipStatus.Should().BeFalse();
     }
 
@@ -101,18 +102,30 @@ public class GetMyProfileQueryHandlerTests
         int? currentUserId = 1,
         Mock<IUserRepository>? userRepository = null,
         Mock<IGiftRepository>? giftRepository = null,
-        Mock<ICrewMembershipRepository>? membershipRepository = null)
+        Mock<ICrewMembershipRepository>? membershipRepository = null,
+        Mock<IMutualAidRepository>? mutualAidRepository = null)
     {
         userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
         giftRepository ??= SetupDefaultGiftRepository(currentUserId);
         membershipRepository ??= SetupDefaultMembershipRepository(currentUserId);
+        mutualAidRepository ??= SetupDefaultMutualAidRepository();
 
         return new GetMyProfileQueryHandler(
             userRepository.Object,
             giftRepository.Object,
             membershipRepository.Object,
+            mutualAidRepository.Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
+    }
+
+    private static Mock<IMutualAidRepository> SetupDefaultMutualAidRepository()
+    {
+        var mutualAidRepository = new Mock<IMutualAidRepository>();
+        mutualAidRepository
+            .Setup(r => r.GetUnsatisfiedThresholdsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<MonthlySurvivalThreshold>());
+        return mutualAidRepository;
     }
 
     private static Mock<IGiftRepository> SetupDefaultGiftRepository(int? userId)
@@ -121,8 +134,8 @@ public class GetMyProfileQueryHandlerTests
         if (userId is not null)
         {
             giftRepository
-                .Setup(r => r.GetUserGiftStatsAsync(userId.Value, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new UserGiftStats());
+                .Setup(r => r.GetCrewmateGiftStatsAsync(userId.Value, It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CrewmateGiftStatsDto());
         }
 
         return giftRepository;

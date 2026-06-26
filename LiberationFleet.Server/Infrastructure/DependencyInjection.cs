@@ -37,6 +37,9 @@ public static class DependencyInjection
         services.AddScoped<IForumRepository, ForumRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IChatRepository, ChatRepository>();
+        services.AddScoped<IRuleRepository, RuleRepository>();
+        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        services.AddScoped<IUserBlockRepository, UserBlockRepository>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<Application.Services.MutualAidService>();

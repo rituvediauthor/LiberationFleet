@@ -1,0 +1,173 @@
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Features.Rules;
+using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
+
+namespace LiberationFleet.Server.Application.Features.Rules;
+
+public class CrewRulesProposalService(
+    IProposalRepository proposalRepository,
+    IRuleRepository ruleRepository,
+    ICryptoRepository cryptoRepository)
+{
+    public async Task<int> CreateProposalAsync(
+        int crewId,
+        int authorUserId,
+        CrewRuleProposalAction action,
+        string proposalTitle,
+        string proposalDescription,
+        int? ruleId,
+        string? nonce,
+        string? ciphertext,
+        int keyVersion,
+        CancellationToken cancellationToken)
+    {
+        var utcNow = DateTime.UtcNow;
+        var proposal = new Proposal
+        {
+            CrewId = crewId,
+            AuthorUserId = authorUserId,
+            Kind = ProposalKind.CrewRuleChange,
+            CreatedAt = utcNow,
+            LastActivityAt = utcNow
+        };
+
+        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        await proposalRepository.AddProposalAsync(proposal, cancellationToken);
+        await proposalRepository.AddCrewRuleChangeAsync(new ProposalCrewRuleChange
+        {
+            Proposal = proposal,
+            Action = action,
+            RuleId = ruleId,
+            Title = proposalTitle,
+            Description = proposalDescription,
+            Nonce = nonce,
+            Ciphertext = ciphertext,
+            KeyVersion = keyVersion <= 0 ? 1 : keyVersion,
+        }, cancellationToken);
+
+        return proposal.Id;
+    }
+
+    public async Task TryApplyApprovedProposalAsync(Proposal proposal, CancellationToken cancellationToken)
+    {
+        if (proposal.Kind != ProposalKind.CrewRuleChange || proposal.Status != ProposalStatus.Approved)
+        {
+            return;
+        }
+
+        var change = await proposalRepository.GetCrewRuleChangeByProposalIdAsync(proposal.Id, cancellationToken);
+        if (change is null || change.IsApplied)
+        {
+            return;
+        }
+
+        var utcNow = DateTime.UtcNow;
+
+        switch (change.Action)
+        {
+            case CrewRuleProposalAction.Create:
+                await ApplyCreateAsync(proposal, change, authorUserId: proposal.AuthorUserId, utcNow, cancellationToken);
+                break;
+            case CrewRuleProposalAction.Update:
+                await ApplyUpdateAsync(change, utcNow, cancellationToken);
+                break;
+            case CrewRuleProposalAction.Delete:
+                await ApplyDeleteAsync(change, utcNow, cancellationToken);
+                break;
+        }
+
+        change.IsApplied = true;
+    }
+
+    private async Task ApplyCreateAsync(
+        Proposal proposal,
+        ProposalCrewRuleChange change,
+        int authorUserId,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext))
+        {
+            return;
+        }
+
+        var rule = new CrewRule
+        {
+            CrewId = proposal.CrewId,
+            CreatedByUserId = authorUserId,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        };
+
+        await ruleRepository.AddAsync(rule, cancellationToken);
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.RulesDocument,
+            ResourceId = rule.Id.ToString(),
+            CrewId = proposal.CrewId,
+            AuthorUserId = authorUserId,
+            KeyVersion = change.KeyVersion,
+            Nonce = change.Nonce.Trim(),
+            Ciphertext = change.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
+
+        change.RuleId = rule.Id;
+    }
+
+    private async Task ApplyUpdateAsync(
+        ProposalCrewRuleChange change,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        if (!change.RuleId.HasValue
+            || string.IsNullOrWhiteSpace(change.Nonce)
+            || string.IsNullOrWhiteSpace(change.Ciphertext))
+        {
+            return;
+        }
+
+        var rule = await ruleRepository.GetByIdAsync(change.RuleId.Value, cancellationToken);
+        if (rule is null)
+        {
+            return;
+        }
+
+        rule.UpdatedAt = utcNow;
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.RulesDocument,
+            ResourceId = rule.Id.ToString(),
+            CrewId = rule.CrewId,
+            AuthorUserId = rule.CreatedByUserId,
+            KeyVersion = change.KeyVersion,
+            Nonce = change.Nonce.Trim(),
+            Ciphertext = change.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
+    }
+
+    private async Task ApplyDeleteAsync(
+        ProposalCrewRuleChange change,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        if (!change.RuleId.HasValue)
+        {
+            return;
+        }
+
+        var rule = await ruleRepository.GetByIdAsync(change.RuleId.Value, cancellationToken);
+        if (rule is null)
+        {
+            return;
+        }
+
+        rule.IsDeleted = true;
+        rule.UpdatedAt = utcNow;
+    }
+}

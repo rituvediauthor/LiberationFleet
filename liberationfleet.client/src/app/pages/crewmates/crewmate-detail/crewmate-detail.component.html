@@ -1,0 +1,96 @@
+<app-page-layout
+  [backButton]="backButton"
+  [primaryButton]="primaryButton"
+  [secondaryButton]="secondaryButton"
+  [fillHeight]="true">
+  <div class="crewmate-detail-page">
+    <p *ngIf="loading" class="state-text">Loading profile...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <div class="profile-card" *ngIf="!loading && profile">
+      <h1 class="profile-name">{{ profile.username }}</h1>
+
+      <section class="section">
+        <h2>Roles</h2>
+        <p *ngIf="profile.roles.length === 0" class="empty-text">No special roles.</p>
+        <ul class="role-list" *ngIf="profile.roles.length > 0">
+          <li *ngFor="let role of profile.roles">{{ role }}</li>
+        </ul>
+        <div class="role-actions" *ngIf="!profile.isSelf">
+          <button type="button" class="role-btn" (click)="onNominate()">Nominate</button>
+          <button type="button" class="role-btn demote" (click)="onDemote()">Demote</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Payment platforms</h2>
+        <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
+        <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
+          <li *ngFor="let platform of profile.paymentPlatforms">
+            <span class="platform-name">{{ platform.platformName }}</span>
+            <span class="platform-handle">{{ platform.handle }}</span>
+            <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
+          </li>
+        </ul>
+      </section>
+
+      <div class="readonly-grid">
+        <div class="readonly-item">
+          <span class="readonly-label">Sacrifices last season</span>
+          <span class="readonly-value">{{ profile.sacrificeCountLastSeason }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
+          <span class="readonly-value">${{ profile.averageMonthlyContributions }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Membership status</span>
+          <span class="readonly-value">{{ profile.membershipStatus ? 'Active' : 'Inactive' }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Lifetime contributions</span>
+          <span class="readonly-value">${{ profile.lifetimeContributions }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Reception this year</span>
+          <span class="readonly-value">${{ profile.receptionThisYear }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Priority score</span>
+          <span class="readonly-value">{{ profile.priorityScore }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">In need of aid</span>
+          <span class="readonly-value">{{ profile.inNeedOfAid ? 'Yes' : 'No' }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Emergency level</span>
+          <span class="readonly-value">{{ profile.emergencyLevel }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Survival threshold recipient</span>
+          <span class="readonly-value">{{ profile.isSurvivalThresholdRecipient ? 'Yes' : 'No' }}</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="kick-btn"
+        *ngIf="!profile.isSelf"
+        (click)="onKickCrewmate()">
+        Kick crewmate
+      </button>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showBlockDialog"
+  title="Block crewmate?"
+  message="Are you sure you want to block this crewmate? They will not be able to interact with you through friendship requests."
+  confirmLabel="Block"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmBlock()"
+  (cancelled)="onCancelBlock()"
+  (dismissed)="onCancelBlock()">
+</app-confirm-dialog>

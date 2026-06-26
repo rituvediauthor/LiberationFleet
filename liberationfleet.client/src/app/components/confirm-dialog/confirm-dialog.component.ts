@@ -13,9 +13,11 @@ export class ConfirmDialogComponent {
   @Input() title = 'Alert';
   @Input() message = '';
   @Input() confirmLabel = 'Okay';
+  @Input() cancelLabel = '';
 
   @Output() confirmed = new EventEmitter<void>();
   @Output() dismissed = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
 
   onConfirm() {
     this.confirmed.emit();

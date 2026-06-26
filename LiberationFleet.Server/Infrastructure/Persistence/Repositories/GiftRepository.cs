@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -165,6 +166,50 @@ public class GiftRepository : IGiftRepository
                 .SumAsync(g => g.Amount, cancellationToken),
             ReceptionLastYear = await receivedGifts
                 .Where(g => g.CreatedAt >= oneYearAgo)
+                .SumAsync(g => g.Amount, cancellationToken)
+        };
+    }
+
+    public async Task<CrewmateGiftStatsDto> GetCrewmateGiftStatsAsync(
+        int userId,
+        int crewId,
+        DateTime? seasonStartDate,
+        CancellationToken cancellationToken = default)
+    {
+        var threeMonthsAgo = DateTime.UtcNow.AddMonths(-3);
+        var yearStart = new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var contributedGifts = _context.Gifts.Where(g =>
+            g.CrewId == crewId
+            && g.GiverUserId == userId
+            && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
+
+        var receivedGifts = _context.Gifts.Where(g =>
+            g.CrewId == crewId
+            && g.RecipientUserId == userId
+            && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
+
+        var sacrificeQuery = contributedGifts;
+        if (seasonStartDate.HasValue)
+        {
+            sacrificeQuery = sacrificeQuery.Where(g => g.CreatedAt >= seasonStartDate.Value);
+        }
+        else
+        {
+            sacrificeQuery = sacrificeQuery.Where(_ => false);
+        }
+
+        var contributionsLast3Months = await contributedGifts
+            .Where(g => g.CreatedAt >= threeMonthsAgo)
+            .SumAsync(g => g.Amount, cancellationToken);
+
+        return new CrewmateGiftStatsDto
+        {
+            SacrificeCountLastSeason = await sacrificeQuery.CountAsync(cancellationToken),
+            AverageMonthlyContributions = Math.Round(contributionsLast3Months / 3m, 2),
+            LifetimeContributions = await contributedGifts.SumAsync(g => g.Amount, cancellationToken),
+            ReceptionThisYear = await receivedGifts
+                .Where(g => g.CreatedAt >= yearStart)
                 .SumAsync(g => g.Amount, cancellationToken)
         };
     }

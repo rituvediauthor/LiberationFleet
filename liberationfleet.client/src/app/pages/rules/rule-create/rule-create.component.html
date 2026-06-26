@@ -1,0 +1,22 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
+  <div class="rule-form-page">
+    <h1 class="page-title">Create Rule</h1>
+
+    <form [formGroup]="form">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input id="title" class="form-input" type="text" formControlName="title" placeholder="Rule title" />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          class="form-input textarea"
+          rows="8"
+          formControlName="description"
+          placeholder="Describe the rule"></textarea>
+      </div>
+    </form>
+  </div>
+</app-page-layout>

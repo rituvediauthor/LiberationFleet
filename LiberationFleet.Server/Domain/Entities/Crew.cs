@@ -18,6 +18,9 @@ public class Crew
     public DateTime? CurrentSeasonStartDate { get; set; }
     public decimal SeasonMemberCycleCap { get; set; }
     public decimal SeasonNonMemberCycleCap { get; set; }
+    public bool AllowSurvivalThresholds { get; set; } = true;
+    public bool RequireApprovalForEdits { get; set; } = true;
+    public decimal InNeedDefaultThreshold { get; set; } = 20m;
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();

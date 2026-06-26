@@ -9,4 +9,5 @@ public interface ICrewMembershipRepository
     Task<bool> IsUserInCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetActiveMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
     Task AddAsync(CrewMembership membership, CancellationToken cancellationToken = default);
+    void Remove(CrewMembership membership);
 }

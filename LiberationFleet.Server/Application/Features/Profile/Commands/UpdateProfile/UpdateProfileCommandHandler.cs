@@ -12,26 +12,32 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
     private readonly IUserRepository _userRepository;
     private readonly IGiftRepository _giftRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
+    private readonly ICrewRepository _crewRepository;
     private readonly ICrewPaymentPlatformRepository _crewPaymentPlatformRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IMutualAidService _mutualAidService;
+    private readonly IMutualAidRepository _mutualAidRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public UpdateProfileCommandHandler(
         IUserRepository userRepository,
         IGiftRepository giftRepository,
         ICrewMembershipRepository membershipRepository,
+        ICrewRepository crewRepository,
         ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
         ICurrentUserService currentUserService,
         IMutualAidService mutualAidService,
+        IMutualAidRepository mutualAidRepository,
         IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
         _membershipRepository = membershipRepository;
+        _crewRepository = crewRepository;
         _crewPaymentPlatformRepository = crewPaymentPlatformRepository;
         _currentUserService = currentUserService;
         _mutualAidService = mutualAidService;
+        _mutualAidRepository = mutualAidRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -127,6 +133,15 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         await _userRepository.UpdateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await CrewInNeedService.ApplyInNeedDefaultAsync(
+            userId.Value,
+            _userRepository,
+            _giftRepository,
+            _crewRepository,
+            _membershipRepository,
+            _unitOfWork,
+            cancellationToken);
+
         if (previousEmergencyLevel != user.EmergencyLevel || previousInNeedOfAid != user.InNeedOfAid)
         {
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
@@ -136,7 +151,11 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         UserProfileDto? profile = null;
         if (reloaded is not null)
         {
-            var giftStats = await _giftRepository.GetUserGiftStatsAsync(userId.Value, cancellationToken);
+            var giftStats = await _giftRepository.GetCrewmateGiftStatsAsync(
+                userId.Value,
+                membership.CrewId,
+                membership.Crew?.CurrentSeasonStartDate,
+                cancellationToken);
             var isFinancialMember = await _mutualAidService.IsFinancialMemberAsync(
                 userId.Value,
                 membership.CrewId,
@@ -147,13 +166,18 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 cancellationToken,
                 excludeActiveSeasonContributions: membership.IsInSeason);
+            var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
+                membership.CrewId,
+                cancellationToken);
+            var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
             profile = ProfileMapper.MapUser(
                 reloaded,
                 giftStats,
-                true,
+                membership,
                 isFinancialMember,
                 priorityScore,
-                reloaded.PercentBonus);
+                reloaded.PercentBonus,
+                isSurvivalRecipient);
         }
 
         return new ProfileOperationResponse

@@ -29,12 +29,17 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Proposal> Proposals => Set<Proposal>();
     public DbSet<ProposalVote> ProposalVotes => Set<ProposalVote>();
     public DbSet<ProposalComment> ProposalComments => Set<ProposalComment>();
+    public DbSet<ProposalCrewSettingChange> ProposalCrewSettingChanges => Set<ProposalCrewSettingChange>();
+    public DbSet<ProposalCrewRuleChange> ProposalCrewRuleChanges => Set<ProposalCrewRuleChange>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
     public DbSet<ProjectPost> ProjectPosts => Set<ProjectPost>();
     public DbSet<ProjectComment> ProjectComments => Set<ProjectComment>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
+    public DbSet<CrewRule> CrewRules => Set<CrewRule>();
+    public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -111,6 +116,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.SeasonStarted).HasDefaultValue(false);
             entity.Property(e => e.SeasonMemberCycleCap).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.SeasonNonMemberCycleCap).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.AllowSurvivalThresholds).HasDefaultValue(true);
+            entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
+            entity.Property(e => e.InNeedDefaultThreshold).HasPrecision(18, 2).HasDefaultValue(20m);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
@@ -275,6 +283,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Status).HasDefaultValue(ProposalStatus.Pending);
+            entity.Property(e => e.Kind).HasDefaultValue(ProposalKind.General);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -283,6 +292,32 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProposalCrewSettingChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.NewValue).HasMaxLength(500);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewSettingChange)
+                .HasForeignKey<ProposalCrewSettingChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalCrewRuleChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Nonce).HasMaxLength(500);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewRuleChange)
+                .HasForeignKey<ProposalCrewRuleChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ProposalVote>(entity =>
@@ -405,6 +440,48 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CrewRule>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Friendship>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.RequesterUserId, e.AddresseeUserId }).IsUnique();
+            entity.HasOne(e => e.Requester)
+                .WithMany()
+                .HasForeignKey(e => e.RequesterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Addressee)
+                .WithMany()
+                .HasForeignKey(e => e.AddresseeUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserBlock>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.BlockerUserId, e.BlockedUserId }).IsUnique();
+            entity.HasOne(e => e.Blocker)
+                .WithMany()
+                .HasForeignKey(e => e.BlockerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Blocked)
+                .WithMany()
+                .HasForeignKey(e => e.BlockedUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

@@ -32,15 +32,17 @@ describe('ProfileService', () => {
       username: 'James',
       email: 'james@example.com',
       paymentPlatforms: [],
+      roles: [],
       inNeedOfAid: true,
       emergencyLevel: 0,
       needsSurvivalAid: false,
+      isSurvivalThresholdRecipient: false,
       stats: {
-        sacrificeCount: 0,
+        sacrificeCountLastSeason: 0,
         averageMonthlyContributions: 0,
         membershipStatus: false,
         lifetimeContributions: 0,
-        receptionLastYear: 0,
+        receptionThisYear: 0,
         percentBoost: 0,
         priorityScore: 0
       }

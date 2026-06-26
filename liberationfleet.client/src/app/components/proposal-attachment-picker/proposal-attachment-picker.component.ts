@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PendingAttachment } from '../../models/proposal.model';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
@@ -14,12 +14,15 @@ import { AudioRecorderController } from '../../utils/audio-recorder.util';
 })
 export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() attachments: PendingAttachment[] = [];
+  @Output() fileDialogOpenChange = new EventEmitter<boolean>();
 
   audioRecorder = new AudioRecorderController();
 
   private proposalCrypto = inject(ProposalCryptoService);
   private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
+  private fileDialogOpen = false;
+  private windowFocusListener?: () => void;
 
   constructor() {
     this.audioRecorder.onStateChange = () => this.cdr.markForCheck();
@@ -32,30 +35,99 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
   ngOnDestroy() {
     this.audioRecorder.cancel();
+    this.clearWindowFocusListener();
+  }
+
+  onFileInputClick() {
+    this.setFileDialogOpen(true);
+    this.clearWindowFocusListener();
+    this.windowFocusListener = () => {
+      this.clearWindowFocusListener();
+      setTimeout(() => this.setFileDialogOpen(false), 0);
+    };
+    window.addEventListener('focus', this.windowFocusListener);
   }
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const files = input.files;
-    if (!files) {
+
+    try {
+      if (files) {
+        Array.from(files).forEach(file => {
+          const type = this.resolveAttachmentType(file);
+          if (!type) {
+            this.toastService.error(`Unsupported file type: ${file.name}`);
+            return;
+          }
+
+          this.attachments.push({
+            file,
+            type,
+            resourceId: this.proposalCrypto.createResourceId(),
+            previewUrl: URL.createObjectURL(file)
+          });
+        });
+      }
+    } finally {
+      input.value = '';
+      this.setFileDialogOpen(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  onFileInputCancel() {
+    this.setFileDialogOpen(false);
+  }
+
+  async startRecording() {
+    try {
+      await this.audioRecorder.start();
+    } catch {
+      this.toastService.error('Microphone access is required to record audio.');
+    }
+  }
+
+  async stopRecording() {
+    await this.audioRecorder.stop();
+  }
+
+  cancelRecording() {
+    this.audioRecorder.cancel();
+  }
+
+  removeAttachment(index: number) {
+    const attachment = this.attachments[index];
+    if (attachment.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(attachment.previewUrl);
+    }
+    this.attachments.splice(index, 1);
+    this.cdr.markForCheck();
+  }
+
+  attachmentLabel(attachment: PendingAttachment): string {
+    if (attachment.file?.name) {
+      return attachment.file.name;
+    }
+    return `${attachment.type} attachment`;
+  }
+
+  private setFileDialogOpen(open: boolean) {
+    if (this.fileDialogOpen === open) {
       return;
     }
+    this.fileDialogOpen = open;
+    if (!open) {
+      this.clearWindowFocusListener();
+    }
+    this.fileDialogOpenChange.emit(open);
+  }
 
-    Array.from(files).forEach(file => {
-      const type = this.resolveAttachmentType(file);
-      if (!type) {
-        this.toastService.error(`Unsupported file type: ${file.name}`);
-        return;
-      }
-
-      this.attachments.push({
-        file,
-        type,
-        resourceId: this.proposalCrypto.createResourceId(),
-        previewUrl: URL.createObjectURL(file)
-      });
-    });
-    input.value = '';
+  private clearWindowFocusListener() {
+    if (this.windowFocusListener) {
+      window.removeEventListener('focus', this.windowFocusListener);
+      this.windowFocusListener = undefined;
+    }
   }
 
   private resolveAttachmentType(file: File): PendingAttachment['type'] | null {
@@ -98,22 +170,6 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     }
   }
 
-  async startRecording() {
-    try {
-      await this.audioRecorder.start();
-    } catch {
-      this.toastService.error('Microphone access is required to record audio.');
-    }
-  }
-
-  async stopRecording() {
-    await this.audioRecorder.stop();
-  }
-
-  cancelRecording() {
-    this.audioRecorder.cancel();
-  }
-
   private addAudioAttachment(blob: Blob) {
     this.attachments.push({
       blob,
@@ -121,20 +177,6 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       resourceId: this.proposalCrypto.createResourceId(),
       previewUrl: URL.createObjectURL(blob)
     });
-  }
-
-  removeAttachment(index: number) {
-    const attachment = this.attachments[index];
-    if (attachment.previewUrl?.startsWith('blob:')) {
-      URL.revokeObjectURL(attachment.previewUrl);
-    }
-    this.attachments.splice(index, 1);
-  }
-
-  attachmentLabel(attachment: PendingAttachment): string {
-    if (attachment.file?.name) {
-      return attachment.file.name;
-    }
-    return `${attachment.type} attachment`;
+    this.cdr.markForCheck();
   }
 }

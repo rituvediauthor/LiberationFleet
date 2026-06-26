@@ -1,0 +1,25 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="addButton" [fillHeight]="true">
+  <div class="crewmate-list-page">
+    <h1 class="page-title">Crewmates</h1>
+    <p class="page-subtitle">Everyone in your crew</p>
+
+    <p *ngIf="loading" class="state-text">Loading crewmates...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && crewmates.length === 0" class="state-text">No crewmates found.</p>
+
+    <div class="crewmate-list" *ngIf="!loading && crewmates.length > 0">
+      <button
+        type="button"
+        class="crewmate-row"
+        *ngFor="let crewmate of crewmates"
+        (click)="openCrewmate(crewmate)">
+        <div class="crewmate-main">
+          <p class="crewmate-name">{{ crewmate.username }}</p>
+          <p class="crewmate-activity">{{ formatActivity(crewmate) }}</p>
+          <p class="crewmate-platform">{{ formatPlatform(crewmate.platformDisplay) }}</p>
+        </div>
+        <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

@@ -12,6 +12,22 @@ public class CrewDto
     public int? RadiusMiles { get; set; }
     public string JoinCode { get; set; } = string.Empty;
     public double? DistanceMiles { get; set; }
+    public bool AllowSurvivalThresholds { get; set; } = true;
+    public bool RequireApprovalForEdits { get; set; } = true;
+    public decimal InNeedDefaultThreshold { get; set; } = 20m;
+}
+
+public class UpdateCrewRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public int MaxSize { get; set; }
+    public string Privacy { get; set; } = "Public";
+    public string Scope { get; set; } = "Online";
+    public string? ZipCode { get; set; }
+    public int? RadiusMiles { get; set; }
+    public bool AllowSurvivalThresholds { get; set; } = true;
+    public bool RequireApprovalForEdits { get; set; } = true;
+    public decimal InNeedDefaultThreshold { get; set; } = 20m;
 }
 
 public class CrewMembershipStatusDto
@@ -27,6 +43,8 @@ public class CrewOperationResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public CrewDto? Crew { get; set; }
+    public bool ProposalsSubmitted { get; set; }
+    public int ProposalsCreated { get; set; }
 }
 
 public class CrewSearchResponse

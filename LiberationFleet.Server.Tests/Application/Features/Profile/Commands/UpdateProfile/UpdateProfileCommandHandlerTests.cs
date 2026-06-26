@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -116,10 +117,21 @@ public class UpdateProfileCommandHandlerTests
             userRepository.Object,
             giftRepository.Object,
             membershipRepository.Object,
+            new Mock<ICrewRepository>().Object,
             crewPaymentPlatformRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
+            SetupDefaultMutualAidRepository().Object,
             unitOfWork.Object);
+    }
+
+    private static Mock<IMutualAidRepository> SetupDefaultMutualAidRepository()
+    {
+        var mutualAidRepository = new Mock<IMutualAidRepository>();
+        mutualAidRepository
+            .Setup(r => r.GetUnsatisfiedThresholdsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<MonthlySurvivalThreshold>());
+        return mutualAidRepository;
     }
 
     private static Mock<IGiftRepository> SetupDefaultGiftRepository(int? userId)
@@ -128,8 +140,8 @@ public class UpdateProfileCommandHandlerTests
         if (userId is not null)
         {
             giftRepository
-                .Setup(r => r.GetUserGiftStatsAsync(userId.Value, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new UserGiftStats());
+                .Setup(r => r.GetCrewmateGiftStatsAsync(userId.Value, It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CrewmateGiftStatsDto());
         }
 
         return giftRepository;

@@ -23,7 +23,6 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   crewId = 0;
   backButton!: ActionBarButton;
-  createButton!: ActionBarButton;
   countdownTick = 0;
 
   private route = inject(ActivatedRoute);
@@ -50,12 +49,6 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
       label: '←',
       type: 'back',
       onClick: () => this.router.navigate(['/app/crew/proposals'])
-    };
-
-    this.createButton = {
-      label: 'Create Proposal',
-      type: 'primary',
-      onClick: () => this.router.navigate(['/app/crew/proposals/create'])
     };
 
     this.crewService.getMembership().subscribe({

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -54,7 +55,10 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null,
             JoinCode = await GenerateUniqueJoinCodeAsync(cancellationToken),
             CreatedByUserId = userId.Value,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            AllowSurvivalThresholds = true,
+            RequireApprovalForEdits = true,
+            InNeedDefaultThreshold = 20m
         };
 
         await _crewRepository.AddAsync(crew, cancellationToken);
@@ -74,7 +78,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         {
             Success = true,
             Message = "Crew created successfully",
-            Crew = MapCrew(crew, 1)
+            Crew = CrewMapper.MapCrew(crew, 1)
         };
     }
 
@@ -106,17 +110,4 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
 
         return new string(result);
     }
-
-    private static CrewDto MapCrew(Crew crew, int memberCount) => new()
-    {
-        Id = crew.Id,
-        Name = crew.Name,
-        MaxSize = crew.MaxSize,
-        MemberCount = memberCount,
-        Privacy = crew.Privacy.ToString(),
-        Scope = crew.Scope.ToString(),
-        ZipCode = crew.ZipCode,
-        RadiusMiles = crew.RadiusMiles,
-        JoinCode = crew.JoinCode
-    };
 }

@@ -8,8 +8,9 @@ import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
-import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
+import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption, SeasonReadyResult, SeasonSetupSaveResult } from '../../models/gift.model';
+import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 
 @Component({
   selector: 'app-season-setup',
@@ -29,6 +30,9 @@ export class SeasonSetupComponent implements OnInit {
   isSubmitting = false;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
+  private initialFormValues: unknown = null;
+  private initialSeasonReady = false;
+  private initialPaymentPlatforms: PaymentPlatformSnapshot[] = [];
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -63,6 +67,7 @@ export class SeasonSetupComponent implements OnInit {
         if (status.estimatedMonthlyContribution) {
           this.form.patchValue({ estimatedMonthlyContribution: status.estimatedMonthlyContribution });
         }
+        this.captureInitialState();
         if (status.seasonStarted && status.userInSeason) {
           this.router.navigate(['/app/crew/gift-log']);
         } else if (status.seasonStarted && !status.userInSeason) {
@@ -75,6 +80,7 @@ export class SeasonSetupComponent implements OnInit {
       next: profile => {
         this.profile = profile;
         this.isLoading = false;
+        this.captureInitialState();
         this.updateSaveButton();
       },
       error: () => {
@@ -126,13 +132,53 @@ export class SeasonSetupComponent implements OnInit {
 
   private updateSaveButton() {
     const readyRequiresPlatforms = this.seasonReady && !this.hasValidPlatforms;
-    const disabled = this.isSubmitting || this.form.invalid || readyRequiresPlatforms;
+    const disabled = this.isSubmitting
+      || this.isLoading
+      || this.form.invalid
+      || readyRequiresPlatforms
+      || !this.hasChanges();
     this.saveButton = {
       label: 'Save',
       type: 'primary',
       disabled,
       onClick: () => this.onSave()
     };
+  }
+
+  private captureInitialState() {
+    if (!this.form || !this.profile) {
+      return;
+    }
+
+    this.initialFormValues = this.form.getRawValue();
+    this.initialSeasonReady = this.seasonReady;
+    this.initialPaymentPlatforms = this.serializePlatforms(this.profile.paymentPlatforms);
+  }
+
+  private hasChanges(): boolean {
+    if (!this.form || !this.profile || this.initialFormValues === null) {
+      return false;
+    }
+
+    const formChanged = formValuesChanged(this.form, this.initialFormValues);
+    const readyChanged = this.seasonReady !== this.initialSeasonReady;
+    const platformsChanged = !valuesEqual(
+      this.serializePlatforms(this.profile.paymentPlatforms),
+      this.initialPaymentPlatforms
+    );
+    return formChanged || readyChanged || platformsChanged;
+  }
+
+  private serializePlatforms(platforms: PaymentPlatformAccount[]): PaymentPlatformSnapshot[] {
+    return platforms
+      .map(p => ({
+        id: p.id,
+        platformId: p.platformId,
+        customPlatformName: p.customPlatformName?.trim() ?? '',
+        handle: p.handle.trim(),
+        isPreferred: !!p.isPreferred
+      }))
+      .sort((a, b) => a.id - b.id);
   }
 
   onSave() {
@@ -189,6 +235,7 @@ export class SeasonSetupComponent implements OnInit {
     if (readyResult.status) {
       this.applyStatus(readyResult.status);
     }
+    this.captureInitialState();
 
     const seasonStarted = wantReady && 'seasonStarted' in readyResult && readyResult.seasonStarted;
     if (seasonStarted || readyResult.status?.userInSeason) {

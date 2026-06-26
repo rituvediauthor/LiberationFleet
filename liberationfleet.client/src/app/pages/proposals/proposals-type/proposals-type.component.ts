@@ -12,6 +12,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 })
 export class ProposalsTypeComponent {
   backButton!: ActionBarButton;
+  createButton!: ActionBarButton;
 
   private router = inject(Router);
 
@@ -20,6 +21,12 @@ export class ProposalsTypeComponent {
       label: '←',
       type: 'back',
       onClick: () => this.router.navigate(['/app/crew'])
+    };
+
+    this.createButton = {
+      label: 'Create Proposal',
+      type: 'primary',
+      onClick: () => this.router.navigate(['/app/crew/proposals/create'])
     };
   }
 
