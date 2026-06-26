@@ -30,5 +30,10 @@ public interface IProposalRepository
         IEnumerable<int> proposalIds,
         CancellationToken cancellationToken = default);
     Task AddCrewRuleChangeAsync(ProposalCrewRuleChange change, CancellationToken cancellationToken = default);
+    Task<ProposalCrewChatChange?> GetCrewChatChangeByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewChatChange>> GetCrewChatChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddCrewChatChangeAsync(ProposalCrewChatChange change, CancellationToken cancellationToken = default);
     void RemoveVote(ProposalVote vote);
 }

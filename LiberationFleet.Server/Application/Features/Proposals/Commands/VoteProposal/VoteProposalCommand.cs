@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -16,6 +17,7 @@ public class VoteProposalCommandHandler(
     IProposalRepository proposalRepository,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
+    CrewChatsProposalService crewChatsProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<VoteProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(VoteProposalCommand request, CancellationToken cancellationToken)
@@ -93,6 +95,7 @@ public class VoteProposalCommandHandler(
             statusBefore,
             crewSettingsProposalService,
             crewRulesProposalService,
+            crewChatsProposalService,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

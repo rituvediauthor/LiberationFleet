@@ -15,6 +15,7 @@ public static class ProposalMapper
         EncryptedContentEnvelope? envelope,
         ProposalCrewSettingChange? crewSettingChange = null,
         ProposalCrewRuleChange? crewRuleChange = null,
+        ProposalCrewChatChange? crewChatChange = null,
         string? currentUserVote = null)
     {
         var dto = new ProposalListItemDto
@@ -30,19 +31,21 @@ public static class ProposalMapper
             CurrentUserVote = currentUserVote
         };
 
+        if (crewChatChange is not null)
+        {
+            ApplyPlaintext(dto, crewChatChange.Title, crewChatChange.Description);
+            return dto;
+        }
+
         if (crewRuleChange is not null)
         {
-            dto.HasPlaintextContent = true;
-            dto.Title = crewRuleChange.Title;
-            dto.DescriptionPreview = crewRuleChange.Description;
+            ApplyPlaintext(dto, crewRuleChange.Title, crewRuleChange.Description);
             return dto;
         }
 
         if (crewSettingChange is not null)
         {
-            dto.HasPlaintextContent = true;
-            dto.Title = crewSettingChange.Title;
-            dto.DescriptionPreview = crewSettingChange.Description;
+            ApplyPlaintext(dto, crewSettingChange.Title, crewSettingChange.Description);
             return dto;
         }
 
@@ -62,11 +65,21 @@ public static class ProposalMapper
         int viewerUserId,
         ProposalCrewSettingChange? crewSettingChange = null,
         ProposalCrewRuleChange? crewRuleChange = null,
+        ProposalCrewChatChange? crewChatChange = null,
         string? currentUserVote = null)
     {
-        var listItem = MapListItem(proposal, envelope, crewSettingChange, crewRuleChange, currentUserVote);
-        var isSystemProposal = proposal.Kind is ProposalKind.CrewSettingChange or ProposalKind.CrewRuleChange;
-        var plaintextDescription = crewRuleChange?.Description ?? crewSettingChange?.Description;
+        var listItem = MapListItem(
+            proposal,
+            envelope,
+            crewSettingChange,
+            crewRuleChange,
+            crewChatChange,
+            currentUserVote);
+        var isSystemProposal = proposal.Kind is
+            ProposalKind.CrewSettingChange or ProposalKind.CrewRuleChange or ProposalKind.CrewChatChange;
+        var plaintextDescription = crewChatChange?.Description
+            ?? crewRuleChange?.Description
+            ?? crewSettingChange?.Description;
 
         return new ProposalDetailDto
         {
@@ -110,4 +123,11 @@ public static class ProposalMapper
 
     public static ProposalStatus ParseStatus(string status) =>
         Enum.TryParse<ProposalStatus>(status, true, out var parsed) ? parsed : ProposalStatus.Pending;
+
+    private static void ApplyPlaintext(ProposalListItemDto dto, string title, string description)
+    {
+        dto.HasPlaintextContent = true;
+        dto.Title = title;
+        dto.DescriptionPreview = description;
+    }
 }

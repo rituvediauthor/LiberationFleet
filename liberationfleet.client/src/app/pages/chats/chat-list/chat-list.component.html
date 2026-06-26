@@ -7,17 +7,36 @@
     <p *ngIf="!loading && !errorMessage && rooms.length === 0" class="state-text">No chat rooms yet.</p>
 
     <div class="room-list" *ngIf="!loading && rooms.length > 0">
-      <button type="button" class="room-card" *ngFor="let room of rooms" (click)="openRoom(room)">
-        <div class="room-main">
-          <h2>{{ room.name }}</h2>
-          <p class="room-meta">
-            <span class="room-type">{{ roomTypeLabel(room) }}</span>
-            <span>·</span>
-            <span>{{ formatActivity(room.lastActivityAt) }}</span>
-          </p>
+      <div class="room-card" *ngFor="let room of rooms">
+        <button type="button" class="room-open" (click)="openRoom(room)">
+          <div class="room-main">
+            <h2>{{ room.name }}</h2>
+            <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
+            <p class="room-meta">
+              <span class="room-type">{{ roomTypeLabel(room) }}</span>
+              <span>·</span>
+              <span>{{ formatActivity(room.lastActivityAt) }}</span>
+            </p>
+          </div>
+          <i class="fa-solid fa-chevron-right room-chevron" aria-hidden="true"></i>
+        </button>
+
+        <div class="room-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            aria-label="Chat room options"
+            (click)="toggleMenu(room.id, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div class="room-menu" *ngIf="openMenuRoomId === room.id" (click)="$event.stopPropagation()">
+            <button type="button" (click)="editRoom(room, $event)">Edit</button>
+            <button type="button" (click)="muteRoom($event)">Mute</button>
+            <button type="button" (click)="hideRoom($event)">Hide</button>
+          </div>
         </div>
-        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-      </button>
+      </div>
     </div>
   </div>
 </app-page-layout>

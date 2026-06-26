@@ -1,6 +1,7 @@
 using FluentValidation;
 using LiberationFleet.Server.Application.Common.Behaviors;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Rules;
 using MediatR;
 
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<CrewSettingsProposalService>();
         services.AddScoped<CrewRulesProposalService>();
+        services.AddScoped<CrewChatsProposalService>();
 
         return services;
     }

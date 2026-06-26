@@ -31,6 +31,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalComment> ProposalComments => Set<ProposalComment>();
     public DbSet<ProposalCrewSettingChange> ProposalCrewSettingChanges => Set<ProposalCrewSettingChange>();
     public DbSet<ProposalCrewRuleChange> ProposalCrewRuleChanges => Set<ProposalCrewRuleChange>();
+    public DbSet<ProposalCrewChatChange> ProposalCrewChatChanges => Set<ProposalCrewChatChange>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
     public DbSet<ProjectPost> ProjectPosts => Set<ProjectPost>();
@@ -320,6 +321,20 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<ProposalCrewChatChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Purpose).HasMaxLength(2000);
+            entity.Property(e => e.NameNonce).HasMaxLength(500);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewChatChange)
+                .HasForeignKey<ProposalCrewChatChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<ProposalVote>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -417,6 +432,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.Purpose).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.HasOne(e => e.Crew)
                 .WithMany()

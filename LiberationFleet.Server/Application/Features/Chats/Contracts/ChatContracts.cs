@@ -7,6 +7,7 @@ public class ChatRoomListItemDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Purpose { get; set; } = string.Empty;
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
     public ChatRoomType RoomType { get; set; }
@@ -16,14 +17,18 @@ public class ChatRoomListItemDto
     public DateTime LastActivityAt { get; set; }
 }
 
+public class ChatRoomDetailDto : ChatRoomListItemDto
+{
+}
+
 public class ChatMessageDto
 {
-    public int Id { get; set; }
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public int Id { get; set; }
 }
 
 public class ChatRoomListResponse
@@ -31,6 +36,13 @@ public class ChatRoomListResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public IReadOnlyList<ChatRoomListItemDto> Items { get; set; } = Array.Empty<ChatRoomListItemDto>();
+}
+
+public class ChatRoomDetailResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public ChatRoomDetailDto? Room { get; set; }
 }
 
 public class ChatMessageListResponse
@@ -47,6 +59,8 @@ public class ChatOperationResponse
     public string Message { get; set; } = string.Empty;
     public int? RoomId { get; set; }
     public int? MessageId { get; set; }
+    public bool ProposalsSubmitted { get; set; }
+    public int? ProposalId { get; set; }
 }
 
 public class CreateChatRoomRequest
@@ -55,6 +69,26 @@ public class CreateChatRoomRequest
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public ChatRoomType RoomType { get; set; }
+    public string Purpose { get; set; } = string.Empty;
+    public string PlaintextName { get; set; } = string.Empty;
+}
+
+public class UpdateChatRoomRequest
+{
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+    public ChatRoomType RoomType { get; set; }
+    public string Purpose { get; set; } = string.Empty;
+    public string PlaintextName { get; set; } = string.Empty;
+    public string PlaintextOldName { get; set; } = string.Empty;
+    public string PlaintextOldPurpose { get; set; } = string.Empty;
+}
+
+public class DeleteChatRoomRequest
+{
+    public string PlaintextName { get; set; } = string.Empty;
+    public string PlaintextPurpose { get; set; } = string.Empty;
 }
 
 public class SendChatMessageRequest

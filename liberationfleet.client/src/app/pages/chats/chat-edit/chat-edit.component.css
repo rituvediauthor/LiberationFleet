@@ -1,0 +1,33 @@
+@import '../chat-create/chat-create.component.css';
+
+.state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: #c62828;
+}
+
+.delete-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.delete-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #f5c2c7;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #c62828;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

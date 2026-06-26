@@ -1,0 +1,37 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="chat-create-page">
+    <h1>Edit chat room</h1>
+
+    <p class="state-text" *ngIf="loading">Loading chat room...</p>
+    <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
+
+    <form [formGroup]="form" *ngIf="!loading && !loadError">
+      <label class="field">
+        <span>Type</span>
+        <select formControlName="roomType">
+          <option *ngFor="let type of roomTypes" [value]="type.value">{{ type.label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Name</span>
+        <input type="text" formControlName="name" maxlength="120" />
+      </label>
+
+      <label class="field">
+        <span>Purpose</span>
+        <textarea formControlName="purpose" rows="4" maxlength="2000"></textarea>
+      </label>
+
+      <div class="delete-section">
+        <button
+          type="button"
+          class="delete-btn"
+          [disabled]="isDeleting || isSubmitting"
+          (click)="deleteRoom()">
+          Delete chat
+        </button>
+      </div>
+    </form>
+  </div>
+</app-page-layout>

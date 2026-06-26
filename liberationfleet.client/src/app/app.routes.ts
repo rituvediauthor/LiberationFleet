@@ -26,6 +26,7 @@ import { DiscussionCreateComponent } from './pages/crew-discussion/discussion-cr
 import { DiscussionDetailComponent } from './pages/crew-discussion/discussion-detail/discussion-detail.component';
 import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
 import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
+import { ChatEditComponent } from './pages/chats/chat-edit/chat-edit.component';
 import { ChatTextComponent } from './pages/chats/chat-text/chat-text.component';
 import { ChatVoiceComponent } from './pages/chats/chat-voice/chat-voice.component';
 import { RuleListComponent } from './pages/rules/rule-list/rule-list.component';
@@ -145,6 +146,11 @@ export const routes: Routes = [
   {
     path: 'app/crew/chats/create',
     component: ChatCreateComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/chats/:id/edit',
+    component: ChatEditComponent,
     canActivate: [authGuard]
   },
   {

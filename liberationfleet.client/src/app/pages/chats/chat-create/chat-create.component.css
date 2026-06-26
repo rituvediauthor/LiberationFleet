@@ -19,12 +19,19 @@ h1 {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   font-weight: 400;
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
+  font-family: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 96px;
 }
 
 .error-text {

@@ -120,4 +120,32 @@ public class ProposalRepository : IProposalRepository
         ProposalCrewRuleChange change,
         CancellationToken cancellationToken = default) =>
         await _context.ProposalCrewRuleChanges.AddAsync(change, cancellationToken);
+
+    public Task<ProposalCrewChatChange?> GetCrewChatChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewChatChanges
+            .FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewChatChange>> GetCrewChatChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewChatChange>();
+        }
+
+        var changes = await _context.ProposalCrewChatChanges
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return changes.ToDictionary(c => c.ProposalId);
+    }
+
+    public async Task AddCrewChatChangeAsync(
+        ProposalCrewChatChange change,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewChatChanges.AddAsync(change, cancellationToken);
 }

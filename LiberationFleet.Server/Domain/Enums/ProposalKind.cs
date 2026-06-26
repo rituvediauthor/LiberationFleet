@@ -4,5 +4,6 @@ public enum ProposalKind
 {
     General = 0,
     CrewSettingChange = 1,
-    CrewRuleChange = 2
+    CrewRuleChange = 2,
+    CrewChatChange = 3
 }

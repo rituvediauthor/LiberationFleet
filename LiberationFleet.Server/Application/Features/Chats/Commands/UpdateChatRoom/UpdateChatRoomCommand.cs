@@ -6,27 +6,29 @@ using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
-namespace LiberationFleet.Server.Application.Features.Chats.Commands.CreateChatRoom;
+namespace LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
 
-public record CreateChatRoomCommand(
+public record UpdateChatRoomCommand(
+    int RoomId,
     string Nonce,
     string Ciphertext,
     int KeyVersion,
     ChatRoomType RoomType,
     string Purpose,
-    string PlaintextName) : IRequest<ChatOperationResponse>;
+    string PlaintextName,
+    string PlaintextOldName,
+    string PlaintextOldPurpose) : IRequest<ChatOperationResponse>;
 
-public class CreateChatRoomCommandHandler(
+public class UpdateChatRoomCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     CrewChatsProposalService crewChatsProposalService,
-    IChatRealtimeNotifier chatRealtimeNotifier,
-    IUnitOfWork unitOfWork) : IRequestHandler<CreateChatRoomCommand, ChatOperationResponse>
+    IUnitOfWork unitOfWork) : IRequestHandler<UpdateChatRoomCommand, ChatOperationResponse>
 {
-    public async Task<ChatOperationResponse> Handle(CreateChatRoomCommand request, CancellationToken cancellationToken)
+    public async Task<ChatOperationResponse> Handle(UpdateChatRoomCommand request, CancellationToken cancellationToken)
     {
         if (!currentUser.UserId.HasValue)
         {
@@ -49,13 +51,18 @@ public class CreateChatRoomCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
+        var room = await chatRepository.GetRoomByIdAsync(request.RoomId, cancellationToken);
+        if (room is null)
         {
-            return new ChatOperationResponse { Success = false, Message = "You are not in a crew." };
+            return new ChatOperationResponse { Success = false, Message = "Chat room not found." };
         }
 
-        var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+        if (!await membershipRepository.IsUserInCrewAsync(userId, room.CrewId, cancellationToken))
+        {
+            return new ChatOperationResponse { Success = false, Message = "You are not in this crew." };
+        }
+
+        var crew = await crewRepository.GetByIdAsync(room.CrewId, cancellationToken);
         if (crew is null)
         {
             return new ChatOperationResponse { Success = false, Message = "Crew not found." };
@@ -66,10 +73,14 @@ public class CreateChatRoomCommandHandler(
             var proposalId = await crewChatsProposalService.CreateProposalAsync(
                 crew.Id,
                 userId,
-                CrewChatProposalAction.Create,
-                CrewChatChangeDescriber.CreateTitle,
-                CrewChatChangeDescriber.BuildCreateDescription(request.PlaintextName, request.Purpose),
-                roomId: null,
+                CrewChatProposalAction.Update,
+                CrewChatChangeDescriber.UpdateTitle,
+                CrewChatChangeDescriber.BuildUpdateDescription(
+                    request.PlaintextOldName,
+                    request.PlaintextOldPurpose,
+                    request.PlaintextName,
+                    request.Purpose),
+                room.Id,
                 request.Purpose,
                 request.RoomType,
                 request.Nonce.Trim(),
@@ -89,25 +100,15 @@ public class CreateChatRoomCommandHandler(
         }
 
         var utcNow = DateTime.UtcNow;
-        var room = new ChatRoom
-        {
-            CrewId = membership.CrewId,
-            Name = string.Empty,
-            Purpose = request.Purpose.Trim(),
-            RoomType = request.RoomType,
-            CreatedByUserId = userId,
-            CreatedAt = utcNow,
-            LastActivityAt = utcNow
-        };
-
-        await chatRepository.AddRoomAsync(room, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        room.Purpose = request.Purpose.Trim();
+        room.RoomType = request.RoomType;
+        room.LastActivityAt = utcNow;
 
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = EncryptedContentType.ChatRoomName,
             ResourceId = room.Id.ToString(),
-            CrewId = membership.CrewId,
+            CrewId = room.CrewId,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -118,22 +119,10 @@ public class CreateChatRoomCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var savedRoom = await chatRepository.GetRoomByIdWithAuthorAsync(room.Id, cancellationToken);
-        var nameEnvelope = await cryptoRepository.GetEnvelopeAsync(
-            EncryptedContentType.ChatRoomName,
-            room.Id.ToString(),
-            cancellationToken);
-
-        if (savedRoom is not null)
-        {
-            var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope);
-            await chatRealtimeNotifier.NotifyRoomCreatedAsync(membership.CrewId, dto, cancellationToken);
-        }
-
         return new ChatOperationResponse
         {
             Success = true,
-            Message = "Chat room created.",
+            Message = "Chat room updated.",
             RoomId = room.Id
         };
     }

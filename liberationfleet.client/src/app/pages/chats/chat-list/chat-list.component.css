@@ -25,26 +25,47 @@
 
 .room-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 16px;
+  align-items: stretch;
+  gap: 8px;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   background: #fafafa;
+}
+
+.room-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 16px;
+  border: none;
+  background: transparent;
   text-align: left;
   cursor: pointer;
 }
 
-.room-card:hover {
+.room-open:hover {
   background: #f3f7ff;
-  border-color: #c9ddff;
+}
+
+.room-main {
+  min-width: 0;
 }
 
 .room-main h2 {
   margin: 0 0 6px;
   font-size: 18px;
+}
+
+.room-purpose {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .room-meta {
@@ -59,4 +80,59 @@
 .room-type {
   font-weight: 600;
   color: #007AFF;
+}
+
+.room-chevron {
+  color: #999;
+  flex-shrink: 0;
+}
+
+.room-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+}
+
+.kebab-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+}
+
+.kebab-btn:hover {
+  background: #ececec;
+}
+
+.room-menu {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 120px;
+  padding: 6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.room-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.room-menu button:hover {
+  background: #f3f7ff;
 }

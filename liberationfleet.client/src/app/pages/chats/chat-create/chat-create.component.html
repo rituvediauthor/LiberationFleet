@@ -17,6 +17,18 @@
       <span class="error-text" *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')">
         Name is required
       </span>
+
+      <label class="field">
+        <span>Purpose</span>
+        <textarea
+          formControlName="purpose"
+          rows="4"
+          maxlength="2000"
+          placeholder="Describe what this channel is for"></textarea>
+      </label>
+      <span class="error-text" *ngIf="form.get('purpose')?.touched && form.get('purpose')?.hasError('required')">
+        Purpose is required
+      </span>
     </form>
   </div>
 </app-page-layout>

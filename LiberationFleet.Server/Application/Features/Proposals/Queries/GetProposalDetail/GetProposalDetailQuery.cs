@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -18,6 +19,7 @@ public class GetProposalDetailQueryHandler(
     ICryptoRepository cryptoRepository,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
+    CrewChatsProposalService crewChatsProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -47,6 +49,7 @@ public class GetProposalDetailQueryHandler(
             statusBefore,
             crewSettingsProposalService,
             crewRulesProposalService,
+            crewChatsProposalService,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -65,6 +68,10 @@ public class GetProposalDetailQueryHandler(
 
         var crewRuleChange = proposal.Kind == ProposalKind.CrewRuleChange
             ? await proposalRepository.GetCrewRuleChangeByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewChatChange = proposal.Kind == ProposalKind.CrewChatChange
+            ? await proposalRepository.GetCrewChatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
@@ -91,7 +98,15 @@ public class GetProposalDetailQueryHandler(
         {
             Success = true,
             Message = "Proposal loaded.",
-            Proposal = ProposalMapper.MapDetail(proposal, proposalEnvelope, commentDtos, userId, crewSettingChange, crewRuleChange, currentUserVote)
+            Proposal = ProposalMapper.MapDetail(
+                proposal,
+                proposalEnvelope,
+                commentDtos,
+                userId,
+                crewSettingChange,
+                crewRuleChange,
+                crewChatChange,
+                currentUserVote)
         };
     }
 }

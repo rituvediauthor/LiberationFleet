@@ -4,8 +4,11 @@ import { Observable } from 'rxjs';
 import {
   ChatMessageListResponse,
   ChatOperationResponse,
+  ChatRoomDetailResponse,
   ChatRoomListResponse,
-  CreateChatRoomRequest
+  CreateChatRoomRequest,
+  DeleteChatRoomRequest,
+  UpdateChatRoomRequest
 } from '../models/chat.model';
 
 @Injectable({
@@ -20,13 +23,36 @@ export class ChatService {
     return this.http.get<ChatRoomListResponse>(`${this.apiUrl}/rooms`);
   }
 
+  getRoom(roomId: number): Observable<ChatRoomDetailResponse> {
+    return this.http.get<ChatRoomDetailResponse>(`${this.apiUrl}/rooms/${roomId}`);
+  }
+
   createRoom(request: CreateChatRoomRequest): Observable<ChatOperationResponse> {
     return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms`, {
       nonce: request.nonce,
       ciphertext: request.ciphertext,
       keyVersion: request.keyVersion ?? 1,
-      roomType: request.roomType
+      roomType: request.roomType,
+      purpose: request.purpose,
+      plaintextName: request.plaintextName
     });
+  }
+
+  updateRoom(roomId: number, request: UpdateChatRoomRequest): Observable<ChatOperationResponse> {
+    return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}`, {
+      nonce: request.nonce,
+      ciphertext: request.ciphertext,
+      keyVersion: request.keyVersion ?? 1,
+      roomType: request.roomType,
+      purpose: request.purpose,
+      plaintextName: request.plaintextName,
+      plaintextOldName: request.plaintextOldName,
+      plaintextOldPurpose: request.plaintextOldPurpose
+    });
+  }
+
+  deleteRoom(roomId: number, request: DeleteChatRoomRequest): Observable<ChatOperationResponse> {
+    return this.http.delete<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}`, { body: request });
   }
 
   getMessages(roomId: number, limit = 50, beforeMessageId?: number): Observable<ChatMessageListResponse> {

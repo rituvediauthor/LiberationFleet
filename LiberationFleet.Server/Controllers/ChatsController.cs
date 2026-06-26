@@ -1,6 +1,9 @@
 using LiberationFleet.Server.Application.Features.Chats.Commands.CreateChatRoom;
+using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.SendChatMessage;
+using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Application.Features.Chats.Queries.GetChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetChatRoomMessages;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetCrewChatRooms;
 using MediatR;
@@ -28,6 +31,13 @@ public class ChatsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpGet("rooms/{roomId:int}")]
+    public async Task<IActionResult> GetRoom(int roomId)
+    {
+        var result = await _mediator.Send(new GetChatRoomQuery(roomId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("rooms")]
     public async Task<IActionResult> CreateRoom([FromBody] CreateChatRoomRequest body)
     {
@@ -35,7 +45,36 @@ public class ChatsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
-            body.RoomType));
+            body.RoomType,
+            body.Purpose,
+            body.PlaintextName));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("rooms/{roomId:int}")]
+    public async Task<IActionResult> UpdateRoom(int roomId, [FromBody] UpdateChatRoomRequest body)
+    {
+        var result = await _mediator.Send(new UpdateChatRoomCommand(
+            roomId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
+            body.RoomType,
+            body.Purpose,
+            body.PlaintextName,
+            body.PlaintextOldName,
+            body.PlaintextOldPurpose));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("rooms/{roomId:int}")]
+    public async Task<IActionResult> DeleteRoom(int roomId, [FromBody] DeleteChatRoomRequest? body)
+    {
+        body ??= new DeleteChatRoomRequest();
+        var result = await _mediator.Send(new DeleteChatRoomCommand(
+            roomId,
+            body.PlaintextName,
+            body.PlaintextPurpose));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

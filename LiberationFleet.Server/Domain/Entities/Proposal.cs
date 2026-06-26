@@ -22,4 +22,5 @@ public class Proposal
     public ICollection<ProposalComment> Comments { get; set; } = new List<ProposalComment>();
     public ProposalCrewSettingChange? CrewSettingChange { get; set; }
     public ProposalCrewRuleChange? CrewRuleChange { get; set; }
+    public ProposalCrewChatChange? CrewChatChange { get; set; }
 }

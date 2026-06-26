@@ -44,7 +44,7 @@ export class CreateProposalComponent implements OnInit {
     this.backButton = {
       label: '←',
       type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/proposals/list/pending'])
+      onClick: () => this.router.navigate(['/app/crew/proposals'])
     };
 
     this.updateCreateButton();

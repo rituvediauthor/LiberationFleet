@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -18,6 +19,7 @@ public class GetCrewProposalsQueryHandler(
     ICryptoRepository cryptoRepository,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
+    CrewChatsProposalService crewChatsProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
     public async Task<ProposalListResponse> Handle(GetCrewProposalsQuery request, CancellationToken cancellationToken)
@@ -47,6 +49,7 @@ public class GetCrewProposalsQueryHandler(
                 statusBefore,
                 crewSettingsProposalService,
                 crewRulesProposalService,
+                crewChatsProposalService,
                 cancellationToken);
         }
 
@@ -71,6 +74,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewRuleChange).Select(p => p.Id),
             cancellationToken);
 
+        var crewChatChanges = await proposalRepository.GetCrewChatChangesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewChatChange).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -82,9 +89,16 @@ public class GetCrewProposalsQueryHandler(
 
             crewSettingChanges.TryGetValue(proposal.Id, out var crewSettingChange);
             crewRuleChanges.TryGetValue(proposal.Id, out var crewRuleChange);
+            crewChatChanges.TryGetValue(proposal.Id, out var crewChatChange);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
-            items.Add(ProposalMapper.MapListItem(proposal, envelope, crewSettingChange, crewRuleChange, currentUserVote));
+            items.Add(ProposalMapper.MapListItem(
+                proposal,
+                envelope,
+                crewSettingChange,
+                crewRuleChange,
+                crewChatChange,
+                currentUserVote));
         }
 
         return new ProposalListResponse
