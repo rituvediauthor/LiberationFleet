@@ -60,12 +60,17 @@ export interface ProposalComment {
   resolvedAttachments?: ResolvedAttachment[];
   replies?: ProposalComment[];
   repliesExpanded?: boolean;
+  isOwnComment?: boolean;
+  canKick?: boolean;
 }
 
 export interface ProposalDetail extends ProposalListItem {
   createdAt: Date;
   canEdit: boolean;
   canDelete: boolean;
+  usesAnonymousComments?: boolean;
+  viewerAlias?: string | null;
+  canKickAuthor?: boolean;
   description?: string;
   attachments?: ProposalAttachment[];
   resolvedAttachments?: ResolvedAttachment[];
@@ -89,6 +94,7 @@ export interface ProposalOperationResponse {
   message: string;
   proposalId?: number;
   commentId?: number;
+  alias?: string;
 }
 
 export interface ProposalCommentRepliesResponse {

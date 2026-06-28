@@ -5,7 +5,6 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Login;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Register;
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
-using LiberationFleet.Server.Application.Features.Crews.Commands.JoinCrew;
 using LiberationFleet.Server.Application.Features.Crews.Queries.SearchCrews;
 using LiberationFleet.Server.Infrastructure;
 using LiberationFleet.Server.Tests.TestHelpers;
@@ -29,7 +28,6 @@ public class DependencyInjectionTests
         provider.GetServices<IValidator<RegisterCommand>>().Should().NotBeEmpty();
         provider.GetServices<IValidator<LoginCommand>>().Should().NotBeEmpty();
         provider.GetServices<IValidator<CreateCrewCommand>>().Should().NotBeEmpty();
-        provider.GetServices<IValidator<JoinCrewCommand>>().Should().NotBeEmpty();
         provider.GetServices<IValidator<SearchCrewsQuery>>().Should().NotBeEmpty();
     }
 

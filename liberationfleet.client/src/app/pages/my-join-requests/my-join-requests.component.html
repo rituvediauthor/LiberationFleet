@@ -1,0 +1,30 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div class="join-requests-page">
+    <h1 class="page-title">My Join Requests</h1>
+    <p class="intro-text">
+      Pending applications to join crews. You'll become a crewmate when the first crew approves you; other pending requests are cancelled automatically.
+    </p>
+
+    <p *ngIf="loading" class="state-text">Loading join requests...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No pending join requests.</p>
+
+    <div class="request-cards" *ngIf="!loading && items.length > 0">
+      <article class="request-card" *ngFor="let item of items">
+        <h2 class="card-title">{{ item.crewName }}</h2>
+        <p class="card-meta">Requested {{ formatCreatedAt(item.createdAt) }}</p>
+        <p class="vote-line">
+          <span class="approve">{{ item.approveCount }} approve</span>
+          <span class="dot">·</span>
+          <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
+        </p>
+        <p class="timer" *ngIf="countdownText(item) as countdown">
+          Auto-approval in {{ countdown }}
+        </p>
+        <p class="key-status" [class.ready]="item.isKeyPrepared">
+          {{ item.isKeyPrepared ? 'Encryption key prepared' : 'Waiting for a crewmate to prepare your key' }}
+        </p>
+      </article>
+    </div>
+  </div>
+</app-page-layout>

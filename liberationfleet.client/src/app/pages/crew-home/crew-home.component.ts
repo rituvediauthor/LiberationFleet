@@ -94,6 +94,10 @@ export class CrewHomeComponent implements OnInit {
     this.router.navigate(['/app/crew/join']);
   }
 
+  goToJoinRequests() {
+    this.router.navigate(['/app/crew/join-requests']);
+  }
+
   goToEditCrew() {
     this.router.navigate(['/app/crew/edit']);
   }

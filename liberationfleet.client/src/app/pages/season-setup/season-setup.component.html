@@ -17,27 +17,13 @@
         <section class="section">
           <h2>Payment Platforms</h2>
           <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
-          <div class="platform-row" *ngFor="let account of paymentPlatforms">
-            <select [(ngModel)]="account.platformId" [ngModelOptions]="{standalone: true}" class="form-input" (ngModelChange)="onPaymentPlatformChange()">
-              <option [ngValue]="customPlatformOptionId">Add custom platform…</option>
-              <option *ngFor="let p of platformOptions" [ngValue]="p.id">{{ p.name }}</option>
-            </select>
-            <input
-              *ngIf="isCustomPlatform(account)"
-              [(ngModel)]="account.customPlatformName"
-              [ngModelOptions]="{standalone: true}"
-              class="form-input"
-              placeholder="Platform name"
-              (ngModelChange)="onPaymentPlatformChange()">
-            <input
-              [(ngModel)]="account.handle"
-              [ngModelOptions]="{standalone: true}"
-              class="form-input"
-              placeholder="Username or tag"
-              (ngModelChange)="onPaymentPlatformChange()">
-            <button type="button" class="icon-btn" (click)="removePaymentPlatform(account.id)" aria-label="Remove platform">×</button>
-          </div>
-          <button type="button" class="text-btn" (click)="addPaymentPlatform()">+ Add platform</button>
+          <app-payment-platform-editor
+            [platforms]="paymentPlatforms"
+            [platformOptions]="platformOptions"
+            (changed)="onPaymentPlatformChange()"
+            (add)="addPaymentPlatform()"
+            (remove)="removePaymentPlatform($event)">
+          </app-payment-platform-editor>
         </section>
 
         <div class="form-group">

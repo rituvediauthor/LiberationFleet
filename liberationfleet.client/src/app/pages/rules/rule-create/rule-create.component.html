@@ -17,6 +17,16 @@
           formControlName="description"
           placeholder="Describe the rule"></textarea>
       </div>
+
+      <div class="form-group public-option">
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="isPublic" />
+          Public
+        </label>
+        <p class="hint-text">
+          This rule will not be encrypted if public. Users looking to join this crew will see this rule and have to agree to it before they can request to join.
+        </p>
+      </div>
     </form>
   </div>
 </app-page-layout>

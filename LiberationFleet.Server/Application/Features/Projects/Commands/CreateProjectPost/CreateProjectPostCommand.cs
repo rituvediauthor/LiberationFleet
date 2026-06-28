@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Projects.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -14,6 +15,7 @@ public class CreateProjectPostCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IProjectRepository projectRepository,
     ICryptoRepository cryptoRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProjectPostCommand, ProjectOperationResponse>
 {
     public async Task<ProjectOperationResponse> Handle(CreateProjectPostCommand request, CancellationToken cancellationToken)
@@ -61,6 +63,18 @@ public class CreateProjectPostCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewIfNotMutedAsync(
+            membership.CrewId,
+            NotificationKind.NewProjectPost,
+            MutedContentType.Project,
+            post.Id,
+            "New project post",
+            "A new project post was published.",
+            $"/app/crew/projects/{post.Id}",
+            relatedEntityId: post.Id,
+            excludeUserId: userId,
+            cancellationToken: cancellationToken);
 
         return new ProjectOperationResponse
         {

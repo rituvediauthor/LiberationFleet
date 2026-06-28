@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -17,6 +18,7 @@ public class CreateProposalCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(CreateProposalCommand request, CancellationToken cancellationToken)
@@ -65,6 +67,16 @@ public class CreateProposalCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            membership.CrewId,
+            NotificationKind.NewProposal,
+            "New proposal",
+            "A new crew proposal was submitted.",
+            $"/app/crew/proposals/{proposal.Id}",
+            relatedEntityId: proposal.Id,
+            excludeUserId: userId,
+            cancellationToken: cancellationToken);
 
         return new ProposalOperationResponse
         {

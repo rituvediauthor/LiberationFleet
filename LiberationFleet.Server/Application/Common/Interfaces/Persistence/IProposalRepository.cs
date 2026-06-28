@@ -35,5 +35,49 @@ public interface IProposalRepository
         IEnumerable<int> proposalIds,
         CancellationToken cancellationToken = default);
     Task AddCrewChatChangeAsync(ProposalCrewChatChange change, CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateKick?> GetCrewmateKickByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewmateKick>> GetCrewmateKicksByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddCrewmateKickAsync(ProposalCrewmateKick kick, CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateKick?> GetPendingCrewmateKickForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateRejoin?> GetCrewmateRejoinByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewmateRejoin>> GetCrewmateRejoinsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddCrewmateRejoinAsync(ProposalCrewmateRejoin rejoin, CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateRejoin?> GetPendingCrewmateRejoinForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default);
+    Task<ProposalCrewJoinRequest?> GetCrewJoinRequestByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewJoinRequest>> GetCrewJoinRequestsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddCrewJoinRequestAsync(ProposalCrewJoinRequest joinRequest, CancellationToken cancellationToken = default);
+    Task<ProposalCrewJoinRequest?> GetPendingJoinRequestForApplicantAndCrewAsync(
+        int applicantUserId,
+        int crewId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Proposal>> GetJoinRequestProposalsByApplicantAsync(
+        int applicantUserId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<int>> GetPendingJoinApplicantUserIdsForCrewAsync(
+        int crewId,
+        CancellationToken cancellationToken = default);
+    Task RejectPendingJoinRequestsForApplicantAsync(
+        int applicantUserId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default);
+    Task<ProposalAnonymousAlias?> GetAnonymousAliasAsync(int proposalId, int userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProposalAnonymousAlias>> GetAnonymousAliasesAsync(
+        int proposalId,
+        IEnumerable<int> userIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetAnonymousNicknamesAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddAnonymousAliasAsync(ProposalAnonymousAlias alias, CancellationToken cancellationToken = default);
     void RemoveVote(ProposalVote vote);
 }

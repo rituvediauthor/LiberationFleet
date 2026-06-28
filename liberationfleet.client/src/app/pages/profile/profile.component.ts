@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
+import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
@@ -17,7 +18,7 @@ import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent, PaymentPlatformEditorComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -43,7 +44,6 @@ export class ProfileComponent implements OnInit {
   private profileService = inject(ProfileService);
   private crewService = inject(CrewService);
   private cryptoSession = inject(CryptoSessionService);
-  readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -210,10 +210,6 @@ export class ProfileComponent implements OnInit {
     if (!this.profile) return;
     this.profileService.setPreferredPlatform(this.profile, accountId);
     this.updateSaveButton();
-  }
-
-  isCustomPlatform(account: PaymentPlatformAccount): boolean {
-    return this.profileService.isCustomPlatform(account);
   }
 
   private async loadEncryptionStatus() {

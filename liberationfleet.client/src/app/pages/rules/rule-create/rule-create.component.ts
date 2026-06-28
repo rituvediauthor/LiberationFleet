@@ -35,7 +35,8 @@ export class RuleCreateComponent implements OnInit {
   ngOnInit() {
     this.form = this.fb.group({
       title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]]
+      description: ['', [Validators.required, Validators.maxLength(10000)]],
+      isPublic: [false]
     });
 
     this.backButton = {
@@ -76,7 +77,22 @@ export class RuleCreateComponent implements OnInit {
 
     try {
       await this.encryptionContent.whenReady();
-      const { title, description } = this.form.getRawValue();
+      const { title, description, isPublic } = this.form.getRawValue();
+
+      if (isPublic) {
+        this.ruleService.createRule({
+          isPublic: true,
+          nonce: '',
+          ciphertext: '',
+          plaintextTitle: title.trim(),
+          plaintextDescription: description.trim()
+        }).subscribe({
+          next: result => this.handleCreateResult(result),
+          error: err => this.handleCreateError(err)
+        });
+        return;
+      }
+
       const encrypted = await this.ruleCrypto.encryptRulePayload(this.crewId, {
         title: title.trim(),
         description: description.trim(),
@@ -88,32 +104,36 @@ export class RuleCreateComponent implements OnInit {
         plaintextTitle: title.trim(),
         plaintextDescription: description.trim()
       }).subscribe({
-        next: result => {
-          if (result.success && result.proposalsSubmitted) {
-            this.toastService.success(result.message || 'Proposal submitted for crew approval');
-            this.router.navigate(['/app/crew/proposals/list/pending']);
-            return;
-          }
-          if (result.success) {
-            this.toastService.success('Rule created');
-            this.router.navigate(['/app/crew/rules']);
-            return;
-          }
-          this.toastService.error(result.message || 'Failed to create rule');
-          this.isSubmitting = false;
-          this.updateCreateButton();
-        },
-        error: err => {
-          this.toastService.error(err?.error?.message || 'Failed to create rule');
-          this.isSubmitting = false;
-          this.updateCreateButton();
-        }
+        next: result => this.handleCreateResult(result),
+        error: err => this.handleCreateError(err)
       });
     } catch {
       this.toastService.error('Failed to encrypt rule content');
       this.isSubmitting = false;
       this.updateCreateButton();
     }
+  }
+
+  private handleCreateResult(result: { success: boolean; message?: string; proposalsSubmitted?: boolean }) {
+    if (result.success && result.proposalsSubmitted) {
+      this.toastService.success(result.message || 'Proposal submitted for crew approval');
+      this.router.navigate(['/app/crew/proposals/list/pending']);
+      return;
+    }
+    if (result.success) {
+      this.toastService.success('Rule created');
+      this.router.navigate(['/app/crew/rules']);
+      return;
+    }
+    this.toastService.error(result.message || 'Failed to create rule');
+    this.isSubmitting = false;
+    this.updateCreateButton();
+  }
+
+  private handleCreateError(err: { error?: { message?: string } }) {
+    this.toastService.error(err?.error?.message || 'Failed to create rule');
+    this.isSubmitting = false;
+    this.updateCreateButton();
   }
 
   private updateCreateButton() {

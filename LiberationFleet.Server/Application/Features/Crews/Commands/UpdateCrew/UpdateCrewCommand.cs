@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -23,6 +24,7 @@ public class UpdateCrewCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
     CrewSettingsProposalService crewSettingsProposalService,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateCrewCommand, CrewOperationResponse>
 {
     public async Task<CrewOperationResponse> Handle(UpdateCrewCommand request, CancellationToken cancellationToken)
@@ -81,6 +83,15 @@ public class UpdateCrewCommandHandler(
 
         CrewSettingsProposalService.ApplyDirectUpdate(crew, request, privacy, scope);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            membership.CrewId,
+            NotificationKind.CrewSettingChanged,
+            "Crew setting changed",
+            "Crew settings were updated.",
+            "/app/crew/edit",
+            excludeUserId: currentUser.UserId.Value,
+            cancellationToken: cancellationToken);
 
         return new CrewOperationResponse
         {

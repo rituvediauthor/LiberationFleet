@@ -9,6 +9,9 @@ public class RuleListItemDto
     public string CreatedByUsername { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsPublic { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
 }
@@ -42,6 +45,7 @@ public class RuleOperationResponse
 
 public class CreateRuleRequest
 {
+    public bool IsPublic { get; set; }
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
@@ -51,6 +55,7 @@ public class CreateRuleRequest
 
 public class UpdateRuleRequest
 {
+    public bool IsPublic { get; set; }
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;

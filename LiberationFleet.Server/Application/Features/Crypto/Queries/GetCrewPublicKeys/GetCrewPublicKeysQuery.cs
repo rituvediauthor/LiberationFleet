@@ -11,6 +11,7 @@ public record GetCrewPublicKeysQuery(int CrewId) : IRequest<IReadOnlyList<UserKe
 public class GetCrewPublicKeysQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewPublicKeysQuery, IReadOnlyList<UserKeyBundleDto>>
 {
     public async Task<IReadOnlyList<UserKeyBundleDto>> Handle(GetCrewPublicKeysQuery request, CancellationToken cancellationToken)
@@ -27,7 +28,14 @@ public class GetCrewPublicKeysQueryHandler(
 
         var members = await membershipRepository.GetActiveMembersByCrewIdAsync(request.CrewId, cancellationToken);
         var userIds = members.Select(m => m.UserId).ToList();
-        var bundles = await cryptoRepository.GetUserKeyBundlesAsync(userIds, cancellationToken);
+
+        var pendingApplicants = await proposalRepository.GetPendingJoinApplicantUserIdsForCrewAsync(
+            request.CrewId,
+            cancellationToken);
+        userIds.AddRange(pendingApplicants);
+
+        var distinctUserIds = userIds.Distinct().ToList();
+        var bundles = await cryptoRepository.GetUserKeyBundlesAsync(distinctUserIds, cancellationToken);
         return bundles.Select(CryptoMapper.MapKeyBundle).ToList();
     }
 }

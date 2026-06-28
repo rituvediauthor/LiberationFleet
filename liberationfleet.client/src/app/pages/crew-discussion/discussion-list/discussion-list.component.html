@@ -7,27 +7,42 @@
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No posts yet.</p>
 
     <div class="post-cards" *ngIf="!loading && items.length > 0">
-      <button
-        type="button"
-        class="post-card"
-        *ngFor="let item of items"
-        (click)="openPost(item)">
-        <div class="card-top">
-          <div class="card-main">
-            <p class="card-meta">
-              <span class="author">{{ item.authorUsername }}</span>
-              <span class="dot">·</span>
-              <span>{{ formatActivity(item.lastActivityAt) }}</span>
-            </p>
-            <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
-            <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
+      <div class="post-card" *ngFor="let item of items">
+        <button type="button" class="post-open" (click)="openPost(item)">
+          <div class="card-top">
+            <div class="card-main">
+              <p class="card-meta">
+                <span class="author">{{ item.authorUsername }}</span>
+                <span class="dot">·</span>
+                <span>{{ formatActivity(item.lastActivityAt) }}</span>
+                <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
+              </p>
+              <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+              <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
+            </div>
+            <div class="card-thumb" *ngIf="item.thumbnailUrl">
+              <img [src]="item.thumbnailUrl" alt="" />
+            </div>
+            <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
           </div>
-          <div class="card-thumb" *ngIf="item.thumbnailUrl">
-            <img [src]="item.thumbnailUrl" alt="" />
+        </button>
+
+        <div class="post-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            [attr.aria-label]="config.label + ' options'"
+            (click)="toggleMenu(item.id, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div class="post-menu" *ngIf="openMenuItemId === item.id" (click)="$event.stopPropagation()">
+            <button type="button" (click)="toggleMute(item, $event)">
+              {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
+            </button>
           </div>
-          <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
         </div>
-      </button>
+      </div>
     </div>
   </div>
 </app-page-layout>

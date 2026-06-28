@@ -35,3 +35,22 @@ label {
   resize: vertical;
   min-height: 160px;
 }
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #666;
+  margin: 8px 0 0;
+  line-height: 1.4;
+}
+
+.public-option {
+  margin-top: 8px;
+}

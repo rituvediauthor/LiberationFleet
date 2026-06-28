@@ -1,88 +1,120 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="joinButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
   <div class="form-container">
     <div class="form-card">
-      <h1>Join Crew</h1>
+      <ng-container *ngIf="joinStep === 'select'">
+        <h1>Join Crew</h1>
+        <p class="intro-text">
+          Review a crew's public rules and request to join. You can apply to multiple crews; you'll join the first one that approves you.
+          <a routerLink="/app/crew/join-requests" class="inline-link">View your pending requests</a>
+        </p>
 
-      <form [formGroup]="form">
-        <div class="form-group">
-          <span class="group-label">How would you like to join?</span>
-          <label class="radio-option">
-            <input type="radio" formControlName="mode" value="find">
-            Find a crew
-          </label>
-          <label class="radio-option">
-            <input type="radio" formControlName="mode" value="code">
-            Join with code
-          </label>
-        </div>
-
-        <ng-container *ngIf="!isFindMode">
+        <form [formGroup]="form">
           <div class="form-group">
-            <label for="joinCode">Join code</label>
-            <input
-              id="joinCode"
-              type="text"
-              formControlName="joinCode"
-              class="form-input join-code-input"
-              [attr.maxlength]="joinCodeLength"
-              autocapitalize="characters"
-              spellcheck="false"
-              placeholder="8-character code"
-              (input)="onJoinCodeInput($event)">
-            <span class="hint-text">Enter the join code shown on your crew's home page.</span>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="isFindMode">
-          <div class="form-group">
-            <label for="scope">Search Type</label>
-            <select id="scope" formControlName="scope" class="form-input">
-              <option value="Online">Online</option>
-              <option value="Local">Local</option>
-            </select>
+            <span class="group-label">How would you like to join?</span>
+            <label class="radio-option">
+              <input type="radio" formControlName="mode" value="find">
+              Find a crew
+            </label>
+            <label class="radio-option">
+              <input type="radio" formControlName="mode" value="code">
+              Join with code
+            </label>
           </div>
 
-          <ng-container *ngIf="isLocal">
+          <ng-container *ngIf="!isFindMode">
             <div class="form-group">
-              <label for="zipCode">Zip Code</label>
-              <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric" placeholder="5-digit zip">
-            </div>
-
-            <div class="form-group">
-              <label for="radiusMiles">Max Radius (miles)</label>
-              <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+              <label for="joinCode">Join code</label>
+              <input
+                id="joinCode"
+                type="text"
+                formControlName="joinCode"
+                class="form-input join-code-input"
+                [attr.maxlength]="joinCodeLength"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="8-character code"
+                (input)="onJoinCodeInput($event)">
+              <span class="hint-text">Enter the join code shown on your crew's home page.</span>
             </div>
           </ng-container>
 
-          <div class="search-status" *ngIf="isSearching">Searching...</div>
-
-          <div class="results-section" *ngIf="hasSearched && !isSearching">
-            <p class="results-summary">{{ searchMessage }} ({{ totalCount }} total)</p>
-
-            <ul class="results-list" *ngIf="searchResults.length > 0">
-              <li *ngFor="let crew of searchResults">
-                <button
-                  type="button"
-                  class="result-item"
-                  [class.selected]="selectedCrew?.id === crew.id"
-                  (click)="selectCrew(crew)">
-                  <span class="result-name">{{ crew.name }}</span>
-                  <span class="result-meta">
-                    {{ crew.memberCount }}/{{ crew.maxSize }} members · {{ crew.scope }}
-                    <ng-container *ngIf="crew.distanceMiles != null"> · {{ crew.distanceMiles }} mi</ng-container>
-                  </span>
-                </button>
-              </li>
-            </ul>
-
-            <div class="pagination" *ngIf="totalPages > 1">
-              <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">Previous</button>
-              <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
-              <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+          <ng-container *ngIf="isFindMode">
+            <div class="form-group">
+              <label for="scope">Search Type</label>
+              <select id="scope" formControlName="scope" class="form-input">
+                <option value="Online">Online</option>
+                <option value="Local">Local</option>
+              </select>
             </div>
-          </div>
-        </ng-container>
-      </form>
+
+            <ng-container *ngIf="isLocal">
+              <div class="form-group">
+                <label for="zipCode">Zip Code</label>
+                <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric" placeholder="5-digit zip">
+              </div>
+
+              <div class="form-group">
+                <label for="radiusMiles">Max Radius (miles)</label>
+                <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+              </div>
+            </ng-container>
+
+            <div class="search-status" *ngIf="isSearching">Searching...</div>
+
+            <div class="results-section" *ngIf="hasSearched && !isSearching">
+              <p class="results-summary">{{ searchMessage }} ({{ totalCount }} total)</p>
+
+              <ul class="results-list" *ngIf="searchResults.length > 0">
+                <li *ngFor="let crew of searchResults">
+                  <button
+                    type="button"
+                    class="result-item"
+                    [class.selected]="selectedCrew?.id === crew.id"
+                    (click)="selectCrew(crew)">
+                    <span class="result-name">{{ crew.name }}</span>
+                    <span class="result-meta">
+                      {{ crew.memberCount }}/{{ crew.maxSize }} members · {{ crew.scope }}
+                      <ng-container *ngIf="crew.distanceMiles != null"> · {{ crew.distanceMiles }} mi</ng-container>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+
+              <div class="pagination" *ngIf="totalPages > 1">
+                <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">Previous</button>
+                <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+                <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+              </div>
+            </div>
+          </ng-container>
+        </form>
+      </ng-container>
+
+      <ng-container *ngIf="joinStep === 'rules'">
+        <h1>Join {{ targetCrewName }}</h1>
+        <p class="intro-text">Accept each public rule below before requesting to join this crew.</p>
+
+        <p class="search-status" *ngIf="isLoadingRules">Loading rules...</p>
+        <p class="state-text error" *ngIf="rulesError">{{ rulesError }}</p>
+
+        <p class="state-text" *ngIf="!isLoadingRules && publicRules.length === 0">
+          This crew has no public rules. You can request to join without accepting any rules.
+        </p>
+
+        <ul class="rules-list" *ngIf="!isLoadingRules && publicRules.length > 0">
+          <li class="rule-card" *ngFor="let rule of publicRules">
+            <h2 class="rule-title">{{ rule.title }}</h2>
+            <p class="rule-description">{{ rule.description }}</p>
+            <label class="accept-option">
+              <input
+                type="checkbox"
+                [checked]="isRuleAccepted(rule.id)"
+                (change)="toggleRuleAcceptance(rule.id, $any($event.target).checked)">
+              Accept
+            </label>
+          </li>
+        </ul>
+      </ng-container>
     </div>
   </div>
 </app-page-layout>

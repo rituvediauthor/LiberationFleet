@@ -1,5 +1,4 @@
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
-using LiberationFleet.Server.Application.Features.Crews.Commands.JoinCrew;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 using LiberationFleet.Server.Application.Features.Crews.Queries.SearchCrews;
@@ -68,28 +67,6 @@ public class CrewsControllerTests
         _mediator.Setup(m => m.Send(It.IsAny<SearchCrewsQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
         var result = await CreateController().Search(new SearchCrewsQuery());
-
-        result.Should().BeOfType<BadRequestObjectResult>();
-    }
-
-    [Fact]
-    public async Task Join_WhenSuccessful_ReturnsOk()
-    {
-        var response = new CrewOperationResponse { Success = true, Message = "Joined crew successfully" };
-        _mediator.Setup(m => m.Send(It.IsAny<JoinCrewCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(response);
-
-        var result = await CreateController().Join(new JoinCrewCommand { CrewId = 1 });
-
-        result.Should().BeOfType<OkObjectResult>();
-    }
-
-    [Fact]
-    public async Task Join_WhenFailed_ReturnsBadRequest()
-    {
-        var response = new CrewOperationResponse { Success = false, Message = "Crew not found" };
-        _mediator.Setup(m => m.Send(It.IsAny<JoinCrewCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(response);
-
-        var result = await CreateController().Join(new JoinCrewCommand { CrewId = 99 });
 
         result.Should().BeOfType<BadRequestObjectResult>();
     }

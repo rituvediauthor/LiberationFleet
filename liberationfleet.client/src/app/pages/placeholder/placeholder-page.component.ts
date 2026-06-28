@@ -24,6 +24,10 @@ export class PlaceholderPageComponent implements OnInit {
     this.title = data['title'] ?? this.title;
     this.message = data['message'] ?? this.message;
     this.backTo = data['backTo'] ?? this.backTo;
+    const queryTitle = this.route.snapshot.queryParamMap.get('title');
+    if (queryTitle) {
+      this.title = queryTitle;
+    }
 
     this.backButton = {
       label: '←',

@@ -11,11 +11,14 @@ public static class RuleMapper
         {
             Id = rule.Id,
             CreatedByUserId = rule.CreatedByUserId,
-            CreatedByUsername = envelope is null ? rule.CreatedByUser.Username : string.Empty,
+            CreatedByUsername = rule.IsPublic || envelope is null ? rule.CreatedByUser.Username : string.Empty,
             CreatedAt = rule.CreatedAt,
             UpdatedAt = rule.UpdatedAt,
-            HasEncryptedContent = envelope is not null,
-            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null
+            IsPublic = rule.IsPublic,
+            Title = rule.IsPublic ? rule.Title : null,
+            Description = rule.IsPublic ? rule.Description : null,
+            HasEncryptedContent = !rule.IsPublic && envelope is not null,
+            EncryptedPayload = !rule.IsPublic && envelope is not null ? CryptoMapper.MapPayload(envelope) : null
         };
 
     public static RuleDetailDto MapDetail(CrewRule rule, EncryptedContentEnvelope? envelope) =>
@@ -23,10 +26,13 @@ public static class RuleMapper
         {
             Id = rule.Id,
             CreatedByUserId = rule.CreatedByUserId,
-            CreatedByUsername = envelope is null ? rule.CreatedByUser.Username : string.Empty,
+            CreatedByUsername = rule.IsPublic || envelope is null ? rule.CreatedByUser.Username : string.Empty,
             CreatedAt = rule.CreatedAt,
             UpdatedAt = rule.UpdatedAt,
-            HasEncryptedContent = envelope is not null,
-            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null
+            IsPublic = rule.IsPublic,
+            Title = rule.IsPublic ? rule.Title : null,
+            Description = rule.IsPublic ? rule.Description : null,
+            HasEncryptedContent = !rule.IsPublic && envelope is not null,
+            EncryptedPayload = !rule.IsPublic && envelope is not null ? CryptoMapper.MapPayload(envelope) : null
         };
 }

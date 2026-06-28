@@ -6,8 +6,11 @@ import {
   CrewMembershipStatus,
   CrewOperationResult,
   CrewSearchResult,
-  JoinCrewRequest,
+  JoinRequestListResponse,
+  JoinRequestOperationResponse,
+  PublicCrewRulesResponse,
   SearchCrewsRequest,
+  SubmitJoinRequestBody,
   UpdateCrewRequest
 } from '../models/crew.model';
 import { PaymentPlatformOption } from '../models/gift.model';
@@ -49,15 +52,21 @@ export class CrewService {
     return this.http.post<CrewSearchResult>(`${this.apiUrl}/search`, request);
   }
 
-  join(request: JoinCrewRequest): Observable<CrewOperationResult> {
-    if (request.joinCode?.trim()) {
-      return this.http.post<CrewOperationResult>(`${this.apiUrl}/join`, {
-        joinCode: request.joinCode.trim().toUpperCase()
-      });
-    }
+  getPublicRules(crewId: number): Observable<PublicCrewRulesResponse> {
+    return this.http.get<PublicCrewRulesResponse>(`${this.apiUrl}/${crewId}/public-rules`);
+  }
 
-    return this.http.post<CrewOperationResult>(`${this.apiUrl}/join`, {
-      crewId: request.crewId
+  getPublicRulesByJoinCode(joinCode: string): Observable<PublicCrewRulesResponse> {
+    return this.http.get<PublicCrewRulesResponse>(`${this.apiUrl}/public-rules`, {
+      params: { joinCode: joinCode.trim().toUpperCase() }
     });
+  }
+
+  submitJoinRequest(body: SubmitJoinRequestBody): Observable<JoinRequestOperationResponse> {
+    return this.http.post<JoinRequestOperationResponse>(`${this.apiUrl}/join-request`, body);
+  }
+
+  getMyJoinRequests(): Observable<JoinRequestListResponse> {
+    return this.http.get<JoinRequestListResponse>(`${this.apiUrl}/join-requests/mine`);
   }
 }

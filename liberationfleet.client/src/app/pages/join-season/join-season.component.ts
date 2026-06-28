@@ -3,18 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
 import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry } from '../../models/gift.model';
 import { CrewService } from '../../services/crew.service';
-import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
+import { PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 
 @Component({
   selector: 'app-join-season',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, PaymentPlatformEditorComponent],
   templateUrl: './join-season.component.html',
   styleUrl: './join-season.component.css'
 })
@@ -34,7 +35,6 @@ export class JoinSeasonComponent implements OnInit {
   private router = inject(Router);
   private crewService = inject(CrewService);
   private giftService = inject(GiftService);
-  readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
 
@@ -122,10 +122,6 @@ export class JoinSeasonComponent implements OnInit {
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }
-
-  isCustomPlatform(account: PaymentPlatformAccount): boolean {
-    return this.profileService.isCustomPlatform(account);
   }
 
   private updateReadyButton() {

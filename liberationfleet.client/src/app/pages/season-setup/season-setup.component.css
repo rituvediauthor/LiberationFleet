@@ -42,11 +42,10 @@ h1 {
   margin: 0 0 12px;
 }
 
-.platform-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 8px;
-  margin-bottom: 8px;
+.section-hint {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 16px;
 }
 
 .form-group {
@@ -66,19 +65,6 @@ label {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-}
-
-.text-btn, .icon-btn {
-  background: none;
-  border: none;
-  color: #007AFF;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.icon-btn {
-  font-size: 20px;
-  padding: 8px;
 }
 
 .status-text {

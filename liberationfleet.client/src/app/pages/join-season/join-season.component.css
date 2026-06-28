@@ -56,11 +56,10 @@ h1 {
   margin-bottom: 20px;
 }
 
-.platform-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 8px;
-  margin-bottom: 8px;
+.section-hint {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 16px;
 }
 
 .form-group {
@@ -73,11 +72,4 @@ h1 {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-}
-
-.text-btn, .icon-btn {
-  background: none;
-  border: none;
-  color: #007AFF;
-  cursor: pointer;
 }

@@ -69,6 +69,10 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/crew/crewmates', crewmate.userId]);
   }
 
+  openKickedCrewmates() {
+    this.router.navigate(['/app/crew/crewmates/kicked']);
+  }
+
   private loadCrewmates() {
     this.loading = true;
     this.errorMessage = '';

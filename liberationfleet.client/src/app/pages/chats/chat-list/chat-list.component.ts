@@ -10,6 +10,8 @@ import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomListItem } from '../../../models/chat.model';
+import { MutedContentItem } from '../../../models/notification.model';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-chat-list',
@@ -24,6 +26,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   crewId = 0;
   openMenuRoomId: number | null = null;
+  mutedItems: MutedContentItem[] = [];
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -34,6 +37,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   private crewService = inject(CrewService);
   private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
+  private notificationService = inject(NotificationService);
   private subscriptions: Subscription[] = [];
 
   ngOnInit() {
@@ -61,6 +65,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);
         }
+        this.loadMutes();
         this.loadRooms();
       },
       error: () => {
@@ -111,16 +116,48 @@ export class ChatListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/crew/chats', room.id, 'edit']);
   }
 
-  muteRoom(event: Event) {
+  isRoomMuted(roomId: number): boolean {
+    return this.notificationService.isMuted(this.mutedItems, 'ChatRoom', roomId);
+  }
+
+  muteRoom(room: ChatRoomListItem, event: Event) {
     event.stopPropagation();
     this.openMenuRoomId = null;
-    this.toastService.success('Mute is coming soon');
+    const muted = !this.isRoomMuted(room.id);
+    this.notificationService.setMute('ChatRoom', room.id, muted).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update mute setting');
+          return;
+        }
+        if (muted) {
+          this.mutedItems = [...this.mutedItems, { contentType: 'ChatRoom', resourceId: room.id }];
+          this.toastService.success('Chat room muted');
+        } else {
+          this.mutedItems = this.mutedItems.filter(
+            item => !(item.contentType === 'ChatRoom' && item.resourceId === room.id)
+          );
+          this.toastService.success('Chat room unmuted');
+        }
+      },
+      error: () => this.toastService.error('Failed to update mute setting')
+    });
   }
 
   hideRoom(event: Event) {
     event.stopPropagation();
     this.openMenuRoomId = null;
     this.toastService.success('Hide is coming soon');
+  }
+
+  private loadMutes() {
+    this.notificationService.getMutes().subscribe({
+      next: response => {
+        if (response.success) {
+          this.mutedItems = response.items ?? [];
+        }
+      }
+    });
   }
 
   private loadRooms() {

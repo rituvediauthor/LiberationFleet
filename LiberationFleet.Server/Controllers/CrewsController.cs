@@ -1,11 +1,13 @@
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
-using LiberationFleet.Server.Application.Features.Crews.Commands.JoinCrew;
 using LiberationFleet.Server.Application.Features.Crews.Commands.LeaveCrew;
+using LiberationFleet.Server.Application.Features.Crews.Commands.SubmitJoinRequest;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetCrewPaymentPlatforms;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrew;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyJoinRequests;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetPublicCrewRules;
 using LiberationFleet.Server.Application.Features.Crews.Queries.SearchCrews;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -83,10 +85,34 @@ public class CrewsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
-    [HttpPost("join")]
-    public async Task<IActionResult> Join([FromBody] JoinCrewCommand command)
+    [HttpGet("{crewId:int}/public-rules")]
+    public async Task<IActionResult> GetPublicRules(int crewId)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(new GetPublicCrewRulesQuery(crewId, null));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("public-rules")]
+    public async Task<IActionResult> GetPublicRulesByJoinCode([FromQuery] string joinCode)
+    {
+        var result = await _mediator.Send(new GetPublicCrewRulesQuery(null, joinCode));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("join-request")]
+    public async Task<IActionResult> SubmitJoinRequest([FromBody] SubmitJoinRequestBody body)
+    {
+        var result = await _mediator.Send(new SubmitJoinRequestCommand(
+            body.CrewId,
+            body.JoinCode,
+            body.AcceptedRuleIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("join-requests/mine")]
+    public async Task<IActionResult> GetMyJoinRequests()
+    {
+        var result = await _mediator.Send(new GetMyJoinRequestsQuery());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

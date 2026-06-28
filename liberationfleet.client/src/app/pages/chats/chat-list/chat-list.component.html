@@ -14,6 +14,7 @@
             <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
             <p class="room-meta">
               <span class="room-type">{{ roomTypeLabel(room) }}</span>
+              <span *ngIf="isRoomMuted(room.id)" class="muted-badge">Muted</span>
               <span>·</span>
               <span>{{ formatActivity(room.lastActivityAt) }}</span>
             </p>
@@ -32,7 +33,9 @@
 
           <div class="room-menu" *ngIf="openMenuRoomId === room.id" (click)="$event.stopPropagation()">
             <button type="button" (click)="editRoom(room, $event)">Edit</button>
-            <button type="button" (click)="muteRoom($event)">Mute</button>
+            <button type="button" (click)="muteRoom(room, $event)">
+              {{ isRoomMuted(room.id) ? 'Unmute' : 'Mute' }}
+            </button>
             <button type="button" (click)="hideRoom($event)">Hide</button>
           </div>
         </div>

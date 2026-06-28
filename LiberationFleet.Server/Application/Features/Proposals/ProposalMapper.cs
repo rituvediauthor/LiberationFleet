@@ -16,6 +16,9 @@ public static class ProposalMapper
         ProposalCrewSettingChange? crewSettingChange = null,
         ProposalCrewRuleChange? crewRuleChange = null,
         ProposalCrewChatChange? crewChatChange = null,
+        ProposalCrewmateKick? crewmateKick = null,
+        ProposalCrewmateRejoin? crewmateRejoin = null,
+        ProposalCrewJoinRequest? crewJoinRequest = null,
         string? currentUserVote = null)
     {
         var dto = new ProposalListItemDto
@@ -30,6 +33,24 @@ public static class ProposalMapper
             ApprovalTimerEndsAt = proposal.ApprovalTimerEndsAt,
             CurrentUserVote = currentUserVote
         };
+
+        if (crewmateKick is not null)
+        {
+            ApplyPlaintext(dto, crewmateKick.Title, crewmateKick.Description);
+            return dto;
+        }
+
+        if (crewJoinRequest is not null)
+        {
+            ApplyPlaintext(dto, crewJoinRequest.Title, crewJoinRequest.Description);
+            return dto;
+        }
+
+        if (crewmateRejoin is not null)
+        {
+            ApplyPlaintext(dto, crewmateRejoin.Title, crewmateRejoin.Description);
+            return dto;
+        }
 
         if (crewChatChange is not null)
         {
@@ -66,7 +87,11 @@ public static class ProposalMapper
         ProposalCrewSettingChange? crewSettingChange = null,
         ProposalCrewRuleChange? crewRuleChange = null,
         ProposalCrewChatChange? crewChatChange = null,
-        string? currentUserVote = null)
+        ProposalCrewmateKick? crewmateKick = null,
+        ProposalCrewmateRejoin? crewmateRejoin = null,
+        ProposalCrewJoinRequest? crewJoinRequest = null,
+        string? currentUserVote = null,
+        string? viewerAlias = null)
     {
         var listItem = MapListItem(
             proposal,
@@ -74,12 +99,24 @@ public static class ProposalMapper
             crewSettingChange,
             crewRuleChange,
             crewChatChange,
+            crewmateKick,
+            crewmateRejoin,
+            crewJoinRequest,
             currentUserVote);
         var isSystemProposal = proposal.Kind is
-            ProposalKind.CrewSettingChange or ProposalKind.CrewRuleChange or ProposalKind.CrewChatChange;
-        var plaintextDescription = crewChatChange?.Description
+            ProposalKind.CrewSettingChange
+            or ProposalKind.CrewRuleChange
+            or ProposalKind.CrewChatChange
+            or ProposalKind.CrewmateKick
+            or ProposalKind.CrewmateRejoin
+            or ProposalKind.CrewJoinRequest;
+        var plaintextDescription = crewmateKick?.Description
+            ?? crewJoinRequest?.Description
+            ?? crewmateRejoin?.Description
+            ?? crewChatChange?.Description
             ?? crewRuleChange?.Description
             ?? crewSettingChange?.Description;
+        var usesAnonymousComments = proposal.Kind == ProposalKind.General;
 
         return new ProposalDetailDto
         {
@@ -101,6 +138,9 @@ public static class ProposalMapper
             Description = plaintextDescription,
             CanEdit = !isSystemProposal && proposal.AuthorUserId == viewerUserId,
             CanDelete = !isSystemProposal && proposal.AuthorUserId == viewerUserId,
+            UsesAnonymousComments = usesAnonymousComments,
+            CanKickAuthor = usesAnonymousComments && proposal.AuthorUserId != viewerUserId,
+            ViewerAlias = viewerAlias,
             Comments = comments
         };
     }
@@ -108,18 +148,30 @@ public static class ProposalMapper
     public static ProposalCommentDto MapComment(
         ProposalComment comment,
         EncryptedContentEnvelope? envelope,
-        int replyCount) =>
-        new()
+        int replyCount,
+        int viewerUserId,
+        bool usesAnonymousComments,
+        IReadOnlyDictionary<int, string> nicknameByUserId)
+    {
+        var isOwn = comment.AuthorUserId == viewerUserId;
+        nicknameByUserId.TryGetValue(comment.AuthorUserId, out var nickname);
+
+        return new ProposalCommentDto
         {
             Id = comment.Id,
             AuthorUserId = 0,
-            AuthorUsername = AnonymousAuthor,
+            AuthorUsername = usesAnonymousComments && !string.IsNullOrWhiteSpace(nickname)
+                ? nickname
+                : AnonymousAuthor,
             ParentCommentId = comment.ParentCommentId,
             CreatedAt = comment.CreatedAt,
             ReplyCount = replyCount,
             HasEncryptedContent = envelope is not null,
-            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null
+            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
+            IsOwnComment = isOwn,
+            CanKick = usesAnonymousComments && !isOwn
         };
+    }
 
     public static ProposalStatus ParseStatus(string status) =>
         Enum.TryParse<ProposalStatus>(status, true, out var parsed) ? parsed : ProposalStatus.Pending;

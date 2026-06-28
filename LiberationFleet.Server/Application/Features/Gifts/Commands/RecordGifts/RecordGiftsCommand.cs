@@ -1,6 +1,8 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -22,6 +24,7 @@ public class RecordGiftsCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftsCommand request, CancellationToken cancellationToken)
@@ -44,6 +47,7 @@ public class RecordGiftsCommandHandler(
         }
 
         Gift? lastSaved = null;
+        var notifiedRecipients = new HashSet<int>();
 
         foreach (var item in request.Gifts)
         {
@@ -105,6 +109,20 @@ public class RecordGiftsCommandHandler(
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+
+            if (notifiedRecipients.Add(item.RecipientId))
+            {
+                await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                {
+                    UserId = item.RecipientId,
+                    CrewId = membership.CrewId,
+                    Kind = NotificationKind.NewGifts,
+                    Title = "New gift(s)",
+                    Body = "You received a new gift in your crew.",
+                    ActionUrl = "/app/crew/gift-log",
+                    RelatedEntityId = gift.Id
+                }, cancellationToken);
+            }
         }
 
         return new GiftOperationResponse

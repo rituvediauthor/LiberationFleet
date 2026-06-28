@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -14,6 +15,7 @@ public class CreateForumPostCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateForumPostCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(CreateForumPostCommand request, CancellationToken cancellationToken)
@@ -61,6 +63,18 @@ public class CreateForumPostCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewIfNotMutedAsync(
+            membership.CrewId,
+            NotificationKind.NewForumPost,
+            MutedContentType.Forum,
+            post.Id,
+            "New forum post",
+            "A new forum post was published.",
+            $"/app/crew/forums/{post.Id}",
+            relatedEntityId: post.Id,
+            excludeUserId: userId,
+            cancellationToken: cancellationToken);
 
         return new ForumOperationResponse
         {

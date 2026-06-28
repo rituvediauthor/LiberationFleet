@@ -1,0 +1,59 @@
+<div class="platform-editor">
+  <div class="platform-entry" *ngFor="let account of platforms">
+    <div class="platform-field">
+      <label [for]="fieldId(account, 'platform')">Payment platform</label>
+      <select
+        [id]="fieldId(account, 'platform')"
+        [(ngModel)]="account.platformId"
+        class="form-input"
+        (ngModelChange)="onFieldChange()">
+        <option [ngValue]="customPlatformOptionId">Add custom platform…</option>
+        <option *ngFor="let p of platformOptions" [ngValue]="p.id">{{ p.name }}</option>
+      </select>
+    </div>
+
+    <div class="platform-field" *ngIf="isCustomPlatform(account)">
+      <label [for]="fieldId(account, 'custom-name')">Custom platform name</label>
+      <input
+        [id]="fieldId(account, 'custom-name')"
+        [(ngModel)]="account.customPlatformName"
+        class="form-input"
+        type="text"
+        autocomplete="off"
+        (ngModelChange)="onFieldChange()">
+    </div>
+
+    <div class="platform-field">
+      <label [for]="fieldId(account, 'handle')">Handle or username</label>
+      <input
+        [id]="fieldId(account, 'handle')"
+        [(ngModel)]="account.handle"
+        class="form-input"
+        type="text"
+        autocomplete="off"
+        (ngModelChange)="onFieldChange()">
+    </div>
+
+    <div class="platform-entry-actions">
+      <label class="preferred-label" *ngIf="showPreferred">
+        <input
+          type="radio"
+          name="preferredPlatform"
+          [checked]="account.isPreferred"
+          (change)="onPreferredChange(account.id)">
+        Preferred
+      </label>
+
+      <button
+        type="button"
+        class="remove-btn"
+        (click)="onRemove(account.id)"
+        [attr.aria-label]="'Remove payment platform ' + (account.handle || account.customPlatformName || '')">
+        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+        <span>Remove</span>
+      </button>
+    </div>
+  </div>
+
+  <button type="button" class="add-btn" (click)="onAdd()">+ Add platform</button>
+</div>

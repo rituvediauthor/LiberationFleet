@@ -2,20 +2,20 @@ import { Component, inject, OnInit } from '@angular/core';
 import { debounceTime } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { CrewService } from '../../services/crew.service';
-import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { Crew, CrewScope } from '../../models/crew.model';
+import { Crew, CrewScope, PublicCrewRule } from '../../models/crew.model';
 
 type JoinMode = 'find' | 'code';
+type JoinStep = 'select' | 'rules';
 const JOIN_CODE_LENGTH = 8;
 
 @Component({
   selector: 'app-join-crew',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RouterLink],
   templateUrl: './join-crew.component.html',
   styleUrl: './join-crew.component.css'
 })
@@ -24,8 +24,9 @@ export class JoinCrewComponent implements OnInit {
 
   form: FormGroup;
   backButton: ActionBarButton;
-  joinButton!: ActionBarButton;
+  primaryButton!: ActionBarButton;
 
+  joinStep: JoinStep = 'select';
   searchResults: Crew[] = [];
   selectedCrew: Crew | null = null;
   currentPage = 1;
@@ -33,13 +34,19 @@ export class JoinCrewComponent implements OnInit {
   totalCount = 0;
   searchMessage = '';
   isSearching = false;
-  isJoining = false;
+  isLoadingRules = false;
+  isSubmitting = false;
   hasSearched = false;
+
+  targetCrewId = 0;
+  targetCrewName = '';
+  publicRules: PublicCrewRule[] = [];
+  acceptedRuleIds = new Set<number>();
+  rulesError = '';
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private crewService = inject(CrewService);
-  private crewCryptoSync = inject(CrewCryptoSyncService);
   private toastService = inject(ToastService);
 
   constructor() {
@@ -54,17 +61,17 @@ export class JoinCrewComponent implements OnInit {
     this.backButton = {
       label: '←',
       type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
+      onClick: () => this.onBack()
     };
   }
 
   ngOnInit() {
-    this.updateJoinButton();
+    this.updatePrimaryButton();
 
     this.form.get('mode')?.valueChanges.subscribe(() => {
       this.resetSearch();
       this.updateLocalValidators();
-      this.updateJoinButton();
+      this.updatePrimaryButton();
       this.refreshSearchIfNeeded();
     });
 
@@ -78,7 +85,7 @@ export class JoinCrewComponent implements OnInit {
       if (this.isFindMode && this.canSearch()) {
         this.runSearch(1);
       }
-      this.updateJoinButton();
+      this.updatePrimaryButton();
     });
 
     this.updateLocalValidators();
@@ -93,12 +100,41 @@ export class JoinCrewComponent implements OnInit {
     return this.form.get('scope')?.value === 'Local';
   }
 
+  get allRulesAccepted(): boolean {
+    return this.publicRules.every(rule => this.acceptedRuleIds.has(rule.id));
+  }
+
+  isRuleAccepted(ruleId: number): boolean {
+    return this.acceptedRuleIds.has(ruleId);
+  }
+
+  toggleRuleAcceptance(ruleId: number, accepted: boolean) {
+    if (accepted) {
+      this.acceptedRuleIds.add(ruleId);
+    } else {
+      this.acceptedRuleIds.delete(ruleId);
+    }
+    this.updatePrimaryButton();
+  }
+
   onJoinCodeInput(event: Event) {
     const input = event.target as HTMLInputElement;
     const normalized = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, JOIN_CODE_LENGTH);
     if (input.value !== normalized) {
       this.form.patchValue({ joinCode: normalized }, { emitEvent: true });
     }
+  }
+
+  private onBack() {
+    if (this.joinStep === 'rules') {
+      this.joinStep = 'select';
+      this.publicRules = [];
+      this.acceptedRuleIds.clear();
+      this.rulesError = '';
+      this.updatePrimaryButton();
+      return;
+    }
+    this.router.navigate(['/app/crew']);
   }
 
   private updateLocalValidators() {
@@ -121,16 +157,27 @@ export class JoinCrewComponent implements OnInit {
     radius?.updateValueAndValidity({ emitEvent: false });
   }
 
-  private updateJoinButton() {
-    const disabled = this.isJoining || (this.isFindMode
+  private updatePrimaryButton() {
+    if (this.joinStep === 'rules') {
+      const disabled = this.isSubmitting || this.isLoadingRules || !this.allRulesAccepted;
+      this.primaryButton = {
+        label: 'Request to join',
+        type: 'primary',
+        disabled,
+        onClick: () => this.onSubmitJoinRequest()
+      };
+      return;
+    }
+
+    const disabled = this.isLoadingRules || (this.isFindMode
       ? this.selectedCrew === null
       : this.normalizeJoinCode(this.form.get('joinCode')?.value).length !== JOIN_CODE_LENGTH);
 
-    this.joinButton = {
-      label: 'Join',
+    this.primaryButton = {
+      label: 'Continue',
       type: 'primary',
       disabled,
-      onClick: () => this.onJoin()
+      onClick: () => this.onContinueToRules()
     };
   }
 
@@ -182,7 +229,7 @@ export class JoinCrewComponent implements OnInit {
         this.searchMessage = result.message;
         this.selectedCrew = null;
         this.isSearching = false;
-        this.updateJoinButton();
+        this.updatePrimaryButton();
       },
       error: (error) => {
         this.toastService.error(error.error?.message || 'Search failed');
@@ -193,7 +240,7 @@ export class JoinCrewComponent implements OnInit {
 
   selectCrew(crew: Crew) {
     this.selectedCrew = crew;
-    this.updateJoinButton();
+    this.updatePrimaryButton();
   }
 
   goToPage(page: number) {
@@ -213,37 +260,77 @@ export class JoinCrewComponent implements OnInit {
     this.hasSearched = false;
   }
 
-  onJoin() {
-    if (this.joinButton.disabled || this.isJoining) {
+  onContinueToRules() {
+    if (this.primaryButton.disabled || this.isLoadingRules) {
       return;
     }
 
-    this.isJoining = true;
-    this.updateJoinButton();
+    this.isLoadingRules = true;
+    this.rulesError = '';
+    this.updatePrimaryButton();
+
+    const request = this.isFindMode
+      ? this.crewService.getPublicRules(this.selectedCrew!.id)
+      : this.crewService.getPublicRulesByJoinCode(this.normalizeJoinCode(this.form.get('joinCode')?.value));
+
+    request.subscribe({
+      next: (result) => {
+        this.isLoadingRules = false;
+        if (!result.success) {
+          this.toastService.error(result.message);
+          this.updatePrimaryButton();
+          return;
+        }
+
+        this.targetCrewId = result.crewId;
+        this.targetCrewName = result.crewName;
+        this.publicRules = result.items;
+        this.acceptedRuleIds.clear();
+        this.joinStep = 'rules';
+        this.rulesError = '';
+        this.updatePrimaryButton();
+      },
+      error: (error) => {
+        this.isLoadingRules = false;
+        this.toastService.error(this.extractErrorMessage(error));
+        this.updatePrimaryButton();
+      }
+    });
+  }
+
+  onSubmitJoinRequest() {
+    if (this.primaryButton.disabled || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.updatePrimaryButton();
 
     const payload = this.isFindMode
-      ? { crewId: this.selectedCrew!.id }
-      : { joinCode: this.normalizeJoinCode(this.form.get('joinCode')?.value) };
-
-    this.crewService.join(payload).subscribe({
-      next: async (result) => {
-        if (result.success) {
-          const crewId = result.crew?.id ?? this.selectedCrew?.id;
-          if (crewId) {
-            await this.crewCryptoSync.prepareNewMemberAccess(crewId);
-          }
-          this.toastService.success(result.message);
-          this.router.navigate(['/app/crew']);
-        } else {
-          this.toastService.error(result.message);
-          this.isJoining = false;
-          this.updateJoinButton();
+      ? {
+          crewId: this.targetCrewId,
+          acceptedRuleIds: this.publicRules.map(rule => rule.id)
         }
+      : {
+          joinCode: this.normalizeJoinCode(this.form.get('joinCode')?.value),
+          acceptedRuleIds: this.publicRules.map(rule => rule.id)
+        };
+
+    this.crewService.submitJoinRequest(payload).subscribe({
+      next: (result) => {
+        if (result.success) {
+          this.toastService.success(result.message || 'Join request submitted');
+          this.router.navigate(['/app/crew/join-requests']);
+          return;
+        }
+        this.toastService.error(result.message);
+        this.isSubmitting = false;
+        this.updatePrimaryButton();
       },
       error: (error) => {
         this.toastService.error(this.extractErrorMessage(error));
-        this.isJoining = false;
-        this.updateJoinButton();
+        this.isSubmitting = false;
+        this.updatePrimaryButton();
       }
     });
   }
@@ -257,6 +344,6 @@ export class JoinCrewComponent implements OnInit {
       }
     }
 
-    return error.error?.message || 'Failed to join crew';
+    return error.error?.message || 'Request failed';
   }
 }

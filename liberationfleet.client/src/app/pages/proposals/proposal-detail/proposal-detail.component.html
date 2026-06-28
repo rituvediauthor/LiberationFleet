@@ -2,18 +2,34 @@
   <div class="detail-scroll">
     <div class="proposal-content-card">
       <div class="proposal-header" *ngIf="!editing">
-        <p class="meta">
-          <span class="author">{{ p.authorUsername }}</span>
-          <span>·</span>
-          <span>{{ p.createdAt | date:'medium' }}</span>
-        </p>
-        <h1>{{ p.title }}</h1>
-        <p class="vote-summary">
-          <span class="approve">{{ p.approveCount }} approve</span>
-          <span>·</span>
-          <span class="disapprove">{{ p.disapproveCount }} disapprove</span>
-        </p>
-        <p class="timer" *ngIf="countdownText() as countdown">Auto-approval in {{ countdown }}</p>
+        <div class="proposal-header-main">
+          <p class="meta">
+            <span class="author">{{ p.authorUsername }}</span>
+            <span>·</span>
+            <span>{{ p.createdAt | date:'medium' }}</span>
+          </p>
+          <h1>{{ p.title }}</h1>
+          <p class="vote-summary">
+            <span class="approve">{{ p.approveCount }} approve</span>
+            <span>·</span>
+            <span class="disapprove">{{ p.disapproveCount }} disapprove</span>
+          </p>
+          <p class="timer" *ngIf="countdownText() as countdown">Auto-approval in {{ countdown }}</p>
+        </div>
+        <div class="menu-wrap" *ngIf="p.canKickAuthor">
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="Proposal options"
+            (click)="toggleProposalAuthorMenu($event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+          <div class="dropdown-menu" *ngIf="openProposalAuthorMenu" (click)="$event.stopPropagation()">
+            <button type="button" (click)="kickFromProposalAuthor($event)">
+              Kick from crew
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="edit-form" *ngIf="editing">
@@ -70,11 +86,30 @@
       <h2>Comments</h2>
       <div class="comments-list">
         <article class="comment" *ngFor="let comment of p.comments">
-          <p class="comment-meta">
-            <strong>{{ comment.authorUsername }}</strong>
-            <span>·</span>
-            <span>{{ comment.createdAt | date:'short' }}</span>
-          </p>
+          <div class="comment-header">
+            <p class="comment-meta">
+              <strong>{{ comment.authorUsername }}</strong>
+              <span>·</span>
+              <span>{{ comment.createdAt | date:'short' }}</span>
+            </p>
+            <div class="menu-wrap" *ngIf="p.usesAnonymousComments && (comment.isOwnComment || comment.canKick)">
+              <button
+                type="button"
+                class="icon-btn"
+                aria-label="Comment options"
+                (click)="toggleCommentMenu(comment.id, $event)">
+                <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+              </button>
+              <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
+                <button type="button" *ngIf="comment.isOwnComment" (click)="rerollNickname($event)">
+                  Reroll nickname
+                </button>
+                <button type="button" *ngIf="comment.canKick" (click)="kickFromComment(comment, $event)">
+                  Kick from crew
+                </button>
+              </div>
+            </div>
+          </div>
           <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
           <app-proposal-attachment-display
             [attachments]="comment.resolvedAttachments ?? []"
@@ -93,11 +128,30 @@
 
           <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
             <article class="comment reply" *ngFor="let reply of comment.replies">
-              <p class="comment-meta">
-                <strong>{{ reply.authorUsername }}</strong>
-                <span>·</span>
-                <span>{{ reply.createdAt | date:'short' }}</span>
-              </p>
+              <div class="comment-header">
+                <p class="comment-meta">
+                  <strong>{{ reply.authorUsername }}</strong>
+                  <span>·</span>
+                  <span>{{ reply.createdAt | date:'short' }}</span>
+                </p>
+                <div class="menu-wrap" *ngIf="p.usesAnonymousComments && (reply.isOwnComment || reply.canKick)">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label="Reply options"
+                    (click)="toggleCommentMenu(reply.id, $event)">
+                    <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+                  </button>
+                  <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
+                    <button type="button" *ngIf="reply.isOwnComment" (click)="rerollNickname($event)">
+                      Reroll nickname
+                    </button>
+                    <button type="button" *ngIf="reply.canKick" (click)="kickFromComment(reply, $event)">
+                      Kick from crew
+                    </button>
+                  </div>
+                </div>
+              </div>
               <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
               <app-proposal-attachment-display
                 [attachments]="reply.resolvedAttachments ?? []"

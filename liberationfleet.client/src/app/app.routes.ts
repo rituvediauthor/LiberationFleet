@@ -11,11 +11,14 @@ import { ProfileComponent } from './pages/profile/profile.component';
 import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
+import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { SeasonSetupComponent } from './pages/season-setup/season-setup.component';
 import { JoinSeasonComponent } from './pages/join-season/join-season.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
+import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
+import { NotificationSettingsComponent } from './pages/notification-settings/notification-settings.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
@@ -34,6 +37,7 @@ import { RuleCreateComponent } from './pages/rules/rule-create/rule-create.compo
 import { RuleEditComponent } from './pages/rules/rule-edit/rule-edit.component';
 import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-list.component';
+import { KickedCrewmatesListComponent } from './pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component';
 import { CrewmateDetailComponent } from './pages/crewmates/crewmate-detail/crewmate-detail.component';
 import { authGuard } from './guards/auth.guard';
 
@@ -97,9 +101,34 @@ export const routes: Routes = [
   },
   {
     path: 'app/profile/preferences',
+    component: ProfileSettingsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/notifications',
+    component: NotificationSettingsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/placeholder',
     component: PlaceholderPageComponent,
     canActivate: [authGuard],
-    data: { title: 'Preferences', backTo: '/app/profile' }
+    data: { title: 'Preferences', backTo: '/app/profile/preferences' }
+  },
+  {
+    path: 'app/profile/settings',
+    redirectTo: 'app/profile/preferences',
+    pathMatch: 'full'
+  },
+  {
+    path: 'app/profile/settings/notifications',
+    redirectTo: 'app/profile/preferences/notifications',
+    pathMatch: 'full'
+  },
+  {
+    path: 'app/profile/settings/placeholder',
+    redirectTo: 'app/profile/preferences/placeholder',
+    pathMatch: 'full'
   },
   {
     path: 'app/crew/create',
@@ -109,6 +138,11 @@ export const routes: Routes = [
   {
     path: 'app/crew/join',
     component: JoinCrewComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/join-requests',
+    component: MyJoinRequestsComponent,
     canActivate: [authGuard]
   },
   {
@@ -225,6 +259,12 @@ export const routes: Routes = [
   {
     path: 'app/crew/crewmates',
     component: CrewmateListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/crewmates/kicked',
+    component: KickedCrewmatesListComponent,
     pathMatch: 'full',
     canActivate: [authGuard]
   },

@@ -1,0 +1,55 @@
+.settings-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.settings-page h1 {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-link:hover {
+  border-color: #007AFF;
+  background: #f8fbff;
+}
+
+.menu-icon {
+  width: 20px;
+  color: #007AFF;
+}
+
+.menu-label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.coming-soon {
+  font-size: 12px;
+  color: #888;
+}
+
+.menu-chevron {
+  color: #999;
+}

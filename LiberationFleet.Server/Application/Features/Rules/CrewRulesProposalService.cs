@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Domain.Entities;
@@ -9,7 +10,8 @@ namespace LiberationFleet.Server.Application.Features.Rules;
 public class CrewRulesProposalService(
     IProposalRepository proposalRepository,
     IRuleRepository ruleRepository,
-    ICryptoRepository cryptoRepository)
+    ICryptoRepository cryptoRepository,
+    NotificationService notificationService)
 {
     public async Task<int> CreateProposalAsync(
         int crewId,
@@ -21,7 +23,8 @@ public class CrewRulesProposalService(
         string? nonce,
         string? ciphertext,
         int keyVersion,
-        CancellationToken cancellationToken)
+        bool isPublic = false,
+        CancellationToken cancellationToken = default)
     {
         var utcNow = DateTime.UtcNow;
         var proposal = new Proposal
@@ -45,6 +48,7 @@ public class CrewRulesProposalService(
             Nonce = nonce,
             Ciphertext = ciphertext,
             KeyVersion = keyVersion <= 0 ? 1 : keyVersion,
+            IsPublic = isPublic,
         }, cancellationToken);
 
         return proposal.Id;
@@ -69,17 +73,63 @@ public class CrewRulesProposalService(
         {
             case CrewRuleProposalAction.Create:
                 await ApplyCreateAsync(proposal, change, authorUserId: proposal.AuthorUserId, utcNow, cancellationToken);
+                if (change.RuleId.HasValue)
+                {
+                    await NotifyRuleChangeAsync(
+                        proposal.CrewId,
+                        NotificationKind.NewRule,
+                        change.RuleId.Value,
+                        "New rule",
+                        "A new crew rule was added via approved proposal.",
+                        cancellationToken);
+                }
                 break;
             case CrewRuleProposalAction.Update:
                 await ApplyUpdateAsync(change, utcNow, cancellationToken);
+                if (change.RuleId.HasValue)
+                {
+                    await NotifyRuleChangeAsync(
+                        proposal.CrewId,
+                        NotificationKind.RuleEdited,
+                        change.RuleId.Value,
+                        "Rule edited",
+                        "A crew rule was updated via approved proposal.",
+                        cancellationToken);
+                }
                 break;
             case CrewRuleProposalAction.Delete:
+                if (change.RuleId.HasValue)
+                {
+                    await NotifyRuleChangeAsync(
+                        proposal.CrewId,
+                        NotificationKind.RuleDeleted,
+                        change.RuleId.Value,
+                        "Rule deleted",
+                        "A crew rule was deleted via approved proposal.",
+                        cancellationToken);
+                }
                 await ApplyDeleteAsync(change, utcNow, cancellationToken);
                 break;
         }
 
         change.IsApplied = true;
     }
+
+    private Task NotifyRuleChangeAsync(
+        int crewId,
+        NotificationKind kind,
+        int ruleId,
+        string title,
+        string body,
+        CancellationToken cancellationToken) =>
+        notificationService.NotifyCrewAsync(
+            crewId,
+            kind,
+            title,
+            body,
+            kind == NotificationKind.RuleDeleted ? "/app/crew/rules" : $"/app/crew/rules/{ruleId}/edit",
+            relatedEntityId: ruleId,
+            cancellationToken: cancellationToken);
 
     private async Task ApplyCreateAsync(
         Proposal proposal,
@@ -88,32 +138,39 @@ public class CrewRulesProposalService(
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext))
-        {
-            return;
-        }
-
         var rule = new CrewRule
         {
             CrewId = proposal.CrewId,
             CreatedByUserId = authorUserId,
             CreatedAt = utcNow,
-            UpdatedAt = utcNow
+            UpdatedAt = utcNow,
+            IsPublic = change.IsPublic,
+            Title = change.IsPublic ? change.Title : null,
+            Description = change.IsPublic ? change.Description : null
         };
 
         await ruleRepository.AddAsync(rule, cancellationToken);
-        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+
+        if (!change.IsPublic)
         {
-            ContentType = EncryptedContentType.RulesDocument,
-            ResourceId = rule.Id.ToString(),
-            CrewId = proposal.CrewId,
-            AuthorUserId = authorUserId,
-            KeyVersion = change.KeyVersion,
-            Nonce = change.Nonce.Trim(),
-            Ciphertext = change.Ciphertext.Trim(),
-            CreatedAt = utcNow,
-            UpdatedAt = utcNow
-        }, cancellationToken);
+            if (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext))
+            {
+                return;
+            }
+
+            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.RulesDocument,
+                ResourceId = rule.Id.ToString(),
+                CrewId = proposal.CrewId,
+                AuthorUserId = authorUserId,
+                KeyVersion = change.KeyVersion,
+                Nonce = change.Nonce.Trim(),
+                Ciphertext = change.Ciphertext.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            }, cancellationToken);
+        }
 
         change.RuleId = rule.Id;
     }
@@ -123,9 +180,7 @@ public class CrewRulesProposalService(
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
-        if (!change.RuleId.HasValue
-            || string.IsNullOrWhiteSpace(change.Nonce)
-            || string.IsNullOrWhiteSpace(change.Ciphertext))
+        if (!change.RuleId.HasValue)
         {
             return;
         }
@@ -137,6 +192,19 @@ public class CrewRulesProposalService(
         }
 
         rule.UpdatedAt = utcNow;
+        rule.IsPublic = change.IsPublic;
+        if (change.IsPublic)
+        {
+            rule.Title = change.Title;
+            rule.Description = change.Description;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext))
+        {
+            return;
+        }
+
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = EncryptedContentType.RulesDocument,

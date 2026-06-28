@@ -1,0 +1,19 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="notification-settings-page">
+    <h1>Notifications</h1>
+    <p class="intro">Choose which notifications you want to receive.</p>
+
+    <p *ngIf="loading" class="state-text">Loading preferences...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <div class="preference-list" *ngIf="!loading && preferences.length > 0">
+      <label class="preference-row" *ngFor="let preference of preferences">
+        <input
+          type="checkbox"
+          [checked]="preference.isEnabled"
+          (change)="togglePreference(preference)">
+        <span>{{ preference.label }}</span>
+      </label>
+    </div>
+  </div>
+</app-page-layout>

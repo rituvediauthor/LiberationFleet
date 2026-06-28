@@ -3,8 +3,11 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Rules;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Proposals.Commands.VoteProposal;
@@ -18,6 +21,10 @@ public class VoteProposalCommandHandler(
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
     CrewChatsProposalService crewChatsProposalService,
+    CrewmateKickProposalService crewmateKickProposalService,
+    CrewmateRejoinProposalService crewmateRejoinProposalService,
+    CrewJoinRequestProposalService crewJoinRequestProposalService,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<VoteProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(VoteProposalCommand request, CancellationToken cancellationToken)
@@ -96,9 +103,42 @@ public class VoteProposalCommandHandler(
             crewSettingsProposalService,
             crewRulesProposalService,
             crewChatsProposalService,
+            crewmateKickProposalService,
+            crewmateRejoinProposalService,
+            crewJoinRequestProposalService,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (statusBefore != proposal.Status)
+        {
+            if (proposal.Status == ProposalStatus.Approved)
+            {
+                await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                {
+                    UserId = proposal.AuthorUserId,
+                    CrewId = proposal.CrewId,
+                    Kind = NotificationKind.ProposalAccepted,
+                    Title = "Proposal accepted",
+                    Body = "Your crew proposal was approved.",
+                    ActionUrl = $"/app/crew/proposals/{proposal.Id}",
+                    RelatedEntityId = proposal.Id
+                }, cancellationToken);
+            }
+            else if (proposal.Status == ProposalStatus.Rejected)
+            {
+                await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                {
+                    UserId = proposal.AuthorUserId,
+                    CrewId = proposal.CrewId,
+                    Kind = NotificationKind.ProposalRejected,
+                    Title = "Proposal rejected",
+                    Body = "Your crew proposal was rejected.",
+                    ActionUrl = $"/app/crew/proposals/list/rejected",
+                    RelatedEntityId = proposal.Id
+                }, cancellationToken);
+            }
+        }
 
         return new ProposalOperationResponse
         {

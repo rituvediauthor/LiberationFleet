@@ -40,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<IRuleRepository, RuleRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IUserBlockRepository, UserBlockRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddSingleton<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<Application.Services.MutualAidService>();

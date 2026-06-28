@@ -4,18 +4,19 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { Router } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
 import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
-import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
+import { PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption, SeasonReadyResult, SeasonSetupSaveResult } from '../../models/gift.model';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 
 @Component({
   selector: 'app-season-setup',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, PaymentPlatformEditorComponent],
   templateUrl: './season-setup.component.html',
   styleUrl: './season-setup.component.css'
 })
@@ -38,7 +39,6 @@ export class SeasonSetupComponent implements OnInit {
   private router = inject(Router);
   private crewService = inject(CrewService);
   private giftService = inject(GiftService);
-  readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
 
@@ -104,10 +104,6 @@ export class SeasonSetupComponent implements OnInit {
         const hasPlatform = p.platformId > 0 || !!p.customPlatformName?.trim();
         return hasHandle && hasPlatform;
       });
-  }
-
-  isCustomPlatform(account: PaymentPlatformAccount): boolean {
-    return this.profileService.isCustomPlatform(account);
   }
 
   addPaymentPlatform() {

@@ -1,7 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
-using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertCrewKeyDistribution;
@@ -16,6 +16,8 @@ public record UpsertCrewKeyDistributionCommand(
 public class UpsertCrewKeyDistributionCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IProposalRepository proposalRepository,
+    CrewJoinRequestProposalService joinRequestProposalService,
     ICryptoRepository cryptoRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertCrewKeyDistributionCommand, CryptoOperationResponse>
 {
@@ -32,7 +34,13 @@ public class UpsertCrewKeyDistributionCommandHandler(
             return new CryptoOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(request.UserId, request.CrewId, cancellationToken))
+        var targetInCrew = await membershipRepository.IsUserInCrewAsync(request.UserId, request.CrewId, cancellationToken);
+        var pendingJoin = await proposalRepository.GetPendingJoinRequestForApplicantAndCrewAsync(
+            request.UserId,
+            request.CrewId,
+            cancellationToken);
+
+        if (!targetInCrew && pendingJoin is null)
         {
             return new CryptoOperationResponse { Success = false, Message = "Target user is not in this crew." };
         }
@@ -42,7 +50,7 @@ public class UpsertCrewKeyDistributionCommandHandler(
             return new CryptoOperationResponse { Success = false, Message = "Wrapped crew key payload is required." };
         }
 
-        await cryptoRepository.UpsertCrewKeyDistributionAsync(new CrewKeyDistribution
+        await cryptoRepository.UpsertCrewKeyDistributionAsync(new Domain.Entities.CrewKeyDistribution
         {
             CrewId = request.CrewId,
             UserId = request.UserId,
@@ -52,6 +60,11 @@ public class UpsertCrewKeyDistributionCommandHandler(
             WrappedByUserId = actorId,
             CreatedAt = DateTime.UtcNow
         }, cancellationToken);
+
+        if (pendingJoin is not null)
+        {
+            await joinRequestProposalService.MarkKeyPreparedAsync(request.CrewId, request.UserId, cancellationToken);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new CryptoOperationResponse { Success = true, Message = "Crew key distribution saved." };

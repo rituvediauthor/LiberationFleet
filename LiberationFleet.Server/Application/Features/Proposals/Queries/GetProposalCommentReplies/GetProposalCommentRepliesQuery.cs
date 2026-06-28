@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -19,7 +20,8 @@ public class GetProposalCommentRepliesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetProposalCommentRepliesQuery, ProposalCommentRepliesResponse>
+    ICryptoRepository cryptoRepository,
+    ProposalAnonymousAliasService aliasService) : IRequestHandler<GetProposalCommentRepliesQuery, ProposalCommentRepliesResponse>
 {
     public async Task<ProposalCommentRepliesResponse> Handle(
         GetProposalCommentRepliesQuery request,
@@ -62,11 +64,25 @@ public class GetProposalCommentRepliesQueryHandler(
             cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
+        var usesAnonymousComments = proposal.Kind == ProposalKind.General;
+        var nicknameByUserId = usesAnonymousComments
+            ? await aliasService.GetNicknameMapAsync(
+                proposal.Id,
+                replies.Select(r => r.AuthorUserId),
+                cancellationToken)
+            : new Dictionary<int, string>();
+
         var items = replies.Select(reply =>
         {
             envelopeById.TryGetValue(reply.Id.ToString(), out var envelope);
             var nestedReplyCount = allComments.Count(c => c.ParentCommentId == reply.Id);
-            return ProposalMapper.MapComment(reply, envelope, nestedReplyCount);
+            return ProposalMapper.MapComment(
+                reply,
+                envelope,
+                nestedReplyCount,
+                userId,
+                usesAnonymousComments,
+                nicknameByUserId);
         }).ToList();
 
         return new ProposalCommentRepliesResponse

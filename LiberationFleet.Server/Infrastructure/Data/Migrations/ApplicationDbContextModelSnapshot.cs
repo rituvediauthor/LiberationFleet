@@ -100,73 +100,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ChatRoomMessages");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.CrewRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CrewId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("CrewId");
-
-                    b.ToTable("CrewRules");
-                });
-
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Friendship", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AddresseeUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("RequesterUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AddresseeUserId");
-
-                    b.HasIndex("RequesterUserId", "AddresseeUserId")
-                        .IsUnique();
-
-                    b.ToTable("Friendships");
-                });
-
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
                 {
                     b.Property<int>("Id")
@@ -174,6 +107,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowSurvivalThresholds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -183,6 +121,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<DateTime?>("CurrentSeasonStartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("InNeedDefaultThreshold")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(20m);
 
                     b.Property<string>("JoinCode")
                         .IsRequired()
@@ -203,6 +147,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int?>("RadiusMiles")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequireApprovalForEdits")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<int>("Scope")
                         .HasColumnType("int");
 
@@ -217,22 +166,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
-
-                    b.Property<bool>("AllowSurvivalThresholds")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<decimal>("InNeedDefaultThreshold")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(20m);
-
-                    b.Property<bool>("RequireApprovalForEdits")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
 
                     b.Property<bool>("SeasonStarted")
                         .ValueGeneratedOnAdd()
@@ -382,6 +315,53 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("CrewPaymentPlatforms");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.CrewRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(10000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPublic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CrewId");
+
+                    b.ToTable("CrewRules");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EncryptedContentEnvelope", b =>
                 {
                     b.Property<int>("Id")
@@ -499,6 +479,39 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasIndex("CrewId");
 
                     b.ToTable("ForumPosts");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Friendship", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AddresseeUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequesterUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddresseeUserId");
+
+                    b.HasIndex("RequesterUserId", "AddresseeUserId")
+                        .IsUnique();
+
+                    b.ToTable("Friendships");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Gift", b =>
@@ -626,6 +639,61 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("MonthlySurvivalThresholds");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RelatedEntityId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SecondaryEntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CrewId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.PasswordResetToken", b =>
@@ -833,7 +901,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("Proposals");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewSettingChange", b =>
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalAnonymousAlias", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -841,39 +909,37 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Description")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Nickname")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("Field")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsApplied")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NewValue")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("ProposalId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProposalId")
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProposalId", "Nickname")
                         .IsUnique();
 
-                    b.ToTable("ProposalCrewSettingChanges");
+                    b.HasIndex("ProposalId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalAnonymousAliases");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", b =>
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalComment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -881,44 +947,30 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Action")
+                    b.Property<int>("AuthorUserId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Ciphertext")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<bool>("IsApplied")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<int>("KeyVersion")
+                    b.Property<int?>("ParentCommentId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Nonce")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("ProposalId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("RuleId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("ProposalId")
-                        .IsUnique();
+                    b.HasIndex("AuthorUserId");
 
-                    b.ToTable("ProposalCrewRuleChanges");
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("ProposalId");
+
+                    b.ToTable("ProposalComments");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", b =>
@@ -977,7 +1029,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ProposalCrewChatChanges");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalComment", b =>
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewJoinRequest", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -985,30 +1037,225 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AuthorUserId")
+                    b.Property<string>("AcceptedRuleIdsJson")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("ApplicantUserId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("ApplicantUsername")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsApplied")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("ParentCommentId")
-                        .HasColumnType("int");
+                    b.Property<bool>("IsKeyPrepared")
+                        .HasColumnType("bit");
 
                     b.Property<int>("ProposalId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("AuthorUserId");
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
 
-                    b.HasIndex("ParentCommentId");
+                    b.ToTable("ProposalCrewJoinRequests");
+                });
 
-                    b.HasIndex("ProposalId");
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.ToTable("ProposalComments");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Ciphertext")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("KeyVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nonce")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RuleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewRuleChanges");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewSettingChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Field")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NewValue")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewSettingChanges");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmateKick", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnonymousNickname")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RevealedUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("SourceCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SourceProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewmateKicks");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmateRejoin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewmateRejoins");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalVote", b =>
@@ -1102,33 +1349,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("SeasonCycles");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserBlock", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BlockedUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("BlockerUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BlockedUserId");
-
-                    b.HasIndex("BlockerUserId", "BlockedUserId")
-                        .IsUnique();
-
-                    b.ToTable("UserBlocks");
-                });
-
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -1187,6 +1407,33 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserBlock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlockedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BlockerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedUserId");
+
+                    b.HasIndex("BlockerUserId", "BlockedUserId")
+                        .IsUnique();
+
+                    b.ToTable("UserBlocks");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserKeyBundle", b =>
                 {
                     b.Property<int>("UserId")
@@ -1207,6 +1454,59 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserKeyBundles");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserMutedContent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContentType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ContentType", "ResourceId")
+                        .IsUnique();
+
+                    b.ToTable("UserMutedContents");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserNotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("UserNotificationPreferences");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserPaymentPlatform", b =>
@@ -1310,44 +1610,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("ChatRoom");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.CrewRule", b =>
-                {
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
-                        .WithMany()
-                        .HasForeignKey("CrewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Crew");
-                });
-
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Friendship", b =>
-                {
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "Addressee")
-                        .WithMany()
-                        .HasForeignKey("AddresseeUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "Requester")
-                        .WithMany()
-                        .HasForeignKey("RequesterUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Addressee");
-
-                    b.Navigation("Requester");
-                });
-
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatedByUser")
@@ -1416,6 +1678,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Crew");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.CrewRule", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Crew");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EncryptedContentEnvelope", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
@@ -1479,6 +1760,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Crew");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Friendship", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "Addressee")
+                        .WithMany()
+                        .HasForeignKey("AddresseeUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "Requester")
+                        .WithMany()
+                        .HasForeignKey("RequesterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Addressee");
+
+                    b.Navigation("Requester");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Gift", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
@@ -1535,6 +1835,24 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasForeignKey("CrewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Crew");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithMany()
@@ -1622,37 +1940,23 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Crew");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewSettingChange", b =>
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalAnonymousAlias", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
-                        .WithOne("CrewSettingChange")
-                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewSettingChange", "ProposalId")
+                        .WithMany()
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Proposal");
-                });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", b =>
-                {
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
-                        .WithOne("CrewRuleChange")
-                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", "ProposalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Proposal");
-                });
-
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", b =>
-                {
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
-                        .WithOne("CrewChatChange")
-                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", "ProposalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Proposal");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalComment", b =>
@@ -1677,6 +1981,72 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("AuthorUser");
 
                     b.Navigation("ParentComment");
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewChatChange")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewJoinRequest", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewJoinRequest")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewJoinRequest", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewRuleChange")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewSettingChange", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewSettingChange")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewSettingChange", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmateKick", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewmateKick")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewmateKick", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmateRejoin", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewmateRejoin")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewmateRejoin", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Proposal");
                 });
@@ -1743,6 +2113,28 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithOne()
                         .HasForeignKey("LiberationFleet.Server.Domain.Entities.UserKeyBundle", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserMutedContent", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserNotificationPreference", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1820,11 +2212,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                 {
                     b.Navigation("Comments");
 
-                    b.Navigation("CrewSettingChange");
+                    b.Navigation("CrewChatChange");
+
+                    b.Navigation("CrewJoinRequest");
 
                     b.Navigation("CrewRuleChange");
 
-                    b.Navigation("CrewChatChange");
+                    b.Navigation("CrewSettingChange");
+
+                    b.Navigation("CrewmateKick");
+
+                    b.Navigation("CrewmateRejoin");
 
                     b.Navigation("Votes");
                 });

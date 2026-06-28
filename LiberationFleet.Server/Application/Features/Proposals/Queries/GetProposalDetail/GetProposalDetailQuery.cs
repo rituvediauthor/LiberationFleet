@@ -20,6 +20,10 @@ public class GetProposalDetailQueryHandler(
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
     CrewChatsProposalService crewChatsProposalService,
+    CrewmateKickProposalService crewmateKickProposalService,
+    CrewmateRejoinProposalService crewmateRejoinProposalService,
+    CrewJoinRequestProposalService crewJoinRequestProposalService,
+    ProposalAnonymousAliasService aliasService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -50,6 +54,9 @@ public class GetProposalDetailQueryHandler(
             crewSettingsProposalService,
             crewRulesProposalService,
             crewChatsProposalService,
+            crewmateKickProposalService,
+            crewmateRejoinProposalService,
+            crewJoinRequestProposalService,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -74,6 +81,18 @@ public class GetProposalDetailQueryHandler(
             ? await proposalRepository.GetCrewChatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
+        var crewmateKick = proposal.Kind == ProposalKind.CrewmateKick
+            ? await proposalRepository.GetCrewmateKickByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewmateRejoin = proposal.Kind == ProposalKind.CrewmateRejoin
+            ? await proposalRepository.GetCrewmateRejoinByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewJoinRequest = proposal.Kind == ProposalKind.CrewJoinRequest
+            ? await proposalRepository.GetCrewJoinRequestByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
         var topLevel = comments.Where(c => !c.ParentCommentId.HasValue).ToList();
         var commentIds = comments.Select(c => c.Id.ToString()).ToList();
@@ -84,11 +103,41 @@ public class GetProposalDetailQueryHandler(
             cancellationToken);
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
+        var usesAnonymousComments = proposal.Kind == ProposalKind.General;
+        string? viewerAlias = null;
+        IReadOnlyDictionary<int, string> nicknameByUserId = new Dictionary<int, string>();
+
+        if (usesAnonymousComments)
+        {
+            var viewerAliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
+            viewerAlias = viewerAliasEntity.Nickname;
+
+            var authorIds = comments.Select(c => c.AuthorUserId).Distinct();
+            nicknameByUserId = await aliasService.GetNicknameMapAsync(proposal.Id, authorIds, cancellationToken);
+
+            foreach (var authorId in authorIds.Where(id => !nicknameByUserId.ContainsKey(id)))
+            {
+                var created = await aliasService.GetOrCreateAsync(proposal.Id, authorId, cancellationToken);
+                nicknameByUserId = new Dictionary<int, string>(nicknameByUserId)
+                {
+                    [created.UserId] = created.Nickname
+                };
+            }
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         var commentDtos = topLevel.Select(comment =>
         {
             commentEnvelopeById.TryGetValue(comment.Id.ToString(), out var envelope);
             var replyCount = comments.Count(c => c.ParentCommentId == comment.Id);
-            return ProposalMapper.MapComment(comment, envelope, replyCount);
+            return ProposalMapper.MapComment(
+                comment,
+                envelope,
+                replyCount,
+                userId,
+                usesAnonymousComments,
+                nicknameByUserId);
         }).ToList();
 
         var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
@@ -106,7 +155,11 @@ public class GetProposalDetailQueryHandler(
                 crewSettingChange,
                 crewRuleChange,
                 crewChatChange,
-                currentUserVote)
+                crewmateKick,
+                crewmateRejoin,
+                crewJoinRequest,
+                currentUserVote,
+                viewerAlias)
         };
     }
 }

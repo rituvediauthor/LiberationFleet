@@ -1,6 +1,36 @@
 <app-nav-layout activeTab="notifications">
-  <div class="placeholder-page">
-    <h1>Notifications</h1>
-    <p>Notifications coming soon...</p>
+  <div class="notifications-page">
+    <div class="page-header">
+      <h1>Notifications</h1>
+      <div class="header-actions">
+        <button type="button" class="text-btn" (click)="goToPreferences()">Preferences</button>
+        <button type="button" class="text-btn" (click)="markAllRead()">Mark all read</button>
+      </div>
+    </div>
+
+    <label class="filter-label" for="notification-filter">Filter</label>
+    <select id="notification-filter" class="filter-select" [value]="selectedFilter" (change)="onFilterChange($any($event.target).value)">
+      <option *ngFor="let option of filterOptions" [value]="option.value">{{ option.label }}</option>
+    </select>
+
+    <p *ngIf="loading" class="state-text">Loading notifications...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No notifications yet.</p>
+
+    <div class="notification-list" *ngIf="!loading && items.length > 0">
+      <button
+        type="button"
+        class="notification-card"
+        [class.unread]="!item.isRead"
+        *ngFor="let item of items"
+        (click)="openNotification(item)">
+        <div class="card-main">
+          <h2>{{ item.title }}</h2>
+          <p>{{ item.body }}</p>
+          <time>{{ formatWhen(item.createdAt) }}</time>
+        </div>
+        <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+      </button>
+    </div>
   </div>
 </app-nav-layout>

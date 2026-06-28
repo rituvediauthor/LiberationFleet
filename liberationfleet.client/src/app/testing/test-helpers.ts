@@ -54,7 +54,10 @@ export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {
     'getMembership',
     'create',
     'search',
-    'join'
+    'getPublicRules',
+    'getPublicRulesByJoinCode',
+    'submitJoinRequest',
+    'getMyJoinRequests'
   ]);
 }
 

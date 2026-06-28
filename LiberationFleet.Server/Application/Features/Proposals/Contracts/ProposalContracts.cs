@@ -26,6 +26,9 @@ public class ProposalDetailDto : ProposalListItemDto
     public string? Description { get; set; }
     public bool CanEdit { get; set; }
     public bool CanDelete { get; set; }
+    public bool UsesAnonymousComments { get; set; }
+    public string? ViewerAlias { get; set; }
+    public bool CanKickAuthor { get; set; }
     public IReadOnlyList<ProposalCommentDto> Comments { get; set; } = Array.Empty<ProposalCommentDto>();
 }
 
@@ -39,6 +42,8 @@ public class ProposalCommentDto
     public int ReplyCount { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public bool IsOwnComment { get; set; }
+    public bool CanKick { get; set; }
 }
 
 public class ProposalListResponse
@@ -61,6 +66,7 @@ public class ProposalOperationResponse
     public string Message { get; set; } = string.Empty;
     public int? ProposalId { get; set; }
     public int? CommentId { get; set; }
+    public string? Alias { get; set; }
     public ProposalDetailDto? Proposal { get; set; }
 }
 

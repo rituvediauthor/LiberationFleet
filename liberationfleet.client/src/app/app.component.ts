@@ -8,6 +8,7 @@ import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/c
 import { AuthService } from './services/auth.service';
 import { CryptoSessionService } from './services/crypto/crypto-session.service';
 import { CrewCryptoSyncService } from './services/crew-crypto-sync.service';
+import { NotificationHubService } from './services/notification-hub.service';
 
 @Component({
   selector: 'app-root',
@@ -23,12 +24,14 @@ export class AppComponent implements OnInit {
   private authService = inject(AuthService);
   private cryptoSession = inject(CryptoSessionService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
+  private notificationHub = inject(NotificationHubService);
   private router = inject(Router);
 
   ngOnInit() {
     void this.authService.getEncryptionReady().then(() => {
       this.syncUnlockDialog();
       void this.syncCrewCryptoIfInApp();
+      void this.connectNotificationsIfInApp();
     });
 
     this.cryptoSession.unlocked$.subscribe(unlocked => {
@@ -40,7 +43,10 @@ export class AppComponent implements OnInit {
 
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd)
-    ).subscribe(() => this.syncUnlockDialog());
+    ).subscribe(() => {
+      this.syncUnlockDialog();
+      void this.connectNotificationsIfInApp();
+    });
   }
 
   onCryptoUnlocked() {
@@ -58,5 +64,16 @@ export class AppComponent implements OnInit {
       return;
     }
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+  }
+
+  private connectNotificationsIfInApp() {
+    if (!this.router.url.startsWith('/app') || !this.authService.getToken()) {
+      return;
+    }
+
+    void this.notificationHub.connect();
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      void Notification.requestPermission();
+    }
   }
 }

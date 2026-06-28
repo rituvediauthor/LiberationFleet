@@ -1,0 +1,34 @@
+<app-page-layout [backButton]="backButton">
+  <div class="settings-page">
+    <h1>Preferences</h1>
+
+    <nav class="settings-menu" aria-label="Preferences">
+      <button type="button" class="menu-link" (click)="goToNotifications()">
+        <i class="fa-solid fa-bell menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Notifications</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="goToPlaceholder('Content')">
+        <i class="fa-solid fa-layer-group menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Content</span>
+        <span class="coming-soon">Coming soon</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="goToPlaceholder('Theme')">
+        <i class="fa-solid fa-palette menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Theme</span>
+        <span class="coming-soon">Coming soon</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="goToPlaceholder('Security')">
+        <i class="fa-solid fa-shield-halved menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Security</span>
+        <span class="coming-soon">Coming soon</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+    </nav>
+  </div>
+</app-page-layout>

@@ -29,6 +29,12 @@ public class RuleRepository : IRuleRepository
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CrewRule>> GetPublicByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
+        await _context.CrewRules
+            .Where(r => r.CrewId == crewId && !r.IsDeleted && r.IsPublic)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(CrewRule rule, CancellationToken cancellationToken = default) =>
         await _context.CrewRules.AddAsync(rule, cancellationToken);
 }

@@ -118,6 +118,25 @@ h1 {
   color: #777;
 }
 
+.comment-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.proposal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.proposal-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .comment-body {
   margin: 0 0 8px;
   font-size: 14px;

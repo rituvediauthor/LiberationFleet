@@ -1,6 +1,8 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -19,6 +21,7 @@ public class CreateForumCommentCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateForumCommentCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(CreateForumCommentCommand request, CancellationToken cancellationToken)
@@ -45,10 +48,11 @@ public class CreateForumCommentCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        ForumComment? parentComment = null;
         if (request.ParentCommentId.HasValue)
         {
-            var parent = await forumRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
-            if (parent is null || parent.ForumPostId != post.Id)
+            parentComment = await forumRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
+            if (parentComment is null || parentComment.ForumPostId != post.Id)
             {
                 return new ForumOperationResponse { Success = false, Message = "Parent comment not found." };
             }
@@ -82,6 +86,37 @@ public class CreateForumCommentCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var actionUrl = $"/app/crew/forums/{post.Id}?commentId={comment.Id}";
+        if (parentComment is not null && parentComment.AuthorUserId != userId)
+        {
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
+            {
+                UserId = parentComment.AuthorUserId,
+                CrewId = post.CrewId,
+                Kind = NotificationKind.NewReply,
+                Title = "New reply",
+                Body = "Someone replied to your forum comment.",
+                ActionUrl = actionUrl,
+                RelatedEntityId = post.Id,
+                SecondaryEntityId = comment.Id
+            }, cancellationToken);
+        }
+        else if (parentComment is null)
+        {
+            await notificationService.NotifyCrewIfNotMutedAsync(
+                post.CrewId,
+                NotificationKind.NewForumComment,
+                MutedContentType.Forum,
+                post.Id,
+                "New forum comment",
+                "A new comment was posted on a forum thread.",
+                actionUrl,
+                relatedEntityId: post.Id,
+                secondaryEntityId: comment.Id,
+                excludeUserId: userId,
+                cancellationToken: cancellationToken);
+        }
 
         return new ForumOperationResponse
         {

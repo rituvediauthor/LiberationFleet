@@ -26,6 +26,18 @@ describe('JoinCrewComponent', () => {
       totalCount: 0,
       totalPages: 0
     }));
+    crewService.getPublicRules.and.returnValue(of({
+      success: true,
+      message: 'Public rules loaded.',
+      crewId: 5,
+      crewName: 'Alpha',
+      items: [{ id: 1, title: 'Rule 1', description: 'Be kind' }]
+    }));
+    crewService.submitJoinRequest.and.returnValue(of({
+      success: true,
+      message: 'Join request submitted',
+      proposalId: 10
+    }));
 
     await TestBed.configureTestingModule({
       imports: [JoinCrewComponent],
@@ -44,9 +56,9 @@ describe('JoinCrewComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create in find mode with disabled join button', () => {
+  it('should create in find mode with disabled continue button', () => {
     expect(component.isFindMode).toBeTrue();
-    expect(component.joinButton.disabled).toBeTrue();
+    expect(component.primaryButton.disabled).toBeTrue();
   });
 
   it('should search online crews on page load', () => {
@@ -58,75 +70,51 @@ describe('JoinCrewComponent', () => {
     expect(component.hasSearched).toBeTrue();
   });
 
-  it('should search online crews when search criteria changes', fakeAsync(() => {
-    crewService.search.and.returnValue(of({
-      success: true,
-      message: 'Crews found',
-      items: [{ id: 1, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' }],
-      page: 1,
-      pageSize: 10,
-      totalCount: 1,
-      totalPages: 1
-    }));
-
-    component.form.patchValue({ mode: 'find', scope: 'Online' });
-    tick(400);
-
-    expect(crewService.search).toHaveBeenCalledWith(jasmine.objectContaining({ scope: 'Online', page: 1, pageSize: 10 }));
-    expect(component.searchResults.length).toBe(1);
-  }));
-
-  it('should not search on page load when join code mode is selected', () => {
-    crewService.search.calls.reset();
-    component.form.patchValue({ mode: 'code' });
-    expect(crewService.search).not.toHaveBeenCalled();
-  });
-
-  it('should enable join button when crew is selected', () => {
+  it('should enable continue button when crew is selected', () => {
     component.selectCrew({ id: 1, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' });
-    expect(component.joinButton.disabled).toBeFalse();
+    expect(component.primaryButton.disabled).toBeFalse();
   });
 
-  it('should join by crew id in find mode', () => {
-    crewService.join.and.returnValue(of({ success: true, message: 'Joined crew successfully' }));
+  it('should load public rules when continuing in find mode', () => {
     component.selectCrew({ id: 5, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' });
+    component.onContinueToRules();
 
-    component.onJoin();
-
-    expect(crewService.join).toHaveBeenCalledWith({ crewId: 5 });
-    expect(toastService.success).toHaveBeenCalledWith('Joined crew successfully');
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
+    expect(crewService.getPublicRules).toHaveBeenCalledWith(5);
+    expect(component.joinStep).toBe('rules');
+    expect(component.publicRules.length).toBe(1);
   });
 
-  it('should join by code in code mode', fakeAsync(() => {
-    crewService.join.and.returnValue(of({ success: true, message: 'Joined crew successfully' }));
-    component.form.patchValue({ mode: 'code', joinCode: 'JOIN1234' });
-    tick(400);
+  it('should require all rules accepted before requesting to join', () => {
+    component.selectCrew({ id: 5, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' });
+    component.onContinueToRules();
+    expect(component.primaryButton.disabled).toBeTrue();
 
-    component.onJoin();
+    component.toggleRuleAcceptance(1, true);
+    expect(component.primaryButton.disabled).toBeFalse();
+  });
 
-    expect(crewService.join).toHaveBeenCalledWith({ joinCode: 'JOIN1234' });
-  }));
+  it('should submit join request after accepting rules', () => {
+    component.selectCrew({ id: 5, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' });
+    component.onContinueToRules();
+    component.toggleRuleAcceptance(1, true);
 
-  it('should keep join disabled until join code is 8 characters', fakeAsync(() => {
+    component.onSubmitJoinRequest();
+
+    expect(crewService.submitJoinRequest).toHaveBeenCalledWith({
+      crewId: 5,
+      acceptedRuleIds: [1]
+    });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/join-requests']);
+  });
+
+  it('should keep continue disabled until join code is 8 characters', fakeAsync(() => {
     component.form.patchValue({ mode: 'code', joinCode: 'JOIN12' });
     tick(400);
-    expect(component.joinButton.disabled).toBeTrue();
+    expect(component.primaryButton.disabled).toBeTrue();
 
     component.form.patchValue({ joinCode: 'JOIN1234' });
     tick(400);
-    expect(component.joinButton.disabled).toBeFalse();
-  }));
-
-  it('should show error toast on join failure', fakeAsync(() => {
-    crewService.join.and.returnValue(of({ success: false, message: 'Crew is full' }));
-    component.form.patchValue({ mode: 'code', joinCode: 'JOIN1234' });
-    tick(400);
-
-    component.onJoin();
-
-    expect(toastService.error).toHaveBeenCalledWith('Crew is full');
-    expect(component.isJoining).toBeFalse();
+    expect(component.primaryButton.disabled).toBeFalse();
   }));
 
   it('should show error toast on search failure', () => {
@@ -138,7 +126,7 @@ describe('JoinCrewComponent', () => {
     expect(component.isSearching).toBeFalse();
   });
 
-  it('should navigate back to crew home', () => {
+  it('should navigate back to crew home from select step', () => {
     component.backButton.onClick?.();
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });

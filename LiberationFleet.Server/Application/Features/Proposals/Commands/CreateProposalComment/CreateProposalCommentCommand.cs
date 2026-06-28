@@ -1,5 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -19,6 +21,8 @@ public class CreateProposalCommentCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
+    ProposalAnonymousAliasService aliasService,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProposalCommentCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(CreateProposalCommentCommand request, CancellationToken cancellationToken)
@@ -45,10 +49,11 @@ public class CreateProposalCommentCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        ProposalComment? parentComment = null;
         if (request.ParentCommentId.HasValue)
         {
-            var parent = await proposalRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
-            if (parent is null || parent.ProposalId != proposal.Id)
+            parentComment = await proposalRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
+            if (parentComment is null || parentComment.ProposalId != proposal.Id)
             {
                 return new ProposalOperationResponse { Success = false, Message = "Parent comment not found." };
             }
@@ -83,11 +88,39 @@ public class CreateProposalCommentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var actionUrl = $"/app/crew/proposals/{proposal.Id}?commentId={comment.Id}";
+        var notifyUserId = parentComment?.AuthorUserId ?? proposal.AuthorUserId;
+        if (notifyUserId != userId)
+        {
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
+            {
+                UserId = notifyUserId,
+                CrewId = proposal.CrewId,
+                Kind = NotificationKind.NewReply,
+                Title = "New reply",
+                Body = parentComment is null
+                    ? "Someone commented on your proposal."
+                    : "Someone replied to your proposal comment.",
+                ActionUrl = actionUrl,
+                RelatedEntityId = proposal.Id,
+                SecondaryEntityId = comment.Id
+            }, cancellationToken);
+        }
+
+        string? alias = null;
+        if (proposal.Kind == ProposalKind.General)
+        {
+            var aliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
+            alias = aliasEntity.Nickname;
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         return new ProposalOperationResponse
         {
             Success = true,
             Message = "Comment posted.",
-            CommentId = comment.Id
+            CommentId = comment.Id,
+            Alias = alias
         };
     }
 }

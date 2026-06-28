@@ -1,5 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Projects.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -19,6 +21,7 @@ public class CreateProjectCommentCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IProjectRepository projectRepository,
     ICryptoRepository cryptoRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProjectCommentCommand, ProjectOperationResponse>
 {
     public async Task<ProjectOperationResponse> Handle(CreateProjectCommentCommand request, CancellationToken cancellationToken)
@@ -45,10 +48,11 @@ public class CreateProjectCommentCommandHandler(
             return new ProjectOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        ProjectComment? parentComment = null;
         if (request.ParentCommentId.HasValue)
         {
-            var parent = await projectRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
-            if (parent is null || parent.ProjectPostId != post.Id)
+            parentComment = await projectRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
+            if (parentComment is null || parentComment.ProjectPostId != post.Id)
             {
                 return new ProjectOperationResponse { Success = false, Message = "Parent comment not found." };
             }
@@ -82,6 +86,37 @@ public class CreateProjectCommentCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var actionUrl = $"/app/crew/projects/{post.Id}?commentId={comment.Id}";
+        if (parentComment is not null && parentComment.AuthorUserId != userId)
+        {
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
+            {
+                UserId = parentComment.AuthorUserId,
+                CrewId = post.CrewId,
+                Kind = NotificationKind.NewReply,
+                Title = "New reply",
+                Body = "Someone replied to your project comment.",
+                ActionUrl = actionUrl,
+                RelatedEntityId = post.Id,
+                SecondaryEntityId = comment.Id
+            }, cancellationToken);
+        }
+        else if (parentComment is null)
+        {
+            await notificationService.NotifyCrewIfNotMutedAsync(
+                post.CrewId,
+                NotificationKind.NewProjectComment,
+                MutedContentType.Project,
+                post.Id,
+                "New project comment",
+                "A new comment was posted on a project thread.",
+                actionUrl,
+                relatedEntityId: post.Id,
+                secondaryEntityId: comment.Id,
+                excludeUserId: userId,
+                cancellationToken: cancellationToken);
+        }
 
         return new ProjectOperationResponse
         {

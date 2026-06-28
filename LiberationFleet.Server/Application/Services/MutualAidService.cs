@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -9,6 +10,7 @@ namespace LiberationFleet.Server.Application.Services;
 public partial class MutualAidService(
     IMutualAidRepository mutualAidRepository,
     ICrewMembershipRepository membershipRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IMutualAidService, IMutualAidDevService
 {
     public async Task<SeasonStatusDto> GetSeasonStatusAsync(int userId, CancellationToken cancellationToken = default)
@@ -391,7 +393,19 @@ public partial class MutualAidService(
                     cycle.CycleReceived += applied;
                     if (applied > 0)
                     {
+                        var newlyStarted = !cycle.HasCycleStarted;
                         cycle.HasCycleStarted = true;
+                        if (newlyStarted)
+                        {
+                            await notificationService.NotifyCrewAsync(
+                                gift.CrewId,
+                                NotificationKind.NewCycle,
+                                "New cycle",
+                                "A crewmate's reception cycle has started.",
+                                "/app/crew/join-season",
+                                relatedEntityId: recipientUserId,
+                                cancellationToken: cancellationToken);
+                        }
                     }
                 }
             }
@@ -635,6 +649,14 @@ public partial class MutualAidService(
         }
 
         await InitializeSeasonStateAsync(crew, readyMembers, cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            crew.Id,
+            NotificationKind.NewSeason,
+            "New season",
+            "A new mutual aid season has started.",
+            "/app/crew/join-season",
+            cancellationToken: cancellationToken);
     }
 
     private async Task JoinActiveSeasonAsync(Crew crew, CrewMembership membership, CancellationToken cancellationToken)
@@ -858,6 +880,14 @@ public partial class MutualAidService(
         crew.CurrentSeasonStartDate = DateTime.UtcNow;
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
         await InitializeSeasonStateAsync(crew, participants, cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            crew.Id,
+            NotificationKind.NewSeason,
+            "New season",
+            "A new mutual aid season has started.",
+            "/app/crew/join-season",
+            cancellationToken: cancellationToken);
     }
 
     private async Task RepositionCrewmateInReceptionOrderAsync(

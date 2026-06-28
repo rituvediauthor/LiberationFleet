@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
@@ -10,6 +10,8 @@ import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../
 import { DiscussionListItem } from '../../../models/crew-discussion.model';
 import { ProposalListItem } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
+import { MutedContentItem, MutedContentType } from '../../../models/notification.model';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-discussion-list',
@@ -24,6 +26,8 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   crewId = 0;
+  openMenuItemId: number | null = null;
+  mutedItems: MutedContentItem[] = [];
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -33,6 +37,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   private discussionCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private notificationService = inject(NotificationService);
   private encryptionContent = inject(EncryptionContentService);
   private encryptionReload?: EncryptionReloadHandle;
 
@@ -58,6 +63,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
         await this.encryptionContent.whenReady();
+        this.loadMutes();
         this.loadPosts();
         this.encryptionReload?.markInitialLoadDone();
       },
@@ -72,6 +78,49 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
     this.encryptionReload?.subscription.unsubscribe();
   }
 
+  @HostListener('document:click')
+  closeMenus() {
+    this.openMenuItemId = null;
+  }
+
+  muteContentType(): MutedContentType {
+    return this.config.kind === 'forums' ? 'Forum' : 'Project';
+  }
+
+  isItemMuted(itemId: number): boolean {
+    return this.notificationService.isMuted(this.mutedItems, this.muteContentType(), itemId);
+  }
+
+  toggleMenu(itemId: number, event: Event) {
+    event.stopPropagation();
+    this.openMenuItemId = this.openMenuItemId === itemId ? null : itemId;
+  }
+
+  toggleMute(item: DiscussionListItem, event: Event) {
+    event.stopPropagation();
+    this.openMenuItemId = null;
+    const contentType = this.muteContentType();
+    const muted = !this.isItemMuted(item.id);
+    this.notificationService.setMute(contentType, item.id, muted).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update mute setting');
+          return;
+        }
+        if (muted) {
+          this.mutedItems = [...this.mutedItems, { contentType, resourceId: item.id }];
+          this.toastService.success(`${this.config.label} muted`);
+        } else {
+          this.mutedItems = this.mutedItems.filter(
+            entry => !(entry.contentType === contentType && entry.resourceId === item.id)
+          );
+          this.toastService.success(`${this.config.label} unmuted`);
+        }
+      },
+      error: () => this.toastService.error('Failed to update mute setting')
+    });
+  }
+
   formatActivity(date: Date): string {
     return new Date(date).toLocaleString(undefined, {
       month: 'short',
@@ -83,6 +132,16 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
 
   openPost(item: DiscussionListItem) {
     this.router.navigate([this.config.detailRoute(item.id)]);
+  }
+
+  private loadMutes() {
+    this.notificationService.getMutes().subscribe({
+      next: response => {
+        if (response.success) {
+          this.mutedItems = response.items ?? [];
+        }
+      }
+    });
   }
 
   private loadPosts() {

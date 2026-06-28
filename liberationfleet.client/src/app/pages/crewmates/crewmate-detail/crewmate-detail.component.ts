@@ -20,6 +20,7 @@ export class CrewmateDetailComponent implements OnInit {
   errorMessage = '';
   actionLoading = false;
   showBlockDialog = false;
+  showKickDialog = false;
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
@@ -48,7 +49,41 @@ export class CrewmateDetailComponent implements OnInit {
   }
 
   onKickCrewmate() {
-    this.toastService.error('Kick crewmate is not available yet.');
+    this.showKickDialog = true;
+  }
+
+  onConfirmKick() {
+    this.showKickDialog = false;
+    if (!this.profile || this.actionLoading) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.kickCrewmate(this.userId).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit kick proposal');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(response.message || 'Kick proposal submitted');
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit kick proposal');
+      }
+    });
+  }
+
+  onCancelKick() {
+    this.showKickDialog = false;
   }
 
   onNominate() {

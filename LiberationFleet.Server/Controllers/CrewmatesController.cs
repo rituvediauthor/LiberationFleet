@@ -1,4 +1,7 @@
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.AllowCrewmateRejoin;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
+using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetKickedCrewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmates;
 using MediatR;
@@ -17,6 +20,13 @@ public class CrewmatesController : ControllerBase
     public CrewmatesController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet("kicked")]
+    public async Task<IActionResult> GetKicked()
+    {
+        var result = await _mediator.Send(new GetKickedCrewmatesQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet]
@@ -72,6 +82,20 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> Block(int userId)
     {
         var result = await _mediator.Send(new BlockCrewmateCommand(userId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/kick")]
+    public async Task<IActionResult> Kick(int userId)
+    {
+        var result = await _mediator.Send(new KickCrewmateCommand(userId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/allow-rejoin")]
+    public async Task<IActionResult> AllowRejoin(int userId)
+    {
+        var result = await _mediator.Send(new AllowCrewmateRejoinCommand(userId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

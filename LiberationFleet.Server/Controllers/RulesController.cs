@@ -40,6 +40,7 @@ public class RulesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateRuleRequest body)
     {
         var result = await _mediator.Send(new CreateCrewRuleCommand(
+            body.IsPublic,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
@@ -53,6 +54,7 @@ public class RulesController : ControllerBase
     {
         var result = await _mediator.Send(new UpdateCrewRuleCommand(
             id,
+            body.IsPublic,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,

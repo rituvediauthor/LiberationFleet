@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -8,7 +9,8 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 
 public class CrewSettingsProposalService(
     IProposalRepository proposalRepository,
-    ICrewRepository crewRepository)
+    ICrewRepository crewRepository,
+    NotificationService notificationService)
 {
     public async Task<int> CreateProposalsAsync(
         Crew crew,
@@ -67,6 +69,14 @@ public class CrewSettingsProposalService(
 
         await ApplyChangeAsync(crew, change, cancellationToken);
         change.IsApplied = true;
+
+        await notificationService.NotifyCrewAsync(
+            proposal.CrewId,
+            NotificationKind.CrewSettingChanged,
+            "Crew setting changed",
+            "A crew setting was updated via approved proposal.",
+            "/app/crew/edit",
+            cancellationToken: cancellationToken);
     }
 
     public static void ApplyDirectUpdate(

@@ -20,6 +20,9 @@ public class GetCrewProposalsQueryHandler(
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
     CrewChatsProposalService crewChatsProposalService,
+    CrewmateKickProposalService crewmateKickProposalService,
+    CrewmateRejoinProposalService crewmateRejoinProposalService,
+    CrewJoinRequestProposalService crewJoinRequestProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
     public async Task<ProposalListResponse> Handle(GetCrewProposalsQuery request, CancellationToken cancellationToken)
@@ -50,6 +53,9 @@ public class GetCrewProposalsQueryHandler(
                 crewSettingsProposalService,
                 crewRulesProposalService,
                 crewChatsProposalService,
+                crewmateKickProposalService,
+                crewmateRejoinProposalService,
+                crewJoinRequestProposalService,
                 cancellationToken);
         }
 
@@ -78,6 +84,18 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewChatChange).Select(p => p.Id),
             cancellationToken);
 
+        var crewmateKicks = await proposalRepository.GetCrewmateKicksByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewmateKick).Select(p => p.Id),
+            cancellationToken);
+
+        var crewmateRejoins = await proposalRepository.GetCrewmateRejoinsByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewmateRejoin).Select(p => p.Id),
+            cancellationToken);
+
+        var crewJoinRequests = await proposalRepository.GetCrewJoinRequestsByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewJoinRequest).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -90,6 +108,9 @@ public class GetCrewProposalsQueryHandler(
             crewSettingChanges.TryGetValue(proposal.Id, out var crewSettingChange);
             crewRuleChanges.TryGetValue(proposal.Id, out var crewRuleChange);
             crewChatChanges.TryGetValue(proposal.Id, out var crewChatChange);
+            crewmateKicks.TryGetValue(proposal.Id, out var crewmateKick);
+            crewmateRejoins.TryGetValue(proposal.Id, out var crewmateRejoin);
+            crewJoinRequests.TryGetValue(proposal.Id, out var crewJoinRequest);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -98,6 +119,9 @@ public class GetCrewProposalsQueryHandler(
                 crewSettingChange,
                 crewRuleChange,
                 crewChatChange,
+                crewmateKick,
+                crewmateRejoin,
+                crewJoinRequest,
                 currentUserVote));
         }
 

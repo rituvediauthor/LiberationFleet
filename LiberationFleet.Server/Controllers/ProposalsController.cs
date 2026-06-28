@@ -1,7 +1,10 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateProposal;
+using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromComment;
+using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromProposalAuthor;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateProposalComment;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.DeleteProposal;
+using LiberationFleet.Server.Application.Features.Proposals.Commands.RerollProposalAlias;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.UpdateProposal;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.VoteProposal;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
@@ -84,6 +87,27 @@ public class ProposalsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{proposalId:int}/alias/reroll")]
+    public async Task<IActionResult> RerollAlias(int proposalId)
+    {
+        var result = await _mediator.Send(new RerollProposalAliasCommand(proposalId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{proposalId:int}/comments/{commentId:int}/kick")]
+    public async Task<IActionResult> KickFromComment(int proposalId, int commentId)
+    {
+        var result = await _mediator.Send(new CreateKickFromCommentCommand(proposalId, commentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{proposalId:int}/author/kick")]
+    public async Task<IActionResult> KickFromProposalAuthor(int proposalId)
+    {
+        var result = await _mediator.Send(new CreateKickFromProposalAuthorCommand(proposalId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

@@ -32,6 +32,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalCrewSettingChange> ProposalCrewSettingChanges => Set<ProposalCrewSettingChange>();
     public DbSet<ProposalCrewRuleChange> ProposalCrewRuleChanges => Set<ProposalCrewRuleChange>();
     public DbSet<ProposalCrewChatChange> ProposalCrewChatChanges => Set<ProposalCrewChatChange>();
+    public DbSet<ProposalCrewmateKick> ProposalCrewmateKicks => Set<ProposalCrewmateKick>();
+    public DbSet<ProposalCrewmateRejoin> ProposalCrewmateRejoins => Set<ProposalCrewmateRejoin>();
+    public DbSet<ProposalCrewJoinRequest> ProposalCrewJoinRequests => Set<ProposalCrewJoinRequest>();
+    public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
     public DbSet<ProjectPost> ProjectPosts => Set<ProjectPost>();
@@ -41,6 +45,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<CrewRule> CrewRules => Set<CrewRule>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
+    public DbSet<UserMutedContent> UserMutedContents => Set<UserMutedContent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -335,6 +342,63 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<ProposalCrewmateKick>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.AnonymousNickname).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.RevealedUsername).HasMaxLength(100);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewmateKick)
+                .HasForeignKey<ProposalCrewmateKick>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalCrewmateRejoin>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Username).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewmateRejoin)
+                .HasForeignKey<ProposalCrewmateRejoin>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalCrewJoinRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.ApplicantUsername).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.AcceptedRuleIdsJson).HasMaxLength(2000);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewJoinRequest)
+                .HasForeignKey<ProposalCrewJoinRequest>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalAnonymousAlias>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ProposalId, e.UserId }).IsUnique();
+            entity.HasIndex(e => new { e.ProposalId, e.Nickname }).IsUnique();
+            entity.Property(e => e.Nickname).HasMaxLength(64).IsRequired();
+            entity.HasOne(e => e.Proposal)
+                .WithMany()
+                .HasForeignKey(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<ProposalVote>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -463,6 +527,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.IsPublic).HasDefaultValue(false);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(10000);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -499,6 +566,44 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.BlockedUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Body).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.ActionUrl).IsRequired().HasMaxLength(500);
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<UserNotificationPreference>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.Kind }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserMutedContent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.ContentType, e.ResourceId }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

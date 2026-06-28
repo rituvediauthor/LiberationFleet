@@ -14,6 +14,7 @@ import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
+import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
 import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
 import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
@@ -46,7 +47,7 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'app/profile')?.component).toBe(UserHomeComponent);
     expect(routes.find(r => r.path === 'app/profile/user')?.component).toBe(ProfileComponent);
     expect(routes.find(r => r.path === 'app/profile/activity')?.component).toBe(PlaceholderPageComponent);
-    expect(routes.find(r => r.path === 'app/profile/preferences')?.component).toBe(PlaceholderPageComponent);
+    expect(routes.find(r => r.path === 'app/profile/preferences')?.component).toBe(ProfileSettingsComponent);
     expect(routes.find(r => r.path === 'app/crew/create')?.component).toBe(CreateCrewComponent);
     expect(routes.find(r => r.path === 'app/crew/join')?.component).toBe(JoinCrewComponent);
     expect(routes.find(r => r.path === 'app/crew/gift-log')?.component).toBe(GiftLogComponent);

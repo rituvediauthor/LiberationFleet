@@ -62,21 +62,26 @@ describe('CrewService', () => {
     req.flush({ success: true, items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0, message: 'No crews found' });
   });
 
-  it('join should POST join payload by crew id', () => {
-    service.join({ crewId: 5 }).subscribe();
+  it('submitJoinRequest should POST join request payload', () => {
+    service.submitJoinRequest({ crewId: 5, acceptedRuleIds: [1, 2] }).subscribe();
 
-    const req = httpMock.expectOne('/api/crews/join');
+    const req = httpMock.expectOne('/api/crews/join-request');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ crewId: 5 });
-    req.flush({ success: true, message: 'Joined crew successfully' });
+    expect(req.request.body).toEqual({ crewId: 5, acceptedRuleIds: [1, 2] });
+    req.flush({ success: true, message: 'Join request submitted', proposalId: 10 });
   });
 
-  it('join should POST join payload by join code only', () => {
-    service.join({ joinCode: 'alpha123' }).subscribe();
+  it('getMyJoinRequests should GET pending join requests', () => {
+    service.getMyJoinRequests().subscribe(response => {
+      expect(response.items.length).toBe(1);
+    });
 
-    const req = httpMock.expectOne('/api/crews/join');
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ joinCode: 'ALPHA123' });
-    req.flush({ success: true, message: 'Joined crew successfully' });
+    const req = httpMock.expectOne('/api/crews/join-requests/mine');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      success: true,
+      message: 'Join requests loaded.',
+      items: [{ proposalId: 10, crewId: 5, crewName: 'Alpha', status: 'Pending', approveCount: 0, disapproveCount: 0, isKeyPrepared: false, createdAt: '2026-06-18T00:00:00Z' }]
+    });
   });
 });

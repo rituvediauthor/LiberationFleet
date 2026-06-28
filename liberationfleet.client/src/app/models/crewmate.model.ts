@@ -58,6 +58,23 @@ export interface CrewmateOperationResponse {
   friendshipState: CrewmateFriendshipState;
 }
 
+export interface CrewmateKickResponse {
+  success: boolean;
+  message: string;
+  proposalId: number;
+}
+
+export interface KickedCrewmateListItem {
+  userId: number;
+  username: string;
+}
+
+export interface KickedCrewmateListResponse {
+  success: boolean;
+  message: string;
+  items: KickedCrewmateListItem[];
+}
+
 export function mapFriendshipState(value: number | string): CrewmateFriendshipState {
   const normalized = typeof value === 'string' ? value.toLowerCase() : '';
   if (normalized === 'requestsent' || value === 1) return 'requestSent';

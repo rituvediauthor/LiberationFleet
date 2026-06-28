@@ -75,9 +75,29 @@ public class CrewmateProfileResponse
     public CrewmateProfileDto? Profile { get; set; }
 }
 
+public class KickedCrewmateListItemDto
+{
+    public int UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
+}
+
+public class KickedCrewmateListResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public IReadOnlyList<KickedCrewmateListItemDto> Items { get; set; } = Array.Empty<KickedCrewmateListItemDto>();
+}
+
 public class CrewmateOperationResponse
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
+}
+
+public class CrewmateKickResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int ProposalId { get; set; }
 }

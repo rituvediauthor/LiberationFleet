@@ -14,6 +14,7 @@ public class ProposalCrewRuleChange
     public string? Ciphertext { get; set; }
     public int KeyVersion { get; set; } = 1;
     public bool IsApplied { get; set; }
+    public bool IsPublic { get; set; }
 
     public Proposal Proposal { get; set; } = null!;
 }

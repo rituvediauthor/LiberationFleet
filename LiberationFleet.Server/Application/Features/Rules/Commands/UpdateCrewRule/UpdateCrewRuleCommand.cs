@@ -1,5 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Rules.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -9,6 +11,7 @@ namespace LiberationFleet.Server.Application.Features.Rules.Commands.UpdateCrewR
 
 public record UpdateCrewRuleCommand(
     int RuleId,
+    bool IsPublic,
     string Nonce,
     string Ciphertext,
     int KeyVersion,
@@ -24,6 +27,7 @@ public class UpdateCrewRuleCommandHandler(
     IRuleRepository ruleRepository,
     ICryptoRepository cryptoRepository,
     CrewRulesProposalService crewRulesProposalService,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateCrewRuleCommand, RuleOperationResponse>
 {
     public async Task<RuleOperationResponse> Handle(UpdateCrewRuleCommand request, CancellationToken cancellationToken)
@@ -33,14 +37,14 @@ public class UpdateCrewRuleCommandHandler(
             return new RuleOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
-        {
-            return new RuleOperationResponse { Success = false, Message = "Encrypted rule content is required." };
-        }
-
         if (string.IsNullOrWhiteSpace(request.PlaintextTitle))
         {
             return new RuleOperationResponse { Success = false, Message = "Rule title is required." };
+        }
+
+        if (!request.IsPublic && (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext)))
+        {
+            return new RuleOperationResponse { Success = false, Message = "Encrypted rule content is required." };
         }
 
         var userId = currentUser.UserId.Value;
@@ -74,9 +78,10 @@ public class UpdateCrewRuleCommandHandler(
                     request.PlaintextTitle,
                     request.PlaintextDescription),
                 rule.Id,
-                request.Nonce.Trim(),
-                request.Ciphertext.Trim(),
+                request.IsPublic ? null : request.Nonce.Trim(),
+                request.IsPublic ? null : request.Ciphertext.Trim(),
                 request.KeyVersion,
+                request.IsPublic,
                 cancellationToken);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -92,21 +97,37 @@ public class UpdateCrewRuleCommandHandler(
 
         var utcNow = DateTime.UtcNow;
         rule.UpdatedAt = utcNow;
+        rule.IsPublic = request.IsPublic;
+        rule.Title = request.IsPublic ? request.PlaintextTitle.Trim() : null;
+        rule.Description = request.IsPublic ? request.PlaintextDescription.Trim() : null;
 
-        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        if (!request.IsPublic)
         {
-            ContentType = EncryptedContentType.RulesDocument,
-            ResourceId = rule.Id.ToString(),
-            CrewId = rule.CrewId,
-            AuthorUserId = userId,
-            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-            Nonce = request.Nonce.Trim(),
-            Ciphertext = request.Ciphertext.Trim(),
-            CreatedAt = utcNow,
-            UpdatedAt = utcNow
-        }, cancellationToken);
+            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.RulesDocument,
+                ResourceId = rule.Id.ToString(),
+                CrewId = rule.CrewId,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+                Nonce = request.Nonce.Trim(),
+                Ciphertext = request.Ciphertext.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            }, cancellationToken);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            rule.CrewId,
+            NotificationKind.RuleEdited,
+            "Rule edited",
+            "A crew rule was updated.",
+            $"/app/crew/rules/{rule.Id}/edit",
+            relatedEntityId: rule.Id,
+            excludeUserId: userId,
+            cancellationToken: cancellationToken);
 
         return new RuleOperationResponse
         {

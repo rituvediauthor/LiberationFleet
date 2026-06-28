@@ -23,4 +23,7 @@ public class Proposal
     public ProposalCrewSettingChange? CrewSettingChange { get; set; }
     public ProposalCrewRuleChange? CrewRuleChange { get; set; }
     public ProposalCrewChatChange? CrewChatChange { get; set; }
+    public ProposalCrewmateKick? CrewmateKick { get; set; }
+    public ProposalCrewmateRejoin? CrewmateRejoin { get; set; }
+    public ProposalCrewJoinRequest? CrewJoinRequest { get; set; }
 }

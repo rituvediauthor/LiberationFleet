@@ -28,7 +28,7 @@ export class RuleEditComponent implements OnInit {
   crewId = 0;
   ruleId = 0;
   requireApprovalForEdits = true;
-  private initialFormValues: { title: string; description: string } | null = null;
+  private initialFormValues: { title: string; description: string; isPublic: boolean } | null = null;
 
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
@@ -44,7 +44,8 @@ export class RuleEditComponent implements OnInit {
 
     this.form = this.fb.group({
       title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]]
+      description: ['', [Validators.required, Validators.maxLength(10000)]],
+      isPublic: [false]
     });
 
     this.backButton = {
@@ -94,14 +95,30 @@ export class RuleEditComponent implements OnInit {
     this.updateSaveButton();
 
     try {
-      const { title, description } = this.form.getRawValue();
+      const { title, description, isPublic } = this.form.getRawValue();
+      const oldValues = this.initialFormValues ?? { title: '', description: '', isPublic: false };
+
+      if (isPublic) {
+        this.ruleService.updateRule(this.ruleId, {
+          isPublic: true,
+          nonce: '',
+          ciphertext: '',
+          plaintextTitle: title.trim(),
+          plaintextDescription: description.trim(),
+          plaintextOldTitle: oldValues.title,
+          plaintextOldDescription: oldValues.description
+        }).subscribe({
+          next: result => this.handleSaveResult(result),
+          error: err => this.handleSaveError(err)
+        });
+        return;
+      }
+
       const encrypted = await this.ruleCrypto.encryptRulePayload(this.crewId, {
         title: title.trim(),
         description: description.trim(),
         authorDisplayName: 'Anonymous'
       });
-
-      const oldValues = this.initialFormValues ?? { title: '', description: '' };
 
       this.ruleService.updateRule(this.ruleId, {
         ...encrypted,
@@ -110,32 +127,36 @@ export class RuleEditComponent implements OnInit {
         plaintextOldTitle: oldValues.title,
         plaintextOldDescription: oldValues.description
       }).subscribe({
-        next: result => {
-          if (result.success && result.proposalsSubmitted) {
-            this.toastService.success(result.message || 'Proposal submitted for crew approval');
-            this.router.navigate(['/app/crew/proposals/list/pending']);
-            return;
-          }
-          if (result.success) {
-            this.toastService.success('Rule saved');
-            this.router.navigate(['/app/crew/rules']);
-            return;
-          }
-          this.toastService.error(result.message || 'Failed to save rule');
-          this.isSubmitting = false;
-          this.updateSaveButton();
-        },
-        error: err => {
-          this.toastService.error(err?.error?.message || 'Failed to save rule');
-          this.isSubmitting = false;
-          this.updateSaveButton();
-        }
+        next: result => this.handleSaveResult(result),
+        error: err => this.handleSaveError(err)
       });
     } catch {
       this.toastService.error('Failed to encrypt rule content');
       this.isSubmitting = false;
       this.updateSaveButton();
     }
+  }
+
+  private handleSaveResult(result: { success: boolean; message?: string; proposalsSubmitted?: boolean }) {
+    if (result.success && result.proposalsSubmitted) {
+      this.toastService.success(result.message || 'Proposal submitted for crew approval');
+      this.router.navigate(['/app/crew/proposals/list/pending']);
+      return;
+    }
+    if (result.success) {
+      this.toastService.success('Rule saved');
+      this.router.navigate(['/app/crew/rules']);
+      return;
+    }
+    this.toastService.error(result.message || 'Failed to save rule');
+    this.isSubmitting = false;
+    this.updateSaveButton();
+  }
+
+  private handleSaveError(err: { error?: { message?: string } }) {
+    this.toastService.error(err?.error?.message || 'Failed to save rule');
+    this.isSubmitting = false;
+    this.updateSaveButton();
   }
 
   deleteRule() {
@@ -185,7 +206,8 @@ export class RuleEditComponent implements OnInit {
             : response.rule;
           this.form.patchValue({
             title: decrypted.title ?? '',
-            description: decrypted.description ?? ''
+            description: decrypted.description ?? '',
+            isPublic: decrypted.isPublic ?? false
           });
           this.initialFormValues = this.form.getRawValue();
         } finally {

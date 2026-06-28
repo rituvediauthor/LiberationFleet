@@ -37,18 +37,85 @@
 }
 
 .post-card {
-  width: 100%;
-  text-align: left;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   background: white;
+}
+
+.post-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: none;
+  background: transparent;
   padding: 14px;
   cursor: pointer;
 }
 
-.post-card:hover {
-  border-color: #007AFF;
+.post-open:hover {
   background: #f8fbff;
+}
+
+.post-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+}
+
+.kebab-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+}
+
+.kebab-btn:hover {
+  background: #ececec;
+}
+
+.post-menu {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 120px;
+  padding: 6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.post-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.post-menu button:hover {
+  background: #f3f7ff;
+}
+
+.muted-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .card-top {

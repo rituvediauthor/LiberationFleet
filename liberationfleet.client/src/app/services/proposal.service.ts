@@ -97,6 +97,21 @@ export class ProposalService {
     });
   }
 
+  rerollAlias(proposalId: number): Observable<ProposalOperationResponse> {
+    return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/alias/reroll`, {});
+  }
+
+  kickFromComment(proposalId: number, commentId: number): Observable<ProposalOperationResponse> {
+    return this.http.post<ProposalOperationResponse>(
+      `${this.apiUrl}/${proposalId}/comments/${commentId}/kick`,
+      {}
+    );
+  }
+
+  kickFromProposalAuthor(proposalId: number): Observable<ProposalOperationResponse> {
+    return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/author/kick`, {});
+  }
+
   formatCountdown(endAt?: Date | null): string | null {
     if (!endAt) {
       return null;
@@ -132,6 +147,9 @@ export class ProposalService {
       createdAt: new Date(proposal.createdAt),
       canEdit: proposal.canEdit,
       canDelete: proposal.canDelete,
+      usesAnonymousComments: proposal.usesAnonymousComments,
+      viewerAlias: proposal.viewerAlias,
+      canKickAuthor: proposal.canKickAuthor,
       comments: (proposal.comments ?? []).map(comment => ({
         ...comment,
         createdAt: new Date(comment.createdAt)

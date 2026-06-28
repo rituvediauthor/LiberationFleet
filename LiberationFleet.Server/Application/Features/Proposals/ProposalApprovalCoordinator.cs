@@ -14,6 +14,9 @@ public static class ProposalApprovalCoordinator
         CrewSettingsProposalService crewSettingsProposalService,
         CrewRulesProposalService crewRulesProposalService,
         CrewChatsProposalService crewChatsProposalService,
+        CrewmateKickProposalService crewmateKickProposalService,
+        CrewmateRejoinProposalService crewmateRejoinProposalService,
+        CrewJoinRequestProposalService crewJoinRequestProposalService,
         CancellationToken cancellationToken)
     {
         if (statusBefore == ProposalStatus.Approved || proposal.Status != ProposalStatus.Approved)
@@ -24,5 +27,8 @@ public static class ProposalApprovalCoordinator
         await crewSettingsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await crewRulesProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await crewChatsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await crewmateKickProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await crewmateRejoinProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await crewJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
     }
 }

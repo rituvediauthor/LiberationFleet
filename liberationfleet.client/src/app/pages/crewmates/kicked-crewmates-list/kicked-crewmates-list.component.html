@@ -1,0 +1,25 @@
+<app-page-layout [backButton]="backButton">
+  <div class="kicked-crewmates-page">
+    <h1 class="page-title">Kicked crewmates</h1>
+    <p class="page-subtitle">Crewmates removed from the crew by approved kick proposals</p>
+
+    <p *ngIf="loading" class="state-text">Loading kicked crewmates...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && kickedCrewmates.length === 0" class="state-text">
+      No kicked crewmates.
+    </p>
+
+    <div class="kicked-list" *ngIf="!loading && kickedCrewmates.length > 0">
+      <article class="kicked-row" *ngFor="let crewmate of kickedCrewmates">
+        <p class="crewmate-name">{{ crewmate.username }}</p>
+        <button
+          type="button"
+          class="rejoin-btn"
+          [disabled]="actionUserId === crewmate.userId"
+          (click)="allowRejoin(crewmate, $event)">
+          Allow rejoin
+        </button>
+      </article>
+    </div>
+  </div>
+</app-page-layout>

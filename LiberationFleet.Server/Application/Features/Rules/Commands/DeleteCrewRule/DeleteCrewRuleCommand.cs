@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Rules.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -17,6 +18,7 @@ public class DeleteCrewRuleCommandHandler(
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
     CrewRulesProposalService crewRulesProposalService,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteCrewRuleCommand, RuleOperationResponse>
 {
     public async Task<RuleOperationResponse> Handle(DeleteCrewRuleCommand request, CancellationToken cancellationToken)
@@ -56,6 +58,7 @@ public class DeleteCrewRuleCommandHandler(
                 nonce: null,
                 ciphertext: null,
                 keyVersion: 1,
+                isPublic: rule.IsPublic,
                 cancellationToken);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -72,6 +75,16 @@ public class DeleteCrewRuleCommandHandler(
         rule.IsDeleted = true;
         rule.UpdatedAt = DateTime.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            rule.CrewId,
+            NotificationKind.RuleDeleted,
+            "Rule deleted",
+            "A crew rule was deleted.",
+            "/app/crew/rules",
+            relatedEntityId: rule.Id,
+            excludeUserId: userId,
+            cancellationToken: cancellationToken);
 
         return new RuleOperationResponse
         {

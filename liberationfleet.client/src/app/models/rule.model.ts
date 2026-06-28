@@ -12,6 +12,7 @@ export interface RuleListItem {
   createdByUsername: string;
   createdAt: string;
   updatedAt: string;
+  isPublic?: boolean;
   hasEncryptedContent?: boolean;
   encryptedPayload?: EncryptedPayload | null;
   title?: string;
@@ -42,6 +43,7 @@ export interface RuleOperationResponse {
 }
 
 export interface RuleWritePayload {
+  isPublic?: boolean;
   nonce: string;
   ciphertext: string;
   keyVersion?: number;

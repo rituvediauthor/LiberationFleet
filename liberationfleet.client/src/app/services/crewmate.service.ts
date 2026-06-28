@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  CrewmateKickResponse,
+  KickedCrewmateListResponse,
   CrewmateListItem,
   CrewmateListResponse,
   CrewmateOperationResponse,
@@ -64,6 +66,18 @@ export class CrewmateService {
   blockCrewmate(userId: number): Observable<CrewmateOperationResponse> {
     return this.http.post<CrewmateOperationResponse>(`${this.apiUrl}/${userId}/block`, {})
       .pipe(map(response => this.mapOperation(response)));
+  }
+
+  kickCrewmate(userId: number): Observable<CrewmateKickResponse> {
+    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/kick`, {});
+  }
+
+  getKickedCrewmates(): Observable<KickedCrewmateListResponse> {
+    return this.http.get<KickedCrewmateListResponse>(`${this.apiUrl}/kicked`);
+  }
+
+  allowRejoin(userId: number): Observable<CrewmateKickResponse> {
+    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/allow-rejoin`, {});
   }
 
   private mapListItem(item: CrewmateListItem): CrewmateListItem {

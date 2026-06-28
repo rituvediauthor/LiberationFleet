@@ -27,6 +27,7 @@ export class RuleService {
 
   createRule(payload: RuleWritePayload): Observable<RuleOperationResponse> {
     return this.http.post<RuleOperationResponse>(this.apiUrl, {
+      isPublic: payload.isPublic ?? false,
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,
@@ -37,6 +38,7 @@ export class RuleService {
 
   updateRule(id: number, payload: RuleWritePayload): Observable<RuleOperationResponse> {
     return this.http.put<RuleOperationResponse>(`${this.apiUrl}/${id}`, {
+      isPublic: payload.isPublic ?? false,
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,

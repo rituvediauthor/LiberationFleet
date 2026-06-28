@@ -15,19 +15,36 @@ export class RuleCryptoService {
   ) {}
 
   async decryptRules(rules: RuleListItem[], crewId: number): Promise<RuleListItem[]> {
-    if (!this.cryptoSession.isUnlocked()) {
-      return rules.map(rule => ({
+    const publicRules = rules.filter(rule => rule.isPublic).map(rule => {
+      const description = rule.description ?? '';
+      return {
         ...rule,
-        title: '[Unlock encryption to view]',
-        descriptionPreview: '[Unlock encryption to view]'
-      }));
+        descriptionPreview: description.length > 160 ? `${description.slice(0, 160)}…` : description
+      };
+    });
+    const encryptedRules = rules.filter(rule => !rule.isPublic);
+
+    if (!this.cryptoSession.isUnlocked()) {
+      return [
+        ...publicRules,
+        ...encryptedRules.map(rule => ({
+          ...rule,
+          title: '[Unlock encryption to view]',
+          descriptionPreview: '[Unlock encryption to view]'
+        }))
+      ];
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(rules.map(rule => this.decryptRuleItem(rule, crewKey)));
+    const decryptedEncrypted = await Promise.all(encryptedRules.map(rule => this.decryptRuleItem(rule, crewKey)));
+    return [...publicRules, ...decryptedEncrypted];
   }
 
   async decryptDetail(rule: RuleDetail, crewId: number): Promise<RuleDetail> {
+    if (rule.isPublic) {
+      return rule;
+    }
+
     if (!this.cryptoSession.isUnlocked()) {
       return {
         ...rule,
@@ -48,6 +65,14 @@ export class RuleCryptoService {
   }
 
   private async decryptRuleItem(rule: RuleListItem, crewKey: CryptoKey): Promise<RuleListItem> {
+    if (rule.isPublic) {
+      const description = rule.description ?? '';
+      return {
+        ...rule,
+        descriptionPreview: description.length > 160 ? `${description.slice(0, 160)}…` : description
+      };
+    }
+
     if (!rule.hasEncryptedContent || !rule.encryptedPayload) {
       return rule;
     }

@@ -1,8 +1,7 @@
 <app-page-layout
   [backButton]="backButton"
   [primaryButton]="primaryButton"
-  [secondaryButton]="secondaryButton"
-  [fillHeight]="true">
+  [secondaryButton]="secondaryButton">
   <div class="crewmate-detail-page">
     <p *ngIf="loading" class="state-text">Loading profile...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
@@ -77,6 +76,7 @@
         type="button"
         class="kick-btn"
         *ngIf="!profile.isSelf"
+        [disabled]="actionLoading"
         (click)="onKickCrewmate()">
         Kick crewmate
       </button>
@@ -93,4 +93,15 @@
   (confirmed)="onConfirmBlock()"
   (cancelled)="onCancelBlock()"
   (dismissed)="onCancelBlock()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [visible]="showKickDialog"
+  title="Kick crewmate?"
+  [message]="profile ? 'Submit a proposal to remove ' + profile.username + ' from the crew? The crew will vote on whether to remove them.' : 'Submit a kick proposal?'"
+  confirmLabel="Submit kick proposal"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmKick()"
+  (cancelled)="onCancelKick()"
+  (dismissed)="onCancelKick()">
 </app-confirm-dialog>

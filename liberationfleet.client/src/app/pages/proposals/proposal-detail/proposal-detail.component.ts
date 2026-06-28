@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,6 +17,8 @@ import {
   ProposalVoteChoice
 } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
+import { AuthService } from '../../../services/auth.service';
+import { getUserIdFromToken } from '../../../utils/jwt.util';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -50,6 +52,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   keptEditAttachments: ProposalAttachment[] = [];
   newEditAttachments: PendingAttachment[] = [];
   commentAttachments: PendingAttachment[] = [];
+  openCommentMenuId: number | null = null;
+  openProposalAuthorMenu = false;
   countdownTick = 0;
 
   private route = inject(ActivatedRoute);
@@ -60,6 +64,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
+  private authService = inject(AuthService);
   private countdownIntervalId?: ReturnType<typeof setInterval>;
   private encryptionReload?: EncryptionReloadHandle;
 
@@ -95,6 +100,100 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       clearInterval(this.countdownIntervalId);
     }
     this.encryptionReload?.subscription.unsubscribe();
+  }
+
+  @HostListener('document:click')
+  closeMenus() {
+    this.openCommentMenuId = null;
+    this.openProposalAuthorMenu = false;
+  }
+
+  toggleCommentMenu(commentId: number, event: Event) {
+    event.stopPropagation();
+    this.openProposalAuthorMenu = false;
+    this.openCommentMenuId = this.openCommentMenuId === commentId ? null : commentId;
+  }
+
+  toggleProposalAuthorMenu(event: Event) {
+    event.stopPropagation();
+    this.openCommentMenuId = null;
+    this.openProposalAuthorMenu = !this.openProposalAuthorMenu;
+  }
+
+  rerollNickname(event: Event) {
+    event.stopPropagation();
+    this.openCommentMenuId = null;
+    if (!this.proposal) {
+      return;
+    }
+
+    this.proposalService.rerollAlias(this.proposal.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to reroll nickname');
+          return;
+        }
+        this.toastService.success(`Your nickname is now ${result.alias ?? 'updated'}`);
+        if (this.proposal && result.alias) {
+          this.proposal = {
+            ...this.proposal,
+            viewerAlias: result.alias,
+            comments: this.proposal.comments.map(comment => this.applyAliasToOwnComment(comment, result.alias!))
+          };
+        }
+      },
+      error: () => this.toastService.error('Failed to reroll nickname')
+    });
+  }
+
+  kickFromComment(comment: ProposalComment, event: Event) {
+    event.stopPropagation();
+    this.openCommentMenuId = null;
+    if (!this.proposal) {
+      return;
+    }
+
+    this.proposalService.kickFromComment(this.proposal.id, comment.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to submit kick proposal');
+          if (result.proposalId) {
+            this.router.navigate(['/app/crew/proposals', result.proposalId]);
+          }
+          return;
+        }
+        this.toastService.success(result.message || 'Kick proposal submitted');
+        if (result.proposalId) {
+          this.router.navigate(['/app/crew/proposals', result.proposalId]);
+        }
+      },
+      error: () => this.toastService.error('Failed to submit kick proposal')
+    });
+  }
+
+  kickFromProposalAuthor(event: Event) {
+    event.stopPropagation();
+    this.openProposalAuthorMenu = false;
+    if (!this.proposal) {
+      return;
+    }
+
+    this.proposalService.kickFromProposalAuthor(this.proposal.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to submit kick proposal');
+          if (result.proposalId) {
+            this.router.navigate(['/app/crew/proposals', result.proposalId]);
+          }
+          return;
+        }
+        this.toastService.success(result.message || 'Kick proposal submitted');
+        if (result.proposalId) {
+          this.router.navigate(['/app/crew/proposals', result.proposalId]);
+        }
+      },
+      error: () => this.toastService.error('Failed to submit kick proposal')
+    });
   }
 
   get proposalId(): number {
@@ -257,30 +356,43 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     }
 
     this.posting = true;
+    const body = this.commentText.trim();
+    const pendingAttachments = [...this.commentAttachments];
+    const parentCommentId = this.replyParentId;
+
     try {
       const encrypted = await this.proposalCrypto.encryptCommentPayload(
         this.crewId,
         {
-          body: this.commentText.trim(),
-          authorDisplayName: this.authorDisplayName
+          body,
+          authorDisplayName: this.proposal.usesAnonymousComments
+            ? (this.proposal.viewerAlias ?? 'Anonymous')
+            : this.authorDisplayName
         },
-        this.commentAttachments
+        pendingAttachments
       );
 
       this.proposalService.postComment(this.proposal.id, {
-        parentCommentId: this.replyParentId,
+        parentCommentId,
         nonce: encrypted.nonce,
         ciphertext: encrypted.ciphertext
       }).subscribe({
         next: result => {
           this.posting = false;
           if (result.success) {
+            if (result.alias && this.proposal) {
+              this.proposal = { ...this.proposal, viewerAlias: result.alias };
+            }
             this.commentText = '';
             this.commentAttachments = [];
             this.commentFocused = false;
             this.replyParentId = null;
             this.toastService.success('Comment posted');
-            this.loadProposal();
+            if (result.commentId) {
+              this.insertPostedComment(result.commentId, body, pendingAttachments, parentCommentId);
+            } else {
+              this.loadProposal();
+            }
             return;
           }
           this.toastService.error(result.message || 'Failed to post comment');
@@ -346,6 +458,75 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
   canPostComment(): boolean {
     return Boolean(this.commentText.trim() || this.commentAttachments.length > 0);
+  }
+
+  private insertPostedComment(
+    commentId: number,
+    body: string,
+    pendingAttachments: PendingAttachment[],
+    parentCommentId: number | null
+  ) {
+    if (!this.proposal) {
+      return;
+    }
+
+    const token = this.authService.getToken();
+    const authorUserId = token ? getUserIdFromToken(token) ?? 0 : 0;
+    const displayName = this.proposal.usesAnonymousComments
+      ? (this.proposal.viewerAlias ?? 'Anonymous')
+      : this.authorDisplayName;
+    const newComment: ProposalComment = {
+      id: commentId,
+      authorUserId,
+      authorUsername: displayName,
+      parentCommentId,
+      createdAt: new Date(),
+      replyCount: 0,
+      hasEncryptedContent: true,
+      isOwnComment: true,
+      canKick: false,
+      body,
+      resolvedAttachments: pendingAttachments.map(attachment => ({
+        resourceId: attachment.resourceId,
+        type: attachment.type,
+        fileName: attachment.file?.name,
+        mimeType: attachment.file?.type,
+        dataUrl: attachment.previewUrl
+      }))
+    };
+
+    if (!parentCommentId) {
+      this.proposal = {
+        ...this.proposal,
+        comments: [...this.proposal.comments, newComment]
+      };
+      return;
+    }
+
+    this.proposal = {
+      ...this.proposal,
+      comments: this.proposal.comments.map(comment => {
+        if (comment.id !== parentCommentId) {
+          return comment;
+        }
+
+        return {
+          ...comment,
+          replyCount: comment.replyCount + 1,
+          repliesExpanded: true,
+          replies: [...(comment.replies ?? []), newComment]
+        };
+      })
+    };
+  }
+
+  private applyAliasToOwnComment(comment: ProposalComment, alias: string): ProposalComment {
+    const updated: ProposalComment = {
+      ...comment,
+      authorUsername: comment.isOwnComment ? alias : comment.authorUsername,
+      replies: comment.replies?.map(reply => this.applyAliasToOwnComment(reply, alias))
+    };
+    return updated;
   }
 
   private loadProposal() {
