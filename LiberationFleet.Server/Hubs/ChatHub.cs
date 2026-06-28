@@ -49,9 +49,18 @@ public class ChatHub(
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomGroup(roomId));
     }
 
+    public override async Task OnConnectedAsync()
+    {
+        var userId = GetUserId();
+        await Groups.AddToGroupAsync(Context.ConnectionId, UserGroup(userId));
+        await base.OnConnectedAsync();
+    }
+
     internal static string CrewGroup(int crewId) => $"crew:{crewId}";
 
     internal static string RoomGroup(int roomId) => $"room:{roomId}";
+
+    internal static string UserGroup(int userId) => $"user:{userId}";
 
     private int GetUserId()
     {

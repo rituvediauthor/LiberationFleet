@@ -176,3 +176,31 @@
 .card-thumb.placeholder {
   background: linear-gradient(135deg, #eef4ff, #f5f5f5);
 }
+
+.hidden-toggle-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fafafa;
+  color: #007AFF;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.hidden-toggle-btn:hover {
+  background: #f3f7ff;
+  border-color: #007AFF;
+}
+
+.hidden-list {
+  margin-top: 12px;
+}
+
+.hidden-card {
+  opacity: 0.92;
+}

@@ -29,6 +29,7 @@ public class ProposalDetailDto : ProposalListItemDto
     public bool UsesAnonymousComments { get; set; }
     public string? ViewerAlias { get; set; }
     public bool CanKickAuthor { get; set; }
+    public bool CanVote { get; set; } = true;
     public IReadOnlyList<ProposalCommentDto> Comments { get; set; } = Array.Empty<ProposalCommentDto>();
 }
 
@@ -93,9 +94,21 @@ public class VoteProposalRequest
     public string Vote { get; set; } = string.Empty;
 }
 
+public class KickProposalRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
 public class CreateProposalCommentRequest
 {
     public int? ParentCommentId { get; set; }
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+}
+
+public class UpdateProposalCommentRequest
+{
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;

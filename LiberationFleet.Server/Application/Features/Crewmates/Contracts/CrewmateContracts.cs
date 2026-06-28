@@ -101,3 +101,8 @@ public class CrewmateKickResponse
     public string Message { get; set; } = string.Empty;
     public int ProposalId { get; set; }
 }
+
+public class KickCrewmateRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}

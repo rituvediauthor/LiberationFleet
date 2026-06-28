@@ -75,7 +75,10 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
                 cancellationToken);
-            isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
+            var crew = membership.Crew
+                ?? await _mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
+            isSurvivalRecipient = crew?.AllowSurvivalThresholds == true
+                && unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
         }
 
         return ProfileMapper.MapUser(

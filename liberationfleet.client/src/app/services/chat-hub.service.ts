@@ -9,6 +9,11 @@ export interface ChatRoomActivityUpdate {
   lastActivityAt: string;
 }
 
+export interface DirectMessageReceivedEvent {
+  friendUserId: number;
+  message: ChatMessage;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -19,8 +24,11 @@ export class ChatHubService implements OnDestroy {
   private joinedRoomId: number | null = null;
 
   readonly messageReceived$ = new Subject<ChatMessage>();
+  readonly messageUpdated$ = new Subject<ChatMessage>();
   readonly roomCreated$ = new Subject<ChatRoomListItem>();
   readonly roomActivityUpdated$ = new Subject<ChatRoomActivityUpdate>();
+  readonly directMessageReceived$ = new Subject<DirectMessageReceivedEvent>();
+  readonly directMessageUpdated$ = new Subject<DirectMessageReceivedEvent>();
 
   constructor(private authService: AuthService) {}
 
@@ -108,12 +116,24 @@ export class ChatHubService implements OnDestroy {
       this.messageReceived$.next(message);
     });
 
+    this.connection.on('MessageUpdated', (message: ChatMessage) => {
+      this.messageUpdated$.next(message);
+    });
+
     this.connection.on('RoomCreated', (room: ChatRoomListItem) => {
       this.roomCreated$.next(room);
     });
 
     this.connection.on('RoomActivityUpdated', (update: ChatRoomActivityUpdate) => {
       this.roomActivityUpdated$.next(update);
+    });
+
+    this.connection.on('DirectMessageReceived', (event: DirectMessageReceivedEvent) => {
+      this.directMessageReceived$.next(event);
+    });
+
+    this.connection.on('DirectMessageUpdated', (event: DirectMessageReceivedEvent) => {
+      this.directMessageUpdated$.next(event);
     });
 
     await this.connection.start();

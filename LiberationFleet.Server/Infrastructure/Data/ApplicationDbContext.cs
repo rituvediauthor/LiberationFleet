@@ -48,6 +48,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
     public DbSet<UserMutedContent> UserMutedContents => Set<UserMutedContent>();
+    public DbSet<UserHiddenContent> UserHiddenContents => Set<UserHiddenContent>();
+    public DbSet<DirectConversation> DirectConversations => Set<DirectConversation>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -604,6 +607,44 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserHiddenContent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.ContentType, e.ResourceId }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DirectConversation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserLowId, e.UserHighId }).IsUnique();
+            entity.HasOne(e => e.UserLow)
+                .WithMany()
+                .HasForeignKey(e => e.UserLowId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.UserHigh)
+                .WithMany()
+                .HasForeignKey(e => e.UserHighId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DirectMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt });
+            entity.HasOne(e => e.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(e => e.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

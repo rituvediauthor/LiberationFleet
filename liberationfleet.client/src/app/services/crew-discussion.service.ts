@@ -96,6 +96,19 @@ export class CrewDiscussionService {
     });
   }
 
+  updateComment(
+    config: DiscussionConfig,
+    postId: number,
+    commentId: number,
+    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+  ): Observable<DiscussionOperationResponse> {
+    return this.http.put<DiscussionOperationResponse>(`${config.apiPath}/${postId}/comments/${commentId}`, {
+      nonce: payload.nonce,
+      ciphertext: payload.ciphertext,
+      keyVersion: payload.keyVersion ?? 1
+    });
+  }
+
   private mapListItem(item: DiscussionListItem): DiscussionListItem {
     return {
       ...item,

@@ -1,6 +1,81 @@
 <app-nav-layout activeTab="friends">
-  <div class="placeholder-page">
-    <h1>Friends</h1>
-    <p>Friends pages coming soon...</p>
+  <div class="friends-page">
+    <h1 class="page-title">Friends</h1>
+
+    <nav class="friends-nav" aria-label="Friends actions">
+      <button type="button" class="menu-link" (click)="openRequests()">
+        <i class="fa-solid fa-user-plus menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Requests</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openBlocked()">
+        <i class="fa-solid fa-ban menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Blocked</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openFindFriend()">
+        <i class="fa-solid fa-magnifying-glass menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">Find friend</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+    </nav>
+
+    <div class="search-wrap">
+      <input
+        type="search"
+        class="search-input"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+        placeholder="Search friends by username"
+        aria-label="Search friends by username" />
+    </div>
+
+    <p *ngIf="loading" class="state-text">Loading friends...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && friends.length === 0" class="state-text">No friends found.</p>
+
+    <div class="friend-list" *ngIf="!loading && friends.length > 0">
+      <div class="friend-card" *ngFor="let friend of friends">
+        <button type="button" class="friend-open" (click)="openFriend(friend)">
+          <div class="friend-main">
+            <p class="friend-name">
+              {{ friend.username }}
+              <span *ngIf="friend.isMuted" class="muted-badge">Muted</span>
+            </p>
+            <p class="friend-activity">{{ formatActivity(friend) }}</p>
+          </div>
+          <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+        </button>
+
+        <div class="friend-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            aria-label="Friend options"
+            (click)="toggleMenu(friend.userId, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div class="friend-menu" *ngIf="openMenuUserId === friend.userId" (click)="$event.stopPropagation()">
+            <button type="button" (click)="muteFriend(friend, $event)">
+              {{ friend.isMuted ? 'Unmute' : 'Mute' }}
+            </button>
+            <button type="button" (click)="unfriend(friend, $event)">Unfriend</button>
+            <button type="button" (click)="blockFriend(friend, $event)">Block</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </app-nav-layout>
+
+<app-confirm-dialog
+  *ngIf="showBlockDialog"
+  title="Block friend"
+  message="Are you sure you want to block this friend? Comments, messages, and other content will be hidden from each of you."
+  confirmLabel="Block"
+  (confirm)="onConfirmBlock()"
+  (cancel)="onCancelBlock()">
+</app-confirm-dialog>

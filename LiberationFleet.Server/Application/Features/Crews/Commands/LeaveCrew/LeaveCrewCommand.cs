@@ -10,6 +10,7 @@ public record LeaveCrewCommand : IRequest<CrewOperationResponse>;
 public class LeaveCrewCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    EmptyCrewCleanupService emptyCrewCleanupService,
     IUnitOfWork unitOfWork) : IRequestHandler<LeaveCrewCommand, CrewOperationResponse>
 {
     public async Task<CrewOperationResponse> Handle(LeaveCrewCommand request, CancellationToken cancellationToken)
@@ -25,7 +26,10 @@ public class LeaveCrewCommandHandler(
             return new CrewOperationResponse { Success = false, Message = "You are not in a crew." };
         }
 
+        var crewId = membership.CrewId;
         membershipRepository.Remove(membership);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(crewId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewOperationResponse

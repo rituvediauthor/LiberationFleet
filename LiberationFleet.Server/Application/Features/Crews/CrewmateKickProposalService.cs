@@ -10,7 +10,8 @@ public class CrewmateKickProposalService(
     IProposalRepository proposalRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
-    NotificationService notificationService)
+    NotificationService notificationService,
+    EmptyCrewCleanupService emptyCrewCleanupService)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
         int crewId,
@@ -19,6 +20,7 @@ public class CrewmateKickProposalService(
         int sourceProposalId,
         int? sourceCommentId,
         string anonymousNickname,
+        string reason,
         CancellationToken cancellationToken) =>
         CreateProposalAsync(
             crewId,
@@ -28,6 +30,7 @@ public class CrewmateKickProposalService(
             isAnonymousOrigin: true,
             sourceProposalId,
             sourceCommentId,
+            reason,
             cancellationToken);
 
     public Task<CrewmateKickProposalResult> CreateFromCrewmateProfileAsync(
@@ -35,6 +38,7 @@ public class CrewmateKickProposalService(
         int authorUserId,
         int targetUserId,
         string username,
+        string reason,
         CancellationToken cancellationToken) =>
         CreateProposalAsync(
             crewId,
@@ -44,6 +48,7 @@ public class CrewmateKickProposalService(
             isAnonymousOrigin: false,
             sourceProposalId: null,
             sourceCommentId: null,
+            reason,
             cancellationToken);
 
     private async Task<CrewmateKickProposalResult> CreateProposalAsync(
@@ -54,6 +59,7 @@ public class CrewmateKickProposalService(
         bool isAnonymousOrigin,
         int? sourceProposalId,
         int? sourceCommentId,
+        string reason,
         CancellationToken cancellationToken)
     {
         var pendingKick = await proposalRepository.GetPendingCrewmateKickForTargetAsync(
@@ -80,11 +86,12 @@ public class CrewmateKickProposalService(
         ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
+        var trimmedReason = reason.Trim();
         var description = isAnonymousOrigin
             ? sourceCommentId.HasValue
-                ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion."
-                : $"Remove {displayName} from the crew following a malicious anonymous proposal."
-            : $"Remove {displayName} from the crew.";
+                ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion. Reason: {trimmedReason}"
+                : $"Remove {displayName} from the crew following a malicious anonymous proposal. Reason: {trimmedReason}"
+            : $"Remove {displayName} from the crew. Reason: {trimmedReason}";
 
         await proposalRepository.AddCrewmateKickAsync(new ProposalCrewmateKick
         {
@@ -156,5 +163,7 @@ public class CrewmateKickProposalService(
                 relatedEntityId: kick.TargetUserId,
                 cancellationToken: cancellationToken);
         }
+
+        await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(proposal.CrewId, cancellationToken);
     }
 }

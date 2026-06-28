@@ -76,6 +76,13 @@ public class CreateProjectCommentRequest
     public int KeyVersion { get; set; } = 1;
 }
 
+public class UpdateProjectCommentRequest
+{
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+}
+
 public class ProjectCommentRepliesResponse
 {
     public bool Success { get; set; }

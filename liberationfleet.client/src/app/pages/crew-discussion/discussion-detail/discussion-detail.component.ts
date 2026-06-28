@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, OnDestroy, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -55,6 +55,11 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   keptEditAttachments: ProposalAttachment[] = [];
   newEditAttachments: PendingAttachment[] = [];
   commentAttachments: PendingAttachment[] = [];
+  keptCommentEditAttachments: ProposalAttachment[] = [];
+  editingCommentId: number | null = null;
+  editingCommentParentId: number | null = null;
+  openCommentMenuId: number | null = null;
+  currentUserId: number | null = null;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -70,6 +75,8 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   ngOnInit() {
     const kind = this.route.snapshot.data['discussionKind'] as DiscussionKind;
     this.config = getDiscussionConfig(kind);
+    const token = this.authService.getToken();
+    this.currentUserId = token ? getUserIdFromToken(token) : null;
 
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadPost());
 
@@ -99,6 +106,11 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
 
   get postId(): number {
     return Number(this.route.snapshot.paramMap.get('id'));
+  }
+
+  @HostListener('document:click')
+  closeMenus() {
+    this.openCommentMenuId = null;
   }
 
   goBack() {
@@ -138,7 +150,47 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   }
 
   get commentExpanded(): boolean {
-    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0;
+    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0 || this.editingCommentId != null;
+  }
+
+  isOwnComment(comment: DiscussionComment): boolean {
+    return this.currentUserId != null && comment.authorUserId === this.currentUserId;
+  }
+
+  toggleCommentMenu(commentId: number, event: Event) {
+    event.stopPropagation();
+    this.openCommentMenuId = this.openCommentMenuId === commentId ? null : commentId;
+  }
+
+  startEditComment(comment: DiscussionComment, parentCommentId: number | null = null, event?: Event) {
+    event?.stopPropagation();
+    this.openCommentMenuId = null;
+    this.editingCommentId = comment.id;
+    this.editingCommentParentId = parentCommentId;
+    this.replyParentId = parentCommentId;
+    this.commentText = comment.body ?? '';
+    this.keptCommentEditAttachments = (comment.resolvedAttachments ?? []).map(attachment => ({
+      resourceId: attachment.resourceId,
+      type: attachment.type,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType
+    }));
+    this.commentAttachments = [];
+    this.commentFocused = true;
+  }
+
+  cancelEditComment() {
+    this.editingCommentId = null;
+    this.editingCommentParentId = null;
+    this.commentText = '';
+    this.commentAttachments = [];
+    this.keptCommentEditAttachments = [];
+    this.commentFocused = false;
+    this.replyParentId = null;
+  }
+
+  removeKeptCommentAttachment(index: number) {
+    this.keptCommentEditAttachments.splice(index, 1);
   }
 
   startReply(comment: DiscussionComment) {
@@ -218,7 +270,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   }
 
   async postComment() {
-    const hasContent = this.commentText.trim() || this.commentAttachments.length > 0;
+    const hasContent = this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0;
     if (!this.post || !hasContent || this.posting || this.crewId <= 0) {
       return;
     }
@@ -226,6 +278,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     const body = this.commentText.trim();
     const pendingAttachments = [...this.commentAttachments];
     const parentCommentId = this.replyParentId;
+    const editingCommentId = this.editingCommentId;
 
     this.posting = true;
     try {
@@ -235,34 +288,42 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
           body,
           authorDisplayName: this.authorDisplayName
         },
-        pendingAttachments
+        pendingAttachments,
+        this.keptCommentEditAttachments
       );
 
-      this.discussionService.postComment(this.config, this.post.id, {
-        parentCommentId,
-        nonce: encrypted.nonce,
-        ciphertext: encrypted.ciphertext
-      }).subscribe({
+      const request$ = editingCommentId
+        ? this.discussionService.updateComment(this.config, this.post.id, editingCommentId, encrypted)
+        : this.discussionService.postComment(this.config, this.post.id, {
+          parentCommentId,
+          nonce: encrypted.nonce,
+          ciphertext: encrypted.ciphertext
+        });
+
+      request$.subscribe({
         next: result => {
           this.posting = false;
           if (result.success) {
-            if (result.commentId) {
+            if (!editingCommentId && result.commentId) {
               this.insertPostedComment(result.commentId, body, pendingAttachments, parentCommentId);
             } else {
               this.refreshPostPreservingScroll();
             }
             this.commentText = '';
             this.commentAttachments = [];
+            this.keptCommentEditAttachments = [];
             this.commentFocused = false;
             this.replyParentId = null;
-            this.toastService.success('Comment posted');
+            this.editingCommentId = null;
+            this.editingCommentParentId = null;
+            this.toastService.success(editingCommentId ? 'Comment updated' : 'Comment posted');
             return;
           }
-          this.toastService.error(result.message || 'Failed to post comment');
+          this.toastService.error(result.message || (editingCommentId ? 'Failed to update comment' : 'Failed to post comment'));
         },
         error: () => {
           this.posting = false;
-          this.toastService.error('Failed to post comment');
+          this.toastService.error(editingCommentId ? 'Failed to update comment' : 'Failed to post comment');
         }
       });
     } catch {
@@ -315,7 +376,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   }
 
   canPostComment(): boolean {
-    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0);
+    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0);
   }
 
   retryLoad(): void {

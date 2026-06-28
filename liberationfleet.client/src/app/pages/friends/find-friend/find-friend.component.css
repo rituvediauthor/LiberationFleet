@@ -1,0 +1,87 @@
+.find-friend-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.page-subtitle {
+  margin: 0 0 16px;
+  color: #666;
+  font-size: 14px;
+}
+
+.search-form {
+  margin-bottom: 12px;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.search-status {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.result-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+}
+
+.result-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+.action-btn {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.action-btn.primary {
+  background: #007AFF;
+  border-color: #007AFF;
+  color: white;
+}
+
+.action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

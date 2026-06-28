@@ -1,0 +1,19 @@
+<app-page-layout [backButton]="backButton">
+  <div class="blocked-page">
+    <h1 class="page-title">Blocked</h1>
+
+    <p *ngIf="loading" class="state-text">Loading blocked users...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && blockedUsers.length === 0" class="state-text">No blocked users.</p>
+
+    <div class="blocked-list" *ngIf="!loading && blockedUsers.length > 0">
+      <div class="blocked-card" *ngFor="let user of blockedUsers">
+        <div class="blocked-main">
+          <p class="blocked-name">{{ user.username }}</p>
+          <p class="blocked-meta">Blocked {{ user.blockedAt | date:'mediumDate' }}</p>
+        </div>
+        <button type="button" class="action-btn" [disabled]="actionLoading" (click)="unblock(user)">Unblock</button>
+      </div>
+    </div>
+  </div>
+</app-page-layout>

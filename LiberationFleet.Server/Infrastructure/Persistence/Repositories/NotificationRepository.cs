@@ -134,6 +134,38 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         }
     }
 
+    public Task<bool> IsContentHiddenAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default) =>
+        context.UserHiddenContents.AnyAsync(
+            h => h.UserId == userId && h.ContentType == contentType && h.ResourceId == resourceId,
+            cancellationToken);
+
+    public async Task<IReadOnlyList<UserHiddenContent>> GetHiddenContentsAsync(int userId, CancellationToken cancellationToken = default) =>
+        await context.UserHiddenContents
+            .AsNoTracking()
+            .Where(h => h.UserId == userId)
+            .OrderByDescending(h => h.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task AddHiddenContentAsync(UserHiddenContent hiddenContent, CancellationToken cancellationToken = default) =>
+        await context.UserHiddenContents.AddAsync(hiddenContent, cancellationToken);
+
+    public async Task RemoveHiddenContentAsync(
+        int userId,
+        MutedContentType contentType,
+        int resourceId,
+        CancellationToken cancellationToken = default)
+    {
+        var existing = await context.UserHiddenContents
+            .FirstOrDefaultAsync(
+                h => h.UserId == userId && h.ContentType == contentType && h.ResourceId == resourceId,
+                cancellationToken);
+
+        if (existing is not null)
+        {
+            context.UserHiddenContents.Remove(existing);
+        }
+    }
+
     public async Task<IReadOnlyList<int>> GetCrewMemberUserIdsAsync(int crewId, int? excludeUserId, CancellationToken cancellationToken = default)
     {
         var query = context.CrewMemberships

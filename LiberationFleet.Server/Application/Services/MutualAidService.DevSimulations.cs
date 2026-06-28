@@ -18,6 +18,11 @@ public partial class MutualAidService
             return DevFail("Season has not started.");
         }
 
+        if (!crew.AllowSurvivalThresholds)
+        {
+            return DevSuccess("Survival thresholds are disabled for this crew.");
+        }
+
         var (year, month) = await GetNextSimulationMonthAsync(crew.Id, cancellationToken);
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);

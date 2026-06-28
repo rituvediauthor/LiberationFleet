@@ -135,13 +135,14 @@ export class ProposalCryptoService {
   async encryptCommentPayload(
     crewId: number,
     payload: ProposalCommentEncryptedPayload,
-    attachments: PendingAttachment[] = []
+    newAttachments: PendingAttachment[] = [],
+    existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    const storedAttachments = await this.uploadAttachments(crewId, attachments);
+    const storedAttachments = await this.uploadAttachments(crewId, newAttachments);
     return this.cryptoService.encryptJson(crewKey, {
       ...payload,
-      attachments: storedAttachments
+      attachments: [...existingAttachments, ...storedAttachments]
     });
   }
 

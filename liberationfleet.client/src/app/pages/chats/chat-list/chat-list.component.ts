@@ -10,7 +10,7 @@ import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomListItem } from '../../../models/chat.model';
-import { MutedContentItem } from '../../../models/notification.model';
+import { HiddenContentItem, MutedContentItem } from '../../../models/notification.model';
 import { NotificationService } from '../../../services/notification.service';
 
 @Component({
@@ -27,6 +27,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
   crewId = 0;
   openMenuRoomId: number | null = null;
   mutedItems: MutedContentItem[] = [];
+  hiddenItems: HiddenContentItem[] = [];
+  showHiddenExpanded = false;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -66,6 +68,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
           void this.chatHub.joinCrew(this.crewId);
         }
         this.loadMutes();
+        this.loadHidden();
         this.loadRooms();
       },
       error: () => {
@@ -82,6 +85,14 @@ export class ChatListComponent implements OnInit, OnDestroy {
   @HostListener('document:click')
   closeMenus() {
     this.openMenuRoomId = null;
+  }
+
+  get visibleRooms(): ChatRoomListItem[] {
+    return this.rooms.filter(room => !this.isRoomHidden(room.id));
+  }
+
+  get hiddenRooms(): ChatRoomListItem[] {
+    return this.rooms.filter(room => this.isRoomHidden(room.id));
   }
 
   formatActivity(date: string): string {
@@ -120,6 +131,10 @@ export class ChatListComponent implements OnInit, OnDestroy {
     return this.notificationService.isMuted(this.mutedItems, 'ChatRoom', roomId);
   }
 
+  isRoomHidden(roomId: number): boolean {
+    return this.notificationService.isHidden(this.hiddenItems, 'ChatRoom', roomId);
+  }
+
   muteRoom(room: ChatRoomListItem, event: Event) {
     event.stopPropagation();
     this.openMenuRoomId = null;
@@ -144,10 +159,45 @@ export class ChatListComponent implements OnInit, OnDestroy {
     });
   }
 
-  hideRoom(event: Event) {
+  hideRoom(room: ChatRoomListItem, event: Event) {
     event.stopPropagation();
     this.openMenuRoomId = null;
-    this.toastService.success('Hide is coming soon');
+    this.notificationService.setHidden('ChatRoom', room.id, true).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to hide chat room');
+          return;
+        }
+        this.hiddenItems = [...this.hiddenItems, { contentType: 'ChatRoom', resourceId: room.id }];
+        if (!this.isRoomMuted(room.id)) {
+          this.mutedItems = [...this.mutedItems, { contentType: 'ChatRoom', resourceId: room.id }];
+        }
+        this.toastService.success('Chat room hidden');
+      },
+      error: () => this.toastService.error('Failed to hide chat room')
+    });
+  }
+
+  unhideRoom(room: ChatRoomListItem, event: Event) {
+    event.stopPropagation();
+    this.openMenuRoomId = null;
+    this.notificationService.setHidden('ChatRoom', room.id, false).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to unhide chat room');
+          return;
+        }
+        this.hiddenItems = this.hiddenItems.filter(
+          item => !(item.contentType === 'ChatRoom' && item.resourceId === room.id)
+        );
+        this.toastService.success('Chat room unhidden');
+      },
+      error: () => this.toastService.error('Failed to unhide chat room')
+    });
+  }
+
+  toggleShowHidden() {
+    this.showHiddenExpanded = !this.showHiddenExpanded;
   }
 
   private loadMutes() {
@@ -155,6 +205,16 @@ export class ChatListComponent implements OnInit, OnDestroy {
       next: response => {
         if (response.success) {
           this.mutedItems = response.items ?? [];
+        }
+      }
+    });
+  }
+
+  private loadHidden() {
+    this.notificationService.getHidden().subscribe({
+      next: response => {
+        if (response.success) {
+          this.hiddenItems = response.items ?? [];
         }
       }
     });

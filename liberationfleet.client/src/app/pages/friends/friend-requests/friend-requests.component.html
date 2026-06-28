@@ -1,0 +1,40 @@
+<app-page-layout [backButton]="backButton">
+  <div class="requests-page">
+    <h1 class="page-title">Requests</h1>
+
+    <p *ngIf="loading" class="state-text">Loading requests...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && requests.length === 0" class="state-text">No pending requests.</p>
+
+    <section *ngIf="!loading && incomingRequests.length > 0" class="request-section">
+      <h2 class="section-title">Waiting for you</h2>
+      <div class="request-list">
+        <div class="request-card" *ngFor="let request of incomingRequests">
+          <div class="request-main">
+            <p class="request-name">{{ request.username }}</p>
+            <p class="request-activity">{{ formatActivity(request) }}</p>
+          </div>
+          <div class="request-actions">
+            <button type="button" class="action-btn primary" [disabled]="actionLoading" (click)="accept(request)">Accept</button>
+            <button type="button" class="action-btn" [disabled]="actionLoading" (click)="reject(request)">Reject</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="!loading && outgoingRequests.length > 0" class="request-section">
+      <h2 class="section-title">Waiting for them</h2>
+      <div class="request-list">
+        <div class="request-card" *ngFor="let request of outgoingRequests">
+          <div class="request-main">
+            <p class="request-name">{{ request.username }}</p>
+            <p class="request-activity">{{ formatActivity(request) }}</p>
+          </div>
+          <div class="request-actions">
+            <button type="button" class="action-btn" [disabled]="actionLoading" (click)="cancel(request)">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</app-page-layout>

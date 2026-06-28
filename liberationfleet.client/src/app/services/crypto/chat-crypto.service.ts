@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ChatMessage, ChatRoomListItem, ChatRoomNamePayload } from '../../models/chat.model';
-import { PendingAttachment, ProposalCommentEncryptedPayload } from '../../models/proposal.model';
+import { PendingAttachment, ProposalAttachment, ProposalCommentEncryptedPayload } from '../../models/proposal.model';
 import { CryptoSessionService } from './crypto-session.service';
 import { CryptoService } from './crypto.service';
 import { ProposalCryptoService } from './proposal-crypto.service';
@@ -74,12 +74,14 @@ export class ChatCryptoService {
     crewId: number,
     body: string,
     authorDisplayName: string,
-    attachments: PendingAttachment[] = []
+    newAttachments: PendingAttachment[] = [],
+    existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
     return this.proposalCrypto.encryptCommentPayload(
       crewId,
       { body, authorDisplayName },
-      attachments
+      newAttachments,
+      existingAttachments
     );
   }
 

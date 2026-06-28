@@ -13,7 +13,8 @@ public class GetProjectPostDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProjectRepository projectRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetProjectPostDetailQuery, ProjectDetailResponse>
+    ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetProjectPostDetailQuery, ProjectDetailResponse>
 {
     public async Task<ProjectDetailResponse> Handle(GetProjectPostDetailQuery request, CancellationToken cancellationToken)
     {
@@ -34,14 +35,21 @@ public class GetProjectPostDetailQueryHandler(
             return new ProjectDetailResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (hiddenUserIds.Contains(post.AuthorUserId))
+        {
+            return new ProjectDetailResponse { Success = false, Message = "Project post not found." };
+        }
+
         var postEnvelope = await cryptoRepository.GetEnvelopeAsync(
             EncryptedContentType.ProjectForumPost,
             post.Id.ToString(),
             cancellationToken);
 
         var comments = await projectRepository.GetCommentsByPostIdAsync(post.Id, cancellationToken);
-        var topLevel = comments.Where(c => !c.ParentCommentId.HasValue).ToList();
-        var commentIds = comments.Select(c => c.Id.ToString()).ToList();
+        var visibleComments = comments.Where(c => !hiddenUserIds.Contains(c.AuthorUserId)).ToList();
+        var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
+        var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ProjectComment,
             commentIds,
@@ -52,7 +60,7 @@ public class GetProjectPostDetailQueryHandler(
         var commentDtos = topLevel.Select(comment =>
         {
             commentEnvelopeById.TryGetValue(comment.Id.ToString(), out var envelope);
-            var replyCount = comments.Count(c => c.ParentCommentId == comment.Id);
+            var replyCount = visibleComments.Count(c => c.ParentCommentId == comment.Id);
             return ProjectMapper.MapComment(comment, envelope, replyCount);
         }).ToList();
 

@@ -1,0 +1,20 @@
+<div class="dialog-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
+  <div class="dialog-card" role="dialog" aria-modal="true" [attr.aria-label]="title">
+    <h2 class="dialog-title">{{ title }}</h2>
+    <p class="dialog-message" *ngIf="message">{{ message }}</p>
+
+    <label class="reason-label" for="kickReason">Reason</label>
+    <textarea
+      id="kickReason"
+      class="reason-input"
+      rows="4"
+      maxlength="1000"
+      [(ngModel)]="reason"
+      placeholder="Explain why this crewmate should be removed"></textarea>
+
+    <div class="dialog-actions">
+      <button type="button" class="dialog-button cancel" (click)="onCancel()">Cancel</button>
+      <button type="button" class="dialog-button" [disabled]="!reason.trim()" (click)="onConfirm()">{{ confirmLabel }}</button>
+    </div>
+  </div>
+</div>

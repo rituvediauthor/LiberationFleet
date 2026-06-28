@@ -13,7 +13,8 @@ public class GetProjectCommentRepliesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProjectRepository projectRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetProjectCommentRepliesQuery, ProjectCommentRepliesResponse>
+    ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetProjectCommentRepliesQuery, ProjectCommentRepliesResponse>
 {
     public async Task<ProjectCommentRepliesResponse> Handle(GetProjectCommentRepliesQuery request, CancellationToken cancellationToken)
     {
@@ -41,7 +42,10 @@ public class GetProjectCommentRepliesQueryHandler(
         }
 
         var comments = await projectRepository.GetCommentsByPostIdAsync(post.Id, cancellationToken);
-        var replies = comments.Where(c => c.ParentCommentId == parent.Id).ToList();
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        var replies = comments
+            .Where(c => c.ParentCommentId == parent.Id && !hiddenUserIds.Contains(c.AuthorUserId))
+            .ToList();
         var replyIds = replies.Select(c => c.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ProjectComment,

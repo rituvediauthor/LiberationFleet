@@ -72,14 +72,28 @@
         </div>
       </div>
 
-      <button
-        type="button"
-        class="kick-btn"
-        *ngIf="!profile.isSelf"
-        [disabled]="actionLoading"
-        (click)="onKickCrewmate()">
-        Kick crewmate
-      </button>
+      <div class="moderation-actions" *ngIf="!profile.isSelf">
+        <div class="block-section">
+          <button
+            type="button"
+            class="block-btn"
+            [disabled]="actionLoading || isBlocked"
+            (click)="onBlockCrewmate()">
+            {{ isBlocked ? 'Blocked' : 'Block crewmate' }}
+          </button>
+          <p class="hint-text">
+            Blocking hides all comments and messages between you and this crewmate. Neither of you will see the other's content.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="kick-btn"
+          [disabled]="actionLoading"
+          (click)="onKickCrewmate()">
+          Kick crewmate
+        </button>
+      </div>
     </div>
   </div>
 </app-page-layout>
@@ -87,7 +101,7 @@
 <app-confirm-dialog
   [visible]="showBlockDialog"
   title="Block crewmate?"
-  message="Are you sure you want to block this crewmate? They will not be able to interact with you through friendship requests."
+  message="Are you sure you want to block this crewmate? Comments, messages, and other content will be hidden from each of you."
   confirmLabel="Block"
   cancelLabel="Cancel"
   (confirmed)="onConfirmBlock()"
@@ -95,13 +109,11 @@
   (dismissed)="onCancelBlock()">
 </app-confirm-dialog>
 
-<app-confirm-dialog
+<app-kick-reason-dialog
   [visible]="showKickDialog"
   title="Kick crewmate?"
-  [message]="profile ? 'Submit a proposal to remove ' + profile.username + ' from the crew? The crew will vote on whether to remove them.' : 'Submit a kick proposal?'"
-  confirmLabel="Submit kick proposal"
-  cancelLabel="Cancel"
-  (confirmed)="onConfirmKick()"
+  [message]="profile ? 'Submit a proposal to remove ' + profile.username + ' from the crew. The crew will vote on whether to remove them.' : 'Submit a kick proposal?'"
+  (confirmed)="onConfirmKick($event)"
   (cancelled)="onCancelKick()"
   (dismissed)="onCancelKick()">
-</app-confirm-dialog>
+</app-kick-reason-dialog>

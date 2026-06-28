@@ -14,6 +14,7 @@ public record AcceptFriendshipCommand(int TargetUserId) : IRequest<CrewmateOpera
 public record RejectFriendshipCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
 public record UnfriendCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
 public record BlockCrewmateCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
+public record UnblockCrewmateCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
 
 public class RequestFriendshipCommandHandler(
     ICurrentUserService currentUser,
@@ -303,6 +304,48 @@ public class BlockCrewmateCommandHandler(
             Success = true,
             Message = "Crewmate blocked.",
             FriendshipState = CrewmateFriendshipStateDto.Blocked
+        };
+    }
+}
+
+public class UnblockCrewmateCommandHandler(
+    ICurrentUserService currentUser,
+    ICrewMembershipRepository membershipRepository,
+    IUserBlockRepository blockRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<UnblockCrewmateCommand, CrewmateOperationResponse>
+{
+    public async Task<CrewmateOperationResponse> Handle(UnblockCrewmateCommand request, CancellationToken cancellationToken)
+    {
+        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+            currentUser,
+            membershipRepository,
+            blockRepository,
+            request.TargetUserId,
+            cancellationToken,
+            allowBlocked: true);
+        if (!context.Success)
+        {
+            return context.ToOperationResponse();
+        }
+
+        var removed = await blockRepository.RemoveAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        if (!removed)
+        {
+            return new CrewmateOperationResponse
+            {
+                Success = false,
+                Message = "Crewmate is not blocked.",
+                FriendshipState = CrewmateFriendshipStateDto.None
+            };
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new CrewmateOperationResponse
+        {
+            Success = true,
+            Message = "Crewmate unblocked.",
+            FriendshipState = CrewmateFriendshipStateDto.None
         };
     }
 }

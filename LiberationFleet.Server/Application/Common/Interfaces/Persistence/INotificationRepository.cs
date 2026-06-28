@@ -39,5 +39,13 @@ public interface INotificationRepository
 
     Task RemoveMutedContentAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default);
 
+    Task<bool> IsContentHiddenAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<UserHiddenContent>> GetHiddenContentsAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task AddHiddenContentAsync(UserHiddenContent hiddenContent, CancellationToken cancellationToken = default);
+
+    Task RemoveHiddenContentAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<int>> GetCrewMemberUserIdsAsync(int crewId, int? excludeUserId, CancellationToken cancellationToken = default);
 }

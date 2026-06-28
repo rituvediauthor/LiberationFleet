@@ -73,4 +73,16 @@ export class ChatService {
       keyVersion: payload.keyVersion ?? 1
     });
   }
+
+  updateMessage(
+    roomId: number,
+    messageId: number,
+    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+  ): Observable<ChatOperationResponse> {
+    return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`, {
+      nonce: payload.nonce,
+      ciphertext: payload.ciphertext,
+      keyVersion: payload.keyVersion ?? 1
+    });
+  }
 }

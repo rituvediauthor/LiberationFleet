@@ -5,9 +5,12 @@
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No posts yet.</p>
+    <p *ngIf="!loading && !errorMessage && items.length > 0 && visibleItems.length === 0 && hiddenItemsList.length > 0" class="state-text">
+      All {{ config.labelPlural.toLowerCase() }} are hidden.
+    </p>
 
-    <div class="post-cards" *ngIf="!loading && items.length > 0">
-      <div class="post-card" *ngFor="let item of items">
+    <div class="post-cards" *ngIf="!loading && visibleItems.length > 0">
+      <div class="post-card" *ngFor="let item of visibleItems">
         <button type="button" class="post-open" (click)="openPost(item)">
           <div class="card-top">
             <div class="card-main">
@@ -40,6 +43,54 @@
             <button type="button" (click)="toggleMute(item, $event)">
               {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
             </button>
+            <button type="button" (click)="hideItem(item, $event)">Hide</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="hidden-toggle-btn"
+      *ngIf="!loading && hiddenItemsList.length > 0"
+      (click)="toggleShowHidden()">
+      {{ showHiddenExpanded ? 'Hide' : 'Show Hidden' }}
+    </button>
+
+    <div class="post-cards hidden-list" *ngIf="!loading && showHiddenExpanded && hiddenItemsList.length > 0">
+      <div class="post-card hidden-card" *ngFor="let item of hiddenItemsList">
+        <button type="button" class="post-open" (click)="openPost(item)">
+          <div class="card-top">
+            <div class="card-main">
+              <p class="card-meta">
+                <span class="author">{{ item.authorUsername }}</span>
+                <span class="dot">·</span>
+                <span>{{ formatActivity(item.lastActivityAt) }}</span>
+                <span class="muted-badge">Hidden</span>
+                <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
+              </p>
+              <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+              <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
+            </div>
+            <div class="card-thumb" *ngIf="item.thumbnailUrl">
+              <img [src]="item.thumbnailUrl" alt="" />
+            </div>
+            <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
+          </div>
+        </button>
+
+        <div class="post-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            [attr.aria-label]="'Hidden ' + config.label + ' options'"
+            (click)="toggleMenu(item.id, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div class="post-menu" *ngIf="openMenuItemId === item.id" (click)="$event.stopPropagation()">
+            <button type="button" (click)="editItem(item, $event)">Edit</button>
+            <button type="button" (click)="unhideItem(item, $event)">Unhide</button>
           </div>
         </div>
       </div>

@@ -13,7 +13,8 @@ public class GetChatRoomMessagesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IChatRepository chatRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetChatRoomMessagesQuery, ChatMessageListResponse>
+    ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetChatRoomMessagesQuery, ChatMessageListResponse>
 {
     private const int MaxLimit = 50;
 
@@ -37,9 +38,14 @@ public class GetChatRoomMessagesQueryHandler(
         }
 
         var limit = request.Limit <= 0 ? MaxLimit : Math.Min(request.Limit, MaxLimit);
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var messages = request.BeforeMessageId.HasValue
             ? await chatRepository.GetMessagesBeforeIdAsync(request.RoomId, request.BeforeMessageId.Value, limit, cancellationToken)
             : await chatRepository.GetLatestMessagesAsync(request.RoomId, limit, cancellationToken);
+
+        messages = messages
+            .Where(m => !hiddenUserIds.Contains(m.AuthorUserId))
+            .ToList();
 
         var resourceIds = messages.Select(m => m.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(

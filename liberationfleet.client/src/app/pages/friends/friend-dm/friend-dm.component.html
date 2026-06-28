@@ -1,0 +1,91 @@
+<div class="friend-dm-page">
+  <div class="message-scroll" #messageScroll>
+    <h1 class="room-title">{{ friendUsername }}</h1>
+
+    <p class="state-text" *ngIf="loading">Loading messages...</p>
+    <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
+    <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>
+
+    <div class="message-list" *ngIf="!loading && !loadError">
+      <article
+        #messageItem
+        class="message-bubble"
+        *ngFor="let message of messages"
+        [class.own]="isOwnMessage(message)">
+        <div class="message-header">
+          <p class="message-meta">
+            <strong>{{ message.authorUsername }}</strong>
+            <span>·</span>
+            <span>{{ message.createdAt | date:'short' }}</span>
+          </p>
+          <div class="message-actions" *ngIf="isOwnMessage(message)">
+            <button
+              type="button"
+              class="kebab-btn"
+              aria-label="Message options"
+              (click)="toggleMessageMenu(message.id, $event)">
+              <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+            </button>
+            <div class="message-menu" *ngIf="openMessageMenuId === message.id" (click)="$event.stopPropagation()">
+              <button type="button" (click)="startEditMessage(message, $event)">Edit</button>
+            </div>
+          </div>
+        </div>
+        <p class="message-body" *ngIf="message.body">{{ message.body }}</p>
+        <app-proposal-attachment-display
+          [attachments]="message.resolvedAttachments ?? []"
+          [compact]="true">
+        </app-proposal-attachment-display>
+      </article>
+    </div>
+  </div>
+
+  <div class="chat-action-bar">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+
+    <div class="composer" [class.expanded]="composerExpanded">
+      <textarea
+        class="message-input"
+        [class.expanded]="composerExpanded"
+        [(ngModel)]="messageText"
+        (focus)="onComposerFocus()"
+        (blur)="onComposerBlur()"
+        [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
+        rows="1"></textarea>
+
+      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
+          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
+        </div>
+      </div>
+
+      <app-proposal-attachment-picker
+        class="message-attachment-picker"
+        [class.collapsed]="!composerExpanded"
+        [attachments]="messageAttachments"
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+      </app-proposal-attachment-picker>
+    </div>
+
+    <button
+      type="button"
+      class="cancel-btn"
+      *ngIf="editingMessageId"
+      [disabled]="sending"
+      (click)="cancelEditMessage()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
+      class="send-btn"
+      *ngIf="composerExpanded"
+      [disabled]="sending || !canSend()"
+      (click)="sendMessage()">
+      {{ editingMessageId ? 'Save' : 'Send' }}
+    </button>
+  </div>
+</div>

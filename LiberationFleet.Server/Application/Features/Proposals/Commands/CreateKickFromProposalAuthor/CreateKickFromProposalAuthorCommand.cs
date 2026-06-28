@@ -8,7 +8,7 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromProposalAuthor;
 
-public record CreateKickFromProposalAuthorCommand(int ProposalId) : IRequest<ProposalOperationResponse>;
+public record CreateKickFromProposalAuthorCommand(int ProposalId, string Reason) : IRequest<ProposalOperationResponse>;
 
 public class CreateKickFromProposalAuthorCommandHandler(
     ICurrentUserService currentUser,
@@ -49,6 +49,11 @@ public class CreateKickFromProposalAuthorCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "You cannot kick yourself." };
         }
 
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return new ProposalOperationResponse { Success = false, Message = "A reason is required to submit a kick proposal." };
+        }
+
         if (!await membershipRepository.IsUserInCrewAsync(proposal.AuthorUserId, proposal.CrewId, cancellationToken))
         {
             return new ProposalOperationResponse { Success = false, Message = "That crewmate is no longer in the crew." };
@@ -64,6 +69,7 @@ public class CreateKickFromProposalAuthorCommandHandler(
             proposal.Id,
             sourceCommentId: null,
             alias.Nickname,
+            request.Reason.Trim(),
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

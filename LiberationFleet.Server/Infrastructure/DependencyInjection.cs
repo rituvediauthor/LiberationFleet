@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<ICrewRepository, CrewRepository>();
         services.AddScoped<ICrewMembershipRepository, CrewMembershipRepository>();
+        services.AddScoped<ICrewCleanupRepository, CrewCleanupRepository>();
         services.AddScoped<IGiftRepository, GiftRepository>();
         services.AddScoped<IMutualAidRepository, MutualAidRepository>();
         services.AddScoped<IPaymentPlatformRepository, PaymentPlatformRepository>();
@@ -40,9 +41,11 @@ public static class DependencyInjection
         services.AddScoped<IRuleRepository, RuleRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IUserBlockRepository, UserBlockRepository>();
+        services.AddScoped<IDirectMessageRepository, DirectMessageRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddSingleton<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
+        services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<Application.Services.MutualAidService>();
         services.AddScoped<IMutualAidService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());

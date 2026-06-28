@@ -72,7 +72,10 @@ public class GetCrewmateProfileQueryHandler(
         var unsatisfiedThresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(
             viewerMembership.CrewId,
             cancellationToken);
-        var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == request.UserId);
+        var crew = viewerMembership.Crew
+            ?? await mutualAidRepository.GetCrewAsync(viewerMembership.CrewId, cancellationToken);
+        var isSurvivalRecipient = crew?.AllowSurvivalThresholds == true
+            && unsatisfiedThresholds.Any(t => t.UserId == request.UserId);
 
         var friendship = await friendshipRepository.GetBetweenUsersAsync(viewerId, request.UserId, cancellationToken);
         var viewerBlockedTarget = await blockRepository.IsBlockedAsync(viewerId, request.UserId, cancellationToken);

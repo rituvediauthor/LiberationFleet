@@ -1,8 +1,10 @@
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkAllNotificationsRead;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkNotificationRead;
+using LiberationFleet.Server.Application.Features.Notifications.Commands.SetHiddenContent;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.SetMutedContent;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.UpdateNotificationPreferences;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications.Queries.GetHiddenContent;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetMutedContent;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetNotificationPreferences;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetNotifications;
@@ -66,6 +68,20 @@ public class NotificationsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> SetMute([FromBody] SetMutedContentRequest body)
     {
         var result = await mediator.Send(new SetMutedContentCommand(body.ContentType, body.ResourceId, body.Muted));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("hidden")]
+    public async Task<IActionResult> GetHidden()
+    {
+        var result = await mediator.Send(new GetHiddenContentQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("hidden")]
+    public async Task<IActionResult> SetHidden([FromBody] SetHiddenContentRequest body)
+    {
+        var result = await mediator.Send(new SetHiddenContentCommand(body.ContentType, body.ResourceId, body.Hidden));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

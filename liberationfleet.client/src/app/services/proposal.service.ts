@@ -97,19 +97,31 @@ export class ProposalService {
     });
   }
 
+  updateComment(
+    proposalId: number,
+    commentId: number,
+    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+  ): Observable<ProposalOperationResponse> {
+    return this.http.put<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/comments/${commentId}`, {
+      nonce: payload.nonce,
+      ciphertext: payload.ciphertext,
+      keyVersion: payload.keyVersion ?? 1
+    });
+  }
+
   rerollAlias(proposalId: number): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/alias/reroll`, {});
   }
 
-  kickFromComment(proposalId: number, commentId: number): Observable<ProposalOperationResponse> {
+  kickFromComment(proposalId: number, commentId: number, reason: string): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(
       `${this.apiUrl}/${proposalId}/comments/${commentId}/kick`,
-      {}
+      { reason }
     );
   }
 
-  kickFromProposalAuthor(proposalId: number): Observable<ProposalOperationResponse> {
-    return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/author/kick`, {});
+  kickFromProposalAuthor(proposalId: number, reason: string): Observable<ProposalOperationResponse> {
+    return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/author/kick`, { reason });
   }
 
   formatCountdown(endAt?: Date | null): string | null {
@@ -147,6 +159,7 @@ export class ProposalService {
       createdAt: new Date(proposal.createdAt),
       canEdit: proposal.canEdit,
       canDelete: proposal.canDelete,
+      canVote: proposal.canVote ?? true,
       usesAnonymousComments: proposal.usesAnonymousComments,
       viewerAlias: proposal.viewerAlias,
       canKickAuthor: proposal.canKickAuthor,

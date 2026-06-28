@@ -62,7 +62,7 @@ public class SearchCrewsQueryHandler : IRequestHandler<SearchCrewsQuery, CrewSea
             }
 
             var memberCount = await _crewRepository.CountMembersAsync(crew.Id, cancellationToken);
-            if (memberCount >= crew.MaxSize)
+            if (memberCount == 0 || memberCount >= crew.MaxSize)
             {
                 continue;
             }

@@ -362,6 +362,65 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("CrewRules");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DirectConversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastMessageAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserHighId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserLowId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserHighId");
+
+                    b.HasIndex("UserLowId", "UserHighId")
+                        .IsUnique();
+
+                    b.ToTable("DirectConversations");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DirectMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("ConversationId", "CreatedAt");
+
+                    b.ToTable("DirectMessages");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EncryptedContentEnvelope", b =>
                 {
                     b.Property<int>("Id")
@@ -1434,6 +1493,34 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("UserBlocks");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserHiddenContent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContentType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ContentType", "ResourceId")
+                        .IsUnique();
+
+                    b.ToTable("UserHiddenContents");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserKeyBundle", b =>
                 {
                     b.Property<int>("UserId")
@@ -1695,6 +1782,44 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Crew");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DirectConversation", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "UserHigh")
+                        .WithMany()
+                        .HasForeignKey("UserHighId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "UserLow")
+                        .WithMany()
+                        .HasForeignKey("UserLowId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserHigh");
+
+                    b.Navigation("UserLow");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DirectMessage", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.DirectConversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Conversation");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EncryptedContentEnvelope", b =>
@@ -2108,6 +2233,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Blocker");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserHiddenContent", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserKeyBundle", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
@@ -2186,6 +2322,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Gifts");
 
                     b.Navigation("UserAccounts");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DirectConversation", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumComment", b =>

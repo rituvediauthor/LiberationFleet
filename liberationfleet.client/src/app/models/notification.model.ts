@@ -24,7 +24,7 @@ export type NotificationKind =
 
 export type NotificationFilterCategory = 'All' | 'Comments' | 'Mentions' | 'Proposals' | 'Rules';
 
-export type MutedContentType = 'ChatRoom' | 'Forum' | 'Project';
+export type MutedContentType = 'ChatRoom' | 'Forum' | 'Project' | 'Friend';
 
 export interface MutedContentItem {
   contentType: MutedContentType;
@@ -35,6 +35,17 @@ export interface MutedContentListResponse {
   success: boolean;
   message: string;
   items: MutedContentItem[];
+}
+
+export interface HiddenContentItem {
+  contentType: MutedContentType;
+  resourceId: number;
+}
+
+export interface HiddenContentListResponse {
+  success: boolean;
+  message: string;
+  items: HiddenContentItem[];
 }
 
 export interface NotificationItem {

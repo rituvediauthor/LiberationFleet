@@ -23,6 +23,7 @@ public class GetCrewProposalsQueryHandler(
     CrewmateKickProposalService crewmateKickProposalService,
     CrewmateRejoinProposalService crewmateRejoinProposalService,
     CrewJoinRequestProposalService crewJoinRequestProposalService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
     public async Task<ProposalListResponse> Handle(GetCrewProposalsQuery request, CancellationToken cancellationToken)
@@ -60,6 +61,11 @@ public class GetCrewProposalsQueryHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        proposals = proposals
+            .Where(p => ProposalMapper.IsVisibleDespiteBlock(p.Kind) || !hiddenUserIds.Contains(p.AuthorUserId))
+            .ToList();
 
         var resourceIds = proposals
             .Where(p => p.Kind == ProposalKind.General)

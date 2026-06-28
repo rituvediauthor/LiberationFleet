@@ -81,3 +81,23 @@ public class SetMutedContentRequest
     public int ResourceId { get; set; }
     public bool Muted { get; set; }
 }
+
+public class HiddenContentDto
+{
+    public MutedContentType ContentType { get; set; }
+    public int ResourceId { get; set; }
+}
+
+public class HiddenContentListResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public IReadOnlyList<HiddenContentDto> Items { get; set; } = Array.Empty<HiddenContentDto>();
+}
+
+public class SetHiddenContentRequest
+{
+    public MutedContentType ContentType { get; set; }
+    public int ResourceId { get; set; }
+    public bool Hidden { get; set; }
+}

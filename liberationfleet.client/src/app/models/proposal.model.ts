@@ -68,6 +68,7 @@ export interface ProposalDetail extends ProposalListItem {
   createdAt: Date;
   canEdit: boolean;
   canDelete: boolean;
+  canVote: boolean;
   usesAnonymousComments?: boolean;
   viewerAlias?: string | null;
   canKickAuthor?: boolean;

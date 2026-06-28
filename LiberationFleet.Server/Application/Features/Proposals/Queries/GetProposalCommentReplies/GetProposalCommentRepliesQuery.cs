@@ -21,7 +21,8 @@ public class GetProposalCommentRepliesQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
-    ProposalAnonymousAliasService aliasService) : IRequestHandler<GetProposalCommentRepliesQuery, ProposalCommentRepliesResponse>
+    ProposalAnonymousAliasService aliasService,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetProposalCommentRepliesQuery, ProposalCommentRepliesResponse>
 {
     public async Task<ProposalCommentRepliesResponse> Handle(
         GetProposalCommentRepliesQuery request,
@@ -51,7 +52,11 @@ public class GetProposalCommentRepliesQueryHandler(
         }
 
         var allComments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
-        var replies = allComments
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        var visibleComments = allComments
+            .Where(c => !hiddenUserIds.Contains(c.AuthorUserId))
+            .ToList();
+        var replies = visibleComments
             .Where(c => c.ParentCommentId == request.ParentCommentId)
             .OrderByDescending(c => c.CreatedAt)
             .ToList();
@@ -75,7 +80,7 @@ public class GetProposalCommentRepliesQueryHandler(
         var items = replies.Select(reply =>
         {
             envelopeById.TryGetValue(reply.Id.ToString(), out var envelope);
-            var nestedReplyCount = allComments.Count(c => c.ParentCommentId == reply.Id);
+            var nestedReplyCount = visibleComments.Count(c => c.ParentCommentId == reply.Id);
             return ProposalMapper.MapComment(
                 reply,
                 envelope,

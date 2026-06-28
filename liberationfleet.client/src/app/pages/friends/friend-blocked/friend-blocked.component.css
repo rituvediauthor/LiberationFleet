@@ -1,0 +1,71 @@
+.blocked-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: #333;
+}
+
+.state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: #d32f2f;
+}
+
+.blocked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blocked-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+}
+
+.blocked-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.blocked-name {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+.blocked-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.action-btn {
+  padding: 8px 12px;
+  border: 1px solid #007AFF;
+  border-radius: 8px;
+  background: white;
+  color: #007AFF;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

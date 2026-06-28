@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Forums.Commands.CreateForumComment;
 using LiberationFleet.Server.Application.Features.Forums.Commands.CreateForumPost;
 using LiberationFleet.Server.Application.Features.Forums.Commands.DeleteForumPost;
+using LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumComment;
 using LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumPost;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetCrewForumPosts;
@@ -72,6 +73,19 @@ public class ForumsController : ControllerBase
         var result = await _mediator.Send(new CreateForumCommentCommand(
             id,
             body.ParentCommentId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("{postId:int}/comments/{commentId:int}")]
+    public async Task<IActionResult> UpdateComment(int postId, int commentId, [FromBody] UpdateForumCommentRequest body)
+    {
+        body ??= new UpdateForumCommentRequest();
+        var result = await _mediator.Send(new UpdateForumCommentCommand(
+            postId,
+            commentId,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));

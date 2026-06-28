@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   QueryList,
@@ -24,7 +25,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { ChatMessage } from '../../../models/chat.model';
-import { PendingAttachment } from '../../../models/proposal.model';
+import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 
 @Component({
@@ -51,6 +52,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   authorDisplayName = '';
   messageText = '';
   messageAttachments: PendingAttachment[] = [];
+  keptEditAttachments: ProposalAttachment[] = [];
+  editingMessageId: number | null = null;
+  openMessageMenuId: number | null = null;
   composerFocused = false;
   pickingFile = false;
   loading = true;
@@ -71,6 +75,12 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private toastService = inject(ToastService);
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
+  private hubUpdateSubscription?: Subscription;
+
+  @HostListener('document:click')
+  closeMenus() {
+    this.openMessageMenuId = null;
+  }
 
   ngOnInit() {
     this.roomId = Number(this.route.snapshot.paramMap.get('id'));
@@ -79,6 +89,10 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.hubSubscription = this.chatHub.messageReceived$.subscribe(message => {
       void this.onMessageReceived(message);
+    });
+
+    this.hubUpdateSubscription = this.chatHub.messageUpdated$.subscribe(message => {
+      void this.onMessageUpdated(message);
     });
 
     this.profileService.getProfile().subscribe({
@@ -113,6 +127,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy() {
     this.intersectionObserver?.disconnect();
     this.hubSubscription?.unsubscribe();
+    this.hubUpdateSubscription?.unsubscribe();
     void this.chatHub.leaveRoom();
   }
 
@@ -147,11 +162,43 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get composerExpanded(): boolean {
-    return this.composerFocused || this.pickingFile || this.messageAttachments.length > 0;
+    return this.composerFocused || this.pickingFile || this.messageAttachments.length > 0 || this.editingMessageId != null;
   }
 
   canSend(): boolean {
-    return Boolean(this.messageText.trim() || this.messageAttachments.length > 0);
+    return Boolean(this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0);
+  }
+
+  toggleMessageMenu(messageId: number, event: Event) {
+    event.stopPropagation();
+    this.openMessageMenuId = this.openMessageMenuId === messageId ? null : messageId;
+  }
+
+  startEditMessage(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    this.openMessageMenuId = null;
+    this.editingMessageId = message.id;
+    this.messageText = message.body ?? '';
+    this.keptEditAttachments = (message.resolvedAttachments ?? []).map(attachment => ({
+      resourceId: attachment.resourceId,
+      type: attachment.type,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType
+    }));
+    this.messageAttachments = [];
+    this.composerFocused = true;
+  }
+
+  cancelEditMessage() {
+    this.editingMessageId = null;
+    this.messageText = '';
+    this.messageAttachments = [];
+    this.keptEditAttachments = [];
+    this.composerFocused = false;
+  }
+
+  removeKeptAttachment(index: number) {
+    this.keptEditAttachments.splice(index, 1);
   }
 
   async sendMessage() {
@@ -165,10 +212,15 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         this.crewId,
         this.messageText.trim(),
         this.authorDisplayName,
-        this.messageAttachments
+        this.messageAttachments,
+        this.keptEditAttachments
       );
 
-      this.chatService.sendMessage(this.roomId, encrypted).subscribe({
+      const request$ = this.editingMessageId
+        ? this.chatService.updateMessage(this.roomId, this.editingMessageId, encrypted)
+        : this.chatService.sendMessage(this.roomId, encrypted);
+
+      request$.subscribe({
         next: response => {
           this.sending = false;
           if (!response.success) {
@@ -177,6 +229,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this.messageText = '';
           this.messageAttachments = [];
+          this.keptEditAttachments = [];
+          this.editingMessageId = null;
           this.composerFocused = false;
         },
         error: () => {
@@ -208,6 +262,15 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         this.roomName = decrypted.name || 'Chat';
       }
     });
+  }
+
+  private async onMessageUpdated(message: ChatMessage) {
+    const decrypted = this.crewId > 0
+      ? await this.chatCrypto.decryptSingleMessage(message, this.crewId)
+      : message;
+    this.messages = this.messages.map(existing =>
+      existing.id === decrypted.id ? decrypted : existing
+    );
   }
 
   private async onMessageReceived(message: ChatMessage) {

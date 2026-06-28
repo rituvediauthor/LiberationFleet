@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import {
+  HiddenContentItem,
+  HiddenContentListResponse,
   MutedContentItem,
   MutedContentListResponse,
   MutedContentType,
@@ -87,6 +89,22 @@ export class NotificationService {
   }
 
   isMuted(items: MutedContentItem[], contentType: MutedContentType, resourceId: number): boolean {
+    return items.some(item => item.contentType === contentType && item.resourceId === resourceId);
+  }
+
+  getHidden(): Observable<HiddenContentListResponse> {
+    return this.http.get<HiddenContentListResponse>(`${this.apiUrl}/hidden`);
+  }
+
+  setHidden(contentType: MutedContentType, resourceId: number, hidden: boolean): Observable<NotificationOperationResponse> {
+    return this.http.put<NotificationOperationResponse>(`${this.apiUrl}/hidden`, {
+      contentType,
+      resourceId,
+      hidden
+    });
+  }
+
+  isHidden(items: HiddenContentItem[], contentType: MutedContentType, resourceId: number): boolean {
     return items.some(item => item.contentType === contentType && item.resourceId === resourceId);
   }
 }

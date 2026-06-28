@@ -6,7 +6,7 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
 
-public record KickCrewmateCommand(int TargetUserId) : IRequest<CrewmateKickResponse>;
+public record KickCrewmateCommand(int TargetUserId, string Reason) : IRequest<CrewmateKickResponse>;
 
 public class KickCrewmateCommandHandler(
     ICurrentUserService currentUser,
@@ -45,11 +45,17 @@ public class KickCrewmateCommandHandler(
             return new CrewmateKickResponse { Success = false, Message = "Crewmate not found." };
         }
 
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return new CrewmateKickResponse { Success = false, Message = "A reason is required to submit a kick proposal." };
+        }
+
         var kickResult = await kickProposalService.CreateFromCrewmateProfileAsync(
             viewerMembership.CrewId,
             viewerId,
             request.TargetUserId,
             targetUser.Username,
+            request.Reason.Trim(),
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

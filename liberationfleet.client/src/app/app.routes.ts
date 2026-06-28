@@ -7,6 +7,10 @@ import { ResetPasswordComponent } from './pages/reset-password/reset-password.co
 import { SignInSuccessComponent } from './pages/sign-in-success/sign-in-success.component';
 import { CrewHomeComponent } from './pages/crew-home/crew-home.component';
 import { FriendsComponent } from './pages/friends/friends.component';
+import { FriendRequestsComponent } from './pages/friends/friend-requests/friend-requests.component';
+import { FriendBlockedComponent } from './pages/friends/friend-blocked/friend-blocked.component';
+import { FindFriendComponent } from './pages/friends/find-friend/find-friend.component';
+import { FriendDmComponent } from './pages/friends/friend-dm/friend-dm.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
@@ -75,6 +79,27 @@ export const routes: Routes = [
   {
     path: 'app/friends',
     component: FriendsComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/friends/requests',
+    component: FriendRequestsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/friends/blocked',
+    component: FriendBlockedComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/friends/find',
+    component: FindFriendComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/friends/messages/:userId',
+    component: FriendDmComponent,
     canActivate: [authGuard]
   },
   {

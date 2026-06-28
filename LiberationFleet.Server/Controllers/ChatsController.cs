@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Chats.Commands.CreateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.SendChatMessage;
+using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetChatRoom;
@@ -90,6 +91,19 @@ public class ChatsController : ControllerBase
     {
         var result = await _mediator.Send(new SendChatMessageCommand(
             roomId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("rooms/{roomId:int}/messages/{messageId:int}")]
+    public async Task<IActionResult> UpdateMessage(int roomId, int messageId, [FromBody] UpdateChatMessageRequest body)
+    {
+        body ??= new UpdateChatMessageRequest();
+        var result = await _mediator.Send(new UpdateChatMessageCommand(
+            roomId,
+            messageId,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));

@@ -10,7 +10,7 @@ import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../
 import { DiscussionListItem } from '../../../models/crew-discussion.model';
 import { ProposalListItem } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
-import { MutedContentItem, MutedContentType } from '../../../models/notification.model';
+import { HiddenContentItem, MutedContentItem, MutedContentType } from '../../../models/notification.model';
 import { NotificationService } from '../../../services/notification.service';
 
 @Component({
@@ -28,6 +28,8 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   crewId = 0;
   openMenuItemId: number | null = null;
   mutedItems: MutedContentItem[] = [];
+  hiddenItems: HiddenContentItem[] = [];
+  showHiddenExpanded = false;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -64,6 +66,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
         this.crewId = membership.crewId ?? 0;
         await this.encryptionContent.whenReady();
         this.loadMutes();
+        this.loadHidden();
         this.loadPosts();
         this.encryptionReload?.markInitialLoadDone();
       },
@@ -83,12 +86,24 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
     this.openMenuItemId = null;
   }
 
+  get visibleItems(): DiscussionListItem[] {
+    return this.items.filter(item => !this.isItemHidden(item.id));
+  }
+
+  get hiddenItemsList(): DiscussionListItem[] {
+    return this.items.filter(item => this.isItemHidden(item.id));
+  }
+
   muteContentType(): MutedContentType {
     return this.config.kind === 'forums' ? 'Forum' : 'Project';
   }
 
   isItemMuted(itemId: number): boolean {
     return this.notificationService.isMuted(this.mutedItems, this.muteContentType(), itemId);
+  }
+
+  isItemHidden(itemId: number): boolean {
+    return this.notificationService.isHidden(this.hiddenItems, this.muteContentType(), itemId);
   }
 
   toggleMenu(itemId: number, event: Event) {
@@ -121,6 +136,55 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
     });
   }
 
+  hideItem(item: DiscussionListItem, event: Event) {
+    event.stopPropagation();
+    this.openMenuItemId = null;
+    const contentType = this.muteContentType();
+    this.notificationService.setHidden(contentType, item.id, true).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || `Failed to hide ${this.config.label.toLowerCase()}`);
+          return;
+        }
+        this.hiddenItems = [...this.hiddenItems, { contentType, resourceId: item.id }];
+        if (!this.isItemMuted(item.id)) {
+          this.mutedItems = [...this.mutedItems, { contentType, resourceId: item.id }];
+        }
+        this.toastService.success(`${this.config.label} hidden`);
+      },
+      error: () => this.toastService.error(`Failed to hide ${this.config.label.toLowerCase()}`)
+    });
+  }
+
+  unhideItem(item: DiscussionListItem, event: Event) {
+    event.stopPropagation();
+    this.openMenuItemId = null;
+    const contentType = this.muteContentType();
+    this.notificationService.setHidden(contentType, item.id, false).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || `Failed to unhide ${this.config.label.toLowerCase()}`);
+          return;
+        }
+        this.hiddenItems = this.hiddenItems.filter(
+          entry => !(entry.contentType === contentType && entry.resourceId === item.id)
+        );
+        this.toastService.success(`${this.config.label} unhidden`);
+      },
+      error: () => this.toastService.error(`Failed to unhide ${this.config.label.toLowerCase()}`)
+    });
+  }
+
+  editItem(item: DiscussionListItem, event: Event) {
+    event.stopPropagation();
+    this.openMenuItemId = null;
+    this.openPost(item);
+  }
+
+  toggleShowHidden() {
+    this.showHiddenExpanded = !this.showHiddenExpanded;
+  }
+
   formatActivity(date: Date): string {
     return new Date(date).toLocaleString(undefined, {
       month: 'short',
@@ -139,6 +203,16 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
       next: response => {
         if (response.success) {
           this.mutedItems = response.items ?? [];
+        }
+      }
+    });
+  }
+
+  private loadHidden() {
+    this.notificationService.getHidden().subscribe({
+      next: response => {
+        if (response.success) {
+          this.hiddenItems = response.items ?? [];
         }
       }
     });

@@ -4,5 +4,6 @@ public enum MutedContentType
 {
     ChatRoom = 1,
     Forum = 2,
-    Project = 3
+    Project = 3,
+    Friend = 4
 }

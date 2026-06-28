@@ -77,11 +77,25 @@
       <h2>Comments</h2>
       <div class="comments-list">
         <article class="comment" *ngFor="let comment of p.comments">
-          <p class="comment-meta">
-            <strong>{{ comment.authorUsername }}</strong>
-            <span>·</span>
-            <span>{{ comment.createdAt | date:'short' }}</span>
-          </p>
+          <div class="comment-header">
+            <p class="comment-meta">
+              <strong>{{ comment.authorUsername }}</strong>
+              <span>·</span>
+              <span>{{ comment.createdAt | date:'short' }}</span>
+            </p>
+            <div class="menu-wrap" *ngIf="isOwnComment(comment)">
+              <button
+                type="button"
+                class="icon-btn"
+                aria-label="Comment options"
+                (click)="toggleCommentMenu(comment.id, $event)">
+                <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+              </button>
+              <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
+                <button type="button" (click)="startEditComment(comment, null, $event)">Edit</button>
+              </div>
+            </div>
+          </div>
           <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
           <app-proposal-attachment-display
             [attachments]="comment.resolvedAttachments ?? []"
@@ -100,11 +114,25 @@
 
           <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
             <article class="comment reply" *ngFor="let reply of comment.replies">
-              <p class="comment-meta">
-                <strong>{{ reply.authorUsername }}</strong>
-                <span>·</span>
-                <span>{{ reply.createdAt | date:'short' }}</span>
-              </p>
+              <div class="comment-header">
+                <p class="comment-meta">
+                  <strong>{{ reply.authorUsername }}</strong>
+                  <span>·</span>
+                  <span>{{ reply.createdAt | date:'short' }}</span>
+                </p>
+                <div class="menu-wrap" *ngIf="isOwnComment(reply)">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label="Reply options"
+                    (click)="toggleCommentMenu(reply.id, $event)">
+                    <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+                  </button>
+                  <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
+                    <button type="button" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
+                  </div>
+                </div>
+              </div>
               <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
               <app-proposal-attachment-display
                 [attachments]="reply.resolvedAttachments ?? []"
@@ -129,8 +157,15 @@
         [(ngModel)]="commentText"
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
-        [placeholder]="replyParentId ? 'Write a reply...' : 'Comment...'"
+        [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
         rows="1"></textarea>
+
+      <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
+          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
+        </div>
+      </div>
 
       <app-proposal-attachment-picker
         class="comment-attachment-picker"
@@ -142,11 +177,20 @@
 
     <button
       type="button"
+      class="action-btn secondary"
+      *ngIf="editingCommentId"
+      [disabled]="posting"
+      (click)="cancelEditComment()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
       class="action-btn primary"
       *ngIf="commentExpanded"
       [disabled]="posting || !canPostComment()"
       (click)="postComment()">
-      Post
+      {{ editingCommentId ? 'Save' : 'Post' }}
     </button>
   </div>
 </div>

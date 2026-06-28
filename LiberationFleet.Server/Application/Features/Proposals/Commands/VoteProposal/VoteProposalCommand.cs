@@ -53,6 +53,19 @@ public class VoteProposalCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        if (proposal.Kind == ProposalKind.CrewmateKick)
+        {
+            var kick = await proposalRepository.GetCrewmateKickByProposalIdAsync(proposal.Id, cancellationToken);
+            if (kick is not null && kick.TargetUserId == userId)
+            {
+                return new ProposalOperationResponse
+                {
+                    Success = false,
+                    Message = "You cannot vote on a proposal to kick you from the crew."
+                };
+            }
+        }
+
         var utcNow = DateTime.UtcNow;
         var existingVote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
 

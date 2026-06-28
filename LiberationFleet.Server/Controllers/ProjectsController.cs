@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Projects.Commands.CreateProjectComment;
 using LiberationFleet.Server.Application.Features.Projects.Commands.CreateProjectPost;
 using LiberationFleet.Server.Application.Features.Projects.Commands.DeleteProjectPost;
+using LiberationFleet.Server.Application.Features.Projects.Commands.UpdateProjectComment;
 using LiberationFleet.Server.Application.Features.Projects.Commands.UpdateProjectPost;
 using LiberationFleet.Server.Application.Features.Projects.Contracts;
 using LiberationFleet.Server.Application.Features.Projects.Queries.GetCrewProjectPosts;
@@ -72,6 +73,19 @@ public class ProjectsController : ControllerBase
         var result = await _mediator.Send(new CreateProjectCommentCommand(
             id,
             body.ParentCommentId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("{postId:int}/comments/{commentId:int}")]
+    public async Task<IActionResult> UpdateComment(int postId, int commentId, [FromBody] UpdateProjectCommentRequest body)
+    {
+        body ??= new UpdateProjectCommentRequest();
+        var result = await _mediator.Send(new UpdateProjectCommentCommand(
+            postId,
+            commentId,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));

@@ -68,8 +68,13 @@ export class CrewmateService {
       .pipe(map(response => this.mapOperation(response)));
   }
 
-  kickCrewmate(userId: number): Observable<CrewmateKickResponse> {
-    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/kick`, {});
+  unblockCrewmate(userId: number): Observable<CrewmateOperationResponse> {
+    return this.http.delete<CrewmateOperationResponse>(`${this.apiUrl}/${userId}/block`)
+      .pipe(map(response => this.mapOperation(response)));
+  }
+
+  kickCrewmate(userId: number, reason: string): Observable<CrewmateKickResponse> {
+    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/kick`, { reason });
   }
 
   getKickedCrewmates(): Observable<KickedCrewmateListResponse> {

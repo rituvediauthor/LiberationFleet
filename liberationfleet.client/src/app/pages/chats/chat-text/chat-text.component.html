@@ -12,11 +12,25 @@
         class="message-bubble"
         *ngFor="let message of messages"
         [class.own]="isOwnMessage(message)">
-        <p class="message-meta">
-          <strong>{{ message.authorUsername }}</strong>
-          <span>·</span>
-          <span>{{ message.createdAt | date:'short' }}</span>
-        </p>
+        <div class="message-header">
+          <p class="message-meta">
+            <strong>{{ message.authorUsername }}</strong>
+            <span>·</span>
+            <span>{{ message.createdAt | date:'short' }}</span>
+          </p>
+          <div class="message-actions" *ngIf="isOwnMessage(message)">
+            <button
+              type="button"
+              class="kebab-btn"
+              aria-label="Message options"
+              (click)="toggleMessageMenu(message.id, $event)">
+              <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+            </button>
+            <div class="message-menu" *ngIf="openMessageMenuId === message.id" (click)="$event.stopPropagation()">
+              <button type="button" (click)="startEditMessage(message, $event)">Edit</button>
+            </div>
+          </div>
+        </div>
         <p class="message-body" *ngIf="message.body">{{ message.body }}</p>
         <app-proposal-attachment-display
           [attachments]="message.resolvedAttachments ?? []"
@@ -38,8 +52,15 @@
         [(ngModel)]="messageText"
         (focus)="onComposerFocus()"
         (blur)="onComposerBlur()"
-        placeholder="Message..."
+        [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
         rows="1"></textarea>
+
+      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
+          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
+        </div>
+      </div>
 
       <app-proposal-attachment-picker
         class="message-attachment-picker"
@@ -51,11 +72,20 @@
 
     <button
       type="button"
+      class="cancel-btn"
+      *ngIf="editingMessageId"
+      [disabled]="sending"
+      (click)="cancelEditMessage()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
       class="send-btn"
       *ngIf="composerExpanded"
       [disabled]="sending || !canSend()"
       (click)="sendMessage()">
-      Send
+      {{ editingMessageId ? 'Save' : 'Send' }}
     </button>
   </div>
 </div>

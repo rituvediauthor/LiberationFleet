@@ -24,6 +24,7 @@ public class GetProposalDetailQueryHandler(
     CrewmateRejoinProposalService crewmateRejoinProposalService,
     CrewJoinRequestProposalService crewJoinRequestProposalService,
     ProposalAnonymousAliasService aliasService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -43,6 +44,12 @@ public class GetProposalDetailQueryHandler(
         if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
         {
             return new ProposalDetailResponse { Success = false, Message = "You are not in this crew." };
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (!ProposalMapper.IsVisibleDespiteBlock(proposal.Kind) && hiddenUserIds.Contains(proposal.AuthorUserId))
+        {
+            return new ProposalDetailResponse { Success = false, Message = "Proposal not found." };
         }
 
         var utcNow = DateTime.UtcNow;
@@ -94,8 +101,11 @@ public class GetProposalDetailQueryHandler(
             : null;
 
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
-        var topLevel = comments.Where(c => !c.ParentCommentId.HasValue).ToList();
-        var commentIds = comments.Select(c => c.Id.ToString()).ToList();
+        var visibleComments = comments
+            .Where(c => !hiddenUserIds.Contains(c.AuthorUserId))
+            .ToList();
+        var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
+        var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ProposalComment,
             commentIds,
@@ -112,7 +122,7 @@ public class GetProposalDetailQueryHandler(
             var viewerAliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
             viewerAlias = viewerAliasEntity.Nickname;
 
-            var authorIds = comments.Select(c => c.AuthorUserId).Distinct();
+            var authorIds = visibleComments.Select(c => c.AuthorUserId).Distinct();
             nicknameByUserId = await aliasService.GetNicknameMapAsync(proposal.Id, authorIds, cancellationToken);
 
             foreach (var authorId in authorIds.Where(id => !nicknameByUserId.ContainsKey(id)))
@@ -130,7 +140,7 @@ public class GetProposalDetailQueryHandler(
         var commentDtos = topLevel.Select(comment =>
         {
             commentEnvelopeById.TryGetValue(comment.Id.ToString(), out var envelope);
-            var replyCount = comments.Count(c => c.ParentCommentId == comment.Id);
+            var replyCount = visibleComments.Count(c => c.ParentCommentId == comment.Id);
             return ProposalMapper.MapComment(
                 comment,
                 envelope,

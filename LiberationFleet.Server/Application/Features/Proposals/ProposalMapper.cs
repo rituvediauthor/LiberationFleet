@@ -141,6 +141,8 @@ public static class ProposalMapper
             UsesAnonymousComments = usesAnonymousComments,
             CanKickAuthor = usesAnonymousComments && proposal.AuthorUserId != viewerUserId,
             ViewerAlias = viewerAlias,
+            CanVote = proposal.Status == ProposalStatus.Pending
+                && !(crewmateKick is not null && crewmateKick.TargetUserId == viewerUserId),
             Comments = comments
         };
     }
@@ -175,6 +177,18 @@ public static class ProposalMapper
 
     public static ProposalStatus ParseStatus(string status) =>
         Enum.TryParse<ProposalStatus>(status, true, out var parsed) ? parsed : ProposalStatus.Pending;
+
+    /// <summary>
+    /// Crew governance and join proposals stay visible even when the viewer and author have blocked each other,
+    /// so members can still review and vote on changes that affect the whole crew.
+    /// </summary>
+    public static bool IsVisibleDespiteBlock(ProposalKind kind) =>
+        kind is ProposalKind.CrewSettingChange
+            or ProposalKind.CrewRuleChange
+            or ProposalKind.CrewChatChange
+            or ProposalKind.CrewmateKick
+            or ProposalKind.CrewmateRejoin
+            or ProposalKind.CrewJoinRequest;
 
     private static void ApplyPlaintext(ProposalListItemDto dto, string title, string description)
     {

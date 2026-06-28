@@ -5,9 +5,12 @@
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && rooms.length === 0" class="state-text">No chat rooms yet.</p>
+    <p *ngIf="!loading && !errorMessage && rooms.length > 0 && visibleRooms.length === 0 && hiddenRooms.length > 0" class="state-text">
+      All chat rooms are hidden.
+    </p>
 
-    <div class="room-list" *ngIf="!loading && rooms.length > 0">
-      <div class="room-card" *ngFor="let room of rooms">
+    <div class="room-list" *ngIf="!loading && visibleRooms.length > 0">
+      <div class="room-card" *ngFor="let room of visibleRooms">
         <button type="button" class="room-open" (click)="openRoom(room)">
           <div class="room-main">
             <h2>{{ room.name }}</h2>
@@ -36,7 +39,49 @@
             <button type="button" (click)="muteRoom(room, $event)">
               {{ isRoomMuted(room.id) ? 'Unmute' : 'Mute' }}
             </button>
-            <button type="button" (click)="hideRoom($event)">Hide</button>
+            <button type="button" (click)="hideRoom(room, $event)">Hide</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="hidden-toggle-btn"
+      *ngIf="!loading && hiddenRooms.length > 0"
+      (click)="toggleShowHidden()">
+      {{ showHiddenExpanded ? 'Hide' : 'Show Hidden' }}
+    </button>
+
+    <div class="room-list hidden-list" *ngIf="!loading && showHiddenExpanded && hiddenRooms.length > 0">
+      <div class="room-card hidden-card" *ngFor="let room of hiddenRooms">
+        <button type="button" class="room-open" (click)="openRoom(room)">
+          <div class="room-main">
+            <h2>{{ room.name }}</h2>
+            <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
+            <p class="room-meta">
+              <span class="room-type">{{ roomTypeLabel(room) }}</span>
+              <span class="muted-badge">Hidden</span>
+              <span *ngIf="isRoomMuted(room.id)" class="muted-badge">Muted</span>
+              <span>·</span>
+              <span>{{ formatActivity(room.lastActivityAt) }}</span>
+            </p>
+          </div>
+          <i class="fa-solid fa-chevron-right room-chevron" aria-hidden="true"></i>
+        </button>
+
+        <div class="room-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            aria-label="Hidden chat room options"
+            (click)="toggleMenu(room.id, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div class="room-menu" *ngIf="openMenuRoomId === room.id" (click)="$event.stopPropagation()">
+            <button type="button" (click)="editRoom(room, $event)">Edit</button>
+            <button type="button" (click)="unhideRoom(room, $event)">Unhide</button>
           </div>
         </div>
       </div>

@@ -92,7 +92,7 @@
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
             </p>
-            <div class="menu-wrap" *ngIf="p.usesAnonymousComments && (comment.isOwnComment || comment.canKick)">
+            <div class="menu-wrap" *ngIf="comment.isOwnComment || (p.usesAnonymousComments && comment.canKick)">
               <button
                 type="button"
                 class="icon-btn"
@@ -101,7 +101,10 @@
                 <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
               </button>
               <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
-                <button type="button" *ngIf="comment.isOwnComment" (click)="rerollNickname($event)">
+                <button type="button" *ngIf="comment.isOwnComment" (click)="startEditComment(comment, null, $event)">
+                  Edit
+                </button>
+                <button type="button" *ngIf="p.usesAnonymousComments && comment.isOwnComment" (click)="rerollNickname($event)">
                   Reroll nickname
                 </button>
                 <button type="button" *ngIf="comment.canKick" (click)="kickFromComment(comment, $event)">
@@ -134,7 +137,7 @@
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
                 </p>
-                <div class="menu-wrap" *ngIf="p.usesAnonymousComments && (reply.isOwnComment || reply.canKick)">
+                <div class="menu-wrap" *ngIf="reply.isOwnComment || (p.usesAnonymousComments && reply.canKick)">
                   <button
                     type="button"
                     class="icon-btn"
@@ -143,7 +146,10 @@
                     <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
                   </button>
                   <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
-                    <button type="button" *ngIf="reply.isOwnComment" (click)="rerollNickname($event)">
+                    <button type="button" *ngIf="reply.isOwnComment" (click)="startEditComment(reply, comment.id, $event)">
+                      Edit
+                    </button>
+                    <button type="button" *ngIf="p.usesAnonymousComments && reply.isOwnComment" (click)="rerollNickname($event)">
                       Reroll nickname
                     </button>
                     <button type="button" *ngIf="reply.canKick" (click)="kickFromComment(reply, $event)">
@@ -176,8 +182,15 @@
         [(ngModel)]="commentText"
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
-        [placeholder]="replyParentId ? 'Write a reply...' : 'Comment...'"
+        [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
         rows="1"></textarea>
+
+      <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
+          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
+        </div>
+      </div>
 
       <app-proposal-attachment-picker
         class="comment-attachment-picker"
@@ -189,20 +202,33 @@
 
     <button
       type="button"
+      class="action-btn secondary"
+      *ngIf="editingCommentId"
+      [disabled]="posting"
+      (click)="cancelEditComment()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
       class="action-btn primary"
       *ngIf="commentExpanded"
       [disabled]="posting || !canPostComment()"
       (click)="postComment()">
-      Post
+      {{ editingCommentId ? 'Save' : 'Post' }}
     </button>
 
     <button
       type="button"
       class="action-btn secondary"
-      *ngIf="!commentExpanded"
+      *ngIf="!commentExpanded && proposal?.canVote"
       (click)="openVoteDialog()">
       Vote
     </button>
+
+    <p class="vote-restricted-note" *ngIf="!commentExpanded && proposal && !proposal.canVote">
+      You cannot vote on a proposal to remove you from the crew.
+    </p>
   </div>
 </div>
 
@@ -226,4 +252,13 @@
     </div>
   </div>
 </div>
+
+<app-kick-reason-dialog
+  [visible]="showKickReasonDialog"
+  title="Kick crewmate?"
+  message="Submit a proposal to remove this crewmate from the crew. The crew will vote on whether to remove them."
+  (confirmed)="onConfirmKickProposal($event)"
+  (cancelled)="onCancelKickProposal()"
+  (dismissed)="onCancelKickProposal()">
+</app-kick-reason-dialog>
 

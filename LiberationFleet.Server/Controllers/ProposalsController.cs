@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Features.Proposals.Commands.CreatePropo
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromComment;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromProposalAuthor;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateProposalComment;
+using LiberationFleet.Server.Application.Features.Proposals.Commands.UpdateProposalComment;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.DeleteProposal;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.RerollProposalAlias;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.UpdateProposal;
@@ -90,6 +91,19 @@ public class ProposalsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpPut("{proposalId:int}/comments/{commentId:int}")]
+    public async Task<IActionResult> UpdateComment(int proposalId, int commentId, [FromBody] UpdateProposalCommentRequest body)
+    {
+        body ??= new UpdateProposalCommentRequest();
+        var result = await _mediator.Send(new UpdateProposalCommentCommand(
+            proposalId,
+            commentId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("{proposalId:int}/alias/reroll")]
     public async Task<IActionResult> RerollAlias(int proposalId)
     {
@@ -98,16 +112,18 @@ public class ProposalsController : ControllerBase
     }
 
     [HttpPost("{proposalId:int}/comments/{commentId:int}/kick")]
-    public async Task<IActionResult> KickFromComment(int proposalId, int commentId)
+    public async Task<IActionResult> KickFromComment(int proposalId, int commentId, [FromBody] KickProposalRequest body)
     {
-        var result = await _mediator.Send(new CreateKickFromCommentCommand(proposalId, commentId));
+        body ??= new KickProposalRequest();
+        var result = await _mediator.Send(new CreateKickFromCommentCommand(proposalId, commentId, body.Reason));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("{proposalId:int}/author/kick")]
-    public async Task<IActionResult> KickFromProposalAuthor(int proposalId)
+    public async Task<IActionResult> KickFromProposalAuthor(int proposalId, [FromBody] KickProposalRequest body)
     {
-        var result = await _mediator.Send(new CreateKickFromProposalAuthorCommand(proposalId));
+        body ??= new KickProposalRequest();
+        var result = await _mediator.Send(new CreateKickFromProposalAuthorCommand(proposalId, body.Reason));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

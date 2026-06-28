@@ -76,6 +76,13 @@ public class CreateForumCommentRequest
     public int KeyVersion { get; set; } = 1;
 }
 
+public class UpdateForumCommentRequest
+{
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+}
+
 public class ForumCommentRepliesResponse
 {
     public bool Success { get; set; }

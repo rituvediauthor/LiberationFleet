@@ -1,0 +1,34 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+  <div class="find-friend-page">
+    <h1 class="page-title">Find friend</h1>
+    <p class="page-subtitle">Search crewmates by username</p>
+
+    <form [formGroup]="form" class="search-form" (ngSubmit)="search()">
+      <input
+        type="search"
+        class="search-input"
+        formControlName="username"
+        placeholder="Username"
+        aria-label="Search by username" />
+    </form>
+
+    <p *ngIf="isSearching" class="search-status">Searching...</p>
+    <p *ngIf="!isSearching && searchMessage" class="search-status">{{ searchMessage }}</p>
+
+    <div class="results-list" *ngIf="!isSearching && results.length > 0">
+      <div class="result-card" *ngFor="let user of results">
+        <div class="result-main">
+          <p class="result-name">{{ user.username }}</p>
+        </div>
+        <button
+          type="button"
+          class="action-btn"
+          [class.primary]="canRequest(user.friendshipState)"
+          [disabled]="!canRequest(user.friendshipState) || actionLoading"
+          (click)="requestFriend(user)">
+          {{ actionLabel(user.friendshipState) }}
+        </button>
+      </div>
+    </div>
+  </div>
+</app-page-layout>

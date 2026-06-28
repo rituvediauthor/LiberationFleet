@@ -9,6 +9,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import {
   PendingAttachment,
   ProposalAttachment,
@@ -27,7 +28,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     CommonModule,
     FormsModule,
     ProposalAttachmentDisplayComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    KickReasonDialogComponent
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
@@ -42,6 +44,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   pickingFile = false;
   replyParentId: number | null = null;
   showVoteDialog = false;
+  showKickReasonDialog = false;
+  pendingKickCommentId: number | null = null;
   selectedVote: ProposalVoteChoice | '' = '';
   attachmentsExpanded = true;
   posting = false;
@@ -52,6 +56,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   keptEditAttachments: ProposalAttachment[] = [];
   newEditAttachments: PendingAttachment[] = [];
   commentAttachments: PendingAttachment[] = [];
+  keptCommentEditAttachments: ProposalAttachment[] = [];
+  editingCommentId: number | null = null;
+  editingCommentParentId: number | null = null;
   openCommentMenuId: number | null = null;
   openProposalAuthorMenu = false;
   countdownTick = 0;
@@ -153,7 +160,34 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.proposalService.kickFromComment(this.proposal.id, comment.id).subscribe({
+    this.pendingKickCommentId = comment.id;
+    this.showKickReasonDialog = true;
+  }
+
+  kickFromProposalAuthor(event: Event) {
+    event.stopPropagation();
+    this.openProposalAuthorMenu = false;
+    if (!this.proposal) {
+      return;
+    }
+
+    this.pendingKickCommentId = null;
+    this.showKickReasonDialog = true;
+  }
+
+  onConfirmKickProposal(reason: string) {
+    this.showKickReasonDialog = false;
+    if (!this.proposal) {
+      return;
+    }
+
+    const request = this.pendingKickCommentId != null
+      ? this.proposalService.kickFromComment(this.proposal.id, this.pendingKickCommentId, reason)
+      : this.proposalService.kickFromProposalAuthor(this.proposal.id, reason);
+
+    this.pendingKickCommentId = null;
+
+    request.subscribe({
       next: result => {
         if (!result.success) {
           this.toastService.error(result.message || 'Failed to submit kick proposal');
@@ -171,29 +205,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  kickFromProposalAuthor(event: Event) {
-    event.stopPropagation();
-    this.openProposalAuthorMenu = false;
-    if (!this.proposal) {
-      return;
-    }
-
-    this.proposalService.kickFromProposalAuthor(this.proposal.id).subscribe({
-      next: result => {
-        if (!result.success) {
-          this.toastService.error(result.message || 'Failed to submit kick proposal');
-          if (result.proposalId) {
-            this.router.navigate(['/app/crew/proposals', result.proposalId]);
-          }
-          return;
-        }
-        this.toastService.success(result.message || 'Kick proposal submitted');
-        if (result.proposalId) {
-          this.router.navigate(['/app/crew/proposals', result.proposalId]);
-        }
-      },
-      error: () => this.toastService.error('Failed to submit kick proposal')
-    });
+  onCancelKickProposal() {
+    this.showKickReasonDialog = false;
+    this.pendingKickCommentId = null;
   }
 
   get proposalId(): number {
@@ -213,6 +227,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   openVoteDialog() {
+    if (!this.proposal?.canVote) {
+      return;
+    }
     this.showVoteDialog = true;
     this.selectedVote = '';
   }
@@ -270,7 +287,38 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   get commentExpanded(): boolean {
-    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0;
+    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0 || this.editingCommentId != null;
+  }
+
+  startEditComment(comment: ProposalComment, parentCommentId: number | null = null, event?: Event) {
+    event?.stopPropagation();
+    this.openCommentMenuId = null;
+    this.editingCommentId = comment.id;
+    this.editingCommentParentId = parentCommentId;
+    this.replyParentId = parentCommentId;
+    this.commentText = comment.body ?? '';
+    this.keptCommentEditAttachments = (comment.resolvedAttachments ?? []).map(attachment => ({
+      resourceId: attachment.resourceId,
+      type: attachment.type,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType
+    }));
+    this.commentAttachments = [];
+    this.commentFocused = true;
+  }
+
+  cancelEditComment() {
+    this.editingCommentId = null;
+    this.editingCommentParentId = null;
+    this.commentText = '';
+    this.commentAttachments = [];
+    this.keptCommentEditAttachments = [];
+    this.commentFocused = false;
+    this.replyParentId = null;
+  }
+
+  removeKeptCommentAttachment(index: number) {
+    this.keptCommentEditAttachments.splice(index, 1);
   }
 
   startReply(comment: ProposalComment) {
@@ -350,7 +398,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   async postComment() {
-    const hasContent = this.commentText.trim() || this.commentAttachments.length > 0;
+    const hasContent = this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0;
     if (!this.proposal || !hasContent || this.posting || this.crewId <= 0) {
       return;
     }
@@ -359,6 +407,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     const body = this.commentText.trim();
     const pendingAttachments = [...this.commentAttachments];
     const parentCommentId = this.replyParentId;
+    const editingCommentId = this.editingCommentId;
 
     try {
       const encrypted = await this.proposalCrypto.encryptCommentPayload(
@@ -369,14 +418,19 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
             ? (this.proposal.viewerAlias ?? 'Anonymous')
             : this.authorDisplayName
         },
-        pendingAttachments
+        pendingAttachments,
+        this.keptCommentEditAttachments
       );
 
-      this.proposalService.postComment(this.proposal.id, {
-        parentCommentId,
-        nonce: encrypted.nonce,
-        ciphertext: encrypted.ciphertext
-      }).subscribe({
+      const request$ = editingCommentId
+        ? this.proposalService.updateComment(this.proposal.id, editingCommentId, encrypted)
+        : this.proposalService.postComment(this.proposal.id, {
+          parentCommentId,
+          nonce: encrypted.nonce,
+          ciphertext: encrypted.ciphertext
+        });
+
+      request$.subscribe({
         next: result => {
           this.posting = false;
           if (result.success) {
@@ -385,21 +439,24 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
             }
             this.commentText = '';
             this.commentAttachments = [];
+            this.keptCommentEditAttachments = [];
             this.commentFocused = false;
             this.replyParentId = null;
-            this.toastService.success('Comment posted');
-            if (result.commentId) {
+            this.editingCommentId = null;
+            this.editingCommentParentId = null;
+            this.toastService.success(editingCommentId ? 'Comment updated' : 'Comment posted');
+            if (!editingCommentId && result.commentId) {
               this.insertPostedComment(result.commentId, body, pendingAttachments, parentCommentId);
             } else {
               this.loadProposal();
             }
             return;
           }
-          this.toastService.error(result.message || 'Failed to post comment');
+          this.toastService.error(result.message || (editingCommentId ? 'Failed to update comment' : 'Failed to post comment'));
         },
         error: () => {
           this.posting = false;
-          this.toastService.error('Failed to post comment');
+          this.toastService.error(editingCommentId ? 'Failed to update comment' : 'Failed to post comment');
         }
       });
     } catch {
@@ -457,7 +514,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   canPostComment(): boolean {
-    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0);
+    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0);
   }
 
   private insertPostedComment(

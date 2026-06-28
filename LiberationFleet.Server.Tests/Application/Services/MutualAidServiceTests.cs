@@ -140,6 +140,36 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task GetReceptionOrderAsync_WhenSurvivalThresholdsDisabled_ExcludesThresholdEntries()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        fixture.Crew.AllowSurvivalThresholds = false;
+        await fixture.Context.SaveChangesAsync();
+        await fixture.AddUnsatisfiedThresholdAsync(fixture.Carol, thresholdAmount: 50m);
+
+        var order = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            cancellationToken: CancellationToken.None);
+
+        order.Should().NotContain(e => e.EntryType == "survivalThreshold");
+        order.Should().OnlyContain(e => e.EntryType == "cycle");
+    }
+
+    [Fact]
+    public async Task SimulateNewMonthAsync_WhenSurvivalThresholdsDisabled_DoesNotCreateThresholds()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        fixture.Crew.AllowSurvivalThresholds = false;
+        await fixture.Context.SaveChangesAsync();
+
+        var result = await fixture.Service.SimulateNewMonthAsync(fixture.Alice.Id, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Message.Should().Contain("disabled");
+        (await fixture.Context.MonthlySurvivalThresholds.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetNextAidAsync_WhenUserIsNextRecipient_SetsIsCurrentUserRecipient()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

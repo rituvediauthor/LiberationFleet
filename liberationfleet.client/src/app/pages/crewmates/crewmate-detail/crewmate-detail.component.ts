@@ -3,14 +3,15 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
+import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
-import { CrewmateFriendshipState, CrewmateProfile } from '../../../models/crewmate.model';
+import { CrewmateProfile } from '../../../models/crewmate.model';
 
 @Component({
   selector: 'app-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'
 })
@@ -48,18 +49,29 @@ export class CrewmateDetailComponent implements OnInit {
     this.loadProfile();
   }
 
+  get isBlocked(): boolean {
+    return this.profile?.friendshipState === 'blocked';
+  }
+
+  onBlockCrewmate() {
+    if (this.isBlocked) {
+      return;
+    }
+    this.showBlockDialog = true;
+  }
+
   onKickCrewmate() {
     this.showKickDialog = true;
   }
 
-  onConfirmKick() {
+  onConfirmKick(reason: string) {
     this.showKickDialog = false;
     if (!this.profile || this.actionLoading) {
       return;
     }
 
     this.actionLoading = true;
-    this.crewmateService.kickCrewmate(this.userId).subscribe({
+    this.crewmateService.kickCrewmate(this.userId, reason).subscribe({
       next: response => {
         this.actionLoading = false;
         if (!response.success) {
@@ -152,12 +164,7 @@ export class CrewmateDetailComponent implements OnInit {
       return;
     }
 
-    this.secondaryButton = {
-      label: 'Block',
-      type: 'secondary',
-      disabled: disabled || state === 'blocked',
-      onClick: () => { this.showBlockDialog = true; }
-    };
+    this.secondaryButton = null;
 
     switch (state) {
       case 'requestSent':

@@ -13,7 +13,8 @@ public class GetForumPostDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetForumPostDetailQuery, ForumDetailResponse>
+    ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetForumPostDetailQuery, ForumDetailResponse>
 {
     public async Task<ForumDetailResponse> Handle(GetForumPostDetailQuery request, CancellationToken cancellationToken)
     {
@@ -34,14 +35,21 @@ public class GetForumPostDetailQueryHandler(
             return new ForumDetailResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (hiddenUserIds.Contains(post.AuthorUserId))
+        {
+            return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
+        }
+
         var postEnvelope = await cryptoRepository.GetEnvelopeAsync(
             EncryptedContentType.ForumPost,
             post.Id.ToString(),
             cancellationToken);
 
         var comments = await forumRepository.GetCommentsByPostIdAsync(post.Id, cancellationToken);
-        var topLevel = comments.Where(c => !c.ParentCommentId.HasValue).ToList();
-        var commentIds = comments.Select(c => c.Id.ToString()).ToList();
+        var visibleComments = comments.Where(c => !hiddenUserIds.Contains(c.AuthorUserId)).ToList();
+        var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
+        var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumComment,
             commentIds,
@@ -52,7 +60,7 @@ public class GetForumPostDetailQueryHandler(
         var commentDtos = topLevel.Select(comment =>
         {
             commentEnvelopeById.TryGetValue(comment.Id.ToString(), out var envelope);
-            var replyCount = comments.Count(c => c.ParentCommentId == comment.Id);
+            var replyCount = visibleComments.Count(c => c.ParentCommentId == comment.Id);
             return ForumMapper.MapComment(comment, envelope, replyCount);
         }).ToList();
 

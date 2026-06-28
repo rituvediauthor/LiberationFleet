@@ -13,7 +13,8 @@ public class GetForumCommentRepliesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetForumCommentRepliesQuery, ForumCommentRepliesResponse>
+    ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetForumCommentRepliesQuery, ForumCommentRepliesResponse>
 {
     public async Task<ForumCommentRepliesResponse> Handle(GetForumCommentRepliesQuery request, CancellationToken cancellationToken)
     {
@@ -41,7 +42,10 @@ public class GetForumCommentRepliesQueryHandler(
         }
 
         var comments = await forumRepository.GetCommentsByPostIdAsync(post.Id, cancellationToken);
-        var replies = comments.Where(c => c.ParentCommentId == parent.Id).ToList();
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        var replies = comments
+            .Where(c => c.ParentCommentId == parent.Id && !hiddenUserIds.Contains(c.AuthorUserId))
+            .ToList();
         var replyIds = replies.Select(c => c.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumComment,
