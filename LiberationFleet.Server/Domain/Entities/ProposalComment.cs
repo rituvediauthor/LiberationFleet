@@ -6,6 +6,7 @@ public class ProposalComment
     public int ProposalId { get; set; }
     public int AuthorUserId { get; set; }
     public int? ParentCommentId { get; set; }
+    public int? ReplyToCommentId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; }
 

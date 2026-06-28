@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
@@ -49,6 +50,8 @@ public class CreateProjectCommentCommandHandler(
         }
 
         ProjectComment? parentComment = null;
+        int? threadRootId = null;
+        int? replyToCommentId = null;
         if (request.ParentCommentId.HasValue)
         {
             parentComment = await projectRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
@@ -56,6 +59,10 @@ public class CreateProjectCommentCommandHandler(
             {
                 return new ProjectOperationResponse { Success = false, Message = "Parent comment not found." };
             }
+
+            (threadRootId, replyToCommentId) = CommentThread.ResolveNewReply(
+                parentComment.Id,
+                parentComment.ParentCommentId);
         }
 
         var utcNow = DateTime.UtcNow;
@@ -63,7 +70,8 @@ public class CreateProjectCommentCommandHandler(
         {
             ProjectPostId = post.Id,
             AuthorUserId = userId,
-            ParentCommentId = request.ParentCommentId,
+            ParentCommentId = threadRootId,
+            ReplyToCommentId = replyToCommentId,
             CreatedAt = utcNow
         };
 

@@ -39,13 +39,16 @@ public static class ForumMapper
     public static ForumCommentDto MapComment(
         ForumComment comment,
         EncryptedContentEnvelope? envelope,
-        int replyCount) =>
+        int replyCount,
+        string? replyToUsername = null) =>
         new()
         {
             Id = comment.Id,
             AuthorUserId = comment.AuthorUserId,
             AuthorUsername = envelope is null ? comment.AuthorUser.Username : string.Empty,
             ParentCommentId = comment.ParentCommentId,
+            ReplyToCommentId = comment.ReplyToCommentId,
+            ReplyToUsername = replyToUsername,
             CreatedAt = comment.CreatedAt,
             ReplyCount = replyCount,
             HasEncryptedContent = envelope is not null,

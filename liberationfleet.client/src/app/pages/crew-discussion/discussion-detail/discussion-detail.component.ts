@@ -193,6 +193,17 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.keptCommentEditAttachments.splice(index, 1);
   }
 
+  formatCommentAuthor(comment: DiscussionComment, siblingReplies?: DiscussionComment[]): string {
+    if (!comment.replyToCommentId) {
+      return comment.authorUsername;
+    }
+
+    const targetName = comment.replyToUsername
+      ?? siblingReplies?.find(reply => reply.id === comment.replyToCommentId)?.authorUsername
+      ?? 'User';
+    return `${comment.authorUsername} > ${targetName}`;
+  }
+
   startReply(comment: DiscussionComment) {
     this.replyParentId = comment.id;
     this.commentFocused = true;
@@ -395,11 +406,16 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
 
     const token = this.authService.getToken();
     const authorUserId = token ? getUserIdFromToken(token) ?? 0 : 0;
+    const { threadRootId, replyToCommentId, replyToUsername } = parentCommentId
+      ? this.resolveReplyTargets(parentCommentId)
+      : { threadRootId: null as number | null, replyToCommentId: null as number | null, replyToUsername: null as string | null };
     const newComment: DiscussionComment = {
       id: commentId,
       authorUserId,
       authorUsername: this.authorDisplayName,
-      parentCommentId,
+      parentCommentId: threadRootId,
+      replyToCommentId,
+      replyToUsername,
       createdAt: new Date(),
       replyCount: 0,
       hasEncryptedContent: true,
@@ -424,7 +440,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.post = {
       ...this.post,
       comments: this.post.comments.map(comment => {
-        if (comment.id !== parentCommentId) {
+        if (comment.id !== threadRootId) {
           return comment;
         }
 
@@ -436,6 +452,30 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
         };
       })
     };
+  }
+
+  private resolveReplyTargets(parentCommentId: number): {
+    threadRootId: number;
+    replyToCommentId: number | null;
+    replyToUsername: string | null;
+  } {
+    const topLevel = this.post!.comments.find(comment => comment.id === parentCommentId);
+    if (topLevel) {
+      return { threadRootId: parentCommentId, replyToCommentId: null, replyToUsername: null };
+    }
+
+    for (const comment of this.post!.comments) {
+      const reply = comment.replies?.find(item => item.id === parentCommentId);
+      if (reply) {
+        return {
+          threadRootId: comment.id,
+          replyToCommentId: parentCommentId,
+          replyToUsername: reply.authorUsername
+        };
+      }
+    }
+
+    return { threadRootId: parentCommentId, replyToCommentId: null, replyToUsername: null };
   }
 
   private refreshPostPreservingScroll() {

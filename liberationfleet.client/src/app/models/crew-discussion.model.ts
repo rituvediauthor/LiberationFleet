@@ -32,6 +32,8 @@ export interface DiscussionComment {
   authorUserId: number;
   authorUsername: string;
   parentCommentId?: number | null;
+  replyToCommentId?: number | null;
+  replyToUsername?: string | null;
   createdAt: Date;
   replyCount: number;
   hasEncryptedContent?: boolean;

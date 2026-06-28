@@ -26,6 +26,8 @@ public class ForumCommentDto
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
     public int? ParentCommentId { get; set; }
+    public int? ReplyToCommentId { get; set; }
+    public string? ReplyToUsername { get; set; }
     public DateTime CreatedAt { get; set; }
     public int ReplyCount { get; set; }
     public bool HasEncryptedContent { get; set; }

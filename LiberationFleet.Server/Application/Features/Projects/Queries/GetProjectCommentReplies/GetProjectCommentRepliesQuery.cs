@@ -1,7 +1,9 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Projects;
 using LiberationFleet.Server.Application.Features.Projects.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -41,10 +43,13 @@ public class GetProjectCommentRepliesQueryHandler(
             return new ProjectCommentRepliesResponse { Success = false, Message = "Parent comment not found." };
         }
 
+        var threadRootId = CommentThread.GetThreadRootId(parent.Id, parent.ParentCommentId);
         var comments = await projectRepository.GetCommentsByPostIdAsync(post.Id, cancellationToken);
+        var commentById = comments.ToDictionary(c => c.Id);
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var replies = comments
-            .Where(c => c.ParentCommentId == parent.Id && !hiddenUserIds.Contains(c.AuthorUserId))
+            .Where(c => c.ParentCommentId == threadRootId && !hiddenUserIds.Contains(c.AuthorUserId))
+            .OrderBy(c => c.CreatedAt)
             .ToList();
         var replyIds = replies.Select(c => c.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
@@ -57,7 +62,8 @@ public class GetProjectCommentRepliesQueryHandler(
         var items = replies.Select(reply =>
         {
             envelopeById.TryGetValue(reply.Id.ToString(), out var envelope);
-            return ProjectMapper.MapComment(reply, envelope, 0);
+            var replyToUsername = ResolveReplyToUsername(reply, commentById, envelopeById);
+            return ProjectMapper.MapComment(reply, envelope, 0, replyToUsername);
         }).ToList();
 
         return new ProjectCommentRepliesResponse
@@ -66,5 +72,24 @@ public class GetProjectCommentRepliesQueryHandler(
             Message = "Replies loaded.",
             Items = items
         };
+    }
+
+    private static string? ResolveReplyToUsername(
+        ProjectComment reply,
+        IReadOnlyDictionary<int, ProjectComment> commentById,
+        IReadOnlyDictionary<string, EncryptedContentEnvelope> envelopeById)
+    {
+        if (!reply.ReplyToCommentId.HasValue
+            || !commentById.TryGetValue(reply.ReplyToCommentId.Value, out var target))
+        {
+            return null;
+        }
+
+        if (envelopeById.ContainsKey(target.Id.ToString()))
+        {
+            return null;
+        }
+
+        return target.AuthorUser.Username;
     }
 }

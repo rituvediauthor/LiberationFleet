@@ -8,7 +8,7 @@ namespace LiberationFleet.Server.Application.Features.Proposals;
 
 public static class ProposalMapper
 {
-    private const string AnonymousAuthor = "Anonymous";
+    public const string AnonymousAuthor = "Anonymous";
 
     public static ProposalListItemDto MapListItem(
         Proposal proposal,
@@ -153,7 +153,8 @@ public static class ProposalMapper
         int replyCount,
         int viewerUserId,
         bool usesAnonymousComments,
-        IReadOnlyDictionary<int, string> nicknameByUserId)
+        IReadOnlyDictionary<int, string> nicknameByUserId,
+        string? replyToUsername = null)
     {
         var isOwn = comment.AuthorUserId == viewerUserId;
         nicknameByUserId.TryGetValue(comment.AuthorUserId, out var nickname);
@@ -166,6 +167,8 @@ public static class ProposalMapper
                 ? nickname
                 : AnonymousAuthor,
             ParentCommentId = comment.ParentCommentId,
+            ReplyToCommentId = comment.ReplyToCommentId,
+            ReplyToUsername = replyToUsername,
             CreatedAt = comment.CreatedAt,
             ReplyCount = replyCount,
             HasEncryptedContent = envelope is not null,

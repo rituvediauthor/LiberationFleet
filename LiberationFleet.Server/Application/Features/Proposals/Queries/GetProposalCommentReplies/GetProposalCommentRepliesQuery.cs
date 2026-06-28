@@ -1,7 +1,9 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -51,14 +53,16 @@ public class GetProposalCommentRepliesQueryHandler(
             return new ProposalCommentRepliesResponse { Success = false, Message = "Comment not found." };
         }
 
+        var threadRootId = CommentThread.GetThreadRootId(parent.Id, parent.ParentCommentId);
         var allComments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
+        var commentById = allComments.ToDictionary(c => c.Id);
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var visibleComments = allComments
             .Where(c => !hiddenUserIds.Contains(c.AuthorUserId))
             .ToList();
         var replies = visibleComments
-            .Where(c => c.ParentCommentId == request.ParentCommentId)
-            .OrderByDescending(c => c.CreatedAt)
+            .Where(c => c.ParentCommentId == threadRootId)
+            .OrderBy(c => c.CreatedAt)
             .ToList();
 
         var replyIds = replies.Select(r => r.Id.ToString()).ToList();
@@ -70,24 +74,33 @@ public class GetProposalCommentRepliesQueryHandler(
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var usesAnonymousComments = proposal.Kind == ProposalKind.General;
+        var nicknameUserIds = replies
+            .Select(r => r.AuthorUserId)
+            .Concat(replies
+                .Where(r => r.ReplyToCommentId.HasValue && commentById.ContainsKey(r.ReplyToCommentId.Value))
+                .Select(r => commentById[r.ReplyToCommentId!.Value].AuthorUserId))
+            .Distinct();
         var nicknameByUserId = usesAnonymousComments
-            ? await aliasService.GetNicknameMapAsync(
-                proposal.Id,
-                replies.Select(r => r.AuthorUserId),
-                cancellationToken)
+            ? await aliasService.GetNicknameMapAsync(proposal.Id, nicknameUserIds, cancellationToken)
             : new Dictionary<int, string>();
 
         var items = replies.Select(reply =>
         {
             envelopeById.TryGetValue(reply.Id.ToString(), out var envelope);
-            var nestedReplyCount = visibleComments.Count(c => c.ParentCommentId == reply.Id);
+            var replyToUsername = ResolveReplyToUsername(
+                reply,
+                commentById,
+                envelopeById,
+                usesAnonymousComments,
+                nicknameByUserId);
             return ProposalMapper.MapComment(
                 reply,
                 envelope,
-                nestedReplyCount,
+                0,
                 userId,
                 usesAnonymousComments,
-                nicknameByUserId);
+                nicknameByUserId,
+                replyToUsername);
         }).ToList();
 
         return new ProposalCommentRepliesResponse
@@ -96,5 +109,33 @@ public class GetProposalCommentRepliesQueryHandler(
             Message = "Replies loaded.",
             Items = items
         };
+    }
+
+    private static string? ResolveReplyToUsername(
+        ProposalComment reply,
+        IReadOnlyDictionary<int, ProposalComment> commentById,
+        IReadOnlyDictionary<string, EncryptedContentEnvelope> envelopeById,
+        bool usesAnonymousComments,
+        IReadOnlyDictionary<int, string> nicknameByUserId)
+    {
+        if (!reply.ReplyToCommentId.HasValue
+            || !commentById.TryGetValue(reply.ReplyToCommentId.Value, out var target))
+        {
+            return null;
+        }
+
+        if (usesAnonymousComments)
+        {
+            return nicknameByUserId.TryGetValue(target.AuthorUserId, out var nickname)
+                ? nickname
+                : ProposalMapper.AnonymousAuthor;
+        }
+
+        if (envelopeById.ContainsKey(target.Id.ToString()))
+        {
+            return null;
+        }
+
+        return target.AuthorUser.Username;
     }
 }

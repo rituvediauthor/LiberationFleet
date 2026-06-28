@@ -321,6 +321,17 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.keptCommentEditAttachments.splice(index, 1);
   }
 
+  formatCommentAuthor(comment: ProposalComment, siblingReplies?: ProposalComment[]): string {
+    if (!comment.replyToCommentId) {
+      return comment.authorUsername;
+    }
+
+    const targetName = comment.replyToUsername
+      ?? siblingReplies?.find(reply => reply.id === comment.replyToCommentId)?.authorUsername
+      ?? 'User';
+    return `${comment.authorUsername} > ${targetName}`;
+  }
+
   startReply(comment: ProposalComment) {
     this.replyParentId = comment.id;
     this.commentFocused = true;
@@ -532,11 +543,16 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     const displayName = this.proposal.usesAnonymousComments
       ? (this.proposal.viewerAlias ?? 'Anonymous')
       : this.authorDisplayName;
+    const { threadRootId, replyToCommentId, replyToUsername } = parentCommentId
+      ? this.resolveReplyTargets(parentCommentId)
+      : { threadRootId: null as number | null, replyToCommentId: null as number | null, replyToUsername: null as string | null };
     const newComment: ProposalComment = {
       id: commentId,
       authorUserId,
       authorUsername: displayName,
-      parentCommentId,
+      parentCommentId: threadRootId,
+      replyToCommentId,
+      replyToUsername,
       createdAt: new Date(),
       replyCount: 0,
       hasEncryptedContent: true,
@@ -563,7 +579,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.proposal = {
       ...this.proposal,
       comments: this.proposal.comments.map(comment => {
-        if (comment.id !== parentCommentId) {
+        if (comment.id !== threadRootId) {
           return comment;
         }
 
@@ -575,6 +591,30 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         };
       })
     };
+  }
+
+  private resolveReplyTargets(parentCommentId: number): {
+    threadRootId: number;
+    replyToCommentId: number | null;
+    replyToUsername: string | null;
+  } {
+    const topLevel = this.proposal!.comments.find(comment => comment.id === parentCommentId);
+    if (topLevel) {
+      return { threadRootId: parentCommentId, replyToCommentId: null, replyToUsername: null };
+    }
+
+    for (const comment of this.proposal!.comments) {
+      const reply = comment.replies?.find(item => item.id === parentCommentId);
+      if (reply) {
+        return {
+          threadRootId: comment.id,
+          replyToCommentId: parentCommentId,
+          replyToUsername: reply.authorUsername
+        };
+      }
+    }
+
+    return { threadRootId: parentCommentId, replyToCommentId: null, replyToUsername: null };
   }
 
   private applyAliasToOwnComment(comment: ProposalComment, alias: string): ProposalComment {
