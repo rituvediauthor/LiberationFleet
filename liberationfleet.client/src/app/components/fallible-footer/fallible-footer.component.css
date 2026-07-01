@@ -1,0 +1,36 @@
+.fallible-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 24px;
+  padding-bottom: 8px;
+  opacity: 0.55;
+}
+
+.fallible-link {
+  display: inline-flex;
+  line-height: 0;
+  border-radius: 6px;
+  transition: opacity 0.2s ease;
+}
+
+.fallible-link:hover {
+  opacity: 0.85;
+}
+
+.fallible-image {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.fallible-caption {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #888;
+  text-align: center;
+}

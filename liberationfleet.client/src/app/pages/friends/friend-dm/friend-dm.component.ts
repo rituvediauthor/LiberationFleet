@@ -16,6 +16,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FriendService } from '../../../services/friend.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
@@ -35,7 +36,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     CommonModule,
     FormsModule,
     ProposalAttachmentDisplayComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    FallibleFooterComponent
   ],
   templateUrl: './friend-dm.component.html',
   styleUrl: './friend-dm.component.css'

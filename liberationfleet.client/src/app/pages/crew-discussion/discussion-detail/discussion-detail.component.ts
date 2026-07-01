@@ -9,6 +9,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
 import {
   DiscussionComment,
@@ -28,7 +29,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     CommonModule,
     FormsModule,
     ProposalAttachmentDisplayComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    FallibleFooterComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'

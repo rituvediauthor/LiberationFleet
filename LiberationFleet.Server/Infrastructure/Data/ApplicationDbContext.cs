@@ -51,6 +51,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<UserHiddenContent> UserHiddenContents => Set<UserHiddenContent>();
     public DbSet<DirectConversation> DirectConversations => Set<DirectConversation>();
     public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+    public DbSet<FallibleClickStats> FallibleClickStats => Set<FallibleClickStats>();
+    public DbSet<FallibleClickUser> FallibleClickUsers => Set<FallibleClickUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -645,6 +647,26 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FallibleClickStats>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasData(new FallibleClickStats
+            {
+                Id = 1,
+                TotalClicks = 0,
+                UniqueUserClicks = 0
+            });
+        });
+
+        modelBuilder.Entity<FallibleClickUser>(entity =>
+        {
+            entity.HasKey(e => e.UserId);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
