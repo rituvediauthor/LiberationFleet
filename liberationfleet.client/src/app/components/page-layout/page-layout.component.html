@@ -17,6 +17,8 @@
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
 
+    <ng-content select="[actionBar]"></ng-content>
+
     <button
       *ngIf="primaryButton"
       class="action-button primary-button"

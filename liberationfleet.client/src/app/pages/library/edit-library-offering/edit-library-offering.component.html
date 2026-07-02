@@ -1,0 +1,63 @@
+<app-page-layout
+  [backButton]="backButton"
+  [primaryButton]="canToggleOutOfStock ? saveButton : null"
+  [secondaryButton]="isStockBased ? deleteButton : null">
+  <div class="edit-offering-page">
+    <h1 class="page-title">Edit Offering</h1>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <ng-container *ngIf="!loading && offering">
+      <h2 class="offering-title">{{ offering.title }}</h2>
+
+      <p class="notice" *ngIf="offering.isOutOfStock && !canToggleOutOfStock">
+        This offering is currently out of stock.
+      </p>
+
+      <p class="notice" *ngIf="showTrackedStockNotice">
+        Stock is tracked automatically. When quantity reaches zero, the offering is marked out of stock.
+      </p>
+
+      <div class="toggle-row" *ngIf="canToggleOutOfStock">
+        <div>
+          <p class="toggle-label">Out of stock</p>
+          <p class="toggle-note">Use this when quantity is not tracked but the offering is unavailable.</p>
+        </div>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="isOutOfStock"
+          (click)="toggleOutOfStock()"
+          [attr.aria-pressed]="isOutOfStock">
+          {{ isOutOfStock ? 'Yes' : 'No' }}
+        </button>
+      </div>
+
+      <section class="delete-section" *ngIf="isStockBased">
+        <h2 class="section-title">Delete offering</h2>
+        <p class="section-note">
+          Remove this offering from the library. Active requests on this offering will be cancelled.
+        </p>
+        <button
+          type="button"
+          class="delete-btn"
+          [disabled]="deleting"
+          (click)="openDeleteConfirm()">
+          Delete offering
+        </button>
+      </section>
+    </ng-container>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="confirmDeleteVisible"
+  title="Delete offering?"
+  message="This permanently removes the offering from library listings. Active requests will be cancelled."
+  confirmLabel="Delete"
+  cancelLabel="Cancel"
+  (confirmed)="confirmDelete()"
+  (dismissed)="dismissDeleteConfirm()"
+  (cancelled)="dismissDeleteConfirm()">
+</app-confirm-dialog>

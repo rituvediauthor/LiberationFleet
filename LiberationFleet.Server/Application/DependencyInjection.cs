@@ -2,6 +2,7 @@ using FluentValidation;
 using LiberationFleet.Server.Application.Common.Behaviors;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules;
@@ -26,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<CrewJoinRequestProposalService>();
         services.AddScoped<ProposalAnonymousAliasService>();
         services.AddScoped<EmptyCrewCleanupService>();
+        services.AddScoped<LibraryContributionGiftService>();
+        services.AddScoped<LibraryRequestCleanupHelper>();
+        services.AddScoped<LibraryMemberCleanupService>();
         services.AddScoped<NotificationService>();
 
         return services;

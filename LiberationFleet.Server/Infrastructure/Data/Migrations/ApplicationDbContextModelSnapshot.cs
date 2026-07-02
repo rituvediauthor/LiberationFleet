@@ -699,6 +699,528 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("Gifts");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LibraryCategories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Produce & Fresh Foods",
+                            SortOrder = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Meat & Seafood",
+                            SortOrder = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Dairy & Eggs",
+                            SortOrder = 3
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Bakery & Bread",
+                            SortOrder = 4
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Frozen Foods",
+                            SortOrder = 5
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Pantry & Dry Goods",
+                            SortOrder = 6
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Name = "Beverages",
+                            SortOrder = 7
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Name = "Snacks & Candy",
+                            SortOrder = 8
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Name = "Deli & Prepared Foods",
+                            SortOrder = 9
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Name = "Health & Personal Care",
+                            SortOrder = 10
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Name = "Baby & Childcare",
+                            SortOrder = 11
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Name = "Pet Supplies",
+                            SortOrder = 12
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Name = "Household & Cleaning",
+                            SortOrder = 13
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Name = "Kitchen & Dining",
+                            SortOrder = 14
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Name = "Home & Furniture",
+                            SortOrder = 15
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Name = "Bedding & Bath",
+                            SortOrder = 16
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Name = "Apparel & Accessories",
+                            SortOrder = 17
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Name = "Shoes",
+                            SortOrder = 18
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Name = "Tools & Hardware",
+                            SortOrder = 19
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Name = "Garden & Outdoor",
+                            SortOrder = 20
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Name = "Electronics",
+                            SortOrder = 21
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Name = "Appliances",
+                            SortOrder = 22
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Name = "Sports & Fitness",
+                            SortOrder = 23
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Name = "Books, Movies & Music",
+                            SortOrder = 24
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Name = "Toys & Games",
+                            SortOrder = 25
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Name = "Automotive",
+                            SortOrder = 26
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Name = "Office & School Supplies",
+                            SortOrder = 27
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Name = "Pharmacy & Wellness",
+                            SortOrder = 28
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Name = "Arts & Crafts",
+                            SortOrder = 29
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Name = "Party & Seasonal",
+                            SortOrder = 30
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Name = "Services & Skills",
+                            SortOrder = 31
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Name = "Plumbing",
+                            SortOrder = 32
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Name = "Electrical Work",
+                            SortOrder = 33
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Name = "HVAC & AC",
+                            SortOrder = 34
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Name = "House Cleaning",
+                            SortOrder = 35
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Name = "Yard Work & Landscaping",
+                            SortOrder = 36
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Name = "Child Care",
+                            SortOrder = 37
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Name = "Car Maintenance & Repair",
+                            SortOrder = 38
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Name = "Home Renovations",
+                            SortOrder = 39
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Name = "Planning & Design",
+                            SortOrder = 40
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Name = "Physical Training & Coaching",
+                            SortOrder = 41
+                        },
+                        new
+                        {
+                            Id = 99,
+                            Name = "Other",
+                            SortOrder = 99
+                        });
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryMaintenanceRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContributorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("HasEncryptedContent")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContributorUserId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("LibraryMaintenanceRecords");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryOffering", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DescriptionPreview")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("FulfillmentMode")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("HasEncryptedContent")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOutOfStock")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("QuantityNotApplicable")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("RemainingStock")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ThumbnailResourceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TitleNormalized")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("UnitLabel")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("ValuePerUnit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorUserId");
+
+                    b.HasIndex("CrewId");
+
+                    b.ToTable("LibraryOfferings");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryOfferingCategory", b =>
+                {
+                    b.Property<int>("OfferingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("OfferingId", "CategoryId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("LibraryOfferingCategories");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeniedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("HasEncryptedContent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("NeededByEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("NeededByStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PurposePreview")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RequesterUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequesterUserId");
+
+                    b.HasIndex("UnitId", "RequesterUserId", "Status");
+
+                    b.ToTable("LibraryRequests");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryRequestMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequestId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("RequestId", "CreatedAt");
+
+                    b.ToTable("LibraryRequestMessages");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("BrokenPendingConfirmation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("BrokenReportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentPossessorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRetired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("OfferingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentPossessorUserId");
+
+                    b.HasIndex("OfferingId");
+
+                    b.ToTable("LibraryUnits");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.MonthlySurvivalThreshold", b =>
                 {
                     b.Property<int>("Id")
@@ -2013,6 +2535,120 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("RecipientUser");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryMaintenanceRecord", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "ContributorUser")
+                        .WithMany()
+                        .HasForeignKey("ContributorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryUnit", "Unit")
+                        .WithMany("MaintenanceRecords")
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContributorUser");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryOffering", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatorUser")
+                        .WithMany()
+                        .HasForeignKey("CreatorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatorUser");
+
+                    b.Navigation("Crew");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryOfferingCategory", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryOffering", "Offering")
+                        .WithMany("Categories")
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Offering");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryRequest", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "RequesterUser")
+                        .WithMany()
+                        .HasForeignKey("RequesterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryUnit", "Unit")
+                        .WithMany("Requests")
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RequesterUser");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryRequestMessage", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryRequest", "Request")
+                        .WithMany("Messages")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryUnit", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CurrentPossessorUser")
+                        .WithMany()
+                        .HasForeignKey("CurrentPossessorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryOffering", "Offering")
+                        .WithMany("Units")
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CurrentPossessorUser");
+
+                    b.Navigation("Offering");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.MonthlySurvivalThreshold", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
@@ -2397,6 +3033,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ForumPost", b =>
                 {
                     b.Navigation("Comments");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryOffering", b =>
+                {
+                    b.Navigation("Categories");
+
+                    b.Navigation("Units");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryRequest", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.LibraryUnit", b =>
+                {
+                    b.Navigation("MaintenanceRecords");
+
+                    b.Navigation("Requests");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProjectComment", b =>

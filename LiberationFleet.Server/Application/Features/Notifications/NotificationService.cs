@@ -148,6 +148,10 @@ public class NotificationService(
         NotificationKind.CrewmateKicked => "Crewmate kicked",
         NotificationKind.CrewmateRejoinAllowed => "Crewmate may rejoin",
         NotificationKind.Mention => "Mention",
+        NotificationKind.NewLibraryRequest => "New library request",
+        NotificationKind.LibraryRequestDenied => "Library request denied",
+        NotificationKind.LibraryRequestCompleted => "Library request completed",
+        NotificationKind.NewLibraryRequestMessage => "Library request message",
         _ => kind.ToString()
     };
 

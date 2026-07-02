@@ -14,6 +14,7 @@ import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnaps
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
+import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 
 @Component({
   selector: 'app-profile',
@@ -47,10 +48,7 @@ export class ProfileComponent implements OnInit {
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.crewService.getPaymentPlatforms(true).subscribe({
-      next: platforms => this.platformOptions = platforms,
-      error: () => this.toastService.error('Failed to load payment platforms')
-    });
+    this.loadPlatformOptions();
 
     this.backButton = {
       label: '←',
@@ -174,6 +172,7 @@ export class ProfileComponent implements OnInit {
       next: (result) => {
         if (result.success && result.profile) {
           this.profile = result.profile;
+          this.loadPlatformOptions();
           this.form.patchValue({
             username: result.profile.username,
             email: result.profile.email,
@@ -223,6 +222,7 @@ export class ProfileComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: (profile) => {
         this.profile = profile;
+        this.syncPlatformOptions();
         this.authService.updateCurrentUser({
           id: profile.id,
           username: profile.username,
@@ -239,6 +239,19 @@ export class ProfileComponent implements OnInit {
         this.updateSaveButton();
       }
     });
+  }
+
+  private loadPlatformOptions() {
+    this.crewService.getPaymentPlatforms(false).subscribe({
+      next: platforms => {
+        this.platformOptions = mergePaymentPlatformOptions(platforms, this.profile?.paymentPlatforms ?? []);
+      },
+      error: () => this.toastService.error('Failed to load payment platforms')
+    });
+  }
+
+  private syncPlatformOptions() {
+    this.platformOptions = mergePaymentPlatformOptions(this.platformOptions, this.profile?.paymentPlatforms ?? []);
   }
 
   private buildForm(profile: UserProfile) {

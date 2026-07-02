@@ -53,6 +53,13 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
     public DbSet<FallibleClickStats> FallibleClickStats => Set<FallibleClickStats>();
     public DbSet<FallibleClickUser> FallibleClickUsers => Set<FallibleClickUser>();
+    public DbSet<LibraryCategory> LibraryCategories => Set<LibraryCategory>();
+    public DbSet<LibraryOffering> LibraryOfferings => Set<LibraryOffering>();
+    public DbSet<LibraryOfferingCategory> LibraryOfferingCategories => Set<LibraryOfferingCategory>();
+    public DbSet<LibraryUnit> LibraryUnits => Set<LibraryUnit>();
+    public DbSet<LibraryRequest> LibraryRequests => Set<LibraryRequest>();
+    public DbSet<LibraryRequestMessage> LibraryRequestMessages => Set<LibraryRequestMessage>();
+    public DbSet<LibraryMaintenanceRecord> LibraryMaintenanceRecords => Set<LibraryMaintenanceRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -667,6 +674,146 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LibraryCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(64);
+            entity.HasData(
+                new LibraryCategory { Id = 1, Name = "Produce & Fresh Foods", SortOrder = 1 },
+                new LibraryCategory { Id = 2, Name = "Meat & Seafood", SortOrder = 2 },
+                new LibraryCategory { Id = 3, Name = "Dairy & Eggs", SortOrder = 3 },
+                new LibraryCategory { Id = 4, Name = "Bakery & Bread", SortOrder = 4 },
+                new LibraryCategory { Id = 5, Name = "Frozen Foods", SortOrder = 5 },
+                new LibraryCategory { Id = 6, Name = "Pantry & Dry Goods", SortOrder = 6 },
+                new LibraryCategory { Id = 7, Name = "Beverages", SortOrder = 7 },
+                new LibraryCategory { Id = 8, Name = "Snacks & Candy", SortOrder = 8 },
+                new LibraryCategory { Id = 9, Name = "Deli & Prepared Foods", SortOrder = 9 },
+                new LibraryCategory { Id = 10, Name = "Health & Personal Care", SortOrder = 10 },
+                new LibraryCategory { Id = 11, Name = "Baby & Childcare", SortOrder = 11 },
+                new LibraryCategory { Id = 12, Name = "Pet Supplies", SortOrder = 12 },
+                new LibraryCategory { Id = 13, Name = "Household & Cleaning", SortOrder = 13 },
+                new LibraryCategory { Id = 14, Name = "Kitchen & Dining", SortOrder = 14 },
+                new LibraryCategory { Id = 15, Name = "Home & Furniture", SortOrder = 15 },
+                new LibraryCategory { Id = 16, Name = "Bedding & Bath", SortOrder = 16 },
+                new LibraryCategory { Id = 17, Name = "Apparel & Accessories", SortOrder = 17 },
+                new LibraryCategory { Id = 18, Name = "Shoes", SortOrder = 18 },
+                new LibraryCategory { Id = 19, Name = "Tools & Hardware", SortOrder = 19 },
+                new LibraryCategory { Id = 20, Name = "Garden & Outdoor", SortOrder = 20 },
+                new LibraryCategory { Id = 21, Name = "Electronics", SortOrder = 21 },
+                new LibraryCategory { Id = 22, Name = "Appliances", SortOrder = 22 },
+                new LibraryCategory { Id = 23, Name = "Sports & Fitness", SortOrder = 23 },
+                new LibraryCategory { Id = 24, Name = "Books, Movies & Music", SortOrder = 24 },
+                new LibraryCategory { Id = 25, Name = "Toys & Games", SortOrder = 25 },
+                new LibraryCategory { Id = 26, Name = "Automotive", SortOrder = 26 },
+                new LibraryCategory { Id = 27, Name = "Office & School Supplies", SortOrder = 27 },
+                new LibraryCategory { Id = 28, Name = "Pharmacy & Wellness", SortOrder = 28 },
+                new LibraryCategory { Id = 29, Name = "Arts & Crafts", SortOrder = 29 },
+                new LibraryCategory { Id = 30, Name = "Party & Seasonal", SortOrder = 30 },
+                new LibraryCategory { Id = 31, Name = "Services & Skills", SortOrder = 31 },
+                new LibraryCategory { Id = 32, Name = "Plumbing", SortOrder = 32 },
+                new LibraryCategory { Id = 33, Name = "Electrical Work", SortOrder = 33 },
+                new LibraryCategory { Id = 34, Name = "HVAC & AC", SortOrder = 34 },
+                new LibraryCategory { Id = 35, Name = "House Cleaning", SortOrder = 35 },
+                new LibraryCategory { Id = 36, Name = "Yard Work & Landscaping", SortOrder = 36 },
+                new LibraryCategory { Id = 37, Name = "Child Care", SortOrder = 37 },
+                new LibraryCategory { Id = 38, Name = "Car Maintenance & Repair", SortOrder = 38 },
+                new LibraryCategory { Id = 39, Name = "Home Renovations", SortOrder = 39 },
+                new LibraryCategory { Id = 40, Name = "Planning & Design", SortOrder = 40 },
+                new LibraryCategory { Id = 41, Name = "Physical Training & Coaching", SortOrder = 41 },
+                new LibraryCategory { Id = 99, Name = "Other", SortOrder = 99 });
+        });
+
+        modelBuilder.Entity<LibraryOffering>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.TitleNormalized).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.DescriptionPreview).HasMaxLength(200);
+            entity.Property(e => e.UnitLabel).HasMaxLength(64);
+            entity.Property(e => e.ThumbnailResourceId).HasMaxLength(64);
+            entity.Property(e => e.ValuePerUnit).HasPrecision(18, 2);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CreatorUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LibraryOfferingCategory>(entity =>
+        {
+            entity.HasKey(e => new { e.OfferingId, e.CategoryId });
+            entity.HasOne(e => e.Offering)
+                .WithMany(o => o.Categories)
+                .HasForeignKey(e => e.OfferingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Category)
+                .WithMany()
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LibraryUnit>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.BrokenPendingConfirmation).HasDefaultValue(false);
+            entity.Property(e => e.IsRetired).HasDefaultValue(false);
+            entity.HasOne(e => e.Offering)
+                .WithMany(o => o.Units)
+                .HasForeignKey(e => e.OfferingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CurrentPossessorUser)
+                .WithMany()
+                .HasForeignKey(e => e.CurrentPossessorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LibraryRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PurposePreview).HasMaxLength(200);
+            entity.HasOne(e => e.Unit)
+                .WithMany(u => u.Requests)
+                .HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.RequesterUser)
+                .WithMany()
+                .HasForeignKey(e => e.RequesterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.UnitId, e.RequesterUserId, e.Status });
+        });
+
+        modelBuilder.Entity<LibraryRequestMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Request)
+                .WithMany(r => r.Messages)
+                .HasForeignKey(e => e.RequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.RequestId, e.CreatedAt });
+        });
+
+        modelBuilder.Entity<LibraryMaintenanceRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Cost).HasPrecision(18, 2);
+            entity.HasOne(e => e.Unit)
+                .WithMany(u => u.MaintenanceRecords)
+                .HasForeignKey(e => e.UnitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ContributorUser)
+                .WithMany()
+                .HasForeignKey(e => e.ContributorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

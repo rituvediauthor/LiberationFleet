@@ -68,6 +68,8 @@ public static class CryptoMapper
         EncryptedContentTypeDto.ForumComment => EncryptedContentType.ForumComment,
         EncryptedContentTypeDto.ProjectComment => EncryptedContentType.ProjectComment,
         EncryptedContentTypeDto.ChatRoomName => EncryptedContentType.ChatRoomName,
+        EncryptedContentTypeDto.LibraryRequest => EncryptedContentType.LibraryRequest,
+        EncryptedContentTypeDto.LibraryRequestMessage => EncryptedContentType.LibraryRequestMessage,
         _ => EncryptedContentType.GiftLogEntry
     };
 
@@ -88,6 +90,8 @@ public static class CryptoMapper
         EncryptedContentType.ForumComment => EncryptedContentTypeDto.ForumComment,
         EncryptedContentType.ProjectComment => EncryptedContentTypeDto.ProjectComment,
         EncryptedContentType.ChatRoomName => EncryptedContentTypeDto.ChatRoomName,
+        EncryptedContentType.LibraryRequest => EncryptedContentTypeDto.LibraryRequest,
+        EncryptedContentType.LibraryRequestMessage => EncryptedContentTypeDto.LibraryRequestMessage,
         _ => EncryptedContentTypeDto.GiftLogEntry
     };
 }

@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
@@ -11,6 +12,7 @@ public class CrewmateKickProposalService(
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     NotificationService notificationService,
+    LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
@@ -143,6 +145,10 @@ public class CrewmateKickProposalService(
         var membership = await membershipRepository.GetMembershipAsync(kick.TargetUserId, proposal.CrewId, cancellationToken);
         if (membership is not null && !membership.IsBanned)
         {
+            await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
+                proposal.CrewId,
+                kick.TargetUserId,
+                cancellationToken);
             membership.IsBanned = true;
         }
 

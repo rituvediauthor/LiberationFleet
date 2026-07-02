@@ -1,0 +1,21 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div class="library-list-page">
+    <h1 class="page-title">My Requests</h1>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
+      You have not submitted any requests yet.
+    </p>
+
+    <div class="item-cards" *ngIf="!loading && items.length > 0">
+      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openRequest(item)">
+        <app-library-item-card [item]="toCardItem(item)" holderLabel="From"></app-library-item-card>
+        <div class="request-meta">
+          <span class="status-badge" [attr.data-status]="item.status">{{ item.status }}</span>
+          <span class="date-range">{{ formatDateRange(item) }}</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

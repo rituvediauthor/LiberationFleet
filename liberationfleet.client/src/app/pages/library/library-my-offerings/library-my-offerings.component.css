@@ -1,0 +1,96 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.my-offerings-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: #333;
+}
+
+.state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: #d32f2f;
+}
+
+.offering-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.offering-row-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.offering-row {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.offering-row:disabled {
+  cursor: default;
+}
+
+.offering-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.meta-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  background: #f0f0f0;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.meta-chip.out-of-stock {
+  color: #c62828;
+  background: #fff0f0;
+}
+
+.edit-btn {
+  flex-shrink: 0;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #007AFF;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.load-more-sentinel {
+  height: 1px;
+}

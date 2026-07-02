@@ -1,0 +1,16 @@
+<div class="library-item-card">
+  <div class="card-thumb" *ngIf="item.thumbnailUrl; else placeholderThumb">
+    <img [src]="item.thumbnailUrl" [alt]="item.title" />
+  </div>
+  <ng-template #placeholderThumb>
+    <div class="card-thumb placeholder" aria-hidden="true"></div>
+  </ng-template>
+
+  <div class="card-body">
+    <p class="card-meta">{{ holderLabel }}: {{ item.holderUsername }}</p>
+    <p class="card-stock out-of-stock" *ngIf="item.isOutOfStock">Out of stock</p>
+    <p class="card-stock" *ngIf="!item.isOutOfStock && item.remainingStock != null">{{ item.remainingStock }} available</p>
+    <h2 class="card-title">{{ item.title }}</h2>
+    <p class="card-preview">{{ item.descriptionPreview }}</p>
+  </div>
+</div>

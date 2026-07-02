@@ -61,7 +61,9 @@ public enum EncryptedContentTypeDto
     ProposalComment = 11,
     ForumComment = 12,
     ProjectComment = 13,
-    ChatRoomName = 14
+    ChatRoomName = 14,
+    LibraryRequest = 15,
+    LibraryRequestMessage = 16
 }
 
 public class CryptoOperationResponse

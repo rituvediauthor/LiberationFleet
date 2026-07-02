@@ -1,0 +1,104 @@
+.carousel {
+  margin-bottom: 16px;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.carousel-thumb {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 120px;
+  padding: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.carousel-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 20px;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: min(100%, 900px);
+  max-height: 100%;
+}
+
+.lightbox-image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 80px);
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox-nav.prev {
+  left: -52px;
+}
+
+.lightbox-nav.next {
+  right: -52px;
+}
+
+@media (max-width: 600px) {
+  .carousel-thumb {
+    width: 96px;
+    height: 96px;
+  }
+
+  .lightbox-nav.prev {
+    left: 0;
+  }
+
+  .lightbox-nav.next {
+    right: 0;
+  }
+}

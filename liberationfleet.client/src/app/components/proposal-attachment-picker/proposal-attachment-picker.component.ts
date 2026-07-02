@@ -14,6 +14,8 @@ import { AudioRecorderController } from '../../utils/audio-recorder.util';
 })
 export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() attachments: PendingAttachment[] = [];
+  @Input() allowAudioRecording = true;
+  @Input() acceptTypes = 'image/*,video/*,audio/*';
   @Output() fileDialogOpenChange = new EventEmitter<boolean>();
 
   audioRecorder = new AudioRecorderController();

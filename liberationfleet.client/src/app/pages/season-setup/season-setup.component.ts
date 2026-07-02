@@ -12,6 +12,7 @@ import { CrewService } from '../../services/crew.service';
 import { PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption, SeasonReadyResult, SeasonSetupSaveResult } from '../../models/gift.model';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
+import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 
 @Component({
   selector: 'app-season-setup',
@@ -24,6 +25,7 @@ export class SeasonSetupComponent implements OnInit {
   form!: FormGroup;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];
+  private basePlatformOptions: PaymentPlatformOption[] = [];
   readyCount = 0;
   seasonReady = false;
   seasonStarted = false;
@@ -56,7 +58,10 @@ export class SeasonSetupComponent implements OnInit {
     this.updateSaveButton();
 
     this.crewService.getPaymentPlatforms(true).subscribe({
-      next: platforms => this.platformOptions = platforms
+      next: platforms => {
+        this.basePlatformOptions = platforms;
+        this.syncPlatformOptions();
+      }
     });
 
     this.giftService.getSeasonStatus().subscribe({
@@ -79,6 +84,7 @@ export class SeasonSetupComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.profile = profile;
+        this.syncPlatformOptions();
         this.isLoading = false;
         this.captureInitialState();
         this.updateSaveButton();
@@ -195,6 +201,10 @@ export class SeasonSetupComponent implements OnInit {
         if (!saveResult.success) {
           throw new Error(saveResult.message || 'Failed to save profile');
         }
+        if (saveResult.profile) {
+          this.profile = saveResult.profile;
+          this.syncPlatformOptions();
+        }
         return this.giftService.saveSeasonSetup(estimate);
       }),
       switchMap(setupResult => {
@@ -245,5 +255,12 @@ export class SeasonSetupComponent implements OnInit {
     this.readyCount = status.readyCount;
     this.seasonReady = status.userSeasonReady;
     this.seasonStarted = status.seasonStarted;
+  }
+
+  private syncPlatformOptions() {
+    this.platformOptions = mergePaymentPlatformOptions(
+      this.basePlatformOptions,
+      this.profile?.paymentPlatforms ?? []
+    );
   }
 }

@@ -158,4 +158,19 @@ public class CryptoRepository : ICryptoRepository
         existing.Ciphertext = envelope.Ciphertext;
         existing.UpdatedAt = envelope.UpdatedAt;
     }
+
+    public async Task DeleteEnvelopesAsync(
+        EncryptedContentType contentType,
+        IReadOnlyList<string> resourceIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (resourceIds.Count == 0)
+        {
+            return;
+        }
+
+        await _context.EncryptedContentEnvelopes
+            .Where(e => e.ContentType == contentType && resourceIds.Contains(e.ResourceId))
+            .ExecuteDeleteAsync(cancellationToken);
+    }
 }

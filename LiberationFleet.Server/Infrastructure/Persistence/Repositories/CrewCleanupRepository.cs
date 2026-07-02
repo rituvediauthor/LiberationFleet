@@ -102,6 +102,30 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             .Where(p => p.CrewId == crewId)
             .ExecuteDeleteAsync(cancellationToken);
 
+        await context.LibraryRequestMessages
+            .Where(m => m.Request.Unit.Offering.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.LibraryRequests
+            .Where(r => r.Unit.Offering.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.LibraryMaintenanceRecords
+            .Where(m => m.Unit.Offering.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.LibraryUnits
+            .Where(u => u.Offering.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.LibraryOfferingCategories
+            .Where(c => c.Offering.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.LibraryOfferings
+            .Where(o => o.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
         await context.CrewMemberships
             .Where(m => m.CrewId == crewId)
             .ExecuteDeleteAsync(cancellationToken);

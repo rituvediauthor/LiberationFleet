@@ -27,4 +27,9 @@ public interface ICryptoRepository
         int? crewId = null,
         CancellationToken cancellationToken = default);
     Task UpsertEnvelopeAsync(EncryptedContentEnvelope envelope, CancellationToken cancellationToken = default);
+
+    Task DeleteEnvelopesAsync(
+        EncryptedContentType contentType,
+        IReadOnlyList<string> resourceIds,
+        CancellationToken cancellationToken = default);
 }

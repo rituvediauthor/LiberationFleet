@@ -20,5 +20,9 @@ public enum EncryptedContentType
     ProposalComment = 11,
     ForumComment = 12,
     ProjectComment = 13,
-    ChatRoomName = 14
+    ChatRoomName = 14,
+    LibraryRequest = 15,
+    LibraryRequestMessage = 16,
+    LibraryBrokenReport = 17,
+    LibraryMaintenanceRecord = 18
 }

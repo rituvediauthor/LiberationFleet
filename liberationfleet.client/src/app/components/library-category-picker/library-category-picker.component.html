@@ -1,0 +1,34 @@
+<div class="category-picker" #dropdownRoot>
+  <div class="selected-pills" *ngIf="selectedCategories.length > 0">
+    <button
+      type="button"
+      class="category-pill"
+      *ngFor="let category of selectedCategories"
+      (click)="removeCategory(category.id)"
+      [attr.aria-label]="'Remove category ' + category.name">
+      <span>{{ category.name }}</span>
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="dropdown-wrap" [class.open]="dropdownOpen">
+    <input
+      type="search"
+      class="dropdown-search"
+      [(ngModel)]="searchQuery"
+      (focus)="openDropdown()"
+      (input)="onSearchInput()"
+      [placeholder]="searchPlaceholder"
+      aria-label="Search categories"
+      autocomplete="off" />
+
+    <ul class="dropdown-list" *ngIf="dropdownOpen">
+      <li *ngIf="availableCategories.length === 0" class="dropdown-empty">{{ emptyMessage }}</li>
+      <li *ngFor="let category of availableCategories">
+        <button type="button" class="dropdown-option" (click)="selectCategory(category.id)">
+          {{ category.name }}
+        </button>
+      </li>
+    </ul>
+  </div>
+</div>

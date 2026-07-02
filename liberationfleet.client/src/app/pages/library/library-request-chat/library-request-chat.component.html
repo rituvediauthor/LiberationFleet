@@ -1,0 +1,32 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div class="request-chat-page">
+    <h1 class="page-title">Request Chat</h1>
+
+    <p class="state-text" *ngIf="loading">Loading messages...</p>
+    <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
+
+    <div class="message-list" #messageScroll *ngIf="!loading && !loadError">
+      <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>
+      <article class="message-bubble" *ngFor="let message of messages; let i = index" #messageItem>
+        <p class="message-meta">
+          <strong>{{ message.authorUsername }}</strong>
+          <span>·</span>
+          <span>{{ message.createdAt | date:'short' }}</span>
+        </p>
+        <p class="message-body">{{ message.body }}</p>
+      </article>
+      <p class="state-text" *ngIf="messages.length === 0">No messages yet.</p>
+    </div>
+
+    <div class="composer">
+      <textarea
+        class="message-input"
+        [(ngModel)]="messageText"
+        placeholder="Message..."
+        rows="2"></textarea>
+      <button type="button" class="send-btn" [disabled]="sending || !messageText.trim()" (click)="sendMessage()">
+        Send
+      </button>
+    </div>
+  </div>
+</app-page-layout>

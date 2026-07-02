@@ -11,6 +11,7 @@ import { GiftLogEntry } from '../../models/gift.model';
 import { CrewService } from '../../services/crew.service';
 import { PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
+import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 
 @Component({
   selector: 'app-join-season',
@@ -25,6 +26,7 @@ export class JoinSeasonComponent implements OnInit {
   form!: FormGroup;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];
+  private basePlatformOptions: PaymentPlatformOption[] = [];
   entries: GiftLogEntry[] = [];
   loading = true;
   isSubmitting = false;
@@ -62,7 +64,10 @@ export class JoinSeasonComponent implements OnInit {
     });
 
     this.crewService.getPaymentPlatforms(true).subscribe({
-      next: platforms => this.platformOptions = platforms
+      next: platforms => {
+        this.basePlatformOptions = platforms;
+        this.syncPlatformOptions();
+      }
     });
 
     this.giftService.getLogs().subscribe({
@@ -75,6 +80,7 @@ export class JoinSeasonComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.profile = profile;
+        this.syncPlatformOptions();
         this.loading = false;
         this.updateReadyButton();
       },
@@ -156,6 +162,11 @@ export class JoinSeasonComponent implements OnInit {
           return;
         }
 
+        if (saveResult.profile) {
+          this.profile = saveResult.profile;
+          this.syncPlatformOptions();
+        }
+
         this.giftService.saveSeasonSetup(estimate).subscribe({
           next: setupResult => {
             if (!setupResult.success) {
@@ -196,5 +207,12 @@ export class JoinSeasonComponent implements OnInit {
         this.updateReadyButton();
       }
     });
+  }
+
+  private syncPlatformOptions() {
+    this.platformOptions = mergePaymentPlatformOptions(
+      this.basePlatformOptions,
+      this.profile?.paymentPlatforms ?? []
+    );
   }
 }

@@ -1,0 +1,38 @@
+<div class="carousel" *ngIf="images.length > 0">
+  <div class="carousel-track">
+    <button
+      type="button"
+      class="carousel-thumb"
+      *ngFor="let image of images; let i = index"
+      (click)="openFull(i)"
+      [attr.aria-label]="'View image ' + (i + 1) + ' of ' + images.length">
+      <img [src]="image" [alt]="title + ' image ' + (i + 1)" />
+    </button>
+  </div>
+</div>
+
+<div class="lightbox" *ngIf="selectedIndex !== null" (click)="closeFull()">
+  <div class="lightbox-content" (click)="$event.stopPropagation()">
+    <button type="button" class="lightbox-close" (click)="closeFull()" aria-label="Close image">×</button>
+    <button
+      type="button"
+      class="lightbox-nav prev"
+      *ngIf="images.length > 1"
+      (click)="showPrevious()"
+      aria-label="Previous image">
+      ‹
+    </button>
+    <img
+      class="lightbox-image"
+      [src]="images[selectedIndex]"
+      [alt]="title" />
+    <button
+      type="button"
+      class="lightbox-nav next"
+      *ngIf="images.length > 1"
+      (click)="showNext()"
+      aria-label="Next image">
+      ›
+    </button>
+  </div>
+</div>

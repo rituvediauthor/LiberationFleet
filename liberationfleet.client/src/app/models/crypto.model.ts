@@ -7,6 +7,8 @@ export type EncryptedContentType =
   | 'Proposal'
   | 'RulesDocument'
   | 'LibraryItem'
+  | 'LibraryRequest'
+  | 'LibraryRequestMessage'
   | 'ImageAsset'
   | 'AudioAsset'
   | 'VideoAsset'

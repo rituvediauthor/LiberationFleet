@@ -1,0 +1,51 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div actionBar class="library-action-bar">
+    <input
+      type="search"
+      class="search-input"
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearchChange()"
+      placeholder="Search by item or holder..."
+      aria-label="Search durable goods" />
+    <button
+      type="button"
+      class="filter-btn"
+      [class.active]="showFilters"
+      (click)="toggleFilters()">
+      <i class="fa-solid fa-filter" aria-hidden="true"></i>
+      Filters
+    </button>
+  </div>
+
+  <div class="library-list-page">
+    <h1 class="page-title">Durable Goods</h1>
+
+    <div class="filter-panel" *ngIf="showFilters">
+      <p class="filter-label">Categories</p>
+      <app-library-category-picker
+        [categories]="categories"
+        [selectedIds]="selectedCategoryIds"
+        (selectedIdsChange)="onCategoriesChange($event)"
+        searchPlaceholder="Filter by category...">
+      </app-library-category-picker>
+    </div>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
+      No durable goods yet. Create an offering from the library hub.
+    </p>
+
+    <div class="item-cards" *ngIf="!loading && items.length > 0">
+      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openItem(item)">
+        <app-library-item-card [item]="item"></app-library-item-card>
+      </button>
+      <div
+        *ngIf="hasMore"
+        class="load-more-sentinel"
+        #loadMoreSentinel
+        aria-hidden="true"></div>
+      <p *ngIf="loadingMore" class="state-text">Loading more...</p>
+    </div>
+  </div>
+</app-page-layout>

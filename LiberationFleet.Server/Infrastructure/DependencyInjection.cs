@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IDirectMessageRepository, DirectMessageRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IFallibleRepository, FallibleRepository>();
+        services.AddScoped<ILibraryRepository, LibraryRepository>();
         services.AddSingleton<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();

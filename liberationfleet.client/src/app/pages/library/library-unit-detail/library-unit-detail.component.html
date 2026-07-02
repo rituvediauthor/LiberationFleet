@@ -1,0 +1,164 @@
+<app-page-layout
+  [backButton]="backButton"
+  [primaryButton]="(showRequestForm || showAcquisitionForm) ? primaryButton : (hasActiveRequest ? primaryButton : null)"
+  [secondaryButton]="secondaryButton">
+  <div class="unit-detail-page">
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <ng-container *ngIf="!loading && detail">
+      <app-library-image-carousel
+        *ngIf="carouselImages.length > 0"
+        [images]="carouselImages"
+        [title]="detail.title">
+      </app-library-image-carousel>
+
+      <div class="detail-header">
+        <h1 class="detail-title">{{ detail.title }}</h1>
+        <p class="detail-meta">{{ holderLabel }}: {{ detail.holderUsername }}</p>
+        <p class="out-of-stock-tag" *ngIf="detail.isOutOfStock">Out of stock</p>
+        <div class="category-tags" *ngIf="detail.categories.length > 0">
+          <span class="category-tag" *ngFor="let category of detail.categories">{{ category }}</span>
+        </div>
+      </div>
+
+      <p class="detail-description" *ngIf="detail.fullDescription">{{ detail.fullDescription }}</p>
+      <p class="detail-meta">Status: {{ detail.unitStatus }}</p>
+      <p class="detail-meta" *ngIf="detail.unitLabel">Unit: {{ detail.unitLabel }}</p>
+      <p class="detail-meta" *ngIf="!detail.isOutOfStock && detail.remainingStock != null">{{ detail.remainingStock }} available</p>
+      <p class="detail-meta" *ngIf="detail.fulfillmentMode">
+        Fulfillment: {{ detail.fulfillmentMode === 'OnDemand' ? 'On demand' : 'On request' }}
+      </p>
+      <p class="notice warning" *ngIf="detail.brokenPendingConfirmation && !detail.isRetired">
+        This item is reported broken and awaiting crew confirmation.
+      </p>
+      <p class="notice" *ngIf="detail.isRetired">
+        This item was removed from library listings.
+      </p>
+
+      <p class="notice" *ngIf="detail.viewer.isHolder && isDurable && !detail.brokenPendingConfirmation">
+        You are the current holder of this item.
+      </p>
+      <p class="notice" *ngIf="hasActiveRequest && !detail.viewer.canRequest">
+        You already have a {{ detail.viewer.activeRequestStatus?.toLowerCase() }} request for this item.
+      </p>
+      <p class="notice" *ngIf="!detail.viewer.isHolder && !detail.viewer.canRequest && !hasActiveRequest && !showAcquisitionForm && !detail.brokenPendingConfirmation && !detail.isOutOfStock">
+        This item is not available right now.
+      </p>
+
+      <form [formGroup]="form" *ngIf="showRequestForm || showAcquisitionForm" class="request-form">
+        <h2 class="section-title">{{ showAcquisitionForm ? 'Record acquisition' : 'Request this item' }}</h2>
+
+        <div class="form-group" *ngIf="showQuantityField">
+          <label for="quantity">Quantity</label>
+          <input
+            id="quantity"
+            class="form-input"
+            type="number"
+            min="1"
+            [max]="detail.viewer.maxRequestQuantity ?? detail.remainingStock ?? 1"
+            formControlName="quantity" />
+        </div>
+
+        <div class="form-group">
+          <label for="purpose">{{ showAcquisitionForm ? 'Note' : 'Purpose' }}</label>
+          <textarea
+            id="purpose"
+            class="form-input textarea"
+            rows="5"
+            formControlName="purpose"
+            [placeholder]="showAcquisitionForm ? 'Optional note about this acquisition' : 'Why do you need this item?'"></textarea>
+        </div>
+
+        <div class="form-row" *ngIf="showRequestForm">
+          <div class="form-group">
+            <label for="neededByStart">Needed from</label>
+            <input id="neededByStart" class="form-input" type="date" formControlName="neededByStart" />
+          </div>
+
+          <div class="form-group">
+            <label for="neededByEnd">Needed until</label>
+            <input id="neededByEnd" class="form-input" type="date" formControlName="neededByEnd" />
+          </div>
+        </div>
+      </form>
+
+      <section *ngIf="detail.viewer.canRecordMaintenance" class="action-section">
+        <h2 class="section-title">Record maintenance</h2>
+        <form [formGroup]="maintenanceForm">
+          <div class="form-group">
+            <label for="cost">Cost ($)</label>
+            <input id="cost" class="form-input" type="number" min="0.01" step="0.01" formControlName="cost" />
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" class="form-input textarea" rows="4" formControlName="notes" placeholder="What maintenance was performed?"></textarea>
+          </div>
+          <button type="button" class="action-btn" [disabled]="isSubmitting || maintenanceForm.invalid" (click)="submitMaintenance()">
+            Record maintenance
+          </button>
+        </form>
+      </section>
+
+      <section *ngIf="detail.viewer.canReportBroken" class="action-section">
+        <h2 class="section-title">Report broken</h2>
+        <form [formGroup]="brokenForm">
+          <div class="form-group">
+            <label for="explanation">What happened?</label>
+            <textarea id="explanation" class="form-input textarea" rows="4" formControlName="explanation" placeholder="Describe the damage or issue"></textarea>
+          </div>
+          <button type="button" class="action-btn danger" [disabled]="isSubmitting || brokenForm.invalid" (click)="submitReportBroken()">
+            Report broken
+          </button>
+        </form>
+      </section>
+
+      <section *ngIf="detail.viewer.canReportLost" class="action-section">
+        <h2 class="section-title">Report lost</h2>
+        <p class="section-note">Remove this durable item from library listings if it can no longer be found.</p>
+        <button
+          type="button"
+          class="action-btn danger"
+          [disabled]="isSubmitting"
+          (click)="openConfirm('reportLost', 'Report lost?', 'This permanently removes the item from library listings.')">
+          Report lost
+        </button>
+      </section>
+
+      <section *ngIf="detail.viewer.canReportFixed" class="action-section">
+        <h2 class="section-title">Report fixed</h2>
+        <p class="section-note">Let the crew know this item is working again.</p>
+        <button
+          type="button"
+          class="action-btn"
+          [disabled]="isSubmitting"
+          (click)="openConfirm('reportFixed', 'Report fixed?', 'This will mark the item available again in the library.')">
+          Report fixed
+        </button>
+      </section>
+
+      <section *ngIf="detail.viewer.canConfirmBroken" class="action-section">
+        <h2 class="section-title">Confirm broken</h2>
+        <p class="section-note">Remove this item from library listings after reviewing the report.</p>
+        <button
+          type="button"
+          class="action-btn danger"
+          [disabled]="isSubmitting"
+          (click)="openConfirm('confirmBroken', 'Confirm broken?', 'This permanently removes the item from library listings.')">
+          Confirm broken
+        </button>
+      </section>
+    </ng-container>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="confirmVisible"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  confirmLabel="Confirm"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmDialog()"
+  (dismissed)="onDismissDialog()"
+  (cancelled)="onDismissDialog()">
+</app-confirm-dialog>

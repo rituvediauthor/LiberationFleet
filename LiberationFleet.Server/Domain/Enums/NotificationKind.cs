@@ -23,5 +23,12 @@ public enum NotificationKind
     CrewSettingChanged = 19,
     CrewmateKicked = 20,
     Mention = 21,
-    CrewmateRejoinAllowed = 22
+    CrewmateRejoinAllowed = 22,
+    NewLibraryRequest = 23,
+    LibraryRequestDenied = 24,
+    LibraryRequestCompleted = 25,
+    NewLibraryRequestMessage = 26,
+    LibraryUnitBrokenReported = 27,
+    LibraryUnitBrokenConfirmed = 28,
+    LibraryUnitReportedFixed = 29
 }

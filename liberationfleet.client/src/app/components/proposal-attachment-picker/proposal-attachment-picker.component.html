@@ -4,7 +4,7 @@
       Attach file
       <input
         type="file"
-        accept="image/*,video/*,audio/*"
+        [attr.accept]="acceptTypes"
         multiple
         hidden
         (click)="onFileInputClick()"
@@ -14,14 +14,14 @@
     <button
       type="button"
       class="attach-btn"
-      *ngIf="!audioRecorder.isRecording"
+      *ngIf="allowAudioRecording && !audioRecorder.isRecording"
       (mousedown)="$event.preventDefault()"
       (click)="startRecording()">
       Record audio
     </button>
   </div>
 
-  <div class="recording-panel" *ngIf="audioRecorder.isRecording">
+  <div class="recording-panel" *ngIf="allowAudioRecording && audioRecorder.isRecording">
     <span class="recording-indicator">Recording {{ audioRecorder.formatElapsed() }} / 3:00</span>
     <button type="button" class="attach-btn stop-btn" (mousedown)="$event.preventDefault()" (click)="stopRecording()">Stop</button>
     <button type="button" class="attach-btn cancel-btn" (mousedown)="$event.preventDefault()" (click)="cancelRecording()">Cancel</button>

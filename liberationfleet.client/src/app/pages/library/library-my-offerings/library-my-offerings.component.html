@@ -1,0 +1,51 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div actionBar class="library-action-bar">
+    <input
+      type="search"
+      class="search-input"
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearchChange()"
+      placeholder="Search your offerings..."
+      aria-label="Search your offerings" />
+  </div>
+
+  <div class="my-offerings-page">
+    <h1 class="page-title">My Offerings</h1>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && displayItems.length === 0" class="state-text">
+      You have not created any offerings yet.
+    </p>
+
+    <div class="offering-list" *ngIf="!loading && displayItems.length > 0">
+      <div class="offering-row-wrap" *ngFor="let row of displayItems">
+        <button
+          type="button"
+          class="offering-row"
+          [disabled]="!row.offering.unitId"
+          (click)="openItem(row.offering)">
+          <app-library-item-card [item]="row.card" holderLabel="Creator"></app-library-item-card>
+          <div class="offering-meta">
+            <span class="meta-chip">{{ kindLabel(row.offering.offeringKind) }}</span>
+            <span class="meta-chip">{{ fulfillmentLabel(row.offering.fulfillmentMode) }}</span>
+            <span class="meta-chip out-of-stock" *ngIf="row.offering.isOutOfStock">Out of stock</span>
+            <span class="meta-chip" *ngIf="!row.offering.isOutOfStock && row.offering.remainingStock != null">
+              {{ row.offering.remainingStock }} left
+            </span>
+            <span class="meta-chip" *ngIf="row.offering.unitLabel">{{ row.offering.unitLabel }}</span>
+          </div>
+        </button>
+        <button
+          type="button"
+          class="edit-btn"
+          *ngIf="canEdit(row.offering)"
+          (click)="editOffering($event, row.offering)">
+          Edit
+        </button>
+      </div>
+      <div *ngIf="hasMore" class="load-more-sentinel" #loadMoreSentinel aria-hidden="true"></div>
+      <p *ngIf="loadingMore" class="state-text">Loading more...</p>
+    </div>
+  </div>
+</app-page-layout>
