@@ -1,13 +1,8 @@
 :host {
   display: block;
-  height: 100%;
 }
 
 .library-list-page {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
   width: 100%;
   max-width: 560px;
   margin: 0 auto;
@@ -93,7 +88,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: auto;
+}
+
+.load-more-sentinel {
+  height: 1px;
 }
 
 .item-card-button {

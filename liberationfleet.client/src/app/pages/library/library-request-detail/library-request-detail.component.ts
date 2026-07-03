@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
+import { GiftLogCryptoService } from '../../../services/crypto/gift-log-crypto.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
@@ -35,6 +36,7 @@ export class LibraryRequestDetailComponent implements OnInit {
   private router = inject(Router);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
+  private giftLogCrypto = inject(GiftLogCryptoService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
@@ -278,6 +280,16 @@ export class LibraryRequestDetailComponent implements OnInit {
           this.toastService.error(response.message || 'Failed to complete request');
           this.updateButtons();
           return;
+        }
+
+        if (response.contributionGift) {
+          void this.giftLogCrypto.encryptLibraryCreatorContribution(response.contributionGift, this.crewId);
+        }
+        if (response.completerGift) {
+          void this.giftLogCrypto.encryptLibraryCompleterContribution(response.completerGift, this.crewId);
+        }
+        if (response.receptionGift) {
+          void this.giftLogCrypto.encryptLibraryReceptionGift(response.receptionGift, this.crewId);
         }
 
         this.toastService.success('Request completed');

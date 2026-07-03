@@ -9,6 +9,7 @@ public class LibraryUnit
     public int CurrentPossessorUserId { get; set; }
     public LibraryUnitStatus Status { get; set; } = LibraryUnitStatus.Available;
     public bool BrokenPendingConfirmation { get; set; }
+    public bool CreatorContributionCredited { get; set; }
     public bool IsRetired { get; set; }
     public DateTime? BrokenReportedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

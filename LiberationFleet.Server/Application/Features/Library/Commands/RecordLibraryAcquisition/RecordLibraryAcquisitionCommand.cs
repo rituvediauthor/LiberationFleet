@@ -22,7 +22,10 @@ public class RecordLibraryAcquisitionCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
+    IUserRepository userRepository,
+    IGiftRepository giftRepository,
     LibraryContributionGiftService contributionGiftService,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordLibraryAcquisitionCommand, LibraryCompleteRequestResponse>
 {
     public async Task<LibraryCompleteRequestResponse> Handle(
@@ -114,21 +117,43 @@ public class RecordLibraryAcquisitionCommandHandler(
             trackedUnit.Status = LibraryUnitStatus.Broken;
         }
 
-        var giftAmount = LibraryOfferingRules.CalculateAcquisitionGift(trackedUnit.Offering, quantity);
-        var gift = await contributionGiftService.CreateContributionGiftAsync(
+        var acquirer = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var acquirerUsername = acquirer?.Username ?? "Crewmate";
+        var contributionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
             membership.CrewId,
+            trackedUnit.Offering,
+            quantity,
             userId,
-            giftAmount,
+            acquirerUsername,
+            cancellationToken);
+
+        var receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
+            membership.CrewId,
+            trackedUnit.Offering,
+            quantity,
+            userId,
+            acquirerUsername,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (receptionGift is not null)
+        {
+            var receptionRecord = await giftRepository.GetByIdWithUsersAsync(receptionGift.GiftId, cancellationToken);
+            if (receptionRecord is not null)
+            {
+                await mutualAidService.ApplyGiftReceptionAsync(receptionRecord, cancellationToken);
+            }
+        }
 
         return new LibraryCompleteRequestResponse
         {
             Success = true,
             Message = "Acquisition recorded.",
             RequestId = libraryRequest.Id,
-            GiftId = gift.Id
+            GiftId = contributionGift?.GiftId ?? receptionGift?.GiftId,
+            ContributionGift = LibraryMapper.MapContributionGift(contributionGift),
+            ReceptionGift = LibraryMapper.MapContributionGift(receptionGift)
         };
     }
 }

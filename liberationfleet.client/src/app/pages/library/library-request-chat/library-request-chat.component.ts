@@ -170,13 +170,17 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
     });
   }
 
+  private getScrollContainer(): HTMLElement | null {
+    return this.messageScroll?.nativeElement?.closest('.page-content') as HTMLElement | null;
+  }
+
   private loadOlderMessages() {
     if (this.loadingOlder || !this.hasMore || this.messages.length === 0) {
       return;
     }
 
     const oldestId = this.messages[0].id;
-    const scrollEl = this.messageScroll?.nativeElement;
+    const scrollEl = this.getScrollContainer();
     const previousHeight = scrollEl?.scrollHeight ?? 0;
 
     this.loadingOlder = true;
@@ -228,7 +232,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
         this.loadOlderMessages();
       }
     }, {
-      root: this.messageScroll?.nativeElement,
+      root: this.getScrollContainer(),
       threshold: 0.1
     });
 
@@ -236,7 +240,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private scrollToBottom() {
-    const scrollEl = this.messageScroll?.nativeElement;
+    const scrollEl = this.getScrollContainer();
     if (!scrollEl) {
       return;
     }

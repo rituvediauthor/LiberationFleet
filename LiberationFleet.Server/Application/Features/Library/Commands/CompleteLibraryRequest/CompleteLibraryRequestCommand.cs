@@ -15,7 +15,9 @@ public class CompleteLibraryRequestCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
+    IGiftRepository giftRepository,
     LibraryContributionGiftService contributionGiftService,
+    IMutualAidService mutualAidService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CompleteLibraryRequestCommand, LibraryCompleteRequestResponse>
 {
@@ -60,6 +62,9 @@ public class CompleteLibraryRequestCommandHandler(
         }
 
         var offering = libraryRequest.Unit.Offering;
+        CreatorContributionGiftDetails? contributionGift = null;
+        CreatorContributionGiftDetails? completerGift = null;
+        CreatorContributionGiftDetails? receptionGift = null;
         if (LibraryOfferingRules.IsStockBased(offering))
         {
             if (!LibraryOfferingRules.HasSufficientStock(offering, libraryRequest.Quantity))
@@ -73,23 +78,60 @@ public class CompleteLibraryRequestCommandHandler(
             {
                 libraryRequest.Unit.Status = LibraryUnitStatus.Broken;
             }
+
+            contributionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
+                membership.CrewId,
+                offering,
+                libraryRequest.Quantity,
+                libraryRequest.RequesterUserId,
+                libraryRequest.RequesterUser.Username,
+                cancellationToken);
+
+            receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
+                membership.CrewId,
+                offering,
+                libraryRequest.Quantity,
+                libraryRequest.RequesterUserId,
+                libraryRequest.RequesterUser.Username,
+                cancellationToken);
         }
         else
         {
+            var completerUsername = libraryRequest.Unit.CurrentPossessorUser?.Username ?? "Crewmate";
             libraryRequest.Unit.CurrentPossessorUserId = libraryRequest.RequesterUserId;
+            contributionGift = await contributionGiftService.TryAwardCreatorForFirstDurableTransferAsync(
+                membership.CrewId,
+                libraryRequest.Unit,
+                offering,
+                libraryRequest.RequesterUserId,
+                libraryRequest.RequesterUser.Username,
+                libraryRequest.Quantity,
+                cancellationToken);
+
+            completerGift = await contributionGiftService.TryAwardCompleterForDurableHandoffAsync(
+                membership.CrewId,
+                offering,
+                libraryRequest.Quantity,
+                userId,
+                completerUsername,
+                libraryRequest.RequesterUserId,
+                libraryRequest.RequesterUser.Username,
+                cancellationToken);
         }
 
         libraryRequest.Status = LibraryRequestStatus.Fulfilled;
         libraryRequest.UpdatedAt = utcNow;
 
-        var giftAmount = LibraryRequestAccess.CalculateCompletionGiftAmount(libraryRequest);
-        var gift = await contributionGiftService.CreateContributionGiftAsync(
-            membership.CrewId,
-            userId,
-            giftAmount,
-            cancellationToken);
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (receptionGift is not null)
+        {
+            var receptionRecord = await giftRepository.GetByIdWithUsersAsync(receptionGift.GiftId, cancellationToken);
+            if (receptionRecord is not null)
+            {
+                await mutualAidService.ApplyGiftReceptionAsync(receptionRecord, cancellationToken);
+            }
+        }
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
@@ -107,7 +149,10 @@ public class CompleteLibraryRequestCommandHandler(
             Success = true,
             Message = "Request completed.",
             RequestId = libraryRequest.Id,
-            GiftId = gift.Id
+            GiftId = contributionGift?.GiftId ?? completerGift?.GiftId ?? receptionGift?.GiftId,
+            ContributionGift = LibraryMapper.MapContributionGift(contributionGift),
+            CompleterGift = LibraryMapper.MapContributionGift(completerGift),
+            ReceptionGift = LibraryMapper.MapContributionGift(receptionGift)
         };
     }
 }

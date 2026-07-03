@@ -46,9 +46,19 @@ public static class LibraryOfferingRules
         offering.RemainingStock -= quantity;
     }
 
-    public static decimal CalculateStockCompletionGift(LibraryRequest request) =>
-        request.Unit.Offering.ValuePerUnit * request.Quantity;
-
-    public static decimal CalculateAcquisitionGift(LibraryOffering offering, int quantity) =>
+    public static decimal CalculateCreatorContributionAmount(LibraryOffering offering, int quantity) =>
         offering.ValuePerUnit * quantity;
+
+    public static decimal CalculateCompleterDurableContributionAmount(LibraryOffering offering, int quantity) =>
+        0.10m * offering.ValuePerUnit * quantity;
+
+    public static bool ShouldCreditCreatorForStockUse(LibraryOffering offering, int recipientUserId) =>
+        recipientUserId != offering.CreatorUserId;
+
+    public static bool ShouldCreditCreatorForFirstDurableTransfer(
+        LibraryUnit unit,
+        LibraryOffering offering,
+        int newPossessorUserId) =>
+        !unit.CreatorContributionCredited
+        && newPossessorUserId != offering.CreatorUserId;
 }

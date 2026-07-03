@@ -22,9 +22,4 @@ public static class LibraryRequestAccess
     public static bool CanMessage(LibraryRequest request, int userId) =>
         CanView(request, userId)
         && (request.Status == LibraryRequestStatus.Open || request.Status == LibraryRequestStatus.Denied);
-
-    public static decimal CalculateCompletionGiftAmount(LibraryRequest request) =>
-        LibraryOfferingRules.IsStockBased(request.Unit.Offering)
-            ? LibraryOfferingRules.CalculateStockCompletionGift(request)
-            : 0.10m * request.Unit.Offering.ValuePerUnit * request.Quantity;
 }

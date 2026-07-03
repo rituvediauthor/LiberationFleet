@@ -164,8 +164,21 @@ export interface LibraryRequestDetail extends LibraryRequestListItem {
   openRequestCountOnUnit: number;
 }
 
+export interface LibraryCreatorContributionGift {
+  giftId: number;
+  contributorUserId: number;
+  contributorUsername: string;
+  amount: number;
+  itemTitle: string;
+  recipientUserId: number;
+  recipientUsername: string;
+}
+
 export interface LibraryCompleteRequestResponse extends LibraryRequestOperationResponse {
   giftId?: number;
+  contributionGift?: LibraryCreatorContributionGift;
+  completerGift?: LibraryCreatorContributionGift;
+  receptionGift?: LibraryCreatorContributionGift;
 }
 
 export interface LibraryRequestMessage {

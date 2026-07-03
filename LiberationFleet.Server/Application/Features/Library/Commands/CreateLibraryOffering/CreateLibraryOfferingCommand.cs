@@ -27,7 +27,6 @@ public class CreateLibraryOfferingCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
-    LibraryContributionGiftService contributionGiftService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateLibraryOfferingCommand, LibraryOfferingOperationResponse>
 {
     private const int MaxTitleLength = 200;
@@ -185,18 +184,6 @@ public class CreateLibraryOfferingCommandHandler(
             UpdatedAt = utcNow
         }, cancellationToken);
 
-        var contributionQuantity = request.Kind == LibraryOfferingKind.Durable
-            ? request.Quantity
-            : quantityNotApplicable
-                ? 1
-                : request.Quantity;
-        var totalValue = request.ValuePerUnit * contributionQuantity;
-        var gift = await contributionGiftService.CreateContributionGiftAsync(
-            membership.CrewId,
-            userId,
-            totalValue,
-            cancellationToken);
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new LibraryOfferingOperationResponse
@@ -204,7 +191,6 @@ public class CreateLibraryOfferingCommandHandler(
             Success = true,
             Message = "Offering created.",
             OfferingId = offering.Id,
-            GiftId = gift.Id,
             UnitIds = units.Select(u => u.Id).ToList()
         };
     }

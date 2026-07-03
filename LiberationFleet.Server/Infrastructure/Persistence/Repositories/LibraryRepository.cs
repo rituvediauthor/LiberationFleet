@@ -238,6 +238,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         CancellationToken cancellationToken = default) =>
         await context.LibraryUnits
             .Include(u => u.Offering)
+                .ThenInclude(o => o.CreatorUser)
             .FirstOrDefaultAsync(u => u.Id == unitId, cancellationToken);
 
     public async Task<LibraryRequest?> GetActiveRequestByUnitAndRequesterAsync(
@@ -403,7 +404,10 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         CancellationToken cancellationToken = default) =>
         await context.LibraryRequests
             .Include(r => r.Unit)
+                .ThenInclude(u => u.CurrentPossessorUser)
+            .Include(r => r.Unit)
                 .ThenInclude(u => u.Offering)
+                    .ThenInclude(o => o.CreatorUser)
             .Include(r => r.RequesterUser)
             .FirstOrDefaultAsync(
                 r => r.Id == requestId

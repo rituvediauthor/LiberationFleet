@@ -81,6 +81,93 @@ export class GiftLogCryptoService {
     }));
   }
 
+  async encryptLibraryCreatorContribution(
+    gift: {
+      giftId: number;
+      contributorUserId: number;
+      contributorUsername: string;
+      amount: number;
+      itemTitle: string;
+      recipientUserId: number;
+      recipientUsername: string;
+    },
+    crewId: number
+  ): Promise<void> {
+    const message = `${gift.contributorUsername} contributed $${gift.amount} when ${gift.recipientUsername} acquired "${gift.itemTitle}"`;
+    await this.encryptAndStoreEntry({
+      id: gift.giftId,
+      type: 'direct',
+      giverId: gift.contributorUserId,
+      giverName: gift.contributorUsername,
+      recipientId: gift.contributorUserId,
+      recipientName: gift.contributorUsername,
+      amount: gift.amount,
+      platform: 'In-kind (Library)',
+      timestamp: new Date(),
+      message,
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
+      hasEncryptedContent: false
+    }, crewId);
+  }
+
+  async encryptLibraryCompleterContribution(
+    gift: {
+      giftId: number;
+      contributorUserId: number;
+      contributorUsername: string;
+      amount: number;
+      itemTitle: string;
+      recipientUserId: number;
+      recipientUsername: string;
+    },
+    crewId: number
+  ): Promise<void> {
+    const message = `${gift.contributorUsername} contributed $${gift.amount} of value by helping ${gift.recipientUsername} acquire ${gift.itemTitle}`;
+    await this.encryptAndStoreEntry({
+      id: gift.giftId,
+      type: 'direct',
+      giverId: gift.contributorUserId,
+      giverName: gift.contributorUsername,
+      recipientId: gift.contributorUserId,
+      recipientName: gift.contributorUsername,
+      amount: gift.amount,
+      platform: 'In-kind (Library)',
+      timestamp: new Date(),
+      message,
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
+      hasEncryptedContent: false
+    }, crewId);
+  }
+
+  async encryptLibraryReceptionGift(
+    gift: {
+      giftId: number;
+      contributorUserId: number;
+      contributorUsername: string;
+      amount: number;
+      itemTitle: string;
+      recipientUserId: number;
+      recipientUsername: string;
+    },
+    crewId: number
+  ): Promise<void> {
+    const message = `${gift.contributorUsername} provided $${gift.amount} of ${gift.itemTitle} to ${gift.recipientUsername}`;
+    await this.encryptAndStoreEntry({
+      id: gift.giftId,
+      type: 'direct',
+      giverId: gift.contributorUserId,
+      giverName: gift.contributorUsername,
+      recipientId: gift.recipientUserId,
+      recipientName: gift.recipientUsername,
+      amount: gift.amount,
+      platform: 'In-kind (Library)',
+      timestamp: new Date(),
+      message,
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
+      hasEncryptedContent: false
+    }, crewId);
+  }
+
   buildDisplayMessage(
     type: GiftLogType,
     giverName: string,

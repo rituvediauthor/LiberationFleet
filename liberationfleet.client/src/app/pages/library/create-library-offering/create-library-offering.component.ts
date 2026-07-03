@@ -8,15 +8,12 @@ import { ProposalAttachmentPickerComponent } from '../../../components/proposal-
 import { LibraryCategoryPickerComponent } from '../../../components/library-category-picker/library-category-picker.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
-import { GiftLogCryptoService } from '../../../services/crypto/gift-log-crypto.service';
 import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind } from '../../../models/library.model';
-import { AuthService } from '../../../services/auth.service';
-import { getUserIdFromToken } from '../../../utils/jwt.util';
 
 @Component({
   selector: 'app-create-library-offering',
@@ -35,25 +32,19 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   crewId = 0;
   authorDisplayName = '';
-  currentUserId: number | null = null;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
-  private giftLogCrypto = inject(GiftLogCryptoService);
   private crewService = inject(CrewService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
-  private authService = inject(AuthService);
   private destroy$ = new Subject<void>();
 
   ngOnInit() {
-    const token = this.authService.getToken();
-    this.currentUserId = token ? getUserIdFromToken(token) : null;
-
     const initialKind = this.parseKind(this.route.snapshot.queryParamMap.get('kind'));
     const initialFulfillment = initialKind === 'Durable'
       ? 'OnRequest'
@@ -196,12 +187,6 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
         }).subscribe({
           next: result => {
             if (result.success) {
-              void this.encryptGiftLogEntry(
-                result.giftId,
-                raw.title.trim(),
-                Number(raw.valuePerUnit),
-                quantity
-              );
               this.toastService.success(result.message || 'Offering created');
               this.router.navigate([this.successRoute(offeringKind)]);
               return;
@@ -285,38 +270,6 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   private parseFulfillment(value: string | null): LibraryFulfillmentMode {
     return value === 'OnDemand' ? 'OnDemand' : 'OnRequest';
-  }
-
-  private async encryptGiftLogEntry(
-    giftId: number | undefined,
-    title: string,
-    valuePerUnit: number,
-    quantity: number
-  ) {
-    if (!giftId || !this.currentUserId) {
-      return;
-    }
-
-    const totalValue = valuePerUnit * quantity;
-    const message = `${this.authorDisplayName} contributed "${title}" to the library. Valued at $${totalValue}`;
-    try {
-      await this.giftLogCrypto.encryptAndStoreEntry({
-        id: giftId,
-        type: 'direct',
-        giverId: this.currentUserId,
-        giverName: this.authorDisplayName,
-        recipientId: this.currentUserId,
-        recipientName: this.authorDisplayName,
-        amount: totalValue,
-        platform: 'In-kind (Library)',
-        timestamp: new Date(),
-        message,
-        relatedUserIds: [this.currentUserId],
-        hasEncryptedContent: false
-      }, this.crewId);
-    } catch {
-      // Gift log encryption is best-effort; the server gift record still exists.
-    }
   }
 
   private updateCreateButton() {

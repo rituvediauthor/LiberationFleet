@@ -180,4 +180,18 @@ public static class LibraryMapper
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope)
         };
+
+    public static LibraryCreatorContributionGiftDto? MapContributionGift(CreatorContributionGiftDetails? details) =>
+        details is null
+            ? null
+            : new LibraryCreatorContributionGiftDto
+            {
+                GiftId = details.GiftId,
+                ContributorUserId = details.ContributorUserId,
+                ContributorUsername = details.ContributorUsername,
+                Amount = details.Amount,
+                ItemTitle = details.ItemTitle,
+                RecipientUserId = details.RecipientUserId,
+                RecipientUsername = details.RecipientUsername
+            };
 }

@@ -226,6 +226,20 @@ public class LibraryRequestMessageOperationResponse
 public class LibraryCompleteRequestResponse : LibraryRequestOperationResponse
 {
     public int? GiftId { get; set; }
+    public LibraryCreatorContributionGiftDto? ContributionGift { get; set; }
+    public LibraryCreatorContributionGiftDto? CompleterGift { get; set; }
+    public LibraryCreatorContributionGiftDto? ReceptionGift { get; set; }
+}
+
+public class LibraryCreatorContributionGiftDto
+{
+    public int GiftId { get; set; }
+    public int ContributorUserId { get; set; }
+    public string ContributorUsername { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string ItemTitle { get; set; } = string.Empty;
+    public int RecipientUserId { get; set; }
+    public string RecipientUsername { get; set; } = string.Empty;
 }
 
 public class RecordLibraryAcquisitionRequest

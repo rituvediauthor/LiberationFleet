@@ -531,6 +531,13 @@ export class LibraryUnitDetailComponent implements OnInit {
               return;
             }
 
+            if (response.contributionGift) {
+              void this.giftLogCrypto.encryptLibraryCreatorContribution(response.contributionGift, this.crewId);
+            }
+            if (response.receptionGift) {
+              void this.giftLogCrypto.encryptLibraryReceptionGift(response.receptionGift, this.crewId);
+            }
+
             this.toastService.success('Acquisition recorded');
             this.loadDetail();
           },

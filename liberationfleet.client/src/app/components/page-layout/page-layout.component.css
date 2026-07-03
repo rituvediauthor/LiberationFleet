@@ -25,18 +25,6 @@
   justify-content: flex-start;
 }
 
-.page-content-fill {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-content-inner-fill {
-  flex: 1;
-  min-height: 0;
-  justify-content: flex-start;
-}
-
 .action-bar {
   position: relative;
   flex-shrink: 0;
