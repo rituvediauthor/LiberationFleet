@@ -25,6 +25,7 @@ public interface IMutualAidService
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false);
+    Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default);
     Task<bool> IsFinancialMemberAsync(
         int userId,
         int crewId,

@@ -53,7 +53,14 @@ public class CrewsController : ControllerBase
             body.RadiusMiles,
             body.AllowSurvivalThresholds,
             body.RequireApprovalForEdits,
-            body.InNeedDefaultThreshold));
+            body.InNeedDefaultThreshold,
+            body.LibraryOfThingsEnabled,
+            body.MemberCycleCapMode,
+            body.MemberCycleCapFixedAmount,
+            body.MemberCycleCapMultiplier,
+            body.NonMemberCycleCapMode,
+            body.NonMemberCycleCapFixedAmount,
+            body.NonMemberCycleCapMultiplier));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -27,6 +27,7 @@ using LiberationFleet.Server.Application.Features.Library.Queries.GetMyLibraryRe
 using LiberationFleet.Server.Application.Features.Library.Queries.GetStockLibraryOfferings;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetUnitActiveLibraryRequests;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Filters;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ namespace LiberationFleet.Server.Controllers;
 [ApiController]
 [Route("api/library")]
 [Authorize]
+[ServiceFilter(typeof(LibraryAccessFilter))]
 public class LibraryController(IMediator mediator) : ControllerBase
 {
     [HttpGet("categories")]

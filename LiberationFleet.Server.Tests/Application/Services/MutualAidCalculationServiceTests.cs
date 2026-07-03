@@ -1,21 +1,40 @@
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Tests.TestHelpers;
 
 namespace LiberationFleet.Server.Tests.Application.Services;
 
 public class MutualAidCalculationServiceTests
 {
-    [Fact]
-    public void GetMemberCycleCap_IsTwiceTotalMonthlyContributions()
+    private static Crew CreateCrew() => new()
     {
-        MutualAidCalculationService.GetMemberCycleCap(300m).Should().Be(600m);
+        MemberCycleCapMode = CycleCapMode.CapacityBased,
+        MemberCycleCapMultiplier = 2m,
+        NonMemberCycleCapMode = CycleCapMode.CapacityBased,
+        NonMemberCycleCapMultiplier = 0.25m
+    };
+
+    [Fact]
+    public void GetMemberCycleCap_UsesCapacityMultiplierByDefault()
+    {
+        MutualAidCalculationService.GetMemberCycleCap(CreateCrew(), 300m).Should().Be(600m);
     }
 
     [Fact]
-    public void GetNonMemberCycleCap_IsTwiceTotalMonthlyContributions()
+    public void GetNonMemberCycleCap_UsesCapacityMultiplierByDefault()
     {
-        MutualAidCalculationService.GetNonMemberCycleCap(250m).Should().Be(500m);
+        MutualAidCalculationService.GetNonMemberCycleCap(CreateCrew(), 400m).Should().Be(100m);
+    }
+
+    [Fact]
+    public void GetMemberCycleCap_UsesFixedAmountWhenConfigured()
+    {
+        var crew = CreateCrew();
+        crew.MemberCycleCapMode = CycleCapMode.Fixed;
+        crew.MemberCycleCapFixedAmount = 500m;
+
+        MutualAidCalculationService.GetMemberCycleCap(crew, 300m).Should().Be(500m);
     }
 
     [Fact]
@@ -34,7 +53,8 @@ public class MutualAidCalculationServiceTests
     public void SurvivalThreshold_IsAtMostOneQuarterOfCycleCap_WhenOneRecipient()
     {
         const decimal total = 300m;
-        var cycleCap = MutualAidCalculationService.GetMemberCycleCap(total);
+        var crew = CreateCrew();
+        var cycleCap = MutualAidCalculationService.GetMemberCycleCap(crew, total);
         var survival = MutualAidCalculationService.GetSurvivalThresholdAmount(total, 1);
 
         survival.Should().Be(cycleCap / 4m);

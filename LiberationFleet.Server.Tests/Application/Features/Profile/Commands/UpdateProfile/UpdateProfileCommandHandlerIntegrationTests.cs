@@ -28,7 +28,7 @@ public class UpdateProfileCommandHandlerIntegrationTests
             var userRepository = new UserRepository(context);
             var membershipRepository = new CrewMembershipRepository(context);
             var mutualAidRepository = new MutualAidRepository(context);
-            var mutualAidService = new MutualAidService(mutualAidRepository, membershipRepository, context);
+            var mutualAidService = HandlerTestFixture.CreateMutualAidService(context);
             var handler = new UpdateProfileCommandHandler(
                 userRepository,
                 new GiftRepository(context),

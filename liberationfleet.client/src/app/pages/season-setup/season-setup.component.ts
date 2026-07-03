@@ -243,8 +243,7 @@ export class SeasonSetupComponent implements OnInit {
     }
     this.captureInitialState();
 
-    const seasonStarted = wantReady && 'seasonStarted' in readyResult && readyResult.seasonStarted;
-    if (seasonStarted || readyResult.status?.userInSeason) {
+    if (readyResult.status?.userInSeason) {
       this.router.navigate(['/app/crew/gift-log']);
     }
 

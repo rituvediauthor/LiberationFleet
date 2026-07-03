@@ -1,14 +1,19 @@
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Services;
 
 public static class MutualAidCalculationService
 {
-    public static decimal GetMemberCycleCap(decimal totalMonthlyContributions) =>
-        totalMonthlyContributions * 2m;
+    public static decimal GetMemberCycleCap(Crew crew, decimal totalMonthlyContributions) =>
+        crew.MemberCycleCapMode == CycleCapMode.Fixed
+            ? crew.MemberCycleCapFixedAmount
+            : totalMonthlyContributions * crew.MemberCycleCapMultiplier;
 
-    public static decimal GetNonMemberCycleCap(decimal totalMonthlyContributions) =>
-        totalMonthlyContributions * 2m;
+    public static decimal GetNonMemberCycleCap(Crew crew, decimal totalMonthlyContributions) =>
+        crew.NonMemberCycleCapMode == CycleCapMode.Fixed
+            ? crew.NonMemberCycleCapFixedAmount
+            : totalMonthlyContributions * crew.NonMemberCycleCapMultiplier;
 
     public static decimal GetTotalMonthlyContributions(IEnumerable<decimal> estimatedMonthlyContributions) =>
         estimatedMonthlyContributions.Sum();

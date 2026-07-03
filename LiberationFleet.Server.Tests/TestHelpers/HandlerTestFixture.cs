@@ -1,7 +1,12 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Infrastructure.Data;
+using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -122,6 +127,50 @@ public static class HandlerTestFixture
         mock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
         return mock;
+    }
+
+    public static NotificationService CreateNotificationService(ApplicationDbContext context)
+    {
+        var realtimeNotifier = new Mock<INotificationRealtimeNotifier>(MockBehavior.Loose);
+        realtimeNotifier
+            .Setup(n => n.NotifyReceivedAsync(It.IsAny<int>(), It.IsAny<NotificationDto>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        realtimeNotifier
+            .Setup(n => n.NotifyUnreadCountUpdatedAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return new NotificationService(
+            new NotificationRepository(context),
+            realtimeNotifier.Object,
+            context);
+    }
+
+    public static NotificationService CreateNotificationService(
+        Mock<INotificationRepository>? notificationRepository = null,
+        Mock<INotificationRealtimeNotifier>? realtimeNotifier = null,
+        Mock<IUnitOfWork>? unitOfWork = null)
+    {
+        notificationRepository ??= new Mock<INotificationRepository>(MockBehavior.Loose);
+        notificationRepository
+            .Setup(r => r.IsKindEnabledAsync(It.IsAny<int>(), It.IsAny<NotificationKind>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        realtimeNotifier ??= new Mock<INotificationRealtimeNotifier>(MockBehavior.Loose);
+        unitOfWork ??= CreateUnitOfWorkMock();
+
+        return new NotificationService(
+            notificationRepository.Object,
+            realtimeNotifier.Object,
+            unitOfWork.Object);
+    }
+
+    public static MutualAidService CreateMutualAidService(ApplicationDbContext context)
+    {
+        var membershipRepository = new CrewMembershipRepository(context);
+        return new MutualAidService(
+            new MutualAidRepository(context),
+            membershipRepository,
+            CreateNotificationService(context),
+            context);
     }
 
     public static Mock<IPasswordHasher> CreatePasswordHasherMock(

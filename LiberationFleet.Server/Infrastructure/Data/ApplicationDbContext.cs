@@ -139,6 +139,13 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.AllowSurvivalThresholds).HasDefaultValue(true);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
             entity.Property(e => e.InNeedDefaultThreshold).HasPrecision(18, 2).HasDefaultValue(20m);
+            entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
+            entity.Property(e => e.MemberCycleCapMode).HasDefaultValue(CycleCapMode.CapacityBased);
+            entity.Property(e => e.MemberCycleCapFixedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.MemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(2m);
+            entity.Property(e => e.NonMemberCycleCapMode).HasDefaultValue(CycleCapMode.CapacityBased);
+            entity.Property(e => e.NonMemberCycleCapFixedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.NonMemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(0.25m);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)

@@ -95,6 +95,64 @@ public static class CrewSettingsChangeDetector
                 request.InNeedDefaultThreshold.ToString("0.##")));
         }
 
+        if (crew.LibraryOfThingsEnabled != request.LibraryOfThingsEnabled)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.LibraryOfThingsEnabled,
+                crew.LibraryOfThingsEnabled.ToString(),
+                request.LibraryOfThingsEnabled.ToString()));
+        }
+
+        var memberCycleCapMode = CrewUpdateValidator.ParseCycleCapMode(request.MemberCycleCapMode);
+        if (crew.MemberCycleCapMode != memberCycleCapMode)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MemberCycleCapMode,
+                crew.MemberCycleCapMode.ToString(),
+                memberCycleCapMode.ToString()));
+        }
+
+        if (crew.MemberCycleCapFixedAmount != request.MemberCycleCapFixedAmount)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MemberCycleCapFixedAmount,
+                crew.MemberCycleCapFixedAmount.ToString("0.##"),
+                request.MemberCycleCapFixedAmount.ToString("0.##")));
+        }
+
+        if (crew.MemberCycleCapMultiplier != request.MemberCycleCapMultiplier)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MemberCycleCapMultiplier,
+                crew.MemberCycleCapMultiplier.ToString("0.####"),
+                request.MemberCycleCapMultiplier.ToString("0.####")));
+        }
+
+        var nonMemberCycleCapMode = CrewUpdateValidator.ParseCycleCapMode(request.NonMemberCycleCapMode);
+        if (crew.NonMemberCycleCapMode != nonMemberCycleCapMode)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.NonMemberCycleCapMode,
+                crew.NonMemberCycleCapMode.ToString(),
+                nonMemberCycleCapMode.ToString()));
+        }
+
+        if (crew.NonMemberCycleCapFixedAmount != request.NonMemberCycleCapFixedAmount)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.NonMemberCycleCapFixedAmount,
+                crew.NonMemberCycleCapFixedAmount.ToString("0.##"),
+                request.NonMemberCycleCapFixedAmount.ToString("0.##")));
+        }
+
+        if (crew.NonMemberCycleCapMultiplier != request.NonMemberCycleCapMultiplier)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.NonMemberCycleCapMultiplier,
+                crew.NonMemberCycleCapMultiplier.ToString("0.####"),
+                request.NonMemberCycleCapMultiplier.ToString("0.####")));
+        }
+
         return changes;
     }
 }
@@ -124,6 +182,20 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to set \"Require approval for crew edits\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.InNeedDefaultThreshold =>
                 $"Proposal to change in-need default threshold from ${change.OldValue} to ${change.NewValue}.",
+            CrewSettingField.LibraryOfThingsEnabled =>
+                $"Proposal to set \"Library of Things\" to \"{FormatBool(change.NewValue)}\".",
+            CrewSettingField.MemberCycleCapMode =>
+                $"Proposal to change member cycle cap mode from {change.OldValue} to {change.NewValue}.",
+            CrewSettingField.MemberCycleCapFixedAmount =>
+                $"Proposal to change member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
+            CrewSettingField.MemberCycleCapMultiplier =>
+                $"Proposal to change member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
+            CrewSettingField.NonMemberCycleCapMode =>
+                $"Proposal to change non-member cycle cap mode from {change.OldValue} to {change.NewValue}.",
+            CrewSettingField.NonMemberCycleCapFixedAmount =>
+                $"Proposal to change non-member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
+            CrewSettingField.NonMemberCycleCapMultiplier =>
+                $"Proposal to change non-member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
             _ => "Proposal to change crew settings."
         };
 

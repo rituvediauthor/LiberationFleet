@@ -6,7 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { CrewPrivacy, CrewScope, UpdateCrewRequest } from '../../models/crew.model';
+import { CrewPrivacy, CrewScope, CycleCapMode, UpdateCrewRequest } from '../../models/crew.model';
 import { isSaveActionDisabled } from '../../utils/save-button.util';
 
 @Component({
@@ -21,6 +21,7 @@ export class EditCrewComponent implements OnInit {
   joinCode = '';
   memberCount = 0;
   requireApprovalForEdits = true;
+  monthlyGivingCapacity = 0;
   loading = true;
   loadError = '';
   isSaving = false;
@@ -44,7 +45,14 @@ export class EditCrewComponent implements OnInit {
       radiusMiles: [25],
       allowSurvivalThresholds: [true],
       requireApprovalForEdits: [true],
-      inNeedDefaultThreshold: [20, [Validators.required, Validators.min(0)]]
+      inNeedDefaultThreshold: [20, [Validators.required, Validators.min(0)]],
+      libraryOfThingsEnabled: [true],
+      memberCycleCapMode: ['CapacityBased' as CycleCapMode, Validators.required],
+      memberCycleCapFixedAmount: [0, [Validators.min(0)]],
+      memberCycleCapMultiplier: [2, [Validators.required, Validators.min(0)]],
+      nonMemberCycleCapMode: ['CapacityBased' as CycleCapMode, Validators.required],
+      nonMemberCycleCapFixedAmount: [0, [Validators.min(0)]],
+      nonMemberCycleCapMultiplier: [0.25, [Validators.required, Validators.min(0)]]
     });
 
     this.backButton = {
@@ -68,6 +76,30 @@ export class EditCrewComponent implements OnInit {
 
   get isLocal(): boolean {
     return this.form.get('scope')?.value === 'Local';
+  }
+
+  get isMemberCapacityBased(): boolean {
+    return this.form.get('memberCycleCapMode')?.value === 'CapacityBased';
+  }
+
+  get isNonMemberCapacityBased(): boolean {
+    return this.form.get('nonMemberCycleCapMode')?.value === 'CapacityBased';
+  }
+
+  get memberCycleCapPreview(): number {
+    if (this.isMemberCapacityBased) {
+      return this.monthlyGivingCapacity * Number(this.form.get('memberCycleCapMultiplier')?.value ?? 0);
+    }
+
+    return Number(this.form.get('memberCycleCapFixedAmount')?.value ?? 0);
+  }
+
+  get nonMemberCycleCapPreview(): number {
+    if (this.isNonMemberCapacityBased) {
+      return this.monthlyGivingCapacity * Number(this.form.get('nonMemberCycleCapMultiplier')?.value ?? 0);
+    }
+
+    return Number(this.form.get('nonMemberCycleCapFixedAmount')?.value ?? 0);
   }
 
   onLeaveCrew() {
@@ -163,6 +195,7 @@ export class EditCrewComponent implements OnInit {
         }
         this.joinCode = result.crew.joinCode;
         this.memberCount = result.crew.memberCount;
+        this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? 0;
         this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
         this.patchFormFromCrew(result.crew);
         this.updateLocalValidators();
@@ -189,6 +222,13 @@ export class EditCrewComponent implements OnInit {
     allowSurvivalThresholds?: boolean;
     requireApprovalForEdits?: boolean;
     inNeedDefaultThreshold?: number;
+    libraryOfThingsEnabled?: boolean;
+    memberCycleCapMode?: CycleCapMode | string;
+    memberCycleCapFixedAmount?: number;
+    memberCycleCapMultiplier?: number;
+    nonMemberCycleCapMode?: CycleCapMode | string;
+    nonMemberCycleCapFixedAmount?: number;
+    nonMemberCycleCapMultiplier?: number;
   }) {
     this.form.patchValue({
       name: crew.name,
@@ -199,7 +239,14 @@ export class EditCrewComponent implements OnInit {
       radiusMiles: crew.radiusMiles ?? 25,
       allowSurvivalThresholds: crew.allowSurvivalThresholds ?? true,
       requireApprovalForEdits: crew.requireApprovalForEdits ?? true,
-      inNeedDefaultThreshold: crew.inNeedDefaultThreshold ?? 20
+      inNeedDefaultThreshold: crew.inNeedDefaultThreshold ?? 20,
+      libraryOfThingsEnabled: crew.libraryOfThingsEnabled ?? true,
+      memberCycleCapMode: crew.memberCycleCapMode ?? 'CapacityBased',
+      memberCycleCapFixedAmount: crew.memberCycleCapFixedAmount ?? 0,
+      memberCycleCapMultiplier: crew.memberCycleCapMultiplier ?? 2,
+      nonMemberCycleCapMode: crew.nonMemberCycleCapMode ?? 'CapacityBased',
+      nonMemberCycleCapFixedAmount: crew.nonMemberCycleCapFixedAmount ?? 0,
+      nonMemberCycleCapMultiplier: crew.nonMemberCycleCapMultiplier ?? 0.25
     }, { emitEvent: false });
   }
 
@@ -218,7 +265,14 @@ export class EditCrewComponent implements OnInit {
       radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
       allowSurvivalThresholds: !!this.form.get('allowSurvivalThresholds')?.value,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
-      inNeedDefaultThreshold: Number(this.form.get('inNeedDefaultThreshold')?.value)
+      inNeedDefaultThreshold: Number(this.form.get('inNeedDefaultThreshold')?.value),
+      libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,
+      memberCycleCapMode: this.form.get('memberCycleCapMode')?.value as CycleCapMode,
+      memberCycleCapFixedAmount: Number(this.form.get('memberCycleCapFixedAmount')?.value),
+      memberCycleCapMultiplier: Number(this.form.get('memberCycleCapMultiplier')?.value),
+      nonMemberCycleCapMode: this.form.get('nonMemberCycleCapMode')?.value as CycleCapMode,
+      nonMemberCycleCapFixedAmount: Number(this.form.get('nonMemberCycleCapFixedAmount')?.value),
+      nonMemberCycleCapMultiplier: Number(this.form.get('nonMemberCycleCapMultiplier')?.value)
     };
   }
 

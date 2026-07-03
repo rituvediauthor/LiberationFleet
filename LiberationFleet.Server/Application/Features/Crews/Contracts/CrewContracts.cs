@@ -15,6 +15,14 @@ public class CrewDto
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
+    public bool LibraryOfThingsEnabled { get; set; } = true;
+    public string MemberCycleCapMode { get; set; } = "CapacityBased";
+    public decimal MemberCycleCapFixedAmount { get; set; }
+    public decimal MemberCycleCapMultiplier { get; set; } = 2m;
+    public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
+    public decimal NonMemberCycleCapFixedAmount { get; set; }
+    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
+    public decimal MonthlyGivingCapacity { get; set; }
 }
 
 public class UpdateCrewRequest
@@ -28,6 +36,13 @@ public class UpdateCrewRequest
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
+    public bool LibraryOfThingsEnabled { get; set; } = true;
+    public string MemberCycleCapMode { get; set; } = "CapacityBased";
+    public decimal MemberCycleCapFixedAmount { get; set; }
+    public decimal MemberCycleCapMultiplier { get; set; } = 2m;
+    public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
+    public decimal NonMemberCycleCapFixedAmount { get; set; }
+    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
 }
 
 public class CrewMembershipStatusDto
@@ -36,6 +51,7 @@ public class CrewMembershipStatusDto
     public int? CrewId { get; set; }
     public string? CrewName { get; set; }
     public string? JoinCode { get; set; }
+    public bool LibraryOfThingsEnabled { get; set; } = true;
 }
 
 public class CrewOperationResponse

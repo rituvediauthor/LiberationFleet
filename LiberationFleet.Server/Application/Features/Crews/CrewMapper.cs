@@ -5,7 +5,7 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 
 public static class CrewMapper
 {
-    public static CrewDto MapCrew(Crew crew, int memberCount) => new()
+    public static CrewDto MapCrew(Crew crew, int memberCount, decimal monthlyGivingCapacity = 0m) => new()
     {
         Id = crew.Id,
         Name = crew.Name,
@@ -18,6 +18,14 @@ public static class CrewMapper
         JoinCode = crew.JoinCode,
         AllowSurvivalThresholds = crew.AllowSurvivalThresholds,
         RequireApprovalForEdits = crew.RequireApprovalForEdits,
-        InNeedDefaultThreshold = crew.InNeedDefaultThreshold
+        InNeedDefaultThreshold = crew.InNeedDefaultThreshold,
+        LibraryOfThingsEnabled = crew.LibraryOfThingsEnabled,
+        MemberCycleCapMode = crew.MemberCycleCapMode.ToString(),
+        MemberCycleCapFixedAmount = crew.MemberCycleCapFixedAmount,
+        MemberCycleCapMultiplier = crew.MemberCycleCapMultiplier,
+        NonMemberCycleCapMode = crew.NonMemberCycleCapMode.ToString(),
+        NonMemberCycleCapFixedAmount = crew.NonMemberCycleCapFixedAmount,
+        NonMemberCycleCapMultiplier = crew.NonMemberCycleCapMultiplier,
+        MonthlyGivingCapacity = monthlyGivingCapacity
     };
 }

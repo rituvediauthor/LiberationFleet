@@ -12,7 +12,8 @@ public record GetMyCrewQuery : IRequest<CrewOperationResponse>;
 public class GetMyCrewQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    ICrewRepository crewRepository) : IRequestHandler<GetMyCrewQuery, CrewOperationResponse>
+    ICrewRepository crewRepository,
+    IMutualAidService mutualAidService) : IRequestHandler<GetMyCrewQuery, CrewOperationResponse>
 {
     public async Task<CrewOperationResponse> Handle(GetMyCrewQuery request, CancellationToken cancellationToken)
     {
@@ -34,11 +35,12 @@ public class GetMyCrewQueryHandler(
         }
 
         var memberCount = await crewRepository.CountMembersAsync(crew.Id, cancellationToken);
+        var monthlyGivingCapacity = await mutualAidService.GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken);
         return new CrewOperationResponse
         {
             Success = true,
             Message = "Crew loaded.",
-            Crew = CrewMapper.MapCrew(crew, memberCount)
+            Crew = CrewMapper.MapCrew(crew, memberCount, monthlyGivingCapacity)
         };
     }
 }

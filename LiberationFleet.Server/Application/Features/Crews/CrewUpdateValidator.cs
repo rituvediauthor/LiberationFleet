@@ -1,6 +1,5 @@
-using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
-using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Crews;
@@ -36,14 +35,26 @@ public static class CrewUpdateValidator
             return Failure("In-need threshold cannot be negative.");
         }
 
+        if (request.MemberCycleCapFixedAmount < 0 || request.NonMemberCycleCapFixedAmount < 0)
+        {
+            return Failure("Cycle cap amounts cannot be negative.");
+        }
+
+        if (request.MemberCycleCapMultiplier < 0 || request.NonMemberCycleCapMultiplier < 0)
+        {
+            return Failure("Cycle cap multipliers cannot be negative.");
+        }
+
         try
         {
             privacy = Enum.Parse<CrewPrivacy>(request.Privacy, ignoreCase: true);
             scope = Enum.Parse<CrewScope>(request.Scope, ignoreCase: true);
+            _ = ParseCycleCapMode(request.MemberCycleCapMode);
+            _ = ParseCycleCapMode(request.NonMemberCycleCapMode);
         }
         catch (ArgumentException)
         {
-            return Failure("Invalid privacy or location type.");
+            return Failure("Invalid privacy, location type, or cycle cap mode.");
         }
 
         if (scope == CrewScope.Local)
@@ -61,6 +72,9 @@ public static class CrewUpdateValidator
 
         return null;
     }
+
+    public static CycleCapMode ParseCycleCapMode(string value) =>
+        Enum.Parse<CycleCapMode>(value, ignoreCase: true);
 
     private static CrewOperationResponse Failure(string message) =>
         new() { Success = false, Message = message };

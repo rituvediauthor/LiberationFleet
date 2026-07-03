@@ -253,11 +253,11 @@ public partial class MutualAidService(
         var seasonStarted = false;
         if (!crew.SeasonStarted)
         {
-            var readyCount = members.Count(m => m.IsSeasonReady || m.UserId == userId);
-            if (readyCount >= 3)
+            var readyMembers = members.Where(m => m.IsSeasonReady).ToList();
+            if (readyMembers.Count >= 3)
             {
-                await StartFirstSeasonAsync(crew, cancellationToken);
-                seasonStarted = true;
+                await StartFirstSeasonAsync(crew, readyMembers, cancellationToken);
+                seasonStarted = crew.SeasonStarted;
             }
         }
         else if (!membership.IsInSeason)
@@ -635,9 +635,11 @@ public partial class MutualAidService(
         };
     }
 
-    private async Task StartFirstSeasonAsync(Crew crew, CancellationToken cancellationToken)
+    private async Task StartFirstSeasonAsync(
+        Crew crew,
+        IReadOnlyList<CrewMembership> readyMembers,
+        CancellationToken cancellationToken)
     {
-        var readyMembers = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
         if (readyMembers.Count < 3)
         {
             return;
@@ -1075,23 +1077,28 @@ public partial class MutualAidService(
         }
     }
 
-    private async Task<CapacityContext> BuildCapacityContextAsync(Crew crew, CancellationToken cancellationToken)
+    public async Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default)
     {
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
         if (participants.Count == 0)
         {
-            participants = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
+            participants = await mutualAidRepository.GetSeasonReadyMembersAsync(crewId, cancellationToken);
         }
 
-        decimal totalContributions = MutualAidCalculationService.GetTotalMonthlyContributions(
+        return MutualAidCalculationService.GetTotalMonthlyContributions(
             participants.Select(m => m.EstimatedMonthlyContribution ?? 0m));
+    }
+
+    private async Task<CapacityContext> BuildCapacityContextAsync(Crew crew, CancellationToken cancellationToken)
+    {
+        var totalContributions = await GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken);
 
         var thresholdRecipients = AreSurvivalThresholdsEnabled(crew)
-            ? participants.Count(m => m.User.NeedsSurvivalAid)
+            ? (await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken)).Count(m => m.User.NeedsSurvivalAid)
             : 0;
         var survivalThreshold = MutualAidCalculationService.GetSurvivalThresholdAmount(totalContributions, thresholdRecipients);
-        var memberCap = MutualAidCalculationService.GetMemberCycleCap(totalContributions);
-        var nonMemberCap = MutualAidCalculationService.GetNonMemberCycleCap(totalContributions);
+        var memberCap = MutualAidCalculationService.GetMemberCycleCap(crew, totalContributions);
+        var nonMemberCap = MutualAidCalculationService.GetNonMemberCycleCap(crew, totalContributions);
 
         return new CapacityContext
         {

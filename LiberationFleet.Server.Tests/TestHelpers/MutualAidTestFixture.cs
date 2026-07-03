@@ -89,8 +89,7 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             CreateCycle(crew, carol, seasonStart, cycleCap, receptionOrderPosition: 2, priorityScore: 100m));
         await context.SaveChangesAsync();
 
-        var membershipRepository = new CrewMembershipRepository(context);
-        var service = new MutualAidService(new MutualAidRepository(context), membershipRepository, context);
+        var service = HandlerTestFixture.CreateMutualAidService(context);
 
         return new MutualAidSeasonFixture(context, service, crew, alice, bob, carol, platforms, seasonStart);
     }
@@ -148,6 +147,7 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             EstimatedMonthlyContribution = monthlyContribution,
             IsSeasonReady = true,
             IsInSeason = true,
+            IsHonoraryMember = true,
             CurrentPriorityScore = user.Username switch
             {
                 "bob" => 300m,

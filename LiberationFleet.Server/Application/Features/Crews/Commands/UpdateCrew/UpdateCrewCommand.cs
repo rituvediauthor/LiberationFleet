@@ -17,7 +17,14 @@ public record UpdateCrewCommand(
     int? RadiusMiles,
     bool AllowSurvivalThresholds,
     bool RequireApprovalForEdits,
-    decimal InNeedDefaultThreshold) : IRequest<CrewOperationResponse>;
+    decimal InNeedDefaultThreshold,
+    bool LibraryOfThingsEnabled,
+    string MemberCycleCapMode,
+    decimal MemberCycleCapFixedAmount,
+    decimal MemberCycleCapMultiplier,
+    string NonMemberCycleCapMode,
+    decimal NonMemberCycleCapFixedAmount,
+    decimal NonMemberCycleCapMultiplier) : IRequest<CrewOperationResponse>;
 
 public class UpdateCrewCommandHandler(
     ICurrentUserService currentUser,

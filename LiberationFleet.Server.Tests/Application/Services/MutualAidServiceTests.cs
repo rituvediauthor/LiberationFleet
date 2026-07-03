@@ -231,11 +231,7 @@ public class MutualAidServiceTests
         var (context, user, crew) = await TestDbContextFactory.CreateWithCrewAsync();
         await using (context)
         {
-            var membershipRepository = new CrewMembershipRepository(context);
-            var service = new MutualAidService(
-                new MutualAidRepository(context),
-                membershipRepository,
-                context);
+            var service = HandlerTestFixture.CreateMutualAidService(context);
 
             var result = await service.GetNextAidAsync(user.Id, CancellationToken.None);
             result.Should().BeNull();
@@ -332,6 +328,63 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task MarkSeasonReadyAsync_StartsSeasonWhenThirdMemberMarksReady()
+    {
+        var context = TestDbContextFactory.Create();
+        await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
+
+        var users = new[] { "u1", "u2", "u3" }
+            .Select(name => new User
+            {
+                Username = name,
+                Email = $"{name}@example.com",
+                PasswordHash = "hash",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            })
+            .ToList();
+        context.Users.AddRange(users);
+        await context.SaveChangesAsync();
+
+        var crew = HandlerTestFixture.CreateCrew(createdByUserId: users[0].Id);
+        crew.SeasonStarted = false;
+        context.Crews.Add(crew);
+        await context.SaveChangesAsync();
+
+        var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
+        for (var i = 0; i < users.Count; i++)
+        {
+            context.CrewMemberships.Add(new CrewMembership
+            {
+                UserId = users[i].Id,
+                CrewId = crew.Id,
+                EstimatedMonthlyContribution = 100m,
+                IsSeasonReady = i < 2,
+                JoinedAt = DateTime.UtcNow
+            });
+            context.UserPaymentPlatforms.Add(new UserPaymentPlatform
+            {
+                UserId = users[i].Id,
+                CrewPaymentPlatformId = platforms["PayPal"].Id,
+                Handle = $"@{users[i].Username}"
+            });
+        }
+        await context.SaveChangesAsync();
+
+        var service = HandlerTestFixture.CreateMutualAidService(context);
+
+        var result = await service.MarkSeasonReadyAsync(users[2].Id, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.SeasonStarted.Should().BeTrue();
+        result.Status.UserInSeason.Should().BeTrue();
+
+        var reloadedCrew = await context.Crews.SingleAsync(c => c.Id == crew.Id);
+        reloadedCrew.SeasonStarted.Should().BeTrue();
+        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(3);
+    }
+
+    [Fact]
     public async Task MarkSeasonReadyAsync_StartsSeasonWhenThreeMembersReady()
     {
         var context = TestDbContextFactory.Create();
@@ -375,11 +428,7 @@ public class MutualAidServiceTests
         }
         await context.SaveChangesAsync();
 
-        var membershipRepository = new CrewMembershipRepository(context);
-        var service = new MutualAidService(
-            new MutualAidRepository(context),
-            membershipRepository,
-            context);
+        var service = HandlerTestFixture.CreateMutualAidService(context);
 
         var result = await service.MarkSeasonReadyAsync(users[2].Id, CancellationToken.None);
 
@@ -401,10 +450,6 @@ public class MutualAidServiceTests
     private static MutualAidService CreateService()
     {
         var context = TestDbContextFactory.Create();
-        var membershipRepository = new CrewMembershipRepository(context);
-        return new MutualAidService(
-            new MutualAidRepository(context),
-            membershipRepository,
-            context);
+        return HandlerTestFixture.CreateMutualAidService(context);
     }
 }

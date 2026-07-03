@@ -21,6 +21,13 @@ public class Crew
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
+    public bool LibraryOfThingsEnabled { get; set; } = true;
+    public CycleCapMode MemberCycleCapMode { get; set; } = CycleCapMode.CapacityBased;
+    public decimal MemberCycleCapFixedAmount { get; set; }
+    public decimal MemberCycleCapMultiplier { get; set; } = 2m;
+    public CycleCapMode NonMemberCycleCapMode { get; set; } = CycleCapMode.CapacityBased;
+    public decimal NonMemberCycleCapFixedAmount { get; set; }
+    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();

@@ -22,6 +22,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
+            HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);
 
         var result = await recordHandler.Handle(
@@ -77,6 +78,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
+            HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);
 
         var result = await handler.Handle(
@@ -117,6 +119,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
+            HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);
 
         var result = await recordHandler.Handle(

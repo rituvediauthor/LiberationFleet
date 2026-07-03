@@ -44,6 +44,7 @@ import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-
 import { KickedCrewmatesListComponent } from './pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component';
 import { CrewmateDetailComponent } from './pages/crewmates/crewmate-detail/crewmate-detail.component';
 import { LibraryHubComponent } from './pages/library/library-hub/library-hub.component';
+import { LibraryUnlockComponent } from './pages/library/library-unlock/library-unlock.component';
 import { LibraryDurableListComponent } from './pages/library/library-durable-list/library-durable-list.component';
 import { CreateLibraryOfferingComponent } from './pages/library/create-library-offering/create-library-offering.component';
 import { EditLibraryOfferingComponent } from './pages/library/edit-library-offering/edit-library-offering.component';
@@ -56,6 +57,7 @@ import { LibraryUnitActiveRequestsComponent } from './pages/library/library-unit
 import { LibraryStockListComponent } from './pages/library/library-stock-list/library-stock-list.component';
 import { LibraryMyOfferingsComponent } from './pages/library/library-my-offerings/library-my-offerings.component';
 import { authGuard } from './guards/auth.guard';
+import { libraryAccessGuard } from './guards/library-access.guard';
 
 export const routes: Routes = [
   {
@@ -327,71 +329,76 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'app/crew/library-of-things/unlock',
+    component: LibraryUnlockComponent,
+    canActivate: [authGuard]
+  },
+  {
     path: 'app/crew/library-of-things',
     component: LibraryHubComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/durable',
     component: LibraryDurableListComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/requests/mine',
     component: LibraryMyRequestsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/requests/:id/chat',
     component: LibraryRequestChatComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/requests/:id',
     component: LibraryRequestDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/requests',
     component: LibraryIncomingRequestsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/units/:unitId/active-requests',
     component: LibraryUnitActiveRequestsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/consumable',
     component: LibraryStockListComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, libraryAccessGuard],
     data: { title: 'Consumable Goods', stockKind: 'Consumable' }
   },
   {
     path: 'app/crew/library-of-things/services',
     component: LibraryStockListComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, libraryAccessGuard],
     data: { title: 'Services', stockKind: 'Service' }
   },
   {
     path: 'app/crew/library-of-things/mine',
     component: LibraryMyOfferingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/offerings/create',
     component: CreateLibraryOfferingComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/offerings/:id/edit',
     component: EditLibraryOfferingComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: 'app/crew/library-of-things/units/:id',
     component: LibraryUnitDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, libraryAccessGuard]
   },
   {
     path: '**',

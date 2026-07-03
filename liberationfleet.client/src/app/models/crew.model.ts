@@ -1,5 +1,6 @@
 export type CrewPrivacy = 'Public' | 'Private';
 export type CrewScope = 'Local' | 'Online';
+export type CycleCapMode = 'CapacityBased' | 'Fixed';
 
 export interface Crew {
   id: number;
@@ -15,6 +16,14 @@ export interface Crew {
   allowSurvivalThresholds?: boolean;
   requireApprovalForEdits?: boolean;
   inNeedDefaultThreshold?: number;
+  libraryOfThingsEnabled?: boolean;
+  memberCycleCapMode?: CycleCapMode;
+  memberCycleCapFixedAmount?: number;
+  memberCycleCapMultiplier?: number;
+  nonMemberCycleCapMode?: CycleCapMode;
+  nonMemberCycleCapFixedAmount?: number;
+  nonMemberCycleCapMultiplier?: number;
+  monthlyGivingCapacity?: number;
 }
 
 export interface CrewMembershipStatus {
@@ -22,6 +31,7 @@ export interface CrewMembershipStatus {
   crewId?: number;
   crewName?: string;
   joinCode?: string;
+  libraryOfThingsEnabled?: boolean;
 }
 
 export interface CreateCrewRequest {
@@ -69,6 +79,13 @@ export interface UpdateCrewRequest {
   allowSurvivalThresholds: boolean;
   requireApprovalForEdits: boolean;
   inNeedDefaultThreshold: number;
+  libraryOfThingsEnabled: boolean;
+  memberCycleCapMode: CycleCapMode;
+  memberCycleCapFixedAmount: number;
+  memberCycleCapMultiplier: number;
+  nonMemberCycleCapMode: CycleCapMode;
+  nonMemberCycleCapFixedAmount: number;
+  nonMemberCycleCapMultiplier: number;
 }
 
 export interface PublicCrewRule {

@@ -6,6 +6,7 @@ import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { LibraryAccessService } from '../../services/library-access.service';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { NextAidInfo } from '../../models/gift.model';
 
@@ -20,10 +21,12 @@ export class CrewHomeComponent implements OnInit {
   membership: CrewMembershipStatus | null = null;
   nextAid: NextAidInfo | null = null;
   seasonStarted = false;
+  libraryOfThingsEnabled = true;
 
   private router = inject(Router);
   private crewService = inject(CrewService);
   private giftService = inject(GiftService);
+  private libraryAccess = inject(LibraryAccessService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private cryptoSession = inject(CryptoSessionService);
 
@@ -37,6 +40,7 @@ export class CrewHomeComponent implements OnInit {
 
     this.crewService.getMembership().subscribe(status => {
       this.membership = status;
+      this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
       if (status.hasCrew) {
         this.giftService.getSeasonStatus().subscribe({
           next: seasonStatus => {
@@ -127,6 +131,6 @@ export class CrewHomeComponent implements OnInit {
   }
 
   goToLibraryOfThings() {
-    this.router.navigate(['/app/crew/library-of-things']);
+    this.libraryAccess.navigateToLibrary(this.router);
   }
 }

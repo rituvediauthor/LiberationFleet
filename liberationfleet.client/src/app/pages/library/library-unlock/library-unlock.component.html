@@ -1,0 +1,13 @@
+<app-page-layout [backButton]="backButton">
+  <div class="library-unlock-page">
+  <h1 class="page-title">{{ title }}</h1>
+  <p class="page-message">{{ message }}</p>
+
+  <div class="actions">
+    <button type="button" class="action-btn primary" (click)="goPrimary()">{{ primaryLabel }}</button>
+    <button type="button" class="action-btn secondary" *ngIf="secondaryLabel" (click)="goSecondary()">
+      {{ secondaryLabel }}
+    </button>
+  </div>
+</div>
+</app-page-layout>

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Tests.TestHelpers;
@@ -258,11 +259,13 @@ public class RecordGiftsCommandHandlerTests
         Mock<ICrewMembershipRepository>? membershipRepository = null,
         Mock<IGiftRepository>? giftRepository = null,
         Mock<ICrewPaymentPlatformRepository>? crewPaymentPlatformRepository = null,
+        NotificationService? notificationService = null,
         Mock<IUnitOfWork>? unitOfWork = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
         crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
+        notificationService ??= HandlerTestFixture.CreateNotificationService();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
 
         return new RecordGiftsCommandHandler(
@@ -270,6 +273,7 @@ public class RecordGiftsCommandHandlerTests
             membershipRepository.Object,
             giftRepository.Object,
             crewPaymentPlatformRepository.Object,
+            notificationService,
             unitOfWork.Object);
     }
 }

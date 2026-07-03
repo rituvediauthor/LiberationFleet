@@ -94,6 +94,13 @@ public class CrewSettingsProposalService(
         crew.AllowSurvivalThresholds = request.AllowSurvivalThresholds;
         crew.RequireApprovalForEdits = request.RequireApprovalForEdits;
         crew.InNeedDefaultThreshold = request.InNeedDefaultThreshold;
+        crew.LibraryOfThingsEnabled = request.LibraryOfThingsEnabled;
+        crew.MemberCycleCapMode = CrewUpdateValidator.ParseCycleCapMode(request.MemberCycleCapMode);
+        crew.MemberCycleCapFixedAmount = request.MemberCycleCapFixedAmount;
+        crew.MemberCycleCapMultiplier = request.MemberCycleCapMultiplier;
+        crew.NonMemberCycleCapMode = CrewUpdateValidator.ParseCycleCapMode(request.NonMemberCycleCapMode);
+        crew.NonMemberCycleCapFixedAmount = request.NonMemberCycleCapFixedAmount;
+        crew.NonMemberCycleCapMultiplier = request.NonMemberCycleCapMultiplier;
     }
 
     private async Task ApplyChangeAsync(Crew crew, ProposalCrewSettingChange change, CancellationToken cancellationToken)
@@ -136,6 +143,27 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.InNeedDefaultThreshold:
                 crew.InNeedDefaultThreshold = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.LibraryOfThingsEnabled:
+                crew.LibraryOfThingsEnabled = bool.Parse(change.NewValue);
+                break;
+            case CrewSettingField.MemberCycleCapMode:
+                crew.MemberCycleCapMode = Enum.Parse<CycleCapMode>(change.NewValue, ignoreCase: true);
+                break;
+            case CrewSettingField.MemberCycleCapFixedAmount:
+                crew.MemberCycleCapFixedAmount = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.MemberCycleCapMultiplier:
+                crew.MemberCycleCapMultiplier = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.NonMemberCycleCapMode:
+                crew.NonMemberCycleCapMode = Enum.Parse<CycleCapMode>(change.NewValue, ignoreCase: true);
+                break;
+            case CrewSettingField.NonMemberCycleCapFixedAmount:
+                crew.NonMemberCycleCapFixedAmount = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.NonMemberCycleCapMultiplier:
+                crew.NonMemberCycleCapMultiplier = decimal.Parse(change.NewValue);
                 break;
         }
     }

@@ -37,7 +37,8 @@ public class GetMyCrewMembershipQueryHandler : IRequestHandler<GetMyCrewMembersh
             HasCrew = true,
             CrewId = membership.CrewId,
             CrewName = membership.Crew.Name,
-            JoinCode = membership.Crew.JoinCode
+            JoinCode = membership.Crew.JoinCode,
+            LibraryOfThingsEnabled = membership.Crew.LibraryOfThingsEnabled
         };
     }
 }

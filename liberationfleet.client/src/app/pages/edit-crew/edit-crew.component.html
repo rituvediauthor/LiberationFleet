@@ -70,6 +70,71 @@
           <input id="inNeedDefaultThreshold" type="number" formControlName="inNeedDefaultThreshold" class="form-input" min="0" step="1">
           <span class="hint-text">Crewmates whose avg. monthly contributions (3 mo) fall below this are automatically marked in need of aid.</span>
         </div>
+
+        <section class="settings-section">
+          <h2 class="section-title">Library of Things</h2>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="libraryOfThingsEnabled">
+              Enable Library of Things
+            </label>
+            <span class="hint-text">When disabled, the Library of Things button is hidden from the crew home page.</span>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h2 class="section-title">Member cycle cap</h2>
+          <div class="form-group">
+            <label for="memberCycleCapMode">Cap mode</label>
+            <select id="memberCycleCapMode" formControlName="memberCycleCapMode" class="form-input">
+              <option value="CapacityBased">Capacity based</option>
+              <option value="Fixed">Fixed amount</option>
+            </select>
+          </div>
+
+          <div class="form-group" *ngIf="!isMemberCapacityBased">
+            <label for="memberCycleCapFixedAmount">Fixed member cycle cap ($)</label>
+            <input id="memberCycleCapFixedAmount" type="number" formControlName="memberCycleCapFixedAmount" class="form-input" min="0" step="0.01">
+          </div>
+
+          <div class="form-group capacity-row" *ngIf="isMemberCapacityBased">
+            <label for="memberCycleCapMultiplier">Capacity multiplier</label>
+            <div class="capacity-input-row">
+              <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
+              <input id="memberCycleCapMultiplier" type="number" formControlName="memberCycleCapMultiplier" class="form-input" min="0" step="0.01">
+            </div>
+            <span class="hint-text">Current crew-wide monthly giving capacity total × multiplier.</span>
+          </div>
+
+          <p class="preview-text">Effective member cycle cap preview: ${{ memberCycleCapPreview | number:'1.0-2' }}</p>
+        </section>
+
+        <section class="settings-section">
+          <h2 class="section-title">Non-member cycle cap</h2>
+          <div class="form-group">
+            <label for="nonMemberCycleCapMode">Cap mode</label>
+            <select id="nonMemberCycleCapMode" formControlName="nonMemberCycleCapMode" class="form-input">
+              <option value="CapacityBased">Capacity based</option>
+              <option value="Fixed">Fixed amount</option>
+            </select>
+          </div>
+
+          <div class="form-group" *ngIf="!isNonMemberCapacityBased">
+            <label for="nonMemberCycleCapFixedAmount">Fixed non-member cycle cap ($)</label>
+            <input id="nonMemberCycleCapFixedAmount" type="number" formControlName="nonMemberCycleCapFixedAmount" class="form-input" min="0" step="0.01">
+          </div>
+
+          <div class="form-group capacity-row" *ngIf="isNonMemberCapacityBased">
+            <label for="nonMemberCycleCapMultiplier">Capacity multiplier</label>
+            <div class="capacity-input-row">
+              <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
+              <input id="nonMemberCycleCapMultiplier" type="number" formControlName="nonMemberCycleCapMultiplier" class="form-input" min="0" step="0.01">
+            </div>
+            <span class="hint-text">Current crew-wide monthly giving capacity total × multiplier.</span>
+          </div>
+
+          <p class="preview-text">Effective non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>
+        </section>
       </form>
 
       <button type="button" class="leave-btn" (click)="onLeaveCrew()">Leave crew</button>

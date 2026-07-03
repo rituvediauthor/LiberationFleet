@@ -10,5 +10,12 @@ public enum CrewSettingField
     RadiusMiles = 5,
     AllowSurvivalThresholds = 6,
     RequireApprovalForEdits = 7,
-    InNeedDefaultThreshold = 8
+    InNeedDefaultThreshold = 8,
+    LibraryOfThingsEnabled = 9,
+    MemberCycleCapMode = 10,
+    MemberCycleCapFixedAmount = 11,
+    MemberCycleCapMultiplier = 12,
+    NonMemberCycleCapMode = 13,
+    NonMemberCycleCapFixedAmount = 14,
+    NonMemberCycleCapMultiplier = 15
 }
