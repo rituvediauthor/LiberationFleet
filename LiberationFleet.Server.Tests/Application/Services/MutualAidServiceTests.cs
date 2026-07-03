@@ -328,6 +328,63 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task GetSeasonStatusAsync_StartsSeasonWhenThreeMembersAlreadyReady()
+    {
+        var context = TestDbContextFactory.Create();
+        await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
+
+        var users = new[] { "u1", "u2", "u3" }
+            .Select(name => new User
+            {
+                Username = name,
+                Email = $"{name}@example.com",
+                PasswordHash = "hash",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            })
+            .ToList();
+        context.Users.AddRange(users);
+        await context.SaveChangesAsync();
+
+        var crew = HandlerTestFixture.CreateCrew(createdByUserId: users[0].Id);
+        crew.SeasonStarted = false;
+        context.Crews.Add(crew);
+        await context.SaveChangesAsync();
+
+        var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
+        foreach (var user in users)
+        {
+            context.CrewMemberships.Add(new CrewMembership
+            {
+                UserId = user.Id,
+                CrewId = crew.Id,
+                EstimatedMonthlyContribution = 100m,
+                IsSeasonReady = true,
+                JoinedAt = DateTime.UtcNow
+            });
+            context.UserPaymentPlatforms.Add(new UserPaymentPlatform
+            {
+                UserId = user.Id,
+                CrewPaymentPlatformId = platforms["PayPal"].Id,
+                Handle = $"@{user.Username}"
+            });
+        }
+        await context.SaveChangesAsync();
+
+        var service = HandlerTestFixture.CreateMutualAidService(context);
+
+        var status = await service.GetSeasonStatusAsync(users[0].Id, CancellationToken.None);
+
+        status.SeasonStarted.Should().BeTrue();
+        status.UserInSeason.Should().BeTrue();
+        status.ReadyCount.Should().Be(3);
+
+        var reloadedCrew = await context.Crews.SingleAsync(c => c.Id == crew.Id);
+        reloadedCrew.SeasonStarted.Should().BeTrue();
+        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(3);
+    }
+
+    [Fact]
     public async Task MarkSeasonReadyAsync_StartsSeasonWhenThirdMemberMarksReady()
     {
         var context = TestDbContextFactory.Create();

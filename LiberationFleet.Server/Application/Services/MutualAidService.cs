@@ -27,6 +27,11 @@ public partial class MutualAidService(
             return new SeasonStatusDto();
         }
 
+        await TryStartSeasonIfReadyAsync(crew, cancellationToken);
+
+        membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken) ?? membership;
+        crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken) ?? crew;
+
         var readyMembers = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
 
         return new SeasonStatusDto
@@ -250,22 +255,18 @@ public partial class MutualAidService(
             return new SeasonReadyResultDto { Success = false, Message = "Crew not found." };
         }
 
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         var seasonStarted = false;
         if (!crew.SeasonStarted)
         {
-            var readyMembers = members.Where(m => m.IsSeasonReady).ToList();
-            if (readyMembers.Count >= 3)
-            {
-                await StartFirstSeasonAsync(crew, readyMembers, cancellationToken);
-                seasonStarted = crew.SeasonStarted;
-            }
+            seasonStarted = await TryStartSeasonIfReadyAsync(crew, cancellationToken);
         }
         else if (!membership.IsInSeason)
         {
             await JoinActiveSeasonAsync(crew, membership, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var status = await GetSeasonStatusAsync(userId, cancellationToken);
         return new SeasonReadyResultDto
@@ -633,6 +634,24 @@ public partial class MutualAidService(
                 .Where(p => commonPlatformIds.Contains(p.PlatformId))
                 .ToList() ?? []
         };
+    }
+
+    private async Task<bool> TryStartSeasonIfReadyAsync(Crew crew, CancellationToken cancellationToken)
+    {
+        if (crew.SeasonStarted)
+        {
+            return false;
+        }
+
+        var readyMembers = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
+        if (readyMembers.Count < 3)
+        {
+            return false;
+        }
+
+        await StartFirstSeasonAsync(crew, readyMembers, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private async Task StartFirstSeasonAsync(
