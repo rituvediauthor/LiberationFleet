@@ -36,7 +36,6 @@ public static class DependencyInjection
         services.AddScoped<ICryptoRepository, CryptoRepository>();
         services.AddScoped<IProposalRepository, ProposalRepository>();
         services.AddScoped<IForumRepository, ForumRepository>();
-        services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IChatRepository, ChatRepository>();
         services.AddScoped<IRuleRepository, RuleRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();

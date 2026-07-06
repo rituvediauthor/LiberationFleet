@@ -1,4 +1,4 @@
-export type DiscussionKind = 'forums' | 'projects';
+export type DiscussionKind = 'forums';
 
 export interface DiscussionConfig {
   kind: DiscussionKind;
@@ -12,31 +12,18 @@ export interface DiscussionConfig {
   detailRoute: (id: number) => string;
 }
 
-export const DISCUSSION_CONFIGS: Record<DiscussionKind, DiscussionConfig> = {
-  forums: {
-    kind: 'forums',
-    label: 'Forum',
-    labelPlural: 'Forums',
-    postLabel: 'forum post',
-    apiPath: '/api/forums',
-    listRoute: '/app/crew/forums',
-    createRoute: '/app/crew/forums/create',
-    backRoute: '/app/crew',
-    detailRoute: id => `/app/crew/forums/${id}`
-  },
-  projects: {
-    kind: 'projects',
-    label: 'Project',
-    labelPlural: 'Projects',
-    postLabel: 'project post',
-    apiPath: '/api/projects',
-    listRoute: '/app/crew/projects',
-    createRoute: '/app/crew/projects/create',
-    backRoute: '/app/crew',
-    detailRoute: id => `/app/crew/projects/${id}`
-  }
+export const FORUM_DISCUSSION_CONFIG: DiscussionConfig = {
+  kind: 'forums',
+  label: 'Forum',
+  labelPlural: 'Forums',
+  postLabel: 'forum post',
+  apiPath: '/api/forums',
+  listRoute: '/app/crew/forums',
+  createRoute: '/app/crew/forums/create',
+  backRoute: '/app/crew',
+  detailRoute: id => `/app/crew/forums/${id}`
 };
 
-export function getDiscussionConfig(kind: DiscussionKind): DiscussionConfig {
-  return DISCUSSION_CONFIGS[kind];
+export function getDiscussionConfig(_kind: DiscussionKind): DiscussionConfig {
+  return FORUM_DISCUSSION_CONFIG;
 }

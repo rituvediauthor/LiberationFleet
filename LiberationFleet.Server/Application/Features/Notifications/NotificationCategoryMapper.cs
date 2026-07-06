@@ -6,7 +6,7 @@ public static class NotificationCategoryMapper
 {
     public static NotificationFilterCategory? ToFilterCategory(NotificationKind kind) => kind switch
     {
-        NotificationKind.NewReply or NotificationKind.NewForumComment or NotificationKind.NewProjectComment
+        NotificationKind.NewReply or NotificationKind.NewForumComment
             => NotificationFilterCategory.Comments,
         NotificationKind.Mention => NotificationFilterCategory.Mentions,
         NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
@@ -25,8 +25,7 @@ public static class NotificationCategoryMapper
         NotificationFilterCategory.Comments =>
         [
             NotificationKind.NewReply,
-            NotificationKind.NewForumComment,
-            NotificationKind.NewProjectComment
+            NotificationKind.NewForumComment
         ],
         NotificationFilterCategory.Mentions => [NotificationKind.Mention],
         NotificationFilterCategory.Proposals =>

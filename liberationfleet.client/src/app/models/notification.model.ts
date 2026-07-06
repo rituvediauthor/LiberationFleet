@@ -8,9 +8,7 @@ export type NotificationKind =
   | 'NewChatMessage'
   | 'NewReply'
   | 'NewForumPost'
-  | 'NewProjectPost'
   | 'NewForumComment'
-  | 'NewProjectComment'
   | 'NewCrewmate'
   | 'JoinRequestFromPerson'
   | 'JoinRequestFromCrew'
@@ -24,7 +22,7 @@ export type NotificationKind =
 
 export type NotificationFilterCategory = 'All' | 'Comments' | 'Mentions' | 'Proposals' | 'Rules';
 
-export type MutedContentType = 'ChatRoom' | 'Forum' | 'Project' | 'Friend';
+export type MutedContentType = 'ChatRoom' | 'Forum' | 'Friend';
 
 export interface MutedContentItem {
   contentType: MutedContentType;

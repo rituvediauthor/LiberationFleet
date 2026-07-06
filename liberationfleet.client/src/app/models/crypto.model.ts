@@ -3,7 +3,6 @@ export type EncryptedContentType =
   | 'DirectMessage'
   | 'ChatRoomMessage'
   | 'ForumPost'
-  | 'ProjectForumPost'
   | 'Proposal'
   | 'RulesDocument'
   | 'LibraryItem'
@@ -14,7 +13,6 @@ export type EncryptedContentType =
   | 'VideoAsset'
   | 'ProposalComment'
   | 'ForumComment'
-  | 'ProjectComment'
   | 'ChatRoomName';
 
 export interface UserKeyBundle {

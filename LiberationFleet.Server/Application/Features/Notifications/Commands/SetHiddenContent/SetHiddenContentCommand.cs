@@ -27,7 +27,7 @@ public class SetHiddenContentCommandHandler(
             return new NotificationOperationResponse { Success = false, Message = "Invalid resource." };
         }
 
-        if (request.ContentType is not (MutedContentType.ChatRoom or MutedContentType.Forum or MutedContentType.Project))
+        if (request.ContentType is not (MutedContentType.ChatRoom or MutedContentType.Forum))
         {
             return new NotificationOperationResponse { Success = false, Message = "This content cannot be hidden." };
         }

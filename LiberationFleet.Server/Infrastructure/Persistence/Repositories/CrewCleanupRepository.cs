@@ -19,11 +19,6 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             .Select(p => p.Id)
             .ToListAsync(cancellationToken);
 
-        var projectPostIds = await context.ProjectPosts
-            .Where(p => p.CrewId == crewId)
-            .Select(p => p.Id)
-            .ToListAsync(cancellationToken);
-
         await RemoveMutedAndHiddenAsync(
             MutedContentType.ChatRoom,
             chatRoomIds,
@@ -31,10 +26,6 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
         await RemoveMutedAndHiddenAsync(
             MutedContentType.Forum,
             forumPostIds,
-            cancellationToken);
-        await RemoveMutedAndHiddenAsync(
-            MutedContentType.Project,
-            projectPostIds,
             cancellationToken);
 
         await context.Notifications
@@ -84,17 +75,6 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             .ExecuteDeleteAsync(cancellationToken);
 
         await context.ForumPosts
-            .Where(p => p.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ProjectComments
-            .Where(c => c.ProjectPost.CrewId == crewId)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentCommentId, (int?)null), cancellationToken);
-        await context.ProjectComments
-            .Where(c => c.ProjectPost.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ProjectPosts
             .Where(p => p.CrewId == crewId)
             .ExecuteDeleteAsync(cancellationToken);
 

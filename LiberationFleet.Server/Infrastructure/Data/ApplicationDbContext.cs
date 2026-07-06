@@ -43,8 +43,6 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
-    public DbSet<ProjectPost> ProjectPosts => Set<ProjectPost>();
-    public DbSet<ProjectComment> ProjectComments => Set<ProjectComment>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
     public DbSet<CrewRule> CrewRules => Set<CrewRule>();
@@ -571,38 +569,6 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.ForumPost)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(e => e.ForumPostId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(e => e.AuthorUser)
-                .WithMany()
-                .HasForeignKey(e => e.AuthorUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.ParentComment)
-                .WithMany(c => c.Replies)
-                .HasForeignKey(e => e.ParentCommentId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<ProjectPost>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
-            entity.HasOne(e => e.Crew)
-                .WithMany()
-                .HasForeignKey(e => e.CrewId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(e => e.AuthorUser)
-                .WithMany()
-                .HasForeignKey(e => e.AuthorUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<ProjectComment>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
-            entity.HasOne(e => e.ProjectPost)
-                .WithMany(p => p.Comments)
-                .HasForeignKey(e => e.ProjectPostId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()

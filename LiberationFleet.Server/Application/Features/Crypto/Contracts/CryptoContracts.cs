@@ -51,7 +51,6 @@ public enum EncryptedContentTypeDto
     DirectMessage = 1,
     ChatRoomMessage = 2,
     ForumPost = 3,
-    ProjectForumPost = 4,
     Proposal = 5,
     RulesDocument = 6,
     LibraryItem = 7,
@@ -60,7 +59,6 @@ public enum EncryptedContentTypeDto
     VideoAsset = 10,
     ProposalComment = 11,
     ForumComment = 12,
-    ProjectComment = 13,
     ChatRoomName = 14,
     LibraryRequest = 15,
     LibraryRequestMessage = 16

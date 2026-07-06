@@ -297,25 +297,6 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'app/crew/projects',
-    component: DiscussionListComponent,
-    pathMatch: 'full',
-    canActivate: [authGuard],
-    data: { discussionKind: 'projects' }
-  },
-  {
-    path: 'app/crew/projects/create',
-    component: DiscussionCreateComponent,
-    canActivate: [authGuard],
-    data: { discussionKind: 'projects' }
-  },
-  {
-    path: 'app/crew/projects/:id',
-    component: DiscussionDetailComponent,
-    canActivate: [authGuard],
-    data: { discussionKind: 'projects' }
-  },
-  {
     path: 'app/crew/forums',
     component: DiscussionListComponent,
     pathMatch: 'full',

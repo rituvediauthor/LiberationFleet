@@ -95,7 +95,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   }
 
   muteContentType(): MutedContentType {
-    return this.config.kind === 'forums' ? 'Forum' : 'Project';
+    return 'Forum';
   }
 
   isItemMuted(itemId: number): boolean {

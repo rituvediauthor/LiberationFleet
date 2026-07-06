@@ -118,10 +118,6 @@ export class CrewHomeComponent implements OnInit {
     this.router.navigate(['/app/crew/proposals']);
   }
 
-  goToProjects() {
-    this.router.navigate(['/app/crew/projects']);
-  }
-
   goToForums() {
     this.router.navigate(['/app/crew/forums']);
   }
