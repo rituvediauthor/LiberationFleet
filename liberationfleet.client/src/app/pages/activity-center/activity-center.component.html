@@ -1,0 +1,47 @@
+<app-page-layout [backButton]="backButton">
+  <div class="activity-center-page">
+    <h1>Activity center</h1>
+    <p class="intro">Content you have created across your crew.</p>
+
+    <label class="filter-field">
+      <span>Show</span>
+      <select [value]="selectedCategory" (change)="onCategoryChange($any($event.target).value)">
+        <option *ngFor="let option of filterOptions" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <p *ngIf="loading" class="state-text">Loading activity...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No activity yet.</p>
+
+    <div class="activity-list" *ngIf="!loading && items.length > 0">
+      <button
+        type="button"
+        class="activity-row"
+        *ngFor="let item of items"
+        [class.unavailable]="!item.isAccessible"
+        (click)="openItem(item)">
+        <div class="activity-main">
+          <p class="activity-label">{{ item.label }}</p>
+          <p class="activity-detail" *ngIf="item.detail">{{ item.detail }}</p>
+          <p class="activity-meta">
+            <span>{{ categoryLabel(item.category) }}</span>
+            <span>·</span>
+            <span>{{ formatWhen(item.createdAt) }}</span>
+            <span *ngIf="!item.isAccessible" class="unavailable-badge">Unavailable</span>
+          </p>
+        </div>
+        <i class="fa-solid fa-chevron-right activity-chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="load-more-btn"
+      *ngIf="!loading && hasMore"
+      [disabled]="loadingMore"
+      (click)="loadMore()">
+      {{ loadingMore ? 'Loading...' : 'Load more' }}
+    </button>
+  </div>
+</app-page-layout>

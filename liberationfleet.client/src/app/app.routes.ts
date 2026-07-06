@@ -30,6 +30,7 @@ import { NotificationsComponent } from './pages/notifications/notifications.comp
 import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
 import { NotificationSettingsComponent } from './pages/notification-settings/notification-settings.component';
 import { ContentSettingsComponent } from './pages/content-settings/content-settings.component';
+import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
@@ -153,9 +154,8 @@ export const routes: Routes = [
   },
   {
     path: 'app/profile/activity',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Activity center', backTo: '/app/profile' }
+    component: ActivityCenterComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/profile/preferences',
