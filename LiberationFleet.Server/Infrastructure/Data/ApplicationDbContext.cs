@@ -79,6 +79,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.InNeedOfAid).HasDefaultValue(true);
             entity.Property(e => e.IsUnclaimedPlaceholder).HasDefaultValue(false);
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
+            entity.Property(e => e.AdultContentPreference).HasDefaultValue(AdultContentPreference.Block);
         });
 
         modelBuilder.Entity<PaymentPlatform>(entity =>
@@ -430,6 +431,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.Purpose).HasMaxLength(2000);
             entity.Property(e => e.NameNonce).HasMaxLength(500);
+            entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.CrewChatChange)
                 .HasForeignKey<ProposalCrewChatChange>(e => e.ProposalId)
@@ -553,6 +555,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         modelBuilder.Entity<ForumPost>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -587,6 +590,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Purpose).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.AnonymousModeEnabled).HasDefaultValue(false);
+            entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)

@@ -14,7 +14,8 @@ public record CreateChatRoomCommand(
     int KeyVersion,
     ChatRoomType RoomType,
     string Purpose,
-    string PlaintextName) : IRequest<ChatOperationResponse>;
+    string PlaintextName,
+    bool IsAdultContent) : IRequest<ChatOperationResponse>;
 
 public class CreateChatRoomCommandHandler(
     ICurrentUserService currentUser,
@@ -75,6 +76,7 @@ public class CreateChatRoomCommandHandler(
                 request.Nonce.Trim(),
                 request.Ciphertext.Trim(),
                 request.KeyVersion,
+                request.IsAdultContent,
                 cancellationToken);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -97,7 +99,8 @@ public class CreateChatRoomCommandHandler(
             RoomType = request.RoomType,
             CreatedByUserId = userId,
             CreatedAt = utcNow,
-            LastActivityAt = utcNow
+            LastActivityAt = utcNow,
+            IsAdultContent = request.IsAdultContent
         };
 
         await chatRepository.AddRoomAsync(room, cancellationToken);

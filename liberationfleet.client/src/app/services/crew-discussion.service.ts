@@ -58,12 +58,13 @@ export class CrewDiscussionService {
 
   createPost(
     config: DiscussionConfig,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+    payload: { nonce: string; ciphertext: string; keyVersion?: number; isAdultContent?: boolean }
   ): Observable<DiscussionOperationResponse> {
     return this.http.post<DiscussionOperationResponse>(config.apiPath, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      isAdultContent: payload.isAdultContent ?? false
     });
   }
 

@@ -8,7 +8,7 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Forums.Commands.CreateForumPost;
 
-public record CreateForumPostCommand(string Nonce, string Ciphertext, int KeyVersion) : IRequest<ForumOperationResponse>;
+public record CreateForumPostCommand(string Nonce, string Ciphertext, int KeyVersion, bool IsAdultContent) : IRequest<ForumOperationResponse>;
 
 public class CreateForumPostCommandHandler(
     ICurrentUserService currentUser,
@@ -43,7 +43,8 @@ public class CreateForumPostCommandHandler(
             CrewId = membership.CrewId,
             AuthorUserId = userId,
             CreatedAt = utcNow,
-            LastActivityAt = utcNow
+            LastActivityAt = utcNow,
+            IsAdultContent = request.IsAdultContent
         };
 
         await forumRepository.AddPostAsync(post, cancellationToken);

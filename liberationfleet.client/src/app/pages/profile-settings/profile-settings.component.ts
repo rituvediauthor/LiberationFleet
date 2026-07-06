@@ -27,6 +27,10 @@ export class ProfileSettingsComponent {
     this.router.navigate(['/app/profile/preferences/notifications']);
   }
 
+  goToContent() {
+    this.router.navigate(['/app/profile/preferences/content']);
+  }
+
   goToPlaceholder(title: string) {
     this.router.navigate(['/app/profile/preferences/placeholder'], { queryParams: { title } });
   }

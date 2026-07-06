@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Domain.Enums;
+
 namespace LiberationFleet.Server.Domain.Entities;
 
 public class User
@@ -14,6 +16,7 @@ public class User
     public int EmergencyLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }
     public int PercentBonus { get; set; }
+    public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();

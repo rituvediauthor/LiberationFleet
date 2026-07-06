@@ -23,7 +23,8 @@ public static class ChatMapper
             LastActivityAt = room.LastActivityAt,
             AnonymousModeEnabled = room.AnonymousModeEnabled,
             CanToggleAnonymousMode = viewerMembership is not null
-                && CrewRoleAuthorizationService.CanToggleAnonymousChat(viewerMembership)
+                && CrewRoleAuthorizationService.CanToggleAnonymousChat(viewerMembership),
+            IsAdultContent = room.IsAdultContent
         };
 
         if (nameEnvelope is not null)
@@ -59,7 +60,8 @@ public static class ChatMapper
             CreatedAt = item.CreatedAt,
             LastActivityAt = item.LastActivityAt,
             AnonymousModeEnabled = item.AnonymousModeEnabled,
-            CanToggleAnonymousMode = item.CanToggleAnonymousMode
+            CanToggleAnonymousMode = item.CanToggleAnonymousMode,
+            IsAdultContent = item.IsAdultContent
         };
     }
 

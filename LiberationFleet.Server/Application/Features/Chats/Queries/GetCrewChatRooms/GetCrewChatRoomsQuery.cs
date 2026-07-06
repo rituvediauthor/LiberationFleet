@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -12,6 +13,7 @@ public record GetCrewChatRoomsQuery() : IRequest<ChatRoomListResponse>;
 public class GetCrewChatRoomsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewChatRoomsQuery, ChatRoomListResponse>
 {
@@ -30,6 +32,12 @@ public class GetCrewChatRoomsQueryHandler(
         }
 
         var rooms = await chatRepository.GetRoomsByCrewIdAsync(membership.CrewId, cancellationToken);
+        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
+        rooms = rooms
+            .Where(room => !AdultContentAccess.IsBlocked(preference, room.IsAdultContent))
+            .ToList();
+
         var resourceIds = rooms.Select(r => r.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ChatRoomName,

@@ -29,6 +29,7 @@ import { JoinSeasonComponent } from './pages/join-season/join-season.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
 import { NotificationSettingsComponent } from './pages/notification-settings/notification-settings.component';
+import { ContentSettingsComponent } from './pages/content-settings/content-settings.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
@@ -164,6 +165,11 @@ export const routes: Routes = [
   {
     path: 'app/profile/preferences/notifications',
     component: NotificationSettingsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/content',
+    component: ContentSettingsComponent,
     canActivate: [authGuard]
   },
   {

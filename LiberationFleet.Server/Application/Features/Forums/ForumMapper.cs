@@ -14,7 +14,8 @@ public static class ForumMapper
             AuthorUsername = envelope is null ? post.AuthorUser.Username : string.Empty,
             LastActivityAt = post.LastActivityAt,
             HasEncryptedContent = envelope is not null,
-            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null
+            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
+            IsAdultContent = post.IsAdultContent
         };
 
     public static ForumDetailDto MapDetail(
@@ -33,6 +34,7 @@ public static class ForumMapper
             EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
             CanEdit = post.AuthorUserId == viewerUserId,
             CanDelete = post.AuthorUserId == viewerUserId,
+            IsAdultContent = post.IsAdultContent,
             Comments = comments
         };
 

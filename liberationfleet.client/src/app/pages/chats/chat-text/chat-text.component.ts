@@ -17,6 +17,7 @@ import { Subscription } from 'rxjs';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
+import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatService } from '../../../services/chat.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
@@ -30,6 +31,8 @@ import { CryptoApiService } from '../../../services/crypto/crypto-api.service';
 import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { AdultContentService } from '../../../services/adult-content.service';
+import { ContentPreferenceService } from '../../../services/content-preference.service';
 
 @Component({
   selector: 'app-chat-text',
@@ -39,7 +42,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
-    FallibleFooterComponent
+    FallibleFooterComponent,
+    AdultContentGateComponent
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -70,6 +74,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   hasMore = false;
   sending = false;
   loadError = '';
+  showAdultGate = false;
+  contentRevealed = true;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -83,6 +89,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private crewmateService = inject(CrewmateService);
   private cryptoApi = inject(CryptoApiService);
   private toastService = inject(ToastService);
+  private adultContentService = inject(AdultContentService);
+  private contentPreferenceService = inject(ContentPreferenceService);
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
@@ -129,8 +137,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           void this.chatHub.joinCrew(this.crewId);
         }
         void this.chatHub.joinRoom(this.roomId);
-        this.loadRoomName();
-        this.loadLatestMessages(true);
+        this.contentPreferenceService.ensureLoaded().subscribe({
+          next: () => this.loadRoomName()
+        });
       },
       error: () => {
         this.loading = false;
@@ -153,6 +162,19 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   goBack() {
     this.router.navigate(['/app/crew/chats']);
+  }
+
+  onAdultGateConfirmed() {
+    const resourceKey = this.adultContentService.resourceKey('chat', this.roomId);
+    this.adultContentService.grantConsent(resourceKey);
+    this.showAdultGate = false;
+    this.contentRevealed = true;
+    this.loadLatestMessages(true);
+  }
+
+  onAdultGateDeclined() {
+    this.showAdultGate = false;
+    this.goBack();
   }
 
   onComposerFocus() {
@@ -328,6 +350,16 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       next: async response => {
         const room = response.room;
         if (!room) {
+          this.loading = false;
+          this.loadError = response.message || 'Chat room not found';
+          return;
+        }
+
+        const resourceKey = this.adultContentService.resourceKey('chat', room.id);
+        if (this.adultContentService.needsAgeGate(room.isAdultContent, resourceKey)) {
+          this.showAdultGate = true;
+          this.contentRevealed = false;
+          this.loading = false;
           return;
         }
 
@@ -338,6 +370,11 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           ? await this.chatCrypto.decryptRoom(room, this.crewId)
           : room;
         this.roomName = decrypted.name || 'Chat';
+        this.loadLatestMessages(true);
+      },
+      error: () => {
+        this.loading = false;
+        this.loadError = 'Chat room not found';
       }
     });
   }

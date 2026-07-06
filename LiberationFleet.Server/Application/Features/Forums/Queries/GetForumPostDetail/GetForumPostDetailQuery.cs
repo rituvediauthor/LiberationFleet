@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums;
@@ -12,6 +13,7 @@ public record GetForumPostDetailQuery(int PostId) : IRequest<ForumDetailResponse
 public class GetForumPostDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetForumPostDetailQuery, ForumDetailResponse>
@@ -33,6 +35,13 @@ public class GetForumPostDetailQueryHandler(
         if (!await membershipRepository.IsUserInCrewAsync(userId, post.CrewId, cancellationToken))
         {
             return new ForumDetailResponse { Success = false, Message = "You are not in this crew." };
+        }
+
+        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
+        if (AdultContentAccess.IsBlocked(preference, post.IsAdultContent))
+        {
+            return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
         }
 
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);

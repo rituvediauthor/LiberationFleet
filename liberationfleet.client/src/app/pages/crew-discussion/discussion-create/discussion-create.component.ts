@@ -44,7 +44,8 @@ export class DiscussionCreateComponent implements OnInit {
 
     this.form = this.fb.group({
       title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]]
+      description: ['', [Validators.required, Validators.maxLength(10000)]],
+      isAdultContent: [false]
     });
 
     this.backButton = {
@@ -79,7 +80,7 @@ export class DiscussionCreateComponent implements OnInit {
     this.isSubmitting = true;
     this.updateCreateButton();
 
-    const { title, description } = this.form.getRawValue();
+    const { title, description, isAdultContent } = this.form.getRawValue();
     this.discussionCrypto.encryptProposalPayload(
       this.crewId,
       {
@@ -89,7 +90,10 @@ export class DiscussionCreateComponent implements OnInit {
       },
       this.attachments
     ).then(encrypted => {
-      this.discussionService.createPost(this.config, encrypted).subscribe({
+      this.discussionService.createPost(this.config, {
+        ...encrypted,
+        isAdultContent: !!isAdultContent
+      }).subscribe({
         next: result => {
           if (result.success) {
             this.toastService.success(result.message || `${this.config.label} post created`);

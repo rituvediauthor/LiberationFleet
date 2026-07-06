@@ -34,7 +34,8 @@ export class ChatService {
       keyVersion: request.keyVersion ?? 1,
       roomType: request.roomType,
       purpose: request.purpose,
-      plaintextName: request.plaintextName
+      plaintextName: request.plaintextName,
+      isAdultContent: request.isAdultContent ?? false
     });
   }
 

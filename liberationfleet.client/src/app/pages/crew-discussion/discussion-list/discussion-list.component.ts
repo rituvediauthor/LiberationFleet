@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { CrewDiscussionService } from '../../../services/crew-discussion.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -12,11 +13,13 @@ import { ProposalListItem } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
 import { HiddenContentItem, MutedContentItem, MutedContentType } from '../../../models/notification.model';
 import { NotificationService } from '../../../services/notification.service';
+import { AdultContentService } from '../../../services/adult-content.service';
+import { ContentPreferenceService } from '../../../services/content-preference.service';
 
 @Component({
   selector: 'app-discussion-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent],
   templateUrl: './discussion-list.component.html',
   styleUrl: './discussion-list.component.css'
 })
@@ -30,6 +33,8 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   mutedItems: MutedContentItem[] = [];
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
+  showAdultGate = false;
+  pendingItem: DiscussionListItem | null = null;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -40,6 +45,8 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private notificationService = inject(NotificationService);
+  private adultContentService = inject(AdultContentService);
+  private contentPreferenceService = inject(ContentPreferenceService);
   private encryptionContent = inject(EncryptionContentService);
   private encryptionReload?: EncryptionReloadHandle;
 
@@ -65,6 +72,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
         await this.encryptionContent.whenReady();
+        this.contentPreferenceService.ensureLoaded().subscribe();
         this.loadMutes();
         this.loadHidden();
         this.loadPosts();
@@ -87,11 +95,15 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   }
 
   get visibleItems(): DiscussionListItem[] {
-    return this.items.filter(item => !this.isItemHidden(item.id));
+    return this.items.filter(item =>
+      !this.isItemHidden(item.id) && this.adultContentService.shouldShowEntry(item.isAdultContent)
+    );
   }
 
   get hiddenItemsList(): DiscussionListItem[] {
-    return this.items.filter(item => this.isItemHidden(item.id));
+    return this.items.filter(item =>
+      this.isItemHidden(item.id) && this.adultContentService.shouldShowEntry(item.isAdultContent)
+    );
   }
 
   muteContentType(): MutedContentType {
@@ -194,7 +206,41 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
     });
   }
 
+  shouldBlurThumbnail(item: DiscussionListItem): boolean {
+    return this.adultContentService.shouldBlurThumbnail(item.isAdultContent);
+  }
+
   openPost(item: DiscussionListItem) {
+    const resourceKey = this.adultContentService.resourceKey('forum', item.id);
+    if (this.adultContentService.needsAgeGate(item.isAdultContent, resourceKey)) {
+      this.pendingItem = item;
+      this.showAdultGate = true;
+      return;
+    }
+
+    this.navigateToPost(item);
+  }
+
+  onAdultGateConfirmed() {
+    if (!this.pendingItem) {
+      this.showAdultGate = false;
+      return;
+    }
+
+    const resourceKey = this.adultContentService.resourceKey('forum', this.pendingItem.id);
+    this.adultContentService.grantConsent(resourceKey);
+    const item = this.pendingItem;
+    this.pendingItem = null;
+    this.showAdultGate = false;
+    this.navigateToPost(item);
+  }
+
+  onAdultGateDeclined() {
+    this.pendingItem = null;
+    this.showAdultGate = false;
+  }
+
+  private navigateToPost(item: DiscussionListItem) {
     this.router.navigate([this.config.detailRoute(item.id)]);
   }
 

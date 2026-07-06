@@ -1,4 +1,7 @@
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
+using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateContentPreferences;
+using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Features.Profile.Queries.GetContentPreferences;
 using LiberationFleet.Server.Application.Features.Profile.Queries.GetMyProfile;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -29,6 +32,20 @@ public class ProfileController : ControllerBase
     public async Task<IActionResult> Update([FromBody] UpdateProfileCommand command)
     {
         var result = await _mediator.Send(command);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("content-preferences")]
+    public async Task<IActionResult> GetContentPreferences()
+    {
+        var result = await _mediator.Send(new GetContentPreferencesQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("content-preferences")]
+    public async Task<IActionResult> UpdateContentPreferences([FromBody] UpdateContentPreferencesRequest body)
+    {
+        var result = await _mediator.Send(new UpdateContentPreferencesCommand(body.AdultContentPreference));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

@@ -10,6 +10,7 @@ public class ForumListItemDto
     public DateTime LastActivityAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public bool IsAdultContent { get; set; }
 }
 
 public class ForumDetailDto : ForumListItemDto
@@ -61,6 +62,7 @@ public class CreateForumPostRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public bool IsAdultContent { get; set; }
 }
 
 public class UpdateForumPostRequest

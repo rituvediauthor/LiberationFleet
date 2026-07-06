@@ -29,6 +29,11 @@
       <span class="error-text" *ngIf="form.get('purpose')?.touched && form.get('purpose')?.hasError('required')">
         Purpose is required
       </span>
+
+      <label class="checkbox-field">
+        <input type="checkbox" formControlName="isAdultContent" />
+        <span>18+ — contains adult or graphic content</span>
+      </label>
     </form>
   </div>
 </app-page-layout>

@@ -17,6 +17,7 @@ public class ChatRoomListItemDto
     public DateTime LastActivityAt { get; set; }
     public bool AnonymousModeEnabled { get; set; }
     public bool CanToggleAnonymousMode { get; set; }
+    public bool IsAdultContent { get; set; }
 }
 
 public class ChatRoomDetailDto : ChatRoomListItemDto
@@ -73,6 +74,7 @@ public class CreateChatRoomRequest
     public ChatRoomType RoomType { get; set; }
     public string Purpose { get; set; } = string.Empty;
     public string PlaintextName { get; set; } = string.Empty;
+    public bool IsAdultContent { get; set; }
 }
 
 public class UpdateChatRoomRequest

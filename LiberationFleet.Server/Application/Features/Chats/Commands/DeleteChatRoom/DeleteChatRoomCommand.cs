@@ -59,6 +59,7 @@ public class DeleteChatRoomCommandHandler(
                 nameNonce: null,
                 nameCiphertext: null,
                 keyVersion: 1,
+                room.IsAdultContent,
                 cancellationToken);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);

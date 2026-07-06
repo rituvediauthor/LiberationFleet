@@ -10,6 +10,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
+import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
 import {
   DiscussionComment,
@@ -21,6 +22,8 @@ import { ProposalComment, ProposalDetail } from '../../../models/proposal.model'
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { AdultContentService } from '../../../services/adult-content.service';
+import { ContentPreferenceService } from '../../../services/content-preference.service';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -30,7 +33,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
-    FallibleFooterComponent
+    FallibleFooterComponent,
+    AdultContentGateComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
@@ -62,6 +66,8 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   editingCommentParentId: number | null = null;
   openCommentMenuId: number | null = null;
   currentUserId: number | null = null;
+  showAdultGate = false;
+  contentRevealed = true;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -72,6 +78,8 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
+  private adultContentService = inject(AdultContentService);
+  private contentPreferenceService = inject(ContentPreferenceService);
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
@@ -86,8 +94,12 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
         await this.encryptionContent.whenReady();
-        this.loadPost();
-        this.encryptionReload?.markInitialLoadDone();
+        this.contentPreferenceService.ensureLoaded().subscribe({
+          next: () => {
+            this.loadPost();
+            this.encryptionReload?.markInitialLoadDone();
+          }
+        });
       },
       error: () => {
         this.loading = false;
@@ -117,6 +129,18 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
 
   goBack() {
     this.router.navigate([this.config.listRoute]);
+  }
+
+  onAdultGateConfirmed() {
+    const resourceKey = this.adultContentService.resourceKey('forum', this.postId);
+    this.adultContentService.grantConsent(resourceKey);
+    this.showAdultGate = false;
+    this.contentRevealed = true;
+  }
+
+  onAdultGateDeclined() {
+    this.showAdultGate = false;
+    this.goBack();
   }
 
   toggleAttachments() {
@@ -527,6 +551,15 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
           } else {
             this.post = post;
           }
+
+          const resourceKey = this.adultContentService.resourceKey('forum', this.postId);
+          if (this.adultContentService.needsAgeGate(this.post.isAdultContent, resourceKey)) {
+            this.showAdultGate = true;
+            this.contentRevealed = false;
+          } else {
+            this.contentRevealed = true;
+          }
+
           options?.onLoaded?.();
         } catch (error: unknown) {
           if (!options?.silent) {

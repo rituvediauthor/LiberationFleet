@@ -86,6 +86,7 @@ public class UpdateChatRoomCommandHandler(
                 request.Nonce.Trim(),
                 request.Ciphertext.Trim(),
                 request.KeyVersion,
+                room.IsAdultContent,
                 cancellationToken);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);

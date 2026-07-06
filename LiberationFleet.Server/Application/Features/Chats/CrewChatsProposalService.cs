@@ -27,6 +27,7 @@ public class CrewChatsProposalService(
         string? nameNonce,
         string? nameCiphertext,
         int keyVersion,
+        bool isAdultContent,
         CancellationToken cancellationToken)
     {
         var utcNow = DateTime.UtcNow;
@@ -52,7 +53,8 @@ public class CrewChatsProposalService(
             RoomType = roomType,
             NameNonce = nameNonce,
             NameCiphertext = nameCiphertext,
-            KeyVersion = keyVersion <= 0 ? 1 : keyVersion
+            KeyVersion = keyVersion <= 0 ? 1 : keyVersion,
+            IsAdultContent = isAdultContent
         }, cancellationToken);
 
         return proposal.Id;
@@ -109,7 +111,8 @@ public class CrewChatsProposalService(
             RoomType = change.RoomType,
             CreatedByUserId = authorUserId,
             CreatedAt = utcNow,
-            LastActivityAt = utcNow
+            LastActivityAt = utcNow,
+            IsAdultContent = change.IsAdultContent
         };
 
         await chatRepository.AddRoomAsync(room, cancellationToken);

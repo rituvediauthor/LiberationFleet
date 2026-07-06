@@ -42,7 +42,8 @@ export class ChatCreateComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(120)]],
       purpose: ['', [Validators.required, Validators.maxLength(2000)]],
-      roomType: ['Text', Validators.required]
+      roomType: ['Text', Validators.required],
+      isAdultContent: [false]
     });
   }
 
@@ -97,7 +98,8 @@ export class ChatCreateComponent implements OnInit {
         ciphertext: encrypted.ciphertext,
         roomType: value.roomType as ChatRoomType,
         purpose,
-        plaintextName: name
+        plaintextName: name,
+        isAdultContent: !!value.isAdultContent
       }).subscribe({
         next: response => {
           this.isSubmitting = false;

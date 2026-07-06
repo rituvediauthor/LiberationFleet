@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums;
@@ -12,6 +13,7 @@ public record GetCrewForumPostsQuery() : IRequest<ForumListResponse>;
 public class GetCrewForumPostsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewForumPostsQuery, ForumListResponse>
 {
@@ -30,6 +32,12 @@ public class GetCrewForumPostsQueryHandler(
         }
 
         var posts = await forumRepository.GetByCrewIdAsync(membership.CrewId, cancellationToken);
+        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
+        posts = posts
+            .Where(post => !AdultContentAccess.IsBlocked(preference, post.IsAdultContent))
+            .ToList();
+
         var resourceIds = posts.Select(p => p.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumPost,

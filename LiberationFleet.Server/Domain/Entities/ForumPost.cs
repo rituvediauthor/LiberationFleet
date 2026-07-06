@@ -8,6 +8,7 @@ public class ForumPost
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; }
+    public bool IsAdultContent { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User AuthorUser { get; set; } = null!;

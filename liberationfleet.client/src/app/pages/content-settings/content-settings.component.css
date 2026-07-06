@@ -1,0 +1,68 @@
+.content-settings-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.content-settings-page h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.intro {
+  margin: 0 0 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: #c62828;
+}
+
+.preference-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preference-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.preference-row input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: #007AFF;
+  flex-shrink: 0;
+}
+
+.preference-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preference-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+}
+
+.preference-description {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #666;
+}

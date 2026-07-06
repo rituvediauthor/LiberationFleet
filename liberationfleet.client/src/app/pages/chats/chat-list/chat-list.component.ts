@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { ChatService } from '../../../services/chat.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
@@ -12,11 +13,13 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomListItem } from '../../../models/chat.model';
 import { HiddenContentItem, MutedContentItem } from '../../../models/notification.model';
 import { NotificationService } from '../../../services/notification.service';
+import { AdultContentService } from '../../../services/adult-content.service';
+import { ContentPreferenceService } from '../../../services/content-preference.service';
 
 @Component({
   selector: 'app-chat-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent],
   templateUrl: './chat-list.component.html',
   styleUrl: './chat-list.component.css'
 })
@@ -29,6 +32,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
   mutedItems: MutedContentItem[] = [];
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
+  showAdultGate = false;
+  pendingRoom: ChatRoomListItem | null = null;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -40,6 +45,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
   private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
   private notificationService = inject(NotificationService);
+  private adultContentService = inject(AdultContentService);
+  private contentPreferenceService = inject(ContentPreferenceService);
   private subscriptions: Subscription[] = [];
 
   ngOnInit() {
@@ -67,6 +74,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);
         }
+        this.contentPreferenceService.ensureLoaded().subscribe();
         this.loadMutes();
         this.loadHidden();
         this.loadRooms();
@@ -88,11 +96,15 @@ export class ChatListComponent implements OnInit, OnDestroy {
   }
 
   get visibleRooms(): ChatRoomListItem[] {
-    return this.rooms.filter(room => !this.isRoomHidden(room.id));
+    return this.rooms.filter(room =>
+      !this.isRoomHidden(room.id) && this.adultContentService.shouldShowEntry(room.isAdultContent)
+    );
   }
 
   get hiddenRooms(): ChatRoomListItem[] {
-    return this.rooms.filter(room => this.isRoomHidden(room.id));
+    return this.rooms.filter(room =>
+      this.isRoomHidden(room.id) && this.adultContentService.shouldShowEntry(room.isAdultContent)
+    );
   }
 
   formatActivity(date: string): string {
@@ -109,6 +121,36 @@ export class ChatListComponent implements OnInit, OnDestroy {
   }
 
   openRoom(room: ChatRoomListItem) {
+    const resourceKey = this.adultContentService.resourceKey('chat', room.id);
+    if (this.adultContentService.needsAgeGate(room.isAdultContent, resourceKey)) {
+      this.pendingRoom = room;
+      this.showAdultGate = true;
+      return;
+    }
+
+    this.navigateToRoom(room);
+  }
+
+  onAdultGateConfirmed() {
+    if (!this.pendingRoom) {
+      this.showAdultGate = false;
+      return;
+    }
+
+    const resourceKey = this.adultContentService.resourceKey('chat', this.pendingRoom.id);
+    this.adultContentService.grantConsent(resourceKey);
+    const room = this.pendingRoom;
+    this.pendingRoom = null;
+    this.showAdultGate = false;
+    this.navigateToRoom(room);
+  }
+
+  onAdultGateDeclined() {
+    this.pendingRoom = null;
+    this.showAdultGate = false;
+  }
+
+  private navigateToRoom(room: ChatRoomListItem) {
     if (room.roomType === 'Voice') {
       this.router.navigate(['/app/crew/chats', room.id, 'voice']);
       return;
@@ -247,6 +289,10 @@ export class ChatListComponent implements OnInit, OnDestroy {
   }
 
   private async onRoomCreated(room: ChatRoomListItem) {
+    if (!this.adultContentService.shouldShowEntry(room.isAdultContent)) {
+      return;
+    }
+
     if (this.rooms.some(existing => existing.id === room.id)) {
       return;
     }

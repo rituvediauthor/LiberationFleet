@@ -16,6 +16,7 @@ export interface ChatRoomListItem {
   lastActivityAt: string;
   anonymousModeEnabled?: boolean;
   canToggleAnonymousMode?: boolean;
+  isAdultContent?: boolean;
 }
 
 export interface ChatRoomDetail extends ChatRoomListItem {}
@@ -66,6 +67,7 @@ export interface CreateChatRoomRequest {
   roomType: ChatRoomType;
   purpose: string;
   plaintextName: string;
+  isAdultContent?: boolean;
 }
 
 export interface UpdateChatRoomRequest {

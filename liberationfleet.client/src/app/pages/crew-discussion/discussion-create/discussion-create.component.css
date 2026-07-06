@@ -31,7 +31,20 @@ label {
   font-size: 14px;
 }
 
-.textarea {
-  resize: vertical;
-  min-height: 160px;
+.checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #444;
+  cursor: pointer;
+}
+
+.checkbox-field input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: #007AFF;
 }

@@ -18,12 +18,13 @@
                 <span class="author">{{ item.authorUsername }}</span>
                 <span class="dot">·</span>
                 <span>{{ formatActivity(item.lastActivityAt) }}</span>
+                <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
                 <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
               </p>
               <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
               <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
             </div>
-            <div class="card-thumb" *ngIf="item.thumbnailUrl">
+            <div class="card-thumb" *ngIf="item.thumbnailUrl" [class.adult-thumb-blur]="shouldBlurThumbnail(item)">
               <img [src]="item.thumbnailUrl" alt="" />
             </div>
             <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
@@ -67,12 +68,13 @@
                 <span class="dot">·</span>
                 <span>{{ formatActivity(item.lastActivityAt) }}</span>
                 <span class="muted-badge">Hidden</span>
+                <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
                 <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
               </p>
               <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
               <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
             </div>
-            <div class="card-thumb" *ngIf="item.thumbnailUrl">
+            <div class="card-thumb" *ngIf="item.thumbnailUrl" [class.adult-thumb-blur]="shouldBlurThumbnail(item)">
               <img [src]="item.thumbnailUrl" alt="" />
             </div>
             <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
@@ -97,3 +99,9 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-adult-content-gate
+  [visible]="showAdultGate"
+  (confirmed)="onAdultGateConfirmed()"
+  (declined)="onAdultGateDeclined()">
+</app-adult-content-gate>

@@ -14,7 +14,7 @@
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
     <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>
 
-    <div class="message-list" *ngIf="!loading && !loadError">
+    <div class="message-list" *ngIf="contentRevealed && !loading && !loadError">
       <article
         #messageItem
         class="message-bubble"
@@ -53,7 +53,7 @@
     </div>
   </div>
 
-  <div class="chat-action-bar">
+  <div class="chat-action-bar" *ngIf="contentRevealed">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left"></i>
     </button>
@@ -103,3 +103,9 @@
     </button>
   </div>
 </div>
+
+<app-adult-content-gate
+  [visible]="showAdultGate"
+  (confirmed)="onAdultGateConfirmed()"
+  (declined)="onAdultGateDeclined()">
+</app-adult-content-gate>

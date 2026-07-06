@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -12,6 +13,7 @@ public record GetChatRoomQuery(int RoomId) : IRequest<ChatRoomDetailResponse>;
 public class GetChatRoomQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetChatRoomQuery, ChatRoomDetailResponse>
 {
@@ -38,6 +40,13 @@ public class GetChatRoomQueryHandler(
         if (membership is null)
         {
             return new ChatRoomDetailResponse { Success = false, Message = "You are not in this crew." };
+        }
+
+        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
+        if (AdultContentAccess.IsBlocked(preference, room.IsAdultContent))
+        {
+            return new ChatRoomDetailResponse { Success = false, Message = "Chat room not found." };
         }
 
         var nameEnvelope = await cryptoRepository.GetEnvelopeAsync(

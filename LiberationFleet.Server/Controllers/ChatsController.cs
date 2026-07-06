@@ -49,7 +49,8 @@ public class ChatsController : ControllerBase
             body.KeyVersion,
             body.RoomType,
             body.Purpose,
-            body.PlaintextName));
+            body.PlaintextName,
+            body.IsAdultContent));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

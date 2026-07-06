@@ -11,7 +11,15 @@
   </div>
 </div>
 
-<div class="discussion-detail-page" *ngIf="!loading && !loadError && post as p">
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && !contentRevealed">
+  <div class="detail-action-bar">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+  </div>
+</div>
+
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
   <div class="detail-scroll" #detailScroll>
     <div class="scroll-page-body">
     <div class="post-content-card">
@@ -20,6 +28,7 @@
           <span class="author">{{ p.authorUsername }}</span>
           <span>·</span>
           <span>{{ p.createdAt | date:'medium' }}</span>
+          <span *ngIf="p.isAdultContent" class="adult-badge">18+</span>
         </p>
         <h1>{{ p.title }}</h1>
       </div>
@@ -200,3 +209,9 @@
     </button>
   </div>
 </div>
+
+<app-adult-content-gate
+  [visible]="showAdultGate"
+  (confirmed)="onAdultGateConfirmed()"
+  (declined)="onAdultGateDeclined()">
+</app-adult-content-gate>

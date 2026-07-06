@@ -25,6 +25,7 @@ export interface DiscussionListItem {
   title?: string;
   descriptionPreview?: string;
   thumbnailUrl?: string | null;
+  isAdultContent?: boolean;
 }
 
 export interface DiscussionComment {
