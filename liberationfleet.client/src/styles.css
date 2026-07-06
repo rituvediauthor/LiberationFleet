@@ -17,6 +17,16 @@ app-root {
   height: 100%;
 }
 
+.scroll-page-body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-page-body app-fallible-footer {
+  margin-top: auto;
+}
+
 .menu-wrap {
   position: relative;
 }

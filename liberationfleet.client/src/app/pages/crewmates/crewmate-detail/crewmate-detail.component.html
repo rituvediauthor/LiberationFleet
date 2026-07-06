@@ -15,10 +15,41 @@
         <ul class="role-list" *ngIf="profile.roles.length > 0">
           <li *ngFor="let role of profile.roles">{{ role }}</li>
         </ul>
-        <div class="role-actions" *ngIf="!profile.isSelf">
-          <button type="button" class="role-btn" (click)="onNominate()">Nominate</button>
-          <button type="button" class="role-btn demote" (click)="onDemote()">Demote</button>
+
+        <p *ngIf="profile.electedRoles.length > 0" class="role-hint">Select elected roles below, then use Demote in the action bar.</p>
+        <div class="elected-role-pills" *ngIf="profile.electedRoles.length > 0">
+          <button
+            type="button"
+            class="role-pill"
+            *ngFor="let elected of profile.electedRoles"
+            [class.selected]="isRoleSelected(elected.role)"
+            (click)="toggleRoleSelection(elected.role)">
+            {{ elected.displayName }}
+          </button>
         </div>
+
+        <div class="role-actions">
+          <button type="button" class="role-btn" (click)="onNominate()">Nominate</button>
+        </div>
+      </section>
+
+      <section class="section" *ngIf="profile.canExportCrewData">
+        <h2>Crew backups</h2>
+        <p class="hint-text">Download records for decentralization and recovery.</p>
+        <div class="export-actions">
+          <button type="button" class="export-btn" (click)="exportGiftLog()">Download gift log</button>
+          <button type="button" class="export-btn" (click)="exportCrewmateStates()">Download crewmate states</button>
+        </div>
+      </section>
+
+      <section class="section" *ngIf="profile.canToggleCanAttachFiles">
+        <h2>File attachments</h2>
+        <p class="hint-text">
+          {{ profile.canAttachFiles ? 'This crewmate can attach files to chats and comments.' : 'This crewmate cannot attach files.' }}
+        </p>
+        <button type="button" class="toggle-btn" [disabled]="actionLoading" (click)="onToggleCanAttachFiles()">
+          {{ profile.canAttachFiles ? 'Disable attachments' : 'Allow attachments' }}
+        </button>
       </section>
 
       <section class="section">

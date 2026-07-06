@@ -26,4 +26,5 @@ public class Proposal
     public ProposalCrewmateKick? CrewmateKick { get; set; }
     public ProposalCrewmateRejoin? CrewmateRejoin { get; set; }
     public ProposalCrewJoinRequest? CrewJoinRequest { get; set; }
+    public ProposalCrewRoleChange? CrewRoleChange { get; set; }
 }

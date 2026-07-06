@@ -158,3 +158,30 @@ export interface NextAidInfo {
   platformName?: string;
   platformHandle?: string;
 }
+
+export interface GiftHistoryRecipientSummary {
+  recipientUserId: number;
+  recipientUsername: string;
+  totalAmount: number;
+}
+
+export interface GiftHistoryRecipientListResponse {
+  success: boolean;
+  message: string;
+  items: GiftHistoryRecipientSummary[];
+}
+
+export interface GiftHistoryEntry {
+  id: number;
+  amount: number;
+  timestamp: string;
+}
+
+export interface GiftHistoryDetailResponse {
+  success: boolean;
+  message: string;
+  recipientUserId: number;
+  recipientUsername: string;
+  totalAmount: number;
+  items: GiftHistoryEntry[];
+}

@@ -211,3 +211,52 @@
 .role-btn:hover {
   filter: brightness(0.98);
 }
+
+.role-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+.elected-role-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.role-pill {
+  border: 1px solid #d8d8d8;
+  border-radius: 999px;
+  background: #f7f7f7;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.role-pill.selected {
+  border-color: #c62828;
+  background: #fff5f5;
+  color: #c62828;
+}
+
+.export-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-btn,
+.toggle-btn {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfd8ff;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #007AFF;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}

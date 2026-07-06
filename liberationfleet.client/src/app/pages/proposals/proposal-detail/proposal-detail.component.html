@@ -1,5 +1,6 @@
 <div class="proposal-detail-page" *ngIf="!loading && proposal as p">
   <div class="detail-scroll">
+    <div class="scroll-page-body">
     <div class="proposal-content-card">
       <div class="proposal-header" *ngIf="!editing">
         <div class="proposal-header-main">
@@ -172,6 +173,7 @@
       </div>
     </section>
     <app-fallible-footer></app-fallible-footer>
+    </div>
   </div>
 
   <div class="detail-action-bar" *ngIf="!editing">

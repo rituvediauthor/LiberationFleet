@@ -88,6 +88,7 @@ public class GetCrewmateProfileQueryHandler(
             Profile = CrewmateMapper.MapProfile(
                 crewmate,
                 targetMembership,
+                viewerMembership,
                 giftStats,
                 isFinancialMember,
                 priorityScore,

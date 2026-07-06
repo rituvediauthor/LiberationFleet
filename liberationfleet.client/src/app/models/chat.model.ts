@@ -14,6 +14,8 @@ export interface ChatRoomListItem {
   createdByUsername: string;
   createdAt: string;
   lastActivityAt: string;
+  anonymousModeEnabled?: boolean;
+  canToggleAnonymousMode?: boolean;
 }
 
 export interface ChatRoomDetail extends ChatRoomListItem {}

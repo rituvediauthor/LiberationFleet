@@ -22,6 +22,7 @@ export class CrewmateDetailComponent implements OnInit {
   actionLoading = false;
   showBlockDialog = false;
   showKickDialog = false;
+  selectedRoles = new Set<string>();
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
@@ -51,6 +52,23 @@ export class CrewmateDetailComponent implements OnInit {
 
   get isBlocked(): boolean {
     return this.profile?.friendshipState === 'blocked';
+  }
+
+  get hasSelectedRoles(): boolean {
+    return this.selectedRoles.size > 0;
+  }
+
+  isRoleSelected(role: string): boolean {
+    return this.selectedRoles.has(role);
+  }
+
+  toggleRoleSelection(role: string) {
+    if (this.selectedRoles.has(role)) {
+      this.selectedRoles.delete(role);
+    } else {
+      this.selectedRoles.add(role);
+    }
+    this.updateActionButtons();
   }
 
   onBlockCrewmate() {
@@ -99,11 +117,80 @@ export class CrewmateDetailComponent implements OnInit {
   }
 
   onNominate() {
-    this.toastService.error('Nominate is not available yet.');
+    this.router.navigate(['/app/crew/crewmates', this.userId, 'nominate-roles']);
   }
 
   onDemote() {
-    this.toastService.error('Demote is not available yet.');
+    if (!this.profile || this.actionLoading || this.selectedRoles.size === 0) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.updateActionButtons();
+
+    this.crewmateService.demoteRoles(this.userId, [...this.selectedRoles]).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit demotion proposal');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          this.updateActionButtons();
+          return;
+        }
+
+        this.toastService.success(response.message || 'Demotion proposal submitted');
+        this.selectedRoles.clear();
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit demotion proposal');
+        this.updateActionButtons();
+      }
+    });
+  }
+
+  onToggleCanAttachFiles() {
+    if (!this.profile || this.actionLoading || !this.profile.canToggleCanAttachFiles) {
+      return;
+    }
+
+    const nextValue = !this.profile.canAttachFiles;
+    this.actionLoading = true;
+    this.crewmateService.toggleCanAttachFiles(this.userId, nextValue).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update attachment permission');
+          return;
+        }
+
+        this.profile = { ...this.profile!, canAttachFiles: nextValue };
+        this.toastService.success(response.message);
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to update attachment permission');
+      }
+    });
+  }
+
+  exportGiftLog() {
+    this.crewmateService.exportGiftLog().subscribe({
+      next: blob => this.downloadBlob(blob, 'gift-log.json'),
+      error: () => this.toastService.error('Failed to export gift log')
+    });
+  }
+
+  exportCrewmateStates() {
+    this.crewmateService.exportCrewmateStates().subscribe({
+      next: blob => this.downloadBlob(blob, 'crewmate-states.json'),
+      error: () => this.toastService.error('Failed to export crewmate states')
+    });
   }
 
   onConfirmBlock() {
@@ -113,6 +200,16 @@ export class CrewmateDetailComponent implements OnInit {
 
   onCancelBlock() {
     this.showBlockDialog = false;
+  }
+
+  private downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    this.toastService.success('Export downloaded.');
   }
 
   private loadProfile() {
@@ -126,6 +223,7 @@ export class CrewmateDetailComponent implements OnInit {
           this.profile = null;
         } else {
           this.profile = response.profile;
+          this.selectedRoles.clear();
           this.updateActionButtons();
         }
         this.loading = false;
@@ -139,8 +237,30 @@ export class CrewmateDetailComponent implements OnInit {
   }
 
   private updateActionButtons() {
-    if (!this.profile || this.profile.isSelf) {
+    if (!this.profile) {
       this.primaryButton = null;
+      this.secondaryButton = null;
+      return;
+    }
+
+    if (this.hasSelectedRoles) {
+      this.primaryButton = {
+        label: 'Demote',
+        type: 'primary',
+        disabled: this.actionLoading,
+        onClick: () => this.onDemote()
+      };
+      this.secondaryButton = null;
+      return;
+    }
+
+    if (this.profile.isSelf) {
+      this.primaryButton = {
+        label: 'Nominate',
+        type: 'primary',
+        disabled: this.actionLoading,
+        onClick: () => this.onNominate()
+      };
       this.secondaryButton = null;
       return;
     }
@@ -164,7 +284,12 @@ export class CrewmateDetailComponent implements OnInit {
       return;
     }
 
-    this.secondaryButton = null;
+    this.secondaryButton = {
+      label: 'Nominate',
+      type: 'secondary',
+      disabled,
+      onClick: () => this.onNominate()
+    };
 
     switch (state) {
       case 'requestSent':
@@ -185,6 +310,7 @@ export class CrewmateDetailComponent implements OnInit {
         break;
       case 'blocked':
         this.primaryButton = null;
+        this.secondaryButton = null;
         break;
       default:
         this.primaryButton = {

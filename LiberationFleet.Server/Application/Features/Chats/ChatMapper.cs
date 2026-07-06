@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Domain.Entities;
@@ -6,7 +7,10 @@ namespace LiberationFleet.Server.Application.Features.Chats;
 
 public static class ChatMapper
 {
-    public static ChatRoomListItemDto MapListItem(ChatRoom room, EncryptedContentEnvelope? nameEnvelope)
+    public static ChatRoomListItemDto MapListItem(
+        ChatRoom room,
+        EncryptedContentEnvelope? nameEnvelope,
+        CrewMembership? viewerMembership = null)
     {
         var dto = new ChatRoomListItemDto
         {
@@ -16,7 +20,10 @@ public static class ChatMapper
             CreatedByUserId = room.CreatedByUserId,
             CreatedByUsername = room.CreatedByUser?.Username ?? string.Empty,
             CreatedAt = room.CreatedAt,
-            LastActivityAt = room.LastActivityAt
+            LastActivityAt = room.LastActivityAt,
+            AnonymousModeEnabled = room.AnonymousModeEnabled,
+            CanToggleAnonymousMode = viewerMembership is not null
+                && CrewRoleAuthorizationService.CanToggleAnonymousChat(viewerMembership)
         };
 
         if (nameEnvelope is not null)
@@ -33,9 +40,12 @@ public static class ChatMapper
         return dto;
     }
 
-    public static ChatRoomDetailDto MapDetail(ChatRoom room, EncryptedContentEnvelope? nameEnvelope)
+    public static ChatRoomDetailDto MapDetail(
+        ChatRoom room,
+        EncryptedContentEnvelope? nameEnvelope,
+        CrewMembership? viewerMembership = null)
     {
-        var item = MapListItem(room, nameEnvelope);
+        var item = MapListItem(room, nameEnvelope, viewerMembership);
         return new ChatRoomDetailDto
         {
             Id = item.Id,
@@ -47,7 +57,9 @@ public static class ChatMapper
             CreatedByUserId = item.CreatedByUserId,
             CreatedByUsername = item.CreatedByUsername,
             CreatedAt = item.CreatedAt,
-            LastActivityAt = item.LastActivityAt
+            LastActivityAt = item.LastActivityAt,
+            AnonymousModeEnabled = item.AnonymousModeEnabled,
+            CanToggleAnonymousMode = item.CanToggleAnonymousMode
         };
     }
 

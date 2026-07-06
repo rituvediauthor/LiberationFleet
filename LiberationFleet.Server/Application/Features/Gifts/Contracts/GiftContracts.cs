@@ -58,6 +58,37 @@ public class GiftLogResponse
     public bool HasMore { get; set; }
 }
 
+public class GiftHistoryRecipientSummaryDto
+{
+    public int RecipientUserId { get; set; }
+    public string RecipientUsername { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+}
+
+public class GiftHistoryRecipientListResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public IReadOnlyList<GiftHistoryRecipientSummaryDto> Items { get; set; } = Array.Empty<GiftHistoryRecipientSummaryDto>();
+}
+
+public class GiftHistoryEntryDto
+{
+    public int Id { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+public class GiftHistoryDetailResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int RecipientUserId { get; set; }
+    public string RecipientUsername { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+    public IReadOnlyList<GiftHistoryEntryDto> Items { get; set; } = Array.Empty<GiftHistoryEntryDto>();
+}
+
 public class GiftOperationResponse
 {
     public bool Success { get; set; }

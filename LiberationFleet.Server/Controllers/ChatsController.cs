@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Chats.Commands.CreateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.SendChatMessage;
+using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleAnonymousMode;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
@@ -76,6 +77,14 @@ public class ChatsController : ControllerBase
             roomId,
             body.PlaintextName,
             body.PlaintextPurpose));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("rooms/{roomId:int}/anonymous-mode")]
+    public async Task<IActionResult> ToggleAnonymousMode(int roomId, [FromBody] ToggleAnonymousModeRequest body)
+    {
+        body ??= new ToggleAnonymousModeRequest();
+        var result = await _mediator.Send(new ToggleAnonymousModeCommand(roomId, body.Enabled));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -85,4 +85,8 @@ export class ChatService {
       keyVersion: payload.keyVersion ?? 1
     });
   }
+
+  toggleAnonymousMode(roomId: number, enabled: boolean): Observable<ChatOperationResponse> {
+    return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/anonymous-mode`, { enabled });
+  }
 }

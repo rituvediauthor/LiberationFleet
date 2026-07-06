@@ -25,4 +25,18 @@ public interface IGiftRepository
         int crewId,
         DateTime? seasonStartDate,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<GiftRecipientSummary>> GetGiverRecipientSummariesAsync(
+        int giverUserId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Gift>> GetGiftsByGiverAndRecipientAsync(
+        int giverUserId,
+        int recipientUserId,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed class GiftRecipientSummary
+{
+    public int RecipientUserId { get; init; }
+    public string RecipientUsername { get; init; } = string.Empty;
+    public decimal TotalAmount { get; init; }
 }

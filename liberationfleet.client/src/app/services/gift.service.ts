@@ -8,6 +8,8 @@ import {
   GiftLogPage,
   GiftLogQueryOptions,
   GiftLogResponse,
+  GiftHistoryDetailResponse,
+  GiftHistoryRecipientListResponse,
   GiftOperationResponse,
   GiftRecordItem,
   GiftVerificationAction,
@@ -82,6 +84,14 @@ export class GiftService {
 
   getPendingMiddlemanGifts(): Observable<PendingMiddlemanGift[]> {
     return this.http.get<PendingMiddlemanGift[]>(`${this.apiUrl}/pending-middleman`);
+  }
+
+  getMyGiftHistory(): Observable<GiftHistoryRecipientListResponse> {
+    return this.http.get<GiftHistoryRecipientListResponse>(`${this.apiUrl}/my-history`);
+  }
+
+  getMyGiftHistoryForRecipient(recipientUserId: number): Observable<GiftHistoryDetailResponse> {
+    return this.http.get<GiftHistoryDetailResponse>(`${this.apiUrl}/my-history/${recipientUserId}`);
   }
 
   getLogs(options?: GiftLogQueryOptions): Observable<GiftLogPage> {

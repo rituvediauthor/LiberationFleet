@@ -9,6 +9,11 @@ public class CrewMembership
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     public bool IsOrganizer { get; set; }
     public bool IsHonoraryMember { get; set; }
+    public bool IsAdvocate { get; set; }
+    public bool IsDecentralizer { get; set; }
+    public bool IsCeremonialOrganizer { get; set; }
+    public bool IsModerator { get; set; }
+    public bool CanAttachFiles { get; set; } = true;
     public decimal? EstimatedMonthlyContribution { get; set; }
     public bool IsSeasonReady { get; set; }
     public bool IsInSeason { get; set; }

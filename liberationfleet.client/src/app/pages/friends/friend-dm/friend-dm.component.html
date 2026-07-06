@@ -1,5 +1,6 @@
 <div class="friend-dm-page">
   <div class="message-scroll" #messageScroll>
+    <div class="scroll-page-body">
     <h1 class="room-title">{{ friendUsername }}</h1>
 
     <p class="state-text" *ngIf="loading">Loading messages...</p>
@@ -39,6 +40,7 @@
       </article>
     </div>
     <app-fallible-footer></app-fallible-footer>
+    </div>
   </div>
 
   <div class="chat-action-bar">

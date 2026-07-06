@@ -58,6 +58,15 @@ public interface IProposalRepository
         IEnumerable<int> proposalIds,
         CancellationToken cancellationToken = default);
     Task AddCrewJoinRequestAsync(ProposalCrewJoinRequest joinRequest, CancellationToken cancellationToken = default);
+    Task<ProposalCrewRoleChange?> GetCrewRoleChangeByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewRoleChange>> GetCrewRoleChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddCrewRoleChangeAsync(ProposalCrewRoleChange roleChange, CancellationToken cancellationToken = default);
+    Task<ProposalCrewRoleChange?> GetPendingCrewRoleChangeForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default);
     Task<ProposalCrewJoinRequest?> GetPendingJoinRequestForApplicantAndCrewAsync(
         int applicantUserId,
         int crewId,

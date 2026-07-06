@@ -13,6 +13,7 @@
 
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && post as p">
   <div class="detail-scroll" #detailScroll>
+    <div class="scroll-page-body">
     <div class="post-content-card">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
@@ -147,6 +148,7 @@
       </div>
     </section>
     <app-fallible-footer></app-fallible-footer>
+    </div>
   </div>
 
   <div class="detail-action-bar" *ngIf="!editing">

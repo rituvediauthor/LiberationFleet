@@ -233,6 +233,48 @@ public class ProposalRepository : IProposalRepository
                 && r.Proposal.Kind == ProposalKind.CrewmateRejoin)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public Task<ProposalCrewRoleChange?> GetCrewRoleChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewRoleChanges
+            .FirstOrDefaultAsync(r => r.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewRoleChange>> GetCrewRoleChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewRoleChange>();
+        }
+
+        var changes = await _context.ProposalCrewRoleChanges
+            .Where(r => ids.Contains(r.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return changes.ToDictionary(r => r.ProposalId);
+    }
+
+    public async Task AddCrewRoleChangeAsync(
+        ProposalCrewRoleChange roleChange,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewRoleChanges.AddAsync(roleChange, cancellationToken);
+
+    public Task<ProposalCrewRoleChange?> GetPendingCrewRoleChangeForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewRoleChanges
+            .Include(r => r.Proposal)
+            .Where(r =>
+                r.TargetUserId == targetUserId
+                && r.Proposal.CrewId == crewId
+                && !r.Proposal.IsDeleted
+                && r.Proposal.Status == ProposalStatus.Pending
+                && r.Proposal.Kind == ProposalKind.CrewRoleChange)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<ProposalCrewJoinRequest?> GetCrewJoinRequestByProposalIdAsync(
         int proposalId,
         CancellationToken cancellationToken = default) =>

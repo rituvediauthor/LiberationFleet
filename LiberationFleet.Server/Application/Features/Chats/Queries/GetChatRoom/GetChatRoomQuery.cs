@@ -34,6 +34,12 @@ public class GetChatRoomQueryHandler(
             return new ChatRoomDetailResponse { Success = false, Message = "You are not in this crew." };
         }
 
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return new ChatRoomDetailResponse { Success = false, Message = "You are not in this crew." };
+        }
+
         var nameEnvelope = await cryptoRepository.GetEnvelopeAsync(
             EncryptedContentType.ChatRoomName,
             room.Id.ToString(),
@@ -43,7 +49,7 @@ public class GetChatRoomQueryHandler(
         {
             Success = true,
             Message = "Chat room loaded.",
-            Room = ChatMapper.MapDetail(room, nameEnvelope)
+            Room = ChatMapper.MapDetail(room, nameEnvelope, membership)
         };
     }
 }

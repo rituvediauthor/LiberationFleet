@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.Crypto.Commands.DeleteCrewAttachment;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertCrewKeyDistribution;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertEncryptedContent;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertPrivateKeyBackup;
@@ -109,5 +110,15 @@ public class CryptoController : ControllerBase
 
         var result = await _mediator.Send(new GetEncryptedContentsQuery(contentType, ids, crewId));
         return Ok(result);
+    }
+
+    [HttpDelete("content")]
+    public async Task<IActionResult> DeleteAttachment(
+        [FromQuery] EncryptedContentTypeDto contentType,
+        [FromQuery] string resourceId,
+        [FromQuery] int crewId)
+    {
+        var result = await _mediator.Send(new DeleteCrewAttachmentCommand(contentType, resourceId, crewId));
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 }

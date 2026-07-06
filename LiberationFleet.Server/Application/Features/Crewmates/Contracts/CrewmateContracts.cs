@@ -54,6 +54,7 @@ public class CrewmateProfileDto
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<CrewmateElectedRoleDto> ElectedRoles { get; set; } = Array.Empty<CrewmateElectedRoleDto>();
     public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();
     public int SacrificeCountLastSeason { get; set; }
     public decimal AverageMonthlyContributions { get; set; }
@@ -66,6 +67,70 @@ public class CrewmateProfileDto
     public bool IsSurvivalThresholdRecipient { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
     public bool IsSelf { get; set; }
+    public bool CanAttachFiles { get; set; } = true;
+    public bool CanToggleCanAttachFiles { get; set; }
+    public bool CanModerateAttachments { get; set; }
+    public bool CanExportCrewData { get; set; }
+}
+
+public class CrewmateElectedRoleDto
+{
+    public string Role { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+}
+
+public class CrewRoleDefinitionDto
+{
+    public string Role { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
+public class CrewRoleDefinitionsResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public IReadOnlyList<CrewRoleDefinitionDto> Roles { get; set; } = Array.Empty<CrewRoleDefinitionDto>();
+}
+
+public class CrewRoleChangeRequest
+{
+    public List<string> Roles { get; set; } = [];
+}
+
+public class CrewRoleChangeResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int ProposalId { get; set; }
+}
+
+public class ToggleCanAttachFilesRequest
+{
+    public bool CanAttachFiles { get; set; }
+}
+
+public class CrewmateStateExportItemDto
+{
+    public int UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public decimal LifetimeContributions { get; set; }
+    public decimal ReceptionThisYear { get; set; }
+    public int PriorityScore { get; set; }
+    public int EmergencyLevel { get; set; }
+    public int SacrificeCountLastSeason { get; set; }
+    public bool IsSurvivalThresholdRecipient { get; set; }
+    public decimal? EstimatedMonthlyContribution { get; set; }
+    public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();
+    public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
+}
+
+public class CrewmateStatesExportResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public DateTime ExportedAt { get; set; }
+    public IReadOnlyList<CrewmateStateExportItemDto> Items { get; set; } = Array.Empty<CrewmateStateExportItemDto>();
 }
 
 public class CrewmateProfileResponse

@@ -83,4 +83,13 @@ export class CryptoApiService {
 
     return this.http.get<EncryptedContentEnvelope[]>(`${this.apiUrl}/content`, { params });
   }
+
+  deleteAttachment(contentType: EncryptedContentType, resourceId: string, crewId: number): Observable<CryptoOperationResponse> {
+    const params = new HttpParams()
+      .set('contentType', contentType)
+      .set('resourceId', resourceId)
+      .set('crewId', crewId.toString());
+
+    return this.http.delete<CryptoOperationResponse>(`${this.apiUrl}/content`, { params });
+  }
 }

@@ -30,6 +30,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AnonymousModeEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -278,6 +283,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("CanAttachFiles")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<int>("CrewId")
                         .HasColumnType("int");
 
@@ -291,8 +301,23 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("IsAdvocate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsBanned")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsCeremonialOrganizer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDecentralizer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsHonoraryMember")
                         .ValueGeneratedOnAdd()
@@ -300,6 +325,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<bool>("IsInSeason")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsModerator")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -1749,6 +1779,49 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ProposalCrewJoinRequests");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRoleChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RolesJson")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("TargetUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewRoleChanges");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", b =>
                 {
                     b.Property<int>("Id")
@@ -2870,6 +2943,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Proposal");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRoleChange", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewRoleChange")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewRoleChange", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewRuleChange", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
@@ -3113,6 +3197,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("CrewChatChange");
 
                     b.Navigation("CrewJoinRequest");
+
+                    b.Navigation("CrewRoleChange");
 
                     b.Navigation("CrewRuleChange");
 

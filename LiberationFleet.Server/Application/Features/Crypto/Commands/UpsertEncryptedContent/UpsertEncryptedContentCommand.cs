@@ -1,8 +1,10 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertEncryptedContent;
@@ -21,6 +23,13 @@ public class UpsertEncryptedContentCommandHandler(
     ICryptoRepository cryptoRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertEncryptedContentCommand, CryptoOperationResponse>
 {
+    private static readonly HashSet<EncryptedContentType> AttachmentTypes =
+    [
+        EncryptedContentType.ImageAsset,
+        EncryptedContentType.VideoAsset,
+        EncryptedContentType.AudioAsset
+    ];
+
     public async Task<CryptoOperationResponse> Handle(UpsertEncryptedContentCommand request, CancellationToken cancellationToken)
     {
         if (!currentUser.UserId.HasValue)
@@ -35,13 +44,30 @@ public class UpsertEncryptedContentCommandHandler(
             return new CryptoOperationResponse { Success = false, Message = "Encrypted content payload is required." };
         }
 
-        if (request.CrewId.HasValue
-            && !await membershipRepository.IsUserInCrewAsync(currentUser.UserId.Value, request.CrewId.Value, cancellationToken))
+        var userId = currentUser.UserId.Value;
+        var domainType = CryptoMapper.ToDomain(request.ContentType);
+
+        if (request.CrewId.HasValue)
         {
-            return new CryptoOperationResponse { Success = false, Message = "You are not in this crew." };
+            if (!await membershipRepository.IsUserInCrewAsync(userId, request.CrewId.Value, cancellationToken))
+            {
+                return new CryptoOperationResponse { Success = false, Message = "You are not in this crew." };
+            }
+
+            if (AttachmentTypes.Contains(domainType))
+            {
+                var membership = await membershipRepository.GetMembershipAsync(userId, request.CrewId.Value, cancellationToken);
+                if (membership is null || !membership.CanAttachFiles)
+                {
+                    return new CryptoOperationResponse
+                    {
+                        Success = false,
+                        Message = "You are not allowed to attach files in this crew."
+                    };
+                }
+            }
         }
 
-        var userId = currentUser.UserId.Value;
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = CryptoMapper.ToDomain(request.ContentType),

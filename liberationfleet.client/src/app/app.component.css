@@ -3,6 +3,11 @@
   height: 100%;
 }
 
+.app-container > :not(router-outlet):not(app-toast-container):not(app-crypto-unlock-dialog) {
+  display: block;
+  height: 100%;
+}
+
 .app-container.with-dev-toolbar {
   padding-top: 40px;
 }

@@ -12,6 +12,8 @@ import { FriendBlockedComponent } from './pages/friends/friend-blocked/friend-bl
 import { FindFriendComponent } from './pages/friends/find-friend/find-friend.component';
 import { FriendDmComponent } from './pages/friends/friend-dm/friend-dm.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { GiftHistoryListComponent } from './pages/profile/gift-history-list/gift-history-list.component';
+import { GiftHistoryDetailComponent } from './pages/profile/gift-history-detail/gift-history-detail.component';
 import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
@@ -43,6 +45,7 @@ import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-list.component';
 import { KickedCrewmatesListComponent } from './pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component';
 import { CrewmateDetailComponent } from './pages/crewmates/crewmate-detail/crewmate-detail.component';
+import { NominateRolesComponent } from './pages/crewmates/nominate-roles/nominate-roles.component';
 import { LibraryHubComponent } from './pages/library/library-hub/library-hub.component';
 import { LibraryUnlockComponent } from './pages/library/library-unlock/library-unlock.component';
 import { LibraryDurableListComponent } from './pages/library/library-durable-list/library-durable-list.component';
@@ -130,6 +133,17 @@ export const routes: Routes = [
   {
     path: 'app/profile/user',
     component: ProfileComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/gift-history',
+    component: GiftHistoryListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/gift-history/:userId',
+    component: GiftHistoryDetailComponent,
     canActivate: [authGuard]
   },
   {
@@ -305,6 +319,11 @@ export const routes: Routes = [
     path: 'app/crew/crewmates/kicked',
     component: KickedCrewmatesListComponent,
     pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/crewmates/:id/nominate-roles',
+    component: NominateRolesComponent,
     canActivate: [authGuard]
   },
   {

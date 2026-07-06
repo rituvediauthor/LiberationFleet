@@ -25,6 +25,8 @@ import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
+import { CrewmateService } from '../../../services/crewmate.service';
+import { CryptoApiService } from '../../../services/crypto/crypto-api.service';
 import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
@@ -48,6 +50,10 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   roomId = 0;
   roomName = 'Chat';
+  anonymousModeEnabled = false;
+  canToggleAnonymousMode = false;
+  canModerateAttachments = false;
+  canAttachFiles = true;
   messages: ChatMessage[] = [];
   crewId = 0;
   currentUserId: number | null = null;
@@ -74,6 +80,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private profileService = inject(ProfileService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
+  private crewmateService = inject(CrewmateService);
+  private cryptoApi = inject(CryptoApiService);
   private toastService = inject(ToastService);
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
@@ -100,6 +108,16 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.authorDisplayName = profile.username;
+        if (this.currentUserId) {
+          this.crewmateService.getCrewmateProfile(this.currentUserId).subscribe({
+            next: response => {
+              if (response.success && response.profile) {
+                this.canModerateAttachments = response.profile.canModerateAttachments;
+                this.canAttachFiles = response.profile.canAttachFiles;
+              }
+            }
+          });
+        }
       }
     });
 
@@ -250,13 +268,71 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.currentUserId != null && message.authorUserId === this.currentUserId;
   }
 
+  displayAuthor(message: ChatMessage): string {
+    if (this.anonymousModeEnabled && !this.isOwnMessage(message)) {
+      return 'Anonymous';
+    }
+
+    return message.authorUsername;
+  }
+
+  toggleAnonymousMode() {
+    if (!this.canToggleAnonymousMode) {
+      return;
+    }
+
+    const nextValue = !this.anonymousModeEnabled;
+    this.chatService.toggleAnonymousMode(this.roomId, nextValue).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to toggle anonymous mode');
+          return;
+        }
+
+        this.anonymousModeEnabled = nextValue;
+        this.toastService.success(response.message);
+      },
+      error: () => this.toastService.error('Failed to toggle anonymous mode')
+    });
+  }
+
+  onAttachmentDeleted(resourceId: string, message: ChatMessage) {
+    const attachment = message.resolvedAttachments?.find(item => item.resourceId === resourceId);
+    if (!attachment || !this.crewId) {
+      return;
+    }
+
+    const contentType = attachment.type === 'video'
+      ? 'VideoAsset'
+      : attachment.type === 'audio'
+        ? 'AudioAsset'
+        : 'ImageAsset';
+
+    this.cryptoApi.deleteAttachment(contentType, resourceId, this.crewId).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to delete attachment');
+          return;
+        }
+
+        message.resolvedAttachments = (message.resolvedAttachments ?? [])
+          .filter(item => item.resourceId !== resourceId);
+        this.toastService.success('Attachment deleted.');
+      },
+      error: () => this.toastService.error('Failed to delete attachment')
+    });
+  }
+
   private loadRoomName() {
-    this.chatService.getRooms().subscribe({
+    this.chatService.getRoom(this.roomId).subscribe({
       next: async response => {
-        const room = response.items?.find(item => item.id === this.roomId);
+        const room = response.room;
         if (!room) {
           return;
         }
+
+        this.anonymousModeEnabled = !!room.anonymousModeEnabled;
+        this.canToggleAnonymousMode = !!room.canToggleAnonymousMode;
 
         const decrypted = this.crewId > 0
           ? await this.chatCrypto.decryptRoom(room, this.crewId)

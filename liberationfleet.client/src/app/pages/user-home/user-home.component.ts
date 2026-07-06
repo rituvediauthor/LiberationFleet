@@ -16,6 +16,10 @@ export class UserHomeComponent {
     this.router.navigate(['/app/profile/user']);
   }
 
+  goToGiftHistory() {
+    this.router.navigate(['/app/profile/gift-history']);
+  }
+
   goToActivityCenter() {
     this.router.navigate(['/app/profile/activity']);
   }

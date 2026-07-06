@@ -1,9 +1,12 @@
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGift;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.CompleteMiddlemanGift;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.ExportCrewGiftLog;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewMembers;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetPendingMiddlemanGifts;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistory;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistoryForRecipient;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetNextAid;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
@@ -26,6 +29,27 @@ public class GiftsController : ControllerBase
     public GiftsController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet("my-history")]
+    public async Task<IActionResult> GetMyGiftHistory()
+    {
+        var result = await _mediator.Send(new GetMyGiftHistoryQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("my-history/{recipientUserId:int}")]
+    public async Task<IActionResult> GetMyGiftHistoryForRecipient(int recipientUserId)
+    {
+        var result = await _mediator.Send(new GetMyGiftHistoryForRecipientQuery(recipientUserId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportLog()
+    {
+        var result = await _mediator.Send(new ExportCrewGiftLogQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet("log")]

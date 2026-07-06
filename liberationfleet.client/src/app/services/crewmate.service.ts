@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
   CrewmateKickResponse,
+  CrewRoleChangeResponse,
+  CrewRoleDefinitionsResponse,
   KickedCrewmateListResponse,
   CrewmateListItem,
   CrewmateListResponse,
@@ -85,6 +87,30 @@ export class CrewmateService {
     return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/allow-rejoin`, {});
   }
 
+  getRoleDefinitions(): Observable<CrewRoleDefinitionsResponse> {
+    return this.http.get<CrewRoleDefinitionsResponse>(`${this.apiUrl}/roles`);
+  }
+
+  nominateRoles(userId: number, roles: string[]): Observable<CrewRoleChangeResponse> {
+    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/nominate-roles`, { roles });
+  }
+
+  demoteRoles(userId: number, roles: string[]): Observable<CrewRoleChangeResponse> {
+    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/demote-roles`, { roles });
+  }
+
+  toggleCanAttachFiles(userId: number, canAttachFiles: boolean): Observable<CrewmateOperationResponse> {
+    return this.http.put<CrewmateOperationResponse>(`${this.apiUrl}/${userId}/can-attach-files`, { canAttachFiles });
+  }
+
+  exportCrewmateStates(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/export-states`, { responseType: 'blob' });
+  }
+
+  exportGiftLog(): Observable<Blob> {
+    return this.http.get('/api/gifts/export', { responseType: 'blob' });
+  }
+
   private mapListItem(item: CrewmateListItem): CrewmateListItem {
     return {
       ...item,
@@ -97,6 +123,11 @@ export class CrewmateService {
     return {
       ...profile,
       roles: profile.roles ?? [],
+      electedRoles: profile.electedRoles ?? [],
+      canAttachFiles: profile.canAttachFiles ?? true,
+      canToggleCanAttachFiles: !!profile.canToggleCanAttachFiles,
+      canModerateAttachments: !!profile.canModerateAttachments,
+      canExportCrewData: !!profile.canExportCrewData,
       friendshipState: mapFriendshipState(profile.friendshipState as unknown as number | string)
     };
   }

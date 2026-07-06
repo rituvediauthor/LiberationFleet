@@ -1,0 +1,25 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+  <div class="nominate-roles-page">
+    <p *ngIf="loading" class="state-text">Loading roles...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <div *ngIf="!loading && !errorMessage">
+      <h1 class="page-title">Nominate {{ targetUsername }}</h1>
+      <p class="page-subtitle">Select one or more roles to nominate this crewmate for. The crew will vote on the proposal.</p>
+
+      <p *ngIf="roles.length === 0" class="empty-text">This crewmate already holds every elected role.</p>
+
+      <div class="role-cards" *ngIf="roles.length > 0">
+        <button
+          type="button"
+          class="role-card"
+          *ngFor="let role of roles"
+          [class.selected]="isSelected(role.role)"
+          (click)="toggleRole(role.role)">
+          <span class="role-name">{{ role.displayName }}</span>
+          <p class="role-description">{{ role.description }}</p>
+        </button>
+      </div>
+    </div>
+  </div>
+</app-page-layout>

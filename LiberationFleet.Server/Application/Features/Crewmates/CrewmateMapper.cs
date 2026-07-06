@@ -94,6 +94,7 @@ public static class CrewmateMapper
     public static CrewmateProfileDto MapProfile(
         User crewmate,
         CrewMembership membership,
+        CrewMembership viewerMembership,
         CrewmateGiftStatsDto giftStats,
         bool isFinancialMember,
         decimal priorityScore,
@@ -105,6 +106,7 @@ public static class CrewmateMapper
             UserId = crewmate.Id,
             Username = crewmate.Username,
             Roles = CrewRoleMapper.MapRoles(membership),
+            ElectedRoles = CrewRoleMapper.MapElectedRoleDtos(membership),
             PaymentPlatforms = MapPaymentPlatforms(crewmate),
             SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
@@ -116,6 +118,10 @@ public static class CrewmateMapper
             EmergencyLevel = crewmate.EmergencyLevel,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             FriendshipState = friendshipState,
-            IsSelf = isSelf
+            IsSelf = isSelf,
+            CanAttachFiles = membership.CanAttachFiles,
+            CanToggleCanAttachFiles = CrewRoleAuthorizationService.CanToggleCanAttachFiles(viewerMembership),
+            CanModerateAttachments = CrewRoleAuthorizationService.CanModerateAttachments(viewerMembership),
+            CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership)
         };
 }

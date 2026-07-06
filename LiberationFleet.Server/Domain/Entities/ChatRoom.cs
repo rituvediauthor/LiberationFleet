@@ -13,6 +13,7 @@ public class ChatRoom
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; }
+    public bool AnonymousModeEnabled { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User CreatedByUser { get; set; } = null!;

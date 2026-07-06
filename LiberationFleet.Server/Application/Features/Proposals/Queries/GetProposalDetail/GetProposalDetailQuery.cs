@@ -23,6 +23,7 @@ public class GetProposalDetailQueryHandler(
     CrewmateKickProposalService crewmateKickProposalService,
     CrewmateRejoinProposalService crewmateRejoinProposalService,
     CrewJoinRequestProposalService crewJoinRequestProposalService,
+    CrewRoleProposalService crewRoleProposalService,
     ProposalAnonymousAliasService aliasService,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
@@ -64,6 +65,7 @@ public class GetProposalDetailQueryHandler(
             crewmateKickProposalService,
             crewmateRejoinProposalService,
             crewJoinRequestProposalService,
+            crewRoleProposalService,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -98,6 +100,10 @@ public class GetProposalDetailQueryHandler(
 
         var crewJoinRequest = proposal.Kind == ProposalKind.CrewJoinRequest
             ? await proposalRepository.GetCrewJoinRequestByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewRoleChange = proposal.Kind == ProposalKind.CrewRoleChange
+            ? await proposalRepository.GetCrewRoleChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
@@ -168,6 +174,7 @@ public class GetProposalDetailQueryHandler(
                 crewmateKick,
                 crewmateRejoin,
                 crewJoinRequest,
+                crewRoleChange,
                 currentUserVote,
                 viewerAlias)
         };

@@ -28,10 +28,34 @@ export interface CrewmatePaymentPlatform {
   isPreferred: boolean;
 }
 
+export interface CrewmateElectedRole {
+  role: string;
+  displayName: string;
+}
+
+export interface CrewRoleDefinition {
+  role: string;
+  displayName: string;
+  description: string;
+}
+
+export interface CrewRoleDefinitionsResponse {
+  success: boolean;
+  message: string;
+  roles: CrewRoleDefinition[];
+}
+
+export interface CrewRoleChangeResponse {
+  success: boolean;
+  message: string;
+  proposalId: number;
+}
+
 export interface CrewmateProfile {
   userId: number;
   username: string;
   roles: string[];
+  electedRoles: CrewmateElectedRole[];
   paymentPlatforms: CrewmatePaymentPlatform[];
   sacrificeCountLastSeason: number;
   averageMonthlyContributions: number;
@@ -44,6 +68,10 @@ export interface CrewmateProfile {
   isSurvivalThresholdRecipient: boolean;
   friendshipState: CrewmateFriendshipState;
   isSelf: boolean;
+  canAttachFiles: boolean;
+  canToggleCanAttachFiles: boolean;
+  canModerateAttachments: boolean;
+  canExportCrewData: boolean;
 }
 
 export interface CrewmateProfileResponse {

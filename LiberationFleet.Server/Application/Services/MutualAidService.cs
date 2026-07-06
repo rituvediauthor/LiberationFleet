@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
@@ -526,7 +527,7 @@ public partial class MutualAidService(
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false)
     {
-        if (membership.IsHonoraryMember)
+        if (membership.IsHonoraryMember || CrewRoleMapper.HasAnyRole(membership))
         {
             return true;
         }

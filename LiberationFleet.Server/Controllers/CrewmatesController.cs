@@ -1,7 +1,12 @@
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.AllowCrewmateRejoin;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.DemoteCrewRoles;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.NominateCrewRoles;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.ToggleCanAttachFiles;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Crewmates.Queries.ExportCrewmateStates;
+using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewRoleDefinitions;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetKickedCrewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmates;
@@ -27,6 +32,20 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> GetKicked()
     {
         var result = await _mediator.Send(new GetKickedCrewmatesQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("roles")]
+    public async Task<IActionResult> GetRoleDefinitions()
+    {
+        var result = await _mediator.Send(new GetCrewRoleDefinitionsQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("export-states")]
+    public async Task<IActionResult> ExportStates()
+    {
+        var result = await _mediator.Send(new ExportCrewmateStatesQuery());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -98,6 +117,30 @@ public class CrewmatesController : ControllerBase
     {
         body ??= new KickCrewmateRequest();
         var result = await _mediator.Send(new KickCrewmateCommand(userId, body.Reason));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/nominate-roles")]
+    public async Task<IActionResult> NominateRoles(int userId, [FromBody] CrewRoleChangeRequest body)
+    {
+        body ??= new CrewRoleChangeRequest();
+        var result = await _mediator.Send(new NominateCrewRolesCommand(userId, body.Roles));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/demote-roles")]
+    public async Task<IActionResult> DemoteRoles(int userId, [FromBody] CrewRoleChangeRequest body)
+    {
+        body ??= new CrewRoleChangeRequest();
+        var result = await _mediator.Send(new DemoteCrewRolesCommand(userId, body.Roles));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("{userId:int}/can-attach-files")]
+    public async Task<IActionResult> ToggleCanAttachFiles(int userId, [FromBody] ToggleCanAttachFilesRequest body)
+    {
+        body ??= new ToggleCanAttachFilesRequest();
+        var result = await _mediator.Send(new ToggleCanAttachFilesCommand(userId, body.CanAttachFiles));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

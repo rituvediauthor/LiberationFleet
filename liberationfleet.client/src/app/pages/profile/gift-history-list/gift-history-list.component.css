@@ -1,0 +1,74 @@
+.gift-history-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #222;
+}
+
+.page-subtitle {
+  margin: 0 0 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: #d32f2f;
+}
+
+.recipient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.recipient-row:hover {
+  border-color: #007AFF;
+  background: #f8fbff;
+}
+
+.recipient-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipient-name {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.recipient-total {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.chevron {
+  color: #999;
+  flex-shrink: 0;
+}

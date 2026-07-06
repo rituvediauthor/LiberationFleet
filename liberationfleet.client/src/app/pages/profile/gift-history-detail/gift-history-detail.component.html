@@ -1,0 +1,22 @@
+<app-page-layout [backButton]="backButton">
+  <div class="gift-history-detail-page">
+    <p *ngIf="loading" class="state-text">Loading gift history...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <div *ngIf="!loading && !errorMessage">
+      <h1 class="page-title">{{ recipientUsername }}</h1>
+      <p class="page-subtitle">Total given: ${{ totalAmount }}</p>
+
+      <p *ngIf="gifts.length === 0" class="state-text">No gifts found.</p>
+
+      <ol class="gift-list" *ngIf="gifts.length > 0">
+        <li class="gift-item" *ngFor="let gift of gifts">
+          <div class="gift-main">
+            <span class="gift-amount">${{ gift.amount }}</span>
+            <span class="gift-timestamp">{{ gift.timestamp | date:'medium' }}</span>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+</app-page-layout>

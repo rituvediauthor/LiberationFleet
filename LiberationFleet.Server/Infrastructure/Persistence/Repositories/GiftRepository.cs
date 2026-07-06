@@ -213,4 +213,54 @@ public class GiftRepository : IGiftRepository
                 .SumAsync(g => g.Amount, cancellationToken)
         };
     }
+
+    public async Task<IReadOnlyList<GiftRecipientSummary>> GetGiverRecipientSummariesAsync(
+        int giverUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var grouped = await _context.Gifts
+            .Where(g => g.GiverUserId == giverUserId
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))
+            .GroupBy(g => g.RecipientUserId)
+            .Select(g => new
+            {
+                RecipientUserId = g.Key,
+                TotalAmount = g.Sum(x => x.Amount)
+            })
+            .ToListAsync(cancellationToken);
+
+        if (grouped.Count == 0)
+        {
+            return [];
+        }
+
+        var recipientIds = grouped.Select(g => g.RecipientUserId).ToList();
+        var usernames = await _context.Users
+            .Where(u => recipientIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Username, cancellationToken);
+
+        return grouped
+            .Select(g => new GiftRecipientSummary
+            {
+                RecipientUserId = g.RecipientUserId,
+                RecipientUsername = usernames.GetValueOrDefault(g.RecipientUserId, "Unknown"),
+                TotalAmount = g.TotalAmount
+            })
+            .OrderBy(g => g.RecipientUsername, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<Gift>> GetGiftsByGiverAndRecipientAsync(
+        int giverUserId,
+        int recipientUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Gifts
+            .Where(g => g.GiverUserId == giverUserId
+                && g.RecipientUserId == recipientUserId
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))
+            .OrderByDescending(g => g.CreatedAt)
+            .ThenByDescending(g => g.Id)
+            .ToListAsync(cancellationToken);
+    }
 }

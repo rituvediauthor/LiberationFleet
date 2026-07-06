@@ -15,6 +15,8 @@ public class ChatRoomListItemDto
     public string CreatedByUsername { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime LastActivityAt { get; set; }
+    public bool AnonymousModeEnabled { get; set; }
+    public bool CanToggleAnonymousMode { get; set; }
 }
 
 public class ChatRoomDetailDto : ChatRoomListItemDto
@@ -96,6 +98,11 @@ public class SendChatMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+}
+
+public class ToggleAnonymousModeRequest
+{
+    public bool Enabled { get; set; }
 }
 
 public class UpdateChatMessageRequest

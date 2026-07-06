@@ -23,6 +23,7 @@ public class GetCrewProposalsQueryHandler(
     CrewmateKickProposalService crewmateKickProposalService,
     CrewmateRejoinProposalService crewmateRejoinProposalService,
     CrewJoinRequestProposalService crewJoinRequestProposalService,
+    CrewRoleProposalService crewRoleProposalService,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
@@ -57,6 +58,7 @@ public class GetCrewProposalsQueryHandler(
                 crewmateKickProposalService,
                 crewmateRejoinProposalService,
                 crewJoinRequestProposalService,
+                crewRoleProposalService,
                 cancellationToken);
         }
 
@@ -102,6 +104,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewJoinRequest).Select(p => p.Id),
             cancellationToken);
 
+        var crewRoleChanges = await proposalRepository.GetCrewRoleChangesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewRoleChange).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -117,6 +123,7 @@ public class GetCrewProposalsQueryHandler(
             crewmateKicks.TryGetValue(proposal.Id, out var crewmateKick);
             crewmateRejoins.TryGetValue(proposal.Id, out var crewmateRejoin);
             crewJoinRequests.TryGetValue(proposal.Id, out var crewJoinRequest);
+            crewRoleChanges.TryGetValue(proposal.Id, out var crewRoleChange);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -128,6 +135,7 @@ public class GetCrewProposalsQueryHandler(
                 crewmateKick,
                 crewmateRejoin,
                 crewJoinRequest,
+                crewRoleChange,
                 currentUserVote));
         }
 

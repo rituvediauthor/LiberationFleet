@@ -35,6 +35,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalCrewmateKick> ProposalCrewmateKicks => Set<ProposalCrewmateKick>();
     public DbSet<ProposalCrewmateRejoin> ProposalCrewmateRejoins => Set<ProposalCrewmateRejoin>();
     public DbSet<ProposalCrewJoinRequest> ProposalCrewJoinRequests => Set<ProposalCrewJoinRequest>();
+    public DbSet<ProposalCrewRoleChange> ProposalCrewRoleChanges => Set<ProposalCrewRoleChange>();
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
@@ -158,6 +159,11 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => new { e.UserId, e.CrewId }).IsUnique();
             entity.Property(e => e.IsOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsHonoraryMember).HasDefaultValue(false);
+            entity.Property(e => e.IsAdvocate).HasDefaultValue(false);
+            entity.Property(e => e.IsDecentralizer).HasDefaultValue(false);
+            entity.Property(e => e.IsCeremonialOrganizer).HasDefaultValue(false);
+            entity.Property(e => e.IsModerator).HasDefaultValue(false);
+            entity.Property(e => e.CanAttachFiles).HasDefaultValue(true);
             entity.Property(e => e.EstimatedMonthlyContribution).HasPrecision(18, 2);
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
             entity.Property(e => e.IsInSeason).HasDefaultValue(false);
@@ -402,6 +408,19 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<ProposalCrewRoleChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.RolesJson).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewRoleChange)
+                .HasForeignKey<ProposalCrewRoleChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<ProposalAnonymousAlias>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -517,6 +536,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
             entity.Property(e => e.Purpose).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.AnonymousModeEnabled).HasDefaultValue(false);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
