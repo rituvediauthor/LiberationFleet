@@ -27,6 +27,41 @@
   color: #222;
 }
 
+.non-member-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.claim-section {
+  background: #f9fbff;
+  border: 1px solid #cfe3ff;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.claim-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #007AFF;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.claim-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .section {
   margin-bottom: 20px;
   padding-bottom: 20px;

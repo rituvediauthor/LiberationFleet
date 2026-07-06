@@ -16,7 +16,8 @@ public class GetCrewmateProfileQueryHandler(
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
     IFriendshipRepository friendshipRepository,
-    IUserBlockRepository blockRepository) : IRequestHandler<GetCrewmateProfileQuery, CrewmateProfileResponse>
+    IUserBlockRepository blockRepository,
+    IProposalRepository proposalRepository) : IRequestHandler<GetCrewmateProfileQuery, CrewmateProfileResponse>
 {
     public async Task<CrewmateProfileResponse> Handle(GetCrewmateProfileQuery request, CancellationToken cancellationToken)
     {
@@ -81,6 +82,18 @@ public class GetCrewmateProfileQueryHandler(
         var viewerBlockedTarget = await blockRepository.IsBlockedAsync(viewerId, request.UserId, cancellationToken);
         var targetBlockedViewer = await blockRepository.IsBlockedAsync(request.UserId, viewerId, cancellationToken);
 
+        var canClaimIdentity = false;
+        if (targetMembership.IsPlaceholderMember
+            && crewmate.IsUnclaimedPlaceholder
+            && viewerId != request.UserId)
+        {
+            var pendingClaim = await proposalRepository.GetPendingClaimPlaceholderIdentityForPlaceholderAsync(
+                viewerMembership.CrewId,
+                request.UserId,
+                cancellationToken);
+            canClaimIdentity = pendingClaim is null;
+        }
+
         return new CrewmateProfileResponse
         {
             Success = true,
@@ -99,7 +112,8 @@ public class GetCrewmateProfileQueryHandler(
                     friendship,
                     viewerBlockedTarget,
                     targetBlockedViewer),
-                viewerId == request.UserId)
+                viewerId == request.UserId,
+                canClaimIdentity)
         };
     }
 }

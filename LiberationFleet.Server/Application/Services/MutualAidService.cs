@@ -712,6 +712,25 @@ public partial class MutualAidService(
         }, cancellationToken);
     }
 
+    public async Task EnsureMemberInActiveSeasonAsync(
+        int crewId,
+        CrewMembership membership,
+        CancellationToken cancellationToken = default)
+    {
+        if (membership.IsInSeason)
+        {
+            return;
+        }
+
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted)
+        {
+            return;
+        }
+
+        await JoinActiveSeasonAsync(crew, membership, cancellationToken);
+    }
+
     private static int GetInsertPositionForNewCycle(
         IReadOnlyList<SeasonCycle> cycles,
         decimal priorityScore)

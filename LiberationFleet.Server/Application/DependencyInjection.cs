@@ -26,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<CrewmateRejoinProposalService>();
         services.AddScoped<CrewJoinRequestProposalService>();
         services.AddScoped<CrewRoleProposalService>();
+        services.AddScoped<ClaimPlaceholderIdentityProposalService>();
+        services.AddScoped<PlaceholderCrewmateService>();
         services.AddScoped<ProposalAnonymousAliasService>();
         services.AddScoped<EmptyCrewCleanupService>();
         services.AddScoped<LibraryContributionGiftService>();

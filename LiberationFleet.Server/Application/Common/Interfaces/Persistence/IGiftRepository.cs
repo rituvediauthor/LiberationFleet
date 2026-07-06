@@ -32,6 +32,11 @@ public interface IGiftRepository
         int giverUserId,
         int recipientUserId,
         CancellationToken cancellationToken = default);
+    Task ReassignPlaceholderGiftRecipientsAsync(
+        int crewId,
+        int fromUserId,
+        int toUserId,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class GiftRecipientSummary

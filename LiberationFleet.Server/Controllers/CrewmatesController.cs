@@ -1,4 +1,6 @@
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.AddPlaceholderCrewmate;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.AllowCrewmateRejoin;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.ClaimPlaceholderIdentity;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.DemoteCrewRoles;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
@@ -46,6 +48,14 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> ExportStates()
     {
         var result = await _mediator.Send(new ExportCrewmateStatesQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("placeholders")]
+    public async Task<IActionResult> AddPlaceholder([FromBody] AddPlaceholderCrewmateRequest body)
+    {
+        body ??= new AddPlaceholderCrewmateRequest();
+        var result = await _mediator.Send(new AddPlaceholderCrewmateCommand(body.Name, body.PaymentPlatforms));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -141,6 +151,13 @@ public class CrewmatesController : ControllerBase
     {
         body ??= new ToggleCanAttachFilesRequest();
         var result = await _mediator.Send(new ToggleCanAttachFilesCommand(userId, body.CanAttachFiles));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/claim-identity")]
+    public async Task<IActionResult> ClaimIdentity(int userId)
+    {
+        var result = await _mediator.Send(new ClaimPlaceholderIdentityCommand(userId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

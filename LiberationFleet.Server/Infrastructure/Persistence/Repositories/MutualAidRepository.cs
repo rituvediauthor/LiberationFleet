@@ -180,4 +180,69 @@ public class MutualAidRepository : IMutualAidRepository
 
         return latest is null ? null : (latest.Year, latest.Month);
     }
+
+    public async Task MergePlaceholderIdentityDataAsync(
+        int crewId,
+        int placeholderUserId,
+        int claimantUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var crew = await GetCrewAsync(crewId, cancellationToken);
+        if (crew?.CurrentSeasonStartDate is not null)
+        {
+            var placeholderCycle = await GetSeasonCycleAsync(
+                crewId,
+                placeholderUserId,
+                crew.CurrentSeasonStartDate.Value,
+                cancellationToken);
+            var claimantCycle = await GetSeasonCycleAsync(
+                crewId,
+                claimantUserId,
+                crew.CurrentSeasonStartDate.Value,
+                cancellationToken);
+
+            if (placeholderCycle is not null)
+            {
+                if (claimantCycle is not null)
+                {
+                    claimantCycle.TotalReceptionAmount += placeholderCycle.TotalReceptionAmount;
+                    claimantCycle.SurvivalThresholdReceived += placeholderCycle.SurvivalThresholdReceived;
+                    claimantCycle.CycleReceived += placeholderCycle.CycleReceived;
+                    claimantCycle.CycleCompleted = claimantCycle.CycleCompleted || placeholderCycle.CycleCompleted;
+                    claimantCycle.HasCycleStarted = claimantCycle.HasCycleStarted || placeholderCycle.HasCycleStarted;
+                    _context.SeasonCycles.Remove(placeholderCycle);
+                }
+                else
+                {
+                    placeholderCycle.UserId = claimantUserId;
+                }
+            }
+        }
+
+        var thresholds = await _context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == crewId && t.UserId == placeholderUserId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var threshold in thresholds)
+        {
+            var claimantThreshold = await _context.MonthlySurvivalThresholds
+                .FirstOrDefaultAsync(
+                    t => t.CrewId == crewId
+                        && t.UserId == claimantUserId
+                        && t.Year == threshold.Year
+                        && t.Month == threshold.Month,
+                    cancellationToken);
+
+            if (claimantThreshold is not null)
+            {
+                claimantThreshold.ReceivedAmount += threshold.ReceivedAmount;
+                claimantThreshold.Satisfied = claimantThreshold.ReceivedAmount >= claimantThreshold.ThresholdAmount;
+                _context.MonthlySurvivalThresholds.Remove(threshold);
+            }
+            else
+            {
+                threshold.UserId = claimantUserId;
+            }
+        }
+    }
 }

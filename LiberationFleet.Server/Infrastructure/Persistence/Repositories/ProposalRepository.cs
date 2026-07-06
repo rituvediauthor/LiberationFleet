@@ -275,6 +275,48 @@ public class ProposalRepository : IProposalRepository
                 && r.Proposal.Kind == ProposalKind.CrewRoleChange)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public Task<ProposalClaimPlaceholderIdentity?> GetClaimPlaceholderIdentityByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalClaimPlaceholderIdentities
+            .FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalClaimPlaceholderIdentity>> GetClaimPlaceholderIdentitiesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalClaimPlaceholderIdentity>();
+        }
+
+        var claims = await _context.ProposalClaimPlaceholderIdentities
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return claims.ToDictionary(c => c.ProposalId);
+    }
+
+    public async Task AddClaimPlaceholderIdentityAsync(
+        ProposalClaimPlaceholderIdentity claim,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalClaimPlaceholderIdentities.AddAsync(claim, cancellationToken);
+
+    public Task<ProposalClaimPlaceholderIdentity?> GetPendingClaimPlaceholderIdentityForPlaceholderAsync(
+        int crewId,
+        int placeholderUserId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalClaimPlaceholderIdentities
+            .Include(c => c.Proposal)
+            .Where(c =>
+                c.PlaceholderUserId == placeholderUserId
+                && c.Proposal.CrewId == crewId
+                && !c.Proposal.IsDeleted
+                && c.Proposal.Status == ProposalStatus.Pending
+                && c.Proposal.Kind == ProposalKind.ClaimPlaceholderIdentity)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<ProposalCrewJoinRequest?> GetCrewJoinRequestByProposalIdAsync(
         int proposalId,
         CancellationToken cancellationToken = default) =>

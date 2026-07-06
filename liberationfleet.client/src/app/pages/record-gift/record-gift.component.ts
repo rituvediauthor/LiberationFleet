@@ -313,6 +313,10 @@ export class RecordGiftComponent implements OnInit {
     this.form.patchValue({ customPaymentPlatformId: defaultId }, { emitEvent: true });
   }
 
+  onAddNonCrewmate() {
+    this.router.navigate(['/app/crew/gift-log/record/add-non-crewmate']);
+  }
+
   private resolvePlatformId(entry: ReceptionOrderEntry, index: number, row: EntryFormValue): number {
     let paymentPlatformId = Number(row.paymentPlatformId);
     if (paymentPlatformId > 0) {

@@ -62,6 +62,18 @@
   color: #222;
 }
 
+.non-member-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  color: #666;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .crewmate-activity {
   margin: 0 0 4px;
   font-size: 12px;

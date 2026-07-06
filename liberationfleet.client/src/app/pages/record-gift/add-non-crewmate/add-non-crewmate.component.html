@@ -1,0 +1,33 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Add non-member</h1>
+      <p class="page-hint">
+        Add someone who is not on the app so your crew can record gifts for them. They will appear on the crewmates list as a non-member.
+      </p>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input id="name" type="text" formControlName="name" class="form-input" maxlength="256">
+          <span class="hint-text">How this person should appear in your crew</span>
+        </div>
+
+        <section class="section">
+          <h2>Payment platforms</h2>
+          <p class="section-hint">Add at least one way to send them aid.</p>
+
+          <app-payment-platform-editor
+            [platforms]="paymentPlatforms"
+            [platformOptions]="platformOptions"
+            [showPreferred]="true"
+            (changed)="onPaymentPlatformChange()"
+            (add)="addPaymentPlatform()"
+            (remove)="removePaymentPlatform($event)"
+            (preferredChange)="setPreferredPlatform($event)">
+          </app-payment-platform-editor>
+        </section>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

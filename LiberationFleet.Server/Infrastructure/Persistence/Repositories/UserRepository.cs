@@ -69,4 +69,9 @@ public class UserRepository : IUserRepository
 
         return Task.CompletedTask;
     }
+
+    public void Remove(User user)
+    {
+        _context.Users.Remove(user);
+    }
 }

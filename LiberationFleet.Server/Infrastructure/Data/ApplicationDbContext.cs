@@ -36,6 +36,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalCrewmateRejoin> ProposalCrewmateRejoins => Set<ProposalCrewmateRejoin>();
     public DbSet<ProposalCrewJoinRequest> ProposalCrewJoinRequests => Set<ProposalCrewJoinRequest>();
     public DbSet<ProposalCrewRoleChange> ProposalCrewRoleChanges => Set<ProposalCrewRoleChange>();
+    public DbSet<ProposalClaimPlaceholderIdentity> ProposalClaimPlaceholderIdentities => Set<ProposalClaimPlaceholderIdentity>();
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
@@ -75,6 +76,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Username).IsRequired().HasMaxLength(256);
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.InNeedOfAid).HasDefaultValue(true);
+            entity.Property(e => e.IsUnclaimedPlaceholder).HasDefaultValue(false);
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
         });
 
@@ -163,6 +165,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsDecentralizer).HasDefaultValue(false);
             entity.Property(e => e.IsCeremonialOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsModerator).HasDefaultValue(false);
+            entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
             entity.Property(e => e.CanAttachFiles).HasDefaultValue(true);
             entity.Property(e => e.EstimatedMonthlyContribution).HasPrecision(18, 2);
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
@@ -418,6 +421,19 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.CrewRoleChange)
                 .HasForeignKey<ProposalCrewRoleChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalClaimPlaceholderIdentity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.PlaceholderDisplayName).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.ClaimPlaceholderIdentity)
+                .HasForeignKey<ProposalClaimPlaceholderIdentity>(e => e.ProposalId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

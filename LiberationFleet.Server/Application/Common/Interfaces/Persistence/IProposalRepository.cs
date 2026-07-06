@@ -67,6 +67,19 @@ public interface IProposalRepository
         int crewId,
         int targetUserId,
         CancellationToken cancellationToken = default);
+    Task<ProposalClaimPlaceholderIdentity?> GetClaimPlaceholderIdentityByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalClaimPlaceholderIdentity>> GetClaimPlaceholderIdentitiesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddClaimPlaceholderIdentityAsync(
+        ProposalClaimPlaceholderIdentity claim,
+        CancellationToken cancellationToken = default);
+    Task<ProposalClaimPlaceholderIdentity?> GetPendingClaimPlaceholderIdentityForPlaceholderAsync(
+        int crewId,
+        int placeholderUserId,
+        CancellationToken cancellationToken = default);
     Task<ProposalCrewJoinRequest?> GetPendingJoinRequestForApplicantAndCrewAsync(
         int applicantUserId,
         int crewId,

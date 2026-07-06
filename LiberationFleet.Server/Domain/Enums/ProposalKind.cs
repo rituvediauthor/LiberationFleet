@@ -9,5 +9,6 @@ public enum ProposalKind
     CrewmateKick = 4,
     CrewmateRejoin = 5,
     CrewJoinRequest = 6,
-    CrewRoleChange = 7
+    CrewRoleChange = 7,
+    ClaimPlaceholderIdentity = 8
 }

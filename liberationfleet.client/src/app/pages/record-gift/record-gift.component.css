@@ -113,6 +113,32 @@ label {
   color: #666;
 }
 
+.add-non-member-row {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.add-non-member-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid #007AFF;
+  border-radius: 6px;
+  background: #f5f9ff;
+  color: #007AFF;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-non-member-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #666;
+}
+
 h2 {
   font-size: 16px;
   margin: 0 0 8px;

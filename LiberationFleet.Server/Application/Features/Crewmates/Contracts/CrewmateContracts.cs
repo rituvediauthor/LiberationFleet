@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Application.Features.Profile.Contracts;
+
 namespace LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 
 public class CrewmateGiftStatsDto
@@ -38,6 +40,7 @@ public class CrewmateListItemDto
     public string Username { get; set; } = string.Empty;
     public DateTime? LastLoginAt { get; set; }
     public bool IsSelf { get; set; }
+    public bool IsPlaceholderMember { get; set; }
     public CrewmatePlatformDisplayDto? PlatformDisplay { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
 }
@@ -71,6 +74,8 @@ public class CrewmateProfileDto
     public bool CanToggleCanAttachFiles { get; set; }
     public bool CanModerateAttachments { get; set; }
     public bool CanExportCrewData { get; set; }
+    public bool IsPlaceholderMember { get; set; }
+    public bool CanClaimIdentity { get; set; }
 }
 
 public class CrewmateElectedRoleDto
@@ -170,4 +175,17 @@ public class CrewmateKickResponse
 public class KickCrewmateRequest
 {
     public string Reason { get; set; } = string.Empty;
+}
+
+public class AddPlaceholderCrewmateRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public List<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = [];
+}
+
+public class AddPlaceholderCrewmateResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int UserId { get; set; }
 }

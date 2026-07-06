@@ -22,4 +22,9 @@ public interface IMutualAidRepository
     Task<DateTime?> GetPreviousSeasonStartDateAsync(int crewId, DateTime currentSeasonStart, CancellationToken cancellationToken = default);
     Task<int> GetNextThresholdOrderPositionAsync(int crewId, CancellationToken cancellationToken = default);
     Task<(int Year, int Month)?> GetLatestThresholdMonthAsync(int crewId, CancellationToken cancellationToken = default);
+    Task MergePlaceholderIdentityDataAsync(
+        int crewId,
+        int placeholderUserId,
+        int claimantUserId,
+        CancellationToken cancellationToken = default);
 }

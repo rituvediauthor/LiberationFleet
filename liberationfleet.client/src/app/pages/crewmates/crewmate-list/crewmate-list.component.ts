@@ -58,7 +58,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
 
   formatActivity(crewmate: CrewmateListItem): string {
     void this.activityTick;
-    return formatLastActive(crewmate.lastLoginAt, crewmate.isSelf);
+    return formatLastActive(crewmate.lastLoginAt, crewmate.isSelf, crewmate.isPlaceholderMember);
   }
 
   formatPlatform(platform: CrewmateListItem['platformDisplay']): string {

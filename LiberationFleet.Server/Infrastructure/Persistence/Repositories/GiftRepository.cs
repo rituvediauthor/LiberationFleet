@@ -263,4 +263,29 @@ public class GiftRepository : IGiftRepository
             .ThenByDescending(g => g.Id)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task ReassignPlaceholderGiftRecipientsAsync(
+        int crewId,
+        int fromUserId,
+        int toUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var gifts = await _context.Gifts
+            .Where(g => g.CrewId == crewId
+                && (g.RecipientUserId == fromUserId || g.MiddlemanUserId == fromUserId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var gift in gifts)
+        {
+            if (gift.RecipientUserId == fromUserId)
+            {
+                gift.RecipientUserId = toUserId;
+            }
+
+            if (gift.MiddlemanUserId == fromUserId)
+            {
+                gift.MiddlemanUserId = toUserId;
+            }
+        }
+    }
 }

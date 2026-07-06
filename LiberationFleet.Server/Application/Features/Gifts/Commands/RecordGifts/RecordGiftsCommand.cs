@@ -24,6 +24,7 @@ public class RecordGiftsCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
+    IUserRepository userRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
@@ -112,16 +113,20 @@ public class RecordGiftsCommandHandler(
 
             if (notifiedRecipients.Add(item.RecipientId))
             {
-                await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
+                if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
                 {
-                    UserId = item.RecipientId,
-                    CrewId = membership.CrewId,
-                    Kind = NotificationKind.NewGifts,
-                    Title = "New gift(s)",
-                    Body = "You received a new gift in your crew.",
-                    ActionUrl = "/app/crew/gift-log",
-                    RelatedEntityId = gift.Id
-                }, cancellationToken);
+                    await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                    {
+                        UserId = item.RecipientId,
+                        CrewId = membership.CrewId,
+                        Kind = NotificationKind.NewGifts,
+                        Title = "New gift(s)",
+                        Body = "You received a new gift in your crew.",
+                        ActionUrl = "/app/crew/gift-log",
+                        RelatedEntityId = gift.Id
+                    }, cancellationToken);
+                }
             }
         }
 

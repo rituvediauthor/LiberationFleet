@@ -9,6 +9,7 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsUnclaimedPlaceholder { get; set; }
     public bool InNeedOfAid { get; set; } = true;
     public int EmergencyLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }

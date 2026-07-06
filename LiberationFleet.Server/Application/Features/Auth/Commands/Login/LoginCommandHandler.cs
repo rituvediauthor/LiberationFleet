@@ -31,7 +31,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
     {
         var user = await _userRepository.GetByEmailOrUsernameAsync(request.UsernameOrEmail, cancellationToken);
 
-        if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
+        if (user is null || user.IsUnclaimedPlaceholder || !_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             return new LoginResponse
             {

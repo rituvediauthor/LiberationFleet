@@ -14,7 +14,10 @@
         *ngFor="let crewmate of crewmates"
         (click)="openCrewmate(crewmate)">
         <div class="crewmate-main">
-          <p class="crewmate-name">{{ crewmate.username }}</p>
+          <p class="crewmate-name">
+            {{ crewmate.username }}
+            <span class="non-member-badge" *ngIf="crewmate.isPlaceholderMember">Non-member</span>
+          </p>
           <p class="crewmate-activity">{{ formatActivity(crewmate) }}</p>
           <p class="crewmate-platform">{{ formatPlatform(crewmate.platformDisplay) }}</p>
         </div>

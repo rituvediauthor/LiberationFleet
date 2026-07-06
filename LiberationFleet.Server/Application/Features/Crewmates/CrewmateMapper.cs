@@ -100,7 +100,8 @@ public static class CrewmateMapper
         decimal priorityScore,
         bool isSurvivalThresholdRecipient,
         CrewmateFriendshipStateDto friendshipState,
-        bool isSelf) =>
+        bool isSelf,
+        bool canClaimIdentity = false) =>
         new()
         {
             UserId = crewmate.Id,
@@ -122,6 +123,8 @@ public static class CrewmateMapper
             CanAttachFiles = membership.CanAttachFiles,
             CanToggleCanAttachFiles = CrewRoleAuthorizationService.CanToggleCanAttachFiles(viewerMembership),
             CanModerateAttachments = CrewRoleAuthorizationService.CanModerateAttachments(viewerMembership),
-            CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership)
+            CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership),
+            IsPlaceholderMember = membership.IsPlaceholderMember,
+            CanClaimIdentity = canClaimIdentity
         };
 }

@@ -13,6 +13,7 @@ public class CrewMembership
     public bool IsDecentralizer { get; set; }
     public bool IsCeremonialOrganizer { get; set; }
     public bool IsModerator { get; set; }
+    public bool IsPlaceholderMember { get; set; }
     public bool CanAttachFiles { get; set; } = true;
     public decimal? EstimatedMonthlyContribution { get; set; }
     public bool IsSeasonReady { get; set; }

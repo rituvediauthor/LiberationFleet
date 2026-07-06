@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  AddPlaceholderCrewmateResponse,
   CrewmateKickResponse,
   CrewRoleChangeResponse,
   CrewRoleDefinitionsResponse,
@@ -111,10 +112,30 @@ export class CrewmateService {
     return this.http.get('/api/gifts/export', { responseType: 'blob' });
   }
 
+  addPlaceholderCrewmate(
+    name: string,
+    paymentPlatforms: Array<{
+      platformId: number;
+      customPlatformName?: string;
+      handle: string;
+      isPreferred: boolean;
+    }>
+  ): Observable<AddPlaceholderCrewmateResponse> {
+    return this.http.post<AddPlaceholderCrewmateResponse>(`${this.apiUrl}/placeholders`, {
+      name,
+      paymentPlatforms
+    });
+  }
+
+  claimPlaceholderIdentity(userId: number): Observable<CrewmateKickResponse> {
+    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/claim-identity`, {});
+  }
+
   private mapListItem(item: CrewmateListItem): CrewmateListItem {
     return {
       ...item,
       isSelf: !!item.isSelf,
+      isPlaceholderMember: !!item.isPlaceholderMember,
       friendshipState: mapFriendshipState(item.friendshipState as unknown as number | string)
     };
   }
@@ -128,6 +149,8 @@ export class CrewmateService {
       canToggleCanAttachFiles: !!profile.canToggleCanAttachFiles,
       canModerateAttachments: !!profile.canModerateAttachments,
       canExportCrewData: !!profile.canExportCrewData,
+      isPlaceholderMember: !!profile.isPlaceholderMember,
+      canClaimIdentity: !!profile.canClaimIdentity,
       friendshipState: mapFriendshipState(profile.friendshipState as unknown as number | string)
     };
   }

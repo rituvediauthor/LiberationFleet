@@ -24,6 +24,7 @@ public class GetCrewProposalsQueryHandler(
     CrewmateRejoinProposalService crewmateRejoinProposalService,
     CrewJoinRequestProposalService crewJoinRequestProposalService,
     CrewRoleProposalService crewRoleProposalService,
+    ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
@@ -59,6 +60,7 @@ public class GetCrewProposalsQueryHandler(
                 crewmateRejoinProposalService,
                 crewJoinRequestProposalService,
                 crewRoleProposalService,
+                claimPlaceholderIdentityProposalService,
                 cancellationToken);
         }
 
@@ -108,6 +110,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewRoleChange).Select(p => p.Id),
             cancellationToken);
 
+        var claimPlaceholderIdentities = await proposalRepository.GetClaimPlaceholderIdentitiesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.ClaimPlaceholderIdentity).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -124,6 +130,7 @@ public class GetCrewProposalsQueryHandler(
             crewmateRejoins.TryGetValue(proposal.Id, out var crewmateRejoin);
             crewJoinRequests.TryGetValue(proposal.Id, out var crewJoinRequest);
             crewRoleChanges.TryGetValue(proposal.Id, out var crewRoleChange);
+            claimPlaceholderIdentities.TryGetValue(proposal.Id, out var claimPlaceholderIdentity);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -136,6 +143,7 @@ public class GetCrewProposalsQueryHandler(
                 crewmateRejoin,
                 crewJoinRequest,
                 crewRoleChange,
+                claimPlaceholderIdentity,
                 currentUserVote));
         }
 

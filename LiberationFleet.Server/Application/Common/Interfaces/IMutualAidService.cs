@@ -32,6 +32,10 @@ public interface IMutualAidService
         CrewMembership membership,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false);
+    Task EnsureMemberInActiveSeasonAsync(
+        int crewId,
+        CrewMembership membership,
+        CancellationToken cancellationToken = default);
     IReadOnlyList<int> FindMiddlemen(int giverUserId, int recipientUserId, IReadOnlyList<CrewMemberPlatforms> members);
 }
 

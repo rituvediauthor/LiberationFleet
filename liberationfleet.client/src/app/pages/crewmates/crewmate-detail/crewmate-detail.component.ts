@@ -120,6 +120,35 @@ export class CrewmateDetailComponent implements OnInit {
     this.router.navigate(['/app/crew/crewmates', this.userId, 'nominate-roles']);
   }
 
+  onClaimIdentity() {
+    if (!this.profile?.canClaimIdentity || this.actionLoading) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.claimPlaceholderIdentity(this.userId).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit identity claim');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(response.message || 'Identity claim submitted');
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit identity claim');
+      }
+    });
+  }
+
   onDemote() {
     if (!this.profile || this.actionLoading || this.selectedRoles.size === 0) {
       return;
@@ -261,6 +290,12 @@ export class CrewmateDetailComponent implements OnInit {
         disabled: this.actionLoading,
         onClick: () => this.onNominate()
       };
+      this.secondaryButton = null;
+      return;
+    }
+
+    if (this.profile.isPlaceholderMember) {
+      this.primaryButton = null;
       this.secondaryButton = null;
       return;
     }

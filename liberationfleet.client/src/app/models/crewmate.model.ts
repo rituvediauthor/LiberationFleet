@@ -11,6 +11,7 @@ export interface CrewmateListItem {
   username: string;
   lastLoginAt: string | null;
   isSelf: boolean;
+  isPlaceholderMember: boolean;
   platformDisplay: CrewmatePlatformDisplay | null;
   friendshipState: CrewmateFriendshipState;
 }
@@ -72,6 +73,8 @@ export interface CrewmateProfile {
   canToggleCanAttachFiles: boolean;
   canModerateAttachments: boolean;
   canExportCrewData: boolean;
+  isPlaceholderMember: boolean;
+  canClaimIdentity: boolean;
 }
 
 export interface CrewmateProfileResponse {
@@ -90,6 +93,12 @@ export interface CrewmateKickResponse {
   success: boolean;
   message: string;
   proposalId: number;
+}
+
+export interface AddPlaceholderCrewmateResponse {
+  success: boolean;
+  message: string;
+  userId: number;
 }
 
 export interface KickedCrewmateListItem {
@@ -112,7 +121,11 @@ export function mapFriendshipState(value: number | string): CrewmateFriendshipSt
   return 'none';
 }
 
-export function formatLastActive(lastLoginAt: string | null, isSelf = false): string {
+export function formatLastActive(lastLoginAt: string | null, isSelf = false, isPlaceholderMember = false): string {
+  if (isPlaceholderMember) {
+    return 'Non-member';
+  }
+
   if (isSelf) {
     return 'Active';
   }

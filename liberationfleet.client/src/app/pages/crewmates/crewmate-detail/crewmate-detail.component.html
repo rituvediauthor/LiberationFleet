@@ -7,7 +7,20 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <div class="profile-card" *ngIf="!loading && profile">
-      <h1 class="profile-name">{{ profile.username }}</h1>
+      <h1 class="profile-name">
+        {{ profile.username }}
+        <span class="non-member-badge" *ngIf="profile.isPlaceholderMember">Non-member</span>
+      </h1>
+
+      <section class="section claim-section" *ngIf="profile.canClaimIdentity">
+        <h2>Is this you?</h2>
+        <p class="hint-text">
+          If you are {{ profile.username }}, submit a proposal for the crew to link this non-member profile to your account.
+        </p>
+        <button type="button" class="claim-btn" [disabled]="actionLoading" (click)="onClaimIdentity()">
+          This is me
+        </button>
+      </section>
 
       <section class="section">
         <h2>Roles</h2>
@@ -103,7 +116,7 @@
         </div>
       </div>
 
-      <div class="moderation-actions" *ngIf="!profile.isSelf">
+      <div class="moderation-actions" *ngIf="!profile.isSelf && !profile.isPlaceholderMember">
         <div class="block-section">
           <button
             type="button"

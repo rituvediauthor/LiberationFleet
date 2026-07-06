@@ -20,6 +20,7 @@ public static class ProposalMapper
         ProposalCrewmateRejoin? crewmateRejoin = null,
         ProposalCrewJoinRequest? crewJoinRequest = null,
         ProposalCrewRoleChange? crewRoleChange = null,
+        ProposalClaimPlaceholderIdentity? claimPlaceholderIdentity = null,
         string? currentUserVote = null)
     {
         var dto = new ProposalListItemDto
@@ -50,6 +51,12 @@ public static class ProposalMapper
         if (crewRoleChange is not null)
         {
             ApplyPlaintext(dto, crewRoleChange.Title, crewRoleChange.Description);
+            return dto;
+        }
+
+        if (claimPlaceholderIdentity is not null)
+        {
+            ApplyPlaintext(dto, claimPlaceholderIdentity.Title, claimPlaceholderIdentity.Description);
             return dto;
         }
 
@@ -98,6 +105,7 @@ public static class ProposalMapper
         ProposalCrewmateRejoin? crewmateRejoin = null,
         ProposalCrewJoinRequest? crewJoinRequest = null,
         ProposalCrewRoleChange? crewRoleChange = null,
+        ProposalClaimPlaceholderIdentity? claimPlaceholderIdentity = null,
         string? currentUserVote = null,
         string? viewerAlias = null)
     {
@@ -111,6 +119,7 @@ public static class ProposalMapper
             crewmateRejoin,
             crewJoinRequest,
             crewRoleChange,
+            claimPlaceholderIdentity,
             currentUserVote);
         var isSystemProposal = proposal.Kind is
             ProposalKind.CrewSettingChange
@@ -119,10 +128,12 @@ public static class ProposalMapper
             or ProposalKind.CrewmateKick
             or ProposalKind.CrewmateRejoin
             or ProposalKind.CrewJoinRequest
-            or ProposalKind.CrewRoleChange;
+            or ProposalKind.CrewRoleChange
+            or ProposalKind.ClaimPlaceholderIdentity;
         var plaintextDescription = crewmateKick?.Description
             ?? crewJoinRequest?.Description
             ?? crewRoleChange?.Description
+            ?? claimPlaceholderIdentity?.Description
             ?? crewmateRejoin?.Description
             ?? crewChatChange?.Description
             ?? crewRuleChange?.Description
@@ -203,7 +214,8 @@ public static class ProposalMapper
             or ProposalKind.CrewmateKick
             or ProposalKind.CrewmateRejoin
             or ProposalKind.CrewJoinRequest
-            or ProposalKind.CrewRoleChange;
+            or ProposalKind.CrewRoleChange
+            or ProposalKind.ClaimPlaceholderIdentity;
 
     private static void ApplyPlaintext(ProposalListItemDto dto, string title, string description)
     {

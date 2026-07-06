@@ -4,6 +4,13 @@
       <h1>Record Gift</h1>
       <p *ngIf="loading" class="status-text">Loading reception order…</p>
 
+      <div class="add-non-member-row" *ngIf="!loading">
+        <button type="button" class="add-non-member-btn" (click)="onAddNonCrewmate()">
+          Add non-member
+        </button>
+        <p class="add-non-member-hint">For people not on the app who still need aid recorded.</p>
+      </div>
+
       <form [formGroup]="form" *ngIf="!loading">
         <div class="gift-entry custom-entry">
           <h2>Custom gift</h2>

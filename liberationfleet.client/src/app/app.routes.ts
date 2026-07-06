@@ -20,6 +20,7 @@ import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
+import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
 import { SeasonSetupComponent } from './pages/season-setup/season-setup.component';
 import { JoinSeasonComponent } from './pages/join-season/join-season.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
@@ -217,6 +218,11 @@ export const routes: Routes = [
   {
     path: 'app/crew/join-season',
     component: JoinSeasonComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/gift-log/record/add-non-crewmate',
+    component: AddNonCrewmateComponent,
     canActivate: [authGuard]
   },
   {
