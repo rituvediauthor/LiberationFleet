@@ -15,7 +15,12 @@ public class SeasonCycle
     public decimal PriorityScoreAtSeasonStart { get; set; }
     public int ReceptionOrderPosition { get; set; }
     public bool HasCycleStarted { get; set; }
+    public bool UsesSegmentCap { get; set; }
+    public int? EmergencyRequestId { get; set; }
+    public int? EmergencySplitOfferId { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User User { get; set; } = null!;
+    public EmergencyRequest? EmergencyRequest { get; set; }
+    public EmergencySplitOffer? EmergencySplitOffer { get; set; }
 }

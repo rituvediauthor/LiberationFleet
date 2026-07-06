@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -96,6 +97,7 @@ public partial class MutualAidService(
                     "survivalThreshold",
                     threshold.Id,
                     null,
+                    null,
                     userId,
                     giverPlatforms,
                     memberPlatforms));
@@ -114,13 +116,17 @@ public partial class MutualAidService(
         foreach (var cycle in cycles.OrderBy(c => c.ReceptionOrderPosition))
         {
             var isMember = memberStatus.GetValueOrDefault(cycle.UserId, false);
-            var effectiveCap = GetEffectiveCycleCap(isMember, crew, capacityContext);
-            if (MutualAidCalculationService.IsCycleSatisfied(cycle, effectiveCap))
+            var segmentCap = EmergencySplitService.ResolveSegmentCap(
+                cycle,
+                isMember,
+                capacityContext.MemberCycleCap,
+                capacityContext.NonMemberCycleCap);
+            if (MutualAidCalculationService.IsCycleSatisfied(cycle, segmentCap))
             {
                 continue;
             }
 
-            var need = effectiveCap - cycle.CycleReceived;
+            var need = segmentCap - cycle.CycleReceived;
             if (need <= 0)
             {
                 continue;
@@ -137,6 +143,7 @@ public partial class MutualAidService(
                 "cycle",
                 null,
                 cycle.UserId,
+                cycle.Id,
                 userId,
                 giverPlatforms,
                 memberPlatforms));
@@ -366,11 +373,25 @@ public partial class MutualAidService(
             return;
         }
 
-        var cycle = await mutualAidRepository.GetSeasonCycleAsync(
-            gift.CrewId,
-            recipientUserId,
-            crew.CurrentSeasonStartDate.Value,
-            cancellationToken);
+        var cycle = gift.SeasonCycleId.HasValue
+            ? await mutualAidRepository.GetSeasonCycleByIdAsync(gift.SeasonCycleId.Value, cancellationToken)
+            : await mutualAidRepository.GetSeasonCycleAsync(
+                gift.CrewId,
+                recipientUserId,
+                crew.CurrentSeasonStartDate.Value,
+                cancellationToken);
+
+        if (cycle is null && gift.EmergencyRequestId.HasValue)
+        {
+            var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+                gift.CrewId,
+                crew.CurrentSeasonStartDate.Value,
+                cancellationToken);
+            cycle = cycles
+                .Where(c => c.EmergencyRequestId == gift.EmergencyRequestId && !c.CycleCompleted)
+                .OrderBy(c => c.ReceptionOrderPosition)
+                .FirstOrDefault();
+        }
 
         if (cycle is null)
         {
@@ -379,46 +400,48 @@ public partial class MutualAidService(
 
         cycle.TotalReceptionAmount += gift.Amount;
 
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var membership = await membershipRepository.GetMembershipAsync(recipientUserId, gift.CrewId, cancellationToken);
+        var isFinancialMember = membership is not null
+            && await IsFinancialMemberAsync(recipientUserId, gift.CrewId, membership, cancellationToken);
+        var effectiveCap = EmergencySplitService.ResolveSegmentCap(
+            cycle,
+            isFinancialMember,
+            capacityContext.MemberCycleCap,
+            capacityContext.NonMemberCycleCap);
+
         if (gift.IsSurvivalThreshold && crew.AllowSurvivalThresholds)
         {
             cycle.SurvivalThresholdReceived += gift.Amount;
             await ApplyToThresholdForUserAsync(gift, recipientUserId, cancellationToken);
         }
-        else
+        else if (cycle.TotalReceptionAmount - gift.Amount < effectiveCap)
         {
-            var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
-            var effectiveCap = await GetEffectiveCycleCapForUserAsync(recipientUserId, crew, capacityContext, cancellationToken);
-
-            if (cycle.TotalReceptionAmount - gift.Amount < effectiveCap)
+            var cycleRoom = effectiveCap - cycle.CycleReceived;
+            if (cycleRoom > 0)
             {
-                var cycleRoom = effectiveCap - cycle.CycleReceived;
-                if (cycleRoom > 0)
+                var applied = Math.Min(gift.Amount, cycleRoom);
+                cycle.CycleReceived += applied;
+                if (applied > 0)
                 {
-                    var applied = Math.Min(gift.Amount, cycleRoom);
-                    cycle.CycleReceived += applied;
-                    if (applied > 0)
+                    var newlyStarted = !cycle.HasCycleStarted;
+                    cycle.HasCycleStarted = true;
+                    if (newlyStarted)
                     {
-                        var newlyStarted = !cycle.HasCycleStarted;
-                        cycle.HasCycleStarted = true;
-                        if (newlyStarted)
-                        {
-                            await notificationService.NotifyCrewAsync(
-                                gift.CrewId,
-                                NotificationKind.NewCycle,
-                                "New cycle",
-                                "A crewmate's reception cycle has started.",
-                                "/app/crew/join-season",
-                                relatedEntityId: recipientUserId,
-                                cancellationToken: cancellationToken);
-                        }
+                        await notificationService.NotifyCrewAsync(
+                            gift.CrewId,
+                            NotificationKind.NewCycle,
+                            "New cycle",
+                            "A crewmate's reception cycle has started.",
+                            "/app/crew/join-season",
+                            relatedEntityId: recipientUserId,
+                            cancellationToken: cancellationToken);
                     }
                 }
             }
         }
 
-        var capacity = await BuildCapacityContextAsync(crew, cancellationToken);
-        var cap = await GetEffectiveCycleCapForUserAsync(recipientUserId, crew, capacity, cancellationToken);
-        UpdateCycleCompletion(cycle, cap);
+        UpdateCycleCompletion(cycle, effectiveCap);
 
         await TryEndSeasonAsync(crew, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -588,6 +611,7 @@ public partial class MutualAidService(
         string entryType,
         int? thresholdId,
         int? cycleUserId,
+        int? seasonCycleId,
         int giverUserId,
         IReadOnlyList<int> giverPlatformIds,
         IReadOnlyList<CrewMemberPlatforms> members)
@@ -623,6 +647,7 @@ public partial class MutualAidService(
             EntryType = entryType,
             ThresholdId = thresholdId,
             CycleUserId = cycleUserId,
+            SeasonCycleId = seasonCycleId,
             MiddlemanOptions = middlemanOptions,
             DefaultMiddlemanId = middlemanOptions.Count == 1 ? middlemanOptions[0].UserId : null,
             NoSuitableMiddleman = !hasDirectPlatform && middlemanOptions.Count == 0,
@@ -911,9 +936,25 @@ public partial class MutualAidService(
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
 
         var allComplete = true;
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+        var memberStatus = new Dictionary<int, bool>();
+        foreach (var participant in participants)
+        {
+            memberStatus[participant.UserId] = await IsFinancialMemberAsync(
+                participant.UserId,
+                crew.Id,
+                participant,
+                cancellationToken);
+        }
+
         foreach (var cycle in cycles)
         {
-            var cap = await GetEffectiveCycleCapForUserAsync(cycle.UserId, crew, capacityContext, cancellationToken);
+            var isMember = memberStatus.GetValueOrDefault(cycle.UserId, false);
+            var cap = EmergencySplitService.ResolveSegmentCap(
+                cycle,
+                isMember,
+                capacityContext.MemberCycleCap,
+                capacityContext.NonMemberCycleCap);
             if (!MutualAidCalculationService.IsCycleSatisfied(cycle, cap))
             {
                 allComplete = false;
@@ -927,7 +968,6 @@ public partial class MutualAidService(
         }
 
         crew.CurrentSeasonStartDate = DateTime.UtcNow;
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
         await InitializeSeasonStateAsync(crew, participants, cancellationToken);
 
         await notificationService.NotifyCrewAsync(

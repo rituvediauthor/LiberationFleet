@@ -9,6 +9,7 @@ public interface IMutualAidRepository
     Task<IReadOnlyList<CrewMembership>> GetSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetActiveMembersWithUsersAsync(int crewId, CancellationToken cancellationToken = default);
     Task<SeasonCycle?> GetSeasonCycleAsync(int crewId, int userId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
+    Task<SeasonCycle?> GetSeasonCycleByIdAsync(int cycleId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SeasonCycle>> GetSeasonCyclesAsync(int crewId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
     Task AddSeasonCycleAsync(SeasonCycle cycle, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MonthlySurvivalThreshold>> GetUnsatisfiedThresholdsAsync(int crewId, CancellationToken cancellationToken = default);

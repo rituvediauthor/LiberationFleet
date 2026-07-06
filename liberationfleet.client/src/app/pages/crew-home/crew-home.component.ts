@@ -110,6 +110,10 @@ export class CrewHomeComponent implements OnInit {
     this.giftService.navigateToGiftLogEntry(this.router);
   }
 
+  goToEmergencyRequests() {
+    this.router.navigate(['/app/crew/emergency-requests']);
+  }
+
   goToProposals() {
     this.router.navigate(['/app/crew/proposals']);
   }

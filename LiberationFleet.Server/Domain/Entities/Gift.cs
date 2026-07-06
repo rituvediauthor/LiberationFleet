@@ -20,6 +20,8 @@ public class Gift
     public bool CountsTowardContribution { get; set; } = true;
     public bool ReceptionApplied { get; set; }
     public GiftVerificationStatus VerificationStatus { get; set; } = GiftVerificationStatus.Pending;
+    public int? EmergencyRequestId { get; set; }
+    public int? SeasonCycleId { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User GiverUser { get; set; } = null!;

@@ -1,6 +1,7 @@
 using FluentValidation;
 using LiberationFleet.Server.Application.Common.Behaviors;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
@@ -28,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<CrewRoleProposalService>();
         services.AddScoped<ClaimPlaceholderIdentityProposalService>();
         services.AddScoped<PlaceholderCrewmateService>();
+        services.AddScoped<EmergencySplitService>();
         services.AddScoped<ProposalAnonymousAliasService>();
         services.AddScoped<EmptyCrewCleanupService>();
         services.AddScoped<LibraryContributionGiftService>();

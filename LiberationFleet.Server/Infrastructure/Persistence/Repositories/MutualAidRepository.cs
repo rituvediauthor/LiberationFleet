@@ -47,6 +47,11 @@ public class MutualAidRepository : IMutualAidRepository
             c => c.CrewId == crewId && c.UserId == userId && c.SeasonStartDate == seasonStartDate,
             cancellationToken);
 
+    public Task<SeasonCycle?> GetSeasonCycleByIdAsync(int cycleId, CancellationToken cancellationToken = default) =>
+        _context.SeasonCycles
+            .Include(c => c.User)
+            .FirstOrDefaultAsync(c => c.Id == cycleId, cancellationToken);
+
     public async Task<IReadOnlyList<SeasonCycle>> GetSeasonCyclesAsync(int crewId, DateTime seasonStartDate, CancellationToken cancellationToken = default) =>
         await _context.SeasonCycles
             .Include(c => c.User)

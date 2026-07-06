@@ -21,6 +21,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<PaymentPlatform> PaymentPlatforms => Set<PaymentPlatform>();
     public DbSet<Gift> Gifts => Set<Gift>();
     public DbSet<SeasonCycle> SeasonCycles => Set<SeasonCycle>();
+    public DbSet<EmergencyRequest> EmergencyRequests => Set<EmergencyRequest>();
+    public DbSet<EmergencySplitOffer> EmergencySplitOffers => Set<EmergencySplitOffer>();
+    public DbSet<EmergencyGiftResponse> EmergencyGiftResponses => Set<EmergencyGiftResponse>();
     public DbSet<MonthlySurvivalThreshold> MonthlySurvivalThresholds => Set<MonthlySurvivalThreshold>();
     public DbSet<UserKeyBundle> UserKeyBundles => Set<UserKeyBundle>();
     public DbSet<UserPrivateKeyBackup> UserPrivateKeyBackups => Set<UserPrivateKeyBackup>();
@@ -215,17 +218,26 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.InitiatedGiftId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<EmergencyRequest>()
+                .WithMany()
+                .HasForeignKey(e => e.EmergencyRequestId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<SeasonCycle>()
+                .WithMany()
+                .HasForeignKey(e => e.SeasonCycleId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<SeasonCycle>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.CrewId, e.UserId, e.SeasonStartDate }).IsUnique();
+            entity.HasIndex(e => new { e.CrewId, e.UserId, e.SeasonStartDate });
             entity.Property(e => e.CycleCapAtStart).HasPrecision(18, 2);
             entity.Property(e => e.TotalReceptionAmount).HasPrecision(18, 2);
             entity.Property(e => e.SurvivalThresholdReceived).HasPrecision(18, 2);
             entity.Property(e => e.CycleReceived).HasPrecision(18, 2);
             entity.Property(e => e.PriorityScoreAtSeasonStart).HasPrecision(18, 2);
             entity.Property(e => e.HasCycleStarted).HasDefaultValue(false);
+            entity.Property(e => e.UsesSegmentCap).HasDefaultValue(false);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -234,6 +246,62 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.EmergencyRequest)
+                .WithMany()
+                .HasForeignKey(e => e.EmergencyRequestId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.EmergencySplitOffer)
+                .WithMany()
+                .HasForeignKey(e => e.EmergencySplitOfferId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmergencyRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Purpose).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.AmountNeeded).HasPrecision(18, 2);
+            entity.Property(e => e.AmountFulfilled).HasPrecision(18, 2);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.RequesterUser)
+                .WithMany()
+                .HasForeignKey(e => e.RequesterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmergencySplitOffer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.HasOne(e => e.EmergencyRequest)
+                .WithMany(r => r.SplitOffers)
+                .HasForeignKey(e => e.EmergencyRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.OffererUser)
+                .WithMany()
+                .HasForeignKey(e => e.OffererUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmergencyGiftResponse>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.HasOne(e => e.EmergencyRequest)
+                .WithMany(r => r.GiftResponses)
+                .HasForeignKey(e => e.EmergencyRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.GiverUser)
+                .WithMany()
+                .HasForeignKey(e => e.GiverUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Gift)
+                .WithMany()
+                .HasForeignKey(e => e.GiftId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<MonthlySurvivalThreshold>(entity =>

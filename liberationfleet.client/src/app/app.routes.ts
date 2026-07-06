@@ -21,6 +21,9 @@ import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-reques
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
+import { EmergencyRequestsListComponent } from './pages/emergency-requests/emergency-requests-list/emergency-requests-list.component';
+import { EmergencyRequestCreateComponent } from './pages/emergency-requests/emergency-request-create/emergency-request-create.component';
+import { EmergencyRequestDetailComponent } from './pages/emergency-requests/emergency-request-detail/emergency-request-detail.component';
 import { SeasonSetupComponent } from './pages/season-setup/season-setup.component';
 import { JoinSeasonComponent } from './pages/join-season/join-season.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
@@ -208,6 +211,22 @@ export const routes: Routes = [
     path: 'app/crew/gift-log',
     component: GiftLogComponent,
     pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/emergency-requests',
+    component: EmergencyRequestsListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/emergency-requests/create',
+    component: EmergencyRequestCreateComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/emergency-requests/:id',
+    component: EmergencyRequestDetailComponent,
     canActivate: [authGuard]
   },
   {

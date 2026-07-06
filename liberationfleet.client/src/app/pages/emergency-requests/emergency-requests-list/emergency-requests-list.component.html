@@ -1,0 +1,21 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
+  <div class="page">
+    <h1 class="page-title">Emergency Requests</h1>
+    <p class="page-subtitle">Open requests from crewmates who need urgent aid.</p>
+
+    <p *ngIf="loading" class="state-text">Loading requests…</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No open emergency requests.</p>
+
+    <div class="request-list" *ngIf="!loading && items.length > 0">
+      <button type="button" class="request-row" *ngFor="let item of items" (click)="openRequest(item)">
+        <div class="request-main">
+          <p class="request-name">{{ item.requesterUsername }}</p>
+          <p class="request-purpose">{{ item.purposePreview }}</p>
+          <p class="request-amount">${{ item.amountRemaining }} remaining of ${{ item.amountNeeded }}</p>
+        </div>
+        <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

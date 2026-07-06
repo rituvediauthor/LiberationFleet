@@ -72,6 +72,7 @@ public class ReceptionOrderEntryDto
     public string EntryType { get; set; } = string.Empty;
     public int? ThresholdId { get; set; }
     public int? CycleUserId { get; set; }
+    public int? SeasonCycleId { get; set; }
     public IReadOnlyList<MiddlemanOptionDto> MiddlemanOptions { get; set; } = Array.Empty<MiddlemanOptionDto>();
     public int? DefaultMiddlemanId { get; set; }
     public bool NoSuitableMiddleman { get; set; }
