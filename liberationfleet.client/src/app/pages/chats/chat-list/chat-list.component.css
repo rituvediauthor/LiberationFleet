@@ -180,3 +180,62 @@
 .hidden-card {
   opacity: 0.92;
 }
+
+.voice-active-badge {
+  color: #2e7d32;
+  font-size: 12px;
+}
+
+.voice-occupants {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voice-occupant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #444;
+}
+
+.occupant-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.occupant-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occupant-badges {
+  display: inline-flex;
+  gap: 6px;
+  color: #888;
+}
+
+.speaking-icon {
+  color: #2e7d32;
+}
+
+.muted-icon,
+.deafened-icon {
+  color: #888;
+}

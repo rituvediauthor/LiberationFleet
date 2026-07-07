@@ -1,0 +1,26 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="voice-settings-page">
+    <h1>Voice</h1>
+    <p class="intro">Choose your default microphone and speaker for crew voice channels.</p>
+
+    <p *ngIf="loading" class="state-text">Loading devices...</p>
+
+    <div class="device-list" *ngIf="!loading">
+      <label class="device-field">
+        <span>Microphone</span>
+        <select [(ngModel)]="devicePreferences.inputDeviceId">
+          <option value="">System default</option>
+          <option *ngFor="let device of inputDevices" [value]="device.deviceId">{{ device.label || 'Microphone' }}</option>
+        </select>
+      </label>
+
+      <label class="device-field">
+        <span>Speaker</span>
+        <select [(ngModel)]="devicePreferences.outputDeviceId">
+          <option value="">System default</option>
+          <option *ngFor="let device of outputDevices" [value]="device.deviceId">{{ device.label || 'Speaker' }}</option>
+        </select>
+      </label>
+    </div>
+  </div>
+</app-page-layout>

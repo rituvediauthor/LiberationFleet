@@ -45,6 +45,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
+    public DbSet<VoiceParticipantSession> VoiceParticipantSessions => Set<VoiceParticipantSession>();
     public DbSet<CrewRule> CrewRules => Set<CrewRule>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
@@ -614,6 +615,22 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<VoiceParticipantSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.CrewId });
+            entity.HasIndex(e => e.ConnectionId);
+            entity.Property(e => e.ConnectionId).HasMaxLength(128);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ChatRoom)
+                .WithMany()
+                .HasForeignKey(e => e.ChatRoomId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CrewRule>(entity =>

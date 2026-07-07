@@ -1,17 +1,76 @@
 <app-page-layout [backButton]="backButton">
-  <div class="chat-voice-page">
+  <div class="chat-voice-page" *ngIf="contentRevealed">
     <h1>{{ roomName }}</h1>
-    <p class="notice">
-      Live voice chat is coming soon. For now you can create voice rooms and see who is in your crew.
-    </p>
+    <p class="status-text" *ngIf="loading || connecting">Connecting to voice channel...</p>
+    <p class="status-text reconnecting" *ngIf="reconnecting">Reconnecting...</p>
+    <p class="status-text error" *ngIf="!loading && errorMessage">{{ errorMessage }}</p>
 
-    <p *ngIf="loading" class="state-text">Loading participants...</p>
+    <div class="participant-list-wrap" *ngIf="!loading">
+      <p class="section-label">In channel</p>
+      <ul class="participant-list" *ngIf="participants.length > 0">
+        <li
+          *ngFor="let participant of participants"
+          class="participant"
+          [class.speaking]="isSpeaking(participant)">
+          <span class="avatar">{{ participant.username.charAt(0).toUpperCase() }}</span>
+          <div class="participant-main">
+            <span class="name">{{ participant.username }}</span>
+            <span class="badges">
+              <span *ngIf="participant.isMuted" class="badge">Muted</span>
+              <span *ngIf="participant.isDeafened" class="badge">Deafened</span>
+              <span *ngIf="participant.isServerMuted" class="badge">Server muted</span>
+            </span>
+          </div>
+          <div class="moderator-actions" *ngIf="canModerate && participant.userId !== currentUserId">
+            <button type="button" class="mod-btn" (click)="serverMuteParticipant(participant)">
+              {{ participant.isServerMuted ? 'Unmute' : 'Server mute' }}
+            </button>
+            <button type="button" class="mod-btn danger" (click)="disconnectParticipant(participant)">Disconnect</button>
+          </div>
+        </li>
+      </ul>
+      <p class="empty-text" *ngIf="participants.length === 0">No one is in this channel yet.</p>
+    </div>
 
-    <ul class="participant-list" *ngIf="!loading">
-      <li *ngFor="let member of members" class="participant">
-        <span class="avatar">{{ member.username.charAt(0).toUpperCase() }}</span>
-        <span class="name">{{ member.username }}</span>
-      </li>
-    </ul>
+    <div class="voice-controls" *ngIf="connected">
+      <button type="button" class="control-btn" [class.active]="isMuted" [disabled]="isServerMuted" (click)="toggleMute()">
+        {{ isMuted ? 'Unmute' : 'Mute' }}
+      </button>
+      <button type="button" class="control-btn" [class.active]="isDeafened" (click)="toggleDeafen()">
+        {{ isDeafened ? 'Undeafen' : 'Deafen' }}
+      </button>
+      <button type="button" class="control-btn" (click)="openDeviceSettings()">Devices</button>
+      <button type="button" class="control-btn danger" (click)="disconnectVoice()">Disconnect</button>
+    </div>
   </div>
 </app-page-layout>
+
+<div class="device-settings-panel" *ngIf="showDeviceSettings">
+  <div class="device-settings-card">
+    <h2>Voice devices</h2>
+    <label class="device-field">
+      <span>Microphone</span>
+      <select [(ngModel)]="devicePreferences.inputDeviceId">
+        <option value="">System default</option>
+        <option *ngFor="let device of inputDevices" [value]="device.deviceId">{{ device.label || 'Microphone' }}</option>
+      </select>
+    </label>
+    <label class="device-field">
+      <span>Speaker</span>
+      <select [(ngModel)]="devicePreferences.outputDeviceId">
+        <option value="">System default</option>
+        <option *ngFor="let device of outputDevices" [value]="device.deviceId">{{ device.label || 'Speaker' }}</option>
+      </select>
+    </label>
+    <div class="device-actions">
+      <button type="button" class="control-btn" (click)="closeDeviceSettings()">Cancel</button>
+      <button type="button" class="control-btn primary" (click)="saveDeviceSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<app-adult-content-gate
+  [visible]="showAdultGate"
+  (confirmed)="onAdultGateConfirmed()"
+  (declined)="onAdultGateDeclined()">
+</app-adult-content-gate>

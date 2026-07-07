@@ -15,6 +15,8 @@ import { HiddenContentItem, MutedContentItem } from '../../../models/notificatio
 import { NotificationService } from '../../../services/notification.service';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
+import { VoicePresenceService } from '../../../services/voice-presence.service';
+import { VoiceParticipant, VoiceRoomPresence } from '../../../models/voice.model';
 
 @Component({
   selector: 'app-chat-list',
@@ -34,6 +36,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   showHiddenExpanded = false;
   showAdultGate = false;
   pendingRoom: ChatRoomListItem | null = null;
+  voicePresenceByRoom: VoiceRoomPresence[] = [];
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
@@ -47,6 +50,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
+  private voicePresence = inject(VoicePresenceService);
   private subscriptions: Subscription[] = [];
 
   ngOnInit() {
@@ -64,7 +68,10 @@ export class ChatListComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(
       this.chatHub.roomCreated$.subscribe(room => void this.onRoomCreated(room)),
-      this.chatHub.roomActivityUpdated$.subscribe(update => this.onRoomActivityUpdated(update))
+      this.chatHub.roomActivityUpdated$.subscribe(update => this.onRoomActivityUpdated(update)),
+      this.voicePresence.presence$.subscribe(rooms => {
+        this.voicePresenceByRoom = rooms;
+      })
     );
 
     this.crewService.getMembership().subscribe({
@@ -73,6 +80,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
         await this.encryptionContent.whenReady();
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);
+          void this.voicePresence.ensureCrewSubscribed(this.crewId);
         }
         this.contentPreferenceService.ensureLoaded().subscribe();
         this.loadMutes();
@@ -118,6 +126,14 @@ export class ChatListComponent implements OnInit, OnDestroy {
 
   roomTypeLabel(room: ChatRoomListItem): string {
     return room.roomType === 'Voice' ? 'Voice' : 'Text';
+  }
+
+  voiceOccupantsForRoom(roomId: number): VoiceParticipant[] {
+    return this.voicePresenceByRoom.find(room => room.chatRoomId === roomId)?.participants ?? [];
+  }
+
+  hasVoiceActivity(roomId: number): boolean {
+    return this.voiceOccupantsForRoom(roomId).length > 0;
   }
 
   openRoom(room: ChatRoomListItem) {

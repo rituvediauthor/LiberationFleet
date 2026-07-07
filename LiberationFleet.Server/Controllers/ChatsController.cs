@@ -8,6 +8,12 @@ using LiberationFleet.Server.Application.Features.Chats.Contracts;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetChatRoomMessages;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetCrewChatRooms;
+using LiberationFleet.Server.Application.Features.Chats.Voice.Commands.DisconnectVoiceParticipant;
+using LiberationFleet.Server.Application.Features.Chats.Voice.Commands.JoinVoiceRoom;
+using LiberationFleet.Server.Application.Features.Chats.Voice.Commands.LeaveVoiceRoom;
+using LiberationFleet.Server.Application.Features.Chats.Voice.Commands.ServerMuteVoiceParticipant;
+using LiberationFleet.Server.Application.Features.Chats.Voice.Contracts;
+using LiberationFleet.Server.Application.Features.Chats.Voice.Queries.GetVoicePresence;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -117,6 +123,41 @@ public class ChatsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/voice/join")]
+    public async Task<IActionResult> JoinVoiceRoom(int roomId)
+    {
+        var result = await _mediator.Send(new JoinVoiceRoomCommand(roomId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/voice/leave")]
+    public async Task<IActionResult> LeaveVoiceRoom(int roomId)
+    {
+        var result = await _mediator.Send(new LeaveVoiceRoomCommand(roomId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("voice/presence")]
+    public async Task<IActionResult> GetVoicePresence([FromQuery] int crewId)
+    {
+        var result = await _mediator.Send(new GetVoicePresenceQuery(crewId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/voice/disconnect")]
+    public async Task<IActionResult> DisconnectVoiceParticipant(int roomId, [FromBody] VoiceDisconnectRequest body)
+    {
+        var result = await _mediator.Send(new DisconnectVoiceParticipantCommand(roomId, body.UserId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/voice/server-mute")]
+    public async Task<IActionResult> ServerMuteVoiceParticipant(int roomId, [FromBody] VoiceServerMuteRequest body)
+    {
+        var result = await _mediator.Send(new ServerMuteVoiceParticipantCommand(roomId, body.UserId, body.IsServerMuted));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

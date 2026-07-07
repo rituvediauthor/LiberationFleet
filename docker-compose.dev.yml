@@ -23,5 +23,33 @@ services:
       start_period: 40s
     restart: unless-stopped
 
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: liberationfleet-livekit-dev
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50100:50000-50100/udp"
+    volumes:
+      - ./infrastructure/livekit.yaml:/etc/livekit.yaml:ro
+    restart: unless-stopped
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: liberationfleet-coturn-dev
+    network_mode: host
+    command:
+      - -n
+      - --log-file=stdout
+      - --lt-cred-mech
+      - --fingerprint
+      - --no-multicast-peers
+      - --no-cli
+      - --realm=liberationfleet.local
+      - --user=livekit:livekitturn
+      - --listening-port=3478
+    restart: unless-stopped
+
 volumes:
   liberationfleet-sqldata-dev:

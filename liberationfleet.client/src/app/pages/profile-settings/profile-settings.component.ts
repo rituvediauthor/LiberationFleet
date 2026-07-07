@@ -31,6 +31,10 @@ export class ProfileSettingsComponent {
     this.router.navigate(['/app/profile/preferences/content']);
   }
 
+  goToVoice() {
+    this.router.navigate(['/app/profile/preferences/voice']);
+  }
+
   goToPlaceholder(title: string) {
     this.router.navigate(['/app/profile/preferences/placeholder'], { queryParams: { title } });
   }

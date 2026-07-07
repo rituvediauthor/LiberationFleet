@@ -17,11 +17,25 @@
             <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
             <p class="room-meta">
               <span class="room-type">{{ roomTypeLabel(room) }}</span>
+              <span *ngIf="room.roomType === 'Voice' && hasVoiceActivity(room.id)" class="voice-active-badge" aria-label="Voice channel active">
+                <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+              </span>
               <span *ngIf="room.isAdultContent" class="adult-badge">18+</span>
               <span *ngIf="isRoomMuted(room.id)" class="muted-badge">Muted</span>
               <span>·</span>
               <span>{{ formatActivity(room.lastActivityAt) }}</span>
             </p>
+            <ul class="voice-occupants" *ngIf="room.roomType === 'Voice' && voiceOccupantsForRoom(room.id).length > 0">
+              <li *ngFor="let occupant of voiceOccupantsForRoom(room.id)" class="voice-occupant">
+                <span class="occupant-avatar">{{ occupant.username.charAt(0).toUpperCase() }}</span>
+                <span class="occupant-name">{{ occupant.username }}</span>
+                <span class="occupant-badges">
+                  <i *ngIf="occupant.isSpeaking && !occupant.isMuted" class="fa-solid fa-microphone-lines speaking-icon" aria-hidden="true"></i>
+                  <i *ngIf="occupant.isMuted" class="fa-solid fa-microphone-slash muted-icon" aria-label="Muted"></i>
+                  <i *ngIf="occupant.isDeafened" class="fa-solid fa-headphones-slash deafened-icon" aria-label="Deafened"></i>
+                </span>
+              </li>
+            </ul>
           </div>
           <i class="fa-solid fa-chevron-right room-chevron" aria-hidden="true"></i>
         </button>
@@ -62,12 +76,26 @@
             <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
             <p class="room-meta">
               <span class="room-type">{{ roomTypeLabel(room) }}</span>
+              <span *ngIf="room.roomType === 'Voice' && hasVoiceActivity(room.id)" class="voice-active-badge" aria-label="Voice channel active">
+                <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+              </span>
               <span class="muted-badge">Hidden</span>
               <span *ngIf="room.isAdultContent" class="adult-badge">18+</span>
               <span *ngIf="isRoomMuted(room.id)" class="muted-badge">Muted</span>
               <span>·</span>
               <span>{{ formatActivity(room.lastActivityAt) }}</span>
             </p>
+            <ul class="voice-occupants" *ngIf="room.roomType === 'Voice' && voiceOccupantsForRoom(room.id).length > 0">
+              <li *ngFor="let occupant of voiceOccupantsForRoom(room.id)" class="voice-occupant">
+                <span class="occupant-avatar">{{ occupant.username.charAt(0).toUpperCase() }}</span>
+                <span class="occupant-name">{{ occupant.username }}</span>
+                <span class="occupant-badges">
+                  <i *ngIf="occupant.isSpeaking && !occupant.isMuted" class="fa-solid fa-microphone-lines speaking-icon" aria-hidden="true"></i>
+                  <i *ngIf="occupant.isMuted" class="fa-solid fa-microphone-slash muted-icon" aria-label="Muted"></i>
+                  <i *ngIf="occupant.isDeafened" class="fa-solid fa-headphones-slash deafened-icon" aria-label="Deafened"></i>
+                </span>
+              </li>
+            </ul>
           </div>
           <i class="fa-solid fa-chevron-right room-chevron" aria-hidden="true"></i>
         </button>

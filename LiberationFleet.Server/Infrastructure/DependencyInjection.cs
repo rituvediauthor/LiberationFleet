@@ -46,6 +46,12 @@ public static class DependencyInjection
         services.AddScoped<ILibraryRepository, LibraryRepository>();
         services.AddScoped<IEmergencyRequestRepository, EmergencyRequestRepository>();
         services.AddScoped<IUserActivityRepository, UserActivityRepository>();
+        services.AddScoped<IVoicePresenceRepository, VoicePresenceRepository>();
+        services.AddScoped<IVoicePresenceNotifier, VoicePresenceNotifier>();
+        services.Configure<Infrastructure.LiveKit.LiveKitOptions>(configuration.GetSection(Infrastructure.LiveKit.LiveKitOptions.SectionName));
+        services.AddSingleton<ILiveKitTokenService, Infrastructure.LiveKit.LiveKitTokenService>();
+        services.AddHttpClient();
+        services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();
         services.AddSingleton<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();

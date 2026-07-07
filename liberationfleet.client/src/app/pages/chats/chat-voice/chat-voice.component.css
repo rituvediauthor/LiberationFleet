@@ -1,5 +1,6 @@
 .chat-voice-page {
-  max-width: 520px;
+  width: 100%;
+  max-width: 560px;
   margin: 0 auto;
 }
 
@@ -8,19 +9,26 @@ h1 {
   font-size: 28px;
 }
 
-.notice {
-  margin: 0 0 24px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: #fff8e6;
-  border: 1px solid #f0d58b;
-  color: #6a5a20;
+.status-text {
+  color: #666;
   font-size: 14px;
-  line-height: 1.45;
 }
 
-.state-text {
+.status-text.error {
+  color: #c62828;
+}
+
+.status-text.reconnecting {
+  color: #007AFF;
+}
+
+.section-label {
+  margin: 20px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
   color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .participant-list {
@@ -38,22 +46,153 @@ h1 {
   gap: 12px;
   padding: 12px 14px;
   border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  background: #fafafa;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.participant.speaking {
+  border-color: #34a853;
+  box-shadow: 0 0 0 2px rgba(52, 168, 83, 0.15);
 }
 
 .avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #e7f1ff;
+  background: #eef4ff;
   color: #007AFF;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  flex-shrink: 0;
+}
+
+.participant-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .name {
+  display: block;
   font-weight: 600;
+  color: #222;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.moderator-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mod-btn {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mod-btn.danger {
+  color: #c62828;
+}
+
+.empty-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.control-btn {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.control-btn.active {
+  background: #eef4ff;
+  border-color: #007AFF;
+  color: #007AFF;
+}
+
+.control-btn.primary {
+  background: #007AFF;
+  border-color: #007AFF;
+  color: #fff;
+}
+
+.control-btn.danger {
+  color: #c62828;
+}
+
+.device-settings-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  padding: 24px;
+}
+
+.device-settings-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.device-settings-card h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.device-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.device-field select {
+  font-weight: 400;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.device-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
