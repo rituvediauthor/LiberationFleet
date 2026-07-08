@@ -26,7 +26,7 @@
 .text-btn {
   border: none;
   background: none;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -44,18 +44,18 @@
   max-width: 240px;
   margin-bottom: 20px;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 6px;
   font-size: 14px;
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .notification-list {
@@ -71,15 +71,15 @@
   width: 100%;
   text-align: left;
   padding: 14px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
 }
 
 .notification-card.unread {
-  border-color: #007AFF;
-  background: #f8fbff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .card-main {
@@ -94,17 +94,17 @@
 
 .card-main p {
   margin: 0 0 6px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .card-main time {
-  color: #888;
+  color: var(--lf-color-text-muted);
   font-size: 12px;
 }
 
 .chevron {
-  color: #999;
+  color: var(--lf-color-text-subtle);
   flex-shrink: 0;
 }
 

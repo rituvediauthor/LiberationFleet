@@ -4,16 +4,16 @@
   gap: 14px;
   align-items: flex-start;
   padding: 14px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   text-align: left;
   cursor: pointer;
 }
 
 .library-item-card:hover {
-  background: #f8fbff;
-  border-color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
 }
 
 .card-thumb {
@@ -22,7 +22,7 @@
   height: 72px;
   border-radius: 8px;
   overflow: hidden;
-  background: #f0f0f0;
+  background: var(--lf-color-bg-hover);
 }
 
 .card-thumb img {
@@ -32,7 +32,7 @@
 }
 
 .card-thumb.placeholder {
-  border: 1px dashed #ccc;
+  border: 1px dashed var(--lf-color-border-subtle);
 }
 
 .card-body {
@@ -43,32 +43,32 @@
 .card-meta {
   margin: 0 0 4px;
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .card-stock {
   margin: 0 0 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #007AFF;
+  color: var(--lf-color-accent);
 }
 
 .card-stock.out-of-stock {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .card-title {
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .card-preview {
   margin: 0;
   font-size: 13px;
   line-height: 1.4;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;

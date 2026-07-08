@@ -11,17 +11,17 @@
 
 .intro {
   margin: 0 0 20px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .preference-list {
@@ -35,9 +35,9 @@
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
 }
 
@@ -45,7 +45,7 @@
   margin-top: 3px;
   width: 18px;
   height: 18px;
-  accent-color: #007AFF;
+  accent-color: var(--lf-color-accent);
   flex-shrink: 0;
 }
 
@@ -58,11 +58,11 @@
 .preference-label {
   font-size: 15px;
   font-weight: 600;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .preference-description {
   font-size: 13px;
   line-height: 1.45;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }

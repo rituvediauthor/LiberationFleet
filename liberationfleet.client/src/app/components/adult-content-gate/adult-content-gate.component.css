@@ -10,7 +10,7 @@
 }
 
 .dialog-card {
-  background: white;
+  background: var(--lf-color-bg-surface);
   border-radius: 12px;
   padding: 24px;
   max-width: 380px;
@@ -23,8 +23,8 @@
   margin-bottom: 12px;
   padding: 4px 8px;
   border-radius: 6px;
-  background: #b71c1c;
-  color: #fff;
+  background: var(--lf-color-danger-strong);
+  color: var(--lf-color-text-inverse);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -34,14 +34,14 @@
   margin: 0 0 12px;
   font-size: 18px;
   font-weight: 700;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .dialog-message {
   margin: 0 0 20px;
   font-size: 15px;
   line-height: 1.5;
-  color: #555;
+  color: var(--lf-color-text-secondary);
 }
 
 .dialog-actions {
@@ -55,23 +55,23 @@
   padding: 12px;
   border: none;
   border-radius: 8px;
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .dialog-button:hover {
-  background: #0056b3;
+  background: var(--lf-color-accent-hover);
 }
 
 .dialog-button.cancel {
   background: transparent;
-  color: #666;
-  border: 1px solid #ddd;
+  color: var(--lf-color-text-secondary);
+  border: 1px solid var(--lf-color-border-subtle);
 }
 
 .dialog-button.cancel:hover {
-  background: #f5f5f5;
+  background: var(--lf-color-bg-hover);
 }

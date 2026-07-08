@@ -10,7 +10,7 @@
 .log-section {
   max-height: 240px;
   overflow-y: auto;
-  background: #f8f8f8;
+  background: var(--lf-color-bg-muted);
   border-radius: 8px;
   padding: 16px;
 }
@@ -31,11 +31,11 @@
 
 .log-time {
   font-size: 12px;
-  color: #888;
+  color: var(--lf-color-text-muted);
 }
 
 .form-card {
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 24px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -58,7 +58,7 @@ h1 {
 
 .section-hint {
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0 0 16px;
 }
 
@@ -70,6 +70,6 @@ h1 {
 
 .form-input {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
 }

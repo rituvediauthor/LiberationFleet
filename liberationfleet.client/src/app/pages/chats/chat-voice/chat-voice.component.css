@@ -10,23 +10,23 @@ h1 {
 }
 
 .status-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .status-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .status-text.reconnecting {
-  color: #007AFF;
+  color: var(--lf-color-accent);
 }
 
 .section-label {
   margin: 20px 0 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -45,13 +45,13 @@ h1 {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
 }
 
 .participant.speaking {
-  border-color: #34a853;
+  border-color: var(--lf-color-success);
   box-shadow: 0 0 0 2px rgba(52, 168, 83, 0.15);
 }
 
@@ -59,8 +59,8 @@ h1 {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #eef4ff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -76,7 +76,7 @@ h1 {
 .name {
   display: block;
   font-weight: 600;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .badges {
@@ -89,7 +89,7 @@ h1 {
 .badge {
   font-size: 11px;
   font-weight: 600;
-  color: #888;
+  color: var(--lf-color-text-muted);
   text-transform: uppercase;
 }
 
@@ -100,8 +100,8 @@ h1 {
 }
 
 .mod-btn {
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--lf-color-border-subtle);
+  background: var(--lf-color-bg-surface);
   border-radius: 6px;
   padding: 6px 8px;
   font-size: 12px;
@@ -109,11 +109,11 @@ h1 {
 }
 
 .mod-btn.danger {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .empty-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
@@ -126,28 +126,28 @@ h1 {
 
 .control-btn {
   padding: 10px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .control-btn.active {
-  background: #eef4ff;
-  border-color: #007AFF;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  border-color: var(--lf-color-accent);
+  color: var(--lf-color-accent);
 }
 
 .control-btn.primary {
-  background: #007AFF;
-  border-color: #007AFF;
-  color: #fff;
+  background: var(--lf-color-accent);
+  border-color: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .control-btn.danger {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .device-settings-panel {
@@ -162,7 +162,7 @@ h1 {
 }
 
 .device-settings-card {
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   border-radius: 12px;
   padding: 20px;
   width: 100%;
@@ -186,7 +186,7 @@ h1 {
 .device-field select {
   font-weight: 400;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
 }
 

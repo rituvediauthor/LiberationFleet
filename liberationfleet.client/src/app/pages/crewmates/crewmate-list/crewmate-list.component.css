@@ -8,22 +8,22 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .page-subtitle {
   margin: 0 0 16px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .crewmate-list {
@@ -38,16 +38,16 @@
   align-items: center;
   gap: 12px;
   text-align: left;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 14px 16px;
   cursor: pointer;
 }
 
 .crewmate-row:hover {
-  border-color: #007AFF;
-  background: #f8fbff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .crewmate-main {
@@ -59,7 +59,7 @@
   margin: 0 0 4px;
   font-size: 16px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .non-member-badge {
@@ -67,8 +67,8 @@
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #f0f0f0;
-  color: #666;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
   font-size: 11px;
   font-weight: 600;
   vertical-align: middle;
@@ -77,21 +77,21 @@
 .crewmate-activity {
   margin: 0 0 4px;
   font-size: 12px;
-  color: #2e7d32;
+  color: var(--lf-color-success);
   font-weight: 600;
 }
 
 .crewmate-platform {
   margin: 0;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .chevron {
-  color: #999;
+  color: var(--lf-color-text-subtle);
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -101,10 +101,10 @@
   width: 100%;
   margin-top: 16px;
   padding: 14px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fafafa;
-  color: #007AFF;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-accent);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -112,6 +112,6 @@
 }
 
 .kicked-link-btn:hover {
-  background: #f3f7ff;
-  border-color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
 }

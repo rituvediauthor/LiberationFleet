@@ -7,7 +7,7 @@
 .form-card {
   width: 100%;
   max-width: 480px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -17,25 +17,25 @@ h1 {
   font-size: 28px;
   font-weight: 600;
   margin: 0 0 24px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 h2 {
   font-size: 16px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .section {
   margin-bottom: 24px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--lf-color-border);
 }
 
 .section-hint {
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0 0 16px;
 }
 
@@ -55,26 +55,26 @@ h2 {
   gap: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--lf-color-text-body);
   cursor: pointer;
 }
 
 .checkbox-label input {
   width: 18px;
   height: 18px;
-  accent-color: #007AFF;
+  accent-color: var(--lf-color-accent);
 }
 
 label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -82,20 +82,20 @@ label {
 
 .form-input:focus {
   outline: none;
-  border-color: #007AFF;
+  border-color: var(--lf-color-accent);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
 .hint-text {
   font-size: 12px;
-  color: #888;
+  color: var(--lf-color-text-muted);
   margin-top: 4px;
 }
 
 .text-btn {
   border: none;
   background: none;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -114,8 +114,8 @@ label {
 .role-list li {
   font-size: 13px;
   font-weight: 600;
-  color: #333;
-  background: #f3f3f3;
+  color: var(--lf-color-text-body);
+  background: var(--lf-color-bg-muted);
   border-radius: 999px;
   padding: 4px 10px;
 }
@@ -128,19 +128,19 @@ label {
 .role-btn {
   flex: 1;
   padding: 10px 12px;
-  border: 1px solid #cfd8ff;
+  border: 1px solid var(--lf-color-accent-border);
   border-radius: 8px;
-  background: #f8fbff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .role-btn.demote {
-  border-color: #e0b4b4;
-  background: #fff5f5;
-  color: #c62828;
+  border-color: var(--lf-color-danger-border);
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
 }
 
 .readonly-grid {
@@ -148,7 +148,7 @@ label {
   gap: 12px;
   margin-bottom: 24px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--lf-color-bg-muted);
   border-radius: 8px;
 }
 
@@ -160,12 +160,12 @@ label {
 }
 
 .readonly-label {
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .readonly-value {
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
   text-align: right;
 }
 
@@ -173,17 +173,17 @@ label {
   width: 100%;
   margin-top: 8px;
   padding: 12px;
-  border: 1px solid #d32f2f;
+  border: 1px solid var(--lf-color-danger);
   border-radius: 8px;
-  background: white;
-  color: #d32f2f;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-danger);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .logout-btn:hover {
-  background: #fff5f5;
+  background: var(--lf-color-danger-soft-bg);
 }
 
 .encryption-section .encryption-status {
@@ -195,36 +195,36 @@ label {
 }
 
 .status-label {
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .status-value {
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .status-value.unlocked {
-  color: #1b7f3a;
+  color: var(--lf-color-success);
 }
 
 .legacy-migration-note {
   margin: 12px 0;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #fff8e8;
-  color: #7a5200;
+  background: var(--lf-color-highlight-soft-bg);
+  color: var(--lf-color-warning-text);
   font-size: 13px;
   line-height: 1.45;
 }
 
 .status-message {
   text-align: center;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   padding: 32px 16px;
 }
 
 .status-message.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 @media (max-width: 600px) {

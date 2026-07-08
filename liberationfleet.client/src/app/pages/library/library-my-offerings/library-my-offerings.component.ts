@@ -170,72 +170,68 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
     this.loadedOfferings = items;
     this.hasMore = page.hasMore;
 
-    const listItems: LibraryUnitListItem[] = page.items
-      .filter(item => item.unitId)
-      .map(item => ({
-        unitId: item.unitId!,
-        offeringId: item.offeringId,
-        holderUserId: 0,
-        holderUsername: 'You',
-        title: item.title,
-        descriptionPreview: item.descriptionPreview,
-        categories: item.categories,
-        thumbnailResourceId: item.thumbnailResourceId,
-        hasEncryptedContent: item.hasEncryptedContent,
-        remainingStock: item.remainingStock,
-        quantityNotApplicable: item.quantityNotApplicable,
-        isOutOfStock: item.isOutOfStock,
-        offeringKind: item.offeringKind,
-        fulfillmentMode: item.fulfillmentMode
-      }));
-
-    let enriched = listItems;
-    try {
-      await this.encryptionContent.whenReady();
-      if (this.crewId > 0) {
-        enriched = await this.libraryCrypto.enrichUnitListItems(listItems, this.crewId);
-      }
-    } catch {
-      enriched = listItems;
-    }
-
-    const enrichedByUnitId = new Map(enriched.map(item => [item.unitId, item]));
+    // Render rows immediately with basic (un-decrypted) cards so the list appears fast.
     const newRows = page.items.map(offering => ({
       offering,
-      card: offering.unitId
-        ? enrichedByUnitId.get(offering.unitId) ?? {
-            unitId: offering.unitId,
-            offeringId: offering.offeringId,
-            holderUserId: 0,
-            holderUsername: 'You',
-            title: offering.title,
-            descriptionPreview: offering.descriptionPreview,
-            categories: offering.categories,
-            remainingStock: offering.remainingStock,
-            quantityNotApplicable: offering.quantityNotApplicable,
-            isOutOfStock: offering.isOutOfStock,
-            offeringKind: offering.offeringKind,
-            fulfillmentMode: offering.fulfillmentMode
-          }
-        : {
-            unitId: 0,
-            offeringId: offering.offeringId,
-            holderUserId: 0,
-            holderUsername: 'You',
-            title: offering.title,
-            descriptionPreview: offering.descriptionPreview,
-            categories: offering.categories,
-            remainingStock: offering.remainingStock,
-            quantityNotApplicable: offering.quantityNotApplicable,
-            isOutOfStock: offering.isOutOfStock,
-            offeringKind: offering.offeringKind,
-            fulfillmentMode: offering.fulfillmentMode
-          }
+      card: this.buildBasicCard(offering)
     }));
 
     this.displayItems = reset ? newRows : [...this.displayItems, ...newRows];
     this.loading = false;
     this.loadingMore = false;
     setTimeout(() => this.setupLoadMoreObserver(), 0);
+
+    // Decrypt/enrich in the background, then patch the already-visible rows.
+    void this.enrichRows(newRows);
+  }
+
+  private async enrichRows(rows: { offering: LibraryOfferingListItem; card: LibraryUnitListItem }[]) {
+    const listItems = rows
+      .filter(row => row.offering.unitId)
+      .map(row => this.buildBasicCard(row.offering));
+
+    if (listItems.length === 0) {
+      return;
+    }
+
+    try {
+      await this.encryptionContent.whenReady();
+      if (this.crewId <= 0) {
+        return;
+      }
+
+      const enriched = await this.libraryCrypto.enrichUnitListItems(listItems, this.crewId);
+      const enrichedByUnitId = new Map(enriched.map(item => [item.unitId, item]));
+
+      for (const row of rows) {
+        if (row.offering.unitId) {
+          const match = enrichedByUnitId.get(row.offering.unitId);
+          if (match) {
+            row.card = match;
+          }
+        }
+      }
+    } catch {
+      // Keep basic cards if enrichment fails.
+    }
+  }
+
+  private buildBasicCard(offering: LibraryOfferingListItem): LibraryUnitListItem {
+    return {
+      unitId: offering.unitId ?? 0,
+      offeringId: offering.offeringId,
+      holderUserId: 0,
+      holderUsername: 'You',
+      title: offering.title,
+      descriptionPreview: offering.descriptionPreview,
+      categories: offering.categories,
+      thumbnailResourceId: offering.thumbnailResourceId,
+      hasEncryptedContent: offering.hasEncryptedContent,
+      remainingStock: offering.remainingStock,
+      quantityNotApplicable: offering.quantityNotApplicable,
+      isOutOfStock: offering.isOutOfStock,
+      offeringKind: offering.offeringKind,
+      fulfillmentMode: offering.fulfillmentMode
+    };
   }
 }

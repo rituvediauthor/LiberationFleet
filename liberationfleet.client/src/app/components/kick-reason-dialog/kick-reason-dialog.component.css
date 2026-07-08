@@ -12,7 +12,7 @@
 .dialog-card {
   width: 100%;
   max-width: 420px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -22,14 +22,14 @@
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .dialog-message {
   margin: 0 0 16px;
   font-size: 14px;
   line-height: 1.5;
-  color: #555;
+  color: var(--lf-color-text-secondary);
 }
 
 .reason-label {
@@ -37,14 +37,14 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .reason-input {
   width: 100%;
   box-sizing: border-box;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
   resize: vertical;
@@ -65,8 +65,8 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  background: #c62828;
-  color: white;
+  background: var(--lf-color-danger);
+  color: var(--lf-color-text-inverse);
 }
 
 .dialog-button:disabled {
@@ -75,6 +75,6 @@
 }
 
 .dialog-button.cancel {
-  background: #f2f2f2;
-  color: #333;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-body);
 }

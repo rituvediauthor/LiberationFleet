@@ -3,5 +3,5 @@
 .request-meta {
   margin: 0 0 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }

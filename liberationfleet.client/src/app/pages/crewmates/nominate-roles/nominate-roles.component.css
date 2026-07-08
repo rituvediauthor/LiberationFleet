@@ -5,30 +5,30 @@
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .page-title {
   margin: 0 0 8px;
   font-size: 24px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .page-subtitle {
   margin: 0 0 20px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
   line-height: 1.5;
 }
 
 .empty-text {
-  color: #777;
+  color: var(--lf-color-text-muted);
   font-size: 14px;
 }
 
@@ -40,24 +40,24 @@
 
 .role-card {
   text-align: left;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   padding: 16px;
   cursor: pointer;
 }
 
 .role-card.selected {
-  border-color: #007AFF;
-  background: #f3f8ff;
-  box-shadow: inset 0 0 0 1px #007AFF;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+  box-shadow: inset 0 0 0 1px var(--lf-color-accent);
 }
 
 .role-name {
   display: block;
   font-size: 16px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -65,5 +65,5 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.45;
-  color: #555;
+  color: var(--lf-color-text-secondary);
 }

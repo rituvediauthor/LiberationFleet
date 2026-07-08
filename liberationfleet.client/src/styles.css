@@ -1,3 +1,6 @@
+@import './themes/light.css';
+@import './themes/dark.css';
+@import './themes/base.css';
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 
 *,
@@ -15,6 +18,8 @@ body {
 app-root {
   display: block;
   height: 100%;
+  background: var(--lf-color-bg-page);
+  color: var(--lf-color-text-primary);
 }
 
 .scroll-page-body {
@@ -37,7 +42,7 @@ app-root {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   cursor: pointer;
 }
 
@@ -48,10 +53,10 @@ app-root {
   z-index: 10;
   min-width: 140px;
   padding: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--lf-color-bg-surface);
+  box-shadow: var(--lf-shadow-dropdown);
 }
 
 .dropdown-menu button {
@@ -62,7 +67,10 @@ app-root {
   background: transparent;
   text-align: left;
   font-size: 14px;
+  color: var(--lf-color-text-primary);
   cursor: pointer;
 }
 
-/* You can add global styles to this file, and also import other style files */
+.dropdown-menu button:hover {
+  background: var(--lf-color-bg-hover);
+}

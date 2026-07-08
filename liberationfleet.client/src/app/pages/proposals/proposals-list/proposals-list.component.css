@@ -12,16 +12,16 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .proposal-cards {
@@ -33,16 +33,16 @@
 .proposal-card {
   width: 100%;
   text-align: left;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 14px;
   cursor: pointer;
 }
 
 .proposal-card:hover {
-  border-color: #007AFF;
-  background: #f8fbff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .card-top {
@@ -58,12 +58,12 @@
 .card-meta {
   margin: 0 0 6px;
   font-size: 12px;
-  color: #777;
+  color: var(--lf-color-text-muted);
 }
 
 .author {
   font-weight: 600;
-  color: #444;
+  color: var(--lf-color-text-body);
 }
 
 .dot {
@@ -74,36 +74,36 @@
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .card-preview {
   margin: 0 0 8px;
   font-size: 13px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   line-height: 1.4;
 }
 
 .vote-line {
   margin: 0;
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .approve {
-  color: #2e7d32;
+  color: var(--lf-color-success);
   font-weight: 600;
 }
 
 .disapprove {
-  color: #c62828;
+  color: var(--lf-color-danger);
   font-weight: 600;
 }
 
 .timer {
   margin: 6px 0 0;
   font-size: 12px;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-weight: 600;
 }
 
@@ -113,8 +113,8 @@
   flex-shrink: 0;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e8e8e8;
-  background: #f3f3f3;
+  border: 1px solid var(--lf-color-border);
+  background: var(--lf-color-bg-muted);
 }
 
 .card-thumb img {
@@ -124,5 +124,5 @@
 }
 
 .card-thumb.placeholder {
-  background: linear-gradient(135deg, #eef4ff, #f5f5f5);
+  background: linear-gradient(135deg, var(--lf-color-accent-soft-bg), var(--lf-color-bg-hover));
 }

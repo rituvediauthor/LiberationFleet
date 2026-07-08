@@ -8,16 +8,16 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .blocked-list {
@@ -31,9 +31,9 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: white;
+  background: var(--lf-color-bg-surface);
 }
 
 .blocked-main {
@@ -45,21 +45,21 @@
   margin: 0 0 4px;
   font-size: 16px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .blocked-meta {
   margin: 0;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .action-btn {
   padding: 8px 12px;
-  border: 1px solid #007AFF;
+  border: 1px solid var(--lf-color-accent);
   border-radius: 8px;
-  background: white;
-  color: #007AFF;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

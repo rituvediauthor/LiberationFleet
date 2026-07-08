@@ -11,10 +11,10 @@
 .requester-name {
   font-size: 12px;
   font-weight: 600;
-  color: #444;
+  color: var(--lf-color-text-body);
 }
 
 .timestamp {
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }

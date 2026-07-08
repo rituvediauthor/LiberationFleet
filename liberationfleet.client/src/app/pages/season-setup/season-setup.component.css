@@ -7,7 +7,7 @@
 .form-card {
   width: 100%;
   max-width: 520px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -22,14 +22,14 @@ h1 {
 .intro-text {
   font-size: 14px;
   line-height: 1.5;
-  color: #444;
+  color: var(--lf-color-text-body);
   margin-bottom: 12px;
 }
 
 .ready-count {
   font-size: 14px;
   font-weight: 600;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   margin-bottom: 24px;
 }
 
@@ -44,7 +44,7 @@ h1 {
 
 .section-hint {
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0 0 16px;
 }
 
@@ -62,14 +62,14 @@ label {
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
 }
 
 .status-text {
   text-align: center;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .ready-checkbox-row {

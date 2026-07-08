@@ -8,7 +8,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-group {
@@ -21,12 +21,12 @@ label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
 }
@@ -45,10 +45,10 @@ label {
 
 .attach-btn {
   padding: 8px 12px;
-  border: 1px solid #cfe0ff;
+  border: 1px solid var(--lf-color-accent-border);
   border-radius: 8px;
-  background: #f4f8ff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -65,14 +65,14 @@ label {
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--lf-color-border);
   font-size: 13px;
 }
 
 .remove-btn {
   border: none;
   background: transparent;
-  color: #c62828;
+  color: var(--lf-color-danger);
   cursor: pointer;
   font-weight: 600;
 }

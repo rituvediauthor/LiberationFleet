@@ -7,7 +7,7 @@
 .form-card {
   width: 100%;
   max-width: 520px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -17,7 +17,7 @@ h1 {
   font-size: 28px;
   font-weight: 600;
   margin: 0 0 24px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-group {
@@ -30,14 +30,14 @@ h1 {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 10px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .radio-option {
@@ -51,32 +51,32 @@ label {
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #007AFF;
+  border-color: var(--lf-color-accent);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
 .hint-text {
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin-top: 6px;
 }
 
 .search-status {
   font-size: 14px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin-bottom: 16px;
 }
 
 .results-summary {
   font-size: 14px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0 0 12px;
 }
 
@@ -90,36 +90,36 @@ label {
   width: 100%;
   text-align: left;
   padding: 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 6px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
   margin-bottom: 10px;
   transition: border-color 0.2s, background 0.2s;
 }
 
 .result-item:hover {
-  border-color: #007AFF;
-  background: #f8fbff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .result-item.selected {
-  border-color: #007AFF;
-  background: #f0f7ff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg);
 }
 
 .result-name {
   display: block;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
   margin-bottom: 4px;
 }
 
 .result-meta {
   display: block;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .pagination {
@@ -131,9 +131,9 @@ label {
 
 .page-btn {
   padding: 8px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -146,7 +146,7 @@ label {
 
 .page-info {
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 @media (max-width: 600px) {
@@ -167,13 +167,13 @@ label {
 
 .intro-text {
   font-size: 14px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   line-height: 1.5;
   margin: 0 0 20px;
 }
 
 .inline-link {
-  color: #007AFF;
+  color: var(--lf-color-accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -184,11 +184,11 @@ label {
 
 .state-text {
   font-size: 14px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .state-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .rules-list {
@@ -201,23 +201,23 @@ label {
 }
 
 .rule-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 8px;
   padding: 16px;
-  background: #fafafa;
+  background: var(--lf-color-bg-muted);
 }
 
 .rule-title {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .rule-description {
   margin: 0 0 12px;
   font-size: 14px;
-  color: #444;
+  color: var(--lf-color-text-body);
   line-height: 1.5;
   white-space: pre-wrap;
 }

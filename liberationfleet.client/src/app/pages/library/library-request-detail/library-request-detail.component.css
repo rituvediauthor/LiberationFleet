@@ -18,7 +18,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .status-badge {
@@ -28,29 +28,29 @@
   letter-spacing: 0.04em;
   padding: 4px 8px;
   border-radius: 999px;
-  background: #eef4ff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
 }
 
 .status-badge[data-status='Denied'] {
-  background: #fff0f0;
-  color: #c62828;
+  background: var(--lf-color-warning-soft-bg);
+  color: var(--lf-color-danger);
 }
 
 .status-badge[data-status='Fulfilled'],
 .status-badge[data-status='Cancelled'],
 .status-badge[data-status='Expired'] {
-  background: #f0f0f0;
-  color: #666;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .request-form {
@@ -73,12 +73,12 @@ label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
 }
@@ -89,8 +89,8 @@ label {
 }
 
 .form-input:disabled {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
 }
 
 .link-btn {
@@ -98,7 +98,7 @@ label {
   padding: 0;
   border: none;
   background: transparent;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -120,15 +120,15 @@ label {
 }
 
 .deny-btn {
-  border: 1px solid #f5c2c2;
-  background: #fff5f5;
-  color: #c62828;
+  border: 1px solid var(--lf-color-error-toast-border);
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
 }
 
 .undeny-btn {
-  border: 1px solid #cfe3ff;
-  background: #f0f7ff;
-  color: #007AFF;
+  border: 1px solid var(--lf-color-accent-border);
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
 }
 
 .deny-btn:disabled,

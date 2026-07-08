@@ -1,0 +1,139 @@
+html {
+  background: var(--lf-color-bg-page);
+}
+
+body {
+  background: var(--lf-color-bg-page);
+  color: var(--lf-color-text-primary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--lf-color-text-primary);
+}
+
+p,
+label,
+span,
+li,
+dt,
+dd {
+  color: inherit;
+}
+
+a {
+  color: var(--lf-color-accent);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']),
+textarea,
+select {
+  background: var(--lf-color-input-bg);
+  border: 1px solid var(--lf-color-input-border);
+  color: var(--lf-color-text-primary);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--lf-color-input-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lf-color-input-focus) 20%, transparent);
+}
+
+button {
+  color: inherit;
+}
+
+.state-text {
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: var(--lf-color-danger);
+}
+
+.settings-page,
+.content-settings-page,
+.voice-settings-page,
+.theme-settings-page {
+  color: var(--lf-color-text-primary);
+}
+
+.settings-page h1,
+.content-settings-page h1,
+.voice-settings-page h1,
+.theme-settings-page h1 {
+  color: var(--lf-color-text-primary);
+}
+
+.intro {
+  color: var(--lf-color-text-secondary);
+}
+
+.page-title {
+  color: var(--lf-color-text-primary);
+}
+
+.lf-card {
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-muted);
+}
+
+.lf-surface {
+  background: var(--lf-color-bg-surface);
+  border: 1px solid var(--lf-color-border);
+}
+
+.lf-btn-primary {
+  border: none;
+  border-radius: 8px;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lf-btn-primary:hover:not(:disabled) {
+  background: var(--lf-color-accent-hover);
+}
+
+.lf-btn-secondary {
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  cursor: pointer;
+}
+
+.lf-btn-secondary:hover:not(:disabled) {
+  background: var(--lf-color-bg-hover);
+}
+
+.lf-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.lf-badge.accent {
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
+}
+
+.lf-badge.danger {
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger-strong);
+}

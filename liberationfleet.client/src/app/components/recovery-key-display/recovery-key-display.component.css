@@ -10,7 +10,7 @@
 }
 
 .dialog {
-  background: white;
+  background: var(--lf-color-bg-surface);
   border-radius: 12px;
   padding: 20px;
   width: 100%;
@@ -27,7 +27,7 @@
 .dialog-note {
   margin: 0 0 16px;
   font-size: 14px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   line-height: 1.5;
 }
 
@@ -43,15 +43,15 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 8px;
-  background: #f8f8f8;
+  background: var(--lf-color-bg-muted);
   font-size: 14px;
   font-weight: 600;
 }
 
 .word-index {
-  color: #888;
+  color: var(--lf-color-text-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -68,13 +68,13 @@
 
 .copy-btn {
   margin-bottom: 12px;
-  background: #eef4ff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
 }
 
 .confirm-btn {
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .confirm-btn:disabled {

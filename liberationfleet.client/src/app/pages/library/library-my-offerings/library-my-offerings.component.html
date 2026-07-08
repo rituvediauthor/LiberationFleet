@@ -19,30 +19,35 @@
     </p>
 
     <div class="offering-list" *ngIf="!loading && displayItems.length > 0">
-      <div class="offering-row-wrap" *ngFor="let row of displayItems">
-        <button
-          type="button"
-          class="offering-row"
-          [disabled]="!row.offering.unitId"
-          (click)="openItem(row.offering)">
-          <app-library-item-card [item]="row.card" holderLabel="Creator"></app-library-item-card>
-          <div class="offering-meta">
-            <span class="meta-chip">{{ kindLabel(row.offering.offeringKind) }}</span>
-            <span class="meta-chip">{{ fulfillmentLabel(row.offering.fulfillmentMode) }}</span>
-            <span class="meta-chip out-of-stock" *ngIf="row.offering.isOutOfStock">Out of stock</span>
-            <span class="meta-chip" *ngIf="!row.offering.isOutOfStock && row.offering.remainingStock != null">
-              {{ row.offering.remainingStock }} left
-            </span>
-            <span class="meta-chip" *ngIf="row.offering.unitLabel">{{ row.offering.unitLabel }}</span>
+      <div
+        class="offering-entry"
+        *ngFor="let row of displayItems"
+        [class.disabled]="!row.offering.unitId"
+        role="button"
+        tabindex="0"
+        (click)="openItem(row.offering)"
+        (keydown.enter)="openItem(row.offering)"
+        (keydown.space)="$event.preventDefault(); openItem(row.offering)">
+        <app-library-item-card [item]="row.card" holderLabel="Creator">
+          <div class="offering-footer">
+            <div class="offering-meta">
+              <span class="meta-chip">{{ kindLabel(row.offering.offeringKind) }}</span>
+              <span class="meta-chip">{{ fulfillmentLabel(row.offering.fulfillmentMode) }}</span>
+              <span class="meta-chip out-of-stock" *ngIf="row.offering.isOutOfStock">Out of stock</span>
+              <span class="meta-chip" *ngIf="!row.offering.isOutOfStock && row.offering.remainingStock != null">
+                {{ row.offering.remainingStock }} left
+              </span>
+              <span class="meta-chip" *ngIf="row.offering.unitLabel">{{ row.offering.unitLabel }}</span>
+            </div>
+            <button
+              type="button"
+              class="edit-btn"
+              *ngIf="canEdit(row.offering)"
+              (click)="editOffering($event, row.offering)">
+              Edit
+            </button>
           </div>
-        </button>
-        <button
-          type="button"
-          class="edit-btn"
-          *ngIf="canEdit(row.offering)"
-          (click)="editOffering($event, row.offering)">
-          Edit
-        </button>
+        </app-library-item-card>
       </div>
       <div *ngIf="hasMore" class="load-more-sentinel" #loadMoreSentinel aria-hidden="true"></div>
       <p *ngIf="loadingMore" class="state-text">Loading more...</p>

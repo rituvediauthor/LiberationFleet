@@ -19,8 +19,8 @@
 }
 
 .info-widget {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--lf-color-bg-surface);
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -32,7 +32,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #999;
+  color: var(--lf-color-text-subtle);
   margin-bottom: 8px;
 }
 
@@ -40,14 +40,14 @@
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .info-platform {
   margin: 8px 0 0;
   font-size: 16px;
   font-weight: 500;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   line-height: 1.4;
 }
 
@@ -64,22 +64,22 @@
   gap: 14px;
   width: 100%;
   padding: 16px 18px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
   text-align: left;
   transition: background 0.2s, border-color 0.2s;
 }
 
 .menu-link:hover {
-  background: #f8fbff;
-  border-color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
 }
 
 .menu-icon {
   font-size: 18px;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   width: 24px;
   text-align: center;
   flex-shrink: 0;
@@ -89,12 +89,12 @@
   flex: 1;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .menu-chevron {
   font-size: 16px;
-  color: #999;
+  color: var(--lf-color-text-subtle);
   flex-shrink: 0;
 }
 
@@ -106,12 +106,12 @@
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 12px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .subtitle {
   font-size: 16px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0;
   line-height: 1.5;
 }
@@ -135,22 +135,22 @@
 }
 
 .action-btn.primary {
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .action-btn.primary:hover {
-  background: #0056b3;
+  background: var(--lf-color-accent-hover);
 }
 
 .action-btn.secondary {
-  background: white;
-  color: #007AFF;
-  border: 2px solid #007AFF;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-accent);
+  border: 2px solid var(--lf-color-accent);
 }
 
 .action-btn.secondary:hover {
-  background: #f0f7ff;
+  background: var(--lf-color-accent-soft-bg);
 }
 
 .action-btn:active {

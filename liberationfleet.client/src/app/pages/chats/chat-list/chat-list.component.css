@@ -9,12 +9,12 @@
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .room-list {
@@ -27,9 +27,9 @@
   display: flex;
   align-items: stretch;
   gap: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--lf-color-bg-muted);
 }
 
 .room-open {
@@ -47,7 +47,7 @@
 }
 
 .room-open:hover {
-  background: #f3f7ff;
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .room-main {
@@ -62,7 +62,7 @@
 .room-purpose {
   margin: 0 0 6px;
   font-size: 13px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -71,7 +71,7 @@
 .room-meta {
   margin: 0;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   display: flex;
   gap: 6px;
   align-items: center;
@@ -79,13 +79,13 @@
 
 .room-type {
   font-weight: 600;
-  color: #007AFF;
+  color: var(--lf-color-accent);
 }
 
 .muted-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #888;
+  color: var(--lf-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -93,13 +93,13 @@
 .adult-badge {
   font-size: 11px;
   font-weight: 700;
-  color: #b71c1c;
+  color: var(--lf-color-danger-strong);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .room-chevron {
-  color: #999;
+  color: var(--lf-color-text-subtle);
   flex-shrink: 0;
 }
 
@@ -116,12 +116,12 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   cursor: pointer;
 }
 
 .kebab-btn:hover {
-  background: #ececec;
+  background: var(--lf-color-bg-hover);
 }
 
 .room-menu {
@@ -131,9 +131,9 @@
   z-index: 10;
   min-width: 120px;
   padding: 6px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
@@ -150,7 +150,7 @@
 }
 
 .room-menu button:hover {
-  background: #f3f7ff;
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .hidden-toggle-btn {
@@ -158,10 +158,10 @@
   width: 100%;
   margin-top: 16px;
   padding: 14px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fafafa;
-  color: #007AFF;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-accent);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -169,8 +169,8 @@
 }
 
 .hidden-toggle-btn:hover {
-  background: #f3f7ff;
-  border-color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
 }
 
 .hidden-list {
@@ -182,7 +182,7 @@
 }
 
 .voice-active-badge {
-  color: #2e7d32;
+  color: var(--lf-color-success);
   font-size: 12px;
 }
 
@@ -200,15 +200,15 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #444;
+  color: var(--lf-color-text-body);
 }
 
 .occupant-avatar {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--lf-color-accent-pill-bg);
+  color: var(--lf-color-accent-strong);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -228,14 +228,14 @@
 .occupant-badges {
   display: inline-flex;
   gap: 6px;
-  color: #888;
+  color: var(--lf-color-text-muted);
 }
 
 .speaking-icon {
-  color: #2e7d32;
+  color: var(--lf-color-success);
 }
 
 .muted-icon,
 .deafened-icon {
-  color: #888;
+  color: var(--lf-color-text-muted);
 }

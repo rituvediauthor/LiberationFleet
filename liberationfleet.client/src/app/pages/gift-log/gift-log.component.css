@@ -12,7 +12,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 12px;
-  color: #333;
+  color: var(--lf-color-text-body);
   flex-shrink: 0;
 }
 
@@ -20,9 +20,9 @@
   min-height: 280px;
   max-height: min(70vh, 720px);
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--lf-color-bg-muted);
   padding: 16px;
   margin-bottom: 8px;
 }
@@ -44,32 +44,32 @@
 .loading-more-text {
   margin: 0 0 12px;
   font-size: 13px;
-  color: #888;
+  color: var(--lf-color-text-muted);
   text-align: center;
   flex-shrink: 0;
 }
 
 .log-entry {
-  background: white;
-  border: 1px solid #e8e8e8;
+  background: var(--lf-color-bg-surface);
+  border: 1px solid var(--lf-color-border);
   border-radius: 10px;
   padding: 12px 14px;
   flex-shrink: 0;
 }
 
 .log-entry.highlighted {
-  background: #f0f7ff;
-  border-color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  border-color: var(--lf-color-accent);
 }
 
 .log-entry.flagged-not-complete {
-  background: #fff5f5;
-  border-color: #e57373;
+  background: var(--lf-color-danger-soft-bg);
+  border-color: var(--lf-color-danger-border);
 }
 
 .log-entry.flagged-cant-complete {
-  background: #fff8f0;
-  border-color: #ef6c00;
+  background: var(--lf-color-highlight-orange-bg);
+  border-color: var(--lf-color-flag-orange);
 }
 
 .verification-row {
@@ -103,30 +103,30 @@
 }
 
 .received-btn {
-  background: #2e7d32;
-  color: white;
+  background: var(--lf-color-success);
+  color: var(--lf-color-text-inverse);
 }
 
 .not-received-btn {
-  background: #c62828;
-  color: white;
+  background: var(--lf-color-danger);
+  color: var(--lf-color-text-inverse);
 }
 
 .cant-complete-btn {
-  background: #ef6c00;
-  color: white;
+  background: var(--lf-color-flag-orange);
+  color: var(--lf-color-text-inverse);
 }
 
 .complete-btn {
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .platform-select {
   flex: 1;
   min-width: 160px;
   padding: 8px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 6px;
   font-size: 14px;
 }
@@ -135,24 +135,24 @@
   margin: 0 0 6px;
   font-size: 15px;
   line-height: 1.45;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .log-time {
   font-size: 12px;
-  color: #999;
+  color: var(--lf-color-text-subtle);
 }
 
 .status-text,
 .error-text {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   flex-shrink: 0;
 }
 
 .error-text {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 @media (max-width: 600px) {

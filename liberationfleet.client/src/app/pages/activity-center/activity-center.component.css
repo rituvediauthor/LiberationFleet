@@ -11,7 +11,7 @@
 
 .intro {
   margin: 0 0 20px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
@@ -22,25 +22,25 @@
   margin-bottom: 20px;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .filter-field select {
   font-weight: 400;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .activity-list {
@@ -55,15 +55,15 @@
   gap: 12px;
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   text-align: left;
   cursor: pointer;
 }
 
 .activity-row:hover {
-  background: #f8fbff;
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .activity-row.unavailable {
@@ -79,14 +79,14 @@
   margin: 0 0 4px;
   font-size: 15px;
   font-weight: 600;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .activity-detail {
   margin: 0 0 6px;
   font-size: 13px;
   line-height: 1.4;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -95,7 +95,7 @@
 .activity-meta {
   margin: 0;
   font-size: 12px;
-  color: #777;
+  color: var(--lf-color-text-muted);
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -105,13 +105,13 @@
 .unavailable-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #888;
+  color: var(--lf-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .activity-chevron {
-  color: #999;
+  color: var(--lf-color-text-subtle);
   flex-shrink: 0;
 }
 
@@ -119,17 +119,17 @@
   margin-top: 16px;
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
-  background: #fff;
-  color: #333;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--lf-color-bg-hover);
 }
 
 .load-more-btn:disabled {

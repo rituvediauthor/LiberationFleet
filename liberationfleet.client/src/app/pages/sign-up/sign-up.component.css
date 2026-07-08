@@ -6,7 +6,7 @@
 .form-card {
   width: 100%;
   max-width: 450px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -16,7 +16,7 @@ h1 {
   font-size: 28px;
   font-weight: 600;
   margin: 0 0 24px 0;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-group {
@@ -29,12 +29,12 @@ label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -42,13 +42,13 @@ label {
 
 .form-input:focus {
   outline: none;
-  border-color: #007AFF;
+  border-color: var(--lf-color-accent);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
 .error-text {
   font-size: 12px;
-  color: #d32f2f;
+  color: var(--lf-color-danger);
   margin-top: 4px;
 }
 
@@ -56,20 +56,20 @@ label {
   font-size: 12px;
   margin-top: 8px;
   padding: 12px;
-  background: #f5f5f5;
+  background: var(--lf-color-bg-hover);
   border-radius: 4px;
 }
 
 .requirement {
   margin: 6px 0;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .requirement.valid {
-  color: #2e7d32;
+  color: var(--lf-color-success);
   font-weight: 500;
 }
 
@@ -94,14 +94,14 @@ label {
 
 .checkbox-label {
   font-size: 14px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0;
   cursor: pointer;
   line-height: 1.4;
 }
 
 .privacy-link {
-  color: #007AFF;
+  color: var(--lf-color-accent);
   text-decoration: none;
 }
 
@@ -125,7 +125,7 @@ label {
 }
 
 .privacy-dialog-card {
-  background: white;
+  background: var(--lf-color-bg-surface);
   border-radius: 12px;
   padding: 24px;
   max-width: 640px;
@@ -140,21 +140,21 @@ label {
   margin: 0 0 16px;
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .privacy-dialog-body {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 16px;
-  border: 1px solid #eee;
+  border: 1px solid var(--lf-color-border);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--lf-color-bg-muted);
 }
 
 .privacy-dialog-loading {
   margin: 24px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
@@ -164,7 +164,7 @@ label {
   font-family: inherit;
   font-size: 13px;
   line-height: 1.55;
-  color: #444;
+  color: var(--lf-color-text-body);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -174,15 +174,15 @@ label {
   padding: 12px;
   border: none;
   border-radius: 8px;
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .privacy-dialog-button:hover {
-  background: #0056b3;
+  background: var(--lf-color-accent-hover);
 }
 
 @media (max-width: 600px) {

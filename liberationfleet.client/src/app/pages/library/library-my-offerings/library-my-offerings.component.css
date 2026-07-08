@@ -12,16 +12,16 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .offering-list {
@@ -30,60 +30,64 @@
   gap: 12px;
 }
 
-.offering-row-wrap {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.offering-row {
-  display: block;
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  text-align: left;
+.offering-entry {
   cursor: pointer;
+  border-radius: 12px;
 }
 
-.offering-row:disabled {
+.offering-entry:focus-visible {
+  outline: 2px solid var(--lf-color-accent);
+  outline-offset: 2px;
+}
+
+.offering-entry.disabled {
   cursor: default;
+}
+
+.offering-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .offering-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
-  padding: 0 4px;
+  min-width: 0;
 }
 
 .meta-chip {
   font-size: 11px;
   font-weight: 600;
-  color: #555;
-  background: #f0f0f0;
+  color: var(--lf-color-text-secondary);
+  background: var(--lf-color-bg-hover);
   border-radius: 999px;
   padding: 4px 8px;
 }
 
 .meta-chip.out-of-stock {
-  color: #c62828;
-  background: #fff0f0;
+  color: var(--lf-color-danger);
+  background: var(--lf-color-warning-soft-bg);
 }
 
 .edit-btn {
   flex-shrink: 0;
-  margin-top: 14px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
+  padding: 6px 14px;
+  border: 1px solid var(--lf-color-accent);
   border-radius: 8px;
-  background: white;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.edit-btn:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .load-more-sentinel {

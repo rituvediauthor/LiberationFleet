@@ -8,12 +8,12 @@
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .detail-header {
@@ -26,7 +26,7 @@
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .out-of-stock-tag {
@@ -35,8 +35,8 @@
   align-self: flex-start;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #fff0f0;
-  color: #c62828;
+  background: var(--lf-color-warning-soft-bg);
+  color: var(--lf-color-danger);
   font-size: 12px;
   font-weight: 700;
 }
@@ -50,8 +50,8 @@
 .category-tag {
   font-size: 11px;
   font-weight: 600;
-  color: #555;
-  background: #f0f0f0;
+  color: var(--lf-color-text-secondary);
+  background: var(--lf-color-bg-hover);
   border-radius: 999px;
   padding: 4px 8px;
 }
@@ -60,40 +60,40 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: #444;
+  color: var(--lf-color-text-body);
   white-space: pre-wrap;
 }
 
 .detail-meta {
   margin: 0;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .notice {
   margin: 0;
   padding: 12px;
   border-radius: 8px;
-  background: #f5f5f5;
-  color: #555;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .notice.warning {
-  background: #fff8e6;
-  color: #8a6d00;
+  background: var(--lf-color-highlight-warning-bg);
+  color: var(--lf-color-warning-text);
 }
 
 .action-section {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--lf-color-border);
 }
 
 .section-note {
   margin: 0 0 12px;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .action-btn {
@@ -101,10 +101,10 @@
   align-items: center;
   justify-content: center;
   padding: 10px 14px;
-  border: 1px solid #007AFF;
+  border: 1px solid var(--lf-color-accent);
   border-radius: 8px;
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -116,15 +116,15 @@
 }
 
 .action-btn.danger {
-  border-color: #d32f2f;
-  background: #d32f2f;
+  border-color: var(--lf-color-danger);
+  background: var(--lf-color-danger);
 }
 
 .section-title {
   margin: 0 0 12px;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .request-form {
@@ -147,12 +147,12 @@ label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
 }

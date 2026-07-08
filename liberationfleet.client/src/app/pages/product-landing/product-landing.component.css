@@ -13,18 +13,18 @@ h1 {
   font-size: 48px;
   font-weight: 700;
   margin: 0 0 16px 0;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 p {
   font-size: 18px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 12px 0;
 }
 
 .subtitle {
   font-size: 16px;
-  color: #999;
+  color: var(--lf-color-text-subtle);
   margin-top: 20px;
 }
 

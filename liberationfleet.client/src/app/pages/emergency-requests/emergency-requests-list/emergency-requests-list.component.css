@@ -12,17 +12,17 @@
 
 .page-subtitle {
   margin: 0 0 16px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .request-list {
@@ -38,9 +38,9 @@
   gap: 12px;
   text-align: left;
   padding: 14px 16px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--lf-color-border);
   border-radius: 10px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
 }
 
@@ -57,17 +57,17 @@
 
 .request-purpose {
   margin: 0 0 4px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
   font-size: 13px;
 }
 
 .request-amount {
   margin: 0;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-size: 13px;
   font-weight: 600;
 }
 
 .chevron {
-  color: #999;
+  color: var(--lf-color-text-subtle);
 }

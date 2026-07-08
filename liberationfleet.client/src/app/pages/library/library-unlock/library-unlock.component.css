@@ -11,7 +11,7 @@
 
 .page-message {
   margin: 0 0 24px;
-  color: #444;
+  color: var(--lf-color-text-body);
   line-height: 1.5;
 }
 
@@ -30,11 +30,11 @@
 }
 
 .action-btn.primary {
-  background: #007aff;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .action-btn.secondary {
-  background: #f2f2f7;
-  color: #111;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-text-primary);
 }

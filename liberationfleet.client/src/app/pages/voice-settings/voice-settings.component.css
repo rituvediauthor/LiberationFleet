@@ -11,12 +11,12 @@
 
 .intro {
   margin: 0 0 20px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
@@ -31,13 +31,13 @@
   flex-direction: column;
   gap: 6px;
   font-size: 14px;
-  color: #444;
+  color: var(--lf-color-text-body);
 }
 
 .device-field select {
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--lf-color-border);
   border-radius: 8px;
   font-size: 14px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
 }

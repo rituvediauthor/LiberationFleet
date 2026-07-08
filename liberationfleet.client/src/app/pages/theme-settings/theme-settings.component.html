@@ -1,0 +1,53 @@
+<app-page-layout [backButton]="backButton">
+  <div class="theme-settings-page">
+    <h1>Theme</h1>
+    <p class="intro">Choose how Liberation Fleet looks. Each preview shows sample UI styled with that theme.</p>
+
+    <div class="theme-list">
+      <section class="theme-option" *ngFor="let theme of themes">
+        <div class="theme-option-header">
+          <h2>{{ theme.label }}</h2>
+          <p>{{ theme.description }}</p>
+        </div>
+
+        <div class="theme-preview" [attr.data-theme]="theme.id" aria-hidden="true">
+          <div class="preview-card">
+            <div class="preview-card-top">
+              <span class="preview-avatar">LF</span>
+              <div class="preview-copy">
+                <span class="preview-title">Crew channel</span>
+                <span class="preview-subtitle">Planning and coordination</span>
+              </div>
+              <span class="lf-badge accent preview-badge">Voice</span>
+            </div>
+
+            <div class="preview-controls">
+              <button type="button" class="preview-primary-btn">Primary action</button>
+              <button type="button" class="preview-secondary-btn">Secondary</button>
+            </div>
+
+            <label class="preview-field">
+              <span>Message</span>
+              <input type="text" value="Sample text input" readonly tabindex="-1" />
+            </label>
+
+            <div class="preview-footer">
+              <span class="preview-muted">Muted helper text</span>
+              <span class="lf-badge danger preview-badge">18+</span>
+            </div>
+          </div>
+        </div>
+
+        <label class="theme-select">
+          <input
+            type="radio"
+            name="appTheme"
+            [value]="theme.id"
+            [checked]="selectedTheme === theme.id"
+            (change)="onThemeSelected(theme.id)" />
+          <span>Use {{ theme.label }}</span>
+        </label>
+      </section>
+    </div>
+  </div>
+</app-page-layout>

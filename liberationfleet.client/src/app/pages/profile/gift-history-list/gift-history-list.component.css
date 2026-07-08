@@ -8,22 +8,22 @@
   margin: 0 0 8px;
   font-size: 24px;
   font-weight: 700;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .page-subtitle {
   margin: 0 0 20px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .recipient-list {
@@ -38,16 +38,16 @@
   gap: 12px;
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   cursor: pointer;
   text-align: left;
 }
 
 .recipient-row:hover {
-  border-color: #007AFF;
-  background: #f8fbff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .recipient-main {
@@ -59,16 +59,16 @@
   margin: 0 0 4px;
   font-size: 16px;
   font-weight: 600;
-  color: #222;
+  color: var(--lf-color-text-primary);
 }
 
 .recipient-total {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .chevron {
-  color: #999;
+  color: var(--lf-color-text-subtle);
   flex-shrink: 0;
 }

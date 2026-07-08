@@ -5,16 +5,16 @@
 }
 
 .state-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .state-text.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .detail-card {
-  background: white;
-  border: 1px solid #e8e8e8;
+  background: var(--lf-color-bg-surface);
+  border: 1px solid var(--lf-color-border);
   border-radius: 12px;
   padding: 20px;
 }
@@ -26,14 +26,14 @@ h1 {
 
 .amount-line {
   margin: 0 0 16px;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-weight: 600;
 }
 
 .section {
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--lf-color-border);
 }
 
 .section h2 {
@@ -44,7 +44,7 @@ h1 {
 .purpose-text {
   margin: 0;
   white-space: pre-wrap;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .platform-list {
@@ -66,20 +66,20 @@ h1 {
 }
 
 .platform-handle {
-  color: #555;
+  color: var(--lf-color-text-secondary);
 }
 
 .badge {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #f0f0f0;
-  color: #666;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
 }
 
 .badge.shared {
-  background: #e8f4ff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
 }
 
 .mode-options {
@@ -105,14 +105,14 @@ h1 {
 
 .form-input {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
 }
 
 .text-btn {
   background: none;
   border: none;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   padding: 0;
   font-size: 13px;
   cursor: pointer;
@@ -121,6 +121,6 @@ h1 {
 
 .split-hint {
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0;
 }

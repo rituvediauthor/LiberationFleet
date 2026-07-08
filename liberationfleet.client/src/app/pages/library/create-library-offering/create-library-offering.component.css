@@ -8,14 +8,14 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .group-label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .radio-group {
@@ -29,16 +29,16 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
-  background: #fff;
+  background: var(--lf-color-bg-surface);
   font-size: 14px;
   cursor: pointer;
 }
 
 .radio-option:has(input:checked) {
-  border-color: #007AFF;
-  background: #f0f7ff;
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg);
 }
 
 .radio-option input {
@@ -51,7 +51,7 @@
   gap: 10px;
   margin: 0 0 16px;
   font-size: 14px;
-  color: #333;
+  color: var(--lf-color-text-body);
   cursor: pointer;
 }
 
@@ -62,7 +62,7 @@
 .field-hint {
   margin: -8px 0 16px;
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   line-height: 1.4;
 }
 
@@ -82,12 +82,12 @@ label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
 }

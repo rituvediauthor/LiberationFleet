@@ -7,7 +7,7 @@
 .form-card {
   width: 100%;
   max-width: 640px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -20,15 +20,15 @@ h1 {
 }
 
 .gift-entry {
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--lf-color-border);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
 }
 
 .custom-entry {
-  background: #f9fbff;
-  border-color: #cfe3ff;
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent-border);
 }
 
 .entry-header {
@@ -45,7 +45,7 @@ h1 {
 }
 
 .entry-need {
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-weight: 600;
 }
 
@@ -53,15 +53,15 @@ h1 {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #666;
-  background: #f0f0f0;
+  color: var(--lf-color-text-secondary);
+  background: var(--lf-color-bg-hover);
   padding: 2px 8px;
   border-radius: 999px;
 }
 
 .entry-hint {
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 0 0 12px;
 }
 
@@ -84,7 +84,7 @@ label {
 
 .form-input {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
 }
@@ -92,31 +92,31 @@ label {
 .middleman-note {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #d32f2f;
+  color: var(--lf-color-danger);
   font-style: italic;
 }
 
 .no-viable-note {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #d32f2f;
+  color: var(--lf-color-danger);
   font-weight: 500;
 }
 
 .preferred-info {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #555;
+  color: var(--lf-color-text-secondary);
 }
 
 .status-text {
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 .add-non-member-row {
   margin-bottom: 20px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid var(--lf-color-border);
 }
 
 .add-non-member-btn {
@@ -124,10 +124,10 @@ label {
   align-items: center;
   justify-content: center;
   padding: 10px 16px;
-  border: 1px solid #007AFF;
+  border: 1px solid var(--lf-color-accent);
   border-radius: 6px;
-  background: #f5f9ff;
-  color: #007AFF;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -136,7 +136,7 @@ label {
 .add-non-member-hint {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
 }
 
 h2 {

@@ -13,6 +13,8 @@
   max-height: 100dvh;
   width: 100%;
   overflow: hidden;
+  background: var(--lf-color-bg-page);
+  color: var(--lf-color-text-primary);
 }
 
 .page-content {
@@ -53,9 +55,9 @@
   gap: 8px;
   height: var(--action-bar-height);
   padding: 12px 20px;
-  background: #ffffff;
-  border-top: 1px solid #e0e0e0;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--lf-color-bg-surface);
+  border-top: 1px solid var(--lf-color-border);
+  box-shadow: var(--lf-shadow-bar);
   z-index: 100;
 }
 
@@ -75,8 +77,8 @@
   position: relative;
   z-index: 1;
   background: transparent;
-  color: #333;
-  border: 1px solid #ddd;
+  color: var(--lf-color-text-body);
+  border: 1px solid var(--lf-color-border-subtle);
   padding: 10px 16px;
   min-width: auto;
   width: 44px;
@@ -87,8 +89,8 @@
 }
 
 .back-button:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #999;
+  background: var(--lf-color-bg-hover);
+  border-color: var(--lf-color-text-subtle);
 }
 
 .back-button:disabled {
@@ -105,18 +107,18 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  background: #007AFF;
-  color: white;
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
   min-width: 140px;
   max-width: min(200px, calc(100vw - 120px));
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #0056b3;
+  background: var(--lf-color-accent-hover);
 }
 
 .primary-button:disabled {
-  background: #c0c0c0;
+  background: var(--lf-color-disabled);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -130,15 +132,15 @@
   right: 20px;
   z-index: 1;
   background: transparent;
-  color: #c62828;
-  border: 1px solid #e0b4b4;
+  color: var(--lf-color-danger);
+  border: 1px solid var(--lf-color-danger-border);
   min-width: 90px;
   max-width: min(120px, calc(50vw - 60px));
 }
 
 .secondary-button:hover:not(:disabled) {
-  background: #fff5f5;
-  border-color: #c62828;
+  background: var(--lf-color-danger-soft-bg);
+  border-color: var(--lf-color-danger);
 }
 
 .secondary-button:disabled {

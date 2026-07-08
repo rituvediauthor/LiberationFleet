@@ -8,17 +8,17 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .state-text {
   text-align: center;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .state-text.error {
-  color: #c62828;
+  color: var(--lf-color-danger);
 }
 
 .form-group {
@@ -31,12 +31,12 @@ label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
 }
@@ -49,14 +49,14 @@ label {
 .delete-section {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--lf-color-border);
 }
 
 .delete-btn {
-  border: 1px solid #f5c2c7;
+  border: 1px solid var(--lf-color-error-toast-border);
   border-radius: 8px;
-  background: #fff5f5;
-  color: #c62828;
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
   font-size: 14px;
   font-weight: 600;
   padding: 12px 16px;
@@ -78,7 +78,7 @@ label {
 
 .hint-text {
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin: 8px 0 0;
   line-height: 1.4;
 }

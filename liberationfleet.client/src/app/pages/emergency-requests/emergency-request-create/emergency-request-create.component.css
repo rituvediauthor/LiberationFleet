@@ -7,7 +7,7 @@
 .form-card {
   width: 100%;
   max-width: 640px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -19,7 +19,7 @@ h1 {
 }
 
 .hint {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 13px;
   margin: 0 0 20px;
 }
@@ -38,7 +38,7 @@ label {
 
 .form-input {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
 }

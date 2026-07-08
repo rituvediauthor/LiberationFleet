@@ -31,6 +31,7 @@ import { ProfileSettingsComponent } from './pages/profile-settings/profile-setti
 import { NotificationSettingsComponent } from './pages/notification-settings/notification-settings.component';
 import { ContentSettingsComponent } from './pages/content-settings/content-settings.component';
 import { VoiceSettingsComponent } from './pages/voice-settings/voice-settings.component';
+import { ThemeSettingsComponent } from './pages/theme-settings/theme-settings.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
@@ -176,6 +177,11 @@ export const routes: Routes = [
   {
     path: 'app/profile/preferences/voice',
     component: VoiceSettingsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/theme',
+    component: ThemeSettingsComponent,
     canActivate: [authGuard]
   },
   {

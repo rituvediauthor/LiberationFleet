@@ -7,7 +7,7 @@
 .form-card {
   width: 100%;
   max-width: 480px;
-  background: white;
+  background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -17,16 +17,16 @@ h1 {
   font-size: 28px;
   font-weight: 600;
   margin: 0 0 24px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .status-message {
-  color: #666;
+  color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
 
 .status-message.error {
-  color: #d32f2f;
+  color: var(--lf-color-danger);
 }
 
 .form-group {
@@ -45,40 +45,40 @@ h1 {
   gap: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--lf-color-text-body);
   cursor: pointer;
 }
 
 .checkbox-label input {
   width: 18px;
   height: 18px;
-  accent-color: #007AFF;
+  accent-color: var(--lf-color-accent);
 }
 
 label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .hint-text {
   font-size: 12px;
-  color: #666;
+  color: var(--lf-color-text-secondary);
   margin-top: 6px;
   line-height: 1.4;
 }
 
 .form-input {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--lf-color-border-subtle);
   border-radius: 4px;
   font-size: 14px;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #007AFF;
+  border-color: var(--lf-color-accent);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
@@ -87,7 +87,7 @@ label {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -95,31 +95,31 @@ label {
   margin-top: 24px;
   width: 100%;
   padding: 12px;
-  border: 1px solid #e0b4b4;
+  border: 1px solid var(--lf-color-danger-border);
   border-radius: 8px;
-  background: #fff5f5;
-  color: #c62828;
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .leave-btn:hover {
-  background: #ffecec;
-  border-color: #c62828;
+  background: var(--lf-color-danger-soft-bg);
+  border-color: var(--lf-color-danger);
 }
 
 .settings-section {
   margin-top: 28px;
   padding-top: 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--lf-color-border);
 }
 
 .section-title {
   margin: 0 0 16px;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--lf-color-text-body);
 }
 
 .capacity-input-row {
@@ -130,14 +130,14 @@ label {
 
 .capacity-prefix {
   font-size: 14px;
-  color: #333;
+  color: var(--lf-color-text-body);
   white-space: nowrap;
 }
 
 .preview-text {
   margin: 0;
   font-size: 13px;
-  color: #007AFF;
+  color: var(--lf-color-accent);
   font-weight: 600;
 }
 
