@@ -12,7 +12,8 @@ import {
   NotificationListResponse,
   NotificationOperationResponse,
   NotificationPreference,
-  NotificationPreferencesResponse
+  NotificationPreferencesResponse,
+  NotificationPreferencesUpdateRequest
 } from '../models/notification.model';
 
 @Injectable({
@@ -44,8 +45,16 @@ export class NotificationService {
     return this.http.get<NotificationPreferencesResponse>(`${this.apiUrl}/preferences`);
   }
 
-  updatePreferences(preferences: NotificationPreference[]): Observable<NotificationOperationResponse> {
-    return this.http.put<NotificationOperationResponse>(`${this.apiUrl}/preferences`, { preferences });
+  updatePreferences(
+    preferences: NotificationPreference[],
+    settingsPassword?: string
+  ): Observable<NotificationOperationResponse> {
+    const body: NotificationPreferencesUpdateRequest = { preferences };
+    if (settingsPassword) {
+      body.settingsPassword = settingsPassword;
+    }
+
+    return this.http.put<NotificationOperationResponse>(`${this.apiUrl}/preferences`, body);
   }
 
   markRead(notificationId: number): Observable<NotificationOperationResponse> {

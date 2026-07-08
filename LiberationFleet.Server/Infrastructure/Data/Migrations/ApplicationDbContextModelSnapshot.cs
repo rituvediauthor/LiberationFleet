@@ -2215,6 +2215,48 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("SeasonCycles");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.SecurityAlert", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlertType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RelatedDeviceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RelatedDeviceId");
+
+                    b.HasIndex("UserId", "OccurredAt");
+
+                    b.ToTable("SecurityAlerts");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -2239,6 +2281,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("EmergencyLevel")
                         .HasColumnType("int");
 
+                    b.Property<int>("FailedLoginAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<bool>("InNeedOfAid")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2252,8 +2299,16 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<DateTime?>("LastFailedLoginAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("LockSettingsWithPassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("NeedsSurvivalAid")
                         .HasColumnType("bit");
@@ -2266,6 +2321,14 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<string>("SettingsLockPasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2474,6 +2537,52 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserPrivateKeyBackups");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserRegisteredDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsTrusted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DeviceId")
+                        .IsUnique();
+
+                    b.ToTable("UserRegisteredDevices");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.VoiceParticipantSession", b =>
@@ -3271,6 +3380,24 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.SecurityAlert", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.UserRegisteredDevice", "RelatedDevice")
+                        .WithMany()
+                        .HasForeignKey("RelatedDeviceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany("SecurityAlerts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RelatedDevice");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserBlock", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "Blocked")
@@ -3358,6 +3485,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithOne()
                         .HasForeignKey("LiberationFleet.Server.Domain.Entities.UserPrivateKeyBackup", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserRegisteredDevice", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany("RegisteredDevices")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3476,6 +3614,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("PasswordResetTokens");
 
                     b.Navigation("PaymentPlatforms");
+
+                    b.Navigation("RegisteredDevices");
+
+                    b.Navigation("SecurityAlerts");
                 });
 #pragma warning restore 612, 618
         }

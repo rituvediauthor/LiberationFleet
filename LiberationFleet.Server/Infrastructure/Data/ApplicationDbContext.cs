@@ -46,6 +46,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
     public DbSet<VoiceParticipantSession> VoiceParticipantSessions => Set<VoiceParticipantSession>();
+    public DbSet<UserRegisteredDevice> UserRegisteredDevices => Set<UserRegisteredDevice>();
+    public DbSet<SecurityAlert> SecurityAlerts => Set<SecurityAlert>();
     public DbSet<CrewRule> CrewRules => Set<CrewRule>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
@@ -81,6 +83,38 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsUnclaimedPlaceholder).HasDefaultValue(false);
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
             entity.Property(e => e.AdultContentPreference).HasDefaultValue(AdultContentPreference.Block);
+            entity.Property(e => e.TwoFactorEnabled).HasDefaultValue(false);
+            entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
+            entity.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
+        });
+
+        modelBuilder.Entity<UserRegisteredDevice>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DeviceId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.UserAgent).HasMaxLength(512);
+            entity.HasIndex(e => new { e.UserId, e.DeviceId }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.RegisteredDevices)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SecurityAlert>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Message).IsRequired().HasMaxLength(1000);
+            entity.HasIndex(e => new { e.UserId, e.OccurredAt });
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.SecurityAlerts)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.RelatedDevice)
+                .WithMany()
+                .HasForeignKey(e => e.RelatedDeviceId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<PaymentPlatform>(entity =>

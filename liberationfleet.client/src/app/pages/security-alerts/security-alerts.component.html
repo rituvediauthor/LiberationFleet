@@ -1,0 +1,29 @@
+<app-page-layout [backButton]="backButton">
+  <div class="security-alerts-page">
+    <h1>Security alerts</h1>
+    <p class="intro">Review unusual sign-ins, settings changes, and suspicious password attempts.</p>
+
+    <p *ngIf="loading" class="state-text">Loading alerts...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && alerts.length === 0" class="state-text">No security alerts.</p>
+
+    <ul class="alert-list" *ngIf="!loading && alerts.length > 0">
+      <li class="alert-item" *ngFor="let alert of alerts" [class.unread]="!alert.isRead">
+        <div class="alert-copy">
+          <span class="alert-title">{{ alert.title }}</span>
+          <span class="alert-message">{{ alert.message }}</span>
+          <span class="alert-date">{{ formatDate(alert.occurredAt) }}</span>
+        </div>
+
+        <div class="alert-actions" *ngIf="alert.canManageDevice">
+          <button type="button" class="action-btn" [disabled]="actionInProgress" (click)="trustDevice(alert)">
+            Register device
+          </button>
+          <button type="button" class="action-btn danger" [disabled]="actionInProgress" (click)="blockDevice(alert)">
+            Block device
+          </button>
+        </div>
+      </li>
+    </ul>
+  </div>
+</app-page-layout>

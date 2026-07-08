@@ -78,6 +78,11 @@ export interface NotificationPreferencesResponse {
   preferences: NotificationPreference[];
 }
 
+export interface NotificationPreferencesUpdateRequest {
+  preferences: NotificationPreference[];
+  settingsPassword?: string;
+}
+
 export interface NotificationOperationResponse {
   success: boolean;
   message: string;

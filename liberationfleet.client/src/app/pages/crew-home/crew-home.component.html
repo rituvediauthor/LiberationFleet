@@ -2,17 +2,17 @@
   <div class="crew-home">
     <ng-container *ngIf="membership?.hasCrew; else noCrew">
       <div class="crew-dashboard">
-        <button type="button" class="menu-link crew-name-link" (click)="goToEditCrew()">
-          <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
-          <span class="menu-label">{{ membership?.crewName }}</span>
-          <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-        </button>
-
         <div class="info-widget" *ngIf="seasonStarted">
           <span class="info-label">Next aid</span>
           <p class="info-text">{{ nextAidHeadline }}</p>
           <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
         </div>
+
+        <button type="button" class="menu-link crew-name-link" (click)="goToEditCrew()">
+          <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+          <span class="menu-label">{{ membership?.crewName }}</span>
+          <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+        </button>
 
         <button type="button" class="menu-link" (click)="goToRules()">
           <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>

@@ -45,7 +45,7 @@ public class ProfileController : ControllerBase
     [HttpPut("content-preferences")]
     public async Task<IActionResult> UpdateContentPreferences([FromBody] UpdateContentPreferencesRequest body)
     {
-        var result = await _mediator.Send(new UpdateContentPreferencesCommand(body.AdultContentPreference));
+        var result = await _mediator.Send(new UpdateContentPreferencesCommand(body.AdultContentPreference, body.SettingsPassword));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

@@ -41,6 +41,7 @@ public class NotificationPreferencesResponse
 public class UpdateNotificationPreferencesRequest
 {
     public IReadOnlyList<NotificationPreferenceDto> Preferences { get; set; } = Array.Empty<NotificationPreferenceDto>();
+    public string? SettingsPassword { get; set; }
 }
 
 public class NotificationOperationResponse

@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { AuthService } from '../../services/auth.service';
+import { DeviceIdentityService } from '../../services/device-identity.service';
 import { ToastService } from '../../components/toast/toast.component';
 
 @Component({
@@ -22,6 +23,7 @@ export class SignInComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
+  private deviceIdentity = inject(DeviceIdentityService);
   private toastService = inject(ToastService);
 
   constructor() {
@@ -52,7 +54,14 @@ export class SignInComponent {
     this.isLoading = true;
     this.signInButton.disabled = true;
 
-    this.authService.login(this.form.value).subscribe({
+    const credentials = {
+      ...this.form.value,
+      deviceId: this.deviceIdentity.getDeviceId(),
+      deviceName: this.deviceIdentity.getDeviceName(),
+      userAgent: this.deviceIdentity.getUserAgent()
+    };
+
+    this.authService.login(credentials).subscribe({
       next: () => {
         this.toastService.success('Sign in successful!');
         this.router.navigate(['/app/crew']);

@@ -17,4 +17,5 @@ public class ContentPreferencesResponse
 public class UpdateContentPreferencesRequest
 {
     public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;
+    public string? SettingsPassword { get; set; }
 }

@@ -2,7 +2,9 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { SettingsPasswordDialogComponent } from '../../components/settings-password-dialog/settings-password-dialog.component';
 import { ContentPreferenceService } from '../../services/content-preference.service';
+import { SettingsLockService } from '../../services/settings-lock.service';
 import { ToastService } from '../../components/toast/toast.component';
 import {
   ADULT_CONTENT_PREFERENCE_OPTIONS,
@@ -12,7 +14,7 @@ import {
 @Component({
   selector: 'app-content-settings',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, SettingsPasswordDialogComponent],
   templateUrl: './content-settings.component.html',
   styleUrl: './content-settings.component.css'
 })
@@ -22,11 +24,15 @@ export class ContentSettingsComponent implements OnInit {
   loading = true;
   saving = false;
   errorMessage = '';
+  showPasswordDialog = false;
+  passwordDialogError = '';
+  passwordDialogVerifying = false;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
 
   private router = inject(Router);
   private contentPreferenceService = inject(ContentPreferenceService);
+  private settingsLockService = inject(SettingsLockService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -50,10 +56,47 @@ export class ContentSettingsComponent implements OnInit {
       return;
     }
 
+    void this.beginSave();
+  }
+
+  onPasswordDialogConfirmed(password: string) {
+    this.passwordDialogVerifying = true;
+    this.passwordDialogError = '';
+
+    void this.settingsLockService.verifyPassword(password).then(result => {
+      this.passwordDialogVerifying = false;
+      if (!result.success) {
+        this.passwordDialogError = result.message || 'Incorrect settings password.';
+        return;
+      }
+
+      this.showPasswordDialog = false;
+      this.performSave(password);
+    });
+  }
+
+  onPasswordDialogDismissed() {
+    this.showPasswordDialog = false;
+    this.passwordDialogError = '';
+    this.passwordDialogVerifying = false;
+  }
+
+  private async beginSave() {
+    const lockEnabled = await this.settingsLockService.isLockEnabled();
+    if (lockEnabled) {
+      this.showPasswordDialog = true;
+      return;
+    }
+
+    this.performSave();
+  }
+
+  private performSave(settingsPassword?: string) {
     this.saving = true;
     this.updateSaveButton();
     this.contentPreferenceService.updatePreferences({
-      adultContentPreference: this.selectedPreference
+      adultContentPreference: this.selectedPreference,
+      settingsPassword
     }).subscribe({
       next: response => {
         this.saving = false;

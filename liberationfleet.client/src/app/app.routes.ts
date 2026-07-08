@@ -32,6 +32,9 @@ import { NotificationSettingsComponent } from './pages/notification-settings/not
 import { ContentSettingsComponent } from './pages/content-settings/content-settings.component';
 import { VoiceSettingsComponent } from './pages/voice-settings/voice-settings.component';
 import { ThemeSettingsComponent } from './pages/theme-settings/theme-settings.component';
+import { SecuritySettingsComponent } from './pages/security-settings/security-settings.component';
+import { SecurityAlertsComponent } from './pages/security-alerts/security-alerts.component';
+import { PasswordUpdateComponent } from './pages/password-update/password-update.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
 import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
@@ -182,6 +185,21 @@ export const routes: Routes = [
   {
     path: 'app/profile/preferences/theme',
     component: ThemeSettingsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/security',
+    component: SecuritySettingsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/security/alerts',
+    component: SecurityAlertsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/profile/preferences/security/password',
+    component: PasswordUpdateComponent,
     canActivate: [authGuard]
   },
   {

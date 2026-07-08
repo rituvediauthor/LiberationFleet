@@ -17,8 +17,15 @@ public class User
     public bool NeedsSurvivalAid { get; set; }
     public int PercentBonus { get; set; }
     public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;
+    public bool TwoFactorEnabled { get; set; }
+    public bool LockSettingsWithPassword { get; set; }
+    public string? SettingsLockPasswordHash { get; set; }
+    public int FailedLoginAttempts { get; set; }
+    public DateTime? LastFailedLoginAt { get; set; }
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();
     public ICollection<UserPaymentPlatform> PaymentPlatforms { get; set; } = new List<UserPaymentPlatform>();
+    public ICollection<UserRegisteredDevice> RegisteredDevices { get; set; } = new List<UserRegisteredDevice>();
+    public ICollection<SecurityAlert> SecurityAlerts { get; set; } = new List<SecurityAlert>();
 }

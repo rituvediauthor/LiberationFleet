@@ -17,3 +17,11 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-settings-password-dialog
+  [visible]="showPasswordDialog"
+  [errorMessage]="passwordDialogError"
+  [verifying]="passwordDialogVerifying"
+  (confirmed)="onPasswordDialogConfirmed($event)"
+  (dismissed)="onPasswordDialogDismissed()">
+</app-settings-password-dialog>

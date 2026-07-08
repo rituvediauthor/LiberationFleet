@@ -1,0 +1,118 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="security-settings-page">
+    <h1>Security</h1>
+    <p class="intro">Manage sign-in protection, devices, and sensitive preference changes.</p>
+
+    <p *ngIf="loading" class="state-text">Loading security settings...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <nav class="section-nav" *ngIf="!loading" aria-label="Security sections">
+      <button type="button" class="nav-link" (click)="goToAlerts()">
+        <span class="nav-label">Security alerts</span>
+        <i class="fa-solid fa-angle-right nav-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="nav-link" (click)="goToPasswordUpdate()">
+        <span class="nav-label">Password update</span>
+        <i class="fa-solid fa-angle-right nav-chevron" aria-hidden="true"></i>
+      </button>
+    </nav>
+
+    <section class="settings-section" *ngIf="!loading">
+      <h2>Your registered devices</h2>
+      <p *ngIf="devices.length === 0" class="state-text">No devices registered yet.</p>
+      <ul class="device-list" *ngIf="devices.length > 0">
+        <li class="device-item" *ngFor="let device of devices">
+          <div class="device-copy">
+            <span class="device-name">
+              {{ device.displayName }}
+              <span *ngIf="device.isCurrent" class="device-badge current">This device</span>
+              <span *ngIf="device.isTrusted" class="device-badge trusted">Registered</span>
+              <span *ngIf="device.isBlocked" class="device-badge blocked">Blocked</span>
+            </span>
+            <span class="device-meta">Last seen {{ formatDate(device.lastSeenAt) }}</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="settings-section" *ngIf="!loading">
+      <h2>Two-factor verification</h2>
+      <label class="toggle-row">
+        <input
+          type="checkbox"
+          [checked]="settings.twoFactorEnabled"
+          (change)="onTwoFactorChange($any($event.target).checked)">
+        <span class="toggle-copy">
+          <span class="toggle-label">Enable two-factor verification</span>
+          <span class="toggle-description">Adds an extra sign-in check when supported.</span>
+        </span>
+      </label>
+    </section>
+
+    <section class="settings-section" *ngIf="!loading">
+      <h2>Save login info</h2>
+      <label class="toggle-row">
+        <input
+          type="checkbox"
+          [checked]="rememberLogin"
+          (change)="onRememberLoginChange($any($event.target).checked)">
+        <span class="toggle-copy">
+          <span class="toggle-label">Remember this user on this device</span>
+          <span class="toggle-description">Keeps you signed in after closing the browser.</span>
+        </span>
+      </label>
+    </section>
+
+    <section class="settings-section" *ngIf="!loading">
+      <h2>Save decryption key to client</h2>
+      <label class="toggle-row">
+        <input
+          type="checkbox"
+          [checked]="saveDecryptionKey"
+          (change)="onSaveDecryptionKeyChange($any($event.target).checked)">
+        <span class="toggle-copy">
+          <span class="toggle-label">Save decryption keys on this device</span>
+          <span class="toggle-description">Stores recovery phrases per user so switching accounts does not erase saved keys.</span>
+        </span>
+      </label>
+    </section>
+
+    <section class="settings-section" *ngIf="!loading">
+      <h2>Lock settings with a password</h2>
+      <label class="toggle-row">
+        <input
+          type="checkbox"
+          [checked]="settings.lockSettingsWithPassword"
+          (change)="onLockSettingsChange($any($event.target).checked)">
+        <span class="toggle-copy">
+          <span class="toggle-label">Require password before saving preferences</span>
+          <span class="toggle-description">Applies to most preference pages that use Save (theme is excluded).</span>
+        </span>
+      </label>
+
+      <label class="field" *ngIf="settings.lockSettingsWithPassword && !settings.hasSettingsLockPassword">
+        <span>New settings lock password</span>
+        <input type="password" [(ngModel)]="newSettingsLockPassword" autocomplete="new-password">
+      </label>
+
+      <label class="field" *ngIf="settings.lockSettingsWithPassword && settings.hasSettingsLockPassword">
+        <span>Change settings lock password (optional)</span>
+        <input type="password" [(ngModel)]="newSettingsLockPassword" autocomplete="new-password">
+      </label>
+
+      <label class="field" *ngIf="!settings.lockSettingsWithPassword && settings.hasSettingsLockPassword">
+        <span>Current settings lock password</span>
+        <input type="password" [(ngModel)]="currentSettingsLockPassword" autocomplete="current-password">
+      </label>
+    </section>
+  </div>
+</app-page-layout>
+
+<app-settings-password-dialog
+  [visible]="showPasswordDialog"
+  [errorMessage]="passwordDialogError"
+  [verifying]="passwordDialogVerifying"
+  (confirmed)="onPasswordDialogConfirmed($event)"
+  (dismissed)="onPasswordDialogDismissed()">
+</app-settings-password-dialog>

@@ -39,7 +39,7 @@ public class NotificationsController(IMediator mediator) : ControllerBase
     [HttpPut("preferences")]
     public async Task<IActionResult> UpdatePreferences([FromBody] UpdateNotificationPreferencesRequest body)
     {
-        var result = await mediator.Send(new UpdateNotificationPreferencesCommand(body.Preferences));
+        var result = await mediator.Send(new UpdateNotificationPreferencesCommand(body.Preferences, body.SettingsPassword));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

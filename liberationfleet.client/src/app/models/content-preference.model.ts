@@ -12,6 +12,7 @@ export interface ContentPreferencesResponse {
 
 export interface UpdateContentPreferencesRequest {
   adultContentPreference: AdultContentPreference;
+  settingsPassword?: string;
 }
 
 export const ADULT_CONTENT_PREFERENCE_OPTIONS: {

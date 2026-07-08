@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { AuthResult, User } from '../models/user.model';
 import { CryptoSessionService } from './crypto/crypto-session.service';
 import {
@@ -12,8 +11,10 @@ import {
 import { CryptoApiService } from './crypto/crypto-api.service';
 import { firstValueFrom } from 'rxjs';
 import { AppStorageService, StorageScope } from './storage/app-storage.service';
+import { SavedRecoveryPhraseService } from './saved-recovery-phrase.service';
 import {
   AUTH_TOKEN_STORAGE_KEY,
+  REMEMBER_LOGIN_STORAGE_KEY,
   SESSION_RECOVERY_PHRASE_STORAGE_KEY
 } from './storage/storage-keys';
 import { isJwtExpired } from '../utils/jwt.util';
@@ -21,6 +22,9 @@ import { isJwtExpired } from '../utils/jwt.util';
 export interface LoginRequest {
   usernameOrEmail: string;
   password: string;
+  deviceId?: string;
+  deviceName?: string;
+  userAgent?: string;
 }
 
 @Injectable({
@@ -37,7 +41,8 @@ export class AuthService {
     private http: HttpClient,
     private cryptoSession: CryptoSessionService,
     private cryptoApi: CryptoApiService,
-    private storage: AppStorageService
+    private storage: AppStorageService,
+    private savedRecoveryPhrase: SavedRecoveryPhraseService
   ) {
     this.loadToken();
   }
@@ -53,6 +58,7 @@ export class AuthService {
       this.setToken(response.token);
       this.currentUserSubject.next(response.user ?? null);
       this.resetEncryptionReady();
+      void this.tryAutoUnlockFromPersistentStorage();
     }
   }
 
@@ -65,15 +71,48 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
+    return this.storage.get(this.getTokenStorageScope(), AUTH_TOKEN_STORAGE_KEY);
   }
 
   setToken(token: string): void {
-    this.storage.set(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY, token);
+    this.storage.set(this.getTokenStorageScope(), AUTH_TOKEN_STORAGE_KEY, token);
   }
 
   removeToken(): void {
     this.storage.remove(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
+    this.storage.remove(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY);
+  }
+
+  isRememberLoginEnabled(): boolean {
+    const stored = this.storage.get(StorageScope.Persistent, REMEMBER_LOGIN_STORAGE_KEY);
+    return stored !== 'false';
+  }
+
+  setRememberLoginEnabled(enabled: boolean): void {
+    if (enabled) {
+      this.storage.set(StorageScope.Persistent, REMEMBER_LOGIN_STORAGE_KEY, 'true');
+      const token = this.storage.get(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY);
+      if (token) {
+        this.storage.set(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY, token);
+        this.storage.remove(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY);
+      }
+      return;
+    }
+
+    this.storage.set(StorageScope.Persistent, REMEMBER_LOGIN_STORAGE_KEY, 'false');
+    const token = this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
+    if (token) {
+      this.storage.set(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY, token);
+      this.storage.remove(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
+    }
+  }
+
+  getCurrentUserId(): number | null {
+    return this.currentUserSubject.value?.id ?? null;
+  }
+
+  getSessionRecoveryPhrase(): string | null {
+    return this.storage.get(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
   }
 
   isAuthenticated(): boolean {
@@ -98,9 +137,7 @@ export class AuthService {
     }
 
     await this.cryptoSession.provisionIdentityKeysWithRecoveryPhrase(normalized);
-    if (rememberOnDevice) {
-      this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, normalized);
-    }
+    this.persistRecoveryPhrase(normalized, rememberOnDevice);
     this.resetEncryptionReady();
   }
 
@@ -111,11 +148,7 @@ export class AuthService {
     }
 
     await this.cryptoSession.unlockFromRecoveryPhrase(normalized);
-    if (rememberOnDevice) {
-      this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, normalized);
-    } else {
-      this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
-    }
+    this.persistRecoveryPhrase(normalized, rememberOnDevice);
     this.resetEncryptionReady();
   }
 
@@ -127,6 +160,10 @@ export class AuthService {
 
     await this.cryptoSession.rotateRecoveryPhrase(normalized);
     this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+    const userId = this.getCurrentUserId();
+    if (userId) {
+      this.savedRecoveryPhrase.removePhrase(userId);
+    }
     this.resetEncryptionReady();
   }
 
@@ -166,17 +203,58 @@ export class AuthService {
     }
 
     const stored = this.storage.get(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
-    if (!stored) {
+    if (stored) {
+      try {
+        await this.cryptoSession.unlockFromRecoveryPhrase(stored);
+        return;
+      } catch (error: unknown) {
+        if (this.shouldClearRememberedRecoveryPhrase(error)) {
+          this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+        }
+      }
+    }
+
+    await this.tryAutoUnlockFromPersistentStorage();
+  }
+
+  private async tryAutoUnlockFromPersistentStorage(): Promise<void> {
+    if (!this.savedRecoveryPhrase.isSaveEnabled() || this.cryptoSession.isUnlocked()) {
+      return;
+    }
+
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      return;
+    }
+
+    const phrase = this.savedRecoveryPhrase.getPhrase(userId);
+    if (!phrase) {
       return;
     }
 
     try {
-      await this.cryptoSession.unlockFromRecoveryPhrase(stored);
-    } catch (error: unknown) {
-      if (this.shouldClearRememberedRecoveryPhrase(error)) {
-        this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
-      }
+      await this.cryptoSession.unlockFromRecoveryPhrase(phrase);
+      this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, phrase);
+    } catch {
+      this.savedRecoveryPhrase.removePhrase(userId);
     }
+  }
+
+  private persistRecoveryPhrase(normalized: string, rememberOnDevice: boolean): void {
+    if (rememberOnDevice) {
+      this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, normalized);
+    } else {
+      this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+    }
+
+    const userId = this.getCurrentUserId();
+    if (userId && this.savedRecoveryPhrase.isSaveEnabled()) {
+      this.savedRecoveryPhrase.savePhrase(userId, normalized);
+    }
+  }
+
+  private getTokenStorageScope(): StorageScope {
+    return this.isRememberLoginEnabled() ? StorageScope.Persistent : StorageScope.Session;
   }
 
   private shouldClearRememberedRecoveryPhrase(error: unknown): boolean {
