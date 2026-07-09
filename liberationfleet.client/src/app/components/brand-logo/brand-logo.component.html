@@ -1,0 +1,7 @@
+<span class="brand-logo" [class.size-sm]="size === 'sm'" [class.size-md]="size === 'md'" [class.size-lg]="size === 'lg'">
+  <img
+    class="logo-image"
+    [src]="resolveSrc(themeService.theme$ | async)"
+    [alt]="resolvedAlt"
+    decoding="async">
+</span>

@@ -24,6 +24,11 @@ export interface Crew {
   nonMemberCycleCapFixedAmount?: number;
   nonMemberCycleCapMultiplier?: number;
   monthlyGivingCapacity?: number;
+  allowCrewmateFileAttachments?: boolean;
+  minimumCrewmateTenureDaysForAttachments?: number;
+  minimumContributionForAttachments?: number;
+  minimumCrewmateTenureDaysForProposals?: number;
+  minimumContributionForProposals?: number;
 }
 
 export interface CrewMembershipStatus {
@@ -32,6 +37,8 @@ export interface CrewMembershipStatus {
   crewName?: string;
   joinCode?: string;
   libraryOfThingsEnabled?: boolean;
+  canAttachFilesToCrewContent?: boolean;
+  canCreateProposals?: boolean;
 }
 
 export interface CreateCrewRequest {
@@ -86,6 +93,11 @@ export interface UpdateCrewRequest {
   nonMemberCycleCapMode: CycleCapMode;
   nonMemberCycleCapFixedAmount: number;
   nonMemberCycleCapMultiplier: number;
+  allowCrewmateFileAttachments: boolean;
+  minimumCrewmateTenureDaysForAttachments: number;
+  minimumContributionForAttachments: number;
+  minimumCrewmateTenureDaysForProposals: number;
+  minimumContributionForProposals: number;
 }
 
 export interface PublicCrewRule {

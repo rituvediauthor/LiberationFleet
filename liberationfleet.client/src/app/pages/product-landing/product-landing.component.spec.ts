@@ -23,7 +23,8 @@ describe('ProductLandingComponent', () => {
   it('should create and display landing content', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.textContent).toContain('LiberationFleet');
-    expect(element.textContent).toContain('Product Landing Working');
+    expect(element.textContent).toContain('Built for crews');
+    expect(element.querySelector('app-brand-logo')).toBeTruthy();
   });
 
   it('should navigate to sign-in when primary button is clicked', () => {

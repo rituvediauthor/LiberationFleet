@@ -40,6 +40,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   proposal: ProposalDetail | null = null;
   loading = true;
   crewId = 0;
+  canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
   commentFocused = false;
@@ -87,6 +88,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
         await this.encryptionContent.whenReady();
         this.loadProposal();
         this.encryptionReload?.markInitialLoadDone();

@@ -8,19 +8,19 @@
           <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
         </div>
 
-        <button type="button" class="menu-link crew-name-link" (click)="goToEditCrew()">
-          <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
-          <span class="menu-label">{{ membership?.crewName }}</span>
-          <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-        </button>
-
-        <button type="button" class="menu-link" (click)="goToRules()">
-          <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
-          <span class="menu-label">Rules</span>
-          <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-        </button>
-
         <nav class="crew-menu" aria-label="Crew actions">
+          <button type="button" class="menu-link crew-name-link" (click)="goToEditCrew()">
+            <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">{{ membership?.crewName }}</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+  
+          <button type="button" class="menu-link" (click)="goToRules()">
+            <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Rules</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
           <button type="button" class="menu-link" (click)="goToGiftLog()">
             <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
             <span class="menu-label">Gift Log</span>

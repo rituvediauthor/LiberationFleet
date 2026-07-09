@@ -441,4 +441,48 @@ public class ProposalRepository : IProposalRepository
         ProposalAnonymousAlias alias,
         CancellationToken cancellationToken = default) =>
         await _context.ProposalAnonymousAliases.AddAsync(alias, cancellationToken);
+
+    public Task<ProposalCrewmatePermissionGrant?> GetCrewmatePermissionGrantByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewmatePermissionGrants
+            .FirstOrDefaultAsync(g => g.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewmatePermissionGrant>> GetCrewmatePermissionGrantsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewmatePermissionGrant>();
+        }
+
+        var grants = await _context.ProposalCrewmatePermissionGrants
+            .Where(g => ids.Contains(g.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return grants.ToDictionary(g => g.ProposalId);
+    }
+
+    public async Task AddCrewmatePermissionGrantAsync(
+        ProposalCrewmatePermissionGrant grant,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewmatePermissionGrants.AddAsync(grant, cancellationToken);
+
+    public Task<ProposalCrewmatePermissionGrant?> GetPendingCrewmatePermissionGrantForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CrewmatePermissionGrantType grantType,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewmatePermissionGrants
+            .Include(g => g.Proposal)
+            .Where(g =>
+                g.TargetUserId == targetUserId
+                && g.GrantType == grantType
+                && g.Proposal.CrewId == crewId
+                && !g.Proposal.IsDeleted
+                && g.Proposal.Status == ProposalStatus.Pending
+                && g.Proposal.Kind == ProposalKind.CrewmatePermissionGrant)
+            .FirstOrDefaultAsync(cancellationToken);
 }

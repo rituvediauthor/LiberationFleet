@@ -135,6 +135,41 @@
 
           <p class="preview-text">Effective non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>
         </section>
+
+        <section class="settings-section">
+          <h2 class="section-title">Crew content permissions</h2>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="allowCrewmateFileAttachments">
+              Allow crewmates to attach files to crew content
+            </label>
+            <span class="hint-text">Applies to chats, forums, comments, and library offerings. Does not affect friend DMs.</span>
+          </div>
+
+          <ng-container *ngIf="allowCrewmateFileAttachments">
+            <div class="form-group">
+              <label for="minimumCrewmateTenureDaysForAttachments">Minimum crewmate tenure for attachments (days)</label>
+              <input id="minimumCrewmateTenureDaysForAttachments" type="number" formControlName="minimumCrewmateTenureDaysForAttachments" class="form-input" min="0" step="1">
+            </div>
+
+            <div class="form-group">
+              <label for="minimumContributionForAttachments">Minimum lifetime contribution for attachments ($)</label>
+              <input id="minimumContributionForAttachments" type="number" formControlName="minimumContributionForAttachments" class="form-input" min="0" step="0.01">
+            </div>
+          </ng-container>
+
+          <div class="form-group">
+            <label for="minimumCrewmateTenureDaysForProposals">Minimum crewmate tenure to create proposals (days)</label>
+            <input id="minimumCrewmateTenureDaysForProposals" type="number" formControlName="minimumCrewmateTenureDaysForProposals" class="form-input" min="0" step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="minimumContributionForProposals">Minimum lifetime contribution to create proposals ($)</label>
+            <input id="minimumContributionForProposals" type="number" formControlName="minimumContributionForProposals" class="form-input" min="0" step="0.01">
+          </div>
+
+          <span class="hint-text">Organizers bypass all requirements. Voting has no requirements. Individual overrides can be granted via proposal.</span>
+        </section>
       </form>
 
       <button type="button" class="leave-btn" (click)="onLeaveCrew()">Leave crew</button>

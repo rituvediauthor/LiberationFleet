@@ -70,6 +70,12 @@ export interface CrewmateProfile {
   friendshipState: CrewmateFriendshipState;
   isSelf: boolean;
   canAttachFiles: boolean;
+  canCreateProposals: boolean;
+  canAttachFilesToCrewContent: boolean;
+  canCreateCrewProposals: boolean;
+  canProposeAttachFilesGrant: boolean;
+  canProposeCreateProposalsGrant: boolean;
+  crewmateTenureDays: number;
   canToggleCanAttachFiles: boolean;
   canModerateAttachments: boolean;
   canExportCrewData: boolean;

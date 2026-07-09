@@ -45,6 +45,17 @@ public static class CrewUpdateValidator
             return Failure("Cycle cap multipliers cannot be negative.");
         }
 
+        if (request.MinimumCrewmateTenureDaysForAttachments < 0
+            || request.MinimumCrewmateTenureDaysForProposals < 0)
+        {
+            return Failure("Minimum crewmate tenure cannot be negative.");
+        }
+
+        if (request.MinimumContributionForAttachments < 0 || request.MinimumContributionForProposals < 0)
+        {
+            return Failure("Minimum contribution amounts cannot be negative.");
+        }
+
         try
         {
             privacy = Enum.Parse<CrewPrivacy>(request.Privacy, ignoreCase: true);

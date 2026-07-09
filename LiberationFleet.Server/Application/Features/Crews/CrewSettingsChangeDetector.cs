@@ -153,6 +153,46 @@ public static class CrewSettingsChangeDetector
                 request.NonMemberCycleCapMultiplier.ToString("0.####")));
         }
 
+        if (crew.AllowCrewmateFileAttachments != request.AllowCrewmateFileAttachments)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.AllowCrewmateFileAttachments,
+                crew.AllowCrewmateFileAttachments.ToString(),
+                request.AllowCrewmateFileAttachments.ToString()));
+        }
+
+        if (crew.MinimumCrewmateTenureDaysForAttachments != request.MinimumCrewmateTenureDaysForAttachments)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MinimumCrewmateTenureDaysForAttachments,
+                crew.MinimumCrewmateTenureDaysForAttachments.ToString(),
+                request.MinimumCrewmateTenureDaysForAttachments.ToString()));
+        }
+
+        if (crew.MinimumContributionForAttachments != request.MinimumContributionForAttachments)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MinimumContributionForAttachments,
+                crew.MinimumContributionForAttachments.ToString("0.##"),
+                request.MinimumContributionForAttachments.ToString("0.##")));
+        }
+
+        if (crew.MinimumCrewmateTenureDaysForProposals != request.MinimumCrewmateTenureDaysForProposals)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MinimumCrewmateTenureDaysForProposals,
+                crew.MinimumCrewmateTenureDaysForProposals.ToString(),
+                request.MinimumCrewmateTenureDaysForProposals.ToString()));
+        }
+
+        if (crew.MinimumContributionForProposals != request.MinimumContributionForProposals)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.MinimumContributionForProposals,
+                crew.MinimumContributionForProposals.ToString("0.##"),
+                request.MinimumContributionForProposals.ToString("0.##")));
+        }
+
         return changes;
     }
 }
@@ -196,6 +236,16 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to change non-member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.NonMemberCycleCapMultiplier =>
                 $"Proposal to change non-member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
+            CrewSettingField.AllowCrewmateFileAttachments =>
+                $"Proposal to set \"Allow crewmate file attachments\" to \"{FormatBool(change.NewValue)}\".",
+            CrewSettingField.MinimumCrewmateTenureDaysForAttachments =>
+                $"Proposal to change minimum crewmate tenure for attachments from {change.OldValue} to {change.NewValue} days.",
+            CrewSettingField.MinimumContributionForAttachments =>
+                $"Proposal to change minimum contribution for attachments from ${change.OldValue} to ${change.NewValue}.",
+            CrewSettingField.MinimumCrewmateTenureDaysForProposals =>
+                $"Proposal to change minimum crewmate tenure for proposals from {change.OldValue} to {change.NewValue} days.",
+            CrewSettingField.MinimumContributionForProposals =>
+                $"Proposal to change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
             _ => "Proposal to change crew settings."
         };
 

@@ -60,7 +60,12 @@ public class CrewsController : ControllerBase
             body.MemberCycleCapMultiplier,
             body.NonMemberCycleCapMode,
             body.NonMemberCycleCapFixedAmount,
-            body.NonMemberCycleCapMultiplier));
+            body.NonMemberCycleCapMultiplier,
+            body.AllowCrewmateFileAttachments,
+            body.MinimumCrewmateTenureDaysForAttachments,
+            body.MinimumContributionForAttachments,
+            body.MinimumCrewmateTenureDaysForProposals,
+            body.MinimumContributionForProposals));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -101,6 +101,11 @@ public class CrewSettingsProposalService(
         crew.NonMemberCycleCapMode = CrewUpdateValidator.ParseCycleCapMode(request.NonMemberCycleCapMode);
         crew.NonMemberCycleCapFixedAmount = request.NonMemberCycleCapFixedAmount;
         crew.NonMemberCycleCapMultiplier = request.NonMemberCycleCapMultiplier;
+        crew.AllowCrewmateFileAttachments = request.AllowCrewmateFileAttachments;
+        crew.MinimumCrewmateTenureDaysForAttachments = request.MinimumCrewmateTenureDaysForAttachments;
+        crew.MinimumContributionForAttachments = request.MinimumContributionForAttachments;
+        crew.MinimumCrewmateTenureDaysForProposals = request.MinimumCrewmateTenureDaysForProposals;
+        crew.MinimumContributionForProposals = request.MinimumContributionForProposals;
     }
 
     private async Task ApplyChangeAsync(Crew crew, ProposalCrewSettingChange change, CancellationToken cancellationToken)
@@ -164,6 +169,21 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.NonMemberCycleCapMultiplier:
                 crew.NonMemberCycleCapMultiplier = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.AllowCrewmateFileAttachments:
+                crew.AllowCrewmateFileAttachments = bool.Parse(change.NewValue);
+                break;
+            case CrewSettingField.MinimumCrewmateTenureDaysForAttachments:
+                crew.MinimumCrewmateTenureDaysForAttachments = int.Parse(change.NewValue);
+                break;
+            case CrewSettingField.MinimumContributionForAttachments:
+                crew.MinimumContributionForAttachments = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.MinimumCrewmateTenureDaysForProposals:
+                crew.MinimumCrewmateTenureDaysForProposals = int.Parse(change.NewValue);
+                break;
+            case CrewSettingField.MinimumContributionForProposals:
+                crew.MinimumContributionForProposals = decimal.Parse(change.NewValue);
                 break;
         }
     }

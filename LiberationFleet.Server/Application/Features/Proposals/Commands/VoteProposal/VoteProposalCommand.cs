@@ -26,6 +26,7 @@ public class VoteProposalCommandHandler(
     CrewJoinRequestProposalService crewJoinRequestProposalService,
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
+    CrewmatePermissionProposalService crewmatePermissionProposalService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<VoteProposalCommand, ProposalOperationResponse>
 {
@@ -123,6 +124,7 @@ public class VoteProposalCommandHandler(
             crewJoinRequestProposalService,
             crewRoleProposalService,
             claimPlaceholderIdentityProposalService,
+            crewmatePermissionProposalService,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

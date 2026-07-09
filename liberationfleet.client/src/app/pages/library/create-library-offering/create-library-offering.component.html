@@ -89,10 +89,12 @@
       <div class="form-group">
         <label>Images (up to 5)</label>
         <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
           [attachments]="attachments"
           [allowAudioRecording]="false"
           acceptTypes="image/*">
         </app-proposal-attachment-picker>
+        <p class="hint-text" *ngIf="!canAttachFiles">Image uploads require crew file attachment permission.</p>
       </div>
     </form>
   </div>

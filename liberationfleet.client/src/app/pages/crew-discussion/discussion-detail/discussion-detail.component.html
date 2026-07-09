@@ -55,7 +55,7 @@
         </div>
 
         <p class="section-label">Add attachments</p>
-        <app-proposal-attachment-picker [attachments]="newEditAttachments"></app-proposal-attachment-picker>
+        <app-proposal-attachment-picker *ngIf="canAttachFiles" [attachments]="newEditAttachments"></app-proposal-attachment-picker>
 
         <div class="edit-actions">
           <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
@@ -183,6 +183,7 @@
       </div>
 
       <app-proposal-attachment-picker
+        *ngIf="canAttachFiles"
         class="comment-attachment-picker"
         [class.collapsed]="!commentExpanded"
         [attachments]="commentAttachments"

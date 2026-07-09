@@ -20,6 +20,8 @@ public record UpsertEncryptedContentCommand(
 public class UpsertEncryptedContentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    ICrewRepository crewRepository,
+    IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertEncryptedContentCommand, CryptoOperationResponse>
 {
@@ -57,7 +59,23 @@ public class UpsertEncryptedContentCommandHandler(
             if (AttachmentTypes.Contains(domainType))
             {
                 var membership = await membershipRepository.GetMembershipAsync(userId, request.CrewId.Value, cancellationToken);
-                if (membership is null || !membership.CanAttachFiles)
+                var crew = await crewRepository.GetByIdAsync(request.CrewId.Value, cancellationToken);
+                if (membership is null || crew is null)
+                {
+                    return new CryptoOperationResponse { Success = false, Message = "You are not allowed to attach files in this crew." };
+                }
+
+                var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+                    userId,
+                    request.CrewId.Value,
+                    crew.CurrentSeasonStartDate,
+                    cancellationToken);
+
+                if (!CrewContentPermissionService.CanAttachFilesToCrewContent(
+                        crew,
+                        membership,
+                        giftStats.LifetimeContributions,
+                        DateTime.UtcNow))
                 {
                     return new CryptoOperationResponse
                     {

@@ -118,6 +118,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllowCrewmateFileAttachments")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("AllowSurvivalThresholds")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -167,6 +172,28 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)")
                         .HasDefaultValue(2m);
+
+                    b.Property<decimal>("MinimumContributionForAttachments")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("MinimumContributionForProposals")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("MinimumCrewmateTenureDaysForAttachments")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("MinimumCrewmateTenureDaysForProposals")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -291,7 +318,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<bool>("CanAttachFiles")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("CanCreateProposals")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("CrewId")
                         .HasColumnType("int");
@@ -2070,6 +2102,44 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ProposalCrewmateKicks");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmatePermissionGrant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("GrantType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewmatePermissionGrants");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmateRejoin", b =>
                 {
                     b.Property<int>("Id")
@@ -3317,6 +3387,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Proposal");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmatePermissionGrant", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewmatePermissionGrant")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewmatePermissionGrant", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewmateRejoin", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
@@ -3385,7 +3466,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.UserRegisteredDevice", "RelatedDevice")
                         .WithMany()
                         .HasForeignKey("RelatedDeviceId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithMany("SecurityAlerts")
@@ -3596,6 +3677,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("CrewSettingChange");
 
                     b.Navigation("CrewmateKick");
+
+                    b.Navigation("CrewmatePermissionGrant");
 
                     b.Navigation("CrewmateRejoin");
 

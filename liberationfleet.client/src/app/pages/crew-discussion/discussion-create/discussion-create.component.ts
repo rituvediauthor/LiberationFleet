@@ -27,6 +27,7 @@ export class DiscussionCreateComponent implements OnInit {
   attachments: PendingAttachment[] = [];
   isSubmitting = false;
   crewId = 0;
+  canAttachFiles = false;
   authorDisplayName = '';
 
   private fb = inject(FormBuilder);
@@ -59,6 +60,7 @@ export class DiscussionCreateComponent implements OnInit {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
       }
     });
 

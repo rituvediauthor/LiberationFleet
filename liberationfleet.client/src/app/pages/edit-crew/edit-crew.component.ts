@@ -52,7 +52,12 @@ export class EditCrewComponent implements OnInit {
       memberCycleCapMultiplier: [2, [Validators.required, Validators.min(0)]],
       nonMemberCycleCapMode: ['CapacityBased' as CycleCapMode, Validators.required],
       nonMemberCycleCapFixedAmount: [0, [Validators.min(0)]],
-      nonMemberCycleCapMultiplier: [0.25, [Validators.required, Validators.min(0)]]
+      nonMemberCycleCapMultiplier: [0.25, [Validators.required, Validators.min(0)]],
+      allowCrewmateFileAttachments: [false],
+      minimumCrewmateTenureDaysForAttachments: [0, [Validators.min(0)]],
+      minimumContributionForAttachments: [0, [Validators.min(0)]],
+      minimumCrewmateTenureDaysForProposals: [0, [Validators.min(0)]],
+      minimumContributionForProposals: [0, [Validators.min(0)]]
     });
 
     this.backButton = {
@@ -84,6 +89,10 @@ export class EditCrewComponent implements OnInit {
 
   get isNonMemberCapacityBased(): boolean {
     return this.form.get('nonMemberCycleCapMode')?.value === 'CapacityBased';
+  }
+
+  get allowCrewmateFileAttachments(): boolean {
+    return !!this.form.get('allowCrewmateFileAttachments')?.value;
   }
 
   get memberCycleCapPreview(): number {
@@ -229,6 +238,11 @@ export class EditCrewComponent implements OnInit {
     nonMemberCycleCapMode?: CycleCapMode | string;
     nonMemberCycleCapFixedAmount?: number;
     nonMemberCycleCapMultiplier?: number;
+    allowCrewmateFileAttachments?: boolean;
+    minimumCrewmateTenureDaysForAttachments?: number;
+    minimumContributionForAttachments?: number;
+    minimumCrewmateTenureDaysForProposals?: number;
+    minimumContributionForProposals?: number;
   }) {
     this.form.patchValue({
       name: crew.name,
@@ -246,7 +260,12 @@ export class EditCrewComponent implements OnInit {
       memberCycleCapMultiplier: crew.memberCycleCapMultiplier ?? 2,
       nonMemberCycleCapMode: crew.nonMemberCycleCapMode ?? 'CapacityBased',
       nonMemberCycleCapFixedAmount: crew.nonMemberCycleCapFixedAmount ?? 0,
-      nonMemberCycleCapMultiplier: crew.nonMemberCycleCapMultiplier ?? 0.25
+      nonMemberCycleCapMultiplier: crew.nonMemberCycleCapMultiplier ?? 0.25,
+      allowCrewmateFileAttachments: crew.allowCrewmateFileAttachments ?? false,
+      minimumCrewmateTenureDaysForAttachments: crew.minimumCrewmateTenureDaysForAttachments ?? 0,
+      minimumContributionForAttachments: crew.minimumContributionForAttachments ?? 0,
+      minimumCrewmateTenureDaysForProposals: crew.minimumCrewmateTenureDaysForProposals ?? 0,
+      minimumContributionForProposals: crew.minimumContributionForProposals ?? 0
     }, { emitEvent: false });
   }
 
@@ -272,7 +291,12 @@ export class EditCrewComponent implements OnInit {
       memberCycleCapMultiplier: Number(this.form.get('memberCycleCapMultiplier')?.value),
       nonMemberCycleCapMode: this.form.get('nonMemberCycleCapMode')?.value as CycleCapMode,
       nonMemberCycleCapFixedAmount: Number(this.form.get('nonMemberCycleCapFixedAmount')?.value),
-      nonMemberCycleCapMultiplier: Number(this.form.get('nonMemberCycleCapMultiplier')?.value)
+      nonMemberCycleCapMultiplier: Number(this.form.get('nonMemberCycleCapMultiplier')?.value),
+      allowCrewmateFileAttachments: !!this.form.get('allowCrewmateFileAttachments')?.value,
+      minimumCrewmateTenureDaysForAttachments: Number(this.form.get('minimumCrewmateTenureDaysForAttachments')?.value),
+      minimumContributionForAttachments: Number(this.form.get('minimumContributionForAttachments')?.value),
+      minimumCrewmateTenureDaysForProposals: Number(this.form.get('minimumCrewmateTenureDaysForProposals')?.value),
+      minimumContributionForProposals: Number(this.form.get('minimumContributionForProposals')?.value)
     };
   }
 

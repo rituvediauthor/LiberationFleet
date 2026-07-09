@@ -25,6 +25,7 @@ public class GetProposalDetailQueryHandler(
     CrewJoinRequestProposalService crewJoinRequestProposalService,
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
+    CrewmatePermissionProposalService crewmatePermissionProposalService,
     ProposalAnonymousAliasService aliasService,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
@@ -68,6 +69,7 @@ public class GetProposalDetailQueryHandler(
             crewJoinRequestProposalService,
             crewRoleProposalService,
             claimPlaceholderIdentityProposalService,
+            crewmatePermissionProposalService,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -110,6 +112,10 @@ public class GetProposalDetailQueryHandler(
 
         var claimPlaceholderIdentity = proposal.Kind == ProposalKind.ClaimPlaceholderIdentity
             ? await proposalRepository.GetClaimPlaceholderIdentityByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewmatePermissionGrant = proposal.Kind == ProposalKind.CrewmatePermissionGrant
+            ? await proposalRepository.GetCrewmatePermissionGrantByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
@@ -182,6 +188,7 @@ public class GetProposalDetailQueryHandler(
                 crewJoinRequest,
                 crewRoleChange,
                 claimPlaceholderIdentity,
+                crewmatePermissionGrant,
                 currentUserVote,
                 viewerAlias)
         };

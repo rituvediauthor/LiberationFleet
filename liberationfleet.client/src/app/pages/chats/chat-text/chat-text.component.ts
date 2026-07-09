@@ -57,7 +57,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   anonymousModeEnabled = false;
   canToggleAnonymousMode = false;
   canModerateAttachments = false;
-  canAttachFiles = true;
+  canAttachFiles = false;
   messages: ChatMessage[] = [];
   crewId = 0;
   currentUserId: number | null = null;
@@ -121,7 +121,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
             next: response => {
               if (response.success && response.profile) {
                 this.canModerateAttachments = response.profile.canModerateAttachments;
-                this.canAttachFiles = response.profile.canAttachFiles;
               }
             }
           });
@@ -132,6 +131,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
         await this.encryptionContent.whenReady();
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);

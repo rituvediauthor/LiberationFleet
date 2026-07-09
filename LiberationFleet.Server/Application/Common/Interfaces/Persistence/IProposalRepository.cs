@@ -80,6 +80,20 @@ public interface IProposalRepository
         int crewId,
         int placeholderUserId,
         CancellationToken cancellationToken = default);
+    Task<ProposalCrewmatePermissionGrant?> GetCrewmatePermissionGrantByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewmatePermissionGrant>> GetCrewmatePermissionGrantsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddCrewmatePermissionGrantAsync(
+        ProposalCrewmatePermissionGrant grant,
+        CancellationToken cancellationToken = default);
+    Task<ProposalCrewmatePermissionGrant?> GetPendingCrewmatePermissionGrantForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CrewmatePermissionGrantType grantType,
+        CancellationToken cancellationToken = default);
     Task<ProposalCrewJoinRequest?> GetPendingJoinRequestForApplicantAndCrewAsync(
         int applicantUserId,
         int crewId,

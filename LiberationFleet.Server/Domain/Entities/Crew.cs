@@ -28,6 +28,11 @@ public class Crew
     public CycleCapMode NonMemberCycleCapMode { get; set; } = CycleCapMode.CapacityBased;
     public decimal NonMemberCycleCapFixedAmount { get; set; }
     public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
+    public bool AllowCrewmateFileAttachments { get; set; }
+    public int MinimumCrewmateTenureDaysForAttachments { get; set; }
+    public decimal MinimumContributionForAttachments { get; set; }
+    public int MinimumCrewmateTenureDaysForProposals { get; set; }
+    public decimal MinimumContributionForProposals { get; set; }
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();

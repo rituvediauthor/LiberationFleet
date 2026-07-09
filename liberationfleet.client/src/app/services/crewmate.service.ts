@@ -104,6 +104,14 @@ export class CrewmateService {
     return this.http.put<CrewmateOperationResponse>(`${this.apiUrl}/${userId}/can-attach-files`, { canAttachFiles });
   }
 
+  proposeAttachPermission(userId: number): Observable<CrewRoleChangeResponse> {
+    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/propose-attach-permission`, {});
+  }
+
+  proposeProposalPermission(userId: number): Observable<CrewRoleChangeResponse> {
+    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/propose-proposal-permission`, {});
+  }
+
   exportCrewmateStates(): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/export-states`, { responseType: 'blob' });
   }
@@ -145,7 +153,13 @@ export class CrewmateService {
       ...profile,
       roles: profile.roles ?? [],
       electedRoles: profile.electedRoles ?? [],
-      canAttachFiles: profile.canAttachFiles ?? true,
+      canAttachFiles: profile.canAttachFiles ?? false,
+      canCreateProposals: profile.canCreateProposals ?? false,
+      canAttachFilesToCrewContent: profile.canAttachFilesToCrewContent ?? false,
+      canCreateCrewProposals: profile.canCreateCrewProposals ?? false,
+      canProposeAttachFilesGrant: !!profile.canProposeAttachFilesGrant,
+      canProposeCreateProposalsGrant: !!profile.canProposeCreateProposalsGrant,
+      crewmateTenureDays: profile.crewmateTenureDays ?? 0,
       canToggleCanAttachFiles: !!profile.canToggleCanAttachFiles,
       canModerateAttachments: !!profile.canModerateAttachments,
       canExportCrewData: !!profile.canExportCrewData,

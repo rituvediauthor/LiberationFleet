@@ -22,6 +22,11 @@ public class CrewDto
     public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal NonMemberCycleCapFixedAmount { get; set; }
     public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
+    public bool AllowCrewmateFileAttachments { get; set; }
+    public int MinimumCrewmateTenureDaysForAttachments { get; set; }
+    public decimal MinimumContributionForAttachments { get; set; }
+    public int MinimumCrewmateTenureDaysForProposals { get; set; }
+    public decimal MinimumContributionForProposals { get; set; }
     public decimal MonthlyGivingCapacity { get; set; }
 }
 
@@ -43,6 +48,11 @@ public class UpdateCrewRequest
     public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal NonMemberCycleCapFixedAmount { get; set; }
     public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
+    public bool AllowCrewmateFileAttachments { get; set; }
+    public int MinimumCrewmateTenureDaysForAttachments { get; set; }
+    public decimal MinimumContributionForAttachments { get; set; }
+    public int MinimumCrewmateTenureDaysForProposals { get; set; }
+    public decimal MinimumContributionForProposals { get; set; }
 }
 
 public class CrewMembershipStatusDto
@@ -52,6 +62,8 @@ public class CrewMembershipStatusDto
     public string? CrewName { get; set; }
     public string? JoinCode { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
+    public bool CanAttachFilesToCrewContent { get; set; }
+    public bool CanCreateProposals { get; set; }
 }
 
 public class CrewOperationResponse

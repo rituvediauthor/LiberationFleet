@@ -2,6 +2,10 @@
   <div class="create-proposal-page">
     <h1 class="page-title">Create Proposal</h1>
 
+    <p class="permission-notice" *ngIf="!canCreateProposals">
+      You do not meet your crew's tenure or contribution requirements to create proposals. A crewmate may propose granting you permission.
+    </p>
+
     <form [formGroup]="form">
       <div class="form-group">
         <label for="title">Title</label>
@@ -18,7 +22,7 @@
           placeholder="Describe your proposal"></textarea>
       </div>
 
-      <app-proposal-attachment-picker [attachments]="attachments"></app-proposal-attachment-picker>
+      <app-proposal-attachment-picker *ngIf="canAttachFiles" [attachments]="attachments"></app-proposal-attachment-picker>
     </form>
   </div>
 </app-page-layout>

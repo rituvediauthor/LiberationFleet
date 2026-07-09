@@ -17,5 +17,10 @@ public enum CrewSettingField
     MemberCycleCapMultiplier = 12,
     NonMemberCycleCapMode = 13,
     NonMemberCycleCapFixedAmount = 14,
-    NonMemberCycleCapMultiplier = 15
+    NonMemberCycleCapMultiplier = 15,
+    AllowCrewmateFileAttachments = 16,
+    MinimumCrewmateTenureDaysForAttachments = 17,
+    MinimumContributionForAttachments = 18,
+    MinimumCrewmateTenureDaysForProposals = 19,
+    MinimumContributionForProposals = 20
 }

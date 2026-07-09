@@ -103,6 +103,25 @@
   line-height: 1;
 }
 
+.brand-nav-button {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: 1px solid var(--lf-color-border-subtle);
+  padding: 6px;
+  min-width: auto;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-nav-button:hover {
+  background: var(--lf-color-bg-hover);
+  border-color: var(--lf-color-text-subtle);
+}
+
 .primary-button {
   position: absolute;
   left: 50%;

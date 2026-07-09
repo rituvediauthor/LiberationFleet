@@ -92,7 +92,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         column: x => x.RelatedDeviceId,
                         principalTable: "UserRegisteredDevices",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_SecurityAlerts_Users_UserId",
                         column: x => x.UserId,

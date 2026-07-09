@@ -28,4 +28,5 @@ public class Proposal
     public ProposalCrewJoinRequest? CrewJoinRequest { get; set; }
     public ProposalCrewRoleChange? CrewRoleChange { get; set; }
     public ProposalClaimPlaceholderIdentity? ClaimPlaceholderIdentity { get; set; }
+    public ProposalCrewmatePermissionGrant? CrewmatePermissionGrant { get; set; }
 }

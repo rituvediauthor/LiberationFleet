@@ -47,6 +47,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   loading = true;
   loadError = '';
   crewId = 0;
+  canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
   commentFocused = false;
@@ -93,6 +94,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
         await this.encryptionContent.whenReady();
         this.contentPreferenceService.ensureLoaded().subscribe({
           next: () => {

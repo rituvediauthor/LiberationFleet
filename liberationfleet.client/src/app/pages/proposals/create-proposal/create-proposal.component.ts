@@ -25,6 +25,8 @@ export class CreateProposalComponent implements OnInit {
   attachments: PendingAttachment[] = [];
   isSubmitting = false;
   crewId = 0;
+  canAttachFiles = false;
+  canCreateProposals = false;
   authorDisplayName = '';
 
   private fb = inject(FormBuilder);
@@ -52,6 +54,9 @@ export class CreateProposalComponent implements OnInit {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
+        this.canCreateProposals = membership.canCreateProposals ?? false;
+        this.updateCreateButton();
       }
     });
 
@@ -66,7 +71,10 @@ export class CreateProposalComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid || this.isSubmitting || this.crewId <= 0) {
+    if (this.form.invalid || this.isSubmitting || this.crewId <= 0 || !this.canCreateProposals) {
+      if (!this.canCreateProposals) {
+        this.toastService.error('You do not meet the crew requirements to create proposals.');
+      }
       return;
     }
 
@@ -111,9 +119,9 @@ export class CreateProposalComponent implements OnInit {
     this.createButton = {
       label: 'Create',
       type: 'primary',
-      disabled: this.isSubmitting || this.form.invalid,
+      disabled: this.isSubmitting || this.form.invalid || !this.canCreateProposals,
       onClick: () => this.onSubmit()
     };
   }
 }
-
+

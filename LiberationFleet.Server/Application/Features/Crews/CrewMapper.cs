@@ -26,6 +26,11 @@ public static class CrewMapper
         NonMemberCycleCapMode = crew.NonMemberCycleCapMode.ToString(),
         NonMemberCycleCapFixedAmount = crew.NonMemberCycleCapFixedAmount,
         NonMemberCycleCapMultiplier = crew.NonMemberCycleCapMultiplier,
+        AllowCrewmateFileAttachments = crew.AllowCrewmateFileAttachments,
+        MinimumCrewmateTenureDaysForAttachments = crew.MinimumCrewmateTenureDaysForAttachments,
+        MinimumContributionForAttachments = crew.MinimumContributionForAttachments,
+        MinimumCrewmateTenureDaysForProposals = crew.MinimumCrewmateTenureDaysForProposals,
+        MinimumContributionForProposals = crew.MinimumContributionForProposals,
         MonthlyGivingCapacity = monthlyGivingCapacity
     };
 }

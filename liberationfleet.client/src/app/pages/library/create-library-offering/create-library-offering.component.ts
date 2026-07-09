@@ -31,6 +31,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   selectedCategoryIds: number[] = [];
   isSubmitting = false;
   crewId = 0;
+  canAttachFiles = false;
   authorDisplayName = '';
 
   private fb = inject(FormBuilder);
@@ -81,6 +82,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
       }
     });
 

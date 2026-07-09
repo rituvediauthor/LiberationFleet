@@ -198,12 +198,60 @@ export class CrewmateDetailComponent implements OnInit {
           return;
         }
 
-        this.profile = { ...this.profile!, canAttachFiles: nextValue };
+        this.loadProfile();
         this.toastService.success(response.message);
       },
       error: () => {
         this.actionLoading = false;
         this.toastService.error('Failed to update attachment permission');
+      }
+    });
+  }
+
+  onProposeAttachPermission() {
+    if (!this.profile || this.actionLoading || !this.profile.canProposeAttachFilesGrant) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.proposeAttachPermission(this.userId).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit proposal');
+          return;
+        }
+
+        this.toastService.success(response.message);
+        this.router.navigate(['/app/crew/proposals', response.proposalId]);
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit proposal');
+      }
+    });
+  }
+
+  onProposeProposalPermission() {
+    if (!this.profile || this.actionLoading || !this.profile.canProposeCreateProposalsGrant) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.proposeProposalPermission(this.userId).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit proposal');
+          return;
+        }
+
+        this.toastService.success(response.message);
+        this.router.navigate(['/app/crew/proposals', response.proposalId]);
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit proposal');
       }
     });
   }

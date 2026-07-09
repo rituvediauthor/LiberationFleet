@@ -40,6 +40,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalCrewJoinRequest> ProposalCrewJoinRequests => Set<ProposalCrewJoinRequest>();
     public DbSet<ProposalCrewRoleChange> ProposalCrewRoleChanges => Set<ProposalCrewRoleChange>();
     public DbSet<ProposalClaimPlaceholderIdentity> ProposalClaimPlaceholderIdentities => Set<ProposalClaimPlaceholderIdentity>();
+    public DbSet<ProposalCrewmatePermissionGrant> ProposalCrewmatePermissionGrants => Set<ProposalCrewmatePermissionGrant>();
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
@@ -114,7 +115,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.RelatedDevice)
                 .WithMany()
                 .HasForeignKey(e => e.RelatedDeviceId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<PaymentPlatform>(entity =>
@@ -186,6 +187,11 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.NonMemberCycleCapMode).HasDefaultValue(CycleCapMode.CapacityBased);
             entity.Property(e => e.NonMemberCycleCapFixedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.NonMemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(0.25m);
+            entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
+            entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);
+            entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
+            entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
@@ -203,7 +209,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsCeremonialOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsModerator).HasDefaultValue(false);
             entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
-            entity.Property(e => e.CanAttachFiles).HasDefaultValue(true);
+            entity.Property(e => e.CanAttachFiles).HasDefaultValue(false);
+            entity.Property(e => e.CanCreateProposals).HasDefaultValue(false);
             entity.Property(e => e.EstimatedMonthlyContribution).HasPrecision(18, 2);
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
             entity.Property(e => e.IsInSeason).HasDefaultValue(false);
@@ -537,6 +544,18 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.ClaimPlaceholderIdentity)
                 .HasForeignKey<ProposalClaimPlaceholderIdentity>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalCrewmatePermissionGrant>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewmatePermissionGrant)
+                .HasForeignKey<ProposalCrewmatePermissionGrant>(e => e.ProposalId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

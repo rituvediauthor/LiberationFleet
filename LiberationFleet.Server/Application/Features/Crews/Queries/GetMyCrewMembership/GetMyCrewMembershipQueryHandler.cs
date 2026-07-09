@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
@@ -5,40 +6,50 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 
-public class GetMyCrewMembershipQueryHandler : IRequestHandler<GetMyCrewMembershipQuery, CrewMembershipStatusDto>
+public class GetMyCrewMembershipQueryHandler(
+    ICrewMembershipRepository membershipRepository,
+    IGiftRepository giftRepository,
+    ICurrentUserService currentUserService) : IRequestHandler<GetMyCrewMembershipQuery, CrewMembershipStatusDto>
 {
-    private readonly ICrewMembershipRepository _membershipRepository;
-    private readonly ICurrentUserService _currentUserService;
-
-    public GetMyCrewMembershipQueryHandler(
-        ICrewMembershipRepository membershipRepository,
-        ICurrentUserService currentUserService)
-    {
-        _membershipRepository = membershipRepository;
-        _currentUserService = currentUserService;
-    }
-
     public async Task<CrewMembershipStatusDto> Handle(GetMyCrewMembershipQuery request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId;
+        var userId = currentUserService.UserId;
         if (userId is null)
         {
             return new CrewMembershipStatusDto();
         }
 
-        var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
         if (membership is null)
         {
             return new CrewMembershipStatusDto { HasCrew = false };
         }
 
+        var crew = membership.Crew;
+        var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+            userId.Value,
+            membership.CrewId,
+            crew.CurrentSeasonStartDate,
+            cancellationToken);
+        var utcNow = DateTime.UtcNow;
+
         return new CrewMembershipStatusDto
         {
             HasCrew = true,
             CrewId = membership.CrewId,
-            CrewName = membership.Crew.Name,
-            JoinCode = membership.Crew.JoinCode,
-            LibraryOfThingsEnabled = membership.Crew.LibraryOfThingsEnabled
+            CrewName = crew.Name,
+            JoinCode = crew.JoinCode,
+            LibraryOfThingsEnabled = crew.LibraryOfThingsEnabled,
+            CanAttachFilesToCrewContent = CrewContentPermissionService.CanAttachFilesToCrewContent(
+                crew,
+                membership,
+                giftStats.LifetimeContributions,
+                utcNow),
+            CanCreateProposals = CrewContentPermissionService.CanCreateProposals(
+                crew,
+                membership,
+                giftStats.LifetimeContributions,
+                utcNow)
         };
     }
 }

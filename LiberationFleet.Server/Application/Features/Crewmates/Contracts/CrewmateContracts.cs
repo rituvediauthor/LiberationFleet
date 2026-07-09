@@ -70,7 +70,13 @@ public class CrewmateProfileDto
     public bool IsSurvivalThresholdRecipient { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
     public bool IsSelf { get; set; }
-    public bool CanAttachFiles { get; set; } = true;
+    public bool CanAttachFiles { get; set; }
+    public bool CanCreateProposals { get; set; }
+    public bool CanAttachFilesToCrewContent { get; set; }
+    public bool CanCreateCrewProposals { get; set; }
+    public bool CanProposeAttachFilesGrant { get; set; }
+    public bool CanProposeCreateProposalsGrant { get; set; }
+    public int CrewmateTenureDays { get; set; }
     public bool CanToggleCanAttachFiles { get; set; }
     public bool CanModerateAttachments { get; set; }
     public bool CanExportCrewData { get; set; }
@@ -108,6 +114,11 @@ public class CrewRoleChangeResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public int ProposalId { get; set; }
+}
+
+public class ProposeCrewmatePermissionGrantRequest
+{
+    public string GrantType { get; set; } = string.Empty;
 }
 
 public class ToggleCanAttachFilesRequest

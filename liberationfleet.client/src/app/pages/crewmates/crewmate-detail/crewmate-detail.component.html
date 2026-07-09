@@ -56,13 +56,59 @@
       </section>
 
       <section class="section" *ngIf="profile.canToggleCanAttachFiles">
-        <h2>File attachments</h2>
+        <h2>File attachment override</h2>
         <p class="hint-text">
-          {{ profile.canAttachFiles ? 'This crewmate can attach files to chats and comments.' : 'This crewmate cannot attach files.' }}
+          {{ profile.canAttachFiles
+            ? 'This crewmate has an override grant to attach files regardless of crew tenure or contribution rules.'
+            : 'This crewmate does not have an attachment override grant.' }}
+        </p>
+        <p class="hint-text">
+          Effective permission: {{ profile.canAttachFilesToCrewContent ? 'Can attach files' : 'Cannot attach files' }}
         </p>
         <button type="button" class="toggle-btn" [disabled]="actionLoading" (click)="onToggleCanAttachFiles()">
-          {{ profile.canAttachFiles ? 'Disable attachments' : 'Allow attachments' }}
+          {{ profile.canAttachFiles ? 'Revoke override' : 'Grant override' }}
         </button>
+      </section>
+
+      <section class="section" *ngIf="profile.canProposeAttachFilesGrant || profile.canProposeCreateProposalsGrant">
+        <h2>Permission proposals</h2>
+        <p class="hint-text">Propose granting this crewmate permissions that bypass tenure and contribution requirements.</p>
+        <div class="export-actions">
+          <button
+            type="button"
+            class="export-btn"
+            *ngIf="profile.canProposeAttachFilesGrant"
+            [disabled]="actionLoading"
+            (click)="onProposeAttachPermission()">
+            Propose file attachment grant
+          </button>
+          <button
+            type="button"
+            class="export-btn"
+            *ngIf="profile.canProposeCreateProposalsGrant"
+            [disabled]="actionLoading"
+            (click)="onProposeProposalPermission()">
+            Propose proposal creation grant
+          </button>
+        </div>
+      </section>
+
+      <section class="section" *ngIf="!profile.isSelf">
+        <h2>Content permissions</h2>
+        <div class="readonly-grid">
+          <div class="readonly-item">
+            <span class="readonly-label">Crewmate tenure</span>
+            <span class="readonly-value">{{ profile.crewmateTenureDays }} day{{ profile.crewmateTenureDays === 1 ? '' : 's' }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Can attach files to crew content</span>
+            <span class="readonly-value">{{ profile.canAttachFilesToCrewContent ? 'Yes' : 'No' }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Can create proposals</span>
+            <span class="readonly-value">{{ profile.canCreateCrewProposals ? 'Yes' : 'No' }}</span>
+          </div>
+        </div>
       </section>
 
       <section class="section">

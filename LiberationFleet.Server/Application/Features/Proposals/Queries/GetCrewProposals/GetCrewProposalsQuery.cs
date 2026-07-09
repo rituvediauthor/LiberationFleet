@@ -25,6 +25,7 @@ public class GetCrewProposalsQueryHandler(
     CrewJoinRequestProposalService crewJoinRequestProposalService,
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
+    CrewmatePermissionProposalService crewmatePermissionProposalService,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
@@ -61,6 +62,7 @@ public class GetCrewProposalsQueryHandler(
                 crewJoinRequestProposalService,
                 crewRoleProposalService,
                 claimPlaceholderIdentityProposalService,
+                crewmatePermissionProposalService,
                 cancellationToken);
         }
 
@@ -114,6 +116,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.ClaimPlaceholderIdentity).Select(p => p.Id),
             cancellationToken);
 
+        var crewmatePermissionGrants = await proposalRepository.GetCrewmatePermissionGrantsByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewmatePermissionGrant).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -131,6 +137,7 @@ public class GetCrewProposalsQueryHandler(
             crewJoinRequests.TryGetValue(proposal.Id, out var crewJoinRequest);
             crewRoleChanges.TryGetValue(proposal.Id, out var crewRoleChange);
             claimPlaceholderIdentities.TryGetValue(proposal.Id, out var claimPlaceholderIdentity);
+            crewmatePermissionGrants.TryGetValue(proposal.Id, out var crewmatePermissionGrant);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -144,6 +151,7 @@ public class GetCrewProposalsQueryHandler(
                 crewJoinRequest,
                 crewRoleChange,
                 claimPlaceholderIdentity,
+                crewmatePermissionGrant,
                 currentUserVote));
         }
 

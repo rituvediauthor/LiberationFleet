@@ -3388,7 +3388,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.UserRegisteredDevice", "RelatedDevice")
                         .WithMany()
                         .HasForeignKey("RelatedDeviceId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithMany("SecurityAlerts")

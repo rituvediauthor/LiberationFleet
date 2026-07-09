@@ -95,14 +95,29 @@ public static class CrewmateMapper
         User crewmate,
         CrewMembership membership,
         CrewMembership viewerMembership,
+        Crew crew,
         CrewmateGiftStatsDto giftStats,
         bool isFinancialMember,
         decimal priorityScore,
         bool isSurvivalThresholdRecipient,
         CrewmateFriendshipStateDto friendshipState,
         bool isSelf,
-        bool canClaimIdentity = false) =>
-        new()
+        bool canClaimIdentity = false)
+    {
+        var utcNow = DateTime.UtcNow;
+        var lifetimeContributions = giftStats.LifetimeContributions;
+        var canAttachFilesToCrewContent = CrewContentPermissionService.CanAttachFilesToCrewContent(
+            crew,
+            membership,
+            lifetimeContributions,
+            utcNow);
+        var canCreateCrewProposals = CrewContentPermissionService.CanCreateProposals(
+            crew,
+            membership,
+            lifetimeContributions,
+            utcNow);
+
+        return new CrewmateProfileDto
         {
             UserId = crewmate.Id,
             Username = crewmate.Username,
@@ -112,7 +127,7 @@ public static class CrewmateMapper
             SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
-            LifetimeContributions = giftStats.LifetimeContributions,
+            LifetimeContributions = lifetimeContributions,
             ReceptionThisYear = giftStats.ReceptionThisYear,
             PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
             InNeedOfAid = crewmate.InNeedOfAid,
@@ -121,10 +136,19 @@ public static class CrewmateMapper
             FriendshipState = friendshipState,
             IsSelf = isSelf,
             CanAttachFiles = membership.CanAttachFiles,
+            CanCreateProposals = membership.CanCreateProposals,
+            CanAttachFilesToCrewContent = canAttachFilesToCrewContent,
+            CanCreateCrewProposals = canCreateCrewProposals,
+            CanProposeAttachFilesGrant = !isSelf
+                && CrewContentPermissionService.NeedsAttachFilesPermissionGrant(crew, membership, lifetimeContributions, utcNow),
+            CanProposeCreateProposalsGrant = !isSelf
+                && CrewContentPermissionService.NeedsCreateProposalsPermissionGrant(crew, membership, lifetimeContributions, utcNow),
+            CrewmateTenureDays = CrewContentPermissionService.GetTenureDays(membership, utcNow),
             CanToggleCanAttachFiles = CrewRoleAuthorizationService.CanToggleCanAttachFiles(viewerMembership),
             CanModerateAttachments = CrewRoleAuthorizationService.CanModerateAttachments(viewerMembership),
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership),
             IsPlaceholderMember = membership.IsPlaceholderMember,
             CanClaimIdentity = canClaimIdentity
         };
+    }
 }

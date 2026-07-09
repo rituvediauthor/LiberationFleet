@@ -7,6 +7,13 @@
 
 .hero-section {
   max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-logo {
+  margin-bottom: 16px;
 }
 
 h1 {
@@ -16,16 +23,24 @@ h1 {
   color: var(--lf-color-text-body);
 }
 
-p {
-  font-size: 18px;
-  color: var(--lf-color-text-secondary);
-  margin: 12px 0;
-}
-
 .subtitle {
   font-size: 16px;
   color: var(--lf-color-text-subtle);
-  margin-top: 20px;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.crew-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 999px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 @media (max-width: 600px) {
@@ -33,7 +48,7 @@ p {
     font-size: 36px;
   }
 
-  p {
-    font-size: 16px;
+  .subtitle {
+    font-size: 15px;
   }
 }

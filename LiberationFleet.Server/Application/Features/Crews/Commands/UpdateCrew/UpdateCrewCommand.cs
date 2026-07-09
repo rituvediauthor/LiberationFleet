@@ -24,7 +24,12 @@ public record UpdateCrewCommand(
     decimal MemberCycleCapMultiplier,
     string NonMemberCycleCapMode,
     decimal NonMemberCycleCapFixedAmount,
-    decimal NonMemberCycleCapMultiplier) : IRequest<CrewOperationResponse>;
+    decimal NonMemberCycleCapMultiplier,
+    bool AllowCrewmateFileAttachments,
+    int MinimumCrewmateTenureDaysForAttachments,
+    decimal MinimumContributionForAttachments,
+    int MinimumCrewmateTenureDaysForProposals,
+    decimal MinimumContributionForProposals) : IRequest<CrewOperationResponse>;
 
 public class UpdateCrewCommandHandler(
     ICurrentUserService currentUser,

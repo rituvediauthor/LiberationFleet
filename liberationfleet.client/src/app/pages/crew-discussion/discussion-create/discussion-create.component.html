@@ -18,7 +18,7 @@
           placeholder="Write your post"></textarea>
       </div>
 
-      <app-proposal-attachment-picker [attachments]="attachments"></app-proposal-attachment-picker>
+      <app-proposal-attachment-picker *ngIf="canAttachFiles" [attachments]="attachments"></app-proposal-attachment-picker>
 
       <label class="checkbox-field">
         <input type="checkbox" formControlName="isAdultContent" />

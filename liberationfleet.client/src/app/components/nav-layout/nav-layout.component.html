@@ -1,4 +1,11 @@
 <div class="nav-layout">
+  <header class="top-brand-bar">
+    <a routerLink="/app/crew" class="top-brand-link" aria-label="LiberationFleet home">
+      <app-brand-logo variant="lf" size="sm"></app-brand-logo>
+      <span class="top-brand-name">LiberationFleet</span>
+    </a>
+  </header>
+
   <div class="nav-content">
     <div class="nav-content-inner">
       <ng-content></ng-content>
@@ -8,7 +15,7 @@
 
   <nav class="bottom-nav" aria-label="Main navigation">
     <a routerLink="/app/crew" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
-      <i class="fa-solid fa-people-group nav-icon" aria-hidden="true"></i>
+      <app-brand-logo class="nav-logo" variant="crew" size="sm"></app-brand-logo>
       <span class="nav-label">Crew</span>
     </a>
     <a routerLink="/app/friends" routerLinkActive="active" class="nav-item">

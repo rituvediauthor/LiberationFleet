@@ -74,8 +74,9 @@ public class GetCrewmateProfileQueryHandler(
             viewerMembership.CrewId,
             cancellationToken);
         var crew = viewerMembership.Crew
-            ?? await mutualAidRepository.GetCrewAsync(viewerMembership.CrewId, cancellationToken);
-        var isSurvivalRecipient = crew?.AllowSurvivalThresholds == true
+            ?? await mutualAidRepository.GetCrewAsync(viewerMembership.CrewId, cancellationToken)
+            ?? throw new InvalidOperationException("Crew not found.");
+        var isSurvivalRecipient = crew.AllowSurvivalThresholds
             && unsatisfiedThresholds.Any(t => t.UserId == request.UserId);
 
         var friendship = await friendshipRepository.GetBetweenUsersAsync(viewerId, request.UserId, cancellationToken);
@@ -102,6 +103,7 @@ public class GetCrewmateProfileQueryHandler(
                 crewmate,
                 targetMembership,
                 viewerMembership,
+                crew,
                 giftStats,
                 isFinancialMember,
                 priorityScore,

@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Crewmates.Commands.DemoteCrewR
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.NominateCrewRoles;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.ProposeCrewmatePermissionGrant;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ToggleCanAttachFiles;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.ExportCrewmateStates;
@@ -12,6 +13,7 @@ using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewRoleD
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetKickedCrewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmates;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -151,6 +153,24 @@ public class CrewmatesController : ControllerBase
     {
         body ??= new ToggleCanAttachFilesRequest();
         var result = await _mediator.Send(new ToggleCanAttachFilesCommand(userId, body.CanAttachFiles));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/propose-attach-permission")]
+    public async Task<IActionResult> ProposeAttachPermission(int userId)
+    {
+        var result = await _mediator.Send(new ProposeCrewmatePermissionGrantCommand(
+            userId,
+            CrewmatePermissionGrantType.AttachFiles));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/propose-proposal-permission")]
+    public async Task<IActionResult> ProposeProposalPermission(int userId)
+    {
+        var result = await _mediator.Send(new ProposeCrewmatePermissionGrantCommand(
+            userId,
+            CrewmatePermissionGrantType.CreateProposals));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
