@@ -11,6 +11,7 @@ import {
   ProposalStatus,
   ProposalVoteChoice
 } from '../models/proposal.model';
+import { EncryptedContentSendPayload } from '../models/encrypted-send.model';
 
 @Injectable({
   providedIn: 'root'
@@ -58,22 +59,24 @@ export class ProposalService {
     );
   }
 
-  createProposal(payload: { nonce: string; ciphertext: string; keyVersion?: number }): Observable<ProposalOperationResponse> {
+  createProposal(payload: EncryptedContentSendPayload): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(this.apiUrl, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
   updateProposal(
     id: number,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload
   ): Observable<ProposalOperationResponse> {
     return this.http.put<ProposalOperationResponse>(`${this.apiUrl}/${id}`, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
@@ -87,25 +90,27 @@ export class ProposalService {
 
   postComment(
     proposalId: number,
-    payload: { parentCommentId?: number | null; nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload & { parentCommentId?: number | null }
   ): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/comments`, {
       parentCommentId: payload.parentCommentId ?? null,
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
   updateComment(
     proposalId: number,
     commentId: number,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload
   ): Observable<ProposalOperationResponse> {
     return this.http.put<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/comments/${commentId}`, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
@@ -160,6 +165,7 @@ export class ProposalService {
       canEdit: proposal.canEdit,
       canDelete: proposal.canDelete,
       canVote: proposal.canVote ?? true,
+      isKickVoteTarget: proposal.isKickVoteTarget ?? false,
       usesAnonymousComments: proposal.usesAnonymousComments,
       viewerAlias: proposal.viewerAlias,
       canKickAuthor: proposal.canKickAuthor,

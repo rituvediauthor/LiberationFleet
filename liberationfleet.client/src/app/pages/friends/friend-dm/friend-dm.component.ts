@@ -25,6 +25,7 @@ import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
+import { NavigationService } from '../../../services/navigation.service';
 import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
@@ -50,6 +51,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   friendUsername = 'Friend';
   messages: DirectMessage[] = [];
   crewId = 0;
+  canAttachFiles = false;
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
@@ -67,6 +69,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private friendService = inject(FriendService);
   private chatHub = inject(ChatHubService);
   private chatCrypto = inject(ChatCryptoService);
@@ -110,6 +113,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
         await this.encryptionContent.whenReady();
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);
@@ -135,7 +139,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   goBack() {
-    this.router.navigate(['/app/friends']);
+    this.navigation.back(['/app/friends']);
   }
 
   onComposerFocus() {

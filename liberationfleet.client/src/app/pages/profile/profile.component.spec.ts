@@ -29,6 +29,8 @@ describe('ProfileComponent', () => {
     roles: ['Organizer'],
     inNeedOfAid: true,
     emergencyLevel: 0,
+    peopleRepresentedCount: 1,
+    disabilityLevel: 0,
     needsSurvivalAid: false,
     isSurvivalThresholdRecipient: false,
     stats: {

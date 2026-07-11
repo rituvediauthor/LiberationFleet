@@ -5,7 +5,8 @@
 
     <div *ngIf="!loading && !errorMessage">
       <h1 class="page-title">{{ recipientUsername }}</h1>
-      <p class="page-subtitle">Total given: ${{ totalAmount }}</p>
+      <p class="page-subtitle">Gifts you gave to {{ recipientUsername }}</p>
+      <p class="page-summary">{{ gifts.length }} {{ gifts.length === 1 ? 'gift' : 'gifts' }} · ${{ totalAmount }} total</p>
 
       <p *ngIf="gifts.length === 0" class="state-text">No gifts found.</p>
 
@@ -13,8 +14,13 @@
         <li class="gift-item" *ngFor="let gift of gifts">
           <div class="gift-main">
             <span class="gift-amount">${{ gift.amount }}</span>
-            <span class="gift-timestamp">{{ gift.timestamp | date:'medium' }}</span>
+            <span class="gift-platform" *ngIf="gift.platform">via {{ gift.platform }}</span>
           </div>
+          <p class="gift-detail">
+            {{ gift.statusLabel }}
+            <span *ngIf="gift.middlemanUsername"> · middleman {{ gift.middlemanUsername }}</span>
+          </p>
+          <p class="gift-timestamp">{{ gift.timestamp | date:'medium' }}</p>
         </li>
       </ol>
     </div>

@@ -1,3 +1,10 @@
+:host {
+  display: block;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--lf-color-bg-page);
+}
+
 .chat-voice-page {
   width: 100%;
   max-width: 560px;

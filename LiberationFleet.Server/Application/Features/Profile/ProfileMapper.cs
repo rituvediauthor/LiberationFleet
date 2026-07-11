@@ -35,6 +35,8 @@ public static class ProfileMapper
             Roles = membership is null ? Array.Empty<string>() : CrewRoleMapper.MapRoles(membership),
             InNeedOfAid = user.InNeedOfAid,
             EmergencyLevel = user.EmergencyLevel,
+            PeopleRepresentedCount = user.PeopleRepresentedCount,
+            DisabilityLevel = user.DisabilityLevel,
             NeedsSurvivalAid = user.NeedsSurvivalAid,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             Stats = BuildStats(giftStats, isFinancialMember, priorityScore, percentBoost)

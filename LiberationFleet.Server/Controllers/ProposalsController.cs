@@ -54,14 +54,14 @@ public class ProposalsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProposalRequest body)
     {
-        var result = await _mediator.Send(new CreateProposalCommand(body.Nonce, body.Ciphertext, body.KeyVersion));
+        var result = await _mediator.Send(new CreateProposalCommand(body.Nonce, body.Ciphertext, body.KeyVersion, body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateProposalRequest body)
     {
-        var result = await _mediator.Send(new UpdateProposalCommand(id, body.Nonce, body.Ciphertext, body.KeyVersion));
+        var result = await _mediator.Send(new UpdateProposalCommand(id, body.Nonce, body.Ciphertext, body.KeyVersion, body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -87,7 +87,8 @@ public class ProposalsController : ControllerBase
             body.ParentCommentId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -100,7 +101,8 @@ public class ProposalsController : ControllerBase
             commentId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

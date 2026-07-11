@@ -53,7 +53,9 @@ public static class GiftMapper
             GiverId = gift.GiverUserId,
             GiverName = gift.GiverUser.Username,
             RecipientId = gift.RecipientUserId,
-            RecipientName = gift.RecipientUser.Username,
+            RecipientName = gift.RecipientUser is null
+                ? "Unknown"
+                : GiftDisplayNames.GetRecipientName(gift.RecipientUser),
             MiddlemanId = gift.MiddlemanUserId,
             MiddlemanName = gift.MiddlemanUser?.Username,
             Amount = gift.Amount,
@@ -77,7 +79,7 @@ public static class GiftMapper
         InitiatorId = gift.GiverUserId,
         InitiatorName = gift.GiverUser.Username,
         RecipientId = gift.RecipientUserId,
-        RecipientName = gift.RecipientUser.Username,
+        RecipientName = GiftDisplayNames.GetRecipientName(gift.RecipientUser),
         Amount = gift.Amount,
         Platform = gift.CrewPaymentPlatform.Name
     };
@@ -107,14 +109,17 @@ public static class GiftMapper
         var amount = gift.Amount.ToString("0.##");
         var platform = gift.CrewPaymentPlatform.Name;
 
+        var recipientName = gift.RecipientUser is null
+            ? "Unknown"
+            : GiftDisplayNames.GetRecipientName(gift.RecipientUser);
         var baseMessage = gift.Type switch
         {
             GiftType.Direct =>
-                $"{gift.GiverUser.Username} gave ${amount} to {gift.RecipientUser.Username} via {platform}",
+                $"{gift.GiverUser.Username} gave ${amount} to {recipientName} via {platform}",
             GiftType.Initiated =>
-                $"{gift.GiverUser.Username} initiated a ${amount} gift to {gift.RecipientUser.Username} through {gift.MiddlemanUser!.Username} via {platform}",
+                $"{gift.GiverUser.Username} initiated a ${amount} gift to {recipientName} through {gift.MiddlemanUser!.Username} via {platform}",
             GiftType.Completed =>
-                $"{gift.MiddlemanUser!.Username} completed {gift.GiverUser.Username}'s ${amount} gift to {gift.RecipientUser.Username} via {platform.ToUpperInvariant()}",
+                $"{gift.MiddlemanUser!.Username} completed {gift.GiverUser.Username}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
             _ => string.Empty
         };
 

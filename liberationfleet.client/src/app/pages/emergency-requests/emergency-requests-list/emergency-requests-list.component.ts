@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -21,15 +22,14 @@ export class EmergencyRequestsListComponent implements OnInit {
   createButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private emergencyRequestService = inject(EmergencyRequestService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.createButton = {
       label: 'Create Emergency Request',

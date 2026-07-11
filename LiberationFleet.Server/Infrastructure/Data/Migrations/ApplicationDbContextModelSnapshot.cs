@@ -110,6 +110,49 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ChatRoomMessages");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentMention", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ContentType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MentionedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParentResourceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("CrewId");
+
+                    b.HasIndex("MentionedUserId", "CreatedAt");
+
+                    b.HasIndex("ContentType", "ResourceId", "MentionedUserId")
+                        .IsUnique();
+
+                    b.ToTable("ContentMentions");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
                 {
                     b.Property<int>("Id")
@@ -1514,6 +1557,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -2343,6 +2389,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DisabilityLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -2363,6 +2414,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsCrewGiftRecipient")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsUnclaimedPlaceholder")
                         .ValueGeneratedOnAdd()
@@ -2386,6 +2442,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PeopleRepresentedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("PercentBonus")
                         .ValueGeneratedOnAdd()
@@ -2741,6 +2802,33 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("AuthorUser");
 
                     b.Navigation("ChatRoom");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentMention", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "MentionedUser")
+                        .WithMany()
+                        .HasForeignKey("MentionedUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Crew");
+
+                    b.Navigation("MentionedUser");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>

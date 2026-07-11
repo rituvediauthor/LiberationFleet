@@ -163,6 +163,8 @@ export interface GiftHistoryRecipientSummary {
   recipientUserId: number;
   recipientUsername: string;
   totalAmount: number;
+  giftCount: number;
+  lastGiftAt: string;
 }
 
 export interface GiftHistoryRecipientListResponse {
@@ -175,6 +177,10 @@ export interface GiftHistoryEntry {
   id: number;
   amount: number;
   timestamp: string;
+  giftType: string;
+  platform: string;
+  middlemanUsername?: string | null;
+  statusLabel: string;
 }
 
 export interface GiftHistoryDetailResponse {

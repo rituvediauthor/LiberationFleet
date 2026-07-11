@@ -11,6 +11,8 @@ import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { LibraryRequestDetail } from '../../../models/library.model';
+import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 
 @Component({
   selector: 'app-library-request-detail',
@@ -34,6 +36,8 @@ export class LibraryRequestDetailComponent implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private notificationContent = inject(NotificationContentService);
+  private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private giftLogCrypto = inject(GiftLogCryptoService);
@@ -57,6 +61,11 @@ export class LibraryRequestDetailComponent implements OnInit {
       this.errorMessage = 'Invalid request.';
       return;
     }
+
+    this.notificationContent.markVisited(
+      `/app/crew/library-of-things/requests/${this.requestId}`,
+      this.requestId
+    );
 
     this.crewService.getMembership().subscribe({
       next: membership => {
@@ -128,15 +137,11 @@ export class LibraryRequestDetailComponent implements OnInit {
 
     this.detail = enriched;
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate([
-        enriched.isPossessorView
-          ? '/app/crew/library-of-things/requests'
-          : '/app/crew/library-of-things/requests/mine'
-      ])
-    };
+    this.backButton = this.navigation.createBackButton([
+      enriched.isPossessorView
+        ? '/app/crew/library-of-things/requests'
+        : '/app/crew/library-of-things/requests/mine'
+    ]);
 
     this.form.patchValue({
       purpose: enriched.fullPurpose ?? enriched.purposePreview,

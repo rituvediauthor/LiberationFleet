@@ -41,6 +41,14 @@
   border-color: var(--lf-color-accent);
 }
 
+.menu-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .menu-icon {
   color: var(--lf-color-accent);
   font-size: 18px;

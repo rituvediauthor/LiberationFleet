@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { DiscussionConfig } from '../config/discussion.config';
+import { EncryptedContentSendPayload } from '../models/encrypted-send.model';
 import {
   DiscussionComment,
   DiscussionDetail,
@@ -58,25 +59,27 @@ export class CrewDiscussionService {
 
   createPost(
     config: DiscussionConfig,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number; isAdultContent?: boolean }
+    payload: EncryptedContentSendPayload & { isAdultContent?: boolean }
   ): Observable<DiscussionOperationResponse> {
     return this.http.post<DiscussionOperationResponse>(config.apiPath, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,
-      isAdultContent: payload.isAdultContent ?? false
+      isAdultContent: payload.isAdultContent ?? false,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
   updatePost(
     config: DiscussionConfig,
     id: number,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload
   ): Observable<DiscussionOperationResponse> {
     return this.http.put<DiscussionOperationResponse>(`${config.apiPath}/${id}`, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
@@ -87,13 +90,14 @@ export class CrewDiscussionService {
   postComment(
     config: DiscussionConfig,
     postId: number,
-    payload: { parentCommentId?: number | null; nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload & { parentCommentId?: number | null }
   ): Observable<DiscussionOperationResponse> {
     return this.http.post<DiscussionOperationResponse>(`${config.apiPath}/${postId}/comments`, {
       parentCommentId: payload.parentCommentId ?? null,
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
@@ -101,12 +105,13 @@ export class CrewDiscussionService {
     config: DiscussionConfig,
     postId: number,
     commentId: number,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload
   ): Observable<DiscussionOperationResponse> {
     return this.http.put<DiscussionOperationResponse>(`${config.apiPath}/${postId}/comments/${commentId}`, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 

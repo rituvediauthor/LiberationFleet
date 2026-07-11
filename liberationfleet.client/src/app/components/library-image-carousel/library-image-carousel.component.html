@@ -1,13 +1,34 @@
-<div class="carousel" *ngIf="images.length > 0">
-  <div class="carousel-track">
+<div class="carousel" [class.inline]="variant === 'inline'" *ngIf="images.length > 0">
+  <div class="carousel-viewport">
     <button
       type="button"
-      class="carousel-thumb"
-      *ngFor="let image of images; let i = index"
-      (click)="openFull(i)"
-      [attr.aria-label]="'View image ' + (i + 1) + ' of ' + images.length">
-      <img [src]="image" [alt]="title + ' image ' + (i + 1)" />
+      class="carousel-slide"
+      (click)="openFull(activeIndex)"
+      [attr.aria-label]="'View image ' + (activeIndex + 1) + ' of ' + images.length">
+      <img [src]="images[activeIndex]" [alt]="title + ' image ' + (activeIndex + 1)" />
     </button>
+
+    <button
+      type="button"
+      class="carousel-nav prev"
+      *ngIf="images.length > 1"
+      (click)="showPrevious($event)"
+      aria-label="Previous image">
+      <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+    </button>
+
+    <button
+      type="button"
+      class="carousel-nav next"
+      *ngIf="images.length > 1"
+      (click)="showNext($event)"
+      aria-label="Next image">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+    </button>
+
+    <span class="carousel-counter" *ngIf="images.length > 1">
+      {{ activeIndex + 1 }} / {{ images.length }}
+    </span>
   </div>
 </div>
 
@@ -18,7 +39,7 @@
       type="button"
       class="lightbox-nav prev"
       *ngIf="images.length > 1"
-      (click)="showPrevious()"
+      (click)="showPreviousInLightbox($event)"
       aria-label="Previous image">
       ‹
     </button>
@@ -30,7 +51,7 @@
       type="button"
       class="lightbox-nav next"
       *ngIf="images.length > 1"
-      (click)="showNext()"
+      (click)="showNextInLightbox($event)"
       aria-label="Next image">
       ›
     </button>

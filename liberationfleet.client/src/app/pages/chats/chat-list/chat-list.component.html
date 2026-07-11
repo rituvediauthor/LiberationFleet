@@ -12,6 +12,9 @@
     <div class="room-list" *ngIf="!loading && visibleRooms.length > 0">
       <div class="room-card" *ngFor="let room of visibleRooms">
         <button type="button" class="room-open" (click)="openRoom(room)">
+          <span class="entry-badge-anchor">
+            <app-content-badge [count]="chatBadgeCount(room.id)"></app-content-badge>
+          </span>
           <div class="room-main">
             <h2>{{ room.name }}</h2>
             <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
@@ -71,6 +74,9 @@
     <div class="room-list hidden-list" *ngIf="!loading && showHiddenExpanded && hiddenRooms.length > 0">
       <div class="room-card hidden-card" *ngFor="let room of hiddenRooms">
         <button type="button" class="room-open" (click)="openRoom(room)">
+          <span class="entry-badge-anchor">
+            <app-content-badge [count]="chatBadgeCount(room.id)"></app-content-badge>
+          </span>
           <div class="room-main">
             <h2>{{ room.name }}</h2>
             <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>

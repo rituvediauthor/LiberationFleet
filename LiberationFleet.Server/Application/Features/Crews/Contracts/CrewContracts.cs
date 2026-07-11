@@ -64,6 +64,7 @@ public class CrewMembershipStatusDto
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool CanAttachFilesToCrewContent { get; set; }
     public bool CanCreateProposals { get; set; }
+    public bool CanExportCrewData { get; set; }
 }
 
 public class CrewOperationResponse

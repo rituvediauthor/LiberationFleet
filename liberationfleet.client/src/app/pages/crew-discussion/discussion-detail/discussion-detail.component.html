@@ -22,6 +22,14 @@
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
   <div class="detail-scroll" #detailScroll>
     <div class="scroll-page-body">
+    <div class="detail-hero" *ngIf="carouselImages.length > 0 && !editing">
+      <app-library-image-carousel
+        [images]="carouselImages"
+        [title]="p.title || 'Post'">
+      </app-library-image-carousel>
+    </div>
+
+    <div class="detail-body">
     <div class="post-content-card">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
@@ -41,7 +49,12 @@
         </label>
         <label class="edit-field">
           <span>Description</span>
-          <textarea [(ngModel)]="editDescription" rows="8" maxlength="10000"></textarea>
+          <textarea
+            [(ngModel)]="editDescription"
+            appMentionAutocomplete
+            [(mentionedUserIds)]="editMentionedUserIds"
+            rows="8"
+            maxlength="10000"></textarea>
         </label>
 
         <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
@@ -64,18 +77,13 @@
       </div>
 
       <div class="post-body" *ngIf="!editing">
-        <p class="description">{{ p.description }}</p>
+        <p class="description"><app-mention-text [text]="p.description ?? ''" /></p>
       </div>
 
-      <div class="attachments" *ngIf="!editing && p.resolvedAttachments?.length">
-        <button type="button" class="attachments-toggle" (click)="toggleAttachments()">
-          {{ attachmentsExpanded ? 'Hide' : 'View' }} attachments ({{ p.resolvedAttachments?.length }})
-        </button>
-        <app-proposal-attachment-display
-          *ngIf="attachmentsExpanded"
-          [attachments]="p.resolvedAttachments ?? []">
-        </app-proposal-attachment-display>
-      </div>
+      <app-proposal-attachment-display
+        *ngIf="!editing && nonImageAttachments.length > 0"
+        [attachments]="nonImageAttachments">
+      </app-proposal-attachment-display>
 
       <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete)">
         <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit post</button>
@@ -106,7 +114,7 @@
               </div>
             </div>
           </div>
-          <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
+          <p class="comment-body" *ngIf="comment.body"><app-mention-text [text]="comment.body" /></p>
           <app-proposal-attachment-display
             [attachments]="comment.resolvedAttachments ?? []"
             [compact]="true">
@@ -143,7 +151,7 @@
                   </div>
                 </div>
               </div>
-              <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
+              <p class="comment-body" *ngIf="reply.body"><app-mention-text [text]="reply.body" /></p>
               <app-proposal-attachment-display
                 [attachments]="reply.resolvedAttachments ?? []"
                 [compact]="true">
@@ -158,6 +166,7 @@
     </section>
     <app-fallible-footer></app-fallible-footer>
     </div>
+    </div>
   </div>
 
   <div class="detail-action-bar" *ngIf="!editing">
@@ -170,6 +179,8 @@
         class="comment-input"
         [class.expanded]="commentExpanded"
         [(ngModel)]="commentText"
+        appMentionAutocomplete
+        [(mentionedUserIds)]="mentionedUserIds"
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
         [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"

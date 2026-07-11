@@ -44,4 +44,6 @@ public sealed class GiftRecipientSummary
     public int RecipientUserId { get; init; }
     public string RecipientUsername { get; init; } = string.Empty;
     public decimal TotalAmount { get; init; }
+    public int GiftCount { get; init; }
+    public DateTime LastGiftAt { get; init; }
 }

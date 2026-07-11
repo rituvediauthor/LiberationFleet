@@ -30,6 +30,8 @@ public class UserProfileDto
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
     public bool InNeedOfAid { get; set; }
     public int EmergencyLevel { get; set; }
+    public int PeopleRepresentedCount { get; set; } = 1;
+    public int DisabilityLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public UserProfileStatsDto Stats { get; set; } = new();

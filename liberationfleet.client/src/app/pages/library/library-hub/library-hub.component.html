@@ -5,13 +5,19 @@
 
     <nav class="section-menu" aria-label="Library sections">
       <button type="button" class="menu-link" (click)="openSection('requests')">
-        <i class="fa-solid fa-hand-holding-heart menu-icon" aria-hidden="true"></i>
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-hand-holding-heart menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="sectionBadgeCount('library-section:requests')"></app-content-badge>
+        </span>
         <span class="menu-label">Requests</span>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
 
       <button type="button" class="menu-link" (click)="openMyRequests()">
-        <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="sectionBadgeCount('library-section:requests-mine')"></app-content-badge>
+        </span>
         <span class="menu-label">My Requests</span>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
@@ -35,7 +41,10 @@
       </button>
 
       <button type="button" class="menu-link" (click)="openSection('mine')">
-        <i class="fa-solid fa-warehouse menu-icon" aria-hidden="true"></i>
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-warehouse menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="sectionBadgeCount('library-section:mine')"></app-content-badge>
+        </span>
         <span class="menu-label">My Offerings</span>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>

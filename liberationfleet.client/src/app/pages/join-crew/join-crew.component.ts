@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { CrewService } from '../../services/crew.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { Crew, CrewScope, PublicCrewRule } from '../../models/crew.model';
 
@@ -46,6 +47,7 @@ export class JoinCrewComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
 
@@ -134,7 +136,7 @@ export class JoinCrewComponent implements OnInit {
       this.updatePrimaryButton();
       return;
     }
-    this.router.navigate(['/app/crew']);
+    this.navigation.back(['/app/crew']);
   }
 
   private updateLocalValidators() {

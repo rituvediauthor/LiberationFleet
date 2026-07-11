@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { AuthService } from '../../services/auth.service';
+import { NavigationService } from '../../services/navigation.service';
 import { DeviceIdentityService } from '../../services/device-identity.service';
 import { ToastService } from '../../components/toast/toast.component';
 
@@ -22,6 +23,7 @@ export class SignInComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private authService = inject(AuthService);
   private deviceIdentity = inject(DeviceIdentityService);
   private toastService = inject(ToastService);
@@ -75,6 +77,6 @@ export class SignInComponent {
   }
 
   private navigateBack() {
-    this.router.navigate(['/']);
+    this.navigation.back(['/']);
   }
 }

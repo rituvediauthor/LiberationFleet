@@ -18,6 +18,31 @@
   opacity: 0.85;
 }
 
+.dev-toolbar-tab {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  border: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  padding: 2px 12px 4px;
+  background: #1f2937;
+  border: 2px solid #f59e0b;
+  border-top: none;
+  color: #f59e0b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.dev-toolbar-tab:hover {
+  background: #374151;
+}
+
 .dev-label {
   font-size: 11px;
   font-weight: 700;
@@ -52,4 +77,10 @@
 
 .dev-btn.destructive:hover:not(:disabled) {
   background: #991b1b;
+}
+
+.dev-toggle-btn {
+  margin-left: auto;
+  min-width: 32px;
+  padding-inline: 8px;
 }

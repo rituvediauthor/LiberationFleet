@@ -34,7 +34,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
             .Include(m => m.User)
                 .ThenInclude(u => u.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
-            .Where(m => m.CrewId == crewId && !m.IsBanned)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && !m.User.IsCrewGiftRecipient)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetBannedMembersByCrewIdAsync(

@@ -11,6 +11,9 @@
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">
       <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openRequest(item)">
+        <span class="entry-badge-anchor">
+          <app-content-badge [count]="requestBadgeCount(item.requestId)"></app-content-badge>
+        </span>
         <app-library-item-card [item]="toCardItem(item)" holderLabel="Requester"></app-library-item-card>
         <div class="request-meta">
           <span class="requester-name">{{ item.requesterUsername }}</span>

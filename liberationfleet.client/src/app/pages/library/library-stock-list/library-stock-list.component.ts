@@ -12,6 +12,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { LibraryCategory, LibraryOfferingKind, LibraryUnitListItem } from '../../../models/library.model';
 import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
+import { NavigationService } from '../../../services/navigation.service';
 
 @Component({
   selector: 'app-library-stock-list',
@@ -39,6 +40,7 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
   holderLabel = 'From';
 
   private readonly pageSize = 30;
+  private navigation = inject(NavigationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private libraryService = inject(LibraryService);
@@ -51,11 +53,7 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
   private listObserver?: IntersectionObserver;
 
   constructor() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
   }
 
   ngOnInit() {
@@ -67,6 +65,10 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.loadItems(true);
+      },
+      error: () => {
+        this.toastService.error('Failed to load crew membership');
       }
     });
 
@@ -82,8 +84,6 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
     this.searchChanges$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.loadItems(true));
-
-    this.loadItems(true);
   }
 
   ngAfterViewInit() {

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
@@ -218,14 +219,14 @@ public class GiftRepository : IGiftRepository
         int giverUserId,
         CancellationToken cancellationToken = default)
     {
-        var grouped = await _context.Gifts
-            .Where(g => g.GiverUserId == giverUserId
-                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))
+        var grouped = await OutgoingGiftHistoryQuery(giverUserId)
             .GroupBy(g => g.RecipientUserId)
             .Select(g => new
             {
                 RecipientUserId = g.Key,
-                TotalAmount = g.Sum(x => x.Amount)
+                TotalAmount = g.Sum(x => x.Amount),
+                GiftCount = g.Count(),
+                LastGiftAt = g.Max(x => x.CreatedAt)
             })
             .ToListAsync(cancellationToken);
 
@@ -235,18 +236,23 @@ public class GiftRepository : IGiftRepository
         }
 
         var recipientIds = grouped.Select(g => g.RecipientUserId).ToList();
-        var usernames = await _context.Users
+        var recipients = await _context.Users
             .Where(u => recipientIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.Username, cancellationToken);
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
 
         return grouped
             .Select(g => new GiftRecipientSummary
             {
                 RecipientUserId = g.RecipientUserId,
-                RecipientUsername = usernames.GetValueOrDefault(g.RecipientUserId, "Unknown"),
-                TotalAmount = g.TotalAmount
+                RecipientUsername = recipients.TryGetValue(g.RecipientUserId, out var recipient)
+                    ? GiftDisplayNames.GetRecipientName(recipient)
+                    : "Unknown",
+                TotalAmount = g.TotalAmount,
+                GiftCount = g.GiftCount,
+                LastGiftAt = g.LastGiftAt
             })
-            .OrderBy(g => g.RecipientUsername, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.LastGiftAt)
+            .ThenBy(g => g.RecipientUsername, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
@@ -255,13 +261,27 @@ public class GiftRepository : IGiftRepository
         int recipientUserId,
         CancellationToken cancellationToken = default)
     {
-        return await _context.Gifts
-            .Where(g => g.GiverUserId == giverUserId
-                && g.RecipientUserId == recipientUserId
-                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))
-            .OrderByDescending(g => g.CreatedAt)
-            .ThenByDescending(g => g.Id)
+        return await OutgoingGiftHistoryQuery(giverUserId)
+            .Where(g => g.RecipientUserId == recipientUserId)
+            .Include(g => g.CrewPaymentPlatform)
+            .Include(g => g.MiddlemanUser)
+            .OrderBy(g => g.CreatedAt)
+            .ThenBy(g => g.Id)
             .ToListAsync(cancellationToken);
+    }
+
+    private IQueryable<Gift> OutgoingGiftHistoryQuery(int giverUserId)
+    {
+        var completedInitiatedIds = _context.Gifts
+            .Where(g => g.Type == GiftType.Completed && g.InitiatedGiftId != null)
+            .Select(g => g.InitiatedGiftId!.Value);
+
+        return _context.Gifts.Where(g =>
+            g.GiverUserId == giverUserId
+            && (
+                g.Type == GiftType.Direct
+                || g.Type == GiftType.Completed
+                || (g.Type == GiftType.Initiated && !completedInitiatedIds.Contains(g.Id))));
     }
 
     public async Task ReassignPlaceholderGiftRecipientsAsync(

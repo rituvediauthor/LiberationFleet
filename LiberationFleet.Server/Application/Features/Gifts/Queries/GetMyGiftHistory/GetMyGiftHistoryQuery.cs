@@ -28,7 +28,9 @@ public class GetMyGiftHistoryQueryHandler(
             {
                 RecipientUserId = summary.RecipientUserId,
                 RecipientUsername = summary.RecipientUsername,
-                TotalAmount = summary.TotalAmount
+                TotalAmount = summary.TotalAmount,
+                GiftCount = summary.GiftCount,
+                LastGiftAt = summary.LastGiftAt
             }).ToList()
         };
     }

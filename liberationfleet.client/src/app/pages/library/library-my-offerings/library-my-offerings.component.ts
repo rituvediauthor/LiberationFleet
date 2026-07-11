@@ -2,6 +2,7 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inj
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
@@ -33,6 +34,8 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
 
   private readonly pageSize = 30;
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private crewService = inject(CrewService);
@@ -44,11 +47,7 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   private loadedOfferings: LibraryOfferingListItem[] = [];
 
   constructor() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
   }
 
   ngOnInit() {
@@ -211,6 +210,8 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
           }
         }
       }
+
+      this.displayItems = [...this.displayItems];
     } catch {
       // Keep basic cards if enrichment fails.
     }

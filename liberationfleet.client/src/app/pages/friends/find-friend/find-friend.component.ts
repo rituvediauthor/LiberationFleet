@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { debounceTime, Subscription } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { FriendService } from '../../../services/friend.service';
@@ -28,6 +29,9 @@ export class FindFriendComponent implements OnInit, OnDestroy {
   primaryButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private fb = inject(FormBuilder);
   private friendService = inject(FriendService);
   private crewmateService = inject(CrewmateService);
@@ -41,11 +45,7 @@ export class FindFriendComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/friends'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/friends']);
 
     this.primaryButton = {
       label: 'Find friend',

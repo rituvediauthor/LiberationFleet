@@ -17,6 +17,8 @@ import { VoiceLiveKitService } from '../../../services/voice-livekit.service';
 import { VoicePresenceService } from '../../../services/voice-presence.service';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { AuthService } from '../../../services/auth.service';
+import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { VoiceDevicePreferences, VoiceParticipant } from '../../../models/voice.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 
@@ -54,6 +56,8 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private chatService = inject(ChatService);
   private chatCrypto = inject(ChatCryptoService);
   private crewService = inject(CrewService);
@@ -93,6 +97,7 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
         }
 
         this.roomId = nextRoomId;
+        this.notificationContent.markVisited(`/app/crew/chats/${this.roomId}`, this.roomId);
       }),
       this.voicePresence.presence$.subscribe(rooms => {
         this.participants = rooms.find(room => room.chatRoomId === this.roomId)?.participants ?? [];
@@ -203,7 +208,7 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
 
   onAdultGateDeclined() {
     this.showAdultGate = false;
-    void this.router.navigate(['/app/crew/chats']);
+    this.navigation.back(['/app/crew/chats']);
   }
 
   async openDeviceSettings() {
@@ -370,7 +375,7 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
 
   private async disconnectAndLeave() {
     await this.cleanupVoiceSession();
-    await this.router.navigate(['/app/crew/chats']);
+    this.navigation.back(['/app/crew/chats']);
   }
 
   private async cleanupVoiceSession() {

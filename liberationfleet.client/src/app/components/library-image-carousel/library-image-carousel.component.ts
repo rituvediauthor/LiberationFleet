@@ -11,8 +11,10 @@ import { CommonModule } from '@angular/common';
 export class LibraryImageCarouselComponent {
   @Input() images: string[] = [];
   @Input() title = '';
+  @Input() variant: 'hero' | 'inline' = 'hero';
   @Output() imageClick = new EventEmitter<number>();
 
+  activeIndex = 0;
   selectedIndex: number | null = null;
 
   openFull(index: number) {
@@ -21,17 +23,42 @@ export class LibraryImageCarouselComponent {
   }
 
   closeFull() {
+    if (this.selectedIndex !== null) {
+      this.activeIndex = this.selectedIndex;
+    }
     this.selectedIndex = null;
   }
 
-  showPrevious() {
+  showPrevious(event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
+    if (this.images.length === 0) {
+      return;
+    }
+    this.activeIndex = (this.activeIndex - 1 + this.images.length) % this.images.length;
+  }
+
+  showNext(event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
+    if (this.images.length === 0) {
+      return;
+    }
+    this.activeIndex = (this.activeIndex + 1) % this.images.length;
+  }
+
+  showPreviousInLightbox(event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
     if (this.selectedIndex === null || this.images.length === 0) {
       return;
     }
     this.selectedIndex = (this.selectedIndex - 1 + this.images.length) % this.images.length;
   }
 
-  showNext() {
+  showNextInLightbox(event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
     if (this.selectedIndex === null || this.images.length === 0) {
       return;
     }

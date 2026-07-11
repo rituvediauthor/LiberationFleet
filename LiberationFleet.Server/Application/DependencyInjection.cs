@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Library;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<ClaimPlaceholderIdentityProposalService>();
         services.AddScoped<CrewmatePermissionProposalService>();
         services.AddScoped<PlaceholderCrewmateService>();
+        services.AddScoped<CrewGiftRecipientService>();
         services.AddScoped<EmergencySplitService>();
         services.AddScoped<ProposalAnonymousAliasService>();
         services.AddScoped<EmptyCrewCleanupService>();
@@ -37,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<LibraryRequestCleanupHelper>();
         services.AddScoped<LibraryMemberCleanupService>();
         services.AddScoped<NotificationService>();
+        services.AddScoped<ContentMentionService>();
 
         return services;
     }

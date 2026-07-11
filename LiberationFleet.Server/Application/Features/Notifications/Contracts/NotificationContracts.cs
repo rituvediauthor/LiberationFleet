@@ -12,6 +12,7 @@ public class NotificationDto
     public string ActionUrl { get; set; } = string.Empty;
     public int? RelatedEntityId { get; set; }
     public int? SecondaryEntityId { get; set; }
+    public int? ActorUserId { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -61,6 +62,22 @@ public class CreateNotificationRequest
     public string ActionUrl { get; set; } = string.Empty;
     public int? RelatedEntityId { get; set; }
     public int? SecondaryEntityId { get; set; }
+    public int? ActorUserId { get; set; }
+}
+
+public class NotificationBadgeSummaryResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int UnreadCount { get; set; }
+    public Dictionary<string, int> AreaCounts { get; set; } = new();
+    public Dictionary<string, int> ResourceCounts { get; set; } = new();
+}
+
+public class MarkNotificationsReadByContentRequest
+{
+    public string? ActionUrlPrefix { get; set; }
+    public int? RelatedEntityId { get; set; }
 }
 
 public class MutedContentDto

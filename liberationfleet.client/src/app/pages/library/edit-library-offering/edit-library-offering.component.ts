@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { LibraryService } from '../../../services/library.service';
@@ -29,16 +30,14 @@ export class EditLibraryOfferingComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
     this.offeringId = Number(this.route.snapshot.paramMap.get('id'));
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things/mine'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things/mine']);
     this.updateActionButtons();
 
     if (!this.offeringId) {

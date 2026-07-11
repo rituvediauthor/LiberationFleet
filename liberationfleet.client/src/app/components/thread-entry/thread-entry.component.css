@@ -1,0 +1,28 @@
+.thread-entry {
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--lf-color-bg-surface);
+}
+
+.thread-entry.compact {
+  padding: 10px 12px;
+}
+
+.thread-entry-meta {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.thread-entry-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--lf-color-text-body);
+}

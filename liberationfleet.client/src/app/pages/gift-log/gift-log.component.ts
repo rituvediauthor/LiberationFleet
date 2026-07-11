@@ -12,19 +12,22 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { FallibleFooterComponent } from '../../components/fallible-footer/fallible-footer.component';
 import { GiftService } from '../../services/gift.service';
 import { CrewService } from '../../services/crew.service';
+import { CrewmateService } from '../../services/crewmate.service';
 import { GiftLogCryptoService } from '../../services/crypto/gift-log-crypto.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
+import { NavigationService } from '../../services/navigation.service';
+import { NotificationContentService } from '../../services/notification-content.service';
 
 @Component({
   selector: 'app-gift-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent],
+  imports: [CommonModule, FormsModule, FallibleFooterComponent],
   templateUrl: './gift-log.component.html',
   styleUrl: './gift-log.component.css'
 })
@@ -40,9 +43,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   errorMessage = '';
   verifyingGiftId: number | null = null;
   crewId = 0;
+  canExportCrewData = false;
   completionPlatformSelections: Record<number, number | ''> = {};
-  backButton!: ActionBarButton;
-  recordButton!: ActionBarButton;
 
   private readonly pageSize = 50;
   private intersectionObserver?: IntersectionObserver;
@@ -50,8 +52,11 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private scrollToBottomOnNextRender = false;
 
   private router = inject(Router);
+  private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private giftService = inject(GiftService);
   private crewService = inject(CrewService);
+  private crewmateService = inject(CrewmateService);
   private giftLogCrypto = inject(GiftLogCryptoService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
@@ -59,19 +64,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
+    this.notificationContent.markVisited('/app/crew/gift-log');
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadGiftLog());
-
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
-
-    this.recordButton = {
-      label: 'Record Gift',
-      type: 'primary',
-      onClick: () => this.router.navigate(['/app/crew/gift-log/record'])
-    };
 
     this.authService.currentUser$.subscribe(user => {
       this.activeUserId = user?.id ?? 0;
@@ -90,6 +84,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.crewService.getMembership().subscribe({
           next: async membership => {
             this.crewId = membership.crewId ?? 0;
+            this.canExportCrewData = !!membership.canExportCrewData;
             await this.encryptionContent.whenReady();
             this.loadGiftLog();
             this.encryptionReload?.markInitialLoadDone();
@@ -146,6 +141,21 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit'
+    });
+  }
+
+  goBack() {
+    this.navigation.back(['/app/crew']);
+  }
+
+  goToRecordGift() {
+    void this.router.navigate(['/app/crew/gift-log/record']);
+  }
+
+  exportGiftLog() {
+    this.crewmateService.exportGiftLog().subscribe({
+      next: blob => this.downloadBlob(blob, 'gift-log.json'),
+      error: () => this.toastService.error('Failed to export gift log')
     });
   }
 
@@ -295,5 +305,15 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     requestAnimationFrame(() => {
       el.scrollTop = el.scrollHeight;
     });
+  }
+
+  private downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    this.toastService.success('Export downloaded.');
   }
 }

@@ -9,6 +9,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
@@ -18,12 +19,16 @@ import {
   PendingAttachment,
   ProposalAttachment
 } from '../../../models/crew-discussion.model';
-import { ProposalComment, ProposalDetail } from '../../../models/proposal.model';
+import { ProposalComment, ProposalDetail, ResolvedAttachment } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { AdultContentService } from '../../../services/adult-content.service';
+import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
+import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -33,8 +38,11 @@ import { ContentPreferenceService } from '../../../services/content-preference.s
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
+    LibraryImageCarouselComponent,
     FallibleFooterComponent,
-    AdultContentGateComponent
+    AdultContentGateComponent,
+    MentionAutocompleteDirective,
+    MentionTextComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
@@ -50,6 +58,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
+  mentionedUserIds: number[] = [];
   commentFocused = false;
   pickingFile = false;
   replyParentId: number | null = null;
@@ -59,6 +68,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   editing = false;
   editTitle = '';
   editDescription = '';
+  editMentionedUserIds: number[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
   newEditAttachments: PendingAttachment[] = [];
   commentAttachments: PendingAttachment[] = [];
@@ -72,6 +82,8 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private discussionService = inject(CrewDiscussionService);
   private discussionCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
@@ -86,6 +98,10 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   ngOnInit() {
     const kind = this.route.snapshot.data['discussionKind'] as DiscussionKind;
     this.config = getDiscussionConfig(kind);
+    const postId = this.postId;
+    if (postId) {
+      this.notificationContent.markVisited(`/app/crew/forums/${postId}`, postId);
+    }
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
 
@@ -124,13 +140,23 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     return Number(this.route.snapshot.paramMap.get('id'));
   }
 
+  get carouselImages(): string[] {
+    return (this.post?.resolvedAttachments ?? [])
+      .filter(attachment => attachment.type === 'image' && attachment.dataUrl)
+      .map(attachment => attachment.dataUrl!);
+  }
+
+  get nonImageAttachments(): ResolvedAttachment[] {
+    return (this.post?.resolvedAttachments ?? []).filter(attachment => attachment.type !== 'image');
+  }
+
   @HostListener('document:click')
   closeMenus() {
     this.openCommentMenuId = null;
   }
 
   goBack() {
-    this.router.navigate([this.config.listRoute]);
+    this.navigation.back([this.config.listRoute]);
   }
 
   onAdultGateConfirmed() {
@@ -204,6 +230,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
       mimeType: attachment.mimeType
     }));
     this.commentAttachments = [];
+    this.mentionedUserIds = [];
     this.commentFocused = true;
   }
 
@@ -211,6 +238,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.editingCommentId = null;
     this.editingCommentParentId = null;
     this.commentText = '';
+    this.mentionedUserIds = [];
     this.commentAttachments = [];
     this.keptCommentEditAttachments = [];
     this.commentFocused = false;
@@ -245,6 +273,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.editing = true;
     this.editTitle = this.post.title ?? '';
     this.editDescription = this.post.description ?? '';
+    this.editMentionedUserIds = [];
     this.keptEditAttachments = [...(this.post.attachments ?? [])];
     this.newEditAttachments = [];
   }
@@ -253,6 +282,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     this.editing = false;
     this.editTitle = '';
     this.editDescription = '';
+    this.editMentionedUserIds = [];
     this.keptEditAttachments = [];
     this.newEditAttachments = [];
   }
@@ -286,7 +316,10 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
         this.keptEditAttachments
       );
 
-      this.discussionService.updatePost(this.config, this.post.id, encrypted).subscribe({
+      this.discussionService.updatePost(this.config, this.post.id, {
+        ...encrypted,
+        mentionedUserIds: this.editMentionedUserIds
+      }).subscribe({
         next: result => {
           this.savingEdit = false;
           if (result.success) {
@@ -332,11 +365,14 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
       );
 
       const request$ = editingCommentId
-        ? this.discussionService.updateComment(this.config, this.post.id, editingCommentId, encrypted)
+        ? this.discussionService.updateComment(this.config, this.post.id, editingCommentId, {
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        })
         : this.discussionService.postComment(this.config, this.post.id, {
           parentCommentId,
-          nonce: encrypted.nonce,
-          ciphertext: encrypted.ciphertext
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
         });
 
       request$.subscribe({
@@ -349,6 +385,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
               this.refreshPostPreservingScroll();
             }
             this.commentText = '';
+            this.mentionedUserIds = [];
             this.commentAttachments = [];
             this.keptCommentEditAttachments = [];
             this.commentFocused = false;
@@ -460,7 +497,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     if (!parentCommentId) {
       this.post = {
         ...this.post,
-        comments: [...this.post.comments, newComment]
+        comments: [newComment, ...this.post.comments]
       };
       return;
     }

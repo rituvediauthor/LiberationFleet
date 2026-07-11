@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { Subject, takeUntil } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
@@ -36,6 +37,8 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private route = inject(ActivatedRoute);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
@@ -64,11 +67,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
     this.applyKindRules(initialKind);
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
 
     this.updateCreateButton();
 

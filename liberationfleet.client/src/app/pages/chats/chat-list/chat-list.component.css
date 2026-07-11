@@ -1,5 +1,6 @@
 .chat-list-page {
-  max-width: 640px;
+  width: 100%;
+  max-width: 560px;
   margin: 0 auto;
 }
 
@@ -33,6 +34,7 @@
 }
 
 .room-open {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -48,6 +50,14 @@
 
 .room-open:hover {
   background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.entry-badge-anchor {
+  position: absolute;
+  top: 12px;
+  right: 36px;
+  width: 0;
+  height: 0;
 }
 
 .room-main {

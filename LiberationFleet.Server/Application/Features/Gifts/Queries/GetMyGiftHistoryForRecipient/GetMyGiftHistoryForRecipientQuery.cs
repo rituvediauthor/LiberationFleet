@@ -42,12 +42,7 @@ public class GetMyGiftHistoryForRecipientQueryHandler(
             RecipientUserId = recipient.Id,
             RecipientUsername = recipient.Username,
             TotalAmount = gifts.Sum(g => g.Amount),
-            Items = gifts.Select(gift => new GiftHistoryEntryDto
-            {
-                Id = gift.Id,
-                Amount = gift.Amount,
-                Timestamp = gift.CreatedAt
-            }).ToList()
+            Items = gifts.Select(GiftHistoryMapper.MapEntry).ToList()
         };
     }
 }

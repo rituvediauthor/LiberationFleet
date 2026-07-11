@@ -10,10 +10,12 @@ import {
   PendingAttachment,
   ResolvedAttachment
 } from '../../models/proposal.model';
+import { EncryptedContentType } from '../../models/crypto.model';
 import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
 import { CryptoSessionService } from './crypto-session.service';
 import { bytesToBase64 } from './crypto-encoding.util';
+import { compressMediaFile } from '../../utils/media-compression.util';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +32,7 @@ export class ProposalCryptoService {
       ...item,
       title: item.title ?? 'Editing crew settings',
       descriptionPreview: item.descriptionPreview ?? '',
-      authorUsername: 'Anonymous'
+      authorUsername: this.isAnonymousAuthor(item) ? 'Anonymous' : (item.authorUsername ?? 'Unknown')
     });
 
     if (!this.cryptoSession.isUnlocked()) {
@@ -43,7 +45,7 @@ export class ProposalCryptoService {
           ...item,
           title: '[Encrypted]',
           descriptionPreview: '[Unlock encryption to view]',
-          authorUsername: 'Anonymous'
+          authorUsername: this.isAnonymousAuthor(item) ? 'Anonymous' : (item.authorUsername || '[Encrypted]')
         };
       });
     }
@@ -53,14 +55,15 @@ export class ProposalCryptoService {
   }
 
   async decryptDetail(proposal: ProposalDetail, crewId: number): Promise<ProposalDetail> {
-    const comments = await this.decryptCommentsForDetail(proposal.comments, crewId);
+    const usesAnonymousComments = proposal.usesAnonymousComments ?? false;
+    const comments = await this.decryptCommentsForDetail(proposal.comments, crewId, usesAnonymousComments);
 
     if (proposal.hasPlaintextContent) {
       return {
         ...proposal,
         title: proposal.title ?? 'Editing crew settings',
         description: proposal.description ?? proposal.descriptionPreview ?? '',
-        authorUsername: 'Anonymous',
+        authorUsername: this.isAnonymousAuthor(proposal) ? 'Anonymous' : (proposal.authorUsername ?? 'Anonymous'),
         comments
       };
     }
@@ -101,7 +104,8 @@ export class ProposalCryptoService {
 
   private async decryptCommentsForDetail(
     comments: ProposalComment[],
-    crewId: number
+    crewId: number,
+    usesAnonymousComments = false
   ): Promise<ProposalComment[]> {
     if (!this.cryptoSession.isUnlocked()) {
       return comments.map(c => ({
@@ -112,7 +116,7 @@ export class ProposalCryptoService {
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(comments.map(comment => this.decryptComment(comment, crewKey, crewId)));
+    return Promise.all(comments.map(comment => this.decryptComment(comment, crewKey, crewId, usesAnonymousComments)));
   }
 
   async encryptProposalPayload(
@@ -146,6 +150,21 @@ export class ProposalCryptoService {
     });
   }
 
+  private isAnonymousAuthor(item: Pick<ProposalListItem, 'authorUserId'>): boolean {
+    return !item.authorUserId;
+  }
+
+  private resolveAuthorUsername(
+    item: Pick<ProposalListItem, 'authorUserId' | 'authorUsername'>,
+    payloadDisplayName?: string
+  ): string {
+    if (this.isAnonymousAuthor(item)) {
+      return 'Anonymous';
+    }
+
+    return payloadDisplayName ?? item.authorUsername ?? 'Unknown';
+  }
+
   private async decryptListItem(
     item: ProposalListItem,
     crewKey: CryptoKey,
@@ -156,7 +175,7 @@ export class ProposalCryptoService {
         ...item,
         title: item.title ?? 'Editing crew settings',
         descriptionPreview: item.descriptionPreview ?? '',
-        authorUsername: 'Anonymous'
+        authorUsername: this.isAnonymousAuthor(item) ? 'Anonymous' : (item.authorUsername ?? 'Unknown')
       };
     }
 
@@ -175,7 +194,7 @@ export class ProposalCryptoService {
         ...item,
         title: payload.title,
         descriptionPreview: payload.description.slice(0, 100),
-        authorUsername: 'Anonymous',
+        authorUsername: this.resolveAuthorUsername(item, payload.authorDisplayName),
         thumbnailUrl
       };
     } catch {
@@ -217,7 +236,8 @@ export class ProposalCryptoService {
   private async decryptComment(
     comment: ProposalComment,
     crewKey: CryptoKey,
-    crewId: number
+    crewId: number,
+    usesAnonymousComments = false
   ): Promise<ProposalComment> {
     if (!comment.hasEncryptedContent || !comment.encryptedPayload) {
       return comment;
@@ -232,12 +252,15 @@ export class ProposalCryptoService {
       const attachments = payload.attachments ?? [];
       const resolvedAttachments = await this.decryptAttachments(crewId, attachments);
       const serverUsername = comment.authorUsername;
+      let authorUsername = serverUsername || 'Anonymous';
+      if (!usesAnonymousComments && (!authorUsername || authorUsername === 'Anonymous')) {
+        authorUsername = payload.authorDisplayName ?? authorUsername;
+      }
+
       return {
         ...comment,
         body: payload.body,
-        authorUsername: serverUsername && serverUsername !== 'Anonymous'
-          ? serverUsername
-          : (payload.authorDisplayName ?? serverUsername),
+        authorUsername,
         attachments,
         resolvedAttachments
       };
@@ -259,9 +282,46 @@ export class ProposalCryptoService {
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(
-      attachments.map(attachment => this.decryptAttachment(crewKey, attachment, crewId))
-    );
+    const grouped = new Map<string, ProposalAttachment[]>();
+    for (const attachment of attachments) {
+      const contentType = attachment.type === 'image'
+        ? 'ImageAsset'
+        : attachment.type === 'video'
+          ? 'VideoAsset'
+          : 'AudioAsset';
+      const bucket = grouped.get(contentType) ?? [];
+      bucket.push(attachment);
+      grouped.set(contentType, bucket);
+    }
+
+    const dataUrlByResourceId = new Map<string, string>();
+    for (const [contentType, bucket] of grouped.entries()) {
+      const resourceIds = bucket.map(attachment => attachment.resourceId);
+      try {
+        const envelopes = await firstValueFrom(
+          this.cryptoApi.getEncryptedContents(contentType as EncryptedContentType, resourceIds, crewId)
+        );
+        for (const envelope of envelopes) {
+          try {
+            const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+              crewKey,
+              envelope.nonce,
+              envelope.ciphertext
+            );
+            dataUrlByResourceId.set(envelope.resourceId, blobPayload.dataUrl);
+          } catch {
+            // Skip unreadable attachments.
+          }
+        }
+      } catch {
+        // Skip this content type batch.
+      }
+    }
+
+    return attachments.map(attachment => ({
+      ...attachment,
+      dataUrl: dataUrlByResourceId.get(attachment.resourceId)
+    }));
   }
 
   private async decryptAttachment(
@@ -335,9 +395,14 @@ export class ProposalCryptoService {
     const results: ProposalAttachment[] = [];
 
     for (const attachment of attachments) {
+      let file = attachment.file;
+      if (file && (attachment.type === 'image' || attachment.type === 'video')) {
+        file = await compressMediaFile(file, attachment.type);
+      }
+
       let dataUrl = attachment.previewUrl ?? '';
-      if (attachment.file) {
-        dataUrl = await this.readFileAsDataUrl(attachment.file);
+      if (file) {
+        dataUrl = await this.readFileAsDataUrl(file);
       } else if (attachment.blob) {
         dataUrl = await this.readBlobAsDataUrl(attachment.blob);
       }
@@ -361,8 +426,8 @@ export class ProposalCryptoService {
       results.push({
         resourceId: attachment.resourceId,
         type: attachment.type,
-        fileName: attachment.file?.name,
-        mimeType: attachment.file?.type
+        fileName: file?.name ?? attachment.file?.name,
+        mimeType: file?.type ?? attachment.file?.type
       });
     }
 

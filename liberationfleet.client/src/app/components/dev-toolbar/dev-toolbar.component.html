@@ -1,4 +1,13 @@
-<div class="dev-toolbar" *ngIf="visible" [class.busy]="busy">
+<button
+  type="button"
+  class="dev-toolbar-tab"
+  *ngIf="eligible && collapsed"
+  (click)="toggleCollapsed()"
+  aria-label="Show dev toolbar">
+  DEV
+</button>
+
+<div class="dev-toolbar" *ngIf="eligible && !collapsed" [class.busy]="busy">
   <span class="dev-label">DEV</span>
   <button
     type="button"
@@ -8,5 +17,13 @@
     [disabled]="busy"
     (click)="action.run()">
     {{ action.label }}
+  </button>
+  <button
+    type="button"
+    class="dev-btn dev-toggle-btn"
+    (click)="toggleCollapsed()"
+    aria-label="Hide dev toolbar"
+    title="Hide dev toolbar">
+    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
   </button>
 </div>

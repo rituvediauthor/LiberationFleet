@@ -192,6 +192,7 @@ public static class LibraryMapper
                 Amount = details.Amount,
                 ItemTitle = details.ItemTitle,
                 RecipientUserId = details.RecipientUserId,
-                RecipientUsername = details.RecipientUsername
+                RecipientUsername = details.RecipientUsername,
+                CrewGiftRecipientUserId = details.CrewGiftRecipientUserId
             };
 }

@@ -4,6 +4,7 @@ import { PendingAttachment } from '../../models/proposal.model';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
+import { compressMediaFile } from '../../utils/media-compression.util';
 
 @Component({
   selector: 'app-proposal-attachment-picker',
@@ -56,26 +57,39 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
     try {
       if (files) {
-        Array.from(files).forEach(file => {
-          const type = this.resolveAttachmentType(file);
-          if (!type) {
-            this.toastService.error(`Unsupported file type: ${file.name}`);
-            return;
-          }
-
-          this.attachments.push({
-            file,
-            type,
-            resourceId: this.proposalCrypto.createResourceId(),
-            previewUrl: URL.createObjectURL(file)
-          });
-        });
+        void this.addSelectedFiles(Array.from(files));
       }
     } finally {
       input.value = '';
       this.setFileDialogOpen(false);
-      this.cdr.markForCheck();
     }
+  }
+
+  private async addSelectedFiles(files: File[]) {
+    for (const file of files) {
+      const type = this.resolveAttachmentType(file);
+      if (!type) {
+        this.toastService.error(`Unsupported file type: ${file.name}`);
+        continue;
+      }
+
+      try {
+        const compressed = type === 'audio'
+          ? file
+          : await compressMediaFile(file, type);
+        this.attachments.push({
+          file: compressed,
+          type,
+          resourceId: this.proposalCrypto.createResourceId(),
+          previewUrl: URL.createObjectURL(compressed)
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to process attachment';
+        this.toastService.error(message);
+      }
+    }
+
+    this.cdr.markForCheck();
   }
 
   onFileInputCancel() {

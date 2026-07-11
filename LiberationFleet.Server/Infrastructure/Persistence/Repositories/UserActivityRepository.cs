@@ -102,7 +102,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.ChatRoom,
                 Category = UserActivityFilterCategory.Chats,
                 Label = "Created chat room",
-                Detail = Truncate(room.Purpose, 120),
+                Detail = room.RoomType == ChatRoomType.Voice ? "Voice chat" : "Text chat",
+                PlaintextPreview = Truncate(string.IsNullOrWhiteSpace(room.Purpose) ? room.Name : room.Purpose, 120),
                 CreatedAt = room.CreatedAt,
                 CrewId = room.CrewId,
                 ResourceId = room.Id,
@@ -135,7 +136,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.ChatMessage,
                 Category = UserActivityFilterCategory.Chats,
                 Label = "Chat message",
-                Detail = Truncate(pair.room.Purpose, 120),
+                Detail = $"In {Truncate(pair.room.Purpose, 80)}",
+                PreviewContentType = EncryptedContentType.ChatRoomMessage,
                 CreatedAt = pair.message.CreatedAt,
                 CrewId = pair.room.CrewId,
                 ResourceId = pair.message.Id,
@@ -172,6 +174,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.ForumPost,
                 Category = UserActivityFilterCategory.Forums,
                 Label = "Forum post",
+                PreviewContentType = EncryptedContentType.ForumPost,
                 CreatedAt = post.CreatedAt,
                 CrewId = post.CrewId,
                 ResourceId = post.Id,
@@ -203,6 +206,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.ForumComment,
                 Category = UserActivityFilterCategory.Forums,
                 Label = pair.comment.ParentCommentId.HasValue ? "Forum reply" : "Forum comment",
+                PreviewContentType = EncryptedContentType.ForumComment,
                 CreatedAt = pair.comment.CreatedAt,
                 CrewId = pair.post.CrewId,
                 ResourceId = pair.comment.Id,
@@ -238,6 +242,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 offering.CrewId,
                 offering.Title,
                 offering.CreatedAt,
+                offering.ThumbnailResourceId,
+                offering.HasEncryptedContent,
                 UnitId = offering.Units
                     .Where(unit => !unit.IsRetired)
                     .OrderBy(unit => unit.Id)
@@ -252,7 +258,9 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
             Kind = UserActivityKind.LibraryOffering,
             Category = UserActivityFilterCategory.Library,
             Label = "Library offering",
-            Detail = Truncate(offering.Title, 120),
+            PlaintextPreview = Truncate(offering.Title, 120),
+            ThumbnailResourceId = offering.ThumbnailResourceId,
+            PreviewContentType = offering.HasEncryptedContent ? EncryptedContentType.LibraryItem : null,
             CreatedAt = offering.CreatedAt,
             CrewId = offering.CrewId,
             ResourceId = offering.Id,
@@ -288,7 +296,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.LibraryRequest,
                 Category = UserActivityFilterCategory.Library,
                 Label = "Library request",
-                Detail = Truncate(pair.request.PurposePreview, 120),
+                Detail = Truncate(pair.offering.Title, 80),
+                PlaintextPreview = Truncate(pair.request.PurposePreview, 120),
                 CreatedAt = pair.request.CreatedAt,
                 CrewId = pair.offering.CrewId,
                 ResourceId = pair.request.Id,
@@ -330,7 +339,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.LibraryRequestMessage,
                 Category = UserActivityFilterCategory.Library,
                 Label = "Library request message",
-                Detail = Truncate(pair.request.PurposePreview, 120),
+                Detail = Truncate(pair.offering.Title, 80),
+                PreviewContentType = EncryptedContentType.LibraryRequestMessage,
                 CreatedAt = pair.message.CreatedAt,
                 CrewId = pair.offering.CrewId,
                 ResourceId = pair.message.Id,
@@ -368,7 +378,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Kind = UserActivityKind.LibraryMaintenance,
                 Category = UserActivityFilterCategory.Library,
                 Label = "Library maintenance",
-                Detail = Truncate(pair.offering.Title, 120),
+                Detail = Truncate(pair.offering.Title, 80),
+                PreviewContentType = EncryptedContentType.LibraryMaintenanceRecord,
                 CreatedAt = pair.record.CreatedAt,
                 CrewId = pair.offering.CrewId,
                 ResourceId = pair.record.Id,
@@ -415,6 +426,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Category = UserActivityFilterCategory.Gifts,
                 Label = "Gift",
                 Detail = $"To {pair.recipient.Username} · ${pair.gift.Amount.ToString("0.##", CultureInfo.InvariantCulture)}",
+                PreviewContentType = EncryptedContentType.GiftLogEntry,
                 CreatedAt = pair.gift.CreatedAt,
                 CrewId = pair.gift.CrewId,
                 ResourceId = pair.gift.Id,
@@ -459,6 +471,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
             Category = UserActivityFilterCategory.Proposals,
             Label = "Proposal",
             Detail = Truncate(ResolveProposalTitle(proposal), 120),
+            PlaintextPreview = Truncate(ResolveProposalTitle(proposal), 120),
+            PreviewContentType = EncryptedContentType.Proposal,
             CreatedAt = proposal.CreatedAt,
             CrewId = proposal.CrewId,
             ResourceId = proposal.Id,
@@ -483,21 +497,25 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
         var comments = await commentsQuery
             .OrderByDescending(pair => pair.comment.CreatedAt)
             .Take(limit)
-            .Select(pair => new UserActivityRecord
-            {
-                Key = $"proposal-comment:{pair.comment.Id}",
-                Kind = UserActivityKind.ProposalComment,
-                Category = UserActivityFilterCategory.Proposals,
-                Label = pair.comment.ParentCommentId.HasValue ? "Proposal reply" : "Proposal comment",
-                CreatedAt = pair.comment.CreatedAt,
-                CrewId = pair.proposal.CrewId,
-                ResourceId = pair.comment.Id,
-                ParentResourceId = pair.proposal.Id,
-                ResourceExists = true
-            })
+            .Select(pair => new { pair.comment, pair.proposal })
             .ToListAsync(cancellationToken);
 
-        return proposalRecords.Concat(comments).ToList();
+        var commentRecords = comments.Select(pair => new UserActivityRecord
+        {
+            Key = $"proposal-comment:{pair.comment.Id}",
+            Kind = UserActivityKind.ProposalComment,
+            Category = UserActivityFilterCategory.Proposals,
+            Label = pair.comment.ParentCommentId.HasValue ? "Proposal reply" : "Proposal comment",
+            Detail = "On proposal",
+            PreviewContentType = EncryptedContentType.ProposalComment,
+            CreatedAt = pair.comment.CreatedAt,
+            CrewId = pair.proposal.CrewId,
+            ResourceId = pair.comment.Id,
+            ParentResourceId = pair.proposal.Id,
+            ResourceExists = true
+        }).ToList();
+
+        return proposalRecords.Concat(commentRecords).ToList();
     }
 
     private static string ResolveProposalTitle(Domain.Entities.Proposal proposal)

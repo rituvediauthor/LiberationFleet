@@ -9,6 +9,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import {
@@ -16,11 +17,16 @@ import {
   ProposalAttachment,
   ProposalComment,
   ProposalDetail,
-  ProposalVoteChoice
+  ProposalVoteChoice,
+  ResolvedAttachment
 } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
+import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -30,8 +36,11 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
+    LibraryImageCarouselComponent,
     KickReasonDialogComponent,
-    FallibleFooterComponent
+    FallibleFooterComponent,
+    MentionAutocompleteDirective,
+    MentionTextComponent
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
@@ -43,6 +52,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
+  mentionedUserIds: number[] = [];
   commentFocused = false;
   pickingFile = false;
   replyParentId: number | null = null;
@@ -56,6 +66,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   editing = false;
   editTitle = '';
   editDescription = '';
+  editMentionedUserIds: number[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
   newEditAttachments: PendingAttachment[] = [];
   commentAttachments: PendingAttachment[] = [];
@@ -68,6 +79,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private proposalService = inject(ProposalService);
   private proposalCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
@@ -79,6 +92,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
+    const proposalId = this.proposalId;
+    if (proposalId) {
+      this.notificationContent.markVisited(`/app/crew/proposals/${proposalId}`, proposalId);
+    }
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadProposal());
 
     this.countdownIntervalId = setInterval(() => {
@@ -219,15 +236,18 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   goBack() {
-    if (this.proposal) {
-      this.router.navigate(['/app/crew/proposals/list', this.proposal.status.toLowerCase()]);
-      return;
-    }
-    this.router.navigate(['/app/crew/proposals']);
+    const fallback = this.proposal
+      ? ['/app/crew/proposals/list', this.proposal.status.toLowerCase()]
+      : ['/app/crew/proposals'];
+    this.navigation.back(fallback);
   }
 
   toggleAttachments() {
     this.attachmentsExpanded = !this.attachmentsExpanded;
+  }
+
+  showKickVoteRestriction(): boolean {
+    return this.proposal?.status === 'Pending' && !!this.proposal?.isKickVoteTarget;
   }
 
   openVoteDialog() {
@@ -308,6 +328,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       mimeType: attachment.mimeType
     }));
     this.commentAttachments = [];
+    this.mentionedUserIds = [];
     this.commentFocused = true;
   }
 
@@ -315,6 +336,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.editingCommentId = null;
     this.editingCommentParentId = null;
     this.commentText = '';
+    this.mentionedUserIds = [];
     this.commentAttachments = [];
     this.keptCommentEditAttachments = [];
     this.commentFocused = false;
@@ -349,6 +371,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.editing = true;
     this.editTitle = this.proposal.title ?? '';
     this.editDescription = this.proposal.description ?? '';
+    this.editMentionedUserIds = [];
     this.keptEditAttachments = [...(this.proposal.attachments ?? [])];
     this.newEditAttachments = [];
   }
@@ -357,6 +380,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.editing = false;
     this.editTitle = '';
     this.editDescription = '';
+    this.editMentionedUserIds = [];
     this.keptEditAttachments = [];
     this.newEditAttachments = [];
   }
@@ -390,7 +414,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         this.keptEditAttachments
       );
 
-      this.proposalService.updateProposal(this.proposal.id, encrypted).subscribe({
+      this.proposalService.updateProposal(this.proposal.id, {
+        ...encrypted,
+        mentionedUserIds: this.editMentionedUserIds
+      }).subscribe({
         next: result => {
           this.savingEdit = false;
           if (result.success) {
@@ -438,11 +465,14 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       );
 
       const request$ = editingCommentId
-        ? this.proposalService.updateComment(this.proposal.id, editingCommentId, encrypted)
+        ? this.proposalService.updateComment(this.proposal.id, editingCommentId, {
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        })
         : this.proposalService.postComment(this.proposal.id, {
           parentCommentId,
-          nonce: encrypted.nonce,
-          ciphertext: encrypted.ciphertext
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
         });
 
       request$.subscribe({
@@ -453,6 +483,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
               this.proposal = { ...this.proposal, viewerAlias: result.alias };
             }
             this.commentText = '';
+            this.mentionedUserIds = [];
             this.commentAttachments = [];
             this.keptCommentEditAttachments = [];
             this.commentFocused = false;
@@ -528,6 +559,16 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     return this.proposalService.formatCountdown(this.proposal.approvalTimerEndsAt ?? null);
   }
 
+  get carouselImages(): string[] {
+    return (this.proposal?.resolvedAttachments ?? [])
+      .filter(attachment => attachment.type === 'image' && attachment.dataUrl)
+      .map(attachment => attachment.dataUrl!);
+  }
+
+  get nonImageAttachments(): ResolvedAttachment[] {
+    return (this.proposal?.resolvedAttachments ?? []).filter(attachment => attachment.type !== 'image');
+  }
+
   canPostComment(): boolean {
     return Boolean(this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0);
   }
@@ -575,7 +616,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     if (!parentCommentId) {
       this.proposal = {
         ...this.proposal,
-        comments: [...this.proposal.comments, newComment]
+        comments: [newComment, ...this.proposal.comments]
       };
       return;
     }

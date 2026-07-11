@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
@@ -41,6 +42,8 @@ export class ProfileComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
   private crewService = inject(CrewService);
@@ -50,11 +53,7 @@ export class ProfileComponent implements OnInit {
   ngOnInit() {
     this.loadPlatformOptions();
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile']);
 
     this.saveButton = {
       label: 'Save',
@@ -164,6 +163,8 @@ export class ProfileComponent implements OnInit {
       email: String(v.email).trim(),
       inNeedOfAid: !!v.inNeedOfAid,
       emergencyLevel: Number(v.emergencyLevel),
+      peopleRepresentedCount: Number(v.peopleRepresentedCount),
+      disabilityLevel: Number(v.disabilityLevel),
       needsSurvivalAid: !!v.needsSurvivalAid,
       paymentPlatforms: this.getPaymentPlatformsForSave()
     };
@@ -178,6 +179,8 @@ export class ProfileComponent implements OnInit {
             email: result.profile.email,
             inNeedOfAid: result.profile.inNeedOfAid,
             emergencyLevel: result.profile.emergencyLevel,
+            peopleRepresentedCount: result.profile.peopleRepresentedCount,
+            disabilityLevel: result.profile.disabilityLevel,
             needsSurvivalAid: result.profile.needsSurvivalAid
           });
           this.captureInitialState();
@@ -260,6 +263,8 @@ export class ProfileComponent implements OnInit {
       email: [profile.email, [Validators.required, Validators.email]],
       inNeedOfAid: [profile.inNeedOfAid],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
+      peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(0), Validators.max(99)]],
+      disabilityLevel: [profile.disabilityLevel ?? 0, [Validators.min(0), Validators.max(3)]],
       needsSurvivalAid: [profile.needsSurvivalAid]
     });
 

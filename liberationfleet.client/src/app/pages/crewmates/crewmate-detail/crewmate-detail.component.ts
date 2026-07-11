@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
@@ -29,16 +30,14 @@ export class CrewmateDetailComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
   private toastService = inject(ToastService);
   private userId = 0;
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/crewmates'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/crewmates']);
 
     this.userId = Number(this.route.snapshot.paramMap.get('id'));
     if (!this.userId) {
@@ -256,20 +255,6 @@ export class CrewmateDetailComponent implements OnInit {
     });
   }
 
-  exportGiftLog() {
-    this.crewmateService.exportGiftLog().subscribe({
-      next: blob => this.downloadBlob(blob, 'gift-log.json'),
-      error: () => this.toastService.error('Failed to export gift log')
-    });
-  }
-
-  exportCrewmateStates() {
-    this.crewmateService.exportCrewmateStates().subscribe({
-      next: blob => this.downloadBlob(blob, 'crewmate-states.json'),
-      error: () => this.toastService.error('Failed to export crewmate states')
-    });
-  }
-
   onConfirmBlock() {
     this.showBlockDialog = false;
     this.runAction(() => this.crewmateService.blockCrewmate(this.userId));
@@ -277,16 +262,6 @@ export class CrewmateDetailComponent implements OnInit {
 
   onCancelBlock() {
     this.showBlockDialog = false;
-  }
-
-  private downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    this.toastService.success('Export downloaded.');
   }
 
   private loadProfile() {
@@ -377,7 +352,7 @@ export class CrewmateDetailComponent implements OnInit {
     switch (state) {
       case 'requestSent':
         this.primaryButton = {
-          label: 'Cancel request',
+          label: 'Cancel friend request',
           type: 'primary',
           disabled,
           onClick: () => this.runAction(() => this.crewmateService.cancelFriendshipRequest(this.userId))

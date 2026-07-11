@@ -15,6 +15,8 @@ import { CryptoSessionService } from './crypto-session.service';
   providedIn: 'root'
 })
 export class GiftLogCryptoService {
+  static readonly crewGiftRecipientName = 'the crew';
+
   constructor(
     private cryptoService: CryptoService,
     private cryptoApi: CryptoApiService,
@@ -90,6 +92,7 @@ export class GiftLogCryptoService {
       itemTitle: string;
       recipientUserId: number;
       recipientUsername: string;
+      crewGiftRecipientUserId: number;
     },
     crewId: number
   ): Promise<void> {
@@ -99,13 +102,13 @@ export class GiftLogCryptoService {
       type: 'direct',
       giverId: gift.contributorUserId,
       giverName: gift.contributorUsername,
-      recipientId: gift.contributorUserId,
-      recipientName: gift.contributorUsername,
+      recipientId: gift.crewGiftRecipientUserId,
+      recipientName: GiftLogCryptoService.crewGiftRecipientName,
       amount: gift.amount,
       platform: 'In-kind (Library)',
       timestamp: new Date(),
       message,
-      relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId, gift.crewGiftRecipientUserId],
       hasEncryptedContent: false
     }, crewId);
   }
@@ -119,6 +122,7 @@ export class GiftLogCryptoService {
       itemTitle: string;
       recipientUserId: number;
       recipientUsername: string;
+      crewGiftRecipientUserId: number;
     },
     crewId: number
   ): Promise<void> {
@@ -128,13 +132,13 @@ export class GiftLogCryptoService {
       type: 'direct',
       giverId: gift.contributorUserId,
       giverName: gift.contributorUsername,
-      recipientId: gift.contributorUserId,
-      recipientName: gift.contributorUsername,
+      recipientId: gift.crewGiftRecipientUserId,
+      recipientName: GiftLogCryptoService.crewGiftRecipientName,
       amount: gift.amount,
       platform: 'In-kind (Library)',
       timestamp: new Date(),
       message,
-      relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId, gift.crewGiftRecipientUserId],
       hasEncryptedContent: false
     }, crewId);
   }

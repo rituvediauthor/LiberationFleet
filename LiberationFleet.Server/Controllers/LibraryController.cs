@@ -245,7 +245,8 @@ public class LibraryController(IMediator mediator) : ControllerBase
             id,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

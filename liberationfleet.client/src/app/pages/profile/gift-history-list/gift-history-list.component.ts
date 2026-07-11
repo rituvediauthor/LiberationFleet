@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { GiftService } from '../../../services/gift.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -20,15 +21,14 @@ export class GiftHistoryListComponent implements OnInit {
   backButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private giftService = inject(GiftService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile']);
 
     this.loadHistory();
   }

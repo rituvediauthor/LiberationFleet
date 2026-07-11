@@ -1,8 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
+import { ToastService } from '../../components/toast/toast.component';
 import { NotificationService } from '../../services/notification.service';
+import { NotificationTargetService } from '../../services/notification-target.service';
 import {
   NOTIFICATION_FILTER_OPTIONS,
   NotificationFilterCategory,
@@ -16,7 +19,7 @@ import {
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css'
 })
-export class NotificationsComponent implements OnInit {
+export class NotificationsComponent implements OnInit, OnDestroy {
   items: NotificationItem[] = [];
   loading = true;
   errorMessage = '';
@@ -24,10 +27,18 @@ export class NotificationsComponent implements OnInit {
   readonly filterOptions = NOTIFICATION_FILTER_OPTIONS;
 
   private notificationService = inject(NotificationService);
+  private notificationTargetService = inject(NotificationTargetService);
+  private toastService = inject(ToastService);
   private router = inject(Router);
 
   ngOnInit() {
     this.loadNotifications();
+  }
+
+  ngOnDestroy() {
+    if (this.items.some(item => !item.isRead)) {
+      this.notificationService.markAllRead().subscribe();
+    }
   }
 
   onFilterChange(value: string) {
@@ -35,14 +46,24 @@ export class NotificationsComponent implements OnInit {
     this.loadNotifications();
   }
 
-  openNotification(item: NotificationItem) {
+  async openNotification(item: NotificationItem) {
+    const available = item.isTargetAvailable ?? await firstValueFrom(
+      this.notificationTargetService.isTargetAvailable(item.actionUrl)
+    );
+    item.isTargetAvailable = available;
+
+    if (!available) {
+      this.toastService.show('Content not available', 'info');
+      return;
+    }
+
     if (!item.isRead) {
       this.notificationService.markRead(item.id).subscribe();
       item.isRead = true;
     }
 
     const url = this.buildNavigationUrl(item);
-    this.router.navigateByUrl(url);
+    void this.router.navigateByUrl(url);
   }
 
   markAllRead() {
@@ -54,7 +75,7 @@ export class NotificationsComponent implements OnInit {
   }
 
   goToPreferences() {
-    this.router.navigate(['/app/profile/preferences/notifications']);
+    void this.router.navigate(['/app/profile/preferences/notifications']);
   }
 
   formatWhen(value: string): string {
@@ -71,12 +92,27 @@ export class NotificationsComponent implements OnInit {
           this.errorMessage = response.message || 'Failed to load notifications';
         }
         this.loading = false;
+        this.validateTargets();
       },
       error: () => {
         this.loading = false;
         this.errorMessage = 'Failed to load notifications';
       }
     });
+  }
+
+  private validateTargets() {
+    for (const item of this.items) {
+      item.isTargetAvailable = null;
+      this.notificationTargetService.isTargetAvailable(item.actionUrl).subscribe({
+        next: available => {
+          item.isTargetAvailable = available;
+        },
+        error: () => {
+          item.isTargetAvailable = false;
+        }
+      });
+    }
   }
 
   private buildNavigationUrl(item: NotificationItem): string {

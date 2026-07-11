@@ -1,0 +1,19 @@
+<div class="thread-composer">
+  <textarea
+    class="thread-composer-input"
+    [ngModel]="text"
+    (ngModelChange)="onTextChange($event)"
+    appMentionAutocomplete
+    [mentionedUserIds]="mentionedUserIds"
+    (mentionedUserIdsChange)="onMentionedUserIdsChange($event)"
+    [placeholder]="placeholder"
+    [rows]="rows"
+    [disabled]="disabled"></textarea>
+  <button
+    type="button"
+    class="thread-composer-submit"
+    [disabled]="disabled || !text.trim()"
+    (click)="onSubmit()">
+    {{ submitLabel }}
+  </button>
+</div>

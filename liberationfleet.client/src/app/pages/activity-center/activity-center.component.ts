@@ -1,8 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { ActivityService } from '../../services/activity.service';
+import { ActivityCryptoService } from '../../services/crypto/activity-crypto.service';
+import { EncryptionContentService } from '../../services/encryption-content.service';
 import { ToastService } from '../../components/toast/toast.component';
 import {
   ACTIVITY_FILTER_OPTIONS,
@@ -10,6 +13,7 @@ import {
   UserActivityItem
 } from '../../models/activity.model';
 import { getActivityRoute } from '../../utils/activity-navigation.util';
+import { EncryptionReloadHandle } from '../../services/encryption-content.service';
 
 @Component({
   selector: 'app-activity-center',
@@ -18,7 +22,7 @@ import { getActivityRoute } from '../../utils/activity-navigation.util';
   templateUrl: './activity-center.component.html',
   styleUrl: './activity-center.component.css'
 })
-export class ActivityCenterComponent implements OnInit {
+export class ActivityCenterComponent implements OnInit, OnDestroy {
   readonly filterOptions = ACTIVITY_FILTER_OPTIONS;
   selectedCategory: UserActivityFilterCategory = 'All';
   items: UserActivityItem[] = [];
@@ -29,17 +33,27 @@ export class ActivityCenterComponent implements OnInit {
   backButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private activityService = inject(ActivityService);
+  private activityCrypto = inject(ActivityCryptoService);
+  private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
+  private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile']);
+
+    this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => {
+      void this.enrichVisibleItems();
+    });
 
     this.loadActivity();
+  }
+
+  ngOnDestroy() {
+    this.encryptionReload?.subscription.unsubscribe();
   }
 
   onCategoryChange(value: string) {
@@ -78,7 +92,7 @@ export class ActivityCenterComponent implements OnInit {
 
         const existingKeys = new Set(this.items.map(item => item.key));
         const nextItems = (response.items ?? []).filter(item => !existingKeys.has(item.key));
-        this.items = [...this.items, ...nextItems];
+        void this.appendAndEnrichItems(nextItems);
         this.hasMore = response.hasMore;
       },
       error: () => {
@@ -102,6 +116,36 @@ export class ActivityCenterComponent implements OnInit {
     return this.filterOptions.find(option => option.value === category)?.label ?? category;
   }
 
+  displayPreview(item: UserActivityItem): string | null {
+    return item.previewText ?? item.plaintextPreview ?? null;
+  }
+
+  showDetail(item: UserActivityItem): boolean {
+    if (!item.detail?.trim()) {
+      return false;
+    }
+
+    const preview = this.displayPreview(item);
+    return !preview || item.detail.trim() !== preview.trim();
+  }
+
+  private async appendAndEnrichItems(nextItems: UserActivityItem[]) {
+    if (!nextItems.length) {
+      return;
+    }
+
+    const enriched = await this.activityCrypto.enrichItems(nextItems);
+    this.items = [...this.items, ...enriched];
+  }
+
+  private async enrichVisibleItems() {
+    if (!this.items.length) {
+      return;
+    }
+
+    this.items = await this.activityCrypto.enrichItems(this.items);
+  }
+
   private loadActivity() {
     this.loading = true;
     this.errorMessage = '';
@@ -110,14 +154,18 @@ export class ActivityCenterComponent implements OnInit {
 
     this.activityService.getActivity(this.selectedCategory).subscribe({
       next: response => {
-        this.loading = false;
         if (!response.success) {
+          this.loading = false;
           this.errorMessage = response.message || 'Failed to load activity';
           return;
         }
 
-        this.items = response.items ?? [];
-        this.hasMore = response.hasMore;
+        void this.activityCrypto.enrichItems(response.items ?? []).then(items => {
+          this.loading = false;
+          this.items = items;
+          this.hasMore = response.hasMore;
+          this.encryptionReload?.markInitialLoadDone();
+        });
       },
       error: () => {
         this.loading = false;

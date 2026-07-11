@@ -3,6 +3,14 @@
     <h1 class="page-title">Crewmates</h1>
     <p class="page-subtitle">Everyone in your crew</p>
 
+    <button
+      type="button"
+      class="export-btn"
+      *ngIf="canExportCrewData"
+      (click)="exportCrewmateStates()">
+      Download crewmate states
+    </button>
+
     <p *ngIf="loading" class="state-text">Loading crewmates...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && crewmates.length === 0" class="state-text">No crewmates found.</p>

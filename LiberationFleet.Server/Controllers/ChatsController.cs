@@ -109,7 +109,8 @@ public class ChatsController : ControllerBase
             roomId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -122,7 +123,8 @@ public class ChatsController : ControllerBase
             messageId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

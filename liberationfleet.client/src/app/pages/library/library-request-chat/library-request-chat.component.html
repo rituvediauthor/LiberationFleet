@@ -1,32 +1,58 @@
-<app-page-layout [backButton]="backButton" [fillHeight]="true">
-  <div class="request-chat-page">
-    <h1 class="page-title">Request Chat</h1>
+<div class="chat-text-page">
+  <div class="message-scroll" #messageScroll>
+    <div class="scroll-page-body chat-channel-body">
+      <h1 class="room-title">{{ pageTitle }}</h1>
 
-    <p class="state-text" *ngIf="loading">Loading messages...</p>
-    <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
-
-    <div class="message-list" #messageScroll *ngIf="!loading && !loadError">
+      <p class="state-text" *ngIf="loading">Loading messages...</p>
+      <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
       <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>
-      <article class="message-bubble" *ngFor="let message of messages; let i = index" #messageItem>
-        <p class="message-meta">
-          <strong>{{ message.authorUsername }}</strong>
-          <span>·</span>
-          <span>{{ message.createdAt | date:'short' }}</span>
-        </p>
-        <p class="message-body">{{ message.body }}</p>
-      </article>
-      <p class="state-text" *ngIf="messages.length === 0">No messages yet.</p>
-    </div>
 
-    <div class="composer">
-      <textarea
-        class="message-input"
-        [(ngModel)]="messageText"
-        placeholder="Message..."
-        rows="2"></textarea>
-      <button type="button" class="send-btn" [disabled]="sending || !messageText.trim()" (click)="sendMessage()">
+      <div class="message-list" *ngIf="!loading && !loadError">
+        <article
+          #messageItem
+          class="message-bubble"
+          *ngFor="let message of messages"
+          [class.own]="isOwnMessage(message)">
+          <p class="message-meta">
+            <strong>{{ message.authorUsername }}</strong>
+            <span>·</span>
+            <span>{{ message.createdAt | date:'short' }}</span>
+          </p>
+          <p class="message-body" *ngIf="message.body"><app-mention-text [text]="message.body" /></p>
+        </article>
+      </div>
+
+      <app-fallible-footer></app-fallible-footer>
+    </div>
+  </div>
+
+  <div class="chat-action-bar">
+    <div class="chat-action-bar-inner">
+      <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+        <i class="fa-solid fa-angle-left"></i>
+      </button>
+
+      <div class="composer" [class.expanded]="composerExpanded">
+        <textarea
+          class="message-input"
+          [class.expanded]="composerExpanded"
+          [(ngModel)]="messageText"
+          appMentionAutocomplete
+          [(mentionedUserIds)]="mentionedUserIds"
+          (focus)="onComposerFocus()"
+          (blur)="onComposerBlur()"
+          placeholder="Message..."
+          rows="1"></textarea>
+      </div>
+
+      <button
+        type="button"
+        class="send-btn"
+        *ngIf="composerExpanded"
+        [disabled]="sending || !canSend()"
+        (click)="sendMessage()">
         Send
       </button>
     </div>
   </div>
-</app-page-layout>
+</div>

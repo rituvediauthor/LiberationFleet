@@ -66,6 +66,8 @@ export interface CrewmateProfile {
   priorityScore: number;
   inNeedOfAid: boolean;
   emergencyLevel: number;
+  peopleRepresentedCount: number;
+  disabilityLevel: number;
   isSurvivalThresholdRecipient: boolean;
   friendshipState: CrewmateFriendshipState;
   isSelf: boolean;

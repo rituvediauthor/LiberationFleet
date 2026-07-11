@@ -79,7 +79,8 @@ public class NotificationService(
             Body = body,
             ActionUrl = actionUrl,
             RelatedEntityId = relatedEntityId,
-            SecondaryEntityId = secondaryEntityId
+            SecondaryEntityId = secondaryEntityId,
+            ActorUserId = excludeUserId
         });
 
         await NotifyUsersAsync(requests, cancellationToken);
@@ -117,7 +118,8 @@ public class NotificationService(
                 Body = body,
                 ActionUrl = actionUrl,
                 RelatedEntityId = relatedEntityId,
-                SecondaryEntityId = secondaryEntityId
+                SecondaryEntityId = secondaryEntityId,
+                ActorUserId = excludeUserId
             });
         }
 
@@ -163,6 +165,7 @@ public class NotificationService(
         ActionUrl = request.ActionUrl.Trim(),
         RelatedEntityId = request.RelatedEntityId,
         SecondaryEntityId = request.SecondaryEntityId,
+        ActorUserId = request.ActorUserId,
         IsRead = false,
         CreatedAt = DateTime.UtcNow
     };

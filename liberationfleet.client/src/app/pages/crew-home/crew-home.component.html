@@ -1,81 +1,209 @@
 <app-nav-layout activeTab="crew">
+
   <div class="crew-home">
+
     <ng-container *ngIf="membership?.hasCrew; else noCrew">
+
       <div class="crew-dashboard">
+
         <div class="info-widget" *ngIf="seasonStarted">
+
           <span class="info-label">Next aid</span>
+
           <p class="info-text">{{ nextAidHeadline }}</p>
+
           <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
+
         </div>
 
+
+
         <nav class="crew-menu" aria-label="Crew actions">
+
           <button type="button" class="menu-link crew-name-link" (click)="goToEditCrew()">
-            <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+
+            </span>
+
             <span class="menu-label">{{ membership?.crewName }}</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
   
+
           <button type="button" class="menu-link" (click)="goToRules()">
-            <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
+
+              <span class="menu-icon-wrap">
+              <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
+              <app-content-badge [count]="areaCounts.rules"></app-content-badge>
+            </span>
+
             <span class="menu-label">Rules</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" (click)="goToGiftLog()">
-            <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.giftLog"></app-content-badge>
+
+            </span>
+
             <span class="menu-label">Gift Log</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" (click)="goToEmergencyRequests()">
-            <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
+
+            </span>
+
             <span class="menu-label">Emergency Requests</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibraryOfThings()">
-            <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.library"></app-content-badge>
+
+            </span>
+
             <span class="menu-label">Library of Things</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" [routerLink]="['/app/crew/chats']">
-            <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.chats"></app-content-badge>
+
+            </span>
+
             <span class="menu-label">Chats</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" (click)="goToForums()">
-            <i class="fa-solid fa-rectangle-list menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-rectangle-list menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
+
+            </span>
+
             <span class="menu-label">Forums</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" (click)="goToProposals()">
-            <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.proposals"></app-content-badge>
+
+            </span>
+
             <span class="menu-label">Proposals</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
+
 
           <button type="button" class="menu-link" (click)="goToCrewmates()">
-            <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.crewmates"></app-content-badge>
+
+            </span>
+
             <span class="menu-label">Crewmates</span>
+
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
           </button>
+
         </nav>
+
       </div>
+
     </ng-container>
 
+
+
     <ng-template #noCrew>
+
       <div class="hero">
+
         <h1>Welcome to LiberationFleet</h1>
+
         <p class="subtitle">You're not in a crew yet. Create one or join an existing crew to get started.</p>
+
       </div>
+
       <div class="actions">
+
         <button type="button" class="action-btn primary" (click)="goToCreateCrew()">Create Crew</button>
+
         <button type="button" class="action-btn secondary" (click)="goToJoinCrew()">Join Crew</button>
+
         <button type="button" class="action-btn secondary" (click)="goToJoinRequests()">My Join Requests</button>
+
       </div>
+
     </ng-template>
+
   </div>
+
 </app-nav-layout>
+

@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { SettingsPasswordDialogComponent } from '../../components/settings-password-dialog/settings-password-dialog.component';
 import { SecurityService } from '../../services/security.service';
@@ -40,6 +41,9 @@ export class SecuritySettingsComponent implements OnInit {
   saveButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private securityService = inject(SecurityService);
   private deviceIdentity = inject(DeviceIdentityService);
   private savedRecoveryPhrase = inject(SavedRecoveryPhraseService);
@@ -49,11 +53,7 @@ export class SecuritySettingsComponent implements OnInit {
   private pendingSettingsPassword: string | undefined;
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile/preferences'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile/preferences']);
 
     this.rememberLogin = this.authService.isRememberLoginEnabled();
     this.saveDecryptionKey = this.savedRecoveryPhrase.isSaveEnabled();

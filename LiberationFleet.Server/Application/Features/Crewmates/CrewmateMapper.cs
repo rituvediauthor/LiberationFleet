@@ -132,6 +132,8 @@ public static class CrewmateMapper
             PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
             InNeedOfAid = crewmate.InNeedOfAid,
             EmergencyLevel = crewmate.EmergencyLevel,
+            PeopleRepresentedCount = crewmate.PeopleRepresentedCount,
+            DisabilityLevel = crewmate.DisabilityLevel,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             FriendshipState = friendshipState,
             IsSelf = isSelf,

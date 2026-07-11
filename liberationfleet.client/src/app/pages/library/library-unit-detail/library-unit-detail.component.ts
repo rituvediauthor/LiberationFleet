@@ -15,6 +15,7 @@ import { LibraryUnitDetail } from '../../../models/library.model';
 import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../../../services/profile.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { NavigationService } from '../../../services/navigation.service';
 
 type ConfirmAction = 'confirmBroken' | 'reportFixed' | 'reportLost' | null;
 
@@ -49,6 +50,7 @@ export class LibraryUnitDetailComponent implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private giftLogCrypto = inject(GiftLogCryptoService);
@@ -83,11 +85,7 @@ export class LibraryUnitDetailComponent implements OnInit {
     this.form.valueChanges.subscribe(() => this.updateActionButtons());
     this.form.statusChanges.subscribe(() => this.updateActionButtons());
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate([`/app/crew/library-of-things/${this.backSection}`])
-    };
+    this.backButton = this.navigation.createBackButton([`/app/crew/library-of-things/${this.backSection}`]);
 
     this.unitId = Number(this.route.snapshot.paramMap.get('id'));
     if (!this.unitId) {
@@ -247,7 +245,12 @@ export class LibraryUnitDetailComponent implements OnInit {
               this.updateActionButtons();
               return;
             }
-            void this.encryptMaintenanceGift(response.giftId, cost, notes);
+            void this.encryptMaintenanceGift(
+              response.giftId,
+              response.crewGiftRecipientUserId,
+              cost,
+              notes
+            );
             this.toastService.success('Maintenance recorded');
             this.maintenanceForm.reset();
             this.updateActionButtons();
@@ -335,8 +338,13 @@ export class LibraryUnitDetailComponent implements OnInit {
     });
   }
 
-  private async encryptMaintenanceGift(giftId: number | undefined, cost: number, notes: string) {
-    if (!giftId || !this.currentUserId) {
+  private async encryptMaintenanceGift(
+    giftId: number | undefined,
+    crewGiftRecipientUserId: number | undefined,
+    cost: number,
+    notes: string
+  ) {
+    if (!giftId || !this.currentUserId || !crewGiftRecipientUserId) {
       return;
     }
 
@@ -347,13 +355,13 @@ export class LibraryUnitDetailComponent implements OnInit {
         type: 'direct',
         giverId: this.currentUserId,
         giverName: this.authorDisplayName,
-        recipientId: this.currentUserId,
-        recipientName: this.authorDisplayName,
+        recipientId: crewGiftRecipientUserId,
+        recipientName: GiftLogCryptoService.crewGiftRecipientName,
         amount: cost,
         platform: 'In-kind (Library)',
         timestamp: new Date(),
         message,
-        relatedUserIds: [this.currentUserId],
+        relatedUserIds: [this.currentUserId, crewGiftRecipientUserId],
         hasEncryptedContent: false
       }, this.crewId);
     } catch {

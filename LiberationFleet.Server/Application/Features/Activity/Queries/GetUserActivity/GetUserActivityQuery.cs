@@ -67,7 +67,10 @@ public class GetUserActivityQueryHandler(
                 RelatedUserId = record.RelatedUserId,
                 ChatRoomType = record.ChatRoomType,
                 LibraryUnitId = record.LibraryUnitId,
-                IsAccessible = record.ResourceExists && accessibleCrewIds.Contains(record.CrewId)
+                IsAccessible = record.ResourceExists && accessibleCrewIds.Contains(record.CrewId),
+                PreviewContentType = record.PreviewContentType?.ToString(),
+                ThumbnailResourceId = record.ThumbnailResourceId,
+                PlaintextPreview = string.IsNullOrWhiteSpace(record.PlaintextPreview) ? null : record.PlaintextPreview
             }).ToList()
         };
     }

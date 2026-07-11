@@ -1,19 +1,26 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumPost;
 
-public record UpdateForumPostCommand(int PostId, string Nonce, string Ciphertext, int KeyVersion) : IRequest<ForumOperationResponse>;
+public record UpdateForumPostCommand(
+    int PostId,
+    string Nonce,
+    string Ciphertext,
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class UpdateForumPostCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateForumPostCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(UpdateForumPostCommand request, CancellationToken cancellationToken)
@@ -56,6 +63,17 @@ public class UpdateForumPostCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = post.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ForumPost,
+            ResourceId = post.Id,
+            ActionUrl = $"/app/crew/forums/{post.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            IsUpdate = true
+        }, cancellationToken);
 
         return new ForumOperationResponse { Success = true, Message = "Forum post updated." };
     }

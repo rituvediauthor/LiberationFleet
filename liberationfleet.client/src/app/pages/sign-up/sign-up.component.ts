@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { AuthService } from '../../services/auth.service';
+import { NavigationService } from '../../services/navigation.service';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
@@ -54,6 +55,7 @@ export class SignUpComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private userService = inject(UserService);
@@ -215,7 +217,7 @@ export class SignUpComponent {
   }
 
   private navigateBack() {
-    this.router.navigate(['/sign-in']);
+    this.navigation.back(['/sign-in']);
   }
 
   async onRecoveryKeyConfirmed() {

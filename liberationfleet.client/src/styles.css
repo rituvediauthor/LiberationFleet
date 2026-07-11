@@ -74,3 +74,72 @@ app-root {
 .dropdown-menu button:hover {
   background: var(--lf-color-bg-hover);
 }
+
+.mention-composer-host {
+  position: relative;
+}
+
+.mention-composer-shell {
+  position: relative;
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.mention-composer-shell > textarea,
+.mention-composer-shell > .mention-composer-backdrop {
+  grid-area: 1 / 1;
+  width: 100%;
+}
+
+.mention-composer-backdrop {
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--lf-color-text-primary);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+textarea.mention-composer-input {
+  color: transparent;
+  caret-color: var(--lf-color-text-primary);
+  background: transparent;
+}
+
+.mention-highlight {
+  font-weight: 700;
+}
+
+.mention-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.mention-dropdown {
+  position: fixed;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--lf-color-bg-elevated, #1f2937);
+  border: 1px solid var(--lf-color-border, #374151);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 10000;
+  overflow: visible;
+}
+
+.mention-dropdown-item {
+  padding: 0.625rem 0.75rem;
+  cursor: pointer;
+  color: var(--lf-color-text-primary, #f9fafb);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.mention-dropdown-item.active,
+.mention-dropdown-item:hover {
+  background: var(--lf-color-bg-hover, rgba(59, 130, 246, 0.2));
+}

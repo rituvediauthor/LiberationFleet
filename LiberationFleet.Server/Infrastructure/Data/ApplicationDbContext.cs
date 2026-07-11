@@ -53,6 +53,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ContentMention> ContentMentions => Set<ContentMention>();
     public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
     public DbSet<UserMutedContent> UserMutedContents => Set<UserMutedContent>();
     public DbSet<UserHiddenContent> UserHiddenContents => Set<UserHiddenContent>();
@@ -82,7 +83,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.InNeedOfAid).HasDefaultValue(true);
             entity.Property(e => e.IsUnclaimedPlaceholder).HasDefaultValue(false);
+            entity.Property(e => e.IsCrewGiftRecipient).HasDefaultValue(false);
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
+            entity.Property(e => e.PeopleRepresentedCount).HasDefaultValue(1);
+            entity.Property(e => e.DisabilityLevel).HasDefaultValue(0);
             entity.Property(e => e.AdultContentPreference).HasDefaultValue(AdultContentPreference.Block);
             entity.Property(e => e.TwoFactorEnabled).HasDefaultValue(false);
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
@@ -746,6 +750,25 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ContentMention>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ContentType, e.ResourceId, e.MentionedUserId }).IsUnique();
+            entity.HasIndex(e => new { e.MentionedUserId, e.CreatedAt });
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.MentionedUser)
+                .WithMany()
+                .HasForeignKey(e => e.MentionedUserId)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

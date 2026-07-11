@@ -1,11 +1,13 @@
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkAllNotificationsRead;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkNotificationRead;
+using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkNotificationsReadByContent;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.SetHiddenContent;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.SetMutedContent;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.UpdateNotificationPreferences;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetHiddenContent;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetMutedContent;
+using LiberationFleet.Server.Application.Features.Notifications.Queries.GetNotificationBadges;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetNotificationPreferences;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetNotifications;
 using MediatR;
@@ -26,6 +28,20 @@ public class NotificationsController(IMediator mediator) : ControllerBase
         [FromQuery] int? beforeId = null)
     {
         var result = await mediator.Send(new GetNotificationsQuery(category, limit, beforeId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("badges")]
+    public async Task<IActionResult> GetBadges()
+    {
+        var result = await mediator.Send(new GetNotificationBadgesQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("read-by-content")]
+    public async Task<IActionResult> MarkReadByContent([FromBody] MarkNotificationsReadByContentRequest body)
+    {
+        var result = await mediator.Send(new MarkNotificationsReadByContentCommand(body.ActionUrlPrefix, body.RelatedEntityId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

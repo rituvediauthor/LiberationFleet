@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { NavigationService } from '../../services/navigation.service';
 
 @Component({
   selector: 'app-placeholder-page',
@@ -18,6 +19,7 @@ export class PlaceholderPageComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
 
   ngOnInit() {
     const data = this.route.snapshot.data;
@@ -29,10 +31,6 @@ export class PlaceholderPageComponent implements OnInit {
       this.title = queryTitle;
     }
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate([this.backTo])
-    };
+    this.backButton = this.navigation.createBackButton([this.backTo]);
   }
 }

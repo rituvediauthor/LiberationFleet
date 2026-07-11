@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -11,11 +12,13 @@ public sealed record CreatorContributionGiftDetails(
     decimal Amount,
     string ItemTitle,
     int RecipientUserId,
-    string RecipientUsername);
+    string RecipientUsername,
+    int CrewGiftRecipientUserId);
 
 public class LibraryContributionGiftService(
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
-    IGiftRepository giftRepository)
+    IGiftRepository giftRepository,
+    CrewGiftRecipientService crewGiftRecipientService)
 {
     public const string InKindPlatformName = "In-kind (Library)";
 
@@ -86,7 +89,14 @@ public class LibraryContributionGiftService(
             return null;
         }
 
-        var gift = await CreateContributionGiftAsync(crewId, completerUserId, amount, cancellationToken);
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
+        var gift = await CreateContributionGiftAsync(
+            crewId,
+            completerUserId,
+            crewRecipient.Id,
+            amount,
+            cancellationToken);
+
         return new CreatorContributionGiftDetails(
             gift.Id,
             completerUserId,
@@ -94,7 +104,8 @@ public class LibraryContributionGiftService(
             amount,
             offering.Title,
             recipientUserId,
-            recipientUsername);
+            recipientUsername,
+            crewRecipient.Id);
     }
 
     public async Task<CreatorContributionGiftDetails?> TryAwardRecipientReceptionForStockUseAsync(
@@ -119,6 +130,7 @@ public class LibraryContributionGiftService(
             amount,
             cancellationToken);
 
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         return new CreatorContributionGiftDetails(
             gift.Id,
             offering.CreatorUserId,
@@ -126,7 +138,8 @@ public class LibraryContributionGiftService(
             amount,
             offering.Title,
             recipientUserId,
-            recipientUsername);
+            recipientUsername,
+            crewRecipient.Id);
     }
 
     private async Task<CreatorContributionGiftDetails?> AwardCreatorContributionAsync(
@@ -138,9 +151,11 @@ public class LibraryContributionGiftService(
         CancellationToken cancellationToken)
     {
         var amount = LibraryOfferingRules.CalculateCreatorContributionAmount(offering, quantity);
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         var gift = await CreateContributionGiftAsync(
             crewId,
             offering.CreatorUserId,
+            crewRecipient.Id,
             amount,
             cancellationToken);
 
@@ -151,12 +166,29 @@ public class LibraryContributionGiftService(
             amount,
             offering.Title,
             recipientUserId,
-            recipientUsername);
+            recipientUsername,
+            crewRecipient.Id);
     }
 
     public async Task<Gift> CreateContributionGiftAsync(
         int crewId,
         int contributorUserId,
+        decimal amount,
+        CancellationToken cancellationToken = default)
+    {
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
+        return await CreateContributionGiftAsync(
+            crewId,
+            contributorUserId,
+            crewRecipient.Id,
+            amount,
+            cancellationToken);
+    }
+
+    public async Task<Gift> CreateContributionGiftAsync(
+        int crewId,
+        int contributorUserId,
+        int crewRecipientUserId,
         decimal amount,
         CancellationToken cancellationToken = default)
     {
@@ -166,7 +198,7 @@ public class LibraryContributionGiftService(
         {
             CrewId = crewId,
             GiverUserId = contributorUserId,
-            RecipientUserId = contributorUserId,
+            RecipientUserId = crewRecipientUserId,
             Type = GiftType.Direct,
             Amount = amount,
             CrewPaymentPlatform = platform,

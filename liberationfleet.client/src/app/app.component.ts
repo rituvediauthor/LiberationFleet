@@ -9,6 +9,7 @@ import { AuthService } from './services/auth.service';
 import { CryptoSessionService } from './services/crypto/crypto-session.service';
 import { CrewCryptoSyncService } from './services/crew-crypto-sync.service';
 import { NotificationHubService } from './services/notification-hub.service';
+import { NotificationService } from './services/notification.service';
 
 @Component({
   selector: 'app-root',
@@ -25,6 +26,7 @@ export class AppComponent implements OnInit {
   private cryptoSession = inject(CryptoSessionService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private notificationHub = inject(NotificationHubService);
+  private notificationService = inject(NotificationService);
   private router = inject(Router);
 
   ngOnInit() {
@@ -72,6 +74,7 @@ export class AppComponent implements OnInit {
     }
 
     void this.notificationHub.connect();
+    this.notificationService.refreshBadges();
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       void Notification.requestPermission();
     }

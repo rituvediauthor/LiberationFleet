@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -13,7 +14,8 @@ public record SendLibraryRequestMessageCommand(
     int RequestId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<LibraryRequestMessageOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<LibraryRequestMessageOperationResponse>;
 
 public class SendLibraryRequestMessageCommandHandler(
     ICurrentUserService currentUser,
@@ -21,6 +23,7 @@ public class SendLibraryRequestMessageCommandHandler(
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<SendLibraryRequestMessageCommand, LibraryRequestMessageOperationResponse>
 {
     public async Task<LibraryRequestMessageOperationResponse> Handle(
@@ -98,7 +101,19 @@ public class SendLibraryRequestMessageCommandHandler(
             Title = "Library request message",
             Body = "You have a new message about a library request.",
             ActionUrl = $"/app/crew/library-of-things/requests/{libraryRequest.Id}/chat",
-            RelatedEntityId = libraryRequest.Id
+            RelatedEntityId = libraryRequest.Id,
+            ActorUserId = userId
+        }, cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = membership.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.LibraryRequestMessage,
+            ResourceId = message.Id,
+            ParentResourceId = libraryRequest.Id,
+            ActionUrl = $"/app/crew/library-of-things/requests/{libraryRequest.Id}/chat",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
         }, cancellationToken);
 
         return new LibraryRequestMessageOperationResponse

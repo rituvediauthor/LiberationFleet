@@ -1,0 +1,10 @@
+<article class="thread-entry" [class.compact]="compact">
+  <p class="thread-entry-meta">
+    <strong>{{ authorName }}</strong>
+    <span *ngIf="createdAt">·</span>
+    <span *ngIf="createdAt">{{ createdAt | date:'short' }}</span>
+  </p>
+  <p class="thread-entry-body" *ngIf="body">
+    <app-mention-text [text]="body" />
+  </p>
+</article>

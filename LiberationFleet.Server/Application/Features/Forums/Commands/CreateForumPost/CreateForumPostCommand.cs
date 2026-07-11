@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -8,7 +9,12 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Forums.Commands.CreateForumPost;
 
-public record CreateForumPostCommand(string Nonce, string Ciphertext, int KeyVersion, bool IsAdultContent) : IRequest<ForumOperationResponse>;
+public record CreateForumPostCommand(
+    string Nonce,
+    string Ciphertext,
+    int KeyVersion,
+    bool IsAdultContent,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class CreateForumPostCommandHandler(
     ICurrentUserService currentUser,
@@ -16,6 +22,7 @@ public class CreateForumPostCommandHandler(
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateForumPostCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(CreateForumPostCommand request, CancellationToken cancellationToken)
@@ -76,6 +83,16 @@ public class CreateForumPostCommandHandler(
             relatedEntityId: post.Id,
             excludeUserId: userId,
             cancellationToken: cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = membership.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ForumPost,
+            ResourceId = post.Id,
+            ActionUrl = $"/app/crew/forums/{post.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+        }, cancellationToken);
 
         return new ForumOperationResponse
         {

@@ -30,6 +30,7 @@ public class ProposalDetailDto : ProposalListItemDto
     public string? ViewerAlias { get; set; }
     public bool CanKickAuthor { get; set; }
     public bool CanVote { get; set; } = true;
+    public bool IsKickVoteTarget { get; set; }
     public IReadOnlyList<ProposalCommentDto> Comments { get; set; } = Array.Empty<ProposalCommentDto>();
 }
 
@@ -80,6 +81,7 @@ public class CreateProposalRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class UpdateProposalRequest
@@ -89,6 +91,7 @@ public class UpdateProposalRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class VoteProposalRequest
@@ -107,6 +110,7 @@ public class CreateProposalCommentRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class UpdateProposalCommentRequest
@@ -114,4 +118,5 @@ public class UpdateProposalCommentRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }

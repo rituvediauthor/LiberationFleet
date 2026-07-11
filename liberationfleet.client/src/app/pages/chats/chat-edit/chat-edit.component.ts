@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ChatService } from '../../../services/chat.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
@@ -39,6 +40,8 @@ export class ChatEditComponent implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private chatService = inject(ChatService);
   private chatCrypto = inject(ChatCryptoService);
   private crewService = inject(CrewService);
@@ -54,11 +57,7 @@ export class ChatEditComponent implements OnInit {
       roomType: ['Text', Validators.required]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/chats'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/chats']);
 
     this.updateSaveButton();
 

@@ -1,27 +1,36 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
+import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { LibraryAccessService } from '../../services/library-access.service';
+import { NotificationService } from '../../services/notification.service';
+import { NotificationHubService } from '../../services/notification-hub.service';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { NextAidInfo } from '../../models/gift.model';
+import {
+  CrewNotificationAreaCounts,
+  emptyAreaCounts
+} from '../../utils/notification-area.util';
 
 @Component({
   selector: 'app-crew-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, NavLayoutComponent],
+  imports: [CommonModule, RouterLink, NavLayoutComponent, ContentBadgeComponent],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
 })
-export class CrewHomeComponent implements OnInit {
+export class CrewHomeComponent implements OnInit, OnDestroy {
   membership: CrewMembershipStatus | null = null;
   nextAid: NextAidInfo | null = null;
   seasonStarted = false;
   libraryOfThingsEnabled = true;
+  areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
 
   private router = inject(Router);
   private crewService = inject(CrewService);
@@ -29,6 +38,9 @@ export class CrewHomeComponent implements OnInit {
   private libraryAccess = inject(LibraryAccessService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private cryptoSession = inject(CryptoSessionService);
+  private notificationService = inject(NotificationService);
+  private notificationHub = inject(NotificationHubService);
+  private subscriptions = new Subscription();
 
   ngOnInit() {
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
@@ -54,6 +66,22 @@ export class CrewHomeComponent implements OnInit {
         });
       }
     });
+
+    this.notificationService.refreshBadges();
+    this.subscriptions.add(
+      this.notificationService.areaCounts$.subscribe(counts => {
+        this.areaCounts = counts;
+      })
+    );
+    this.subscriptions.add(
+      this.notificationHub.notificationReceived$.subscribe(() => {
+        this.notificationService.refreshBadges();
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
   }
 
   get nextAidHeadline(): string {

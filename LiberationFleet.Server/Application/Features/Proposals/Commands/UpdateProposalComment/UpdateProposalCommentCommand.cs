@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -12,13 +13,15 @@ public record UpdateProposalCommentCommand(
     int CommentId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<ProposalOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ProposalOperationResponse>;
 
 public class UpdateProposalCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateProposalCommentCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(UpdateProposalCommentCommand request, CancellationToken cancellationToken)
@@ -72,6 +75,18 @@ public class UpdateProposalCommentCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = proposal.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ProposalComment,
+            ResourceId = comment.Id,
+            ParentResourceId = proposal.Id,
+            ActionUrl = $"/app/crew/proposals/{proposal.Id}?commentId={comment.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            IsUpdate = true
+        }, cancellationToken);
 
         return new ProposalOperationResponse { Success = true, Message = "Comment updated.", CommentId = comment.Id };
     }

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { SettingsPasswordDialogComponent } from '../../components/settings-password-dialog/settings-password-dialog.component';
 import { NotificationService } from '../../services/notification.service';
@@ -27,16 +28,15 @@ export class NotificationSettingsComponent implements OnInit {
   saveButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private notificationService = inject(NotificationService);
   private settingsLockService = inject(SettingsLockService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile/preferences'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile/preferences']);
 
     this.updateSaveButton();
     this.loadPreferences();

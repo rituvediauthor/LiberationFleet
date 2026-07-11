@@ -172,6 +172,7 @@ export interface LibraryCreatorContributionGift {
   itemTitle: string;
   recipientUserId: number;
   recipientUsername: string;
+  crewGiftRecipientUserId: number;
 }
 
 export interface LibraryCompleteRequestResponse extends LibraryRequestOperationResponse {
@@ -213,6 +214,7 @@ export interface SendLibraryRequestMessagePayload {
   nonce: string;
   ciphertext: string;
   keyVersion?: number;
+  mentionedUserIds?: number[];
 }
 
 export interface LibraryRequestListResponse {
@@ -298,6 +300,7 @@ export interface LibraryMaintenanceOperationResponse {
   message: string;
   maintenanceId?: number;
   giftId?: number;
+  crewGiftRecipientUserId?: number;
 }
 
 export type LibraryHubSection =

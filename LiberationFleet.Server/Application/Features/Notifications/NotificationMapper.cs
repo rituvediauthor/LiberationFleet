@@ -15,6 +15,7 @@ public static class NotificationMapper
         ActionUrl = notification.ActionUrl,
         RelatedEntityId = notification.RelatedEntityId,
         SecondaryEntityId = notification.SecondaryEntityId,
+        ActorUserId = notification.ActorUserId,
         IsRead = notification.IsRead,
         CreatedAt = notification.CreatedAt
     };

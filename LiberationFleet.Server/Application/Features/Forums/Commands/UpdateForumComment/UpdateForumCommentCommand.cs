@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -12,13 +13,15 @@ public record UpdateForumCommentCommand(
     int CommentId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<ForumOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class UpdateForumCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateForumCommentCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(UpdateForumCommentCommand request, CancellationToken cancellationToken)
@@ -72,6 +75,18 @@ public class UpdateForumCommentCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = post.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ForumComment,
+            ResourceId = comment.Id,
+            ParentResourceId = post.Id,
+            ActionUrl = $"/app/crew/forums/{post.Id}?commentId={comment.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            IsUpdate = true
+        }, cancellationToken);
 
         return new ForumOperationResponse { Success = true, Message = "Comment updated.", CommentId = comment.Id };
     }

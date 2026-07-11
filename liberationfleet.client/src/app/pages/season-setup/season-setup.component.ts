@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { switchMap } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
@@ -39,6 +40,8 @@ export class SeasonSetupComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private giftService = inject(GiftService);
   private profileService = inject(ProfileService);
@@ -49,11 +52,7 @@ export class SeasonSetupComponent implements OnInit {
       estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.updateSaveButton();
 

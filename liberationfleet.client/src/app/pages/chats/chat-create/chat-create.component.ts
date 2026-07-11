@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ChatService } from '../../../services/chat.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
@@ -32,6 +33,8 @@ export class ChatCreateComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private chatService = inject(ChatService);
   private chatCrypto = inject(ChatCryptoService);
   private crewService = inject(CrewService);
@@ -48,11 +51,7 @@ export class ChatCreateComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/chats'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/chats']);
     this.updateCreateButton();
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());

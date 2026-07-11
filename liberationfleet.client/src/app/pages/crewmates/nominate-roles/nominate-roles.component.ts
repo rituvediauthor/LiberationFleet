@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { NavigationService } from '../../../services/navigation.service';
 import { CrewRoleDefinition } from '../../../models/crewmate.model';
 
 @Component({
@@ -25,6 +26,7 @@ export class NominateRolesComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
   private toastService = inject(ToastService);
   private userId = 0;
@@ -37,11 +39,7 @@ export class NominateRolesComponent implements OnInit {
       return;
     }
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/crewmates', this.userId])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/crewmates', String(this.userId)]);
 
     this.loadData();
   }

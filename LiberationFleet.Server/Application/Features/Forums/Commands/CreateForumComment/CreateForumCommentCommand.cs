@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -15,7 +16,8 @@ public record CreateForumCommentCommand(
     int? ParentCommentId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<ForumOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class CreateForumCommentCommandHandler(
     ICurrentUserService currentUser,
@@ -23,6 +25,7 @@ public class CreateForumCommentCommandHandler(
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateForumCommentCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(CreateForumCommentCommand request, CancellationToken cancellationToken)
@@ -107,7 +110,8 @@ public class CreateForumCommentCommandHandler(
                 Body = "Someone replied to your forum comment.",
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
-                SecondaryEntityId = comment.Id
+                SecondaryEntityId = comment.Id,
+                ActorUserId = userId
             }, cancellationToken);
         }
         else if (parentComment is null)
@@ -125,6 +129,17 @@ public class CreateForumCommentCommandHandler(
                 excludeUserId: userId,
                 cancellationToken: cancellationToken);
         }
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = post.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ForumComment,
+            ResourceId = comment.Id,
+            ParentResourceId = post.Id,
+            ActionUrl = actionUrl,
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+        }, cancellationToken);
 
         return new ForumOperationResponse
         {

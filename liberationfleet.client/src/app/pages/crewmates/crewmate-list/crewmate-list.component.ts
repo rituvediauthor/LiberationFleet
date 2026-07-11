@@ -1,8 +1,10 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { CrewmateService } from '../../../services/crewmate.service';
+import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import {
   CrewmateListItem,
@@ -21,21 +23,22 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
   crewmates: CrewmateListItem[] = [];
   loading = true;
   errorMessage = '';
+  canExportCrewData = false;
   backButton!: ActionBarButton;
   addButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
+  private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private activityIntervalId?: ReturnType<typeof setInterval>;
   activityTick = 0;
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.addButton = {
       label: 'Add crewmate',
@@ -46,6 +49,12 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;
     }, 60000);
+
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.canExportCrewData = !!membership.canExportCrewData;
+      }
+    });
 
     this.loadCrewmates();
   }
@@ -71,6 +80,23 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
 
   openKickedCrewmates() {
     this.router.navigate(['/app/crew/crewmates/kicked']);
+  }
+
+  exportCrewmateStates() {
+    this.crewmateService.exportCrewmateStates().subscribe({
+      next: blob => this.downloadBlob(blob, 'crewmate-states.json'),
+      error: () => this.toastService.error('Failed to export crewmate states')
+    });
+  }
+
+  private downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    this.toastService.success('Export downloaded.');
   }
 
   private loadCrewmates() {

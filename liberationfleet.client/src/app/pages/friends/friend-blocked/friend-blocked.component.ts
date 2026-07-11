@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { FriendService } from '../../../services/friend.service';
 import { CrewmateService } from '../../../services/crewmate.service';
@@ -22,16 +23,15 @@ export class FriendBlockedComponent implements OnInit {
   backButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private friendService = inject(FriendService);
   private crewmateService = inject(CrewmateService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/friends'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/friends']);
 
     this.loadBlocked();
   }

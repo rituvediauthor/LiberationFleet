@@ -7,12 +7,14 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <ng-container *ngIf="!loading && detail">
-      <app-library-image-carousel
-        *ngIf="carouselImages.length > 0"
-        [images]="carouselImages"
-        [title]="detail.title">
-      </app-library-image-carousel>
+      <div class="unit-detail-hero" *ngIf="carouselImages.length > 0">
+        <app-library-image-carousel
+          [images]="carouselImages"
+          [title]="detail.title">
+        </app-library-image-carousel>
+      </div>
 
+      <div class="unit-detail-body">
       <div class="detail-header">
         <h1 class="detail-title">{{ detail.title }}</h1>
         <p class="detail-meta">{{ holderLabel }}: {{ detail.holderUsername }}</p>
@@ -148,6 +150,7 @@
           Confirm broken
         </button>
       </section>
+      </div>
     </ng-container>
   </div>
 </app-page-layout>

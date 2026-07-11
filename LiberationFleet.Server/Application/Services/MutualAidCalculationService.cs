@@ -67,10 +67,13 @@ public static class MutualAidCalculationService
         var membershipBonus = isFinancialMember ? 1m : 0m;
         var percentBonusFactor = 1m - (user.PercentBonus / 100m);
 
-        return (crewLifetimeContributions * user.EmergencyLevel)
+        var baseScore = (crewLifetimeContributions * user.EmergencyLevel)
             + membershipBonus
             + userLifetimeContributions
             + (survivalThresholdAmount * percentBonusFactor);
+
+        var priorityMultiplier = user.PeopleRepresentedCount + user.DisabilityLevel;
+        return baseScore * priorityMultiplier;
     }
 
     public static bool IsCycleSatisfied(SeasonCycle cycle, decimal effectiveCycleCap) =>

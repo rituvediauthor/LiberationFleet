@@ -27,7 +27,18 @@ export class PageLayoutComponent {
 
   constructor(private router: Router) {}
 
+  get showCrewFallback(): boolean {
+    return !this.backButton
+      && !this.primaryButton
+      && !this.secondaryButton
+      && !this.brandNavButton;
+  }
+
   onBrandNavClick() {
     this.router.navigate(['/']);
+  }
+
+  goToCrewHome() {
+    void this.router.navigate(['/app/crew']);
   }
 }

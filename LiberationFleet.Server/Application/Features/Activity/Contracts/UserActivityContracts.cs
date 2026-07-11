@@ -17,6 +17,9 @@ public class UserActivityItemDto
     public ChatRoomType? ChatRoomType { get; set; }
     public int? LibraryUnitId { get; set; }
     public bool IsAccessible { get; set; }
+    public string? PreviewContentType { get; set; }
+    public string? ThumbnailResourceId { get; set; }
+    public string? PlaintextPreview { get; set; }
 }
 
 public class UserActivityListResponse

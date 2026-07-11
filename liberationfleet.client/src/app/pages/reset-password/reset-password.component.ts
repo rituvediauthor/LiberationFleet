@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractContro
 import { Router, ActivatedRoute } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { UserService } from '../../services/user.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
@@ -46,6 +47,7 @@ export class ResetPasswordComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private userService = inject(UserService);
   private toastService = inject(ToastService);
   private route = inject(ActivatedRoute);
@@ -151,6 +153,6 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   private navigateBack() {
-    this.router.navigate(['/sign-in']);
+    this.navigation.back(['/sign-in']);
   }
 }

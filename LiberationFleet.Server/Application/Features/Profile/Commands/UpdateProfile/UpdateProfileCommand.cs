@@ -9,6 +9,8 @@ public class UpdateProfileCommand : IRequest<ProfileOperationResponse>
     public string Email { get; set; } = string.Empty;
     public bool InNeedOfAid { get; set; }
     public int EmergencyLevel { get; set; }
+    public int PeopleRepresentedCount { get; set; } = 1;
+    public int DisabilityLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }
     public List<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = [];
 }

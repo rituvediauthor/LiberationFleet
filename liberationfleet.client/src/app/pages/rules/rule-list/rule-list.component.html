@@ -8,13 +8,13 @@
     <p *ngIf="!loading && !errorMessage && rules.length === 0" class="state-text">No rules yet.</p>
 
     <div class="rule-list" *ngIf="!loading && rules.length > 0">
-      <article class="rule-card" *ngFor="let rule of rules">
+      <button type="button" class="rule-card" *ngFor="let rule of rules" (click)="editRule(rule)">
         <div class="rule-content">
           <h2 class="rule-title">{{ rule.title || 'Untitled rule' }}</h2>
           <p class="rule-preview">{{ rule.descriptionPreview || rule.description || '' }}</p>
         </div>
-        <button type="button" class="edit-btn" (click)="editRule(rule)">Edit</button>
-      </article>
+        <i class="fa-solid fa-angle-right rule-chevron" aria-hidden="true"></i>
+      </button>
     </div>
   </div>
 </app-page-layout>

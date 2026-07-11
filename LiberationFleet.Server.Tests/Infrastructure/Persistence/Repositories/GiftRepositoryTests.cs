@@ -65,4 +65,79 @@ public class GiftRepositoryTests
             secondPage.Items.Last().Amount.Should().Be(5);
         }
     }
+
+    [Fact]
+    public async Task GetGiverRecipientSummariesAsync_GroupsOutgoingGiftsByRecipient()
+    {
+        var (context, giver, crew) = await TestDbContextFactory.CreateWithCrewAsync();
+        await using (context)
+        {
+            var recipientA = new User
+            {
+                Username = "alice",
+                Email = "alice@example.com",
+                PasswordHash = "hash",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            var recipientB = new User
+            {
+                Username = "bob",
+                Email = "bob@example.com",
+                PasswordHash = "hash",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            context.Users.AddRange(recipientA, recipientB);
+            await context.SaveChangesAsync();
+
+            var platform = new CrewPaymentPlatform { CrewId = crew.Id, Name = "PayPal" };
+            context.CrewPaymentPlatforms.Add(platform);
+            await context.SaveChangesAsync();
+
+            var middleman = new User
+            {
+                Username = "middle",
+                Email = "middle@example.com",
+                PasswordHash = "hash",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            context.Users.Add(middleman);
+            await context.SaveChangesAsync();
+
+            context.Gifts.AddRange(
+                new Gift
+                {
+                    CrewId = crew.Id,
+                    GiverUserId = giver.Id,
+                    RecipientUserId = recipientA.Id,
+                    Type = GiftType.Direct,
+                    Amount = 25,
+                    CrewPaymentPlatformId = platform.Id,
+                    CreatedAt = DateTime.UtcNow.AddDays(-2)
+                },
+                new Gift
+                {
+                    CrewId = crew.Id,
+                    GiverUserId = giver.Id,
+                    RecipientUserId = recipientB.Id,
+                    Type = GiftType.Initiated,
+                    MiddlemanUserId = middleman.Id,
+                    Amount = 40,
+                    CrewPaymentPlatformId = platform.Id,
+                    CreatedAt = DateTime.UtcNow.AddDays(-1)
+                });
+
+            await context.SaveChangesAsync();
+
+            var repository = new GiftRepository(context);
+            var summaries = await repository.GetGiverRecipientSummariesAsync(giver.Id);
+
+            summaries.Should().HaveCount(2);
+            summaries.Should().Contain(s => s.RecipientUserId == recipientA.Id && s.TotalAmount == 25 && s.GiftCount == 1);
+            summaries.Should().Contain(s => s.RecipientUserId == recipientB.Id && s.TotalAmount == 40 && s.GiftCount == 1);
+            summaries[0].RecipientUserId.Should().Be(recipientB.Id);
+        }
+    }
 }

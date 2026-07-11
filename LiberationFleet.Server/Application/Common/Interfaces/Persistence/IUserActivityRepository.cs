@@ -28,4 +28,7 @@ public sealed class UserActivityRecord
     public ChatRoomType? ChatRoomType { get; init; }
     public int? LibraryUnitId { get; init; }
     public bool ResourceExists { get; init; } = true;
+    public EncryptedContentType? PreviewContentType { get; init; }
+    public string? ThumbnailResourceId { get; init; }
+    public string? PlaintextPreview { get; init; }
 }

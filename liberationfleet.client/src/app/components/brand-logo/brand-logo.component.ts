@@ -15,6 +15,7 @@ export class BrandLogoComponent {
   @Input({ required: true }) variant!: BrandLogoVariant;
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() alt = '';
+  @Input() monochrome = false;
 
   readonly themeService = inject(ThemeService);
 
@@ -27,6 +28,9 @@ export class BrandLogoComponent {
   }
 
   resolveSrc(theme: AppThemeId | null | undefined): string {
+    if (this.monochrome) {
+      return this.greySrc;
+    }
     return theme === 'light' ? this.greySrc : this.hexSrc;
   }
 

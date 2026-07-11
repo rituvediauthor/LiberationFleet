@@ -18,6 +18,13 @@ public class UpdateProfileCommandValidator : AbstractValidator<UpdateProfileComm
         RuleFor(x => x.EmergencyLevel)
             .InclusiveBetween(0, 3).WithMessage("Emergency level must be between 0 and 3");
 
+        RuleFor(x => x.PeopleRepresentedCount)
+            .GreaterThanOrEqualTo(0).WithMessage("Number of people represented cannot be negative")
+            .LessThanOrEqualTo(99).WithMessage("Number of people represented must be 99 or fewer");
+
+        RuleFor(x => x.DisabilityLevel)
+            .InclusiveBetween(0, 3).WithMessage("Disability level must be between 0 and 3");
+
         RuleForEach(x => x.PaymentPlatforms).ChildRules(platform =>
         {
             platform.RuleFor(p => p.PlatformId)

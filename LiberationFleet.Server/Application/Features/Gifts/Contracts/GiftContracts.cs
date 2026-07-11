@@ -63,6 +63,8 @@ public class GiftHistoryRecipientSummaryDto
     public int RecipientUserId { get; set; }
     public string RecipientUsername { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public int GiftCount { get; set; }
+    public DateTime LastGiftAt { get; set; }
 }
 
 public class GiftHistoryRecipientListResponse
@@ -77,6 +79,10 @@ public class GiftHistoryEntryDto
     public int Id { get; set; }
     public decimal Amount { get; set; }
     public DateTime Timestamp { get; set; }
+    public string GiftType { get; set; } = string.Empty;
+    public string Platform { get; set; } = string.Empty;
+    public string? MiddlemanUsername { get; set; }
+    public string StatusLabel { get; set; } = string.Empty;
 }
 
 public class GiftHistoryDetailResponse

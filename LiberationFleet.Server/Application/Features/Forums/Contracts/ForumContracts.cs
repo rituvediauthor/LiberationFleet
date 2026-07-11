@@ -63,6 +63,7 @@ public class CreateForumPostRequest
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public bool IsAdultContent { get; set; }
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class UpdateForumPostRequest
@@ -70,6 +71,7 @@ public class UpdateForumPostRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class CreateForumCommentRequest
@@ -78,6 +80,7 @@ public class CreateForumCommentRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class UpdateForumCommentRequest
@@ -85,6 +88,7 @@ public class UpdateForumCommentRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class ForumCommentRepliesResponse

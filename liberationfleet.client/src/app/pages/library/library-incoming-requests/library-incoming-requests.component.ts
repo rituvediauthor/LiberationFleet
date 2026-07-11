@@ -1,8 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
+import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
+import { NotificationService } from '../../../services/notification.service';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -13,7 +16,7 @@ import { LibraryRequestListItem } from '../../../models/library.model';
 @Component({
   selector: 'app-library-incoming-requests',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, LibraryItemCardComponent],
+  imports: [CommonModule, PageLayoutComponent, LibraryItemCardComponent, ContentBadgeComponent],
   templateUrl: './library-incoming-requests.component.html',
   styleUrl: './library-incoming-requests.component.css'
 })
@@ -23,20 +26,25 @@ export class LibraryIncomingRequestsComponent implements OnInit {
   loading = true;
   errorMessage = '';
   crewId = 0;
+  resourceCounts: Record<string, number> = {};
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private notificationService = inject(NotificationService);
   private encryptionContent = inject(EncryptionContentService);
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
+    this.notificationService.refreshBadges();
+    this.notificationService.resourceCounts$.subscribe(counts => {
+      this.resourceCounts = counts;
+    });
 
     this.crewService.getMembership().subscribe({
       next: membership => {
@@ -48,6 +56,10 @@ export class LibraryIncomingRequestsComponent implements OnInit {
         this.errorMessage = 'Failed to load crew membership.';
       }
     });
+  }
+
+  requestBadgeCount(requestId: number): number {
+    return this.resourceCounts[`library-request:${requestId}`] ?? 0;
   }
 
   openRequest(item: LibraryRequestListItem) {

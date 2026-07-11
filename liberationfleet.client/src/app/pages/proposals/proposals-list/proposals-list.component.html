@@ -12,6 +12,9 @@
         class="proposal-card"
         *ngFor="let item of items"
         (click)="openProposal(item)">
+        <span class="entry-badge-anchor">
+          <app-content-badge [count]="proposalBadgeCount(item.id)"></app-content-badge>
+        </span>
         <div class="card-top">
           <div class="card-main">
             <p class="card-meta">
@@ -23,7 +26,6 @@
             <p class="card-preview">{{ item.descriptionPreview || '' }}</p>
             <p class="vote-line">
               <span class="approve">{{ item.approveCount }} approve</span>
-              <span class="dot">·</span>
               <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
             </p>
             <p class="timer" *ngIf="countdownText(item) as countdown">
@@ -33,7 +35,6 @@
           <div class="card-thumb" *ngIf="item.thumbnailUrl">
             <img [src]="item.thumbnailUrl" alt="" />
           </div>
-          <div class="card-thumb placeholder" *ngIf="!item.thumbnailUrl" aria-hidden="true"></div>
         </div>
       </button>
     </div>

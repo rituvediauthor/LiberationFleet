@@ -52,6 +52,19 @@ public class CrewmateListResponse
     public IReadOnlyList<CrewmateListItemDto> Items { get; set; } = Array.Empty<CrewmateListItemDto>();
 }
 
+public class CrewmateMentionCandidateDto
+{
+    public int UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
+}
+
+public class CrewmateMentionSearchResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public IReadOnlyList<CrewmateMentionCandidateDto> Items { get; set; } = Array.Empty<CrewmateMentionCandidateDto>();
+}
+
 public class CrewmateProfileDto
 {
     public int UserId { get; set; }
@@ -67,6 +80,8 @@ public class CrewmateProfileDto
     public int PriorityScore { get; set; }
     public bool InNeedOfAid { get; set; }
     public int EmergencyLevel { get; set; }
+    public int PeopleRepresentedCount { get; set; }
+    public int DisabilityLevel { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
     public bool IsSelf { get; set; }
@@ -134,6 +149,8 @@ public class CrewmateStateExportItemDto
     public decimal ReceptionThisYear { get; set; }
     public int PriorityScore { get; set; }
     public int EmergencyLevel { get; set; }
+    public int PeopleRepresentedCount { get; set; }
+    public int DisabilityLevel { get; set; }
     public int SacrificeCountLastSeason { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }

@@ -9,13 +9,15 @@ import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.
 import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { NavigationService } from '../../../services/navigation.service';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
 import { PendingAttachment } from '../../../models/crew-discussion.model';
+import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 
 @Component({
   selector: 'app-discussion-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, MentionAutocompleteDirective],
   templateUrl: './discussion-create.component.html',
   styleUrl: './discussion-create.component.css'
 })
@@ -28,11 +30,13 @@ export class DiscussionCreateComponent implements OnInit {
   isSubmitting = false;
   crewId = 0;
   canAttachFiles = false;
+  mentionedUserIds: number[] = [];
   authorDisplayName = '';
 
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private discussionService = inject(CrewDiscussionService);
   private discussionCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
@@ -49,11 +53,7 @@ export class DiscussionCreateComponent implements OnInit {
       isAdultContent: [false]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate([this.config.listRoute])
-    };
+    this.backButton = this.navigation.createBackButton([this.config.listRoute]);
 
     this.updateCreateButton();
 
@@ -94,7 +94,8 @@ export class DiscussionCreateComponent implements OnInit {
     ).then(encrypted => {
       this.discussionService.createPost(this.config, {
         ...encrypted,
-        isAdultContent: !!isAdultContent
+        isAdultContent: !!isAdultContent,
+        mentionedUserIds: this.mentionedUserIds
       }).subscribe({
         next: result => {
           if (result.success) {

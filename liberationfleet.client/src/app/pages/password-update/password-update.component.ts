@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { SecurityService } from '../../services/security.service';
 import { ToastService } from '../../components/toast/toast.component';
@@ -48,6 +49,8 @@ export class PasswordUpdateComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private securityService = inject(SecurityService);
   private toastService = inject(ToastService);
 
@@ -60,11 +63,7 @@ export class PasswordUpdateComponent {
       validators: passwordMatchValidator
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile/preferences/security'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile/preferences/security']);
 
     this.saveButton = {
       label: 'Update password',

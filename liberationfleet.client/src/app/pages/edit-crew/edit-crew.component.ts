@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { CrewService } from '../../services/crew.service';
@@ -32,6 +33,8 @@ export class EditCrewComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
 
@@ -60,11 +63,7 @@ export class EditCrewComponent implements OnInit {
       minimumContributionForProposals: [0, [Validators.min(0)]]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.updateSaveButton();
 
@@ -132,6 +131,17 @@ export class EditCrewComponent implements OnInit {
 
   onCancelLeave() {
     this.showLeaveDialog = false;
+  }
+
+  copyJoinCode() {
+    if (!this.joinCode) {
+      return;
+    }
+
+    navigator.clipboard.writeText(this.joinCode).then(
+      () => this.toastService.success('Join code copied'),
+      () => this.toastService.error('Failed to copy join code')
+    );
   }
 
   onSave() {

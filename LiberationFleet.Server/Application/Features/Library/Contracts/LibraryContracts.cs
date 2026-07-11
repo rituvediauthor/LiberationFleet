@@ -195,6 +195,7 @@ public class SendLibraryRequestMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class LibraryRequestMessageDto
@@ -240,6 +241,7 @@ public class LibraryCreatorContributionGiftDto
     public string ItemTitle { get; set; } = string.Empty;
     public int RecipientUserId { get; set; }
     public string RecipientUsername { get; set; } = string.Empty;
+    public int CrewGiftRecipientUserId { get; set; }
 }
 
 public class RecordLibraryAcquisitionRequest
@@ -314,4 +316,5 @@ public class LibraryMaintenanceOperationResponse
     public string Message { get; set; } = string.Empty;
     public int? MaintenanceId { get; set; }
     public int? GiftId { get; set; }
+    public int? CrewGiftRecipientUserId { get; set; }
 }

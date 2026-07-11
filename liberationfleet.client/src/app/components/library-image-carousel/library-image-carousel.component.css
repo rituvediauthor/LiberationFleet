@@ -1,31 +1,106 @@
 .carousel {
-  margin-bottom: 16px;
+  width: 100%;
 }
 
-.carousel-track {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.carousel-thumb {
-  flex: 0 0 auto;
-  width: 120px;
-  height: 120px;
-  padding: 0;
-  border: 1px solid var(--lf-color-border);
-  border-radius: 10px;
+.carousel-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: var(--lf-color-bg-hover);
+}
+
+.carousel-slide {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
   cursor: pointer;
 }
 
-.carousel-thumb img {
+.carousel-slide img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--lf-color-text-inverse);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.carousel-nav:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.carousel-nav.prev {
+  left: 12px;
+}
+
+.carousel-nav.next {
+  right: 12px;
+}
+
+.carousel-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--lf-color-text-inverse);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.carousel.inline {
+  width: min(280px, 100%);
+}
+
+.carousel.inline .carousel-viewport {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+}
+
+.carousel.inline .carousel-nav {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.carousel.inline .carousel-nav.prev {
+  left: 8px;
+}
+
+.carousel.inline .carousel-nav.next {
+  right: 8px;
+}
+
+.carousel.inline .carousel-counter {
+  right: 8px;
+  bottom: 8px;
+  font-size: 11px;
+  padding: 3px 8px;
 }
 
 .lightbox {
@@ -89,9 +164,21 @@
 }
 
 @media (max-width: 600px) {
-  .carousel-thumb {
-    width: 96px;
-    height: 96px;
+  .carousel-viewport {
+    aspect-ratio: 5 / 4;
+  }
+
+  .carousel-nav {
+    width: 36px;
+    height: 36px;
+  }
+
+  .carousel-nav.prev {
+    left: 8px;
+  }
+
+  .carousel-nav.next {
+    right: 8px;
   }
 
   .lightbox-nav.prev {

@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { PaymentPlatformEditorComponent } from '../../../components/payment-platform-editor/payment-platform-editor.component';
 import { CrewService } from '../../../services/crew.service';
@@ -28,6 +29,8 @@ export class AddNonCrewmateComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private crewmateService = inject(CrewmateService);
   private profileService = inject(ProfileService);
@@ -38,11 +41,7 @@ export class AddNonCrewmateComponent implements OnInit {
       name: ['', [Validators.required, Validators.maxLength(256)]]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/gift-log/record'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/gift-log/record']);
 
     this.updateSaveButton();
 

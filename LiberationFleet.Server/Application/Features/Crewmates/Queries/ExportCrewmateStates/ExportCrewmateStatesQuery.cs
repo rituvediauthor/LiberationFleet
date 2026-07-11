@@ -74,6 +74,8 @@ public class ExportCrewmateStatesQueryHandler(
                 ReceptionThisYear = giftStats.ReceptionThisYear,
                 PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
                 EmergencyLevel = user.EmergencyLevel,
+                PeopleRepresentedCount = user.PeopleRepresentedCount,
+                DisabilityLevel = user.DisabilityLevel,
                 SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
                 IsSurvivalThresholdRecipient = isSurvivalRecipient,
                 EstimatedMonthlyContribution = member.EstimatedMonthlyContribution,

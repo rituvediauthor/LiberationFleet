@@ -15,6 +15,14 @@ public interface INotificationRepository
 
     Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Notification>> GetUnreadForUserAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task<int> MarkReadByContentAsync(
+        int userId,
+        string? actionUrlPrefix,
+        int? relatedEntityId,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Notification notification, CancellationToken cancellationToken = default);
 
     Task AddRangeAsync(IEnumerable<Notification> notifications, CancellationToken cancellationToken = default);

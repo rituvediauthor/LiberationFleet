@@ -13,6 +13,8 @@ interface DevToolbarAction {
   destructive?: boolean;
 }
 
+const COLLAPSED_STORAGE_KEY = 'dev-toolbar-collapsed';
+
 @Component({
   selector: 'app-dev-toolbar',
   standalone: true,
@@ -23,7 +25,8 @@ interface DevToolbarAction {
 export class DevToolbarComponent implements OnInit {
   @Output() visibilityChange = new EventEmitter<boolean>();
 
-  visible = false;
+  eligible = false;
+  collapsed = sessionStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true';
   busy = false;
 
   private devService = inject(DevMutualAidService);
@@ -45,7 +48,7 @@ export class DevToolbarComponent implements OnInit {
   ngOnInit() {
     this.devTools.load().subscribe({
       next: () => this.refreshMembership(),
-      error: () => this.setVisible(false)
+      error: () => this.setEligible(false)
     });
 
     this.router.events
@@ -54,39 +57,49 @@ export class DevToolbarComponent implements OnInit {
         if (this.devTools.isEnabled && isCrewMemberRoute(this.router.url)) {
           this.refreshMembership();
         } else {
-          this.updateVisibility();
+          this.updateEligibility();
         }
       });
   }
 
+  toggleCollapsed() {
+    this.collapsed = !this.collapsed;
+    sessionStorage.setItem(COLLAPSED_STORAGE_KEY, String(this.collapsed));
+    this.emitVisibility();
+  }
+
   private refreshMembership() {
     if (!this.devTools.isEnabled) {
-      this.setVisible(false);
+      this.setEligible(false);
       return;
     }
 
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.hasCrew = membership.hasCrew;
-        this.updateVisibility();
+        this.updateEligibility();
       },
       error: () => {
         this.hasCrew = false;
-        this.updateVisibility();
+        this.updateEligibility();
       }
     });
   }
 
-  private updateVisibility() {
+  private updateEligibility() {
     const shouldShow = this.devTools.isEnabled
       && this.hasCrew
       && isCrewMemberRoute(this.router.url);
-    this.setVisible(shouldShow);
+    this.setEligible(shouldShow);
   }
 
-  private setVisible(visible: boolean) {
-    this.visible = visible;
-    this.visibilityChange.emit(visible);
+  private setEligible(eligible: boolean) {
+    this.eligible = eligible;
+    this.emitVisibility();
+  }
+
+  private emitVisibility() {
+    this.visibilityChange.emit(this.eligible && !this.collapsed);
   }
 
   private invoke(request: () => ReturnType<DevMutualAidService['newMonth']>) {

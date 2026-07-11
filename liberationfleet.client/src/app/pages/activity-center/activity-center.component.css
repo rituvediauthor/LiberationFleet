@@ -51,7 +51,7 @@
 
 .activity-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   width: 100%;
   padding: 14px 16px;
@@ -60,6 +60,31 @@
   background: var(--lf-color-bg-surface);
   text-align: left;
   cursor: pointer;
+}
+
+.activity-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--lf-color-bg-hover);
+  border: 1px solid var(--lf-color-border-subtle);
+}
+
+.activity-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.activity-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lf-color-text-muted);
+  font-size: 18px;
 }
 
 .activity-row:hover {
@@ -82,9 +107,20 @@
   color: var(--lf-color-text-primary);
 }
 
+.activity-preview {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lf-color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .activity-detail {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
   color: var(--lf-color-text-secondary);
   overflow: hidden;
@@ -113,6 +149,7 @@
 .activity-chevron {
   color: var(--lf-color-text-subtle);
   flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .load-more-btn {

@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { UserService } from '../../services/user.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 
 @Component({
@@ -21,6 +22,7 @@ export class ForgotPasswordComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private userService = inject(UserService);
   private toastService = inject(ToastService);
 
@@ -73,6 +75,6 @@ export class ForgotPasswordComponent {
   }
 
   private navigateBack() {
-    this.router.navigate(['/sign-in']);
+    this.navigation.back(['/sign-in']);
   }
 }

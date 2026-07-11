@@ -1,3 +1,5 @@
+import { EncryptedContentType } from './crypto.model';
+
 export type UserActivityFilterCategory =
   | 'All'
   | 'Chats'
@@ -33,6 +35,11 @@ export interface UserActivityItem {
   chatRoomType?: 'Text' | 'Voice' | null;
   libraryUnitId?: number | null;
   isAccessible: boolean;
+  previewContentType?: EncryptedContentType | null;
+  thumbnailResourceId?: string | null;
+  plaintextPreview?: string | null;
+  previewText?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 export interface UserActivityListResponse {

@@ -8,6 +8,7 @@ export type EncryptedContentType =
   | 'LibraryItem'
   | 'LibraryRequest'
   | 'LibraryRequestMessage'
+  | 'LibraryMaintenanceRecord'
   | 'ImageAsset'
   | 'AudioAsset'
   | 'VideoAsset'

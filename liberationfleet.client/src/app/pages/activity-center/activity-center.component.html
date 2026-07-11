@@ -21,9 +21,16 @@
         *ngFor="let item of items"
         [class.unavailable]="!item.isAccessible"
         (click)="openItem(item)">
+        <div class="activity-thumb" *ngIf="item.thumbnailUrl">
+          <img [src]="item.thumbnailUrl" alt="" />
+        </div>
+        <div class="activity-thumb activity-thumb-placeholder" *ngIf="!item.thumbnailUrl && item.thumbnailResourceId">
+          <i class="fa-solid fa-image" aria-hidden="true"></i>
+        </div>
         <div class="activity-main">
           <p class="activity-label">{{ item.label }}</p>
-          <p class="activity-detail" *ngIf="item.detail">{{ item.detail }}</p>
+          <p class="activity-preview" *ngIf="displayPreview(item) as preview">{{ preview }}</p>
+          <p class="activity-detail" *ngIf="showDetail(item)">{{ item.detail }}</p>
           <p class="activity-meta">
             <span>{{ categoryLabel(item.category) }}</span>
             <span>·</span>

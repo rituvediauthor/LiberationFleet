@@ -12,6 +12,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.autofill-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 h1 {
   font-size: 28px;
   font-weight: 600;

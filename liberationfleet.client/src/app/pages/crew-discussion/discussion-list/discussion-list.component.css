@@ -40,6 +40,7 @@
 }
 
 .post-open {
+  position: relative;
   flex: 1;
   min-width: 0;
   text-align: left;
@@ -51,6 +52,14 @@
 
 .post-open:hover {
   background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.entry-badge-anchor {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 0;
+  height: 0;
 }
 
 .post-actions {

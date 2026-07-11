@@ -121,6 +121,21 @@
           <input id="emergencyLevel" type="number" formControlName="emergencyLevel" class="form-input" min="0" max="3" step="1">
         </div>
 
+        <div class="form-group">
+          <label for="peopleRepresentedCount">Number of people represented</label>
+          <input id="peopleRepresentedCount" type="number" formControlName="peopleRepresentedCount" class="form-input" min="0" max="99" step="1">
+          <span class="hint-text">Individuals you provide for, including partner, children, or elders. Affects priority score.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="disabilityLevel">Level of disability (0–3)</label>
+          <input id="disabilityLevel" type="number" formControlName="disabilityLevel" class="form-input" min="0" max="3" step="1">
+          <span class="hint-text">
+            0 = none; 1 = minor but self-sufficient; 2 = reduced ability to provide for yourself;
+            3 = reliance on service workers or animals for daily life. Affects priority score.
+          </span>
+        </div>
+
         <div class="form-group checkbox-group">
           <label class="checkbox-label">
             <input type="checkbox" formControlName="needsSurvivalAid">

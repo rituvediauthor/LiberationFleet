@@ -49,7 +49,8 @@ public class GetMyCrewMembershipQueryHandler(
                 crew,
                 membership,
                 giftStats.LifetimeContributions,
-                utcNow)
+                utcNow),
+            CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(membership)
         };
     }
 }

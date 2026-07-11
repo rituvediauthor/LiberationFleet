@@ -3,14 +3,26 @@
     <div class="form-card">
       <h1>Sign Up</h1>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="off">
+        <input
+          type="text"
+          tabindex="-1"
+          autocomplete="off"
+          aria-hidden="true"
+          class="autofill-trap"
+          name="lf-signup-trap">
+
         <div class="form-group">
           <label for="username">Username</label>
           <input
             id="username"
+            name="lf-signup-username"
             type="text"
             formControlName="username"
             class="form-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
             placeholder="Choose a username">
           <span class="error-text" *ngIf="form.get('username')?.hasError('required') && form.get('username')?.touched">
             Username is required
@@ -21,9 +33,11 @@
           <label for="email">Email</label>
           <input
             id="email"
+            name="lf-signup-email"
             type="email"
             formControlName="email"
             class="form-input"
+            autocomplete="off"
             placeholder="Enter your email">
           <span class="error-text" *ngIf="form.get('email')?.hasError('required') && form.get('email')?.touched">
             Email is required
@@ -37,9 +51,11 @@
           <label for="password">Password</label>
           <input
             id="password"
+            name="lf-signup-password"
             type="password"
             formControlName="password"
             class="form-input"
+            autocomplete="new-password"
             placeholder="Create a strong password">
           <div class="password-requirements" *ngIf="form.get('password')?.touched">
             <p class="requirement" [class.valid]="hasPasswordRequirement('uppercase')">
@@ -70,9 +86,11 @@
           <label for="confirmPassword">Confirm Password</label>
           <input
             id="confirmPassword"
+            name="lf-signup-confirm-password"
             type="password"
             formControlName="confirmPassword"
             class="form-input"
+            autocomplete="new-password"
             placeholder="Confirm your password">
           <span class="error-text" *ngIf="form.get('confirmPassword')?.hasError('required') && form.get('confirmPassword')?.touched">
             Please confirm your password

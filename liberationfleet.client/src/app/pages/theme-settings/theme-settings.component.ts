@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { ToastService } from '../../components/toast/toast.component';
 import { ThemeService } from '../../services/theme.service';
@@ -20,16 +21,15 @@ export class ThemeSettingsComponent implements OnInit {
   backButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private themeService = inject(ThemeService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
     this.selectedTheme = this.themeService.currentTheme;
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile/preferences'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile/preferences']);
   }
 
   onThemeSelected(themeId: AppThemeId) {

@@ -236,7 +236,8 @@ export class LibraryService {
   sendRequestMessage(requestId: number, payload: SendLibraryRequestMessagePayload): Observable<LibraryRequestMessageOperationResponse> {
     return this.http.post<LibraryRequestMessageOperationResponse>(`${this.basePath}/requests/${requestId}/messages`, {
       ...payload,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 

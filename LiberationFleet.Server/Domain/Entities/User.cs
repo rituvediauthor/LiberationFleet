@@ -12,8 +12,11 @@ public class User
     public DateTime? LastLoginAt { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsUnclaimedPlaceholder { get; set; }
+    public bool IsCrewGiftRecipient { get; set; }
     public bool InNeedOfAid { get; set; } = true;
     public int EmergencyLevel { get; set; }
+    public int PeopleRepresentedCount { get; set; } = 1;
+    public int DisabilityLevel { get; set; }
     public bool NeedsSurvivalAid { get; set; }
     public int PercentBonus { get; set; }
     public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { EncryptedContentSendPayload } from '../models/encrypted-send.model';
 import {
   ChatMessageListResponse,
   ChatOperationResponse,
@@ -64,26 +65,25 @@ export class ChatService {
     return this.http.get<ChatMessageListResponse>(`${this.apiUrl}/rooms/${roomId}/messages`, { params });
   }
 
-  sendMessage(
-    roomId: number,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
-  ): Observable<ChatOperationResponse> {
+  sendMessage(roomId: number, payload: EncryptedContentSendPayload): Observable<ChatOperationResponse> {
     return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages`, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 
   updateMessage(
     roomId: number,
     messageId: number,
-    payload: { nonce: string; ciphertext: string; keyVersion?: number }
+    payload: EncryptedContentSendPayload
   ): Observable<ChatOperationResponse> {
     return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`, {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
-      keyVersion: payload.keyVersion ?? 1
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 

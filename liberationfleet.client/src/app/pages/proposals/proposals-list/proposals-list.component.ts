@@ -1,7 +1,10 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
+import { NotificationService } from '../../../services/notification.service';
 import { ProposalService } from '../../../services/proposal.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -12,7 +15,7 @@ import { EncryptionContentService, EncryptionReloadHandle } from '../../../servi
 @Component({
   selector: 'app-proposals-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, ContentBadgeComponent],
   templateUrl: './proposals-list.component.html',
   styleUrl: './proposals-list.component.css'
 })
@@ -23,14 +26,18 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   crewId = 0;
   backButton!: ActionBarButton;
+  resourceCounts: Record<string, number> = {};
   countdownTick = 0;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private proposalService = inject(ProposalService);
   private proposalCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private notificationService = inject(NotificationService);
   private encryptionContent = inject(EncryptionContentService);
   private countdownIntervalId?: ReturnType<typeof setInterval>;
   private encryptionReload?: EncryptionReloadHandle;
@@ -45,11 +52,11 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     const statusParam = (this.route.snapshot.paramMap.get('status') ?? 'pending').toLowerCase();
     this.status = this.parseStatus(statusParam);
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/proposals'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/proposals']);
+    this.notificationService.refreshBadges();
+    this.notificationService.resourceCounts$.subscribe(counts => {
+      this.resourceCounts = counts;
+    });
 
     this.crewService.getMembership().subscribe({
       next: async membership => {
@@ -74,6 +81,10 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
 
   get statusLabel(): string {
     return this.status;
+  }
+
+  proposalBadgeCount(proposalId: number): number {
+    return this.resourceCounts[`proposal:${proposalId}`] ?? 0;
   }
 
   formatActivity(date: Date): string {

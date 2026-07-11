@@ -22,6 +22,7 @@
         type="button"
         class="notification-card"
         [class.unread]="!item.isRead"
+        [class.unavailable]="item.isTargetAvailable === false"
         *ngFor="let item of items"
         (click)="openNotification(item)">
         <div class="card-main">
@@ -29,7 +30,15 @@
           <p>{{ item.body }}</p>
           <time>{{ formatWhen(item.createdAt) }}</time>
         </div>
-        <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+        <i
+          *ngIf="item.isTargetAvailable === false"
+          class="fa-solid fa-circle-xmark unavailable-icon"
+          aria-label="Content not available"
+          title="Content not available"></i>
+        <i
+          *ngIf="item.isTargetAvailable !== false"
+          class="fa-solid fa-angle-right chevron"
+          aria-hidden="true"></i>
       </button>
     </div>
   </div>

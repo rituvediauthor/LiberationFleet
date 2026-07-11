@@ -13,6 +13,7 @@ using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewRoleD
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetKickedCrewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmates;
+using LiberationFleet.Server.Application.Features.Crewmates.Queries.SearchCrewmatesForMention;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -58,6 +59,13 @@ public class CrewmatesController : ControllerBase
     {
         body ??= new AddPlaceholderCrewmateRequest();
         var result = await _mediator.Send(new AddPlaceholderCrewmateCommand(body.Name, body.PaymentPlatforms));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchForMention([FromQuery] string q)
+    {
+        var result = await _mediator.Send(new SearchCrewmatesForMentionQuery(q));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

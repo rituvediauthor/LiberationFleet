@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { CrewService } from '../../services/crew.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewPrivacy, CrewScope } from '../../models/crew.model';
 
@@ -22,6 +23,7 @@ export class CreateCrewComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
 
@@ -35,11 +37,7 @@ export class CreateCrewComponent {
       radiusMiles: [25]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.createButton = {
       label: 'Create',

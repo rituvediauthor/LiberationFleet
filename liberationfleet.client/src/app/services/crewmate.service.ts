@@ -14,6 +14,7 @@ import {
   CrewmateProfileResponse,
   mapFriendshipState
 } from '../models/crewmate.model';
+import { MentionSearchResponse } from '../utils/mention.util';
 
 @Injectable({
   providedIn: 'root'
@@ -30,6 +31,12 @@ export class CrewmateService {
         items: (response.items ?? []).map(item => this.mapListItem(item))
       }))
     );
+  }
+
+  searchForMention(query: string): Observable<MentionSearchResponse> {
+    return this.http.get<MentionSearchResponse>(`${this.apiUrl}/search`, {
+      params: { q: query }
+    });
   }
 
   getCrewmateProfile(userId: number): Observable<CrewmateProfileResponse> {
@@ -160,6 +167,8 @@ export class CrewmateService {
       canProposeAttachFilesGrant: !!profile.canProposeAttachFilesGrant,
       canProposeCreateProposalsGrant: !!profile.canProposeCreateProposalsGrant,
       crewmateTenureDays: profile.crewmateTenureDays ?? 0,
+      peopleRepresentedCount: profile.peopleRepresentedCount ?? 1,
+      disabilityLevel: profile.disabilityLevel ?? 0,
       canToggleCanAttachFiles: !!profile.canToggleCanAttachFiles,
       canModerateAttachments: !!profile.canModerateAttachments,
       canExportCrewData: !!profile.canExportCrewData,

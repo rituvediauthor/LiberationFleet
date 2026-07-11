@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -20,6 +21,7 @@ public class RecordLibraryMaintenanceCommandHandler(
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     LibraryContributionGiftService contributionGiftService,
+    CrewGiftRecipientService crewGiftRecipientService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordLibraryMaintenanceCommand, LibraryMaintenanceOperationResponse>
 {
     public async Task<LibraryMaintenanceOperationResponse> Handle(
@@ -85,9 +87,11 @@ public class RecordLibraryMaintenanceCommandHandler(
             UpdatedAt = utcNow
         }, cancellationToken);
 
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(membership.CrewId, cancellationToken);
         var gift = await contributionGiftService.CreateContributionGiftAsync(
             membership.CrewId,
             userId,
+            crewRecipient.Id,
             request.Cost,
             cancellationToken);
 
@@ -98,7 +102,8 @@ public class RecordLibraryMaintenanceCommandHandler(
             Success = true,
             Message = "Maintenance recorded.",
             MaintenanceId = record.Id,
-            GiftId = gift.Id
+            GiftId = gift.Id,
+            CrewGiftRecipientUserId = crewRecipient.Id
         };
     }
 }

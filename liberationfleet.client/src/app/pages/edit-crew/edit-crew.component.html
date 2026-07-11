@@ -9,7 +9,10 @@
       <form [formGroup]="form">
         <div class="form-group readonly-group">
           <label>Join code</label>
-          <p class="join-code">{{ joinCode }}</p>
+          <div class="join-code-row">
+            <p class="join-code">{{ joinCode }}</p>
+            <button type="button" class="copy-btn" (click)="copyJoinCode()">Copy</button>
+          </div>
         </div>
 
         <div class="form-group">

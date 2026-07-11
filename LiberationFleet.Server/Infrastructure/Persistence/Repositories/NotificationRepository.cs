@@ -41,6 +41,48 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
     public Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default) =>
         context.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
 
+    public async Task<IReadOnlyList<Notification>> GetUnreadForUserAsync(int userId, CancellationToken cancellationToken = default) =>
+        await context.Notifications
+            .AsNoTracking()
+            .Where(n => n.UserId == userId && !n.IsRead)
+            .OrderByDescending(n => n.CreatedAt)
+            .ThenByDescending(n => n.Id)
+            .ToListAsync(cancellationToken);
+
+    public async Task<int> MarkReadByContentAsync(
+        int userId,
+        string? actionUrlPrefix,
+        int? relatedEntityId,
+        CancellationToken cancellationToken = default)
+    {
+        var hasPrefix = !string.IsNullOrWhiteSpace(actionUrlPrefix);
+        if (!hasPrefix && !relatedEntityId.HasValue)
+        {
+            return 0;
+        }
+
+        var query = context.Notifications.Where(n => n.UserId == userId && !n.IsRead);
+        if (hasPrefix && relatedEntityId.HasValue)
+        {
+            var prefix = actionUrlPrefix!.Trim();
+            var entityId = relatedEntityId.Value;
+            query = query.Where(n => n.ActionUrl.StartsWith(prefix) || n.RelatedEntityId == entityId);
+        }
+        else if (hasPrefix)
+        {
+            var prefix = actionUrlPrefix!.Trim();
+            query = query.Where(n => n.ActionUrl.StartsWith(prefix));
+        }
+        else
+        {
+            query = query.Where(n => n.RelatedEntityId == relatedEntityId!.Value);
+        }
+
+        return await query.ExecuteUpdateAsync(
+            setters => setters.SetProperty(n => n.IsRead, true),
+            cancellationToken);
+    }
+
     public async Task AddAsync(Notification notification, CancellationToken cancellationToken = default) =>
         await context.Notifications.AddAsync(notification, cancellationToken);
 

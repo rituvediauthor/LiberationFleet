@@ -108,6 +108,17 @@
   flex-shrink: 0;
 }
 
+.unavailable-icon {
+  color: var(--lf-color-text-muted);
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.notification-card.unavailable {
+  cursor: default;
+  opacity: 0.85;
+}
+
 @media (max-width: 600px) {
   .page-header h1 {
     font-size: 24px;

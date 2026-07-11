@@ -82,13 +82,36 @@ label {
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
+.readonly-group .join-code-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .readonly-group .join-code {
   margin: 0;
+  flex: 1;
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--lf-color-accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--lf-color-accent-border);
+  border-radius: 8px;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: var(--lf-color-accent-soft-bg);
 }
 
 .leave-btn {

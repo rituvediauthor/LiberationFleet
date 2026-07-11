@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { ProposalService } from '../../../services/proposal.service';
@@ -10,11 +11,12 @@ import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { PendingAttachment } from '../../../models/proposal.model';
+import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 
 @Component({
   selector: 'app-create-proposal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, MentionAutocompleteDirective],
   templateUrl: './create-proposal.component.html',
   styleUrl: './create-proposal.component.css'
 })
@@ -27,10 +29,13 @@ export class CreateProposalComponent implements OnInit {
   crewId = 0;
   canAttachFiles = false;
   canCreateProposals = false;
+  mentionedUserIds: number[] = [];
   authorDisplayName = '';
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private proposalService = inject(ProposalService);
   private proposalCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
@@ -43,11 +48,7 @@ export class CreateProposalComponent implements OnInit {
       description: ['', [Validators.required, Validators.maxLength(10000)]]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/proposals'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/proposals']);
 
     this.updateCreateButton();
 
@@ -91,7 +92,10 @@ export class CreateProposalComponent implements OnInit {
       },
       this.attachments
     ).then(encrypted => {
-      this.proposalService.createProposal(encrypted).subscribe({
+      this.proposalService.createProposal({
+        ...encrypted,
+        mentionedUserIds: this.mentionedUserIds
+      }).subscribe({
         next: result => {
           if (result.success) {
             this.toastService.success(result.message || 'Proposal created');

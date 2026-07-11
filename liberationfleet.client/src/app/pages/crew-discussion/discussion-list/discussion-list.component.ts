@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { CrewDiscussionService } from '../../../services/crew-discussion.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
@@ -15,11 +16,12 @@ import { HiddenContentItem, MutedContentItem, MutedContentType } from '../../../
 import { NotificationService } from '../../../services/notification.service';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
+import { NavigationService } from '../../../services/navigation.service';
 
 @Component({
   selector: 'app-discussion-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent],
   templateUrl: './discussion-list.component.html',
   styleUrl: './discussion-list.component.css'
 })
@@ -35,11 +37,13 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   showHiddenExpanded = false;
   showAdultGate = false;
   pendingItem: DiscussionListItem | null = null;
+  resourceCounts: Record<string, number> = {};
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
   private discussionService = inject(CrewDiscussionService);
   private discussionCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
@@ -56,11 +60,11 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
 
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadPosts());
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate([this.config.backRoute])
-    };
+    this.backButton = this.navigation.createBackButton([this.config.backRoute]);
+    this.notificationService.refreshBadges();
+    this.notificationService.resourceCounts$.subscribe(counts => {
+      this.resourceCounts = counts;
+    });
 
     this.createButton = {
       label: `Create ${this.config.label}`,
@@ -195,6 +199,10 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
 
   toggleShowHidden() {
     this.showHiddenExpanded = !this.showHiddenExpanded;
+  }
+
+  forumBadgeCount(postId: number): number {
+    return this.resourceCounts[`forum:${postId}`] ?? 0;
   }
 
   formatActivity(date: Date): string {

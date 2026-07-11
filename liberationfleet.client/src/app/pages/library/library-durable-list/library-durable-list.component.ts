@@ -12,6 +12,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { LibraryCategory, LibraryUnitListItem } from '../../../models/library.model';
 import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
+import { NavigationService } from '../../../services/navigation.service';
 
 @Component({
   selector: 'app-library-durable-list',
@@ -35,6 +36,7 @@ export class LibraryDurableListComponent implements OnInit, AfterViewInit, OnDes
   crewId = 0;
 
   private readonly pageSize = 30;
+  private navigation = inject(NavigationService);
   private router = inject(Router);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
@@ -46,17 +48,17 @@ export class LibraryDurableListComponent implements OnInit, AfterViewInit, OnDes
   private listObserver?: IntersectionObserver;
 
   constructor() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
   }
 
   ngOnInit() {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.loadItems(true);
+      },
+      error: () => {
+        this.toastService.error('Failed to load crew membership');
       }
     });
 
@@ -72,8 +74,6 @@ export class LibraryDurableListComponent implements OnInit, AfterViewInit, OnDes
     this.searchChanges$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.loadItems(true));
-
-    this.loadItems(true);
   }
 
   ngAfterViewInit() {

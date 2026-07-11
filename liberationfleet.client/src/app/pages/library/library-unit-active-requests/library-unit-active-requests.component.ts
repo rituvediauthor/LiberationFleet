@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
 import { LibraryService } from '../../../services/library.service';
@@ -27,6 +28,8 @@ export class LibraryUnitActiveRequestsComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private crewService = inject(CrewService);
@@ -35,11 +38,7 @@ export class LibraryUnitActiveRequestsComponent implements OnInit {
 
   ngOnInit() {
     this.unitId = Number(this.route.snapshot.paramMap.get('unitId'));
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/library-of-things/requests'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things/requests']);
 
     if (!this.unitId) {
       this.loading = false;

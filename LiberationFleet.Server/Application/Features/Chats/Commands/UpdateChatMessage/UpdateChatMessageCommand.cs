@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -13,7 +14,8 @@ public record UpdateChatMessageCommand(
     int MessageId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<ChatOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ChatOperationResponse>;
 
 public class UpdateChatMessageCommandHandler(
     ICurrentUserService currentUser,
@@ -21,6 +23,7 @@ public class UpdateChatMessageCommandHandler(
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     IChatRealtimeNotifier chatRealtimeNotifier,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateChatMessageCommand, ChatOperationResponse>
 {
     public async Task<ChatOperationResponse> Handle(UpdateChatMessageCommand request, CancellationToken cancellationToken)
@@ -84,6 +87,18 @@ public class UpdateChatMessageCommandHandler(
             var messageDto = ChatMapper.MapMessage(message, envelope);
             await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, messageDto, cancellationToken);
         }
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = membership.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ChatRoomMessage,
+            ResourceId = message.Id,
+            ParentResourceId = room.Id,
+            ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            IsUpdate = true
+        }, cancellationToken);
 
         return new ChatOperationResponse
         {

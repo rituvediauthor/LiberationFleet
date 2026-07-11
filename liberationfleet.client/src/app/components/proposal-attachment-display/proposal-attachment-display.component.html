@@ -1,29 +1,77 @@
 <div class="attachment-grid" [class.compact]="compact" *ngIf="attachments.length > 0">
-  <figure class="attachment-item" *ngFor="let attachment of attachments">
-    <img
-      *ngIf="attachment.type === 'image' && attachment.dataUrl"
-      [src]="attachment.dataUrl"
-      [alt]="attachment.fileName || 'Image attachment'" />
-    <video
-      *ngIf="attachment.type === 'video' && attachment.dataUrl"
-      [src]="attachment.dataUrl"
-      controls
-      preload="metadata"></video>
-    <audio
-      *ngIf="attachment.type === 'audio' && attachment.dataUrl"
-      [src]="attachment.dataUrl"
-      controls
-      preload="metadata"></audio>
-    <p class="attachment-fallback" *ngIf="!attachment.dataUrl">
+  <ng-container *ngIf="compact; else stackedAttachments">
+    <div class="inline-image-block" *ngIf="imageUrls.length > 0">
+      <app-library-image-carousel
+        #imageCarousel
+        [images]="imageUrls"
+        variant="inline"
+        [title]="imageAttachments[0].fileName || 'Attachment'">
+      </app-library-image-carousel>
+      <button
+        type="button"
+        class="delete-attachment-btn"
+        *ngIf="canDelete"
+        (click)="deleteActiveImage()">
+        Delete image
+      </button>
+    </div>
+
+    <p class="attachment-fallback" *ngFor="let attachment of unresolvedImageAttachments">
       {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
     </p>
-    <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
-    <button
-      type="button"
-      class="delete-attachment-btn"
-      *ngIf="canDelete"
-      (click)="deleteAttachment(attachment)">
-      Delete
-    </button>
-  </figure>
+
+    <figure class="attachment-item" *ngFor="let attachment of nonImageAttachments">
+      <video
+        *ngIf="attachment.type === 'video' && attachment.dataUrl"
+        [src]="attachment.dataUrl"
+        controls
+        preload="metadata"></video>
+      <audio
+        *ngIf="attachment.type === 'audio' && attachment.dataUrl"
+        [src]="attachment.dataUrl"
+        controls
+        preload="metadata"></audio>
+      <p class="attachment-fallback" *ngIf="!attachment.dataUrl">
+        {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
+      </p>
+      <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
+      <button
+        type="button"
+        class="delete-attachment-btn"
+        *ngIf="canDelete"
+        (click)="deleteAttachment(attachment)">
+        Delete
+      </button>
+    </figure>
+  </ng-container>
+
+  <ng-template #stackedAttachments>
+    <figure class="attachment-item" *ngFor="let attachment of attachments">
+      <img
+        *ngIf="attachment.type === 'image' && attachment.dataUrl"
+        [src]="attachment.dataUrl"
+        [alt]="attachment.fileName || 'Image attachment'" />
+      <video
+        *ngIf="attachment.type === 'video' && attachment.dataUrl"
+        [src]="attachment.dataUrl"
+        controls
+        preload="metadata"></video>
+      <audio
+        *ngIf="attachment.type === 'audio' && attachment.dataUrl"
+        [src]="attachment.dataUrl"
+        controls
+        preload="metadata"></audio>
+      <p class="attachment-fallback" *ngIf="!attachment.dataUrl">
+        {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
+      </p>
+      <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
+      <button
+        type="button"
+        class="delete-attachment-btn"
+        *ngIf="canDelete"
+        (click)="deleteAttachment(attachment)">
+        Delete
+      </button>
+    </figure>
+  </ng-template>
 </div>

@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -21,6 +22,8 @@ export class EmergencyRequestCreateComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private emergencyRequestService = inject(EmergencyRequestService);
   private toastService = inject(ToastService);
 
@@ -30,11 +33,7 @@ export class EmergencyRequestCreateComponent implements OnInit {
       amountNeeded: ['', [Validators.required, Validators.min(0.01)]]
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/emergency-requests'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/emergency-requests']);
 
     this.updateSubmitButton();
     this.form.statusChanges.subscribe(() => this.updateSubmitButton());

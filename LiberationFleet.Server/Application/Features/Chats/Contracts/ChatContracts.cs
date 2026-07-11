@@ -100,6 +100,7 @@ public class SendChatMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class ToggleAnonymousModeRequest
@@ -112,4 +113,5 @@ public class UpdateChatMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }

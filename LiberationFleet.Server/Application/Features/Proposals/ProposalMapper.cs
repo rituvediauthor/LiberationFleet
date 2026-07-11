@@ -151,6 +151,8 @@ public static class ProposalMapper
             ?? crewSettingChange?.Description;
         var usesAnonymousComments = proposal.Kind == ProposalKind.General;
 
+        var isKickVoteTarget = crewmateKick is not null && crewmateKick.TargetUserId == viewerUserId;
+
         return new ProposalDetailDto
         {
             Id = listItem.Id,
@@ -174,8 +176,8 @@ public static class ProposalMapper
             UsesAnonymousComments = usesAnonymousComments,
             CanKickAuthor = usesAnonymousComments && proposal.AuthorUserId != viewerUserId,
             ViewerAlias = viewerAlias,
-            CanVote = proposal.Status == ProposalStatus.Pending
-                && !(crewmateKick is not null && crewmateKick.TargetUserId == viewerUserId),
+            IsKickVoteTarget = isKickVoteTarget,
+            CanVote = proposal.Status == ProposalStatus.Pending && !isKickVoteTarget,
             Comments = comments
         };
     }

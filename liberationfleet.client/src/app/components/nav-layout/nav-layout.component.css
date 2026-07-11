@@ -5,7 +5,6 @@
 
 .nav-layout {
   --bottom-nav-height: 72px;
-  --top-brand-bar-height: 52px;
 
   display: flex;
   flex-direction: column;
@@ -16,35 +15,6 @@
   overflow: hidden;
   background: var(--lf-color-bg-page);
   color: var(--lf-color-text-primary);
-}
-
-.top-brand-bar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: var(--top-brand-bar-height);
-  padding: 0 20px;
-  background: var(--lf-color-bg-surface);
-  border-bottom: 1px solid var(--lf-color-border);
-}
-
-.top-brand-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: var(--lf-color-text-primary);
-}
-
-.top-brand-link:hover {
-  color: var(--lf-color-accent);
-}
-
-.top-brand-name {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
 }
 
 .nav-content {
@@ -99,6 +69,13 @@
   line-height: 1;
 }
 
+.nav-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .nav-logo {
   display: inline-flex;
 }
@@ -124,7 +101,6 @@
 @media (max-width: 600px) {
   .nav-layout {
     --bottom-nav-height: 68px;
-    --top-brand-bar-height: 48px;
   }
 
   .nav-content {

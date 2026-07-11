@@ -27,6 +27,8 @@ export interface UserProfile {
   roles: string[];
   inNeedOfAid: boolean;
   emergencyLevel: number;
+  peopleRepresentedCount: number;
+  disabilityLevel: number;
   needsSurvivalAid: boolean;
   isSurvivalThresholdRecipient: boolean;
   stats: UserProfileStats;
@@ -48,6 +50,8 @@ export interface UpdateProfileRequest {
   paymentPlatforms: PaymentPlatformAccount[];
   inNeedOfAid: boolean;
   emergencyLevel: number;
+  peopleRepresentedCount: number;
+  disabilityLevel: number;
   needsSurvivalAid: boolean;
 }
 

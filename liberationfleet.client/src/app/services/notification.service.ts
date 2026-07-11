@@ -4,9 +4,11 @@ import { BehaviorSubject, Observable, tap } from 'rxjs';
 import {
   HiddenContentItem,
   HiddenContentListResponse,
+  MarkNotificationsReadByContentRequest,
   MutedContentItem,
   MutedContentListResponse,
   MutedContentType,
+  NotificationBadgeSummaryResponse,
   NotificationFilterCategory,
   NotificationItem,
   NotificationListResponse,
@@ -15,6 +17,11 @@ import {
   NotificationPreferencesResponse,
   NotificationPreferencesUpdateRequest
 } from '../models/notification.model';
+import {
+  CrewNotificationArea,
+  CrewNotificationAreaCounts,
+  emptyAreaCounts
+} from '../utils/notification-area.util';
 
 @Injectable({
   providedIn: 'root'
@@ -23,6 +30,10 @@ export class NotificationService {
   private readonly apiUrl = '/api/notifications';
   private unreadCountSubject = new BehaviorSubject<number>(0);
   readonly unreadCount$ = this.unreadCountSubject.asObservable();
+  private areaCountsSubject = new BehaviorSubject<CrewNotificationAreaCounts>(emptyAreaCounts());
+  readonly areaCounts$ = this.areaCountsSubject.asObservable();
+  private resourceCountsSubject = new BehaviorSubject<Record<string, number>>({});
+  readonly resourceCounts$ = this.resourceCountsSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -39,6 +50,25 @@ export class NotificationService {
         }
       })
     );
+  }
+
+  refreshBadges(): void {
+    this.http.get<NotificationBadgeSummaryResponse>(`${this.apiUrl}/badges`).subscribe({
+      next: response => {
+        if (!response.success) {
+          return;
+        }
+
+        this.unreadCountSubject.next(response.unreadCount);
+        this.areaCountsSubject.next(this.toAreaCounts(response.areaCounts));
+        this.resourceCountsSubject.next(response.resourceCounts ?? {});
+      }
+    });
+  }
+
+  /** @deprecated Use refreshBadges() */
+  refreshAreaCounts(): void {
+    this.refreshBadges();
   }
 
   getPreferences(): Observable<NotificationPreferencesResponse> {
@@ -62,6 +92,18 @@ export class NotificationService {
       tap(response => {
         if (response.success) {
           this.unreadCountSubject.next(response.unreadCount);
+          this.refreshBadges();
+        }
+      })
+    );
+  }
+
+  markReadForContent(request: MarkNotificationsReadByContentRequest): Observable<NotificationOperationResponse> {
+    return this.http.post<NotificationOperationResponse>(`${this.apiUrl}/read-by-content`, request).pipe(
+      tap(response => {
+        if (response.success) {
+          this.unreadCountSubject.next(response.unreadCount);
+          this.refreshBadges();
         }
       })
     );
@@ -72,6 +114,8 @@ export class NotificationService {
       tap(response => {
         if (response.success) {
           this.unreadCountSubject.next(response.unreadCount);
+          this.areaCountsSubject.next(emptyAreaCounts());
+          this.resourceCountsSubject.next({});
         }
       })
     );
@@ -83,6 +127,13 @@ export class NotificationService {
 
   handleIncoming(notification: NotificationItem) {
     this.unreadCountSubject.next(this.unreadCountSubject.value + (notification.isRead ? 0 : 1));
+    if (!notification.isRead) {
+      this.refreshBadges();
+    }
+  }
+
+  resourceCount(key: string): number {
+    return this.resourceCountsSubject.value[key] ?? 0;
   }
 
   getMutes(): Observable<MutedContentListResponse> {
@@ -94,7 +145,13 @@ export class NotificationService {
       contentType,
       resourceId,
       muted
-    });
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          this.refreshBadges();
+        }
+      })
+    );
   }
 
   isMuted(items: MutedContentItem[], contentType: MutedContentType, resourceId: number): boolean {
@@ -110,10 +167,28 @@ export class NotificationService {
       contentType,
       resourceId,
       hidden
-    });
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          this.refreshBadges();
+        }
+      })
+    );
   }
 
   isHidden(items: HiddenContentItem[], contentType: MutedContentType, resourceId: number): boolean {
     return items.some(item => item.contentType === contentType && item.resourceId === resourceId);
+  }
+
+  private toAreaCounts(counts: Record<string, number>): CrewNotificationAreaCounts {
+    return {
+      chats: counts['chats'] ?? 0,
+      forums: counts['forums'] ?? 0,
+      proposals: counts['proposals'] ?? 0,
+      giftLog: counts['giftLog'] ?? 0,
+      rules: counts['rules'] ?? 0,
+      library: counts['library'] ?? 0,
+      crewmates: counts['crewmates'] ?? 0
+    };
   }
 }

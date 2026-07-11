@@ -32,7 +32,11 @@ import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { AdultContentService } from '../../../services/adult-content.service';
+import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
+import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 
 @Component({
   selector: 'app-chat-text',
@@ -43,7 +47,9 @@ import { ContentPreferenceService } from '../../../services/content-preference.s
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
     FallibleFooterComponent,
-    AdultContentGateComponent
+    AdultContentGateComponent,
+    MentionAutocompleteDirective,
+    MentionTextComponent
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -63,6 +69,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
+  mentionedUserIds: number[] = [];
   messageAttachments: PendingAttachment[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
   editingMessageId: number | null = null;
@@ -79,6 +86,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private chatService = inject(ChatService);
   private chatHub = inject(ChatHubService);
   private chatCrypto = inject(ChatCryptoService);
@@ -102,6 +111,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.roomId = Number(this.route.snapshot.paramMap.get('id'));
+    if (this.roomId) {
+      this.notificationContent.markVisited(`/app/crew/chats/${this.roomId}`, this.roomId);
+    }
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
 
@@ -161,7 +173,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   goBack() {
-    this.router.navigate(['/app/crew/chats']);
+    this.navigation.back(['/app/crew/chats']);
   }
 
   onAdultGateConfirmed() {
@@ -259,8 +271,14 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       );
 
       const request$ = this.editingMessageId
-        ? this.chatService.updateMessage(this.roomId, this.editingMessageId, encrypted)
-        : this.chatService.sendMessage(this.roomId, encrypted);
+        ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        })
+        : this.chatService.sendMessage(this.roomId, {
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        });
 
       request$.subscribe({
         next: response => {
@@ -270,6 +288,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
           this.messageText = '';
+          this.mentionedUserIds = [];
           this.messageAttachments = [];
           this.keptEditAttachments = [];
           this.editingMessageId = null;

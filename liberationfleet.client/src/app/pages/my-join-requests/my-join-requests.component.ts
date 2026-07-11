@@ -1,6 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { CrewService } from '../../services/crew.service';
 import { ProposalService } from '../../services/proposal.service';
@@ -21,16 +22,15 @@ export class MyJoinRequestsComponent implements OnInit {
   items: JoinRequestListItem[] = [];
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private proposalService = inject(ProposalService);
   private toastService = inject(ToastService);
 
   constructor() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/join'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/join']);
   }
 
   ngOnInit() {

@@ -26,6 +26,15 @@
       <app-brand-logo variant="lf" size="sm"></app-brand-logo>
     </button>
 
+    <button
+      *ngIf="showCrewFallback"
+      class="action-button crew-fallback-button"
+      type="button"
+      aria-label="Go to crew home"
+      (click)="goToCrewHome()">
+      <app-brand-logo variant="crew" size="sm"></app-brand-logo>
+    </button>
+
     <ng-content select="[actionBar]"></ng-content>
 
     <button

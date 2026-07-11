@@ -1,6 +1,6 @@
 <div class="chat-text-page">
   <div class="message-scroll" #messageScroll>
-    <div class="scroll-page-body">
+    <div class="scroll-page-body chat-channel-body">
     <h1 class="room-title">{{ roomName }}</h1>
     <button
       type="button"
@@ -19,7 +19,8 @@
         #messageItem
         class="message-bubble"
         *ngFor="let message of messages"
-        [class.own]="isOwnMessage(message)">
+        [class.own]="isOwnMessage(message)"
+        [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">
           <p class="message-meta">
             <strong>{{ displayAuthor(message) }}</strong>
@@ -39,7 +40,7 @@
             </div>
           </div>
         </div>
-        <p class="message-body" *ngIf="message.body">{{ message.body }}</p>
+        <p class="message-body" *ngIf="message.body"><app-mention-text [text]="message.body" /></p>
         <app-proposal-attachment-display
           [attachments]="message.resolvedAttachments ?? []"
           [compact]="true"
@@ -54,6 +55,7 @@
   </div>
 
   <div class="chat-action-bar" *ngIf="contentRevealed">
+    <div class="chat-action-bar-inner">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left"></i>
     </button>
@@ -63,6 +65,8 @@
         class="message-input"
         [class.expanded]="composerExpanded"
         [(ngModel)]="messageText"
+        appMentionAutocomplete
+        [(mentionedUserIds)]="mentionedUserIds"
         (focus)="onComposerFocus()"
         (blur)="onComposerBlur()"
         [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
@@ -101,6 +105,7 @@
       (click)="sendMessage()">
       {{ editingMessageId ? 'Save' : 'Send' }}
     </button>
+    </div>
   </div>
 </div>
 

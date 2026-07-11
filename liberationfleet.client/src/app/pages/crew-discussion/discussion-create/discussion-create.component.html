@@ -15,6 +15,8 @@
           class="form-input textarea"
           rows="8"
           formControlName="description"
+          appMentionAutocomplete
+          [(mentionedUserIds)]="mentionedUserIds"
           placeholder="Write your post"></textarea>
       </div>
 

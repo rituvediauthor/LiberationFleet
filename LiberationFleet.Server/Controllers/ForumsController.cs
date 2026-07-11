@@ -49,14 +49,14 @@ public class ForumsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateForumPostRequest body)
     {
-        var result = await _mediator.Send(new CreateForumPostCommand(body.Nonce, body.Ciphertext, body.KeyVersion, body.IsAdultContent));
+        var result = await _mediator.Send(new CreateForumPostCommand(body.Nonce, body.Ciphertext, body.KeyVersion, body.IsAdultContent, body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateForumPostRequest body)
     {
-        var result = await _mediator.Send(new UpdateForumPostCommand(id, body.Nonce, body.Ciphertext, body.KeyVersion));
+        var result = await _mediator.Send(new UpdateForumPostCommand(id, body.Nonce, body.Ciphertext, body.KeyVersion, body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -75,7 +75,8 @@ public class ForumsController : ControllerBase
             body.ParentCommentId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -88,7 +89,8 @@ public class ForumsController : ControllerBase
             commentId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

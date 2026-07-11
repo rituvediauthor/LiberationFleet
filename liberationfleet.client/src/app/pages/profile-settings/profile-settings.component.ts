@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 
 @Component({
@@ -15,12 +16,11 @@ export class ProfileSettingsComponent {
 
   private router = inject(Router);
 
+
+  private navigation = inject(NavigationService);
+
   constructor() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/profile'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/profile']);
   }
 
   goToNotifications() {

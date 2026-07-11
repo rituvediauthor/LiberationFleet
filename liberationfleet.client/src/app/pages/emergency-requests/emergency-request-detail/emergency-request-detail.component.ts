@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { CrewService } from '../../../services/crew.service';
@@ -33,6 +34,8 @@ export class EmergencyRequestDetailComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private fb = inject(FormBuilder);
   private emergencyRequestService = inject(EmergencyRequestService);
   private crewService = inject(CrewService);
@@ -47,11 +50,7 @@ export class EmergencyRequestDetailComponent implements OnInit {
       middlemanId: ['']
     });
 
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew/emergency-requests'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew/emergency-requests']);
 
     this.updateSubmitButton();
     this.form.valueChanges.subscribe(() => this.updateSubmitButton());

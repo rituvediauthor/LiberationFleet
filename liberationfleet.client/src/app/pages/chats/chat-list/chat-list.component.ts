@@ -1,8 +1,10 @@
 import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { Subscription } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { ChatService } from '../../../services/chat.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
@@ -21,7 +23,7 @@ import { VoiceParticipant, VoiceRoomPresence } from '../../../models/voice.model
 @Component({
   selector: 'app-chat-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent],
   templateUrl: './chat-list.component.html',
   styleUrl: './chat-list.component.css'
 })
@@ -37,10 +39,14 @@ export class ChatListComponent implements OnInit, OnDestroy {
   showAdultGate = false;
   pendingRoom: ChatRoomListItem | null = null;
   voicePresenceByRoom: VoiceRoomPresence[] = [];
+  resourceCounts: Record<string, number> = {};
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private chatService = inject(ChatService);
   private chatHub = inject(ChatHubService);
   private chatCrypto = inject(ChatCryptoService);
@@ -54,11 +60,13 @@ export class ChatListComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
+    this.notificationService.refreshBadges();
+    this.subscriptions.push(
+      this.notificationService.resourceCounts$.subscribe(counts => {
+        this.resourceCounts = counts;
+      })
+    );
 
     this.createButton = {
       label: 'Create chat room',
@@ -113,6 +121,10 @@ export class ChatListComponent implements OnInit, OnDestroy {
     return this.rooms.filter(room =>
       this.isRoomHidden(room.id) && this.adultContentService.shouldShowEntry(room.isAdultContent)
     );
+  }
+
+  chatBadgeCount(roomId: number): number {
+    return this.resourceCounts[`chat:${roomId}`] ?? 0;
   }
 
   formatActivity(date: string): string {

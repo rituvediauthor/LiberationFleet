@@ -46,15 +46,6 @@
         </div>
       </section>
 
-      <section class="section" *ngIf="profile.canExportCrewData">
-        <h2>Crew backups</h2>
-        <p class="hint-text">Download records for decentralization and recovery.</p>
-        <div class="export-actions">
-          <button type="button" class="export-btn" (click)="exportGiftLog()">Download gift log</button>
-          <button type="button" class="export-btn" (click)="exportCrewmateStates()">Download crewmate states</button>
-        </div>
-      </section>
-
       <section class="section" *ngIf="profile.canToggleCanAttachFiles">
         <h2>File attachment override</h2>
         <p class="hint-text">
@@ -155,6 +146,14 @@
         <div class="readonly-item">
           <span class="readonly-label">Emergency level</span>
           <span class="readonly-value">{{ profile.emergencyLevel }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">People represented</span>
+          <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Disability level</span>
+          <span class="readonly-value">{{ profile.disabilityLevel }}</span>
         </div>
         <div class="readonly-item">
           <span class="readonly-label">Survival threshold recipient</span>

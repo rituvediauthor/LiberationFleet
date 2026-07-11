@@ -13,6 +13,7 @@ public class Notification
     public string ActionUrl { get; set; } = string.Empty;
     public int? RelatedEntityId { get; set; }
     public int? SecondaryEntityId { get; set; }
+    public int? ActorUserId { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

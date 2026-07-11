@@ -1,7 +1,7 @@
 <app-page-layout [backButton]="backButton">
   <div class="gift-history-page">
     <h1 class="page-title">Gift History</h1>
-    <p class="page-subtitle">Everyone you have given gifts to</p>
+    <p class="page-subtitle">People you have given gifts to</p>
 
     <p *ngIf="loading" class="state-text">Loading gift history...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
@@ -15,7 +15,11 @@
         (click)="openRecipient(recipient)">
         <div class="recipient-main">
           <p class="recipient-name">{{ recipient.recipientUsername }}</p>
-          <p class="recipient-total">Total given: ${{ recipient.totalAmount }}</p>
+          <p class="recipient-total">
+            {{ recipient.giftCount }} {{ recipient.giftCount === 1 ? 'gift' : 'gifts' }}
+            · ${{ recipient.totalAmount }} total
+          </p>
+          <p class="recipient-meta">Last gift {{ recipient.lastGiftAt | date:'mediumDate' }}</p>
         </div>
         <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
       </button>

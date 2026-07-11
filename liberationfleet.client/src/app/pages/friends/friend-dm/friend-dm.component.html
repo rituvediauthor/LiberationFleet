@@ -1,6 +1,6 @@
-<div class="friend-dm-page">
+<div class="chat-text-page">
   <div class="message-scroll" #messageScroll>
-    <div class="scroll-page-body">
+    <div class="scroll-page-body chat-channel-body">
     <h1 class="room-title">{{ friendUsername }}</h1>
 
     <p class="state-text" *ngIf="loading">Loading messages...</p>
@@ -12,7 +12,8 @@
         #messageItem
         class="message-bubble"
         *ngFor="let message of messages"
-        [class.own]="isOwnMessage(message)">
+        [class.own]="isOwnMessage(message)"
+        [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">
           <p class="message-meta">
             <strong>{{ message.authorUsername }}</strong>
@@ -44,6 +45,7 @@
   </div>
 
   <div class="chat-action-bar">
+    <div class="chat-action-bar-inner">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left"></i>
     </button>
@@ -67,6 +69,7 @@
 
       <app-proposal-attachment-picker
         class="message-attachment-picker"
+        *ngIf="canAttachFiles"
         [class.collapsed]="!composerExpanded"
         [attachments]="messageAttachments"
         (fileDialogOpenChange)="onFileDialogOpenChange($event)">
@@ -90,5 +93,6 @@
       (click)="sendMessage()">
       {{ editingMessageId ? 'Save' : 'Send' }}
     </button>
+    </div>
   </div>
 </div>

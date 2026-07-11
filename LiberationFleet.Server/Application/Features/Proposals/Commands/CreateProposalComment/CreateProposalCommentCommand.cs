@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
@@ -15,7 +16,8 @@ public record CreateProposalCommentCommand(
     int? ParentCommentId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<ProposalOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ProposalOperationResponse>;
 
 public class CreateProposalCommentCommandHandler(
     ICurrentUserService currentUser,
@@ -24,6 +26,7 @@ public class CreateProposalCommentCommandHandler(
     ICryptoRepository cryptoRepository,
     ProposalAnonymousAliasService aliasService,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProposalCommentCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(CreateProposalCommentCommand request, CancellationToken cancellationToken)
@@ -111,9 +114,21 @@ public class CreateProposalCommentCommandHandler(
                     : "Someone replied to your proposal comment.",
                 ActionUrl = actionUrl,
                 RelatedEntityId = proposal.Id,
-                SecondaryEntityId = comment.Id
+                SecondaryEntityId = comment.Id,
+                ActorUserId = userId
             }, cancellationToken);
         }
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = proposal.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ProposalComment,
+            ResourceId = comment.Id,
+            ParentResourceId = proposal.Id,
+            ActionUrl = actionUrl,
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+        }, cancellationToken);
 
         string? alias = null;
         if (proposal.Kind == ProposalKind.General)

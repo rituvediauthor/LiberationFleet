@@ -73,11 +73,15 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
 
         var previousEmergencyLevel = user.EmergencyLevel;
         var previousInNeedOfAid = user.InNeedOfAid;
+        var previousPeopleRepresentedCount = user.PeopleRepresentedCount;
+        var previousDisabilityLevel = user.DisabilityLevel;
 
         user.Username = request.Username.Trim();
         user.Email = request.Email.Trim();
         user.InNeedOfAid = request.InNeedOfAid;
         user.EmergencyLevel = request.EmergencyLevel;
+        user.PeopleRepresentedCount = request.PeopleRepresentedCount;
+        user.DisabilityLevel = request.DisabilityLevel;
         user.NeedsSurvivalAid = request.NeedsSurvivalAid;
 
         var paymentPlatforms = request.PaymentPlatforms
@@ -142,7 +146,10 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             _unitOfWork,
             cancellationToken);
 
-        if (previousEmergencyLevel != user.EmergencyLevel || previousInNeedOfAid != user.InNeedOfAid)
+        if (previousEmergencyLevel != user.EmergencyLevel
+            || previousInNeedOfAid != user.InNeedOfAid
+            || previousPeopleRepresentedCount != user.PeopleRepresentedCount
+            || previousDisabilityLevel != user.DisabilityLevel)
         {
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
         }

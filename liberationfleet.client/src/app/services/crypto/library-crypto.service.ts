@@ -92,24 +92,65 @@ export class LibraryCryptoService {
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(items.map(async item => {
-      const withThumb = await this.resolveThumbnail(item.thumbnailResourceId, crewId, crewKey);
-      return { ...item, thumbnailUrl: withThumb ?? item.thumbnailUrl ?? null };
+    const thumbnailIds = [...new Set(
+      items
+        .map(item => item.thumbnailResourceId)
+        .filter((id): id is string => !!id)
+    )];
+    const thumbnailMap = await this.resolveThumbnailsBatch(thumbnailIds, crewId, crewKey);
+
+    return items.map(item => ({
+      ...item,
+      thumbnailUrl: (item.thumbnailResourceId ? thumbnailMap.get(item.thumbnailResourceId) : null)
+        ?? item.thumbnailUrl
+        ?? null
     }));
   }
 
   async enrichUnitDetail(detail: LibraryUnitDetail, crewId: number): Promise<LibraryUnitDetail> {
-    const [withThumb, withDescription, imageUrls] = await Promise.all([
-      this.enrichUnitListItems([this.toListItem(detail)], crewId),
-      this.decryptOfferingDescription(detail, crewId),
-      this.decryptOfferingImages(detail, crewId)
-    ]);
+    if (!detail.hasEncryptedContent || !this.cryptoSession.isUnlocked()) {
+      const fallbackImages = detail.thumbnailUrl ? [detail.thumbnailUrl] : [];
+      return {
+        ...detail,
+        fullDescription: detail.descriptionPreview || null,
+        imageUrls: fallbackImages
+      };
+    }
+
+    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    const payload = await this.decryptOfferingPayload(detail.offeringId, crewId, crewKey);
+    if (!payload) {
+      return {
+        ...detail,
+        fullDescription: detail.descriptionPreview || null,
+        imageUrls: detail.thumbnailUrl ? [detail.thumbnailUrl] : []
+      };
+    }
+
+    const imageAttachments = (payload.attachments ?? []).filter(attachment => attachment.type === 'image');
+    const resolvedImages = imageAttachments.length > 0
+      ? await this.proposalCrypto.decryptAttachments(crewId, imageAttachments)
+      : [];
+    const imageUrls = resolvedImages
+      .map(attachment => attachment.dataUrl)
+      .filter((url): url is string => !!url);
+
+    let thumbnailUrl = detail.thumbnailUrl ?? null;
+    const thumbId = payload.thumbnailResourceId ?? imageAttachments[0]?.resourceId;
+    if (thumbId) {
+      const thumbFromPayload = resolvedImages.find(attachment => attachment.resourceId === thumbId)?.dataUrl;
+      if (thumbFromPayload) {
+        thumbnailUrl = thumbFromPayload;
+      } else if (detail.thumbnailResourceId) {
+        thumbnailUrl = await this.resolveThumbnail(detail.thumbnailResourceId, crewId, crewKey);
+      }
+    }
 
     return {
       ...detail,
-      thumbnailUrl: withThumb[0]?.thumbnailUrl ?? null,
-      fullDescription: withDescription,
-      imageUrls
+      thumbnailUrl,
+      fullDescription: payload.description ?? detail.descriptionPreview ?? null,
+      imageUrls: imageUrls.length > 0 ? imageUrls : (thumbnailUrl ? [thumbnailUrl] : [])
     };
   }
 
@@ -119,22 +160,23 @@ export class LibraryCryptoService {
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(items.map(async item => {
-      const thumbnailUrl = await this.resolveThumbnail(item.thumbnailResourceId, crewId, crewKey);
-      let fullPurpose: string | null = null;
-      if (item.hasEncryptedPurpose) {
-        try {
-          fullPurpose = await this.decryptRequestPurpose(item.requestId, crewId, crewKey);
-        } catch {
-          fullPurpose = null;
-        }
-      }
+    const thumbnailIds = [...new Set(
+      items
+        .map(item => item.thumbnailResourceId)
+        .filter((id): id is string => !!id)
+    )];
+    const thumbnailMap = await this.resolveThumbnailsBatch(thumbnailIds, crewId, crewKey);
+    const encryptedRequestIds = items
+      .filter(item => item.hasEncryptedPurpose)
+      .map(item => item.requestId.toString());
+    const purposeMap = await this.decryptRequestPurposesBatch(encryptedRequestIds, crewId, crewKey);
 
-      return {
-        ...item,
-        thumbnailUrl: thumbnailUrl ?? item.thumbnailUrl ?? null,
-        fullPurpose: fullPurpose ?? item.purposePreview
-      };
+    return items.map(item => ({
+      ...item,
+      thumbnailUrl: (item.thumbnailResourceId ? thumbnailMap.get(item.thumbnailResourceId) : null)
+        ?? item.thumbnailUrl
+        ?? null,
+      fullPurpose: purposeMap.get(item.requestId.toString()) ?? item.purposePreview
     }));
   }
 
@@ -220,85 +262,94 @@ export class LibraryCryptoService {
     }));
   }
 
-  private async decryptOfferingImages(detail: LibraryUnitDetail, crewId: number): Promise<string[]> {
-    if (!detail.hasEncryptedContent || !this.cryptoSession.isUnlocked()) {
-      return detail.thumbnailUrl ? [detail.thumbnailUrl] : [];
-    }
-
+  private async decryptOfferingPayload(
+    offeringId: number,
+    crewId: number,
+    crewKey: CryptoKey
+  ): Promise<ProposalEncryptedPayload | null> {
     try {
-      const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
       const envelopes = await firstValueFrom(
-        this.cryptoApi.getEncryptedContents('LibraryItem', [detail.offeringId.toString()], crewId)
-      );
-      const envelope = envelopes[0];
-      if (!envelope) {
-        return detail.thumbnailUrl ? [detail.thumbnailUrl] : [];
-      }
-
-      const payload = await this.cryptoService.decryptJson<ProposalEncryptedPayload>(
-        crewKey,
-        envelope.nonce,
-        envelope.ciphertext
-      );
-
-      const imageAttachments = (payload.attachments ?? []).filter(attachment => attachment.type === 'image');
-      if (imageAttachments.length === 0) {
-        return detail.thumbnailUrl ? [detail.thumbnailUrl] : [];
-      }
-
-      const resolved = await this.proposalCrypto.decryptAttachments(crewId, imageAttachments);
-      const urls = resolved
-        .map(attachment => attachment.dataUrl)
-        .filter((url): url is string => !!url);
-
-      return urls.length > 0 ? urls : (detail.thumbnailUrl ? [detail.thumbnailUrl] : []);
-    } catch {
-      return detail.thumbnailUrl ? [detail.thumbnailUrl] : [];
-    }
-  }
-
-  private async decryptOfferingDescription(detail: LibraryUnitDetail, crewId: number): Promise<string | null> {
-    if (!detail.hasEncryptedContent || !this.cryptoSession.isUnlocked()) {
-      return detail.descriptionPreview || null;
-    }
-
-    try {
-      const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-      const envelopes = await firstValueFrom(
-        this.cryptoApi.getEncryptedContents('LibraryItem', [detail.offeringId.toString()], crewId)
+        this.cryptoApi.getEncryptedContents('LibraryItem', [offeringId.toString()], crewId)
       );
       const envelope = envelopes[0];
       if (!envelope) {
         return null;
       }
 
-      const payload = await this.cryptoService.decryptJson<ProposalEncryptedPayload>(
+      return await this.cryptoService.decryptJson<ProposalEncryptedPayload>(
         crewKey,
         envelope.nonce,
         envelope.ciphertext
       );
-      return payload.description;
     } catch {
       return null;
     }
   }
 
-  private async decryptRequestPurpose(requestId: number, crewId: number, crewKey?: CryptoKey): Promise<string> {
-    const key = crewKey ?? await this.cryptoSession.ensureCrewKeyReady(crewId);
-    const envelopes = await firstValueFrom(
-      this.cryptoApi.getEncryptedContents('LibraryRequest', [requestId.toString()], crewId)
-    );
-    const envelope = envelopes[0];
-    if (!envelope) {
-      throw new Error('Missing encrypted purpose');
+  private async resolveThumbnailsBatch(
+    resourceIds: string[],
+    crewId: number,
+    crewKey: CryptoKey
+  ): Promise<Map<string, string>> {
+    const results = new Map<string, string>();
+    if (resourceIds.length === 0) {
+      return results;
     }
 
-    const payload = await this.cryptoService.decryptJson<LibraryRequestEncryptedPayload>(
-      key,
-      envelope.nonce,
-      envelope.ciphertext
-    );
-    return payload.purpose;
+    try {
+      const envelopes = await firstValueFrom(
+        this.cryptoApi.getEncryptedContents('ImageAsset', resourceIds, crewId)
+      );
+      for (const envelope of envelopes) {
+        try {
+          const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+            crewKey,
+            envelope.nonce,
+            envelope.ciphertext
+          );
+          results.set(envelope.resourceId, blobPayload.dataUrl);
+        } catch {
+          // Skip unreadable thumbnails.
+        }
+      }
+    } catch {
+      // Fall back to empty map.
+    }
+
+    return results;
+  }
+
+  private async decryptRequestPurposesBatch(
+    requestIds: string[],
+    crewId: number,
+    crewKey: CryptoKey
+  ): Promise<Map<string, string>> {
+    const results = new Map<string, string>();
+    if (requestIds.length === 0) {
+      return results;
+    }
+
+    try {
+      const envelopes = await firstValueFrom(
+        this.cryptoApi.getEncryptedContents('LibraryRequest', requestIds, crewId)
+      );
+      for (const envelope of envelopes) {
+        try {
+          const payload = await this.cryptoService.decryptJson<LibraryRequestEncryptedPayload>(
+            crewKey,
+            envelope.nonce,
+            envelope.ciphertext
+          );
+          results.set(envelope.resourceId, payload.purpose);
+        } catch {
+          // Skip unreadable purposes.
+        }
+      }
+    } catch {
+      // Fall back to empty map.
+    }
+
+    return results;
   }
 
   private async resolveThumbnail(

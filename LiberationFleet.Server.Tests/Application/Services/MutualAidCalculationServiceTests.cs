@@ -153,6 +153,28 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
+    public void CalculatePriorityScore_AppliesHouseholdAndDisabilityMultiplier()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        user.EmergencyLevel = 2;
+        user.PercentBonus = 10;
+        user.PeopleRepresentedCount = 3;
+        user.DisabilityLevel = 2;
+        var membership = new CrewMembership { User = user };
+
+        var baseScore = (100m * 2m) + 1m + 50m + (80m * 0.9m);
+        var score = MutualAidCalculationService.CalculatePriorityScore(
+            user,
+            membership,
+            isFinancialMember: true,
+            crewLifetimeContributions: 100m,
+            userLifetimeContributions: 50m,
+            survivalThresholdAmount: 80m);
+
+        score.Should().Be(baseScore * 5m);
+    }
+
+    [Fact]
     public void IsCycleSatisfied_WhenCycleReceivedMeetsCap_ReturnsTrue()
     {
         var cycle = new SeasonCycle { CycleReceived = 600m, TotalReceptionAmount = 600m };

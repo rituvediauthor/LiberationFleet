@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -12,7 +13,8 @@ namespace LiberationFleet.Server.Application.Features.Proposals.Commands.CreateP
 public record CreateProposalCommand(
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<ProposalOperationResponse>;
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ProposalOperationResponse>;
 
 public class CreateProposalCommandHandler(
     ICurrentUserService currentUser,
@@ -22,6 +24,7 @@ public class CreateProposalCommandHandler(
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(CreateProposalCommand request, CancellationToken cancellationToken)
@@ -105,6 +108,16 @@ public class CreateProposalCommandHandler(
             relatedEntityId: proposal.Id,
             excludeUserId: userId,
             cancellationToken: cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = membership.CrewId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.Proposal,
+            ResourceId = proposal.Id,
+            ActionUrl = $"/app/crew/proposals/{proposal.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+        }, cancellationToken);
 
         return new ProposalOperationResponse
         {

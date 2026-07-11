@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { RuleService } from '../../../services/rule.service';
 import { RuleCryptoService } from '../../../services/crypto/rule-crypto.service';
@@ -25,6 +26,9 @@ export class RuleListComponent implements OnInit, OnDestroy {
   createButton!: ActionBarButton;
 
   private router = inject(Router);
+
+
+  private navigation = inject(NavigationService);
   private ruleService = inject(RuleService);
   private ruleCrypto = inject(RuleCryptoService);
   private crewService = inject(CrewService);
@@ -33,11 +37,7 @@ export class RuleListComponent implements OnInit, OnDestroy {
   private encryptionReload?: ReturnType<EncryptionContentService['watchForUnlockAfterInitialLoad']>;
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.createButton = {
       label: 'Create Rule',

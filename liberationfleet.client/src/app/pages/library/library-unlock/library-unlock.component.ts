@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryAccessBlockReason, LibraryAccessResult, LibraryAccessService } from '../../../services/library-access.service';
 
@@ -21,14 +22,12 @@ export class LibraryUnlockComponent implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  private navigation = inject(NavigationService);
   private libraryAccess = inject(LibraryAccessService);
 
   ngOnInit() {
-    this.backButton = {
-      label: '←',
-      type: 'back',
-      onClick: () => this.router.navigate(['/app/crew'])
-    };
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     const reason = this.route.snapshot.queryParamMap.get('reason') as LibraryAccessBlockReason | null;
     if (reason) {

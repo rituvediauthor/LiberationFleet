@@ -18,7 +18,14 @@ export type NotificationKind =
   | 'CrewSettingChanged'
   | 'CrewmateKicked'
   | 'CrewmateRejoinAllowed'
-  | 'Mention';
+  | 'Mention'
+  | 'NewLibraryRequest'
+  | 'LibraryRequestDenied'
+  | 'LibraryRequestCompleted'
+  | 'NewLibraryRequestMessage'
+  | 'LibraryUnitBrokenReported'
+  | 'LibraryUnitBrokenConfirmed'
+  | 'LibraryUnitReportedFixed';
 
 export type NotificationFilterCategory = 'All' | 'Comments' | 'Mentions' | 'Proposals' | 'Rules';
 
@@ -57,6 +64,7 @@ export interface NotificationItem {
   secondaryEntityId?: number | null;
   isRead: boolean;
   createdAt: string;
+  isTargetAvailable?: boolean | null;
 }
 
 export interface NotificationListResponse {
@@ -87,6 +95,19 @@ export interface NotificationOperationResponse {
   success: boolean;
   message: string;
   unreadCount: number;
+}
+
+export interface NotificationBadgeSummaryResponse {
+  success: boolean;
+  message: string;
+  unreadCount: number;
+  areaCounts: Record<string, number>;
+  resourceCounts: Record<string, number>;
+}
+
+export interface MarkNotificationsReadByContentRequest {
+  actionUrlPrefix?: string | null;
+  relatedEntityId?: number | null;
 }
 
 export const NOTIFICATION_FILTER_OPTIONS: { value: NotificationFilterCategory; label: string }[] = [
