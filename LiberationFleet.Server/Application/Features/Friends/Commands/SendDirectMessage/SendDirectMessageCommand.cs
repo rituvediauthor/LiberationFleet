@@ -52,9 +52,9 @@ public class SendDirectMessageCommandHandler(
 
         var message = new DirectMessage
         {
-            ConversationId = conversation.Id,
             AuthorUserId = access.ViewerId,
-            CreatedAt = utcNow
+            CreatedAt = utcNow,
+            Conversation = conversation
         };
 
         await directMessageRepository.AddMessageAsync(message, cancellationToken);
