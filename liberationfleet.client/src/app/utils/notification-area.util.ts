@@ -97,14 +97,11 @@ export function buildAreaCounts(items: NotificationItem[]): CrewNotificationArea
   return counts;
 }
 
-export function formatBadgeCount(count: number, showPlusAtNine = false): string {
+export function formatBadgeCount(count: number): string {
   if (count <= 0) {
     return '';
   }
-  if (showPlusAtNine && count > 9) {
-    return '9+';
-  }
-  return count > 9 ? '9' : String(count);
+  return count > 9 ? '9+' : String(count);
 }
 
 export function resourceCount(

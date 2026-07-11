@@ -30,11 +30,10 @@ import { formatBadgeCount } from '../../utils/notification-area.util';
 })
 export class ContentBadgeComponent {
   @Input() count = 0;
-  @Input() showPlusAtNine = false;
   @Input() ariaLabelPrefix = 'Unread notifications';
 
   get label(): string {
-    return formatBadgeCount(this.count, this.showPlusAtNine);
+    return formatBadgeCount(this.count);
   }
 
   get ariaLabel(): string {
