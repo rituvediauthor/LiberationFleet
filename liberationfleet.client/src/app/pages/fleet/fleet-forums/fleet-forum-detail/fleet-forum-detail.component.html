@@ -1,0 +1,175 @@
+<div class="discussion-detail-page" *ngIf="loading || loadError">
+  <div class="detail-action-bar">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+  </div>
+  <p class="loading-text" *ngIf="loading">Loading post...</p>
+  <div class="error-state" *ngIf="!loading && loadError">
+    <p>{{ loadError }}</p>
+    <button type="button" class="action-btn secondary" (click)="retryLoad()">Try again</button>
+  </div>
+</div>
+
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && !contentRevealed">
+  <div class="detail-action-bar">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+  </div>
+</div>
+
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
+  <div class="detail-scroll" #detailScroll>
+    <div class="scroll-page-body">
+    <div class="detail-body">
+    <div class="post-content-card">
+      <div class="post-header" *ngIf="!editing">
+        <p class="meta">
+          <span class="author">{{ p.authorUsername }}</span>
+          <span>·</span>
+          <span>{{ p.createdAt | date:'medium' }}</span>
+          <span *ngIf="p.isAdultContent" class="adult-badge">18+</span>
+        </p>
+        <h1>{{ p.title }}</h1>
+      </div>
+
+      <div class="edit-form" *ngIf="editing">
+        <h2>Edit post</h2>
+        <label class="edit-field">
+          <span>Title</span>
+          <input type="text" [(ngModel)]="editTitle" maxlength="200" />
+        </label>
+        <label class="edit-field">
+          <span>Body</span>
+          <textarea [(ngModel)]="editBody" rows="8" maxlength="10000"></textarea>
+        </label>
+
+        <div class="edit-actions">
+          <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
+          <button type="button" class="action-btn primary" (click)="saveEdit()" [disabled]="savingEdit">Save</button>
+        </div>
+      </div>
+
+      <div class="post-body" *ngIf="!editing">
+        <p class="description">{{ p.body }}</p>
+      </div>
+
+      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete)">
+        <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit post</button>
+        <button type="button" class="danger-btn" *ngIf="p.canDelete" (click)="deletePost()">Delete post</button>
+      </div>
+    </div>
+
+    <section class="comments-section">
+      <h2>Comments</h2>
+      <p class="empty-comments" *ngIf="p.comments.length === 0">No comments yet.</p>
+      <div class="comments-list">
+        <article class="comment" *ngFor="let comment of p.comments">
+          <div class="comment-header">
+            <p class="comment-meta">
+              <strong>{{ comment.authorUsername }}</strong>
+              <span>·</span>
+              <span>{{ comment.createdAt | date:'short' }}</span>
+            </p>
+            <div class="menu-wrap" *ngIf="isOwnComment(comment)">
+              <button
+                type="button"
+                class="icon-btn"
+                aria-label="Comment options"
+                (click)="toggleCommentMenu(comment.id, $event)">
+                <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+              </button>
+              <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
+                <button type="button" (click)="startEditComment(comment, null, $event)">Edit</button>
+              </div>
+            </div>
+          </div>
+          <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
+          <div class="comment-actions">
+            <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
+            <button
+              type="button"
+              class="link-btn"
+              *ngIf="comment.replyCount > 0"
+              (click)="toggleReplies(comment)">
+              {{ comment.repliesExpanded ? 'Hide' : 'View' }} {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+            </button>
+          </div>
+
+          <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
+            <article class="comment reply" *ngFor="let reply of comment.replies">
+              <div class="comment-header">
+                <p class="comment-meta">
+                  <strong>{{ formatCommentAuthor(reply, comment.replies) }}</strong>
+                  <span>·</span>
+                  <span>{{ reply.createdAt | date:'short' }}</span>
+                </p>
+                <div class="menu-wrap" *ngIf="isOwnComment(reply)">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label="Reply options"
+                    (click)="toggleCommentMenu(reply.id, $event)">
+                    <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+                  </button>
+                  <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
+                    <button type="button" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
+                  </div>
+                </div>
+              </div>
+              <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
+              <div class="comment-actions">
+                <button type="button" class="link-btn" (click)="startReply(reply)">Reply</button>
+              </div>
+            </article>
+          </div>
+        </article>
+      </div>
+    </section>
+    <app-fallible-footer></app-fallible-footer>
+    </div>
+    </div>
+  </div>
+
+  <div class="detail-action-bar" *ngIf="!editing">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left"></i>
+    </button>
+
+    <div class="comment-composer" [class.expanded]="commentExpanded">
+      <textarea
+        class="comment-input"
+        [class.expanded]="commentExpanded"
+        [(ngModel)]="commentText"
+        (focus)="onCommentFocus()"
+        (blur)="onCommentBlur()"
+        [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
+        rows="1"></textarea>
+    </div>
+
+    <button
+      type="button"
+      class="action-btn secondary"
+      *ngIf="editingCommentId"
+      [disabled]="posting"
+      (click)="cancelEditComment()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
+      class="action-btn primary"
+      *ngIf="commentExpanded"
+      [disabled]="posting || !canPostComment()"
+      (click)="postComment()">
+      {{ editingCommentId ? 'Save' : 'Post' }}
+    </button>
+  </div>
+</div>
+
+<app-adult-content-gate
+  [visible]="showAdultGate"
+  (confirmed)="onAdultGateConfirmed()"
+  (declined)="onAdultGateDeclined()">
+</app-adult-content-gate>

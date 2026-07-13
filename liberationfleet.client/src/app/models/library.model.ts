@@ -6,6 +6,8 @@ export interface LibraryCategory {
 export interface LibraryUnitListItem {
   unitId: number;
   offeringId: number;
+  crewId?: number;
+  crewName?: string;
   holderUserId: number;
   holderUsername: string;
   title: string;
@@ -82,6 +84,8 @@ export interface LibraryUnitViewerContext {
 export interface LibraryUnitDetail {
   unitId: number;
   offeringId: number;
+  crewId?: number;
+  crewName?: string;
   holderUserId: number;
   holderUsername: string;
   title: string;

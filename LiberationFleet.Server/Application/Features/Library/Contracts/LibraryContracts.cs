@@ -12,6 +12,8 @@ public class LibraryUnitListItemDto
 {
     public int UnitId { get; set; }
     public int OfferingId { get; set; }
+    public int CrewId { get; set; }
+    public string CrewName { get; set; } = string.Empty;
     public int HolderUserId { get; set; }
     public string HolderUsername { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
@@ -88,6 +90,8 @@ public class LibraryUnitDetailDto
 {
     public int UnitId { get; set; }
     public int OfferingId { get; set; }
+    public int CrewId { get; set; }
+    public string CrewName { get; set; } = string.Empty;
     public int HolderUserId { get; set; }
     public string HolderUsername { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;

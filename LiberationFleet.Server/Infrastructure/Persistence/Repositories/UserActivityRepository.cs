@@ -176,7 +176,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Label = "Forum post",
                 PreviewContentType = EncryptedContentType.ForumPost,
                 CreatedAt = post.CreatedAt,
-                CrewId = post.CrewId,
+                CrewId = post.CrewId ?? 0,
                 ResourceId = post.Id,
                 ResourceExists = true
             })
@@ -208,7 +208,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Label = pair.comment.ParentCommentId.HasValue ? "Forum reply" : "Forum comment",
                 PreviewContentType = EncryptedContentType.ForumComment,
                 CreatedAt = pair.comment.CreatedAt,
-                CrewId = pair.post.CrewId,
+                CrewId = pair.post.CrewId ?? 0,
                 ResourceId = pair.comment.Id,
                 ParentResourceId = pair.post.Id,
                 ResourceExists = true

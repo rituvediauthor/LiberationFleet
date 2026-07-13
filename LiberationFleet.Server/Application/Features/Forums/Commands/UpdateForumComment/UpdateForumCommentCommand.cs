@@ -43,6 +43,12 @@ public class UpdateForumCommentCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
         }
 
+        if (!post.CrewId.HasValue)
+        {
+            return new ForumOperationResponse { Success = false, Message = "Not a crew forum post." };
+        }
+
+        var crewId = post.CrewId.Value;
         var comment = await forumRepository.GetCommentByIdAsync(request.CommentId, cancellationToken);
         if (comment is null || comment.ForumPostId != post.Id)
         {
@@ -54,7 +60,7 @@ public class UpdateForumCommentCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Only the author can edit this comment." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, post.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, crewId, cancellationToken))
         {
             return new ForumOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -65,7 +71,7 @@ public class UpdateForumCommentCommandHandler(
         {
             ContentType = EncryptedContentType.ForumComment,
             ResourceId = comment.Id.ToString(),
-            CrewId = post.CrewId,
+            CrewId = crewId,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -78,7 +84,7 @@ public class UpdateForumCommentCommandHandler(
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = post.CrewId,
+            CrewId = crewId,
             AuthorUserId = userId,
             ContentType = MentionedContentType.ForumComment,
             ResourceId = comment.Id,

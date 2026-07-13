@@ -825,10 +825,21 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Body).HasMaxLength(10000);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_ForumPosts_CrewOrFleet",
+                "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
@@ -838,6 +849,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         modelBuilder.Entity<ForumComment>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Body).HasMaxLength(4000);
             entity.HasOne(e => e.ForumPost)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(e => e.ForumPostId)

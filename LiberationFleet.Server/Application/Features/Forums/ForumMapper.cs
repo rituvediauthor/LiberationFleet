@@ -15,6 +15,8 @@ public static class ForumMapper
             LastActivityAt = post.LastActivityAt,
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
+            Title = post.Title,
+            Body = post.Body,
             IsAdultContent = post.IsAdultContent
         };
 
@@ -32,6 +34,8 @@ public static class ForumMapper
             CreatedAt = post.CreatedAt,
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
+            Title = post.Title,
+            Body = post.Body,
             CanEdit = post.AuthorUserId == viewerUserId,
             CanDelete = post.AuthorUserId == viewerUserId,
             IsAdultContent = post.IsAdultContent,
@@ -54,6 +58,7 @@ public static class ForumMapper
             CreatedAt = comment.CreatedAt,
             ReplyCount = replyCount,
             HasEncryptedContent = envelope is not null,
-            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null
+            EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
+            Body = comment.Body
         };
 }

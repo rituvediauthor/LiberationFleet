@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import {
   CreateFleetRequest,
   CrewLookupResponse,
@@ -11,6 +11,7 @@ import {
   FleetGiftLogResponse,
   FleetJoinRequestListResponse,
   FleetJoinRequestOperationResponse,
+  FleetLibraryStatus,
   FleetNextAidResponse,
   FleetOperationResult,
   FleetReceptionOrderResponse,
@@ -30,6 +31,23 @@ import {
 } from '../models/fleet.model';
 import { ChatRoomListResponse } from '../models/chat.model';
 import { GiftLogQueryOptions } from '../models/gift.model';
+import {
+  LibraryOfferingKind,
+  LibraryUnitDetail,
+  LibraryUnitDetailResponse,
+  LibraryUnitListPage,
+  LibraryUnitListResponse
+} from '../models/library.model';
+import {
+  CreateFleetForumCommentRequest,
+  CreateFleetForumRequest,
+  FleetForumCommentRepliesResponse,
+  FleetForumDetailResponse,
+  FleetForumListResponse,
+  FleetForumOperationResponse,
+  UpdateFleetForumCommentRequest,
+  UpdateFleetForumRequest
+} from '../models/fleet-forum.model';
 
 @Injectable({
   providedIn: 'root'
@@ -139,6 +157,74 @@ export class FleetService {
     return this.http.get<FleetEmergencyListResponse>(`${this.apiUrl}/current/emergencies`);
   }
 
+  getLibraryStatus(): Observable<FleetLibraryStatus> {
+    return this.http.get<FleetLibraryStatus>(`${this.apiUrl}/current/library-status`);
+  }
+
+  getLibraryDurableUnits(options?: {
+    search?: string;
+    categoryIds?: number[];
+    limit?: number;
+    offset?: number;
+  }): Observable<LibraryUnitListPage> {
+    return this.getLibraryUnitListPage('durable-units', options);
+  }
+
+  getLibraryStockUnits(
+    kind: Extract<LibraryOfferingKind, 'Consumable' | 'Service'>,
+    options?: {
+      search?: string;
+      categoryIds?: number[];
+      limit?: number;
+      offset?: number;
+    }
+  ): Observable<LibraryUnitListPage> {
+    return this.getLibraryUnitListPage('stock-units', options, kind);
+  }
+
+  getLibraryUnit(unitId: number): Observable<LibraryUnitDetail> {
+    return this.http.get<LibraryUnitDetailResponse>(`${this.apiUrl}/current/library/units/${unitId}`).pipe(
+      map(response => {
+        if (!response.success || !response.item) {
+          throw new Error(response.message || 'Failed to load item');
+        }
+        return response.item;
+      })
+    );
+  }
+
+  private getLibraryUnitListPage(
+    path: string,
+    options?: { search?: string; categoryIds?: number[]; limit?: number; offset?: number },
+    kind?: Extract<LibraryOfferingKind, 'Consumable' | 'Service'>
+  ): Observable<LibraryUnitListPage> {
+    let params = new HttpParams();
+    if (kind) {
+      params = params.set('kind', kind);
+    }
+    if (options?.search?.trim()) {
+      params = params.set('search', options.search.trim());
+    }
+    for (const categoryId of options?.categoryIds ?? []) {
+      params = params.append('categoryIds', categoryId.toString());
+    }
+    if (options?.limit) {
+      params = params.set('limit', options.limit.toString());
+    }
+    if (options?.offset) {
+      params = params.set('offset', options.offset.toString());
+    }
+
+    return this.http.get<LibraryUnitListResponse>(`${this.apiUrl}/current/library/${path}`, { params }).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load offerings');
+        }
+        return { items: response.items, hasMore: response.hasMore };
+      })
+    );
+  }
+
   getChats(): Observable<ChatRoomListResponse> {
     return this.http.get<ChatRoomListResponse>(`${this.apiUrl}/current/chats`);
   }
@@ -161,5 +247,46 @@ export class FleetService {
 
   deleteRule(id: number): Observable<FleetRuleOperationResponse> {
     return this.http.delete<FleetRuleOperationResponse>(`${this.apiUrl}/current/rules/${id}`);
+  }
+
+  getForums(): Observable<FleetForumListResponse> {
+    return this.http.get<FleetForumListResponse>(`${this.apiUrl}/current/forums`);
+  }
+
+  getForum(id: number): Observable<FleetForumDetailResponse> {
+    return this.http.get<FleetForumDetailResponse>(`${this.apiUrl}/current/forums/${id}`);
+  }
+
+  getForumCommentReplies(postId: number, parentCommentId: number): Observable<FleetForumCommentRepliesResponse> {
+    return this.http.get<FleetForumCommentRepliesResponse>(
+      `${this.apiUrl}/current/forums/${postId}/comments/${parentCommentId}/replies`
+    );
+  }
+
+  createForum(body: CreateFleetForumRequest): Observable<FleetForumOperationResponse> {
+    return this.http.post<FleetForumOperationResponse>(`${this.apiUrl}/current/forums`, body);
+  }
+
+  updateForum(id: number, body: UpdateFleetForumRequest): Observable<FleetForumOperationResponse> {
+    return this.http.put<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}`, body);
+  }
+
+  deleteForum(id: number): Observable<FleetForumOperationResponse> {
+    return this.http.delete<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}`);
+  }
+
+  createForumComment(id: number, body: CreateFleetForumCommentRequest): Observable<FleetForumOperationResponse> {
+    return this.http.post<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}/comments`, body);
+  }
+
+  updateForumComment(
+    postId: number,
+    commentId: number,
+    body: UpdateFleetForumCommentRequest
+  ): Observable<FleetForumOperationResponse> {
+    return this.http.put<FleetForumOperationResponse>(
+      `${this.apiUrl}/current/forums/${postId}/comments/${commentId}`,
+      body
+    );
   }
 }

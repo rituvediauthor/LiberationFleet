@@ -47,7 +47,9 @@ public class UpdateFleetCommandHandler(
         }
 
         if (!Enum.TryParse<CrewPrivacy>(request.Privacy, true, out var privacy)
-            || !Enum.TryParse<CrewScope>(request.Scope, true, out var scope))
+            || !Enum.IsDefined(privacy)
+            || !Enum.TryParse<CrewScope>(request.Scope, true, out var scope)
+            || !Enum.IsDefined(scope))
         {
             return new FleetOperationResponse { Success = false, Message = "Invalid privacy or scope." };
         }

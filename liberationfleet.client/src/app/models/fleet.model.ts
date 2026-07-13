@@ -19,6 +19,13 @@ export interface FleetStatus {
   needsRuleAcceptance?: boolean;
 }
 
+export interface FleetLibraryStatus {
+  success: boolean;
+  message: string;
+  libraryOfThingsEnabled: boolean;
+  fleetId?: number | null;
+}
+
 export interface Fleet {
   id: number;
   name: string;

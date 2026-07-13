@@ -1,6 +1,8 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Commands.SubmitFleetJoinRequest;
@@ -51,6 +53,20 @@ public class SubmitFleetJoinRequestCommandHandler(
                     ? "No fleet found with that join code"
                     : "Fleet not found"
             };
+        }
+
+        if (fleet.Privacy == CrewPrivacy.InviteOnly)
+        {
+            return new FleetJoinRequestOperationResponse
+            {
+                Success = false,
+                Message = PrivacyAccess.InviteOnlyJoinMessage("fleet")
+            };
+        }
+
+        if (fleet.Privacy == CrewPrivacy.Private && string.IsNullOrWhiteSpace(request.JoinCode))
+        {
+            return new FleetJoinRequestOperationResponse { Success = false, Message = "Fleet not found." };
         }
 
         var publicRules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);

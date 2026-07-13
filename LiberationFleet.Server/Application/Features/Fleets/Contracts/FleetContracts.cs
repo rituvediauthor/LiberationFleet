@@ -201,5 +201,4 @@ public class FleetLibraryStatusDto
     public string Message { get; set; } = string.Empty;
     public bool LibraryOfThingsEnabled { get; set; }
     public int? FleetId { get; set; }
-    // TODO: Aggregate library offerings across fleet crew IDs via optional fleet scope on library list queries.
 }

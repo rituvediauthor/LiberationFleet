@@ -1,0 +1,64 @@
+using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Forums;
+using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Domain.Enums;
+using MediatR;
+
+namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetForumPosts;
+
+public record GetFleetForumPostsQuery() : IRequest<ForumListResponse>;
+
+public class GetFleetForumPostsQueryHandler(
+    ICurrentUserService currentUser,
+    ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
+    IUserRepository userRepository,
+    IForumRepository forumRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetFleetForumPostsQuery, ForumListResponse>
+{
+    public async Task<ForumListResponse> Handle(GetFleetForumPostsQuery request, CancellationToken cancellationToken)
+    {
+        if (!currentUser.UserId.HasValue)
+        {
+            return new ForumListResponse { Success = false, Message = "Unauthorized." };
+        }
+
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return new ForumListResponse { Success = false, Message = "You are not in a crew." };
+        }
+
+        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        if (fleet is null)
+        {
+            return new ForumListResponse { Success = false, Message = "Your crew is not in a fleet." };
+        }
+
+        if (!await fleetRepository.IsUserInFleetAsync(userId, fleet.Id, cancellationToken))
+        {
+            return new ForumListResponse { Success = false, Message = "You are not in this fleet." };
+        }
+
+        var posts = await forumRepository.GetByFleetIdAsync(fleet.Id, cancellationToken);
+        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        posts = posts
+            .Where(post => !AdultContentAccess.IsBlocked(preference, post.IsAdultContent)
+                && !hiddenUserIds.Contains(post.AuthorUserId))
+            .ToList();
+
+        var items = posts.Select(post => ForumMapper.MapListItem(post, envelope: null)).ToList();
+
+        return new ForumListResponse
+        {
+            Success = true,
+            Message = "Forum posts loaded.",
+            Items = items
+        };
+    }
+}

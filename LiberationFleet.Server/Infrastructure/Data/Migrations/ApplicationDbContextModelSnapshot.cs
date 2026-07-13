@@ -1021,6 +1021,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("AuthorUserId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Body")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1058,10 +1062,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("AuthorUserId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Body")
+                        .HasMaxLength(10000)
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CrewId")
+                    b.Property<int?>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FleetId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsAdultContent")
@@ -1075,13 +1086,22 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<DateTime>("LastActivityAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorUserId");
 
                     b.HasIndex("CrewId");
 
-                    b.ToTable("ForumPosts");
+                    b.HasIndex("FleetId");
+
+                    b.ToTable("ForumPosts", t =>
+                        {
+                            t.HasCheckConstraint("CK_ForumPosts_CrewOrFleet", "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Friendship", b =>
@@ -3716,12 +3736,18 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
                         .WithMany()
                         .HasForeignKey("CrewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Fleet", "Fleet")
+                        .WithMany()
+                        .HasForeignKey("FleetId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("AuthorUser");
 
                     b.Navigation("Crew");
+
+                    b.Navigation("Fleet");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Friendship", b =>

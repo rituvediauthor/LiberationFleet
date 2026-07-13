@@ -2,7 +2,10 @@ using LiberationFleet.Server.Application.Features.Crews.Commands.SubmitJoinReque
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.AcceptFleetRules;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleet;
+using LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleetForumComment;
+using LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleetForumPost;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleetRule;
+using LiberationFleet.Server.Application.Features.Fleets.Commands.DeleteFleetForumPost;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.DeleteFleetRule;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.InviteCrewToFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.ProposeFleetKickCrew;
@@ -10,23 +13,34 @@ using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetRul
 using LiberationFleet.Server.Application.Features.Fleets.Commands.RecordFleetGifts;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.SubmitFleetJoinRequest;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleet;
+using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetForumComment;
+using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetForumPost;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetCurrentFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetChatRooms;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetCrewDetail;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetCrews;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetDurableLibraryUnits;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetEmergencies;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetForumCommentReplies;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetForumPostDetail;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetForumPosts;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetGiftLog;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetLibraryStatus;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetLibraryUnitDetail;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetNextAid;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetRule;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetRules;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetReceptionOrder;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetStatus;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetStockLibraryOfferings;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetMyFleetJoinRequests;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetPublicFleetRules;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.LookupCrewByJoinCode;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.SearchFleets;
+using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Library;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -275,6 +289,112 @@ public class FleetsController : ControllerBase
     public async Task<IActionResult> GetLibraryStatus()
     {
         var result = await _mediator.Send(new GetFleetLibraryStatusQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/library/durable-units")]
+    public async Task<IActionResult> GetLibraryDurableUnits(
+        [FromQuery] string? search,
+        [FromQuery] int[]? categoryIds,
+        [FromQuery] int limit = 30,
+        [FromQuery] int offset = 0)
+    {
+        var result = await _mediator.Send(new GetFleetDurableLibraryUnitsQuery(
+            search,
+            categoryIds ?? Array.Empty<int>(),
+            limit,
+            offset));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/library/stock-units")]
+    public async Task<IActionResult> GetLibraryStockUnits(
+        [FromQuery] string kind,
+        [FromQuery] string? search,
+        [FromQuery] int[]? categoryIds,
+        [FromQuery] int limit = 30,
+        [FromQuery] int offset = 0)
+    {
+        if (!LibraryEnumParser.TryParseOfferingKind(kind, out var offeringKind)
+            || offeringKind is not (LibraryOfferingKind.Consumable or LibraryOfferingKind.Service))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "Kind must be Consumable or Service."
+            });
+        }
+
+        var result = await _mediator.Send(new GetFleetStockLibraryOfferingsQuery(
+            offeringKind,
+            search,
+            categoryIds ?? Array.Empty<int>(),
+            limit,
+            offset));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/library/units/{unitId:int}")]
+    public async Task<IActionResult> GetLibraryUnitDetail(int unitId)
+    {
+        var result = await _mediator.Send(new GetFleetLibraryUnitDetailQuery(unitId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/forums")]
+    public async Task<IActionResult> GetForums()
+    {
+        var result = await _mediator.Send(new GetFleetForumPostsQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/forums/{id:int}")]
+    public async Task<IActionResult> GetForumDetail(int id)
+    {
+        var result = await _mediator.Send(new GetFleetForumPostDetailQuery(id));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/forums/{postId:int}/comments/{parentCommentId:int}/replies")]
+    public async Task<IActionResult> GetForumCommentReplies(int postId, int parentCommentId)
+    {
+        var result = await _mediator.Send(new GetFleetForumCommentRepliesQuery(postId, parentCommentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("current/forums")]
+    public async Task<IActionResult> CreateForum([FromBody] CreateFleetForumPostRequest body)
+    {
+        var result = await _mediator.Send(new CreateFleetForumPostCommand(body.Title, body.Body, body.IsAdultContent));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("current/forums/{id:int}")]
+    public async Task<IActionResult> UpdateForum(int id, [FromBody] UpdateFleetForumPostRequest body)
+    {
+        var result = await _mediator.Send(new UpdateFleetForumPostCommand(id, body.Title, body.Body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("current/forums/{id:int}")]
+    public async Task<IActionResult> DeleteForum(int id)
+    {
+        var result = await _mediator.Send(new DeleteFleetForumPostCommand(id));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("current/forums/{id:int}/comments")]
+    public async Task<IActionResult> CreateForumComment(int id, [FromBody] CreateFleetForumCommentRequest body)
+    {
+        var result = await _mediator.Send(new CreateFleetForumCommentCommand(id, body.ParentCommentId, body.Body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("current/forums/{postId:int}/comments/{commentId:int}")]
+    public async Task<IActionResult> UpdateForumComment(int postId, int commentId, [FromBody] UpdateFleetForumCommentRequest body)
+    {
+        body ??= new UpdateFleetForumCommentRequest();
+        var result = await _mediator.Send(new UpdateFleetForumCommentCommand(postId, commentId, body.Body));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

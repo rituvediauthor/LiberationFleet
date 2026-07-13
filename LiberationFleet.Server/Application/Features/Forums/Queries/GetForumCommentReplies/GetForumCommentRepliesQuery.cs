@@ -32,7 +32,13 @@ public class GetForumCommentRepliesQueryHandler(
             return new ForumCommentRepliesResponse { Success = false, Message = "Forum post not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, post.CrewId, cancellationToken))
+        if (!post.CrewId.HasValue)
+        {
+            return new ForumCommentRepliesResponse { Success = false, Message = "Not a crew forum post." };
+        }
+
+        var crewId = post.CrewId.Value;
+        if (!await membershipRepository.IsUserInCrewAsync(userId, crewId, cancellationToken))
         {
             return new ForumCommentRepliesResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -55,7 +61,7 @@ public class GetForumCommentRepliesQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumComment,
             replyIds,
-            post.CrewId,
+            crewId,
             cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 

@@ -22,6 +22,8 @@ public static class LibraryMapper
         {
             UnitId = unit.Id,
             OfferingId = unit.OfferingId,
+            CrewId = unit.Offering.CrewId,
+            CrewName = unit.Offering.Crew?.Name ?? string.Empty,
             HolderUserId = isStock ? unit.Offering.CreatorUserId : unit.CurrentPossessorUserId,
             HolderUsername = isStock
                 ? unit.Offering.CreatorUser?.Username ?? unit.CurrentPossessorUser.Username
@@ -72,6 +74,8 @@ public static class LibraryMapper
         {
             UnitId = unit.Id,
             OfferingId = unit.OfferingId,
+            CrewId = unit.Offering.CrewId,
+            CrewName = unit.Offering.Crew?.Name ?? string.Empty,
             HolderUserId = isStock ? unit.Offering.CreatorUserId : unit.CurrentPossessorUserId,
             HolderUsername = isStock
                 ? unit.Offering.CreatorUser?.Username ?? unit.CurrentPossessorUser.Username

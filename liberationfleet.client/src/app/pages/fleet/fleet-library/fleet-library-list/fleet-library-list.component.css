@@ -1,0 +1,106 @@
+:host {
+  display: block;
+}
+
+.library-list-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: var(--lf-color-text-body);
+}
+
+.library-action-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.filter-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-btn:hover {
+  background: var(--lf-color-bg-hover);
+}
+
+.filter-btn.active {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
+}
+
+.filter-panel {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-muted);
+}
+
+.filter-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lf-color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.state-text {
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: var(--lf-color-danger);
+}
+
+.item-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.load-more-sentinel {
+  height: 1px;
+}
+
+.item-card-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}

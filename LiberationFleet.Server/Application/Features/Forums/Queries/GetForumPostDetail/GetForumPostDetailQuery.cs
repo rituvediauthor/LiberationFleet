@@ -32,7 +32,13 @@ public class GetForumPostDetailQueryHandler(
             return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, post.CrewId, cancellationToken))
+        if (!post.CrewId.HasValue)
+        {
+            return new ForumDetailResponse { Success = false, Message = "Not a crew forum post." };
+        }
+
+        var crewId = post.CrewId.Value;
+        if (!await membershipRepository.IsUserInCrewAsync(userId, crewId, cancellationToken))
         {
             return new ForumDetailResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -62,7 +68,7 @@ public class GetForumPostDetailQueryHandler(
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumComment,
             commentIds,
-            post.CrewId,
+            crewId,
             cancellationToken);
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 

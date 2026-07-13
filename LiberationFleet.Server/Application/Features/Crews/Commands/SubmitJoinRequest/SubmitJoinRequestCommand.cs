@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
@@ -64,6 +65,22 @@ public class SubmitJoinRequestCommandHandler(
         if (invitation is not null && invitation.CrewId != crew.Id)
         {
             return new JoinRequestOperationResponse { Success = false, Message = "Invitation does not match this crew." };
+        }
+
+        if (crew.Privacy == CrewPrivacy.InviteOnly && invitation is null)
+        {
+            return new JoinRequestOperationResponse
+            {
+                Success = false,
+                Message = PrivacyAccess.InviteOnlyJoinMessage("crew")
+            };
+        }
+
+        if (crew.Privacy == CrewPrivacy.Private
+            && invitation is null
+            && string.IsNullOrWhiteSpace(request.JoinCode))
+        {
+            return new JoinRequestOperationResponse { Success = false, Message = "Crew not found." };
         }
 
         var publicRules = await ruleRepository.GetPublicByCrewIdAsync(crew.Id, cancellationToken);

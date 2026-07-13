@@ -88,10 +88,15 @@ import { FleetGiftLogComponent } from './pages/fleet/fleet-gift-log/fleet-gift-l
 import { FleetRecordGiftComponent } from './pages/fleet/fleet-record-gift/fleet-record-gift.component';
 import { FleetEmergencyListComponent } from './pages/fleet/fleet-emergency-list/fleet-emergency-list.component';
 import { FleetChatListComponent } from './pages/fleet/fleet-chat-list/fleet-chat-list.component';
-import { FleetStubPageComponent } from './pages/fleet/fleet-stub-page/fleet-stub-page.component';
 import { FleetRuleListComponent } from './pages/fleet/fleet-rule-list/fleet-rule-list.component';
 import { FleetRuleCreateComponent } from './pages/fleet/fleet-rule-create/fleet-rule-create.component';
 import { FleetRuleEditComponent } from './pages/fleet/fleet-rule-edit/fleet-rule-edit.component';
+import { FleetLibraryHubComponent } from './pages/fleet/fleet-library/fleet-library-hub/fleet-library-hub.component';
+import { FleetLibraryListComponent } from './pages/fleet/fleet-library/fleet-library-list/fleet-library-list.component';
+import { FleetLibraryDetailComponent } from './pages/fleet/fleet-library/fleet-library-detail/fleet-library-detail.component';
+import { FleetForumListComponent } from './pages/fleet/fleet-forums/fleet-forum-list/fleet-forum-list.component';
+import { FleetForumCreateComponent } from './pages/fleet/fleet-forums/fleet-forum-create/fleet-forum-create.component';
+import { FleetForumDetailComponent } from './pages/fleet/fleet-forums/fleet-forum-detail/fleet-forum-detail.component';
 
 export const routes: Routes = [
   {
@@ -174,9 +179,32 @@ export const routes: Routes = [
   },
   {
     path: 'app/fleet/library',
-    component: FleetStubPageComponent,
+    component: FleetLibraryHubComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/library/durable',
+    component: FleetLibraryListComponent,
     canActivate: [authGuard],
-    data: { title: 'Fleet library', message: 'Fleet Library of Things is coming soon.', backTo: '/app/fleet' }
+    data: { title: 'Durable Goods', kind: 'Durable' }
+  },
+  {
+    path: 'app/fleet/library/consumable',
+    component: FleetLibraryListComponent,
+    canActivate: [authGuard],
+    data: { title: 'Consumable Goods', kind: 'Consumable' }
+  },
+  {
+    path: 'app/fleet/library/services',
+    component: FleetLibraryListComponent,
+    canActivate: [authGuard],
+    data: { title: 'Services', kind: 'Service' }
+  },
+  {
+    path: 'app/fleet/library/units/:unitId',
+    component: FleetLibraryDetailComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/fleet/chats',
@@ -198,9 +226,19 @@ export const routes: Routes = [
   },
   {
     path: 'app/fleet/forums',
-    component: FleetStubPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Fleet forums', message: 'Fleet forums are coming soon.', backTo: '/app/fleet' }
+    component: FleetForumListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/forums/create',
+    component: FleetForumCreateComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/forums/:id',
+    component: FleetForumDetailComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'app/fleet/proposals',

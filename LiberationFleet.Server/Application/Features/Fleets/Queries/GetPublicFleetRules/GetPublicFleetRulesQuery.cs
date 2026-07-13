@@ -1,5 +1,7 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetPublicFleetRules;
@@ -11,8 +13,9 @@ public class GetPublicFleetRulesQueryHandler(
 {
     public async Task<PublicFleetRulesResponse> Handle(GetPublicFleetRulesQuery request, CancellationToken cancellationToken)
     {
-        var fleet = !string.IsNullOrWhiteSpace(request.JoinCode)
-            ? await fleetRepository.GetByJoinCodeAsync(request.JoinCode.Trim().ToUpperInvariant(), cancellationToken)
+        var hasJoinCode = !string.IsNullOrWhiteSpace(request.JoinCode);
+        var fleet = hasJoinCode
+            ? await fleetRepository.GetByJoinCodeAsync(request.JoinCode!.Trim().ToUpperInvariant(), cancellationToken)
             : request.FleetId.HasValue
                 ? await fleetRepository.GetByIdAsync(request.FleetId.Value, cancellationToken)
                 : null;
@@ -22,10 +25,25 @@ public class GetPublicFleetRulesQueryHandler(
             return new PublicFleetRulesResponse
             {
                 Success = false,
-                Message = !string.IsNullOrWhiteSpace(request.JoinCode)
+                Message = hasJoinCode
                     ? "No fleet found with that join code"
                     : "Fleet not found"
             };
+        }
+
+        if (fleet.Privacy == CrewPrivacy.InviteOnly
+            || (hasJoinCode && !PrivacyAccess.CanDiscoverByJoinCode(fleet.Privacy)))
+        {
+            return new PublicFleetRulesResponse
+            {
+                Success = false,
+                Message = PrivacyAccess.InviteOnlyJoinMessage("fleet")
+            };
+        }
+
+        if (!PrivacyAccess.CanDiscoverByBrowse(fleet.Privacy) && !hasJoinCode)
+        {
+            return new PublicFleetRulesResponse { Success = false, Message = "Fleet not found." };
         }
 
         var rules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);

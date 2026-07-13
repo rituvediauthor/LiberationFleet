@@ -1,0 +1,69 @@
+.library-hub-page {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--lf-color-text-body);
+}
+
+.page-subtitle {
+  margin: 0 0 20px;
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text {
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: var(--lf-color-danger);
+}
+
+.section-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-link:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
+}
+
+.menu-icon {
+  color: var(--lf-color-accent);
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.menu-label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.menu-chevron {
+  color: var(--lf-color-text-subtle);
+}

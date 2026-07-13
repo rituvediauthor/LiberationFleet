@@ -37,12 +37,18 @@ public class UpdateForumPostCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
         }
 
+        if (!post.CrewId.HasValue)
+        {
+            return new ForumOperationResponse { Success = false, Message = "Not a crew forum post." };
+        }
+
+        var crewId = post.CrewId.Value;
         if (post.AuthorUserId != userId)
         {
             return new ForumOperationResponse { Success = false, Message = "Only the author can edit this post." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, post.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, crewId, cancellationToken))
         {
             return new ForumOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -53,7 +59,7 @@ public class UpdateForumPostCommandHandler(
         {
             ContentType = EncryptedContentType.ForumPost,
             ResourceId = post.Id.ToString(),
-            CrewId = post.CrewId,
+            CrewId = crewId,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -66,7 +72,7 @@ public class UpdateForumPostCommandHandler(
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = post.CrewId,
+            CrewId = crewId,
             AuthorUserId = userId,
             ContentType = MentionedContentType.ForumPost,
             ResourceId = post.Id,

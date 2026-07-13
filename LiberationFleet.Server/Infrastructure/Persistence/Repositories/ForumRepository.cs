@@ -29,6 +29,13 @@ public class ForumRepository : IForumRepository
             .OrderByDescending(p => p.LastActivityAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ForumPost>> GetByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default) =>
+        await _context.ForumPosts
+            .Include(p => p.AuthorUser)
+            .Where(p => p.FleetId == fleetId && !p.IsDeleted)
+            .OrderByDescending(p => p.LastActivityAt)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<ForumComment>> GetCommentsByPostIdAsync(
         int postId,
         CancellationToken cancellationToken = default) =>
@@ -36,6 +43,18 @@ public class ForumRepository : IForumRepository
             .Include(c => c.AuthorUser)
             .Where(c => c.ForumPostId == postId && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ForumComment>> GetRepliesByParentCommentIdAsync(
+        int postId,
+        int parentCommentId,
+        CancellationToken cancellationToken = default) =>
+        await _context.ForumComments
+            .Include(c => c.AuthorUser)
+            .Where(c => c.ForumPostId == postId
+                && c.ParentCommentId == parentCommentId
+                && !c.IsDeleted)
+            .OrderBy(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
 
     public Task<ForumComment?> GetCommentByIdAsync(int commentId, CancellationToken cancellationToken = default) =>

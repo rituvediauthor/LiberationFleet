@@ -146,7 +146,8 @@ public static class NotificationBadgeBuilder
             return "chats";
         }
 
-        if (path.StartsWith("/app/crew/forums/", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/forums/", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/forums/", StringComparison.Ordinal))
         {
             return "forums";
         }
@@ -212,7 +213,8 @@ public static class NotificationBadgeBuilder
             keys.Add($"chat:{chatRoomId}");
         }
 
-        if (TryExtractPathId(path, "/app/crew/forums/", out var forumPostId))
+        if (TryExtractPathId(path, "/app/crew/forums/", out var forumPostId)
+            || TryExtractPathId(path, "/app/fleet/forums/", out forumPostId))
         {
             keys.Add($"forum:{forumPostId}");
         }

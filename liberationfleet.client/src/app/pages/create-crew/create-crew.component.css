@@ -53,6 +53,13 @@ label {
   margin-top: 4px;
 }
 
+.hint-text {
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;

@@ -1,0 +1,37 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
+  <div class="discussion-list-page">
+    <h1 class="page-title">Fleet forums</h1>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No posts yet.</p>
+    <p *ngIf="!loading && !errorMessage && items.length > 0 && visibleItems.length === 0" class="state-text">
+      No forum posts match your content settings.
+    </p>
+
+    <div class="post-cards" *ngIf="!loading && visibleItems.length > 0">
+      <div class="post-card" *ngFor="let item of visibleItems">
+        <button type="button" class="post-open" (click)="openPost(item)">
+          <div class="card-top">
+            <div class="card-main">
+              <p class="card-meta">
+                <span class="author">{{ item.authorUsername }}</span>
+                <span class="dot">·</span>
+                <span>{{ formatActivity(item.lastActivityAt) }}</span>
+                <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
+              </p>
+              <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+              <p class="card-preview">{{ previewBody(item.body) }}</p>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-adult-content-gate
+  [visible]="showAdultGate"
+  (confirmed)="onAdultGateConfirmed()"
+  (declined)="onAdultGateDeclined()">
+</app-adult-content-gate>

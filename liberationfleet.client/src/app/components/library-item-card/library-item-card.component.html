@@ -7,6 +7,7 @@
   </ng-template>
 
   <div class="card-body">
+    <p class="card-meta" *ngIf="item.crewName">Crew: {{ item.crewName }}</p>
     <p class="card-meta">{{ holderLabel }}: {{ item.holderUsername }}</p>
     <p class="card-stock out-of-stock" *ngIf="item.isOutOfStock">Out of stock</p>
     <p class="card-stock" *ngIf="!item.isOutOfStock && item.remainingStock != null">{{ item.remainingStock }} available</p>

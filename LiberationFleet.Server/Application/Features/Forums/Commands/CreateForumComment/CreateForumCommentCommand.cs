@@ -47,7 +47,13 @@ public class CreateForumCommentCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, post.CrewId, cancellationToken))
+        if (!post.CrewId.HasValue)
+        {
+            return new ForumOperationResponse { Success = false, Message = "Not a crew forum post." };
+        }
+
+        var crewId = post.CrewId.Value;
+        if (!await membershipRepository.IsUserInCrewAsync(userId, crewId, cancellationToken))
         {
             return new ForumOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -87,7 +93,7 @@ public class CreateForumCommentCommandHandler(
         {
             ContentType = EncryptedContentType.ForumComment,
             ResourceId = comment.Id.ToString(),
-            CrewId = post.CrewId,
+            CrewId = crewId,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -104,7 +110,7 @@ public class CreateForumCommentCommandHandler(
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
             {
                 UserId = parentComment.AuthorUserId,
-                CrewId = post.CrewId,
+                CrewId = crewId,
                 Kind = NotificationKind.NewReply,
                 Title = "New reply",
                 Body = "Someone replied to your forum comment.",
@@ -117,7 +123,7 @@ public class CreateForumCommentCommandHandler(
         else if (parentComment is null)
         {
             await notificationService.NotifyCrewIfNotMutedAsync(
-                post.CrewId,
+                crewId,
                 NotificationKind.NewForumComment,
                 MutedContentType.Forum,
                 post.Id,
@@ -132,7 +138,7 @@ public class CreateForumCommentCommandHandler(
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = post.CrewId,
+            CrewId = crewId,
             AuthorUserId = userId,
             ContentType = MentionedContentType.ForumComment,
             ResourceId = comment.Id,

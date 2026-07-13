@@ -1,0 +1,136 @@
+using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
+using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
+using MediatR;
+
+namespace LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleetForumComment;
+
+public record CreateFleetForumCommentCommand(
+    int PostId,
+    int? ParentCommentId,
+    string Body) : IRequest<ForumOperationResponse>;
+
+public class CreateFleetForumCommentCommandHandler(
+    ICurrentUserService currentUser,
+    ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
+    IForumRepository forumRepository,
+    NotificationService notificationService,
+    IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetForumCommentCommand, ForumOperationResponse>
+{
+    public async Task<ForumOperationResponse> Handle(CreateFleetForumCommentCommand request, CancellationToken cancellationToken)
+    {
+        if (!currentUser.UserId.HasValue)
+        {
+            return new ForumOperationResponse { Success = false, Message = "Unauthorized." };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Body))
+        {
+            return new ForumOperationResponse { Success = false, Message = "Comment body is required." };
+        }
+
+        var userId = currentUser.UserId.Value;
+        var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
+        if (post is null)
+        {
+            return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
+        }
+
+        if (!post.FleetId.HasValue)
+        {
+            return new ForumOperationResponse { Success = false, Message = "Not a fleet forum post." };
+        }
+
+        var fleetId = post.FleetId.Value;
+        if (!await fleetRepository.IsUserInFleetAsync(userId, fleetId, cancellationToken))
+        {
+            return new ForumOperationResponse { Success = false, Message = "You are not in this fleet." };
+        }
+
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return new ForumOperationResponse { Success = false, Message = "You are not in a crew." };
+        }
+
+        ForumComment? parentComment = null;
+        int? threadRootId = null;
+        int? replyToCommentId = null;
+        if (request.ParentCommentId.HasValue)
+        {
+            parentComment = await forumRepository.GetCommentByIdAsync(request.ParentCommentId.Value, cancellationToken);
+            if (parentComment is null || parentComment.ForumPostId != post.Id)
+            {
+                return new ForumOperationResponse { Success = false, Message = "Parent comment not found." };
+            }
+
+            (threadRootId, replyToCommentId) = CommentThread.ResolveNewReply(
+                parentComment.Id,
+                parentComment.ParentCommentId);
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var comment = new ForumComment
+        {
+            ForumPostId = post.Id,
+            AuthorUserId = userId,
+            ParentCommentId = threadRootId,
+            ReplyToCommentId = replyToCommentId,
+            Body = request.Body.Trim(),
+            CreatedAt = utcNow
+        };
+
+        await forumRepository.AddCommentAsync(comment, cancellationToken);
+        post.LastActivityAt = utcNow;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var actionUrl = $"/app/fleet/forums/{post.Id}?commentId={comment.Id}";
+        if (parentComment is not null && parentComment.AuthorUserId != userId)
+        {
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
+            {
+                UserId = parentComment.AuthorUserId,
+                CrewId = membership.CrewId,
+                Kind = NotificationKind.NewReply,
+                Title = "New reply",
+                Body = "Someone replied to your forum comment.",
+                ActionUrl = actionUrl,
+                RelatedEntityId = post.Id,
+                SecondaryEntityId = comment.Id,
+                ActorUserId = userId
+            }, cancellationToken);
+        }
+        else if (parentComment is null)
+        {
+            var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
+            foreach (var fleetCrew in fleetCrews)
+            {
+                await notificationService.NotifyCrewIfNotMutedAsync(
+                    fleetCrew.CrewId,
+                    NotificationKind.NewForumComment,
+                    MutedContentType.Forum,
+                    post.Id,
+                    "New forum comment",
+                    "A new comment was posted on a forum thread.",
+                    actionUrl,
+                    relatedEntityId: post.Id,
+                    secondaryEntityId: comment.Id,
+                    excludeUserId: userId,
+                    cancellationToken: cancellationToken);
+            }
+        }
+
+        return new ForumOperationResponse
+        {
+            Success = true,
+            Message = "Comment posted.",
+            CommentId = comment.Id
+        };
+    }
+}

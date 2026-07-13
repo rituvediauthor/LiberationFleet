@@ -1,0 +1,27 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
+  <div class="discussion-create-page">
+    <h1 class="page-title">Create forum post</h1>
+
+    <form [formGroup]="form">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input id="title" class="form-input" type="text" formControlName="title" placeholder="Post title" />
+      </div>
+
+      <div class="form-group">
+        <label for="body">Body</label>
+        <textarea
+          id="body"
+          class="form-input textarea"
+          rows="8"
+          formControlName="body"
+          placeholder="Write your post"></textarea>
+      </div>
+
+      <label class="checkbox-field">
+        <input type="checkbox" formControlName="isAdultContent" />
+        <span>18+ — contains adult or graphic content</span>
+      </label>
+    </form>
+  </div>
+</app-page-layout>

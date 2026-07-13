@@ -60,6 +60,11 @@ public static class CrewUpdateValidator
         {
             privacy = Enum.Parse<CrewPrivacy>(request.Privacy, ignoreCase: true);
             scope = Enum.Parse<CrewScope>(request.Scope, ignoreCase: true);
+            if (!Enum.IsDefined(privacy) || !Enum.IsDefined(scope))
+            {
+                return Failure("Invalid privacy, location type, or cycle cap mode.");
+            }
+
             _ = ParseCycleCapMode(request.MemberCycleCapMode);
             _ = ParseCycleCapMode(request.NonMemberCycleCapMode);
         }

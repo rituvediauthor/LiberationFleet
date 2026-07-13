@@ -14,8 +14,8 @@ public class CreateCrewCommandValidator : AbstractValidator<CreateCrewCommand>
             .InclusiveBetween(2, 50).WithMessage("Crew size must be between 2 and 50");
 
         RuleFor(x => x.Privacy)
-            .Must(p => p is "Public" or "Private")
-            .WithMessage("Privacy must be Public or Private");
+            .Must(p => p is "Public" or "Private" or "InviteOnly")
+            .WithMessage("Privacy must be Public, Private, or Invite Only");
 
         RuleFor(x => x.Scope)
             .Must(s => s is "Local" or "Online")

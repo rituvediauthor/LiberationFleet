@@ -46,6 +46,42 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<LibraryCategory>> GetCategoriesInUseForCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        LibraryOfferingKind? kind,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return Array.Empty<LibraryCategory>();
+        }
+
+        var offeringQuery = context.LibraryOfferings
+            .AsNoTracking()
+            .Where(o => crewIds.Contains(o.CrewId) && !o.IsDeleted);
+
+        if (kind.HasValue)
+        {
+            offeringQuery = offeringQuery.Where(o => o.Kind == kind.Value);
+        }
+
+        offeringQuery = offeringQuery.Where(o => o.Units.Any(u =>
+            !u.IsRetired && u.Status != LibraryUnitStatus.Broken));
+
+        var categoryIds = await context.LibraryOfferingCategories
+            .AsNoTracking()
+            .Where(oc => offeringQuery.Select(o => o.Id).Contains(oc.OfferingId))
+            .Select(oc => oc.CategoryId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return await context.LibraryCategories
+            .Where(c => categoryIds.Contains(c.Id))
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<LibraryUnitListPage> GetDurableUnitsForCrewAsync(
         int crewId,
         string? search,
@@ -61,6 +97,49 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(c => c.Category)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => u.Offering.CrewId == crewId
+                && !u.Offering.IsDeleted
+                && u.Offering.Kind == LibraryOfferingKind.Durable
+                && !u.IsRetired
+                && u.Status != LibraryUnitStatus.Broken);
+
+        if (categoryIds.Count > 0)
+        {
+            query = query.Where(u => u.Offering.Categories.Any(c => categoryIds.Contains(c.CategoryId)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalized = search.Trim().ToLowerInvariant();
+            query = query.Where(u =>
+                u.Offering.TitleNormalized.Contains(normalized)
+                || u.CurrentPossessorUser.Username.ToLower().Contains(normalized));
+        }
+
+        return await ToUnitListPageAsync(query, limit, offset, cancellationToken);
+    }
+
+    public async Task<LibraryUnitListPage> GetDurableUnitsForCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        string? search,
+        IReadOnlyCollection<int> categoryIds,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return new LibraryUnitListPage { Items = Array.Empty<LibraryUnit>(), HasMore = false };
+        }
+
+        var query = context.LibraryUnits
+            .AsNoTracking()
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Categories)
+                .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Crew)
+            .Include(u => u.CurrentPossessorUser)
+            .Where(u => crewIds.Contains(u.Offering.CrewId)
                 && !u.Offering.IsDeleted
                 && u.Offering.Kind == LibraryOfferingKind.Durable
                 && !u.IsRetired
@@ -100,6 +179,52 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(o => o.CreatorUser)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => u.Offering.CrewId == crewId
+                && !u.Offering.IsDeleted
+                && u.Offering.Kind == kind
+                && !u.IsRetired
+                && u.Status != LibraryUnitStatus.Broken);
+
+        if (categoryIds.Count > 0)
+        {
+            query = query.Where(u => u.Offering.Categories.Any(c => categoryIds.Contains(c.CategoryId)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalized = search.Trim().ToLowerInvariant();
+            query = query.Where(u =>
+                u.Offering.TitleNormalized.Contains(normalized)
+                || u.Offering.CreatorUser.Username.ToLower().Contains(normalized));
+        }
+
+        return await ToUnitListPageAsync(query, limit, offset, cancellationToken);
+    }
+
+    public async Task<LibraryUnitListPage> GetStockUnitsForCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        LibraryOfferingKind kind,
+        string? search,
+        IReadOnlyCollection<int> categoryIds,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return new LibraryUnitListPage { Items = Array.Empty<LibraryUnit>(), HasMore = false };
+        }
+
+        var query = context.LibraryUnits
+            .AsNoTracking()
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Categories)
+                .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.CreatorUser)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Crew)
+            .Include(u => u.CurrentPossessorUser)
+            .Where(u => crewIds.Contains(u.Offering.CrewId)
                 && !u.Offering.IsDeleted
                 && u.Offering.Kind == kind
                 && !u.IsRetired
@@ -232,6 +357,33 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                     && u.Offering.CrewId == crewId
                     && !u.Offering.IsDeleted,
                 cancellationToken);
+
+    public async Task<LibraryUnit?> GetUnitByIdForCrewIdsAsync(
+        int unitId,
+        IReadOnlyCollection<int> crewIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return null;
+        }
+
+        return await context.LibraryUnits
+            .AsNoTracking()
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Categories)
+                .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.CreatorUser)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Crew)
+            .Include(u => u.CurrentPossessorUser)
+            .FirstOrDefaultAsync(
+                u => u.Id == unitId
+                    && crewIds.Contains(u.Offering.CrewId)
+                    && !u.Offering.IsDeleted,
+                cancellationToken);
+    }
 
     public async Task<LibraryUnit?> GetTrackedUnitByIdAsync(
         int unitId,

@@ -10,6 +10,8 @@ public class ForumListItemDto
     public DateTime LastActivityAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public string? Title { get; set; }
+    public string? Body { get; set; }
     public bool IsAdultContent { get; set; }
 }
 
@@ -33,6 +35,7 @@ public class ForumCommentDto
     public int ReplyCount { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public string? Body { get; set; }
 }
 
 public class ForumListResponse
@@ -66,12 +69,25 @@ public class CreateForumPostRequest
     public List<int> MentionedUserIds { get; set; } = [];
 }
 
+public class CreateFleetForumPostRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public bool IsAdultContent { get; set; }
+}
+
 public class UpdateForumPostRequest
 {
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public List<int> MentionedUserIds { get; set; } = [];
+}
+
+public class UpdateFleetForumPostRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
 }
 
 public class CreateForumCommentRequest
@@ -83,12 +99,23 @@ public class CreateForumCommentRequest
     public List<int> MentionedUserIds { get; set; } = [];
 }
 
+public class CreateFleetForumCommentRequest
+{
+    public int? ParentCommentId { get; set; }
+    public string Body { get; set; } = string.Empty;
+}
+
 public class UpdateForumCommentRequest
 {
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public List<int> MentionedUserIds { get; set; } = [];
+}
+
+public class UpdateFleetForumCommentRequest
+{
+    public string Body { get; set; } = string.Empty;
 }
 
 public class ForumCommentRepliesResponse

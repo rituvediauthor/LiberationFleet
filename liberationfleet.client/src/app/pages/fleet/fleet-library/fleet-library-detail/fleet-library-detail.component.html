@@ -1,0 +1,36 @@
+<app-page-layout [backButton]="backButton">
+  <div class="unit-detail-page">
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <ng-container *ngIf="!loading && detail">
+      <div class="unit-detail-hero" *ngIf="carouselImages.length > 0">
+        <app-library-image-carousel
+          [images]="carouselImages"
+          [title]="detail.title">
+        </app-library-image-carousel>
+      </div>
+
+      <div class="unit-detail-body">
+        <div class="detail-header">
+          <h1 class="detail-title">{{ detail.title }}</h1>
+          <p class="detail-meta" *ngIf="detail.crewName">Crew: {{ detail.crewName }}</p>
+          <p class="detail-meta">{{ holderLabel }}: {{ detail.holderUsername }}</p>
+          <p class="out-of-stock-tag" *ngIf="detail.isOutOfStock">Out of stock</p>
+          <div class="category-tags" *ngIf="detail.categories.length > 0">
+            <span class="category-tag" *ngFor="let category of detail.categories">{{ category }}</span>
+          </div>
+        </div>
+
+        <p class="detail-description">{{ detail.descriptionPreview }}</p>
+        <p class="detail-meta" *ngIf="!detail.isOutOfStock && detail.remainingStock != null">
+          {{ detail.remainingStock }} available
+        </p>
+
+        <p class="notice">
+          Cross-crew library requests aren't available yet. Use your crew Library of Things for offerings from your crew.
+        </p>
+      </div>
+    </ng-container>
+  </div>
+</app-page-layout>

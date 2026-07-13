@@ -29,7 +29,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   if (path.startsWith('/app/crew/chats/')) {
     return 'chats';
   }
-  if (path.startsWith('/app/crew/forums/')) {
+  if (path.startsWith('/app/crew/forums/') || path.startsWith('/app/fleet/forums/')) {
     return 'forums';
   }
   if (path.startsWith('/app/crew/proposals')) {
