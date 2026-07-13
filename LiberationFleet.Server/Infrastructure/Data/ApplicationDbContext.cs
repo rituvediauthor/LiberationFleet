@@ -190,7 +190,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.MemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(2m);
             entity.Property(e => e.NonMemberCycleCapMode).HasDefaultValue(CycleCapMode.CapacityBased);
             entity.Property(e => e.NonMemberCycleCapFixedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
-            entity.Property(e => e.NonMemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(0.25m);
+            entity.Property(e => e.NonMemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(0.5m);
             entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
             entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);
             entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
@@ -212,6 +212,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsDecentralizer).HasDefaultValue(false);
             entity.Property(e => e.IsCeremonialOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsModerator).HasDefaultValue(false);
+            entity.Property(e => e.IsIntermediary).HasDefaultValue(false);
+            entity.Property(e => e.IntermediaryFailedCompletions).HasDefaultValue(0);
+            entity.Property(e => e.EmergencySacrificesThisSeason).HasDefaultValue(0);
             entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
             entity.Property(e => e.CanAttachFiles).HasDefaultValue(false);
             entity.Property(e => e.CanCreateProposals).HasDefaultValue(false);
@@ -277,6 +280,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.CrewId, e.UserId, e.SeasonStartDate });
             entity.Property(e => e.CycleCapAtStart).HasPrecision(18, 2);
+            entity.Property(e => e.CycleCapAtCompletion).HasPrecision(18, 2);
             entity.Property(e => e.TotalReceptionAmount).HasPrecision(18, 2);
             entity.Property(e => e.SurvivalThresholdReceived).HasPrecision(18, 2);
             entity.Property(e => e.CycleReceived).HasPrecision(18, 2);

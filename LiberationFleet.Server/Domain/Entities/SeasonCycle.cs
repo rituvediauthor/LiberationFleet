@@ -7,6 +7,8 @@ public class SeasonCycle
     public int UserId { get; set; }
     public DateTime SeasonStartDate { get; set; }
     public decimal CycleCapAtStart { get; set; }
+    /// <summary>Effective cycle cap when this cycle last completed; used for catch-up when caps grow.</summary>
+    public decimal CycleCapAtCompletion { get; set; }
     public decimal TotalReceptionAmount { get; set; }
     public decimal SurvivalThresholdReceived { get; set; }
     public decimal CycleReceived { get; set; }

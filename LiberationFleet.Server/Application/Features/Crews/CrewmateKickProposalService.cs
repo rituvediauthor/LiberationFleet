@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
@@ -11,6 +12,7 @@ public class CrewmateKickProposalService(
     IProposalRepository proposalRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
+    IMutualAidService mutualAidService,
     NotificationService notificationService,
     LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService)
@@ -33,6 +35,7 @@ public class CrewmateKickProposalService(
             sourceProposalId,
             sourceCommentId,
             reason,
+            ProposalKind.CrewmateKick,
             cancellationToken);
 
     public Task<CrewmateKickProposalResult> CreateFromCrewmateProfileAsync(
@@ -51,6 +54,26 @@ public class CrewmateKickProposalService(
             sourceProposalId: null,
             sourceCommentId: null,
             reason,
+            ProposalKind.CrewmateKick,
+            cancellationToken);
+
+    public Task<CrewmateKickProposalResult> CreateSeasonKickFromCrewmateProfileAsync(
+        int crewId,
+        int authorUserId,
+        int targetUserId,
+        string username,
+        string reason,
+        CancellationToken cancellationToken) =>
+        CreateProposalAsync(
+            crewId,
+            authorUserId,
+            targetUserId,
+            username,
+            isAnonymousOrigin: false,
+            sourceProposalId: null,
+            sourceCommentId: null,
+            reason,
+            ProposalKind.CrewmateSeasonKick,
             cancellationToken);
 
     private async Task<CrewmateKickProposalResult> CreateProposalAsync(
@@ -62,16 +85,19 @@ public class CrewmateKickProposalService(
         int? sourceProposalId,
         int? sourceCommentId,
         string reason,
+        ProposalKind kind,
         CancellationToken cancellationToken)
     {
-        var pendingKick = await proposalRepository.GetPendingCrewmateKickForTargetAsync(
-            crewId,
-            targetUserId,
-            cancellationToken);
+        var isSeasonKick = kind == ProposalKind.CrewmateSeasonKick;
+        var pendingKick = isSeasonKick
+            ? await proposalRepository.GetPendingSeasonKickForTargetAsync(crewId, targetUserId, cancellationToken)
+            : await proposalRepository.GetPendingCrewmateKickForTargetAsync(crewId, targetUserId, cancellationToken);
         if (pendingKick is not null)
         {
             return CrewmateKickProposalResult.Failed(
-                "A kick proposal for this crewmate is already pending.",
+                isSeasonKick
+                    ? "A season-removal proposal for this crewmate is already pending."
+                    : "A kick proposal for this crewmate is already pending.",
                 pendingKick.ProposalId);
         }
 
@@ -80,7 +106,7 @@ public class CrewmateKickProposalService(
         {
             CrewId = crewId,
             AuthorUserId = authorUserId,
-            Kind = ProposalKind.CrewmateKick,
+            Kind = kind,
             CreatedAt = utcNow,
             LastActivityAt = utcNow
         };
@@ -89,11 +115,29 @@ public class CrewmateKickProposalService(
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
         var trimmedReason = reason.Trim();
-        var description = isAnonymousOrigin
-            ? sourceCommentId.HasValue
-                ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion. Reason: {trimmedReason}"
-                : $"Remove {displayName} from the crew following a malicious anonymous proposal. Reason: {trimmedReason}"
-            : $"Remove {displayName} from the crew. Reason: {trimmedReason}";
+        string title;
+        string description;
+        string notifyBody;
+        string successMessage;
+
+        if (isSeasonKick)
+        {
+            title = $"Remove {displayName} from season";
+            description = $"Remove {displayName} from the season (not from the crew). Reason: {trimmedReason}";
+            notifyBody = $"A proposal was submitted to remove {displayName} from the season.";
+            successMessage = "Season-removal proposal submitted.";
+        }
+        else
+        {
+            title = $"Kick {displayName}";
+            description = isAnonymousOrigin
+                ? sourceCommentId.HasValue
+                    ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion. Reason: {trimmedReason}"
+                    : $"Remove {displayName} from the crew following a malicious anonymous proposal. Reason: {trimmedReason}"
+                : $"Remove {displayName} from the crew. Reason: {trimmedReason}";
+            notifyBody = $"A proposal was submitted to kick {displayName} from the crew.";
+            successMessage = "Kick proposal submitted.";
+        }
 
         await proposalRepository.AddCrewmateKickAsync(new ProposalCrewmateKick
         {
@@ -102,7 +146,7 @@ public class CrewmateKickProposalService(
             SourceProposalId = sourceProposalId ?? 0,
             SourceCommentId = sourceCommentId,
             AnonymousNickname = displayName,
-            Title = $"Kick {displayName}",
+            Title = title,
             Description = description
         }, cancellationToken);
 
@@ -110,18 +154,19 @@ public class CrewmateKickProposalService(
             crewId,
             NotificationKind.NewProposal,
             "New proposal",
-            $"A proposal was submitted to kick {displayName} from the crew.",
+            notifyBody,
             $"/app/crew/proposals/{proposal.Id}",
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
 
-        return CrewmateKickProposalResult.Succeeded(proposal.Id, "Kick proposal submitted.");
+        return CrewmateKickProposalResult.Succeeded(proposal.Id, successMessage);
     }
 
     public async Task TryApplyApprovedProposalAsync(Proposal proposal, CancellationToken cancellationToken)
     {
-        if (proposal.Kind != ProposalKind.CrewmateKick || proposal.Status != ProposalStatus.Approved)
+        if (proposal.Status != ProposalStatus.Approved
+            || (proposal.Kind != ProposalKind.CrewmateKick && proposal.Kind != ProposalKind.CrewmateSeasonKick))
         {
             return;
         }
@@ -132,44 +177,77 @@ public class CrewmateKickProposalService(
             return;
         }
 
+        var isSeasonKick = proposal.Kind == ProposalKind.CrewmateSeasonKick;
         var isAnonymousOrigin = kick.SourceProposalId > 0;
         var targetUser = await userRepository.GetByIdWithProfileAsync(kick.TargetUserId, cancellationToken);
         if (targetUser is not null)
         {
             kick.RevealedUsername = targetUser.Username;
-            kick.Description = isAnonymousOrigin
-                ? $"{kick.AnonymousNickname} was identified as {targetUser.Username} and removed from the crew."
-                : $"{targetUser.Username} was removed from the crew.";
+            if (isSeasonKick)
+            {
+                kick.Description = $"{targetUser.Username} was removed from the season.";
+            }
+            else
+            {
+                kick.Description = isAnonymousOrigin
+                    ? $"{kick.AnonymousNickname} was identified as {targetUser.Username} and removed from the crew."
+                    : $"{targetUser.Username} was removed from the crew.";
+            }
         }
 
-        var membership = await membershipRepository.GetMembershipAsync(kick.TargetUserId, proposal.CrewId, cancellationToken);
-        if (membership is not null && !membership.IsBanned)
+        if (isSeasonKick)
         {
-            await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
+            await mutualAidService.RemoveMemberFromSeasonAsync(
                 proposal.CrewId,
                 kick.TargetUserId,
                 cancellationToken);
-            membership.IsBanned = true;
+        }
+        else
+        {
+            var membership = await membershipRepository.GetMembershipAsync(kick.TargetUserId, proposal.CrewId, cancellationToken);
+            if (membership is not null && !membership.IsBanned)
+            {
+                await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
+                    proposal.CrewId,
+                    kick.TargetUserId,
+                    cancellationToken);
+                membership.IsBanned = true;
+            }
         }
 
         kick.IsApplied = true;
 
         if (targetUser is not null)
         {
-            var notificationBody = isAnonymousOrigin
-                ? $"{kick.AnonymousNickname} ({targetUser.Username}) was removed from the crew."
-                : $"{targetUser.Username} was removed from the crew.";
+            string notificationTitle;
+            string notificationBody;
+
+            if (isSeasonKick)
+            {
+                notificationTitle = "Removed from the season";
+                notificationBody = $"{targetUser.Username} was removed from the season.";
+            }
+            else
+            {
+                notificationTitle = "Crewmate kicked";
+                notificationBody = isAnonymousOrigin
+                    ? $"{kick.AnonymousNickname} ({targetUser.Username}) was removed from the crew."
+                    : $"{targetUser.Username} was removed from the crew.";
+            }
 
             await notificationService.NotifyCrewAsync(
                 proposal.CrewId,
                 NotificationKind.CrewmateKicked,
-                "Crewmate kicked",
+                notificationTitle,
                 notificationBody,
                 $"/app/crew/proposals/{proposal.Id}",
                 relatedEntityId: kick.TargetUserId,
                 cancellationToken: cancellationToken);
         }
 
-        await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(proposal.CrewId, cancellationToken);
+        if (!isSeasonKick)
+        {
+            await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(proposal.CrewId, cancellationToken);
+        }
     }
 }

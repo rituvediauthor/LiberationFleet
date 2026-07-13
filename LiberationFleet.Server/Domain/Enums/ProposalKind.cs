@@ -11,5 +11,6 @@ public enum ProposalKind
     CrewJoinRequest = 6,
     CrewRoleChange = 7,
     ClaimPlaceholderIdentity = 8,
-    CrewmatePermissionGrant = 9
+    CrewmatePermissionGrant = 9,
+    CrewmateSeasonKick = 10
 }

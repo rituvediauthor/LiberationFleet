@@ -13,6 +13,9 @@ public class CrewMembership
     public bool IsDecentralizer { get; set; }
     public bool IsCeremonialOrganizer { get; set; }
     public bool IsModerator { get; set; }
+    public bool IsIntermediary { get; set; }
+    public int IntermediaryFailedCompletions { get; set; }
+    public int EmergencySacrificesThisSeason { get; set; }
     public bool IsPlaceholderMember { get; set; }
     public bool CanAttachFiles { get; set; }
     public bool CanCreateProposals { get; set; }

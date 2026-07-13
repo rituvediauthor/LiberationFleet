@@ -55,6 +55,7 @@ public class GetCrewmatesQueryHandler(
                 LastLoginAt = member.User.LastLoginAt,
                 IsSelf = member.UserId == viewerId,
                 IsPlaceholderMember = member.IsPlaceholderMember,
+                IsInSeason = member.IsInSeason,
                 PlatformDisplay = CrewmateMapper.MapPlatformDisplay(viewer, member.User),
                 FriendshipState = CrewmateMapper.MapFriendshipState(
                     viewerId,

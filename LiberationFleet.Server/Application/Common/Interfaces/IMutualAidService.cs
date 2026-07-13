@@ -11,6 +11,7 @@ public interface IMutualAidService
         int limit = 30,
         bool requireGiverInSeason = true,
         bool excludeSelfAsRecipient = true,
+        bool forRecordGift = false,
         CancellationToken cancellationToken = default);
     Task<NextAidDto?> GetNextAidAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonReadyResultDto> MarkSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
@@ -36,6 +37,9 @@ public interface IMutualAidService
         int crewId,
         CrewMembership membership,
         CancellationToken cancellationToken = default);
+    Task RemoveMemberFromSeasonAsync(int crewId, int userId, CancellationToken cancellationToken = default);
+    Task RecordEmergencySacrificeAsync(int crewId, int sacrificerUserId, CancellationToken cancellationToken = default);
+    Task RecordIntermediaryFailureAsync(int crewId, int intermediaryUserId, CancellationToken cancellationToken = default);
     IReadOnlyList<int> FindMiddlemen(int giverUserId, int recipientUserId, IReadOnlyList<CrewMemberPlatforms> members);
 }
 
@@ -114,7 +118,7 @@ public static class NextAidPlatformDisplayKind
     public const string None = "none";
     public const string Preferred = "preferred";
     public const string Common = "common";
-    public const string MiddlemanNeeded = "middlemanNeeded";
+    public const string MiddlemanNeeded = "intermediaryNeeded";
     public const string Unavailable = "unavailable";
 }
 
@@ -122,6 +126,7 @@ public class CrewMemberPlatforms
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public bool IsIntermediary { get; set; }
     public IReadOnlyList<int> PlatformIds { get; set; } = Array.Empty<int>();
     public IReadOnlyList<PlatformAccountDto> PlatformAccounts { get; set; } = Array.Empty<PlatformAccountDto>();
     public int? PreferredPlatformId { get; set; }

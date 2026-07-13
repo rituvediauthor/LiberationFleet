@@ -64,6 +64,7 @@ public class GetMyCrewMembershipQueryHandlerTests
 
         return new GetMyCrewMembershipQueryHandler(
             membershipRepository.Object,
+            HandlerTestFixture.CreateGiftRepositoryMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
     }
 }

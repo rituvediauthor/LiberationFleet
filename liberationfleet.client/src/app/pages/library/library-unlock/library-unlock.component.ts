@@ -38,7 +38,9 @@ export class LibraryUnlockComponent implements OnInit {
     this.libraryAccess.resolveAccess().subscribe({
       next: (access: LibraryAccessResult) => {
         if (access.allowed) {
-          this.router.navigate(['/app/crew/library-of-things']);
+          if (this.router.url.includes('/library-of-things/unlock')) {
+            void this.router.navigate(['/app/crew/library-of-things'], { replaceUrl: true });
+          }
           return;
         }
 

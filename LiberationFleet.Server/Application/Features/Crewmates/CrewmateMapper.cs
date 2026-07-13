@@ -150,6 +150,7 @@ public static class CrewmateMapper
             CanModerateAttachments = CrewRoleAuthorizationService.CanModerateAttachments(viewerMembership),
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership),
             IsPlaceholderMember = membership.IsPlaceholderMember,
+            IsInSeason = membership.IsInSeason,
             CanClaimIdentity = canClaimIdentity
         };
     }

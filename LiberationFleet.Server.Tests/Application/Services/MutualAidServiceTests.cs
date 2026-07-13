@@ -25,12 +25,26 @@ public class MutualAidServiceTests
     }
 
     [Fact]
-    public void FindMiddlemen_WhenNoDirectOverlap_ReturnsSharedMiddleman()
+    public void FindMiddlemen_WhenNoDirectOverlap_ReturnsSharedIntermediary()
     {
         var members = CreateMemberPlatforms();
         var service = CreateService();
 
         service.FindMiddlemen(1, 2, members).Should().BeEquivalentTo([3]);
+    }
+
+    [Fact]
+    public void FindMiddlemen_WhenCandidateLacksIntermediaryRole_ReturnsEmpty()
+    {
+        var members = new List<CrewMemberPlatforms>
+        {
+            new() { UserId = 1, Username = "giver", PlatformIds = [1] },
+            new() { UserId = 2, Username = "recipient", PlatformIds = [2] },
+            new() { UserId = 3, Username = "middle", PlatformIds = [1, 2], IsIntermediary = false }
+        };
+        var service = CreateService();
+
+        service.FindMiddlemen(1, 2, members).Should().BeEmpty();
     }
 
     [Fact]
@@ -89,9 +103,13 @@ public class MutualAidServiceTests
     }
 
     [Fact]
-    public async Task GetReceptionOrderAsync_PopulatesMiddlemanOptionsWhenPlatformsDoNotOverlap()
+    public async Task GetReceptionOrderAsync_PopulatesIntermediaryOptionsWhenPlatformsDoNotOverlap()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var carolMembership = await fixture.Context.CrewMemberships.SingleAsync(m => m.UserId == fixture.Carol.Id);
+        carolMembership.IsIntermediary = true;
+        await fixture.Context.SaveChangesAsync();
 
         var order = await fixture.Service.GetReceptionOrderAsync(
             fixture.Alice.Id,
@@ -193,7 +211,8 @@ public class MutualAidServiceTests
         nextAid.Should().NotBeNull();
         nextAid!.RecipientName.Should().Be("bob");
         nextAid.IsCurrentUserRecipient.Should().BeFalse();
-        nextAid.PlatformDisplayKind.Should().Be(NextAidPlatformDisplayKind.MiddlemanNeeded);
+        // Without an elected Intermediary, unmatched platforms are unavailable.
+        nextAid.PlatformDisplayKind.Should().Be(NextAidPlatformDisplayKind.Unavailable);
     }
 
     [Fact]
@@ -270,9 +289,16 @@ public class MutualAidServiceTests
     }
 
     [Fact]
-    public async Task ApplyGiftReceptionAsync_SkipsCustomGifts()
+    public async Task ApplyGiftReceptionAsync_CustomGift_CreditsTotalWithoutStartingInactiveCycle()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        // Ensure Bob's cycle is not the active frontmost cycle.
+        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        bobCycle.HasCycleStarted = false;
+        bobCycle.ReceptionOrderPosition = 10;
+        await fixture.Context.SaveChangesAsync();
+        await fixture.Service.GetReceptionOrderAsync(fixture.Alice.Id, cancellationToken: CancellationToken.None);
 
         var gift = new Gift
         {
@@ -294,7 +320,8 @@ public class MutualAidServiceTests
 
         var cycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
         cycle.CycleReceived.Should().Be(0m);
-        cycle.TotalReceptionAmount.Should().Be(0m);
+        cycle.TotalReceptionAmount.Should().Be(50m);
+        cycle.HasCycleStarted.Should().BeFalse();
     }
 
     [Fact]
@@ -501,7 +528,7 @@ public class MutualAidServiceTests
     [
         new CrewMemberPlatforms { UserId = 1, Username = "giver", PlatformIds = [1] },
         new CrewMemberPlatforms { UserId = 2, Username = "recipient", PlatformIds = [2] },
-        new CrewMemberPlatforms { UserId = 3, Username = "middle", PlatformIds = [1, 2] }
+        new CrewMemberPlatforms { UserId = 3, Username = "middle", PlatformIds = [1, 2], IsIntermediary = true }
     ];
 
     private static MutualAidService CreateService()

@@ -135,6 +135,7 @@ public static class ProposalMapper
             or ProposalKind.CrewRuleChange
             or ProposalKind.CrewChatChange
             or ProposalKind.CrewmateKick
+            or ProposalKind.CrewmateSeasonKick
             or ProposalKind.CrewmateRejoin
             or ProposalKind.CrewJoinRequest
             or ProposalKind.CrewRoleChange
@@ -225,6 +226,7 @@ public static class ProposalMapper
             or ProposalKind.CrewRuleChange
             or ProposalKind.CrewChatChange
             or ProposalKind.CrewmateKick
+            or ProposalKind.CrewmateSeasonKick
             or ProposalKind.CrewmateRejoin
             or ProposalKind.CrewJoinRequest
             or ProposalKind.CrewRoleChange

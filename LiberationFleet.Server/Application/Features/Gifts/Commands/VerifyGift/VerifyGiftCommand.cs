@@ -232,6 +232,10 @@ public class VerifyGiftCommandHandler(
         {
             await mutualAidService.ApplyGiftReceptionForUserAsync(gift, gift.MiddlemanUserId.Value, cancellationToken);
             gift.ReceptionApplied = true;
+            await mutualAidService.RecordIntermediaryFailureAsync(
+                gift.CrewId,
+                gift.MiddlemanUserId.Value,
+                cancellationToken);
         }
     }
 

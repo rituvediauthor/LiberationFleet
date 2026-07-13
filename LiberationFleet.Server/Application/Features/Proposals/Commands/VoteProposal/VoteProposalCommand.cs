@@ -56,7 +56,7 @@ public class VoteProposalCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
-        if (proposal.Kind == ProposalKind.CrewmateKick)
+        if (proposal.Kind is ProposalKind.CrewmateKick or ProposalKind.CrewmateSeasonKick)
         {
             var kick = await proposalRepository.GetCrewmateKickByProposalIdAsync(proposal.Id, cancellationToken);
             if (kick is not null && kick.TargetUserId == userId)
@@ -64,7 +64,9 @@ public class VoteProposalCommandHandler(
                 return new ProposalOperationResponse
                 {
                     Success = false,
-                    Message = "You cannot vote on a proposal to kick you from the crew."
+                    Message = proposal.Kind == ProposalKind.CrewmateSeasonKick
+                        ? "You cannot vote on a proposal to remove you from the season."
+                        : "You cannot vote on a proposal to kick you from the crew."
                 };
             }
         }

@@ -12,6 +12,7 @@ export interface CrewmateListItem {
   lastLoginAt: string | null;
   isSelf: boolean;
   isPlaceholderMember: boolean;
+  isInSeason?: boolean;
   platformDisplay: CrewmatePlatformDisplay | null;
   friendshipState: CrewmateFriendshipState;
 }
@@ -83,6 +84,7 @@ export interface CrewmateProfile {
   canExportCrewData: boolean;
   isPlaceholderMember: boolean;
   canClaimIdentity: boolean;
+  isInSeason?: boolean;
 }
 
 export interface CrewmateProfileResponse {

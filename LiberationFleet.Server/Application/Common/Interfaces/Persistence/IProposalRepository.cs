@@ -44,6 +44,10 @@ public interface IProposalRepository
         int crewId,
         int targetUserId,
         CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateKick?> GetPendingSeasonKickForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default);
     Task<ProposalCrewmateRejoin?> GetCrewmateRejoinByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<int, ProposalCrewmateRejoin>> GetCrewmateRejoinsByProposalIdsAsync(
         IEnumerable<int> proposalIds,

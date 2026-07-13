@@ -6,7 +6,11 @@
       <p *ngIf="errorMessage" class="state-text error">{{ errorMessage }}</p>
       <p *ngIf="loadingMore" class="state-text">Loading older gifts…</p>
 
-      <div class="log-list" *ngIf="!loading && !errorMessage">
+      <p *ngIf="!loading && !errorMessage && entries.length === 0" class="state-text">
+        {{ userInSeason ? 'No gifts recorded yet.' : 'Join the season to record gifts. You can still view the gift log if available.' }}
+      </p>
+
+      <div class="log-list" *ngIf="!loading && !errorMessage && entries.length > 0">
         <article
           *ngFor="let entry of entries; let i = index"
           class="log-entry"
@@ -86,6 +90,7 @@
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
-    <button type="button" class="record-btn" (click)="goToRecordGift()">Record Gift</button>
+    <button *ngIf="seasonStarted && userInSeason" type="button" class="record-btn" (click)="goToRecordGift()">Record Gift</button>
+    <button *ngIf="seasonStarted && !userInSeason" type="button" class="record-btn" (click)="goToJoinSeason()">Join season</button>
   </div>
 </div>

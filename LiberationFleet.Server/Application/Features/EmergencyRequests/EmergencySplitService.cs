@@ -124,11 +124,9 @@ public class EmergencySplitService(
         ReduceSegmentCap(offererPrimary, amount, capacityContext, offererIsMember);
         ReduceSegmentCap(requesterPrimary, amount, capacityContext, requesterIsMember);
 
-        var minPosition = cycles
-            .Where(c => !c.CycleCompleted)
-            .Select(c => (int?)c.ReceptionOrderPosition)
-            .DefaultIfEmpty(0)
-            .Min() ?? 0;
+        // Emergency segment sits immediately in front of the sacrificer's (offerer's) primary cycle.
+        var emergencyPosition = offererPrimary.ReceptionOrderPosition;
+        ShiftPositionsFrom(cycles, emergencyPosition);
 
         var emergencySegment = new SeasonCycle
         {
@@ -142,13 +140,14 @@ public class EmergencySplitService(
             SurvivalThresholdReceived = 0m,
             CycleReceived = 0m,
             CycleCompleted = false,
-            PriorityScoreAtSeasonStart = requesterPrimary.PriorityScoreAtSeasonStart,
-            ReceptionOrderPosition = minPosition,
+            PriorityScoreAtSeasonStart = offererPrimary.PriorityScoreAtSeasonStart,
+            ReceptionOrderPosition = emergencyPosition,
             HasCycleStarted = false
         };
         await mutualAidRepository.AddSeasonCycleAsync(emergencySegment, cancellationToken);
         cycles.Add(emergencySegment);
 
+        // Payback sits immediately in front of the requester's primary cycle.
         var paybackPosition = requesterPrimary.ReceptionOrderPosition;
         ShiftPositionsFrom(cycles, paybackPosition);
 
@@ -175,6 +174,8 @@ public class EmergencySplitService(
         {
             request.Status = EmergencyRequestStatus.Fulfilled;
         }
+
+        await mutualAidService.RecordEmergencySacrificeAsync(request.CrewId, offererUserId, cancellationToken);
 
         return EmergencySplitResult.Succeeded("Cycle split recorded.");
     }

@@ -110,7 +110,8 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         }
         return null;
       case 'middlemanNeeded':
-        return 'Middle-man needed';
+      case 'intermediaryNeeded':
+        return 'Intermediary needed';
       case 'unavailable':
         return 'No payment platform';
       default:

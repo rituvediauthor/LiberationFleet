@@ -54,9 +54,9 @@ export class GiftService {
       next: status => {
         if (!status.seasonStarted) {
           router.navigate(['/app/crew/season-setup']);
-        } else if (!status.userInSeason) {
-          router.navigate(['/app/crew/join-season']);
         } else {
+          // Season members and non-members both land on the gift log.
+          // Non-members see Join season instead of Record gift.
           router.navigate(['/app/crew/gift-log']);
         }
       },

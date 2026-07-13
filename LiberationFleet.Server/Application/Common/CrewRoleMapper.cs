@@ -35,6 +35,11 @@ public static class CrewRoleMapper
             roles.Add("Moderator");
         }
 
+        if (membership.IsIntermediary)
+        {
+            roles.Add("Intermediary");
+        }
+
         if (membership.IsHonoraryMember)
         {
             roles.Add("Honorary member");
@@ -87,6 +92,11 @@ public static class CrewRoleMapper
             roles.Add(CrewRole.Moderator);
         }
 
+        if (membership.IsIntermediary)
+        {
+            roles.Add(CrewRole.Intermediary);
+        }
+
         return roles;
     }
 
@@ -96,6 +106,7 @@ public static class CrewRoleMapper
         || membership.IsDecentralizer
         || membership.IsCeremonialOrganizer
         || membership.IsModerator
+        || membership.IsIntermediary
         || membership.IsHonoraryMember;
 
     public static bool HasRole(CrewMembership membership, CrewRole role) =>
@@ -105,6 +116,7 @@ public static class CrewRoleMapper
             CrewRole.Decentralizer => membership.IsDecentralizer,
             CrewRole.CeremonialOrganizer => membership.IsCeremonialOrganizer,
             CrewRole.Moderator => membership.IsModerator,
+            CrewRole.Intermediary => membership.IsIntermediary,
             _ => false
         };
 
@@ -115,6 +127,7 @@ public static class CrewRoleMapper
             CrewRole.Decentralizer => "Decentralizer",
             CrewRole.CeremonialOrganizer => "Ceremonial organizer",
             CrewRole.Moderator => "Moderator",
+            CrewRole.Intermediary => "Intermediary",
             _ => role.ToString()
         };
 
@@ -129,6 +142,8 @@ public static class CrewRoleMapper
                 "Organize events, celebrations, and ceremonies for the crew. No special app powers.",
             CrewRole.Moderator =>
                 "Delete inappropriate file attachments and restrict a crewmate's ability to attach files.",
+            CrewRole.Intermediary =>
+                "Bridge gifts when giver and recipient do not share a payment platform. Automatically loses the role after failing to complete two gifts.",
             _ => string.Empty
         };
 
@@ -163,6 +178,9 @@ public static class CrewRoleMapper
                 return true;
             case "moderator":
                 role = CrewRole.Moderator;
+                return true;
+            case "intermediary":
+                role = CrewRole.Intermediary;
                 return true;
             default:
                 role = default;
@@ -208,6 +226,13 @@ public static class CrewRoleMapper
                     break;
                 case CrewRole.Moderator:
                     membership.IsModerator = assign;
+                    break;
+                case CrewRole.Intermediary:
+                    membership.IsIntermediary = assign;
+                    if (assign)
+                    {
+                        membership.IntermediaryFailedCompletions = 0;
+                    }
                     break;
             }
         }

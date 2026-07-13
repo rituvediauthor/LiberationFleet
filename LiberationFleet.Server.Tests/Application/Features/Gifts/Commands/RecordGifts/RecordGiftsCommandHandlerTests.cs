@@ -84,6 +84,11 @@ public class RecordGiftsCommandHandlerTests
         membershipRepository
             .Setup(r => r.IsUserInCrewAsync(middleman.Id, crew.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        var middlemanMembership = HandlerTestFixture.CreateMembership(middleman, crew);
+        middlemanMembership.IsIntermediary = true;
+        membershipRepository
+            .Setup(r => r.GetMembershipAsync(middleman.Id, crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(middlemanMembership);
 
         Gift? savedGift = null;
         var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
@@ -198,7 +203,7 @@ public class RecordGiftsCommandHandlerTests
             CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.Message.Should().Be("Invalid middleman selection.");
+        result.Message.Should().Be("Invalid intermediary selection.");
     }
 
     [Fact]
@@ -268,11 +273,18 @@ public class RecordGiftsCommandHandlerTests
         notificationService ??= HandlerTestFixture.CreateNotificationService();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
 
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        userRepository
+            .Setup(r => r.GetByIdWithProfileAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int id, CancellationToken _) => HandlerTestFixture.CreateUser(id: id));
+
         return new RecordGiftsCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             membershipRepository.Object,
             giftRepository.Object,
             crewPaymentPlatformRepository.Object,
+            userRepository.Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             notificationService,
             unitOfWork.Object);
     }

@@ -1,7 +1,7 @@
 import { EncryptedPayload } from './crypto.model';
 
 export type GiftLogType = 'direct' | 'initiated' | 'completed';
-export type ReceptionEntryType = 'survivalThreshold' | 'cycle';
+export type ReceptionEntryType = 'survivalThreshold' | 'cycle' | 'catchUp';
 export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete';
 export type GiftDisplayFlag = 'notComplete' | 'cantComplete';
 export type GiftVerificationAction =
@@ -71,6 +71,7 @@ export interface GiftRecordItem {
   middlemanId?: number;
   isCustom: boolean;
   entryType?: ReceptionEntryType;
+  seasonCycleId?: number;
 }
 
 export interface PlatformAccount {
@@ -93,6 +94,7 @@ export interface ReceptionOrderEntry {
   entryType: ReceptionEntryType;
   thresholdId?: number;
   cycleUserId?: number;
+  seasonCycleId?: number;
   middlemanOptions: MiddlemanOption[];
   defaultMiddlemanId?: number;
   noSuitableMiddleman: boolean;
@@ -154,7 +156,7 @@ export interface NextAidInfo {
   recipientName: string;
   amount: number;
   isCurrentUserRecipient?: boolean;
-  platformDisplayKind?: 'none' | 'preferred' | 'common' | 'middlemanNeeded' | 'unavailable';
+  platformDisplayKind?: 'none' | 'preferred' | 'common' | 'middlemanNeeded' | 'intermediaryNeeded' | 'unavailable';
   platformName?: string;
   platformHandle?: string;
 }

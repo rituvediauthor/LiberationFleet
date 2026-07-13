@@ -20,6 +20,7 @@ public class RecordEmergencyGiftCommandHandler(
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IGiftRepository giftRepository,
     IMutualAidRepository mutualAidRepository,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordEmergencyGiftCommand, EmergencyRequestOperationResponse>
 {
     public async Task<EmergencyRequestOperationResponse> Handle(
@@ -125,7 +126,13 @@ public class RecordEmergencyGiftCommandHandler(
             emergencyRequest.Status = EmergencyRequestStatus.Fulfilled;
         }
 
+        await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (gift.CountsTowardReception)
+        {
+            await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
+        }
 
         return new EmergencyRequestOperationResponse
         {

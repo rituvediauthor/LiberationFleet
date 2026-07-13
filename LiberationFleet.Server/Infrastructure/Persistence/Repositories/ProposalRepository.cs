@@ -181,6 +181,19 @@ public class ProposalRepository : IProposalRepository
         int crewId,
         int targetUserId,
         CancellationToken cancellationToken = default) =>
+        GetPendingKickForTargetAsync(crewId, targetUserId, ProposalKind.CrewmateKick, cancellationToken);
+
+    public Task<ProposalCrewmateKick?> GetPendingSeasonKickForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default) =>
+        GetPendingKickForTargetAsync(crewId, targetUserId, ProposalKind.CrewmateSeasonKick, cancellationToken);
+
+    private Task<ProposalCrewmateKick?> GetPendingKickForTargetAsync(
+        int crewId,
+        int targetUserId,
+        ProposalKind kind,
+        CancellationToken cancellationToken) =>
         _context.ProposalCrewmateKicks
             .Include(k => k.Proposal)
             .Where(k =>
@@ -188,7 +201,7 @@ public class ProposalRepository : IProposalRepository
                 && k.Proposal.CrewId == crewId
                 && !k.Proposal.IsDeleted
                 && k.Proposal.Status == ProposalStatus.Pending
-                && k.Proposal.Kind == ProposalKind.CrewmateKick)
+                && k.Proposal.Kind == kind)
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<ProposalCrewmateRejoin?> GetCrewmateRejoinByProposalIdAsync(

@@ -22,6 +22,7 @@ public class GetReceptionOrderQueryHandler(
             request.Limit,
             requireGiverInSeason: true,
             excludeSelfAsRecipient: true,
+            forRecordGift: true,
             cancellationToken);
     }
 }

@@ -21,7 +21,7 @@ public class CrewDto
     public decimal MemberCycleCapMultiplier { get; set; } = 2m;
     public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal NonMemberCycleCapFixedAmount { get; set; }
-    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
+    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.5m;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }
     public decimal MinimumContributionForAttachments { get; set; }
@@ -47,7 +47,7 @@ public class UpdateCrewRequest
     public decimal MemberCycleCapMultiplier { get; set; } = 2m;
     public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal NonMemberCycleCapFixedAmount { get; set; }
-    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.25m;
+    public decimal NonMemberCycleCapMultiplier { get; set; } = 0.5m;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }
     public decimal MinimumContributionForAttachments { get; set; }

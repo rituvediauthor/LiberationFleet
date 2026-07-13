@@ -30,6 +30,7 @@ public class GetReceptionOrderQueryHandlerTests
                 10,
                 true,
                 true,
+                true,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 

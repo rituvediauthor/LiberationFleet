@@ -9,6 +9,21 @@ namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.Recor
 
 public class RecordGiftsCommandHandlerIntegrationTests
 {
+    private static RecordGiftsCommandHandler CreateRecordHandler(
+        MutualAidSeasonFixture fixture,
+        int giverUserId)
+    {
+        return new RecordGiftsCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(giverUserId).Object,
+            new CrewMembershipRepository(fixture.Context),
+            new GiftRepository(fixture.Context),
+            new CrewPaymentPlatformRepository(fixture.Context),
+            new UserRepository(fixture.Context),
+            fixture.Service,
+            HandlerTestFixture.CreateNotificationService(fixture.Context),
+            fixture.Context);
+    }
+
     [Fact]
     public async Task Handle_WhenRecordingDirectGift_DoesNotUpdateCycleUntilRecipientVerifies()
     {
@@ -17,13 +32,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
         var membershipRepository = new CrewMembershipRepository(fixture.Context);
         var giftRepository = new GiftRepository(fixture.Context);
         var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(fixture.Context);
-        var recordHandler = new RecordGiftsCommandHandler(
-            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Alice.Id).Object,
-            membershipRepository,
-            giftRepository,
-            crewPaymentPlatformRepository,
-            HandlerTestFixture.CreateNotificationService(fixture.Context),
-            fixture.Context);
+        var recordHandler = CreateRecordHandler(fixture, fixture.Alice.Id);
 
         var result = await recordHandler.Handle(
             new RecordGiftsCommand(
@@ -70,16 +79,11 @@ public class RecordGiftsCommandHandlerIntegrationTests
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
 
-        var membershipRepository = new CrewMembershipRepository(fixture.Context);
-        var giftRepository = new GiftRepository(fixture.Context);
-        var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(fixture.Context);
-        var handler = new RecordGiftsCommandHandler(
-            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Alice.Id).Object,
-            membershipRepository,
-            giftRepository,
-            crewPaymentPlatformRepository,
-            HandlerTestFixture.CreateNotificationService(fixture.Context),
-            fixture.Context);
+        var carolMembership = await fixture.Context.CrewMemberships.SingleAsync(m => m.UserId == fixture.Carol.Id);
+        carolMembership.IsIntermediary = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var handler = CreateRecordHandler(fixture, fixture.Alice.Id);
 
         var result = await handler.Handle(
             new RecordGiftsCommand(
@@ -114,13 +118,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
         var membershipRepository = new CrewMembershipRepository(fixture.Context);
         var giftRepository = new GiftRepository(fixture.Context);
         var crewPaymentPlatformRepository = new CrewPaymentPlatformRepository(fixture.Context);
-        var recordHandler = new RecordGiftsCommandHandler(
-            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Carol.Id).Object,
-            membershipRepository,
-            giftRepository,
-            crewPaymentPlatformRepository,
-            HandlerTestFixture.CreateNotificationService(fixture.Context),
-            fixture.Context);
+        var recordHandler = CreateRecordHandler(fixture, fixture.Carol.Id);
 
         var result = await recordHandler.Handle(
             new RecordGiftsCommand(

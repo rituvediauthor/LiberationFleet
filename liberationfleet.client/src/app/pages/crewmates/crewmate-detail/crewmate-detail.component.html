@@ -161,8 +161,8 @@
         </div>
       </div>
 
-      <div class="moderation-actions" *ngIf="!profile.isSelf && !profile.isPlaceholderMember">
-        <div class="block-section">
+      <div class="moderation-actions" *ngIf="!profile.isSelf">
+        <div class="block-section" *ngIf="!profile.isPlaceholderMember">
           <button
             type="button"
             class="block-btn"
@@ -178,6 +178,16 @@
         <button
           type="button"
           class="kick-btn"
+          *ngIf="profile.isInSeason"
+          [disabled]="actionLoading"
+          (click)="onKickCrewmateFromSeason()">
+          Kick from season
+        </button>
+
+        <button
+          type="button"
+          class="kick-btn"
+          *ngIf="!profile.isPlaceholderMember"
           [disabled]="actionLoading"
           (click)="onKickCrewmate()">
           Kick crewmate
@@ -205,4 +215,14 @@
   (confirmed)="onConfirmKick($event)"
   (cancelled)="onCancelKick()"
   (dismissed)="onCancelKick()">
+</app-kick-reason-dialog>
+
+<app-kick-reason-dialog
+  [visible]="showKickFromSeasonDialog"
+  title="Kick from season?"
+  [message]="profile ? 'Submit a proposal to remove ' + profile.username + ' from the season (not the crew). The crew will vote on whether to remove them from the season.' : 'Submit a season kick proposal?'"
+  confirmLabel="Submit season kick proposal"
+  (confirmed)="onConfirmKickFromSeason($event)"
+  (cancelled)="onCancelKickFromSeason()"
+  (dismissed)="onCancelKickFromSeason()">
 </app-kick-reason-dialog>

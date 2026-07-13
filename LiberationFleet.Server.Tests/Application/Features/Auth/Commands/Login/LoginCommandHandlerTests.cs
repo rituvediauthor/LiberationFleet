@@ -1,5 +1,7 @@
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Login;
 using LiberationFleet.Server.Tests.TestHelpers;
+using MediatR;
 using Moq;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Auth.Commands.Login;
@@ -25,9 +27,11 @@ public class LoginCommandHandlerTests
 
         var handler = new LoginCommandHandler(
             userRepository.Object,
+            new Mock<ISecurityRepository>().Object,
             unitOfWork.Object,
             passwordHasher.Object,
             tokenService.Object,
+            new Mock<IMediator>().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
         var result = await handler.Handle(new LoginCommand
@@ -61,9 +65,11 @@ public class LoginCommandHandlerTests
 
         var handler = new LoginCommandHandler(
             userRepository.Object,
+            new Mock<ISecurityRepository>().Object,
             unitOfWork.Object,
             passwordHasher.Object,
             tokenService.Object,
+            new Mock<IMediator>().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
         var result = await handler.Handle(new LoginCommand
@@ -94,9 +100,11 @@ public class LoginCommandHandlerTests
 
         var handler = new LoginCommandHandler(
             userRepository.Object,
+            new Mock<ISecurityRepository>().Object,
             unitOfWork.Object,
             passwordHasher.Object,
             tokenService.Object,
+            new Mock<IMediator>().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
         var result = await handler.Handle(new LoginCommand

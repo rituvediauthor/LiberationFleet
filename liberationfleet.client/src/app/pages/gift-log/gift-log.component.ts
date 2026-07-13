@@ -44,6 +44,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   verifyingGiftId: number | null = null;
   crewId = 0;
   canExportCrewData = false;
+  userInSeason = false;
+  seasonStarted = false;
   completionPlatformSelections: Record<number, number | ''> = {};
 
   private readonly pageSize = 50;
@@ -74,13 +76,14 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.giftService.getSeasonStatus().subscribe({
       next: status => {
         if (!status.seasonStarted) {
-          this.router.navigate(['/app/crew/season-setup']);
+          if (this.router.url.split('?')[0] === '/app/crew/gift-log') {
+            void this.router.navigate(['/app/crew/season-setup'], { replaceUrl: true });
+          }
           return;
         }
-        if (!status.userInSeason) {
-          this.router.navigate(['/app/crew/join-season']);
-          return;
-        }
+
+        this.userInSeason = !!status.userInSeason;
+        this.seasonStarted = true;
         this.crewService.getMembership().subscribe({
           next: async membership => {
             this.crewId = membership.crewId ?? 0;
@@ -150,6 +153,10 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   goToRecordGift() {
     void this.router.navigate(['/app/crew/gift-log/record']);
+  }
+
+  goToJoinSeason() {
+    void this.router.navigate(['/app/crew/join-season']);
   }
 
   exportGiftLog() {

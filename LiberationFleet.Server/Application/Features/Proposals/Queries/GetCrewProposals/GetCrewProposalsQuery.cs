@@ -97,7 +97,8 @@ public class GetCrewProposalsQueryHandler(
             cancellationToken);
 
         var crewmateKicks = await proposalRepository.GetCrewmateKicksByProposalIdsAsync(
-            proposals.Where(p => p.Kind == ProposalKind.CrewmateKick).Select(p => p.Id),
+            proposals.Where(p => p.Kind is ProposalKind.CrewmateKick or ProposalKind.CrewmateSeasonKick)
+                .Select(p => p.Id),
             cancellationToken);
 
         var crewmateRejoins = await proposalRepository.GetCrewmateRejoinsByProposalIdsAsync(

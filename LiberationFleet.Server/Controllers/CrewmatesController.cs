@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Features.Crewmates.Commands.AllowCrewma
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ClaimPlaceholderIdentity;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.DemoteCrewRoles;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmateFromSeason;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.NominateCrewRoles;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ProposeCrewmatePermissionGrant;
@@ -137,6 +138,14 @@ public class CrewmatesController : ControllerBase
     {
         body ??= new KickCrewmateRequest();
         var result = await _mediator.Send(new KickCrewmateCommand(userId, body.Reason));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/kick-from-season")]
+    public async Task<IActionResult> KickFromSeason(int userId, [FromBody] KickCrewmateRequest body)
+    {
+        body ??= new KickCrewmateRequest();
+        var result = await _mediator.Send(new KickCrewmateFromSeasonCommand(userId, body.Reason));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

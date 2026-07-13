@@ -55,9 +55,13 @@ export class JoinSeasonComponent implements OnInit {
     this.giftService.getSeasonStatus().subscribe({
       next: status => {
         if (!status.seasonStarted) {
-          this.router.navigate(['/app/crew/season-setup']);
+          if (this.isOnJoinSeasonRoute()) {
+            void this.router.navigate(['/app/crew/season-setup'], { replaceUrl: true });
+          }
         } else if (status.userInSeason) {
-          this.router.navigate(['/app/crew/gift-log']);
+          if (this.isOnJoinSeasonRoute()) {
+            void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
+          }
         }
       }
     });
@@ -184,7 +188,9 @@ export class JoinSeasonComponent implements OnInit {
                   return;
                 }
                 this.toastService.success(result.message);
-                this.router.navigate(['/app/crew/gift-log']);
+                if (this.isOnJoinSeasonRoute()) {
+                  void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
+                }
               },
               error: () => {
                 this.isSubmitting = false;
@@ -206,6 +212,10 @@ export class JoinSeasonComponent implements OnInit {
         this.updateReadyButton();
       }
     });
+  }
+
+  private isOnJoinSeasonRoute(): boolean {
+    return this.router.url.split('?')[0] === '/app/crew/join-season';
   }
 
   private syncPlatformOptions() {

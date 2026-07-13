@@ -12,7 +12,7 @@ public class MutualAidCalculationServiceTests
         MemberCycleCapMode = CycleCapMode.CapacityBased,
         MemberCycleCapMultiplier = 2m,
         NonMemberCycleCapMode = CycleCapMode.CapacityBased,
-        NonMemberCycleCapMultiplier = 0.25m
+        NonMemberCycleCapMultiplier = 0.5m
     };
 
     [Fact]
@@ -24,7 +24,7 @@ public class MutualAidCalculationServiceTests
     [Fact]
     public void GetNonMemberCycleCap_UsesCapacityMultiplierByDefault()
     {
-        MutualAidCalculationService.GetNonMemberCycleCap(CreateCrew(), 400m).Should().Be(100m);
+        MutualAidCalculationService.GetNonMemberCycleCap(CreateCrew(), 400m).Should().Be(200m);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
-    public void CalculatePriorityScore_IncludesMembershipBonusAndPercentBonus()
+    public void CalculatePriorityScore_IncludesMembershipBonusAndSacrificePercentBonus()
     {
         var user = HandlerTestFixture.CreateUser();
         user.EmergencyLevel = 2;
@@ -149,11 +149,14 @@ public class MutualAidCalculationServiceTests
             userLifetimeContributions: 50m,
             survivalThresholdAmount: 80m);
 
-        score.Should().Be((100m * 2m) + 1m + 50m + (80m * 0.9m));
+        // multiplier = PeopleRepresentedCount(1) + DisabilityLevel(0) + 1 = 2
+        // sacrifice factor = 1.10
+        var baseScore = (100m * 2m) + 1m + 50m + 80m;
+        score.Should().Be(baseScore * 2m * 1.1m);
     }
 
     [Fact]
-    public void CalculatePriorityScore_AppliesHouseholdAndDisabilityMultiplier()
+    public void CalculatePriorityScore_AppliesHouseholdAndDisabilityMultiplierWithPlusOne()
     {
         var user = HandlerTestFixture.CreateUser();
         user.EmergencyLevel = 2;
@@ -162,7 +165,7 @@ public class MutualAidCalculationServiceTests
         user.DisabilityLevel = 2;
         var membership = new CrewMembership { User = user };
 
-        var baseScore = (100m * 2m) + 1m + 50m + (80m * 0.9m);
+        var baseScore = (100m * 2m) + 1m + 50m + 80m;
         var score = MutualAidCalculationService.CalculatePriorityScore(
             user,
             membership,
@@ -171,7 +174,27 @@ public class MutualAidCalculationServiceTests
             userLifetimeContributions: 50m,
             survivalThresholdAmount: 80m);
 
-        score.Should().Be(baseScore * 5m);
+        score.Should().Be(baseScore * 6m * 1.1m);
+    }
+
+    [Fact]
+    public void CalculatePriorityScore_WhenZeroDependentsAndDisability_UsesMultiplierOfOne()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        user.PeopleRepresentedCount = 0;
+        user.DisabilityLevel = 0;
+        user.EmergencyLevel = 1;
+        var membership = new CrewMembership { User = user };
+
+        var score = MutualAidCalculationService.CalculatePriorityScore(
+            user,
+            membership,
+            isFinancialMember: false,
+            crewLifetimeContributions: 10m,
+            userLifetimeContributions: 5m,
+            survivalThresholdAmount: 0m);
+
+        score.Should().Be(15m);
     }
 
     [Fact]
@@ -183,11 +206,11 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
-    public void IsCycleSatisfied_WhenTotalReceptionExceedsCap_ReturnsTrue()
+    public void IsCycleSatisfied_WhenTotalReceptionExceedsCap_ButCycleReceivedBelow_ReturnsFalse()
     {
         var cycle = new SeasonCycle { CycleReceived = 100m, TotalReceptionAmount = 700m };
 
-        MutualAidCalculationService.IsCycleSatisfied(cycle, 600m).Should().BeTrue();
+        MutualAidCalculationService.IsCycleSatisfied(cycle, 600m).Should().BeFalse();
     }
 
     [Fact]
@@ -199,12 +222,39 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
+    public void GetCatchUpAmount_WhenCurrentCapExceedsCompletedCap_ReturnsDifference()
+    {
+        var cycle = new SeasonCycle
+        {
+            CycleCompleted = true,
+            CycleReceived = 400m,
+            CycleCapAtCompletion = 400m
+        };
+
+        MutualAidCalculationService.GetCatchUpAmount(cycle, 500m).Should().Be(100m);
+    }
+
+    [Fact]
+    public void GetCatchUpAmount_WhenCurrentCapAtOrBelowCompletedCap_ReturnsZero()
+    {
+        var cycle = new SeasonCycle
+        {
+            CycleCompleted = true,
+            CycleReceived = 400m,
+            CycleCapAtCompletion = 400m
+        };
+
+        MutualAidCalculationService.GetCatchUpAmount(cycle, 400m).Should().Be(0m);
+        MutualAidCalculationService.GetCatchUpAmount(cycle, 350m).Should().Be(0m);
+    }
+
+    [Fact]
     public void IsSeasonComplete_ReturnsTrueWhenAllCyclesSatisfied()
     {
         var cycles = new[]
         {
             new SeasonCycle { CycleReceived = 600m, TotalReceptionAmount = 600m },
-            new SeasonCycle { CycleReceived = 500m, TotalReceptionAmount = 700m }
+            new SeasonCycle { CycleReceived = 600m, TotalReceptionAmount = 700m }
         };
 
         MutualAidCalculationService.IsSeasonComplete(cycles, _ => 600m).Should().BeTrue();

@@ -87,6 +87,10 @@ export class CrewmateService {
     return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/kick`, { reason });
   }
 
+  kickCrewmateFromSeason(userId: number, reason: string): Observable<CrewmateKickResponse> {
+    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/kick-from-season`, { reason });
+  }
+
   getKickedCrewmates(): Observable<KickedCrewmateListResponse> {
     return this.http.get<KickedCrewmateListResponse>(`${this.apiUrl}/kicked`);
   }
@@ -151,6 +155,7 @@ export class CrewmateService {
       ...item,
       isSelf: !!item.isSelf,
       isPlaceholderMember: !!item.isPlaceholderMember,
+      isInSeason: !!item.isInSeason,
       friendshipState: mapFriendshipState(item.friendshipState as unknown as number | string)
     };
   }
@@ -174,6 +179,7 @@ export class CrewmateService {
       canExportCrewData: !!profile.canExportCrewData,
       isPlaceholderMember: !!profile.isPlaceholderMember,
       canClaimIdentity: !!profile.canClaimIdentity,
+      isInSeason: !!profile.isInSeason,
       friendshipState: mapFriendshipState(profile.friendshipState as unknown as number | string)
     };
   }

@@ -65,19 +65,45 @@ public static class MutualAidCalculationService
         }
 
         var membershipBonus = isFinancialMember ? 1m : 0m;
-        var percentBonusFactor = 1m - (user.PercentBonus / 100m);
 
         var baseScore = (crewLifetimeContributions * user.EmergencyLevel)
             + membershipBonus
             + userLifetimeContributions
-            + (survivalThresholdAmount * percentBonusFactor);
+            + survivalThresholdAmount;
 
-        var priorityMultiplier = user.PeopleRepresentedCount + user.DisabilityLevel;
-        return baseScore * priorityMultiplier;
+        // Always at least 1 so dependents+disability of 0 cannot zero the score.
+        var priorityMultiplier = user.PeopleRepresentedCount + user.DisabilityLevel + 1;
+        var sacrificeBonusFactor = 1m + (user.PercentBonus / 100m);
+        return baseScore * priorityMultiplier * sacrificeBonusFactor;
     }
 
     public static bool IsCycleSatisfied(SeasonCycle cycle, decimal effectiveCycleCap) =>
-        cycle.CycleReceived >= effectiveCycleCap || cycle.TotalReceptionAmount > effectiveCycleCap;
+        cycle.CycleReceived >= effectiveCycleCap;
+
+    /// <summary>
+    /// Cap can shrink or grow with capacity, but never above the value frozen at season start.
+    /// </summary>
+    public static decimal GetCatchUpAmount(SeasonCycle cycle, decimal effectiveCycleCap)
+    {
+        if (!cycle.CycleCompleted || cycle.UsesSegmentCap)
+        {
+            return 0m;
+        }
+
+        var endedAt = cycle.CycleCapAtCompletion > 0m
+            ? cycle.CycleCapAtCompletion
+            : cycle.CycleReceived;
+
+        if (effectiveCycleCap <= endedAt)
+        {
+            return 0m;
+        }
+
+        return Math.Max(0m, effectiveCycleCap - cycle.CycleReceived);
+    }
+
+    public static int GetSacrificePercentBonus(int emergencySacrificeCount) =>
+        Math.Max(0, emergencySacrificeCount) * 10;
 
     public static bool IsSeasonComplete(IEnumerable<SeasonCycle> cycles, Func<SeasonCycle, decimal> effectiveCapResolver) =>
         cycles.All(c => IsCycleSatisfied(c, effectiveCapResolver(c)));

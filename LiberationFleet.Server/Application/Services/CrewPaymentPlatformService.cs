@@ -55,6 +55,7 @@ public static class CrewPaymentPlatformService
         {
             UserId = membership.UserId,
             Username = membership.User.Username,
+            IsIntermediary = membership.IsIntermediary,
             PlatformIds = membership.User.PaymentPlatforms.Select(p => p.CrewPaymentPlatformId).ToList(),
             PlatformAccounts = membership.User.PaymentPlatforms
                 .Select(p => new PlatformAccountDto

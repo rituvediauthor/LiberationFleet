@@ -15,7 +15,8 @@ public record GiftRecordItem(
     int RecipientId,
     int? MiddlemanId,
     bool IsCustom,
-    string? EntryType);
+    string? EntryType,
+    int? SeasonCycleId = null);
 
 public record RecordGiftsCommand(IReadOnlyList<GiftRecordItem> Gifts) : IRequest<GiftOperationResponse>;
 
@@ -25,6 +26,7 @@ public class RecordGiftsCommandHandler(
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IUserRepository userRepository,
+    IMutualAidService mutualAidService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
@@ -69,7 +71,7 @@ public class RecordGiftsCommandHandler(
 
             if (item.MiddlemanId == userId || item.MiddlemanId == item.RecipientId)
             {
-                return new GiftOperationResponse { Success = false, Message = "Invalid middleman selection." };
+                return new GiftOperationResponse { Success = false, Message = "Invalid intermediary selection." };
             }
 
             if (!await membershipRepository.IsUserInCrewAsync(item.RecipientId, membership.CrewId, cancellationToken))
@@ -80,11 +82,29 @@ public class RecordGiftsCommandHandler(
             if (item.MiddlemanId.HasValue
                 && !await membershipRepository.IsUserInCrewAsync(item.MiddlemanId.Value, membership.CrewId, cancellationToken))
             {
-                return new GiftOperationResponse { Success = false, Message = "Middleman is not in your crew." };
+                return new GiftOperationResponse { Success = false, Message = "Intermediary is not in your crew." };
+            }
+
+            if (item.MiddlemanId.HasValue)
+            {
+                var intermediaryMembership = await membershipRepository.GetMembershipAsync(
+                    item.MiddlemanId.Value,
+                    membership.CrewId,
+                    cancellationToken);
+                if (intermediaryMembership is null || !intermediaryMembership.IsIntermediary)
+                {
+                    return new GiftOperationResponse
+                    {
+                        Success = false,
+                        Message = "Selected intermediary does not hold the Intermediary role."
+                    };
+                }
             }
 
             var isSurvivalThreshold = !item.IsCustom
                 && string.Equals(item.EntryType, "survivalThreshold", StringComparison.OrdinalIgnoreCase);
+            var isCatchUp = !item.IsCustom
+                && string.Equals(item.EntryType, "catchUp", StringComparison.OrdinalIgnoreCase);
             var countsTowardReception = !item.MiddlemanId.HasValue;
 
             var gift = new Gift
@@ -100,14 +120,23 @@ public class RecordGiftsCommandHandler(
                 IsCustomGift = item.IsCustom,
                 CountsTowardReception = countsTowardReception,
                 CountsTowardContribution = true,
+                SeasonCycleId = item.SeasonCycleId,
                 VerificationStatus = item.IsCustom
                     ? GiftVerificationStatus.Verified
                     : GiftVerificationStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Catch-up gifts credit a completed cycle via SeasonCycleId.
+            _ = isCatchUp;
+
             await giftRepository.AddAsync(gift, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            if (item.IsCustom && countsTowardReception)
+            {
+                await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
+            }
 
             lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
 

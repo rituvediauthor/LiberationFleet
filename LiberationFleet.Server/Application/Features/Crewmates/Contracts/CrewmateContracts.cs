@@ -41,6 +41,7 @@ public class CrewmateListItemDto
     public DateTime? LastLoginAt { get; set; }
     public bool IsSelf { get; set; }
     public bool IsPlaceholderMember { get; set; }
+    public bool IsInSeason { get; set; }
     public CrewmatePlatformDisplayDto? PlatformDisplay { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
 }
@@ -96,6 +97,7 @@ public class CrewmateProfileDto
     public bool CanModerateAttachments { get; set; }
     public bool CanExportCrewData { get; set; }
     public bool IsPlaceholderMember { get; set; }
+    public bool IsInSeason { get; set; }
     public bool CanClaimIdentity { get; set; }
 }
 

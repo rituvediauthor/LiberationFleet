@@ -73,9 +73,13 @@ export class SeasonSetupComponent implements OnInit {
         }
         this.captureInitialState();
         if (status.seasonStarted && status.userInSeason) {
-          this.router.navigate(['/app/crew/gift-log']);
+          if (this.isOnSeasonSetupRoute()) {
+            void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
+          }
         } else if (status.seasonStarted && !status.userInSeason) {
-          this.router.navigate(['/app/crew/join-season']);
+          if (this.isOnSeasonSetupRoute()) {
+            void this.router.navigate(['/app/crew/join-season'], { replaceUrl: true });
+          }
         }
       }
     });
@@ -243,10 +247,16 @@ export class SeasonSetupComponent implements OnInit {
     this.captureInitialState();
 
     if (readyResult.status?.userInSeason) {
-      this.router.navigate(['/app/crew/gift-log']);
+      if (this.isOnSeasonSetupRoute()) {
+        void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
+      }
     }
 
     this.updateSaveButton();
+  }
+
+  private isOnSeasonSetupRoute(): boolean {
+    return this.router.url.split('?')[0] === '/app/crew/season-setup';
   }
 
   private applyStatus(status: { readyCount: number; userSeasonReady: boolean; seasonStarted: boolean }) {

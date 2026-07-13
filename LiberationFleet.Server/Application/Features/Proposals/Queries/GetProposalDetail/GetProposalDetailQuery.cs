@@ -94,7 +94,7 @@ public class GetProposalDetailQueryHandler(
             ? await proposalRepository.GetCrewChatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
-        var crewmateKick = proposal.Kind == ProposalKind.CrewmateKick
+        var crewmateKick = proposal.Kind is ProposalKind.CrewmateKick or ProposalKind.CrewmateSeasonKick
             ? await proposalRepository.GetCrewmateKickByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 

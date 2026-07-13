@@ -24,7 +24,8 @@
         <div class="crewmate-main">
           <p class="crewmate-name">
             {{ crewmate.username }}
-            <span class="non-member-badge" *ngIf="crewmate.isPlaceholderMember">Non-member</span>
+            <span class="in-season-badge" *ngIf="crewmate.isInSeason">In season</span>
+            <span class="non-member-badge" *ngIf="crewmate.isPlaceholderMember">Placeholder</span>
           </p>
           <p class="crewmate-activity">{{ formatActivity(crewmate) }}</p>
           <p class="crewmate-platform">{{ formatPlatform(crewmate.platformDisplay) }}</p>

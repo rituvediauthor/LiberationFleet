@@ -122,7 +122,13 @@ export class RecordGiftComponent implements OnInit {
   }
 
   entryTypeLabel(entry: ReceptionOrderEntry): string {
-    return entry.entryType === 'survivalThreshold' ? 'Survival threshold' : 'Cycle';
+    if (entry.entryType === 'survivalThreshold') {
+      return 'Survival threshold';
+    }
+    if (entry.entryType === 'catchUp') {
+      return 'Catch-up';
+    }
+    return 'Cycle';
   }
 
   platformsForEntry(entry: ReceptionOrderEntry): PaymentPlatformOption[] {
@@ -374,7 +380,8 @@ export class RecordGiftComponent implements OnInit {
         recipientId: entry.userId,
         middlemanId: middlemanId > 0 ? middlemanId : undefined,
         isCustom: false,
-        entryType: entry.entryType
+        entryType: entry.entryType,
+        seasonCycleId: entry.seasonCycleId
       });
     });
 

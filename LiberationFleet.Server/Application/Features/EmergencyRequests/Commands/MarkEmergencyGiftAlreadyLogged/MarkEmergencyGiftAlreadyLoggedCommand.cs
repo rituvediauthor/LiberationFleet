@@ -14,6 +14,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<MarkEmergencyGiftAlreadyLoggedCommand, EmergencyRequestOperationResponse>
 {
     public async Task<EmergencyRequestOperationResponse> Handle(
@@ -74,6 +75,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
             emergencyRequest.Status = EmergencyRequestStatus.Fulfilled;
         }
 
+        await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new EmergencyRequestOperationResponse

@@ -23,6 +23,7 @@ export class CrewmateDetailComponent implements OnInit {
   actionLoading = false;
   showBlockDialog = false;
   showKickDialog = false;
+  showKickFromSeasonDialog = false;
   selectedRoles = new Set<string>();
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
@@ -81,6 +82,10 @@ export class CrewmateDetailComponent implements OnInit {
     this.showKickDialog = true;
   }
 
+  onKickCrewmateFromSeason() {
+    this.showKickFromSeasonDialog = true;
+  }
+
   onConfirmKick(reason: string) {
     this.showKickDialog = false;
     if (!this.profile || this.actionLoading) {
@@ -111,8 +116,44 @@ export class CrewmateDetailComponent implements OnInit {
     });
   }
 
+  onConfirmKickFromSeason(reason: string) {
+    this.showKickFromSeasonDialog = false;
+    if (!this.profile || this.actionLoading) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.kickCrewmateFromSeason(this.userId, reason).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit season kick proposal');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(response.message || 'Season kick proposal submitted');
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else {
+          this.loadProfile();
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit season kick proposal');
+      }
+    });
+  }
+
   onCancelKick() {
     this.showKickDialog = false;
+  }
+
+  onCancelKickFromSeason() {
+    this.showKickFromSeasonDialog = false;
   }
 
   onNominate() {
