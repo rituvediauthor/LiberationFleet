@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -20,6 +21,11 @@ public static class ProposalApprovalCoordinator
         CrewRoleProposalService crewRoleProposalService,
         ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
         CrewmatePermissionProposalService crewmatePermissionProposalService,
+        CrewApplyToFleetProposalService crewApplyToFleetProposalService,
+        FleetJoinRequestProposalService fleetJoinRequestProposalService,
+        FleetKickCrewProposalService fleetKickCrewProposalService,
+        FleetSettingsProposalService fleetSettingsProposalService,
+        FleetRulesProposalService fleetRulesProposalService,
         CancellationToken cancellationToken)
     {
         if (statusBefore == ProposalStatus.Approved || proposal.Status != ProposalStatus.Approved)
@@ -36,5 +42,10 @@ public static class ProposalApprovalCoordinator
         await crewRoleProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await claimPlaceholderIdentityProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await crewmatePermissionProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await crewApplyToFleetProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await fleetJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await fleetKickCrewProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await fleetSettingsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await fleetRulesProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
     }
 }

@@ -15,11 +15,13 @@ public record UpdateChatMessageCommand(
     string Nonce,
     string Ciphertext,
     int KeyVersion,
+    string? Body,
     IReadOnlyList<int> MentionedUserIds) : IRequest<ChatOperationResponse>;
 
 public class UpdateChatMessageCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     IChatRealtimeNotifier chatRealtimeNotifier,
@@ -33,11 +35,6 @@ public class UpdateChatMessageCommandHandler(
             return new ChatOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
-        {
-            return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
-        }
-
         var userId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
@@ -46,9 +43,22 @@ public class UpdateChatMessageCommandHandler(
         }
 
         var room = await chatRepository.GetRoomByIdAsync(request.RoomId, cancellationToken);
-        if (room is null || room.CrewId != membership.CrewId)
+        if (room is null || !await ChatRoomAccess.CanAccessRoomAsync(room, membership, fleetRepository, cancellationToken))
         {
             return new ChatOperationResponse { Success = false, Message = "Chat room not found." };
+        }
+
+        var isFleetRoom = !room.CrewId.HasValue && room.FleetId.HasValue;
+        if (isFleetRoom)
+        {
+            if (string.IsNullOrWhiteSpace(request.Body))
+            {
+                return new ChatOperationResponse { Success = false, Message = "Message content is required." };
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        {
+            return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
         }
 
         var message = await chatRepository.GetMessageByIdWithAuthorAsync(request.MessageId, cancellationToken);
@@ -63,6 +73,23 @@ public class UpdateChatMessageCommandHandler(
         }
 
         var utcNow = DateTime.UtcNow;
+
+        if (isFleetRoom)
+        {
+            message.Body = request.Body!.Trim();
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var fleetMessageDto = ChatMapper.MapMessage(message, envelope: null);
+            await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, fleetMessageDto, cancellationToken);
+
+            return new ChatOperationResponse
+            {
+                Success = true,
+                Message = "Message updated.",
+                MessageId = message.Id
+            };
+        }
+
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = EncryptedContentType.ChatRoomMessage,

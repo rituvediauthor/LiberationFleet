@@ -76,7 +76,7 @@ public class CrewRulesProposalService(
                 if (change.RuleId.HasValue)
                 {
                     await NotifyRuleChangeAsync(
-                        proposal.CrewId,
+                        proposal.CrewId!.Value,
                         NotificationKind.NewRule,
                         change.RuleId.Value,
                         "New rule",
@@ -89,7 +89,7 @@ public class CrewRulesProposalService(
                 if (change.RuleId.HasValue)
                 {
                     await NotifyRuleChangeAsync(
-                        proposal.CrewId,
+                        proposal.CrewId!.Value,
                         NotificationKind.RuleEdited,
                         change.RuleId.Value,
                         "Rule edited",
@@ -101,7 +101,7 @@ public class CrewRulesProposalService(
                 if (change.RuleId.HasValue)
                 {
                     await NotifyRuleChangeAsync(
-                        proposal.CrewId,
+                        proposal.CrewId!.Value,
                         NotificationKind.RuleDeleted,
                         change.RuleId.Value,
                         "Rule deleted",
@@ -140,7 +140,7 @@ public class CrewRulesProposalService(
     {
         var rule = new CrewRule
         {
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             CreatedByUserId = authorUserId,
             CreatedAt = utcNow,
             UpdatedAt = utcNow,
@@ -162,7 +162,7 @@ public class CrewRulesProposalService(
             {
                 ContentType = EncryptedContentType.RulesDocument,
                 ResourceId = rule.Id.ToString(),
-                CrewId = proposal.CrewId,
+                CrewId = proposal.CrewId!.Value,
                 AuthorUserId = authorUserId,
                 KeyVersion = change.KeyVersion,
                 Nonce = change.Nonce.Trim(),

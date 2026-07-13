@@ -57,12 +57,12 @@ public class UpdateChatRoomCommandHandler(
             return new ChatOperationResponse { Success = false, Message = "Chat room not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, room.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, room.CrewId!.Value, cancellationToken))
         {
             return new ChatOperationResponse { Success = false, Message = "You are not in this crew." };
         }
 
-        var crew = await crewRepository.GetByIdAsync(room.CrewId, cancellationToken);
+        var crew = await crewRepository.GetByIdAsync(room.CrewId!.Value, cancellationToken);
         if (crew is null)
         {
             return new ChatOperationResponse { Success = false, Message = "Crew not found." };
@@ -109,7 +109,7 @@ public class UpdateChatRoomCommandHandler(
         {
             ContentType = EncryptedContentType.ChatRoomName,
             ResourceId = room.Id.ToString(),
-            CrewId = room.CrewId,
+            CrewId = room.CrewId!.Value,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),

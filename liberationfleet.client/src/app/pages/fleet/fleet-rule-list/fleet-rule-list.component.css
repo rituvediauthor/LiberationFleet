@@ -1,0 +1,78 @@
+.rule-list-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--lf-color-text-body);
+}
+
+.page-subtitle {
+  margin: 0 0 20px;
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text {
+  text-align: center;
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: var(--lf-color-danger);
+}
+
+.rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rule-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.rule-card:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
+}
+
+.rule-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.rule-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.rule-preview {
+  margin: 0;
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rule-chevron {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--lf-color-text-subtle);
+}

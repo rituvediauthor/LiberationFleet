@@ -8,7 +8,7 @@ import { ContentBadgeComponent } from '../content-badge/content-badge.component'
 import { NotificationService } from '../../services/notification.service';
 import { NotificationHubService } from '../../services/notification-hub.service';
 
-export type NavTab = 'crew' | 'friends' | 'notifications' | 'profile';
+export type NavTab = 'crew' | 'fleet' | 'friends' | 'notifications' | 'profile';
 
 @Component({
   selector: 'app-nav-layout',

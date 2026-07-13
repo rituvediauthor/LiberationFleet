@@ -1,0 +1,69 @@
+using System.Text.Json;
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Domain.Entities;
+using MediatR;
+
+namespace LiberationFleet.Server.Application.Features.Fleets.Commands.AcceptFleetRules;
+
+public record AcceptFleetRulesCommand(IReadOnlyList<int> AcceptedRuleIds) : IRequest<FleetOperationResponse>;
+
+public class AcceptFleetRulesCommandHandler(
+    ICurrentUserService currentUser,
+    ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
+    IUserFleetRuleAcceptanceRepository acceptanceRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<AcceptFleetRulesCommand, FleetOperationResponse>
+{
+    public async Task<FleetOperationResponse> Handle(AcceptFleetRulesCommand request, CancellationToken cancellationToken)
+    {
+        if (!currentUser.UserId.HasValue)
+        {
+            return new FleetOperationResponse { Success = false, Message = "Unauthorized." };
+        }
+
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return new FleetOperationResponse { Success = false, Message = "You must be in a crew." };
+        }
+
+        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        if (fleet is null)
+        {
+            return new FleetOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
+        }
+
+        if (await acceptanceRepository.GetAsync(userId, fleet.Id, cancellationToken) is not null)
+        {
+            return new FleetOperationResponse { Success = true, Message = "Rules already accepted." };
+        }
+
+        var publicRules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);
+        var requiredRuleIds = publicRules.Select(r => r.Id).OrderBy(id => id).ToList();
+        var acceptedRuleIds = request.AcceptedRuleIds.Distinct().OrderBy(id => id).ToList();
+
+        if (!requiredRuleIds.SequenceEqual(acceptedRuleIds))
+        {
+            return new FleetOperationResponse
+            {
+                Success = false,
+                Message = "You must accept all public rules before viewing the fleet."
+            };
+        }
+
+        await acceptanceRepository.AddAsync(new UserFleetRuleAcceptance
+        {
+            UserId = userId,
+            FleetId = fleet.Id,
+            AcceptedRuleIdsJson = JsonSerializer.Serialize(acceptedRuleIds),
+            AcceptedAt = DateTime.UtcNow
+        }, cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new FleetOperationResponse { Success = true, Message = "Fleet rules accepted." };
+    }
+}

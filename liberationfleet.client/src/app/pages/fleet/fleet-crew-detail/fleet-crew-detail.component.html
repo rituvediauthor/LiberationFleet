@@ -1,0 +1,49 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+  <div class="fleet-crew-detail-page">
+    <p *ngIf="loading" class="state-text">Loading crew...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <div *ngIf="!loading && crew">
+      <div class="header-row">
+        <h1 class="page-title">{{ crew.crewName }}</h1>
+        <button
+          type="button"
+          class="kick-btn"
+          *ngIf="crew.canKick"
+          [disabled]="actionLoading"
+          (click)="onKickCrew()">
+          Kick from fleet
+        </button>
+      </div>
+
+      <p class="page-subtitle">
+        {{ crew.memberCount }}<ng-container *ngIf="crew.maxSize">/{{ crew.maxSize }}</ng-container> members
+        <span *ngIf="crew.isOwnCrew"> · Your crew</span>
+      </p>
+
+      <h2 class="section-title">Crewmates</h2>
+      <p *ngIf="crew.crewmates.length === 0" class="state-text">No crewmates listed.</p>
+
+      <div class="crewmate-list" *ngIf="crew.crewmates.length > 0">
+        <button
+          type="button"
+          class="crewmate-row"
+          *ngFor="let crewmate of crew.crewmates"
+          (click)="openCrewmate(crewmate)">
+          <span class="crewmate-name">{{ crewmate.username }}</span>
+          <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-kick-reason-dialog
+  [visible]="showKickDialog"
+  title="Kick crew from fleet?"
+  message="Provide a reason for removing this crew from the fleet."
+  confirmLabel="Submit kick proposal"
+  (confirmed)="onConfirmKick($event)"
+  (cancelled)="onCancelKick()"
+  (dismissed)="onCancelKick()">
+</app-kick-reason-dialog>

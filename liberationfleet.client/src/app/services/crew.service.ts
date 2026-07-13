@@ -3,9 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   CreateCrewRequest,
+  CrewInvitationDetailResponse,
+  CrewInvitationListResponse,
+  CrewInvitationOperationResponse,
   CrewMembershipStatus,
   CrewOperationResult,
   CrewSearchResult,
+  InviteCandidateListResponse,
   JoinRequestListResponse,
   JoinRequestOperationResponse,
   PublicCrewRulesResponse,
@@ -68,5 +72,35 @@ export class CrewService {
 
   getMyJoinRequests(): Observable<JoinRequestListResponse> {
     return this.http.get<JoinRequestListResponse>(`${this.apiUrl}/join-requests/mine`);
+  }
+
+  getInviteCandidates(username?: string, friendsOnly = false): Observable<InviteCandidateListResponse> {
+    const params: Record<string, string> = {};
+    if (username?.trim()) {
+      params['username'] = username.trim();
+    }
+    if (friendsOnly) {
+      params['friendsOnly'] = 'true';
+    }
+    return this.http.get<InviteCandidateListResponse>(`${this.apiUrl}/invite-candidates`, { params });
+  }
+
+  inviteCrewmate(userId: number): Observable<CrewInvitationOperationResponse> {
+    return this.http.post<CrewInvitationOperationResponse>(`${this.apiUrl}/invitations`, { userId });
+  }
+
+  getMyInvitations(): Observable<CrewInvitationListResponse> {
+    return this.http.get<CrewInvitationListResponse>(`${this.apiUrl}/invitations/mine`);
+  }
+
+  getInvitation(invitationId: number): Observable<CrewInvitationDetailResponse> {
+    return this.http.get<CrewInvitationDetailResponse>(`${this.apiUrl}/invitations/${invitationId}`);
+  }
+
+  declineInvitation(invitationId: number): Observable<CrewInvitationOperationResponse> {
+    return this.http.post<CrewInvitationOperationResponse>(
+      `${this.apiUrl}/invitations/${invitationId}/decline`,
+      {}
+    );
   }
 }

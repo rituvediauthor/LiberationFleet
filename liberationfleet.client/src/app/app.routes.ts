@@ -54,6 +54,8 @@ import { RuleCreateComponent } from './pages/rules/rule-create/rule-create.compo
 import { RuleEditComponent } from './pages/rules/rule-edit/rule-edit.component';
 import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-list.component';
+import { InviteCrewmateComponent } from './pages/crewmates/invite-crewmate/invite-crewmate.component';
+import { CrewInvitationComponent } from './pages/crewmates/crew-invitation/crew-invitation.component';
 import { KickedCrewmatesListComponent } from './pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component';
 import { CrewmateDetailComponent } from './pages/crewmates/crewmate-detail/crewmate-detail.component';
 import { NominateRolesComponent } from './pages/crewmates/nominate-roles/nominate-roles.component';
@@ -72,6 +74,24 @@ import { LibraryStockListComponent } from './pages/library/library-stock-list/li
 import { LibraryMyOfferingsComponent } from './pages/library/library-my-offerings/library-my-offerings.component';
 import { authGuard } from './guards/auth.guard';
 import { libraryAccessGuard } from './guards/library-access.guard';
+import { FleetHomeComponent } from './pages/fleet/fleet-home/fleet-home.component';
+import { CreateFleetComponent } from './pages/fleet/create-fleet/create-fleet.component';
+import { JoinFleetComponent } from './pages/fleet/join-fleet/join-fleet.component';
+import { InviteCrewComponent } from './pages/fleet/invite-crew/invite-crew.component';
+import { AcceptFleetRulesComponent } from './pages/fleet/accept-fleet-rules/accept-fleet-rules.component';
+import { FleetJoinRequestsComponent } from './pages/fleet/fleet-join-requests/fleet-join-requests.component';
+import { EditFleetComponent } from './pages/fleet/edit-fleet/edit-fleet.component';
+import { FleetCrewsComponent } from './pages/fleet/fleet-crews/fleet-crews.component';
+import { FleetCrewDetailComponent } from './pages/fleet/fleet-crew-detail/fleet-crew-detail.component';
+import { FleetCrewmateDetailComponent } from './pages/fleet/fleet-crewmate-detail/fleet-crewmate-detail.component';
+import { FleetGiftLogComponent } from './pages/fleet/fleet-gift-log/fleet-gift-log.component';
+import { FleetRecordGiftComponent } from './pages/fleet/fleet-record-gift/fleet-record-gift.component';
+import { FleetEmergencyListComponent } from './pages/fleet/fleet-emergency-list/fleet-emergency-list.component';
+import { FleetChatListComponent } from './pages/fleet/fleet-chat-list/fleet-chat-list.component';
+import { FleetStubPageComponent } from './pages/fleet/fleet-stub-page/fleet-stub-page.component';
+import { FleetRuleListComponent } from './pages/fleet/fleet-rule-list/fleet-rule-list.component';
+import { FleetRuleCreateComponent } from './pages/fleet/fleet-rule-create/fleet-rule-create.component';
+import { FleetRuleEditComponent } from './pages/fleet/fleet-rule-edit/fleet-rule-edit.component';
 
 export const routes: Routes = [
   {
@@ -102,6 +122,146 @@ export const routes: Routes = [
     path: 'app/crew',
     component: CrewHomeComponent,
     pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet',
+    component: FleetHomeComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/create',
+    component: CreateFleetComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/join',
+    component: JoinFleetComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/accept-rules',
+    component: AcceptFleetRulesComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/join-requests',
+    component: FleetJoinRequestsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/edit',
+    component: EditFleetComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/gift-log',
+    component: FleetGiftLogComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/gift-log/record',
+    component: FleetRecordGiftComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/emergency-requests',
+    component: FleetEmergencyListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/library',
+    component: FleetStubPageComponent,
+    canActivate: [authGuard],
+    data: { title: 'Fleet library', message: 'Fleet Library of Things is coming soon.', backTo: '/app/fleet' }
+  },
+  {
+    path: 'app/fleet/chats',
+    component: FleetChatListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/chats/:id/voice',
+    component: ChatVoiceComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
+    path: 'app/fleet/chats/:id',
+    component: ChatTextComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
+    path: 'app/fleet/forums',
+    component: FleetStubPageComponent,
+    canActivate: [authGuard],
+    data: { title: 'Fleet forums', message: 'Fleet forums are coming soon.', backTo: '/app/fleet' }
+  },
+  {
+    path: 'app/fleet/proposals',
+    component: ProposalsTypeComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
+    path: 'app/fleet/proposals/list/:status',
+    component: ProposalsListComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
+    path: 'app/fleet/proposals/create',
+    component: CreateProposalComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
+    path: 'app/fleet/proposals/:id',
+    component: ProposalDetailComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
+    path: 'app/fleet/rules',
+    component: FleetRuleListComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/rules/create',
+    component: FleetRuleCreateComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/rules/:id/edit',
+    component: FleetRuleEditComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/crews',
+    component: FleetCrewsComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/crews/invite',
+    component: InviteCrewComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/crews/:id',
+    component: FleetCrewDetailComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/fleet/crewmates/:userId',
+    component: FleetCrewmateDetailComponent,
     canActivate: [authGuard]
   },
   {
@@ -358,9 +518,19 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'app/crew/crewmates/invite',
+    component: InviteCrewmateComponent,
+    canActivate: [authGuard]
+  },
+  {
     path: 'app/crew/crewmates/kicked',
     component: KickedCrewmatesListComponent,
     pathMatch: 'full',
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/crew/invitations/:id',
+    component: CrewInvitationComponent,
     canActivate: [authGuard]
   },
   {

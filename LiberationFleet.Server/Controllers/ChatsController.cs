@@ -110,6 +110,7 @@ public class ChatsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
+            body.Body,
             body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
@@ -124,6 +125,7 @@ public class ChatsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
+            body.Body,
             body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }

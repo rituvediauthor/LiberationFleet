@@ -1,0 +1,31 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Accept fleet rules</h1>
+      <p class="intro-text">
+        Before viewing the {{ fleetName }} dashboard, accept each public fleet rule.
+      </p>
+
+      <p class="state-text" *ngIf="loading">Loading rules...</p>
+      <p class="state-text error" *ngIf="!loading && errorMessage">{{ errorMessage }}</p>
+
+      <p class="state-text" *ngIf="!loading && !errorMessage && publicRules.length === 0">
+        This fleet has no public rules.
+      </p>
+
+      <ul class="rules-list" *ngIf="!loading && publicRules.length > 0">
+        <li class="rule-card" *ngFor="let rule of publicRules">
+          <h2 class="rule-title">{{ rule.title }}</h2>
+          <p class="rule-description">{{ rule.description }}</p>
+          <label class="accept-option">
+            <input
+              type="checkbox"
+              [checked]="isRuleAccepted(rule.id)"
+              (change)="toggleRuleAcceptance(rule.id, $any($event.target).checked)">
+            Accept
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+</app-page-layout>

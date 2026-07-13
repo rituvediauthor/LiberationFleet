@@ -1,0 +1,87 @@
+.fleet-crews-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--lf-color-text-body);
+}
+
+.page-subtitle {
+  margin: 0 0 16px;
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text {
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.state-text.error {
+  color: var(--lf-color-danger);
+}
+
+.crew-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crew-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-surface);
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.crew-row:hover {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.crew-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.crew-name {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--lf-color-text-primary);
+}
+
+.own-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.crew-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+}
+
+.chevron {
+  color: var(--lf-color-text-subtle);
+  font-size: 18px;
+  flex-shrink: 0;
+}

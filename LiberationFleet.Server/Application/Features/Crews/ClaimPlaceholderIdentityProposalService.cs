@@ -131,7 +131,7 @@ public class ClaimPlaceholderIdentityProposalService(
         }
 
         await placeholderCrewmateService.MergePlaceholderIntoClaimantAsync(
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             claim.PlaceholderUserId,
             claim.ClaimantUserId,
             cancellationToken);
@@ -145,7 +145,7 @@ public class ClaimPlaceholderIdentityProposalService(
             new Notifications.Contracts.CreateNotificationRequest
             {
                 UserId = claim.ClaimantUserId,
-                CrewId = proposal.CrewId,
+                CrewId = proposal.CrewId!.Value,
                 Kind = NotificationKind.ProposalAccepted,
                 Title = "Identity claim approved",
                 Body = $"Your claim for {claim.PlaceholderDisplayName} was approved.",
@@ -155,7 +155,7 @@ public class ClaimPlaceholderIdentityProposalService(
             cancellationToken);
 
         await notificationService.NotifyCrewAsync(
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             NotificationKind.ProposalAccepted,
             "Identity claim approved",
             $"{claimant?.Username ?? "A crewmate"} is now linked to {claim.PlaceholderDisplayName}'s reception history.",

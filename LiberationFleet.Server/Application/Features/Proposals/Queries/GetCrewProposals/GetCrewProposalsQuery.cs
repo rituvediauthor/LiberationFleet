@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -26,6 +27,11 @@ public class GetCrewProposalsQueryHandler(
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
     CrewmatePermissionProposalService crewmatePermissionProposalService,
+    CrewApplyToFleetProposalService crewApplyToFleetProposalService,
+    FleetJoinRequestProposalService fleetJoinRequestProposalService,
+    FleetKickCrewProposalService fleetKickCrewProposalService,
+    FleetSettingsProposalService fleetSettingsProposalService,
+    FleetRulesProposalService fleetRulesProposalService,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
@@ -63,6 +69,11 @@ public class GetCrewProposalsQueryHandler(
                 crewRoleProposalService,
                 claimPlaceholderIdentityProposalService,
                 crewmatePermissionProposalService,
+                crewApplyToFleetProposalService,
+                fleetJoinRequestProposalService,
+                fleetKickCrewProposalService,
+                fleetSettingsProposalService,
+                fleetRulesProposalService,
                 cancellationToken);
         }
 
@@ -121,6 +132,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewmatePermissionGrant).Select(p => p.Id),
             cancellationToken);
 
+        var crewApplyToFleets = await proposalRepository.GetCrewApplyToFleetsByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewApplyToFleet).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -139,6 +154,7 @@ public class GetCrewProposalsQueryHandler(
             crewRoleChanges.TryGetValue(proposal.Id, out var crewRoleChange);
             claimPlaceholderIdentities.TryGetValue(proposal.Id, out var claimPlaceholderIdentity);
             crewmatePermissionGrants.TryGetValue(proposal.Id, out var crewmatePermissionGrant);
+            crewApplyToFleets.TryGetValue(proposal.Id, out var crewApplyToFleet);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -153,7 +169,8 @@ public class GetCrewProposalsQueryHandler(
                 crewRoleChange,
                 claimPlaceholderIdentity,
                 crewmatePermissionGrant,
-                currentUserVote));
+                currentUserVote,
+                crewApplyToFleet: crewApplyToFleet));
         }
 
         return new ProposalListResponse

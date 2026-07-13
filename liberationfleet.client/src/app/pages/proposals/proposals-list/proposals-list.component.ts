@@ -25,6 +25,7 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   crewId = 0;
+  isFleetScope = false;
   backButton!: ActionBarButton;
   resourceCounts: Record<string, number> = {};
   countdownTick = 0;
@@ -43,6 +44,7 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
+    this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet';
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadProposals());
 
     this.countdownIntervalId = setInterval(() => {
@@ -52,11 +54,21 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     const statusParam = (this.route.snapshot.paramMap.get('status') ?? 'pending').toLowerCase();
     this.status = this.parseStatus(statusParam);
 
-    this.backButton = this.navigation.createBackButton(['/app/crew/proposals']);
+    this.backButton = this.navigation.createBackButton(
+      this.isFleetScope ? ['/app/fleet/proposals'] : ['/app/crew/proposals']
+    );
     this.notificationService.refreshBadges();
     this.notificationService.resourceCounts$.subscribe(counts => {
       this.resourceCounts = counts;
     });
+
+    if (this.isFleetScope) {
+      void this.encryptionContent.whenReady().then(() => {
+        this.loadProposals();
+        this.encryptionReload?.markInitialLoadDone();
+      });
+      return;
+    }
 
     this.crewService.getMembership().subscribe({
       next: async membership => {
@@ -105,7 +117,8 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   }
 
   openProposal(item: ProposalListItem) {
-    this.router.navigate(['/app/crew/proposals', item.id]);
+    const base = this.isFleetScope ? '/app/fleet/proposals' : '/app/crew/proposals';
+    this.router.navigate([base, item.id]);
   }
 
   private parseStatus(value: string): ProposalStatus {
@@ -118,9 +131,9 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.errorMessage = '';
 
-    this.proposalService.getProposals(this.status).subscribe({
+    this.proposalService.getProposals(this.status, this.isFleetScope ? 'fleet' : 'crew').subscribe({
       next: async items => {
-        if (this.crewId > 0) {
+        if (!this.isFleetScope && this.crewId > 0) {
           this.items = await this.proposalCrypto.decryptListItems(items, this.crewId);
         } else {
           this.items = items;

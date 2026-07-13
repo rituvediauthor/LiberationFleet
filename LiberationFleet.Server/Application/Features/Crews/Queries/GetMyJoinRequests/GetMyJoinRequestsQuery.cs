@@ -31,12 +31,12 @@ public class GetMyJoinRequestsQueryHandler(
         foreach (var proposal in proposals.Where(p => p.Status == ProposalStatus.Pending))
         {
             joinRequests.TryGetValue(proposal.Id, out var joinRequest);
-            var crew = await crewRepository.GetByIdAsync(proposal.CrewId, cancellationToken);
+            var crew = await crewRepository.GetByIdAsync(proposal.CrewId!.Value, cancellationToken);
 
             items.Add(new JoinRequestListItemDto
             {
                 ProposalId = proposal.Id,
-                CrewId = proposal.CrewId,
+                CrewId = proposal.CrewId!.Value,
                 CrewName = crew?.Name ?? "Unknown crew",
                 Status = proposal.Status.ToString(),
                 ApproveCount = proposal.ApproveCount,

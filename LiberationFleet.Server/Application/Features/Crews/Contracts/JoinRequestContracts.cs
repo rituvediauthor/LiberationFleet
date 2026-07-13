@@ -20,6 +20,7 @@ public class SubmitJoinRequestBody
 {
     public int? CrewId { get; set; }
     public string? JoinCode { get; set; }
+    public int? InvitationId { get; set; }
     public IReadOnlyList<int> AcceptedRuleIds { get; set; } = Array.Empty<int>();
 }
 

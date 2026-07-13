@@ -30,7 +30,7 @@ export class CreateCrewComponent {
   constructor() {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
-      maxSize: [4, [Validators.required, Validators.min(2), Validators.max(100)]],
+      maxSize: [30, [Validators.required, Validators.min(2), Validators.max(50)]],
       privacy: ['Public' as CrewPrivacy, Validators.required],
       scope: ['Online' as CrewScope, Validators.required],
       zipCode: [''],

@@ -28,5 +28,10 @@ public enum NotificationKind
     NewLibraryRequestMessage = 26,
     LibraryUnitBrokenReported = 27,
     LibraryUnitBrokenConfirmed = 28,
-    LibraryUnitReportedFixed = 29
+    LibraryUnitReportedFixed = 29,
+    SurvivalThresholdsRefreshed = 30,
+    NewFleetGifts = 31,
+    NewFleetProposal = 32,
+    FleetSettingChanged = 33,
+    NewFleetChatMessage = 34
 }

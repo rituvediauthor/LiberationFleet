@@ -21,8 +21,12 @@ export class ProposalService {
 
   constructor(private http: HttpClient) {}
 
-  getProposals(status: ProposalStatus): Observable<ProposalListItem[]> {
-    return this.http.get<ProposalListResponse>(this.apiUrl, { params: { status } }).pipe(
+  getProposals(status: ProposalStatus, scope: 'crew' | 'fleet' = 'crew'): Observable<ProposalListItem[]> {
+    const params: Record<string, string> = { status };
+    if (scope === 'fleet') {
+      params['scope'] = 'fleet';
+    }
+    return this.http.get<ProposalListResponse>(this.apiUrl, { params }).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.message || 'Failed to load proposals');
@@ -30,6 +34,14 @@ export class ProposalService {
         return response.items.map(item => this.mapListItem(item));
       })
     );
+  }
+
+  createFleetProposal(title: string, description: string): Observable<ProposalOperationResponse> {
+    return this.http.post<ProposalOperationResponse>(this.apiUrl, {
+      scope: 'fleet',
+      title,
+      description
+    });
   }
 
   getProposal(id: number): Observable<ProposalDetail> {

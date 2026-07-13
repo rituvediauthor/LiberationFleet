@@ -112,6 +112,55 @@ public interface IProposalRepository
         int applicantUserId,
         int exceptProposalId,
         CancellationToken cancellationToken = default);
+    Task<ProposalCrewApplyToFleet?> GetCrewApplyToFleetByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddCrewApplyToFleetAsync(ProposalCrewApplyToFleet apply, CancellationToken cancellationToken = default);
+    Task<ProposalCrewApplyToFleet?> GetPendingCrewApplyToFleetAsync(
+        int crewId,
+        int fleetId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Proposal>> GetPendingCrewApplyToFleetProposalsByCrewAsync(
+        int crewId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewApplyToFleet>> GetCrewApplyToFleetsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task<ProposalFleetJoinRequest?> GetFleetJoinRequestByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddFleetJoinRequestAsync(ProposalFleetJoinRequest joinRequest, CancellationToken cancellationToken = default);
+    Task<ProposalFleetJoinRequest?> GetPendingFleetJoinRequestAsync(
+        int fleetId,
+        int applicantCrewId,
+        CancellationToken cancellationToken = default);
+    Task<ProposalFleetSettingChange?> GetFleetSettingChangeByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddFleetSettingChangeAsync(ProposalFleetSettingChange change, CancellationToken cancellationToken = default);
+    Task<ProposalFleetKickCrew?> GetFleetKickCrewByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddFleetKickCrewAsync(ProposalFleetKickCrew kick, CancellationToken cancellationToken = default);
+    Task<ProposalFleetKickCrew?> GetPendingFleetKickCrewAsync(
+        int fleetId,
+        int targetCrewId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Proposal>> GetByFleetAndStatusAsync(
+        int fleetId,
+        ProposalStatus status,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalFleetSettingChange>> GetFleetSettingChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalFleetJoinRequest>> GetFleetJoinRequestsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalFleetKickCrew>> GetFleetKickCrewsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalFleetRuleChange>> GetFleetRuleChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task<ProposalFleetNotice?> GetFleetNoticeByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalFleetNotice>> GetFleetNoticesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task AddFleetNoticeAsync(ProposalFleetNotice notice, CancellationToken cancellationToken = default);
+    Task<ProposalFleetRuleChange?> GetFleetRuleChangeByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddFleetRuleChangeAsync(ProposalFleetRuleChange change, CancellationToken cancellationToken = default);
     Task<ProposalAnonymousAlias?> GetAnonymousAliasAsync(int proposalId, int userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProposalAnonymousAlias>> GetAnonymousAliasesAsync(
         int proposalId,

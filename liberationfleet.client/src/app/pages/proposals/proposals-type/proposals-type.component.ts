@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
@@ -18,19 +18,24 @@ export class ProposalsTypeComponent implements OnInit, OnDestroy {
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   resourceCounts: Record<string, number> = {};
+  isFleetScope = false;
 
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private navigation = inject(NavigationService);
   private notificationService = inject(NotificationService);
   private subscription?: Subscription;
 
   constructor() {
-    this.backButton = this.navigation.createBackButton(['/app/crew']);
+    this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet';
+    const home = this.isFleetScope ? ['/app/fleet'] : ['/app/crew'];
+    const create = this.isFleetScope ? ['/app/fleet/proposals/create'] : ['/app/crew/proposals/create'];
+    this.backButton = this.navigation.createBackButton(home);
 
     this.createButton = {
       label: 'Create Proposal',
       type: 'primary',
-      onClick: () => this.router.navigate(['/app/crew/proposals/create'])
+      onClick: () => this.router.navigate(create)
     };
   }
 
@@ -50,6 +55,7 @@ export class ProposalsTypeComponent implements OnInit, OnDestroy {
   }
 
   openStatus(status: 'Approved' | 'Pending' | 'Rejected') {
-    this.router.navigate(['/app/crew/proposals/list', status.toLowerCase()]);
+    const base = this.isFleetScope ? '/app/fleet/proposals/list' : '/app/crew/proposals/list';
+    this.router.navigate([base, status.toLowerCase()]);
   }
 }

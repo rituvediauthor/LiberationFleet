@@ -1,0 +1,41 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Add crewmate</h1>
+      <p class="intro-text">
+        Search by username or pick friends who are not already in a crew, then send an invitation.
+      </p>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" formControlName="username" class="form-input" placeholder="Search username">
+        </div>
+
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="friendsOnly">
+          Friends not in a crew only
+        </label>
+      </form>
+
+      <p class="search-status" *ngIf="loading">Searching...</p>
+
+      <div class="results-section" *ngIf="hasLoaded && !loading">
+        <p class="results-summary" *ngIf="candidates.length === 0">No matching users found.</p>
+
+        <ul class="results-list" *ngIf="candidates.length > 0">
+          <li *ngFor="let candidate of candidates">
+            <button
+              type="button"
+              class="result-item"
+              [class.selected]="selected?.userId === candidate.userId"
+              (click)="selectCandidate(candidate)">
+              <span class="result-name">{{ candidate.username }}</span>
+              <span class="result-meta" *ngIf="candidate.isFriend">Friend</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</app-page-layout>

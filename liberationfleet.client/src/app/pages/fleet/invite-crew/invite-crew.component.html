@@ -1,0 +1,43 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Add crew</h1>
+      <p class="intro-text">
+        Search for a crew by join code. Inviting them creates a proposal for that crew to join your fleet.
+      </p>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <label for="joinCode">Crew join code</label>
+          <input
+            id="joinCode"
+            type="text"
+            formControlName="joinCode"
+            class="form-input join-code-input"
+            [attr.maxlength]="joinCodeLength"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="8-character code"
+            (input)="onJoinCodeInput($event)">
+        </div>
+      </form>
+
+      <p class="search-status" *ngIf="lookingUp">Looking up crew...</p>
+      <p class="state-text error" *ngIf="!lookingUp && lookupMessage && !foundCrew">{{ lookupMessage }}</p>
+
+      <button
+        type="button"
+        class="result-item"
+        *ngIf="foundCrew"
+        [class.selected]="true"
+        (click)="selectFoundCrew()">
+        <span class="result-name">{{ foundCrew.crewName }}</span>
+        <span class="result-meta">
+          {{ foundCrew.memberCount }} members
+          <ng-container *ngIf="foundCrew.isOwnCrew"> · your crew</ng-container>
+          <ng-container *ngIf="foundCrew.alreadyInFleet"> · already in a fleet</ng-container>
+        </span>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

@@ -193,6 +193,14 @@ public static class CrewSettingsChangeDetector
                 request.MinimumContributionForProposals.ToString("0.##")));
         }
 
+        if (crew.AllowCrossCrewGiving != request.AllowCrossCrewGiving)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.AllowCrossCrewGiving,
+                crew.AllowCrossCrewGiving.ToString(),
+                request.AllowCrossCrewGiving.ToString()));
+        }
+
         return changes;
     }
 }
@@ -246,6 +254,8 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to change minimum crewmate tenure for proposals from {change.OldValue} to {change.NewValue} days.",
             CrewSettingField.MinimumContributionForProposals =>
                 $"Proposal to change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
+            CrewSettingField.AllowCrossCrewGiving =>
+                $"Proposal to set \"Allow cross-crew giving\" to \"{FormatBool(change.NewValue)}\".",
             _ => "Proposal to change crew settings."
         };
 

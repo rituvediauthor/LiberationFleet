@@ -7,6 +7,7 @@ public interface IChatRepository
     Task<ChatRoom?> GetRoomByIdAsync(int roomId, CancellationToken cancellationToken = default);
     Task<ChatRoom?> GetRoomByIdWithAuthorAsync(int roomId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ChatRoom>> GetRoomsByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ChatRoom>> GetRoomsByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default);
     Task AddRoomAsync(ChatRoom room, CancellationToken cancellationToken = default);
     Task AddMessageAsync(ChatRoomMessage message, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ChatRoomMessage>> GetLatestMessagesAsync(

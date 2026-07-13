@@ -15,11 +15,13 @@ public record SendChatMessageCommand(
     string Nonce,
     string Ciphertext,
     int KeyVersion,
+    string? Body,
     IReadOnlyList<int> MentionedUserIds) : IRequest<ChatOperationResponse>;
 
 public class SendChatMessageCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     IChatRealtimeNotifier chatRealtimeNotifier,
@@ -34,11 +36,6 @@ public class SendChatMessageCommandHandler(
             return new ChatOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
-        {
-            return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
-        }
-
         var userId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
@@ -47,7 +44,7 @@ public class SendChatMessageCommandHandler(
         }
 
         var room = await chatRepository.GetRoomByIdAsync(request.RoomId, cancellationToken);
-        if (room is null || room.CrewId != membership.CrewId)
+        if (room is null || !await ChatRoomAccess.CanAccessRoomAsync(room, membership, fleetRepository, cancellationToken))
         {
             return new ChatOperationResponse { Success = false, Message = "Chat room not found." };
         }
@@ -57,63 +54,104 @@ public class SendChatMessageCommandHandler(
             return new ChatOperationResponse { Success = false, Message = "Text messages are not supported in this room type." };
         }
 
+        var isFleetRoom = !room.CrewId.HasValue && room.FleetId.HasValue;
+        if (isFleetRoom)
+        {
+            if (string.IsNullOrWhiteSpace(request.Body))
+            {
+                return new ChatOperationResponse { Success = false, Message = "Message content is required." };
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        {
+            return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
+        }
+
         var utcNow = DateTime.UtcNow;
         var message = new ChatRoomMessage
         {
             ChatRoomId = room.Id,
             AuthorUserId = userId,
-            CreatedAt = utcNow
+            CreatedAt = utcNow,
+            Body = isFleetRoom ? request.Body!.Trim() : null
         };
 
         await chatRepository.AddMessageAsync(message, cancellationToken);
         room.LastActivityAt = utcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var envelope = new EncryptedContentEnvelope
+        EncryptedContentEnvelope? envelope = null;
+        if (!isFleetRoom)
         {
-            ContentType = EncryptedContentType.ChatRoomMessage,
-            ResourceId = message.Id.ToString(),
-            CrewId = membership.CrewId,
-            AuthorUserId = userId,
-            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-            Nonce = request.Nonce.Trim(),
-            Ciphertext = request.Ciphertext.Trim(),
-            CreatedAt = utcNow,
-            UpdatedAt = utcNow
-        };
+            envelope = new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.ChatRoomMessage,
+                ResourceId = message.Id.ToString(),
+                CrewId = membership.CrewId,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+                Nonce = request.Nonce.Trim(),
+                Ciphertext = request.Ciphertext.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            };
 
-        await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+            await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         var savedMessage = await chatRepository.GetMessageByIdWithAuthorAsync(message.Id, cancellationToken);
         if (savedMessage is not null)
         {
             var messageDto = ChatMapper.MapMessage(savedMessage, envelope);
             await chatRealtimeNotifier.NotifyMessageSentAsync(membership.CrewId, room.Id, messageDto, cancellationToken);
-            await chatRealtimeNotifier.NotifyRoomActivityUpdatedAsync(membership.CrewId, room.Id, utcNow, cancellationToken);
 
-            await notificationService.NotifyCrewIfNotMutedAsync(
-                membership.CrewId,
-                NotificationKind.NewChatMessage,
-                MutedContentType.ChatRoom,
-                room.Id,
-                "New chat message",
-                "You have a new message in a crew chat.",
-                $"/app/crew/chats/{room.Id}",
-                relatedEntityId: room.Id,
-                excludeUserId: userId,
-                cancellationToken: cancellationToken);
-
-            await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+            if (isFleetRoom)
             {
-                CrewId = membership.CrewId,
-                AuthorUserId = userId,
-                ContentType = MentionedContentType.ChatRoomMessage,
-                ResourceId = message.Id,
-                ParentResourceId = room.Id,
-                ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
-                MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
-            }, cancellationToken);
+                var fleetCrews = await fleetRepository.GetFleetCrewsAsync(room.FleetId!.Value, cancellationToken);
+                foreach (var fleetCrew in fleetCrews)
+                {
+                    await chatRealtimeNotifier.NotifyRoomActivityUpdatedAsync(fleetCrew.CrewId, room.Id, utcNow, cancellationToken);
+                    await notificationService.NotifyCrewIfNotMutedAsync(
+                        fleetCrew.CrewId,
+                        NotificationKind.NewChatMessage,
+                        MutedContentType.ChatRoom,
+                        room.Id,
+                        "New chat message",
+                        "You have a new message in a fleet chat.",
+                        $"/app/fleet/chats/{room.Id}",
+                        relatedEntityId: room.Id,
+                        excludeUserId: userId,
+                        cancellationToken: cancellationToken);
+                }
+            }
+            else
+            {
+                await chatRealtimeNotifier.NotifyRoomActivityUpdatedAsync(membership.CrewId, room.Id, utcNow, cancellationToken);
+
+                await notificationService.NotifyCrewIfNotMutedAsync(
+                    membership.CrewId,
+                    NotificationKind.NewChatMessage,
+                    MutedContentType.ChatRoom,
+                    room.Id,
+                    "New chat message",
+                    "You have a new message in a crew chat.",
+                    $"/app/crew/chats/{room.Id}",
+                    relatedEntityId: room.Id,
+                    excludeUserId: userId,
+                    cancellationToken: cancellationToken);
+
+                await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+                {
+                    CrewId = membership.CrewId,
+                    AuthorUserId = userId,
+                    ContentType = MentionedContentType.ChatRoomMessage,
+                    ResourceId = message.Id,
+                    ParentResourceId = room.Id,
+                    ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
+                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+                }, cancellationToken);
+            }
         }
 
         return new ChatOperationResponse

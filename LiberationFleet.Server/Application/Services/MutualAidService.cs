@@ -12,6 +12,7 @@ namespace LiberationFleet.Server.Application.Services;
 public partial class MutualAidService(
     IMutualAidRepository mutualAidRepository,
     ICrewMembershipRepository membershipRepository,
+    IGiftRepository giftRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IMutualAidService, IMutualAidDevService
 {
@@ -72,12 +73,70 @@ public partial class MutualAidService(
             return Array.Empty<ReceptionOrderEntryDto>();
         }
 
+        var entries = await BuildReceptionOrderForCrewAsync(
+            crew,
+            userId,
+            excludeSelfAsRecipient,
+            forRecordGift,
+            additionalMembersForMiddlemen: null,
+            cancellationToken);
+
+        return entries.Take(limit).ToList();
+    }
+
+    public async Task<IReadOnlyList<ReceptionOrderEntryDto>> GetReceptionOrderForCrewAsGiverAsync(
+        int targetCrewId,
+        int giverUserId,
+        bool forRecordGift = false,
+        bool excludeSelfAsRecipient = true,
+        IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen = null,
+        CancellationToken cancellationToken = default)
+    {
+        var crew = await mutualAidRepository.GetCrewAsync(targetCrewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
+        {
+            return Array.Empty<ReceptionOrderEntryDto>();
+        }
+
+        return await BuildReceptionOrderForCrewAsync(
+            crew,
+            giverUserId,
+            excludeSelfAsRecipient,
+            forRecordGift,
+            additionalMembersForMiddlemen,
+            cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<ReceptionOrderEntryDto>> BuildReceptionOrderForCrewAsync(
+        Crew crew,
+        int giverUserId,
+        bool excludeSelfAsRecipient,
+        bool forRecordGift,
+        IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen,
+        CancellationToken cancellationToken)
+    {
         await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
 
         var allMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crew.Id, cancellationToken);
         var memberPlatforms = allMembers.Select(CrewPaymentPlatformService.MapCrewMemberPlatforms).ToList();
 
-        var giverPlatforms = memberPlatforms.FirstOrDefault(m => m.UserId == userId)?.PlatformIds ?? Array.Empty<int>();
+        var middlemanPool = BuildMiddlemanPool(memberPlatforms, additionalMembersForMiddlemen);
+        var giverPlatforms = await ResolveGiverPlatformIdsAsync(
+            giverUserId,
+            memberPlatforms,
+            middlemanPool,
+            cancellationToken);
+
+        // FindMiddlemen requires the giver in the members list.
+        if (!middlemanPool.Any(m => m.UserId == giverUserId))
+        {
+            var giverMember = await ResolveGiverMemberPlatformsAsync(giverUserId, cancellationToken);
+            if (giverMember is not null)
+            {
+                middlemanPool.Add(giverMember);
+            }
+        }
+
         var entries = new List<ReceptionOrderEntryDto>();
 
         if (AreSurvivalThresholdsEnabled(crew))
@@ -99,13 +158,13 @@ public partial class MutualAidService(
                     threshold.Id,
                     null,
                     null,
-                    userId,
+                    giverUserId,
                     giverPlatforms,
-                    memberPlatforms));
+                    middlemanPool));
             }
         }
 
-        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate.Value, cancellationToken)).ToList();
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate!.Value, cancellationToken)).ToList();
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var seasonParticipants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
         var memberStatus = new Dictionary<int, bool>();
@@ -190,9 +249,9 @@ public partial class MutualAidService(
                 null,
                 cycle.UserId,
                 cycle.Id,
-                userId,
+                giverUserId,
                 giverPlatforms,
-                memberPlatforms));
+                middlemanPool));
         }
 
         foreach (var unit in lockedUnits)
@@ -235,10 +294,73 @@ public partial class MutualAidService(
         var result = entries.AsEnumerable();
         if (excludeSelfAsRecipient)
         {
-            result = result.Where(e => e.UserId != userId);
+            result = result.Where(e => e.UserId != giverUserId);
         }
 
-        return result.Take(limit).ToList();
+        return result.ToList();
+    }
+
+    private static List<CrewMemberPlatforms> BuildMiddlemanPool(
+        IReadOnlyList<CrewMemberPlatforms> targetCrewMembers,
+        IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen)
+    {
+        var pool = new List<CrewMemberPlatforms>(targetCrewMembers);
+        if (additionalMembersForMiddlemen is null || additionalMembersForMiddlemen.Count == 0)
+        {
+            return pool;
+        }
+
+        var seen = pool.Select(m => m.UserId).ToHashSet();
+        foreach (var member in additionalMembersForMiddlemen)
+        {
+            if (seen.Add(member.UserId))
+            {
+                pool.Add(member);
+            }
+        }
+
+        return pool;
+    }
+
+    private async Task<IReadOnlyList<int>> ResolveGiverPlatformIdsAsync(
+        int giverUserId,
+        IReadOnlyList<CrewMemberPlatforms> targetCrewMembers,
+        IReadOnlyList<CrewMemberPlatforms> middlemanPool,
+        CancellationToken cancellationToken)
+    {
+        var fromTarget = targetCrewMembers.FirstOrDefault(m => m.UserId == giverUserId);
+        if (fromTarget is not null)
+        {
+            return fromTarget.PlatformIds;
+        }
+
+        var fromPool = middlemanPool.FirstOrDefault(m => m.UserId == giverUserId);
+        if (fromPool is not null)
+        {
+            return fromPool.PlatformIds;
+        }
+
+        var giverMember = await ResolveGiverMemberPlatformsAsync(giverUserId, cancellationToken);
+        return giverMember?.PlatformIds ?? Array.Empty<int>();
+    }
+
+    private async Task<CrewMemberPlatforms?> ResolveGiverMemberPlatformsAsync(
+        int giverUserId,
+        CancellationToken cancellationToken)
+    {
+        var membership = await membershipRepository.GetActiveMembershipAsync(giverUserId, cancellationToken);
+        if (membership is null)
+        {
+            return null;
+        }
+
+        var giverCrewMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(
+            membership.CrewId,
+            cancellationToken);
+        var giverMembership = giverCrewMembers.FirstOrDefault(m => m.UserId == giverUserId);
+        return giverMembership is null
+            ? null
+            : CrewPaymentPlatformService.MapCrewMemberPlatforms(giverMembership);
     }
 
     public async Task<NextAidDto?> GetNextAidAsync(int userId, CancellationToken cancellationToken = default)
@@ -878,12 +1000,18 @@ public partial class MutualAidService(
 
         await InitializeSeasonStateAsync(crew, readyMembers, cancellationToken);
 
+        await AddCelebratoryGiftLogEntryAsync(
+            crew,
+            GiftType.SeasonStarted,
+            actorUserId: crew.CreatedByUserId,
+            cancellationToken);
+
         await notificationService.NotifyCrewAsync(
             crew.Id,
             NotificationKind.NewSeason,
             "New season",
             "A new mutual aid season has started.",
-            "/app/crew/join-season",
+            "/app/crew/gift-log",
             cancellationToken: cancellationToken);
     }
 
@@ -1072,6 +1200,20 @@ public partial class MutualAidService(
 
         if (created)
         {
+            await AddCelebratoryGiftLogEntryAsync(
+                crew,
+                GiftType.SurvivalThresholdsRefreshed,
+                actorUserId: crew.CreatedByUserId,
+                cancellationToken);
+
+            await notificationService.NotifyCrewAsync(
+                crew.Id,
+                NotificationKind.SurvivalThresholdsRefreshed,
+                "Survival thresholds refreshed",
+                "Survival thresholds have been refreshed for the new month.",
+                "/app/crew/gift-log",
+                cancellationToken: cancellationToken);
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
@@ -1254,12 +1396,18 @@ public partial class MutualAidService(
         crew.CurrentSeasonStartDate = DateTime.UtcNow;
         await InitializeSeasonStateAsync(crew, participants, cancellationToken);
 
+        await AddCelebratoryGiftLogEntryAsync(
+            crew,
+            GiftType.SeasonStarted,
+            actorUserId: crew.CreatedByUserId,
+            cancellationToken);
+
         await notificationService.NotifyCrewAsync(
             crew.Id,
             NotificationKind.NewSeason,
             "New season",
             "A new mutual aid season has started.",
-            "/app/crew/join-season",
+            "/app/crew/gift-log",
             cancellationToken: cancellationToken);
     }
 
@@ -1544,12 +1692,18 @@ public partial class MutualAidService(
 
             if (newlyStarted)
             {
+                await AddCelebratoryGiftLogEntryAsync(
+                    crew,
+                    GiftType.CycleStarted,
+                    actorUserId: cycle.UserId,
+                    cancellationToken);
+
                 await notificationService.NotifyCrewAsync(
                     crew.Id,
                     NotificationKind.NewCycle,
                     "New cycle",
                     "A crewmate's reception cycle has started.",
-                    "/app/crew/join-season",
+                    "/app/crew/gift-log",
                     relatedEntityId: cycle.UserId,
                     cancellationToken: cancellationToken);
             }
@@ -1690,6 +1844,29 @@ public partial class MutualAidService(
     }
 
     private static bool AreSurvivalThresholdsEnabled(Crew crew) => crew.AllowSurvivalThresholds;
+
+    private async Task AddCelebratoryGiftLogEntryAsync(
+        Crew crew,
+        GiftType type,
+        int actorUserId,
+        CancellationToken cancellationToken)
+    {
+        await giftRepository.AddAsync(new Gift
+        {
+            CrewId = crew.Id,
+            GiverUserId = actorUserId,
+            RecipientUserId = actorUserId,
+            Type = type,
+            Amount = 0m,
+            CrewPaymentPlatformId = null,
+            CreatedAt = DateTime.UtcNow,
+            IsCustomGift = true,
+            CountsTowardReception = false,
+            CountsTowardContribution = false,
+            ReceptionApplied = true,
+            VerificationStatus = GiftVerificationStatus.Verified
+        }, cancellationToken);
+    }
 
     private sealed class CapacityContext
     {

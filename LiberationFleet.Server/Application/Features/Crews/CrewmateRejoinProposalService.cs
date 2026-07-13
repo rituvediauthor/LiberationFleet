@@ -96,7 +96,7 @@ public class CrewmateRejoinProposalService(
             return;
         }
 
-        var membership = await membershipRepository.GetMembershipAsync(rejoin.TargetUserId, proposal.CrewId, cancellationToken);
+        var membership = await membershipRepository.GetMembershipAsync(rejoin.TargetUserId, proposal.CrewId!.Value, cancellationToken);
         if (membership is not null && membership.IsBanned)
         {
             membershipRepository.Remove(membership);
@@ -107,7 +107,7 @@ public class CrewmateRejoinProposalService(
             $"{rejoin.Username} may now search for and join the crew again. They must rejoin on their own.";
 
         await notificationService.NotifyCrewAsync(
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             NotificationKind.CrewmateRejoinAllowed,
             "Crewmate may rejoin",
             $"{rejoin.Username} may now search for and join the crew again.",

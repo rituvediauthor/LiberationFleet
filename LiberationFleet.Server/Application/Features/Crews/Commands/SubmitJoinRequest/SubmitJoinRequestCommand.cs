@@ -6,13 +6,17 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crews.Commands.SubmitJoinRequest;
 
-public record SubmitJoinRequestCommand(int? CrewId, string? JoinCode, IReadOnlyList<int> AcceptedRuleIds)
-    : IRequest<JoinRequestOperationResponse>;
+public record SubmitJoinRequestCommand(
+    int? CrewId,
+    string? JoinCode,
+    IReadOnlyList<int> AcceptedRuleIds,
+    int? InvitationId = null) : IRequest<JoinRequestOperationResponse>;
 
 public class SubmitJoinRequestCommandHandler(
     ICurrentUserService currentUser,
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
+    ICrewInvitationRepository invitationRepository,
     CrewJoinRequestProposalService joinRequestProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<SubmitJoinRequestCommand, JoinRequestOperationResponse>
 {
@@ -26,11 +30,25 @@ public class SubmitJoinRequestCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var crew = !string.IsNullOrWhiteSpace(request.JoinCode)
-            ? await crewRepository.GetByJoinCodeAsync(request.JoinCode.Trim().ToUpperInvariant(), cancellationToken)
-            : request.CrewId.HasValue
-                ? await crewRepository.GetByIdAsync(request.CrewId.Value, cancellationToken)
-                : null;
+        Domain.Entities.CrewInvitation? invitation = null;
+        if (request.InvitationId.HasValue)
+        {
+            invitation = await invitationRepository.GetByIdAsync(request.InvitationId.Value, cancellationToken);
+            if (invitation is null
+                || invitation.InviteeUserId != userId
+                || invitation.Status != CrewInvitationStatus.Pending)
+            {
+                return new JoinRequestOperationResponse { Success = false, Message = "Invitation not found or already handled." };
+            }
+        }
+
+        var crew = invitation is not null
+            ? await crewRepository.GetByIdAsync(invitation.CrewId, cancellationToken)
+            : !string.IsNullOrWhiteSpace(request.JoinCode)
+                ? await crewRepository.GetByJoinCodeAsync(request.JoinCode.Trim().ToUpperInvariant(), cancellationToken)
+                : request.CrewId.HasValue
+                    ? await crewRepository.GetByIdAsync(request.CrewId.Value, cancellationToken)
+                    : null;
 
         if (crew is null)
         {
@@ -41,6 +59,11 @@ public class SubmitJoinRequestCommandHandler(
                     ? "No crew found with that join code"
                     : "Crew not found"
             };
+        }
+
+        if (invitation is not null && invitation.CrewId != crew.Id)
+        {
+            return new JoinRequestOperationResponse { Success = false, Message = "Invitation does not match this crew." };
         }
 
         var publicRules = await ruleRepository.GetPublicByCrewIdAsync(crew.Id, cancellationToken);
@@ -61,6 +84,12 @@ public class SubmitJoinRequestCommandHandler(
             crew.Id,
             acceptedRuleIds,
             cancellationToken);
+
+        if (result.Success && invitation is not null)
+        {
+            invitation.Status = CrewInvitationStatus.Accepted;
+            invitation.RespondedAt = DateTime.UtcNow;
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

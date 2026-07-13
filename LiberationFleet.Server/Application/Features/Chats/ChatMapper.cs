@@ -72,6 +72,7 @@ public static class ChatMapper
         AuthorUsername = envelope is null ? message.AuthorUser?.Username ?? string.Empty : string.Empty,
         CreatedAt = message.CreatedAt,
         HasEncryptedContent = envelope is not null,
-        EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope)
+        EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope),
+        Body = envelope is null ? message.Body : null
     };
 }

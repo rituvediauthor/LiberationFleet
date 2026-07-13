@@ -29,6 +29,7 @@ public class NotificationPreferenceDto
 {
     public NotificationKind Kind { get; set; }
     public string Label { get; set; } = string.Empty;
+    public string Category { get; set; } = "Crew";
     public bool IsEnabled { get; set; }
 }
 

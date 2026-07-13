@@ -37,7 +37,7 @@ public class RerollProposalAliasCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Nicknames are only used on general proposals." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
         {
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }

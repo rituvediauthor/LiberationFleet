@@ -105,7 +105,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Detail = room.RoomType == ChatRoomType.Voice ? "Voice chat" : "Text chat",
                 PlaintextPreview = Truncate(string.IsNullOrWhiteSpace(room.Purpose) ? room.Name : room.Purpose, 120),
                 CreatedAt = room.CreatedAt,
-                CrewId = room.CrewId,
+                CrewId = room.CrewId!.Value,
                 ResourceId = room.Id,
                 ChatRoomType = room.RoomType,
                 ResourceExists = true
@@ -139,7 +139,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Detail = $"In {Truncate(pair.room.Purpose, 80)}",
                 PreviewContentType = EncryptedContentType.ChatRoomMessage,
                 CreatedAt = pair.message.CreatedAt,
-                CrewId = pair.room.CrewId,
+                CrewId = pair.room.CrewId ?? 0,
                 ResourceId = pair.message.Id,
                 ParentResourceId = pair.room.Id,
                 ChatRoomType = pair.room.RoomType,
@@ -474,7 +474,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
             PlaintextPreview = Truncate(ResolveProposalTitle(proposal), 120),
             PreviewContentType = EncryptedContentType.Proposal,
             CreatedAt = proposal.CreatedAt,
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             ResourceId = proposal.Id,
             ResourceExists = true
         }).ToList();
@@ -509,7 +509,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
             Detail = "On proposal",
             PreviewContentType = EncryptedContentType.ProposalComment,
             CreatedAt = pair.comment.CreatedAt,
-            CrewId = pair.proposal.CrewId,
+            CrewId = pair.proposal.CrewId ?? 0,
             ResourceId = pair.comment.Id,
             ParentResourceId = pair.proposal.Id,
             ResourceExists = true

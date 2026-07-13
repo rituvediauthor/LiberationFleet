@@ -22,7 +22,7 @@
 
         <div class="form-group">
           <label for="maxSize">Crew size</label>
-          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" [attr.min]="memberCount > 2 ? memberCount : 2" max="100" step="1">
+          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" [attr.min]="memberCount > 2 ? memberCount : 2" max="50" step="1">
           <span class="hint-text" *ngIf="memberCount > 0">Crew size cannot be less than the current member count ({{ memberCount }}).</span>
         </div>
 
@@ -59,6 +59,14 @@
             <input type="checkbox" formControlName="allowSurvivalThresholds">
             Allow survival thresholds
           </label>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="allowCrossCrewGiving">
+            Allow cross-crew giving
+          </label>
+          <span class="hint-text">When enabled, crewmates can give and receive aid across crews in the same fleet.</span>
         </div>
 
         <div class="form-group checkbox-group">

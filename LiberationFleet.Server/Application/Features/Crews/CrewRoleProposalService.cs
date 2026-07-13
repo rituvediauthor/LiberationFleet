@@ -169,7 +169,7 @@ public class CrewRoleProposalService(
             return;
         }
 
-        var membership = await membershipRepository.GetMembershipAsync(roleChange.TargetUserId, proposal.CrewId, cancellationToken);
+        var membership = await membershipRepository.GetMembershipAsync(roleChange.TargetUserId, proposal.CrewId!.Value, cancellationToken);
         if (membership is null || membership.IsBanned)
         {
             roleChange.IsApplied = true;
@@ -193,7 +193,7 @@ public class CrewRoleProposalService(
                 : $"{roleLabels} was removed from {targetUser.Username}.";
 
             await notificationService.NotifyCrewAsync(
-                proposal.CrewId,
+                proposal.CrewId!.Value,
                 NotificationKind.NewProposal,
                 "Role change approved",
                 body,

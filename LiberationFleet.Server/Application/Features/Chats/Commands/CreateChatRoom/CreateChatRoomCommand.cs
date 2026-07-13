@@ -15,12 +15,14 @@ public record CreateChatRoomCommand(
     ChatRoomType RoomType,
     string Purpose,
     string PlaintextName,
-    bool IsAdultContent) : IRequest<ChatOperationResponse>;
+    bool IsAdultContent,
+    bool IsFleetScope = false) : IRequest<ChatOperationResponse>;
 
 public class CreateChatRoomCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
+    IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     CrewChatsProposalService crewChatsProposalService,
@@ -32,11 +34,6 @@ public class CreateChatRoomCommandHandler(
         if (!currentUser.UserId.HasValue)
         {
             return new ChatOperationResponse { Success = false, Message = "Unauthorized." };
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
-        {
-            return new ChatOperationResponse { Success = false, Message = "Encrypted chat room name is required." };
         }
 
         if (string.IsNullOrWhiteSpace(request.PlaintextName))
@@ -54,6 +51,16 @@ public class CreateChatRoomCommandHandler(
         if (membership is null)
         {
             return new ChatOperationResponse { Success = false, Message = "You are not in a crew." };
+        }
+
+        if (request.IsFleetScope)
+        {
+            return await HandleFleetCreateAsync(request, userId, membership.CrewId, cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        {
+            return new ChatOperationResponse { Success = false, Message = "Encrypted chat room name is required." };
         }
 
         var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
@@ -137,6 +144,73 @@ public class CreateChatRoomCommandHandler(
         {
             Success = true,
             Message = "Chat room created.",
+            RoomId = room.Id
+        };
+    }
+
+    private async Task<ChatOperationResponse> HandleFleetCreateAsync(
+        CreateChatRoomCommand request,
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken)
+    {
+        if (request.RoomType != ChatRoomType.Text)
+        {
+            return new ChatOperationResponse { Success = false, Message = "Fleet chat rooms only support text chat." };
+        }
+
+        var fleet = await fleetRepository.GetFleetForCrewAsync(crewId, cancellationToken);
+        if (fleet is null)
+        {
+            return new ChatOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
+        }
+
+        if (fleet.RequireApprovalForEdits)
+        {
+            var proposalId = await crewChatsProposalService.CreateFleetProposalAsync(
+                fleet.Id,
+                userId,
+                CrewChatProposalAction.Create,
+                CrewChatChangeDescriber.CreateTitle,
+                CrewChatChangeDescriber.BuildCreateDescription(request.PlaintextName, request.Purpose),
+                roomId: null,
+                request.Purpose,
+                request.RoomType,
+                request.PlaintextName,
+                request.IsAdultContent,
+                cancellationToken);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new ChatOperationResponse
+            {
+                Success = true,
+                Message = "Proposal submitted for fleet approval.",
+                ProposalsSubmitted = true,
+                ProposalId = proposalId
+            };
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var room = new ChatRoom
+        {
+            FleetId = fleet.Id,
+            Name = request.PlaintextName.Trim(),
+            Purpose = request.Purpose.Trim(),
+            RoomType = ChatRoomType.Text,
+            CreatedByUserId = userId,
+            CreatedAt = utcNow,
+            LastActivityAt = utcNow,
+            IsAdultContent = request.IsAdultContent
+        };
+
+        await chatRepository.AddRoomAsync(room, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new ChatOperationResponse
+        {
+            Success = true,
+            Message = "Fleet chat room created.",
             RoomId = room.Id
         };
     }

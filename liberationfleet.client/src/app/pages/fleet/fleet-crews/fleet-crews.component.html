@@ -1,0 +1,29 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="addButton">
+  <div class="fleet-crews-page">
+    <h1 class="page-title">Crews</h1>
+    <p class="page-subtitle">Crews in your fleet</p>
+
+    <p *ngIf="loading" class="state-text">Loading crews...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && crews.length === 0" class="state-text">No crews found.</p>
+
+    <div class="crew-list" *ngIf="!loading && crews.length > 0">
+      <button
+        type="button"
+        class="crew-row"
+        *ngFor="let crew of crews"
+        (click)="openCrew(crew)">
+        <div class="crew-main">
+          <p class="crew-name">
+            {{ crew.crewName }}
+            <span class="own-badge" *ngIf="crew.isOwnCrew">Your crew</span>
+          </p>
+          <p class="crew-meta">
+            {{ crew.memberCount }}<ng-container *ngIf="crew.maxSize">/{{ crew.maxSize }}</ng-container> members
+          </p>
+        </div>
+        <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

@@ -39,7 +39,7 @@ public class CreateKickFromProposalAuthorCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Kick proposals are only available on general proposals." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
         {
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -54,7 +54,7 @@ public class CreateKickFromProposalAuthorCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "A reason is required to submit a kick proposal." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(proposal.AuthorUserId, proposal.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(proposal.AuthorUserId, proposal.CrewId!.Value, cancellationToken))
         {
             return new ProposalOperationResponse { Success = false, Message = "That crewmate is no longer in the crew." };
         }
@@ -63,7 +63,7 @@ public class CreateKickFromProposalAuthorCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var kickResult = await kickProposalService.CreateFromAnonymousCommentAsync(
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             userId,
             proposal.AuthorUserId,
             proposal.Id,

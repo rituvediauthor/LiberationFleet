@@ -41,6 +41,24 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<User>> SearchByUsernameAsync(
+        string usernameFragment,
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var term = usernameFragment.Trim();
+        if (term.Length < 2)
+        {
+            return Array.Empty<User>();
+        }
+
+        return await _context.Users
+            .Where(u => !u.IsUnclaimedPlaceholder && u.Username.Contains(term))
+            .OrderBy(u => u.Username)
+            .Take(Math.Clamp(limit, 1, 50))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> IsUsernameTakenByOtherUserAsync(string username, int userId, CancellationToken cancellationToken = default)
     {
         return _context.Users.AnyAsync(

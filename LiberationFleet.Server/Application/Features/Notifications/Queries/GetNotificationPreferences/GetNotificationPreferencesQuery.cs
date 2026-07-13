@@ -30,10 +30,12 @@ public class GetNotificationPreferencesQueryHandler(
                 {
                     Kind = kind,
                     Label = NotificationService.GetKindLabel(kind),
+                    Category = NotificationService.GetKindCategory(kind),
                     IsEnabled = match?.IsEnabled ?? true
                 };
             })
-            .OrderBy(p => p.Label)
+            .OrderBy(p => p.Category)
+            .ThenBy(p => p.Label)
             .ToList();
 
         return new NotificationPreferencesResponse

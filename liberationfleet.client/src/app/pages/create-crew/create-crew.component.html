@@ -14,9 +14,9 @@
 
         <div class="form-group">
           <label for="maxSize">Crew Size</label>
-          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" min="2" max="100" step="1">
+          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" min="2" max="50" step="1">
           <span class="error-text" *ngIf="form.get('maxSize')?.invalid && form.get('maxSize')?.touched">
-            Size must be between 2 and 100
+            Size must be between 2 and 50
           </span>
         </div>
 

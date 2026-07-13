@@ -27,6 +27,7 @@ public class CrewDto
     public decimal MinimumContributionForAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
+    public bool AllowCrossCrewGiving { get; set; }
     public decimal MonthlyGivingCapacity { get; set; }
 }
 
@@ -53,6 +54,7 @@ public class UpdateCrewRequest
     public decimal MinimumContributionForAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
+    public bool AllowCrossCrewGiving { get; set; }
 }
 
 public class CrewMembershipStatusDto

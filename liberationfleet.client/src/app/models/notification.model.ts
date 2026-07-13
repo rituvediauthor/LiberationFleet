@@ -25,7 +25,14 @@ export type NotificationKind =
   | 'NewLibraryRequestMessage'
   | 'LibraryUnitBrokenReported'
   | 'LibraryUnitBrokenConfirmed'
-  | 'LibraryUnitReportedFixed';
+  | 'LibraryUnitReportedFixed'
+  | 'SurvivalThresholdsRefreshed'
+  | 'NewFleetGifts'
+  | 'NewFleetProposal'
+  | 'FleetSettingChanged'
+  | 'NewFleetChatMessage';
+
+export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 
 export type NotificationFilterCategory = 'All' | 'Comments' | 'Mentions' | 'Proposals' | 'Rules';
 
@@ -77,6 +84,7 @@ export interface NotificationListResponse {
 export interface NotificationPreference {
   kind: NotificationKind;
   label: string;
+  category: NotificationPreferenceCategory;
   isEnabled: boolean;
 }
 

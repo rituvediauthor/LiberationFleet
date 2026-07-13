@@ -16,7 +16,8 @@
           class="log-entry"
           [class.highlighted]="isHighlighted(entry)"
           [class.flagged-not-complete]="entry.displayFlag === 'notComplete'"
-          [class.flagged-cant-complete]="entry.displayFlag === 'cantComplete'">
+          [class.flagged-cant-complete]="entry.displayFlag === 'cantComplete'"
+          [class.celebration]="isCelebration(entry)">
           <div
             *ngIf="hasMore && i === loadMoreTriggerIndex"
             #loadMoreSentinel

@@ -1,0 +1,20 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
+  <div class="rule-list-page">
+    <h1 class="page-title">Fleet Rules</h1>
+    <p class="page-subtitle">Rules every crew in your fleet abides by</p>
+
+    <p *ngIf="loading" class="state-text">Loading rules...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && rules.length === 0" class="state-text">No rules yet.</p>
+
+    <div class="rule-list" *ngIf="!loading && rules.length > 0">
+      <button type="button" class="rule-card" *ngFor="let rule of rules" (click)="editRule(rule)">
+        <div class="rule-content">
+          <h2 class="rule-title">{{ rule.title || 'Untitled rule' }}</h2>
+          <p class="rule-preview">{{ rule.description }}</p>
+        </div>
+        <i class="fa-solid fa-angle-right rule-chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

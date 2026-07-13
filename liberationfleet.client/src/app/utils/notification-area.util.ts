@@ -66,6 +66,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewGifts':
     case 'NewCycle':
     case 'NewSeason':
+    case 'SurvivalThresholdsRefreshed':
       return 'giftLog';
     case 'NewRule':
     case 'RuleDeleted':

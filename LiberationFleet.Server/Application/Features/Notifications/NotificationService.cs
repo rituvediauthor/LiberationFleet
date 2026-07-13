@@ -134,6 +134,7 @@ public class NotificationService(
         NotificationKind.NewGifts => "New gift(s)",
         NotificationKind.NewCycle => "New cycle",
         NotificationKind.NewSeason => "New season",
+        NotificationKind.SurvivalThresholdsRefreshed => "Survival thresholds refreshed",
         NotificationKind.NewChatMessage => "New chat message",
         NotificationKind.NewReply => "New reply",
         NotificationKind.NewForumPost => "New forum post",
@@ -152,7 +153,24 @@ public class NotificationService(
         NotificationKind.LibraryRequestDenied => "Library request denied",
         NotificationKind.LibraryRequestCompleted => "Library request completed",
         NotificationKind.NewLibraryRequestMessage => "Library request message",
+        NotificationKind.LibraryUnitBrokenReported => "Library unit reported broken",
+        NotificationKind.LibraryUnitBrokenConfirmed => "Library unit confirmed broken",
+        NotificationKind.LibraryUnitReportedFixed => "Library unit reported fixed",
+        NotificationKind.NewFleetGifts => "New fleet gift(s)",
+        NotificationKind.NewFleetProposal => "New fleet proposal",
+        NotificationKind.FleetSettingChanged => "Fleet setting changed",
+        NotificationKind.NewFleetChatMessage => "New fleet chat message",
         _ => kind.ToString()
+    };
+
+    public static string GetKindCategory(NotificationKind kind) => kind switch
+    {
+        NotificationKind.JoinRequestFromCrew
+            or NotificationKind.NewFleetGifts
+            or NotificationKind.NewFleetProposal
+            or NotificationKind.FleetSettingChanged
+            or NotificationKind.NewFleetChatMessage => "Fleet",
+        _ => "Crew"
     };
 
     private static Notification MapToEntity(CreateNotificationRequest request) => new()

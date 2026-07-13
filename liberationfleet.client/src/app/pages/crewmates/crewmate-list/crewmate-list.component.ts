@@ -43,7 +43,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
     this.addButton = {
       label: 'Add crewmate',
       type: 'primary',
-      onClick: () => this.toastService.error('Add crewmate is not available yet.')
+      onClick: () => this.router.navigate(['/app/crew/crewmates/invite'])
     };
 
     this.activityIntervalId = setInterval(() => {

@@ -1,0 +1,48 @@
+<app-page-layout
+  [backButton]="backButton"
+  [primaryButton]="primaryButton"
+  [secondaryButton]="secondaryButton">
+  <div class="form-container">
+    <div class="form-card">
+      <p class="state-text" *ngIf="loading">Loading invitation...</p>
+      <p class="state-text error" *ngIf="!loading && errorMessage">{{ errorMessage }}</p>
+
+      <ng-container *ngIf="!loading && invitation && !errorMessage">
+        <ng-container *ngIf="step === 'invite'">
+          <h1>Crew invitation</h1>
+          <p class="intro-text">
+            <strong>{{ invitation.inviterUsername }}</strong> invited you to join
+            <strong>{{ invitation.crewName }}</strong>.
+          </p>
+          <p class="intro-text" *ngIf="invitation.status !== 'Pending'">
+            This invitation is {{ invitation.status.toLowerCase() }}.
+          </p>
+        </ng-container>
+
+        <ng-container *ngIf="step === 'rules'">
+          <h1>Join {{ invitation.crewName }}</h1>
+          <p class="intro-text">Accept each public rule below before requesting to join this crew.</p>
+
+          <p class="search-status" *ngIf="loadingRules">Loading rules...</p>
+          <p class="state-text" *ngIf="!loadingRules && publicRules.length === 0">
+            This crew has no public rules. You can request to join without accepting any rules.
+          </p>
+
+          <ul class="rules-list" *ngIf="!loadingRules && publicRules.length > 0">
+            <li class="rule-card" *ngFor="let rule of publicRules">
+              <h2 class="rule-title">{{ rule.title }}</h2>
+              <p class="rule-description">{{ rule.description }}</p>
+              <label class="accept-option">
+                <input
+                  type="checkbox"
+                  [checked]="isRuleAccepted(rule.id)"
+                  (change)="toggleRuleAcceptance(rule.id, $any($event.target).checked)">
+                Accept
+              </label>
+            </li>
+          </ul>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</app-page-layout>

@@ -8,6 +8,7 @@ public interface IUserRepository
     Task<User?> GetByEmailOrUsernameAsync(string emailOrUsername, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<User?> GetByIdWithProfileAsync(int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<User>> SearchByUsernameAsync(string usernameFragment, int limit = 20, CancellationToken cancellationToken = default);
     Task<bool> IsUsernameTakenByOtherUserAsync(string username, int userId, CancellationToken cancellationToken = default);
     Task<bool> IsEmailTakenByOtherUserAsync(string email, int userId, CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);

@@ -1,0 +1,22 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="recordButton">
+  <div class="gift-log-page">
+    <h1 class="page-title">Fleet gift log</h1>
+    <p class="page-subtitle">Cross-crew gifts within your fleet</p>
+
+    <p *ngIf="loading" class="state-text">Loading gift log...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && entries.length === 0" class="state-text">No gifts recorded yet.</p>
+
+    <div class="entry-list" *ngIf="!loading && entries.length > 0">
+      <article class="entry-card" *ngFor="let entry of entries">
+        <p class="entry-title">
+          {{ entry.giverName }} → {{ entry.recipientName }}
+          <span *ngIf="entry.middlemanName"> via {{ entry.middlemanName }}</span>
+        </p>
+        <p class="entry-amount">${{ entry.amount }} · {{ entry.platform }}</p>
+        <p class="entry-meta">{{ formatTimestamp(entry.timestamp) }}</p>
+        <p class="entry-message" *ngIf="entry.message">{{ entry.message }}</p>
+      </article>
+    </div>
+  </div>
+</app-page-layout>

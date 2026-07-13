@@ -1,6 +1,12 @@
 import { EncryptedPayload } from './crypto.model';
 
-export type GiftLogType = 'direct' | 'initiated' | 'completed';
+export type GiftLogType =
+  | 'direct'
+  | 'initiated'
+  | 'completed'
+  | 'seasonstarted'
+  | 'cyclestarted'
+  | 'survivalthresholdsrefreshed';
 export type ReceptionEntryType = 'survivalThreshold' | 'cycle' | 'catchUp';
 export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete';
 export type GiftDisplayFlag = 'notComplete' | 'cantComplete';
@@ -104,6 +110,8 @@ export interface ReceptionOrderEntry {
   recipientPreferredPlatformName?: string;
   recipientPreferredPlatformHandle?: string;
   recipientPlatformAccounts: PlatformAccount[];
+  crewId?: number;
+  crewName?: string;
 }
 
 export interface SeasonStatus {

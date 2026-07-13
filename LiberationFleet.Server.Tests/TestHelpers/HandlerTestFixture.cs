@@ -169,6 +169,7 @@ public static class HandlerTestFixture
         return new MutualAidService(
             new MutualAidRepository(context),
             membershipRepository,
+            new GiftRepository(context),
             CreateNotificationService(context),
             context);
     }

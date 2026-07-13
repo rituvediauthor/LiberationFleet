@@ -33,6 +33,7 @@ public class Crew
     public decimal MinimumContributionForAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
+    public bool AllowCrossCrewGiving { get; set; }
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();

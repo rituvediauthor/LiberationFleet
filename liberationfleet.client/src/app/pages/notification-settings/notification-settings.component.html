@@ -6,15 +6,33 @@
     <p *ngIf="loading" class="state-text">Loading preferences...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
-    <div class="preference-list" *ngIf="!loading && preferences.length > 0">
-      <label class="preference-row" *ngFor="let preference of preferences">
-        <input
-          type="checkbox"
-          [checked]="preference.isEnabled"
-          (change)="togglePreference(preference)">
-        <span>{{ preference.label }}</span>
-      </label>
-    </div>
+    <ng-container *ngIf="!loading && preferences.length > 0">
+      <section class="preference-section" *ngIf="crewPreferences.length > 0">
+        <h2>Crew notifications</h2>
+        <div class="preference-list">
+          <label class="preference-row" *ngFor="let preference of crewPreferences">
+            <input
+              type="checkbox"
+              [checked]="preference.isEnabled"
+              (change)="togglePreference(preference)">
+            <span>{{ preference.label }}</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="preference-section" *ngIf="fleetPreferences.length > 0">
+        <h2>Fleet notifications</h2>
+        <div class="preference-list">
+          <label class="preference-row" *ngFor="let preference of fleetPreferences">
+            <input
+              type="checkbox"
+              [checked]="preference.isEnabled"
+              (change)="togglePreference(preference)">
+            <span>{{ preference.label }}</span>
+          </label>
+        </div>
+      </section>
+    </ng-container>
   </div>
 </app-page-layout>
 

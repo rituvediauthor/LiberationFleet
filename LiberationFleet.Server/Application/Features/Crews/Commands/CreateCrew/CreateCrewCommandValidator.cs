@@ -11,7 +11,7 @@ public class CreateCrewCommandValidator : AbstractValidator<CreateCrewCommand>
             .MaximumLength(100).WithMessage("Crew name must be 100 characters or fewer");
 
         RuleFor(x => x.MaxSize)
-            .InclusiveBetween(2, 100).WithMessage("Crew size must be between 2 and 100");
+            .InclusiveBetween(2, 50).WithMessage("Crew size must be between 2 and 50");
 
         RuleFor(x => x.Privacy)
             .Must(p => p is "Public" or "Private")

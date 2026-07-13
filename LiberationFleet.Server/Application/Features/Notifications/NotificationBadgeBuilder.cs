@@ -178,18 +178,26 @@ public static class NotificationBadgeBuilder
             return "giftLog";
         }
 
+        if (path.StartsWith("/app/fleet/", StringComparison.Ordinal))
+        {
+            return "fleet";
+        }
+
         return notification.Kind switch
         {
             NotificationKind.NewChatMessage => "chats",
             NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply => "forums",
             NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted => "proposals",
-            NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason => "giftLog",
+            NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
+                or NotificationKind.SurvivalThresholdsRefreshed => "giftLog",
             NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited or NotificationKind.CrewSettingChanged => "rules",
             NotificationKind.NewCrewmate or NotificationKind.CrewmateKicked or NotificationKind.CrewmateRejoinAllowed
                 or NotificationKind.JoinRequestFromPerson or NotificationKind.JoinRequestFromCrew => "crewmates",
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
                 or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "library",
+            NotificationKind.NewFleetGifts or NotificationKind.NewFleetProposal or NotificationKind.FleetSettingChanged
+                or NotificationKind.NewFleetChatMessage => "fleet",
             _ => null
         };
     }

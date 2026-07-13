@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -26,8 +27,14 @@ public class GetProposalDetailQueryHandler(
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
     CrewmatePermissionProposalService crewmatePermissionProposalService,
+    CrewApplyToFleetProposalService crewApplyToFleetProposalService,
+    FleetJoinRequestProposalService fleetJoinRequestProposalService,
+    FleetKickCrewProposalService fleetKickCrewProposalService,
+    FleetSettingsProposalService fleetSettingsProposalService,
+    FleetRulesProposalService fleetRulesProposalService,
     ProposalAnonymousAliasService aliasService,
     IUserBlockRepository blockRepository,
+    IFleetRepository fleetRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -44,9 +51,15 @@ public class GetProposalDetailQueryHandler(
             return new ProposalDetailResponse { Success = false, Message = "Proposal not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        var (allowed, accessError) = await ProposalEligibility.CanUserAccessProposalAsync(
+            userId,
+            proposal,
+            membershipRepository,
+            fleetRepository,
+            cancellationToken);
+        if (!allowed)
         {
-            return new ProposalDetailResponse { Success = false, Message = "You are not in this crew." };
+            return new ProposalDetailResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
@@ -70,6 +83,11 @@ public class GetProposalDetailQueryHandler(
             crewRoleProposalService,
             claimPlaceholderIdentityProposalService,
             crewmatePermissionProposalService,
+            crewApplyToFleetProposalService,
+            fleetJoinRequestProposalService,
+            fleetKickCrewProposalService,
+            fleetSettingsProposalService,
+            fleetRulesProposalService,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -118,6 +136,30 @@ public class GetProposalDetailQueryHandler(
             ? await proposalRepository.GetCrewmatePermissionGrantByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
+        var fleetRuleChange = proposal.Kind == ProposalKind.FleetRuleChange
+            ? await proposalRepository.GetFleetRuleChangeByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var fleetSettingChange = proposal.Kind == ProposalKind.FleetSettingChange
+            ? await proposalRepository.GetFleetSettingChangeByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var fleetJoinRequest = proposal.Kind == ProposalKind.FleetJoinRequest
+            ? await proposalRepository.GetFleetJoinRequestByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var fleetKickCrew = proposal.Kind == ProposalKind.FleetKickCrew
+            ? await proposalRepository.GetFleetKickCrewByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewApplyToFleet = proposal.Kind == ProposalKind.CrewApplyToFleet
+            ? await proposalRepository.GetCrewApplyToFleetByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var fleetNotice = proposal.Kind == ProposalKind.General && proposal.FleetId.HasValue
+            ? await proposalRepository.GetFleetNoticeByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
         var comments = await proposalRepository.GetCommentsByProposalIdAsync(proposal.Id, cancellationToken);
         var visibleComments = comments
             .Where(c => !hiddenUserIds.Contains(c.AuthorUserId))
@@ -127,7 +169,7 @@ public class GetProposalDetailQueryHandler(
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ProposalComment,
             commentIds,
-            proposal.CrewId,
+            proposal.CrewId ?? 0,
             cancellationToken);
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
@@ -190,7 +232,13 @@ public class GetProposalDetailQueryHandler(
                 claimPlaceholderIdentity,
                 crewmatePermissionGrant,
                 currentUserVote,
-                viewerAlias)
+                viewerAlias,
+                fleetRuleChange,
+                fleetSettingChange,
+                fleetJoinRequest,
+                fleetKickCrew,
+                crewApplyToFleet,
+                fleetNotice)
         };
     }
 }

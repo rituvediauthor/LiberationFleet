@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -12,6 +13,7 @@ public record GetChatRoomMessagesQuery(int RoomId, int Limit, int? BeforeMessage
 public class GetChatRoomMessagesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetChatRoomMessagesQuery, ChatMessageListResponse>
@@ -32,7 +34,8 @@ public class GetChatRoomMessagesQueryHandler(
             return new ChatMessageListResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        if (!await chatRepository.RoomBelongsToCrewAsync(request.RoomId, membership.CrewId, cancellationToken))
+        var room = await chatRepository.GetRoomByIdAsync(request.RoomId, cancellationToken);
+        if (room is null || !await ChatRoomAccess.CanAccessRoomAsync(room, membership, fleetRepository, cancellationToken))
         {
             return new ChatMessageListResponse { Success = false, Message = "Chat room not found." };
         }
@@ -47,13 +50,17 @@ public class GetChatRoomMessagesQueryHandler(
             .Where(m => !hiddenUserIds.Contains(m.AuthorUserId))
             .ToList();
 
-        var resourceIds = messages.Select(m => m.Id.ToString()).ToList();
-        var envelopes = await cryptoRepository.GetEnvelopesAsync(
-            EncryptedContentType.ChatRoomMessage,
-            resourceIds,
-            membership.CrewId,
-            cancellationToken);
-        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var envelopeById = new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
+        if (room.CrewId.HasValue)
+        {
+            var resourceIds = messages.Select(m => m.Id.ToString()).ToList();
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.ChatRoomMessage,
+                resourceIds,
+                room.CrewId.Value,
+                cancellationToken);
+            envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        }
 
         var hasMore = false;
         if (messages.Count > 0)

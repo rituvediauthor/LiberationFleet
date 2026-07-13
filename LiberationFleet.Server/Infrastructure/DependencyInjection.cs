@@ -27,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<ICrewRepository, CrewRepository>();
+        services.AddScoped<IFleetRepository, FleetRepository>();
+        services.AddScoped<ICrewInvitationRepository, CrewInvitationRepository>();
+        services.AddScoped<IUserFleetRuleAcceptanceRepository, UserFleetRuleAcceptanceRepository>();
         services.AddScoped<ICrewMembershipRepository, CrewMembershipRepository>();
         services.AddScoped<ICrewCleanupRepository, CrewCleanupRepository>();
         services.AddScoped<IGiftRepository, GiftRepository>();

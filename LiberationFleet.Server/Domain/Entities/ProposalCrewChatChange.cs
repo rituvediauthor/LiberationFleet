@@ -14,6 +14,12 @@ public class ProposalCrewChatChange
     public ChatRoomType RoomType { get; set; }
     public string? NameNonce { get; set; }
     public string? NameCiphertext { get; set; }
+
+    /// <summary>
+    /// Plaintext room name used by fleet chat proposals (fleet rooms are not E2E encrypted).
+    /// Crew chat proposals keep the name in the encrypted NameNonce/NameCiphertext pair.
+    /// </summary>
+    public string? PlaintextName { get; set; }
     public int KeyVersion { get; set; } = 1;
     public bool IsAdultContent { get; set; }
     public bool IsApplied { get; set; }

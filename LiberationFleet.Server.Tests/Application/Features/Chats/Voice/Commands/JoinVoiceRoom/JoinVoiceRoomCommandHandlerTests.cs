@@ -133,7 +133,7 @@ public class JoinVoiceRoomCommandHandlerTests
 
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         membershipRepository
-            .Setup(r => r.IsUserInCrewAsync(userId, room.CrewId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.IsUserInCrewAsync(userId, room.CrewId!.Value, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
@@ -150,7 +150,7 @@ public class JoinVoiceRoomCommandHandlerTests
 
         voicePresenceRepository ??= new Mock<IVoicePresenceRepository>(MockBehavior.Strict);
         voicePresenceRepository
-            .Setup(r => r.GetActiveByUserAndCrewAsync(userId, room.CrewId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetActiveByUserAndCrewAsync(userId, room.CrewId!.Value, It.IsAny<CancellationToken>()))
             .ReturnsAsync((VoiceParticipantSession?)null);
         voicePresenceRepository
             .Setup(r => r.AddAsync(It.IsAny<VoiceParticipantSession>(), It.IsAny<CancellationToken>()))

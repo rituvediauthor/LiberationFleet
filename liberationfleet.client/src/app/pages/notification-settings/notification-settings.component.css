@@ -24,6 +24,16 @@
   color: var(--lf-color-danger);
 }
 
+.preference-section {
+  margin-bottom: 28px;
+}
+
+.preference-section h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--lf-color-text-primary);
+}
+
 .preference-list {
   display: flex;
   flex-direction: column;

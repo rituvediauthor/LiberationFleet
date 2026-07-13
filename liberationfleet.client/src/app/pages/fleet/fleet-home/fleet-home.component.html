@@ -1,0 +1,112 @@
+<app-nav-layout activeTab="fleet">
+  <div class="fleet-home">
+    <p *ngIf="loading" class="loading-text">Loading fleet...</p>
+
+    <ng-container *ngIf="!loading && status?.hasFleet; else noFleet">
+      <div class="fleet-dashboard">
+        <div class="info-widget" *ngIf="allowCrossCrewGiving">
+          <span class="info-label">Next aid</span>
+          <p class="info-text">{{ nextAidHeadline }}</p>
+          <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
+        </div>
+
+        <nav class="fleet-menu" aria-label="Fleet actions">
+          <button type="button" class="menu-link fleet-name-link" (click)="goToEditFleet()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">{{ status?.fleetName }}</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToRules()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Rules</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button
+            type="button"
+            class="menu-link"
+            *ngIf="allowCrossCrewGiving"
+            (click)="goToGiftLog()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Gift Log</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button
+            type="button"
+            class="menu-link"
+            *ngIf="allowCrossCrewGiving"
+            (click)="goToEmergencyRequests()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Emergency Requests</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibrary()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Library of Things</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToChats()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Chats</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToForums()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-rectangle-list menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Forums</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToProposals()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Proposals</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToCrews()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
+            </span>
+            <span class="menu-label">Crews</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+        </nav>
+      </div>
+    </ng-container>
+
+    <ng-template #noFleet>
+      <div class="hero" *ngIf="!loading">
+        <h1>Welcome to your Fleet</h1>
+        <p class="subtitle">
+          Fleets are collections of associated crews where crewmates can interact like one giant crew
+          while still belonging to their crews with unique rules and cultures.
+        </p>
+      </div>
+      <div class="actions" *ngIf="!loading">
+        <button type="button" class="action-btn primary" (click)="goToCreateFleet()">Create fleet</button>
+        <button type="button" class="action-btn secondary" (click)="goToJoinFleet()">Join Fleet</button>
+        <button type="button" class="action-btn secondary" (click)="goToJoinRequests()">Our Join Requests</button>
+      </div>
+    </ng-template>
+  </div>
+</app-nav-layout>

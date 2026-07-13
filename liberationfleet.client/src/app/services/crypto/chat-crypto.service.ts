@@ -45,19 +45,14 @@ export class ChatCryptoService {
   }
 
   async decryptMessages(messages: ChatMessage[], crewId: number): Promise<ChatMessage[]> {
-    if (!this.cryptoSession.isUnlocked()) {
-      return messages.map(message => ({
-        ...message,
-        body: '[Unlock encryption to view]',
-        authorUsername: message.authorUsername || '[Encrypted]'
-      }));
-    }
-
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(messages.map(message => this.decryptMessage(message, crewKey, crewId)));
+    return Promise.all(messages.map(message => this.decryptSingleMessage(message, crewId)));
   }
 
   async decryptSingleMessage(message: ChatMessage, crewId: number): Promise<ChatMessage> {
+    if (!message.hasEncryptedContent || !message.encryptedPayload) {
+      return message;
+    }
+
     if (!this.cryptoSession.isUnlocked()) {
       return {
         ...message,

@@ -16,6 +16,11 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Crew> Crews => Set<Crew>();
     public DbSet<CrewMembership> CrewMemberships => Set<CrewMembership>();
+    public DbSet<Fleet> Fleets => Set<Fleet>();
+    public DbSet<FleetCrew> FleetCrews => Set<FleetCrew>();
+    public DbSet<FleetRule> FleetRules => Set<FleetRule>();
+    public DbSet<CrewInvitation> CrewInvitations => Set<CrewInvitation>();
+    public DbSet<UserFleetRuleAcceptance> UserFleetRuleAcceptances => Set<UserFleetRuleAcceptance>();
     public DbSet<UserPaymentPlatform> UserPaymentPlatforms => Set<UserPaymentPlatform>();
     public DbSet<CrewPaymentPlatform> CrewPaymentPlatforms => Set<CrewPaymentPlatform>();
     public DbSet<PaymentPlatform> PaymentPlatforms => Set<PaymentPlatform>();
@@ -41,6 +46,12 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalCrewRoleChange> ProposalCrewRoleChanges => Set<ProposalCrewRoleChange>();
     public DbSet<ProposalClaimPlaceholderIdentity> ProposalClaimPlaceholderIdentities => Set<ProposalClaimPlaceholderIdentity>();
     public DbSet<ProposalCrewmatePermissionGrant> ProposalCrewmatePermissionGrants => Set<ProposalCrewmatePermissionGrant>();
+    public DbSet<ProposalCrewApplyToFleet> ProposalCrewApplyToFleets => Set<ProposalCrewApplyToFleet>();
+    public DbSet<ProposalFleetJoinRequest> ProposalFleetJoinRequests => Set<ProposalFleetJoinRequest>();
+    public DbSet<ProposalFleetSettingChange> ProposalFleetSettingChanges => Set<ProposalFleetSettingChange>();
+    public DbSet<ProposalFleetKickCrew> ProposalFleetKickCrews => Set<ProposalFleetKickCrew>();
+    public DbSet<ProposalFleetRuleChange> ProposalFleetRuleChanges => Set<ProposalFleetRuleChange>();
+    public DbSet<ProposalFleetNotice> ProposalFleetNotices => Set<ProposalFleetNotice>();
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
@@ -196,6 +207,59 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
             entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.AllowCrossCrewGiving).HasDefaultValue(false);
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Fleet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.JoinCode).IsUnique();
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.JoinCode).IsRequired().HasMaxLength(32);
+            entity.Property(e => e.ZipCode).HasMaxLength(10);
+            entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
+            entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
+            entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
+            entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);
+            entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
+            entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FleetCrew>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.CrewId).IsUnique();
+            entity.HasIndex(e => new { e.FleetId, e.CrewId }).IsUnique();
+            entity.HasOne(e => e.Fleet)
+                .WithMany(f => f.Crews)
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FleetRule>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.IsPublic).HasDefaultValue(false);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
@@ -245,6 +309,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.CrewPaymentPlatform)
                 .WithMany(p => p.Gifts)
                 .HasForeignKey(e => e.CrewPaymentPlatformId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.Crew)
                 .WithMany()
@@ -437,10 +502,19 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Status).HasDefaultValue(ProposalStatus.Pending);
             entity.Property(e => e.Kind).HasDefaultValue(ProposalKind.General);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_Proposals_CrewOrFleet",
+                "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
@@ -481,6 +555,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.Purpose).HasMaxLength(2000);
             entity.Property(e => e.NameNonce).HasMaxLength(500);
+            entity.Property(e => e.PlaintextName).HasMaxLength(120);
             entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.CrewChatChange)
@@ -564,6 +639,138 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.CrewmatePermissionGrant)
                 .HasForeignKey<ProposalCrewmatePermissionGrant>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalCrewApplyToFleet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.TargetJoinCode).HasMaxLength(32);
+            entity.Property(e => e.AcceptedRuleIdsJson).HasMaxLength(2000);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.InitiatedByFleetInvite).HasDefaultValue(false);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewApplyToFleet)
+                .HasForeignKey<ProposalCrewApplyToFleet>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<CrewInvitation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.InviteeUserId, e.Status });
+            entity.HasIndex(e => new { e.CrewId, e.InviteeUserId, e.Status });
+            entity.Property(e => e.Status).HasDefaultValue(CrewInvitationStatus.Pending);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.InviterUser)
+                .WithMany()
+                .HasForeignKey(e => e.InviterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.InviteeUser)
+                .WithMany()
+                .HasForeignKey(e => e.InviteeUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserFleetRuleAcceptance>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.FleetId }).IsUnique();
+            entity.Property(e => e.AcceptedRuleIdsJson).HasMaxLength(2000);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalFleetJoinRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.FleetJoinRequest)
+                .HasForeignKey<ProposalFleetJoinRequest>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.ApplicantCrew)
+                .WithMany()
+                .HasForeignKey(e => e.ApplicantCrewId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProposalFleetSettingChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.NewValue).HasMaxLength(500);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.FleetSettingChange)
+                .HasForeignKey<ProposalFleetSettingChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalFleetKickCrew>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Reason).HasMaxLength(1000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.FleetKickCrew)
+                .HasForeignKey<ProposalFleetKickCrew>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.TargetCrew)
+                .WithMany()
+                .HasForeignKey(e => e.TargetCrewId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProposalFleetRuleChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.RuleTitle).HasMaxLength(200);
+            entity.Property(e => e.RuleDescription).HasMaxLength(4000);
+            entity.Property(e => e.IsPublic).HasDefaultValue(false);
+            entity.Property(e => e.IsApplied).HasDefaultValue(false);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.FleetRuleChange)
+                .HasForeignKey<ProposalFleetRuleChange>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalFleetNotice>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.FleetNotice)
+                .HasForeignKey<ProposalFleetNotice>(e => e.ProposalId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -653,10 +860,24 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.AnonymousModeEnabled).HasDefaultValue(false);
             entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_ChatRooms_CrewOrFleet",
+                "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            entity.HasOne(e => e.LinkedCrew)
+                .WithMany()
+                .HasForeignKey(e => e.LinkedCrewId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
@@ -667,6 +888,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.Body).HasMaxLength(4000);
             entity.HasIndex(e => new { e.ChatRoomId, e.Id });
             entity.HasOne(e => e.ChatRoom)
                 .WithMany(r => r.Messages)

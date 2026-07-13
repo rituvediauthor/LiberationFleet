@@ -41,12 +41,13 @@ export class EditCrewComponent implements OnInit {
   ngOnInit() {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
-      maxSize: [4, [Validators.required, Validators.min(2), Validators.max(100)]],
+      maxSize: [30, [Validators.required, Validators.min(2), Validators.max(50)]],
       privacy: ['Public' as CrewPrivacy, Validators.required],
       scope: ['Online' as CrewScope, Validators.required],
       zipCode: [''],
       radiusMiles: [25],
       allowSurvivalThresholds: [true],
+      allowCrossCrewGiving: [false],
       requireApprovalForEdits: [true],
       inNeedDefaultThreshold: [20, [Validators.required, Validators.min(0)]],
       libraryOfThingsEnabled: [true],
@@ -239,6 +240,7 @@ export class EditCrewComponent implements OnInit {
     zipCode?: string;
     radiusMiles?: number;
     allowSurvivalThresholds?: boolean;
+    allowCrossCrewGiving?: boolean;
     requireApprovalForEdits?: boolean;
     inNeedDefaultThreshold?: number;
     libraryOfThingsEnabled?: boolean;
@@ -262,6 +264,7 @@ export class EditCrewComponent implements OnInit {
       zipCode: crew.zipCode ?? '',
       radiusMiles: crew.radiusMiles ?? 25,
       allowSurvivalThresholds: crew.allowSurvivalThresholds ?? true,
+      allowCrossCrewGiving: crew.allowCrossCrewGiving ?? false,
       requireApprovalForEdits: crew.requireApprovalForEdits ?? true,
       inNeedDefaultThreshold: crew.inNeedDefaultThreshold ?? 20,
       libraryOfThingsEnabled: crew.libraryOfThingsEnabled ?? true,
@@ -293,6 +296,7 @@ export class EditCrewComponent implements OnInit {
       zipCode: scope === 'Local' ? String(this.form.get('zipCode')?.value).trim() : undefined,
       radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
       allowSurvivalThresholds: !!this.form.get('allowSurvivalThresholds')?.value,
+      allowCrossCrewGiving: !!this.form.get('allowCrossCrewGiving')?.value,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
       inNeedDefaultThreshold: Number(this.form.get('inNeedDefaultThreshold')?.value),
       libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,
@@ -342,7 +346,7 @@ export class EditCrewComponent implements OnInit {
     maxSize?.setValidators([
       Validators.required,
       Validators.min(minSize),
-      Validators.max(100)
+      Validators.max(50)
     ]);
     maxSize?.updateValueAndValidity({ emitEvent: false });
     this.updateSaveButton();

@@ -143,7 +143,7 @@ public class CrewmatePermissionProposalService(
             return;
         }
 
-        var membership = await membershipRepository.GetMembershipAsync(grant.TargetUserId, proposal.CrewId, cancellationToken);
+        var membership = await membershipRepository.GetMembershipAsync(grant.TargetUserId, proposal.CrewId!.Value, cancellationToken);
         if (membership is null || membership.IsBanned)
         {
             grant.IsApplied = true;
@@ -169,7 +169,7 @@ public class CrewmatePermissionProposalService(
                 : $"{targetUser.Username} was granted proposal creation permission.";
 
             await notificationService.NotifyCrewAsync(
-                proposal.CrewId,
+                proposal.CrewId!.Value,
                 NotificationKind.NewProposal,
                 "Permission grant approved",
                 body,

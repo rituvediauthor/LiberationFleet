@@ -65,11 +65,12 @@ export class ChatService {
     return this.http.get<ChatMessageListResponse>(`${this.apiUrl}/rooms/${roomId}/messages`, { params });
   }
 
-  sendMessage(roomId: number, payload: EncryptedContentSendPayload): Observable<ChatOperationResponse> {
+  sendMessage(roomId: number, payload: EncryptedContentSendPayload & { body?: string }): Observable<ChatOperationResponse> {
     return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages`, {
-      nonce: payload.nonce,
-      ciphertext: payload.ciphertext,
+      nonce: payload.nonce ?? '',
+      ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
+      body: payload.body ?? null,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
@@ -77,12 +78,13 @@ export class ChatService {
   updateMessage(
     roomId: number,
     messageId: number,
-    payload: EncryptedContentSendPayload
+    payload: EncryptedContentSendPayload & { body?: string }
   ): Observable<ChatOperationResponse> {
     return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`, {
-      nonce: payload.nonce,
-      ciphertext: payload.ciphertext,
+      nonce: payload.nonce ?? '',
+      ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
+      body: payload.body ?? null,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }

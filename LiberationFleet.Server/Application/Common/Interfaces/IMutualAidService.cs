@@ -13,6 +13,13 @@ public interface IMutualAidService
         bool excludeSelfAsRecipient = true,
         bool forRecordGift = false,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReceptionOrderEntryDto>> GetReceptionOrderForCrewAsGiverAsync(
+        int targetCrewId,
+        int giverUserId,
+        bool forRecordGift = false,
+        bool excludeSelfAsRecipient = true,
+        IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen = null,
+        CancellationToken cancellationToken = default);
     Task<NextAidDto?> GetNextAidAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonReadyResultDto> MarkSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonSetupSaveResultDto> SaveSeasonSetupAsync(int userId, decimal estimatedMonthlyContribution, CancellationToken cancellationToken = default);

@@ -42,7 +42,7 @@ public class UpdateProposalCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Only the author can edit this proposal." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
         {
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -53,7 +53,7 @@ public class UpdateProposalCommandHandler(
         {
             ContentType = EncryptedContentType.Proposal,
             ResourceId = proposal.Id.ToString(),
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -66,7 +66,7 @@ public class UpdateProposalCommandHandler(
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             AuthorUserId = userId,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,

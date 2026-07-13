@@ -498,4 +498,212 @@ public class ProposalRepository : IProposalRepository
                 && g.Proposal.Status == ProposalStatus.Pending
                 && g.Proposal.Kind == ProposalKind.CrewmatePermissionGrant)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<ProposalCrewApplyToFleet?> GetCrewApplyToFleetByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewApplyToFleets.FirstOrDefaultAsync(a => a.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddCrewApplyToFleetAsync(ProposalCrewApplyToFleet apply, CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewApplyToFleets.AddAsync(apply, cancellationToken);
+
+    public Task<ProposalCrewApplyToFleet?> GetPendingCrewApplyToFleetAsync(
+        int crewId,
+        int fleetId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewApplyToFleets
+            .Include(a => a.Proposal)
+            .Where(a =>
+                a.FleetId == fleetId
+                && a.Proposal.CrewId == crewId
+                && !a.Proposal.IsDeleted
+                && a.Proposal.Status == ProposalStatus.Pending
+                && a.Proposal.Kind == ProposalKind.CrewApplyToFleet)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Proposal>> GetPendingCrewApplyToFleetProposalsByCrewAsync(
+        int crewId,
+        CancellationToken cancellationToken = default) =>
+        await _context.Proposals
+            .Where(p =>
+                p.CrewId == crewId
+                && !p.IsDeleted
+                && p.Status == ProposalStatus.Pending
+                && p.Kind == ProposalKind.CrewApplyToFleet)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewApplyToFleet>> GetCrewApplyToFleetsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewApplyToFleet>();
+        }
+
+        return await _context.ProposalCrewApplyToFleets
+            .Where(a => ids.Contains(a.ProposalId))
+            .ToDictionaryAsync(a => a.ProposalId, cancellationToken);
+    }
+
+    public Task<ProposalFleetJoinRequest?> GetFleetJoinRequestByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetJoinRequests.FirstOrDefaultAsync(j => j.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddFleetJoinRequestAsync(
+        ProposalFleetJoinRequest joinRequest,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalFleetJoinRequests.AddAsync(joinRequest, cancellationToken);
+
+    public Task<ProposalFleetJoinRequest?> GetPendingFleetJoinRequestAsync(
+        int fleetId,
+        int applicantCrewId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetJoinRequests
+            .Include(j => j.Proposal)
+            .Where(j =>
+                j.FleetId == fleetId
+                && j.ApplicantCrewId == applicantCrewId
+                && !j.Proposal.IsDeleted
+                && j.Proposal.Status == ProposalStatus.Pending
+                && j.Proposal.Kind == ProposalKind.FleetJoinRequest)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<ProposalFleetSettingChange?> GetFleetSettingChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetSettingChanges.FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddFleetSettingChangeAsync(
+        ProposalFleetSettingChange change,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalFleetSettingChanges.AddAsync(change, cancellationToken);
+
+    public Task<ProposalFleetKickCrew?> GetFleetKickCrewByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetKickCrews.FirstOrDefaultAsync(k => k.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddFleetKickCrewAsync(ProposalFleetKickCrew kick, CancellationToken cancellationToken = default) =>
+        await _context.ProposalFleetKickCrews.AddAsync(kick, cancellationToken);
+
+    public Task<ProposalFleetKickCrew?> GetPendingFleetKickCrewAsync(
+        int fleetId,
+        int targetCrewId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetKickCrews
+            .Include(k => k.Proposal)
+            .Where(k =>
+                k.TargetCrewId == targetCrewId
+                && k.Proposal.FleetId == fleetId
+                && !k.Proposal.IsDeleted
+                && k.Proposal.Status == ProposalStatus.Pending
+                && k.Proposal.Kind == ProposalKind.FleetKickCrew)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Proposal>> GetByFleetAndStatusAsync(
+        int fleetId,
+        ProposalStatus status,
+        CancellationToken cancellationToken = default) =>
+        await _context.Proposals
+            .Include(p => p.AuthorUser)
+            .Where(p => p.FleetId == fleetId && !p.IsDeleted && p.Status == status)
+            .OrderByDescending(p => p.LastActivityAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalFleetSettingChange>> GetFleetSettingChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalFleetSettingChange>();
+        }
+
+        return await _context.ProposalFleetSettingChanges
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToDictionaryAsync(c => c.ProposalId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<int, ProposalFleetJoinRequest>> GetFleetJoinRequestsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalFleetJoinRequest>();
+        }
+
+        return await _context.ProposalFleetJoinRequests
+            .Where(j => ids.Contains(j.ProposalId))
+            .ToDictionaryAsync(j => j.ProposalId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<int, ProposalFleetKickCrew>> GetFleetKickCrewsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalFleetKickCrew>();
+        }
+
+        return await _context.ProposalFleetKickCrews
+            .Where(k => ids.Contains(k.ProposalId))
+            .ToDictionaryAsync(k => k.ProposalId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<int, ProposalFleetRuleChange>> GetFleetRuleChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalFleetRuleChange>();
+        }
+
+        return await _context.ProposalFleetRuleChanges
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToDictionaryAsync(c => c.ProposalId, cancellationToken);
+    }
+
+    public Task<ProposalFleetNotice?> GetFleetNoticeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetNotices.FirstOrDefaultAsync(n => n.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalFleetNotice>> GetFleetNoticesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalFleetNotice>();
+        }
+
+        return await _context.ProposalFleetNotices
+            .Where(n => ids.Contains(n.ProposalId))
+            .ToDictionaryAsync(n => n.ProposalId, cancellationToken);
+    }
+
+    public async Task AddFleetNoticeAsync(ProposalFleetNotice notice, CancellationToken cancellationToken = default) =>
+        await _context.ProposalFleetNotices.AddAsync(notice, cancellationToken);
+
+    public Task<ProposalFleetRuleChange?> GetFleetRuleChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalFleetRuleChanges.FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddFleetRuleChangeAsync(
+        ProposalFleetRuleChange change,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalFleetRuleChanges.AddAsync(change, cancellationToken);
 }

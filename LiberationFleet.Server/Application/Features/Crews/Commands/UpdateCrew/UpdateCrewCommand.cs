@@ -29,7 +29,8 @@ public record UpdateCrewCommand(
     int MinimumCrewmateTenureDaysForAttachments,
     decimal MinimumContributionForAttachments,
     int MinimumCrewmateTenureDaysForProposals,
-    decimal MinimumContributionForProposals) : IRequest<CrewOperationResponse>;
+    decimal MinimumContributionForProposals,
+    bool AllowCrossCrewGiving) : IRequest<CrewOperationResponse>;
 
 public class UpdateCrewCommandHandler(
     ICurrentUserService currentUser,

@@ -1,0 +1,29 @@
+<app-page-layout [backButton]="backButton">
+  <div class="chat-list-page">
+    <h1 class="page-title">Fleet chats</h1>
+    <p class="page-subtitle">Chat rooms shared across your fleet</p>
+
+    <p *ngIf="loading" class="state-text">Loading chats...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && rooms.length === 0" class="state-text">No fleet chat rooms yet.</p>
+
+    <div class="room-list" *ngIf="!loading && rooms.length > 0">
+      <button
+        type="button"
+        class="room-card"
+        *ngFor="let room of rooms"
+        (click)="openRoom(room)">
+        <div class="room-main">
+          <h2>{{ room.name || 'Chat room' }}</h2>
+          <p class="room-purpose" *ngIf="room.purpose">{{ room.purpose }}</p>
+          <p class="room-meta">
+            <span class="room-type">{{ roomTypeLabel(room) }}</span>
+            <span>·</span>
+            <span>{{ formatActivity(room.lastActivityAt) }}</span>
+          </p>
+        </div>
+        <i class="fa-solid fa-chevron-right room-chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

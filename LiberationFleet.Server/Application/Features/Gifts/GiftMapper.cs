@@ -59,7 +59,7 @@ public static class GiftMapper
             MiddlemanId = gift.MiddlemanUserId,
             MiddlemanName = gift.MiddlemanUser?.Username,
             Amount = gift.Amount,
-            Platform = gift.CrewPaymentPlatform.Name,
+            Platform = gift.CrewPaymentPlatform?.Name ?? string.Empty,
             Timestamp = gift.CreatedAt,
             Message = FormatMessage(gift, entryStatus, displayFlag),
             RelatedUserIds = relatedUserIds,
@@ -81,11 +81,16 @@ public static class GiftMapper
         RecipientId = gift.RecipientUserId,
         RecipientName = GiftDisplayNames.GetRecipientName(gift.RecipientUser),
         Amount = gift.Amount,
-        Platform = gift.CrewPaymentPlatform.Name
+        Platform = gift.CrewPaymentPlatform?.Name
     };
 
     private static string ResolveStatus(Gift gift, Gift? completedChild)
     {
+        if (IsCelebratory(gift.Type))
+        {
+            return "completed";
+        }
+
         if (gift.Type == GiftType.Initiated)
         {
             if (gift.VerificationStatus == GiftVerificationStatus.MiddlemanCannotComplete)
@@ -104,10 +109,30 @@ public static class GiftMapper
         return gift.VerificationStatus == GiftVerificationStatus.Verified ? "completed" : "pending";
     }
 
+    private static bool IsCelebratory(GiftType type) =>
+        type is GiftType.SeasonStarted or GiftType.CycleStarted or GiftType.SurvivalThresholdsRefreshed;
+
     private static string FormatMessage(Gift gift, string status, string? displayFlag)
     {
+        var celebratoryMessage = gift.Type switch
+        {
+            GiftType.SeasonStarted =>
+                "A new mutual aid season has begun!",
+            GiftType.CycleStarted =>
+                gift.RecipientUser is null
+                    ? "A new reception cycle has started!"
+                    : $"A new reception cycle has started for {GiftDisplayNames.GetRecipientName(gift.RecipientUser)}!",
+            GiftType.SurvivalThresholdsRefreshed =>
+                "Survival thresholds have refreshed for the new month!",
+            _ => null
+        };
+        if (celebratoryMessage is not null)
+        {
+            return celebratoryMessage;
+        }
+
         var amount = gift.Amount.ToString("0.##");
-        var platform = gift.CrewPaymentPlatform.Name;
+        var platform = gift.CrewPaymentPlatform?.Name ?? "unknown platform";
 
         var recipientName = gift.RecipientUser is null
             ? "Unknown"

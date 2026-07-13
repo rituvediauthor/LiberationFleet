@@ -19,6 +19,14 @@ import { NotificationPreference } from '../../models/notification.model';
 export class NotificationSettingsComponent implements OnInit {
   preferences: NotificationPreference[] = [];
   loading = true;
+
+  get crewPreferences(): NotificationPreference[] {
+    return this.preferences.filter(p => (p.category || 'Crew') === 'Crew');
+  }
+
+  get fleetPreferences(): NotificationPreference[] {
+    return this.preferences.filter(p => p.category === 'Fleet');
+  }
   saving = false;
   errorMessage = '';
   showPasswordDialog = false;

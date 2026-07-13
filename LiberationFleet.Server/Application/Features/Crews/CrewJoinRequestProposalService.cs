@@ -128,20 +128,20 @@ public class CrewJoinRequestProposalService(
             return;
         }
 
-        if (await membershipRepository.IsUserBannedFromCrewAsync(joinRequest.ApplicantUserId, proposal.CrewId, cancellationToken))
+        if (await membershipRepository.IsUserBannedFromCrewAsync(joinRequest.ApplicantUserId, proposal.CrewId!.Value, cancellationToken))
         {
             joinRequest.IsApplied = true;
             joinRequest.Description = $"{joinRequest.ApplicantUsername} is banned from this crew.";
             return;
         }
 
-        var crew = await crewRepository.GetByIdAsync(proposal.CrewId, cancellationToken);
+        var crew = await crewRepository.GetByIdAsync(proposal.CrewId!.Value, cancellationToken);
         if (crew is null)
         {
             return;
         }
 
-        var memberCount = await crewRepository.CountMembersAsync(proposal.CrewId, cancellationToken);
+        var memberCount = await crewRepository.CountMembersAsync(proposal.CrewId!.Value, cancellationToken);
         if (memberCount >= crew.MaxSize)
         {
             joinRequest.IsApplied = true;
@@ -152,7 +152,7 @@ public class CrewJoinRequestProposalService(
         await membershipRepository.AddAsync(new CrewMembership
         {
             UserId = joinRequest.ApplicantUserId,
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             IsBanned = false,
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
@@ -168,7 +168,7 @@ public class CrewJoinRequestProposalService(
         await notificationService.NotifyUserAsync(new Application.Features.Notifications.Contracts.CreateNotificationRequest
         {
             UserId = joinRequest.ApplicantUserId,
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             Kind = NotificationKind.ProposalAccepted,
             Title = "Join request approved",
             Body = $"You were approved to join {crew.Name}.",
@@ -176,7 +176,7 @@ public class CrewJoinRequestProposalService(
         }, cancellationToken);
 
         await notificationService.NotifyCrewAsync(
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             NotificationKind.NewCrewmate,
             "New crewmate",
             $"{joinRequest.ApplicantUsername} joined the crew.",

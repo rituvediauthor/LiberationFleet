@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateProposal;
+using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateFleetProposal;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromComment;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateKickFromProposalAuthor;
 using LiberationFleet.Server.Application.Features.Proposals.Commands.CreateProposalComment;
@@ -10,6 +11,7 @@ using LiberationFleet.Server.Application.Features.Proposals.Commands.UpdatePropo
 using LiberationFleet.Server.Application.Features.Proposals.Commands.VoteProposal;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Application.Features.Proposals.Queries.GetCrewProposals;
+using LiberationFleet.Server.Application.Features.Proposals.Queries.GetFleetProposals;
 using LiberationFleet.Server.Application.Features.Proposals.Queries.GetProposalDetail;
 using LiberationFleet.Server.Application.Features.Proposals.Queries.GetProposalCommentReplies;
 using MediatR;
@@ -31,8 +33,14 @@ public class ProposalsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetList([FromQuery] string status = "Pending")
+    public async Task<IActionResult> GetList([FromQuery] string status = "Pending", [FromQuery] string? scope = null)
     {
+        if (string.Equals(scope, "fleet", StringComparison.OrdinalIgnoreCase))
+        {
+            var fleetResult = await _mediator.Send(new GetFleetProposalsQuery(status));
+            return fleetResult.Success ? Ok(fleetResult) : BadRequest(fleetResult);
+        }
+
         var result = await _mediator.Send(new GetCrewProposalsQuery(status));
         return result.Success ? Ok(result) : BadRequest(result);
     }
@@ -54,6 +62,12 @@ public class ProposalsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProposalRequest body)
     {
+        if (string.Equals(body.Scope, "fleet", StringComparison.OrdinalIgnoreCase))
+        {
+            var fleetResult = await _mediator.Send(new CreateFleetProposalCommand(body.Title ?? string.Empty, body.Description ?? string.Empty));
+            return fleetResult.Success ? Ok(fleetResult) : BadRequest(fleetResult);
+        }
+
         var result = await _mediator.Send(new CreateProposalCommand(body.Nonce, body.Ciphertext, body.KeyVersion, body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }

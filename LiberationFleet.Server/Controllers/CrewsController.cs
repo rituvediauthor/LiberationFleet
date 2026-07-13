@@ -1,10 +1,15 @@
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
+using LiberationFleet.Server.Application.Features.Crews.Commands.InviteCrewmate;
 using LiberationFleet.Server.Application.Features.Crews.Commands.LeaveCrew;
+using LiberationFleet.Server.Application.Features.Crews.Commands.RespondToCrewInvitation;
 using LiberationFleet.Server.Application.Features.Crews.Commands.SubmitJoinRequest;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetCrewInvitation;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetCrewPaymentPlatforms;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetInviteCandidates;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrew;
+using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewInvitations;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyJoinRequests;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetPublicCrewRules;
@@ -65,7 +70,8 @@ public class CrewsController : ControllerBase
             body.MinimumCrewmateTenureDaysForAttachments,
             body.MinimumContributionForAttachments,
             body.MinimumCrewmateTenureDaysForProposals,
-            body.MinimumContributionForProposals));
+            body.MinimumContributionForProposals,
+            body.AllowCrossCrewGiving));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -117,7 +123,8 @@ public class CrewsController : ControllerBase
         var result = await _mediator.Send(new SubmitJoinRequestCommand(
             body.CrewId,
             body.JoinCode,
-            body.AcceptedRuleIds));
+            body.AcceptedRuleIds,
+            body.InvitationId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -125,6 +132,43 @@ public class CrewsController : ControllerBase
     public async Task<IActionResult> GetMyJoinRequests()
     {
         var result = await _mediator.Send(new GetMyJoinRequestsQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("invite-candidates")]
+    public async Task<IActionResult> GetInviteCandidates(
+        [FromQuery] string? username,
+        [FromQuery] bool friendsOnly = false)
+    {
+        var result = await _mediator.Send(new GetInviteCandidatesQuery(username, friendsOnly));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("invitations")]
+    public async Task<IActionResult> InviteCrewmate([FromBody] InviteCrewmateRequest body)
+    {
+        var result = await _mediator.Send(new InviteCrewmateCommand(body.UserId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("invitations/mine")]
+    public async Task<IActionResult> GetMyInvitations()
+    {
+        var result = await _mediator.Send(new GetMyCrewInvitationsQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("invitations/{invitationId:int}")]
+    public async Task<IActionResult> GetInvitation(int invitationId)
+    {
+        var result = await _mediator.Send(new GetCrewInvitationQuery(invitationId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("invitations/{invitationId:int}/decline")]
+    public async Task<IActionResult> DeclineInvitation(int invitationId)
+    {
+        var result = await _mediator.Send(new DeclineCrewInvitationCommand(invitationId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

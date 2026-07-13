@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -17,6 +18,7 @@ public record VoteProposalCommand(int ProposalId, string Vote) : IRequest<Propos
 public class VoteProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
@@ -27,6 +29,11 @@ public class VoteProposalCommandHandler(
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
     CrewmatePermissionProposalService crewmatePermissionProposalService,
+    CrewApplyToFleetProposalService crewApplyToFleetProposalService,
+    FleetJoinRequestProposalService fleetJoinRequestProposalService,
+    FleetKickCrewProposalService fleetKickCrewProposalService,
+    FleetSettingsProposalService fleetSettingsProposalService,
+    FleetRulesProposalService fleetRulesProposalService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<VoteProposalCommand, ProposalOperationResponse>
 {
@@ -51,9 +58,15 @@ public class VoteProposalCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Proposal not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        var (allowed, accessError) = await ProposalEligibility.CanUserAccessProposalAsync(
+            userId,
+            proposal,
+            membershipRepository,
+            fleetRepository,
+            cancellationToken);
+        if (!allowed)
         {
-            return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
+            return new ProposalOperationResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
         if (proposal.Kind is ProposalKind.CrewmateKick or ProposalKind.CrewmateSeasonKick)
@@ -112,7 +125,11 @@ public class VoteProposalCommandHandler(
         }
 
         proposal.LastActivityAt = utcNow;
-        var eligibleCount = await proposalRepository.GetActiveCrewMemberCountAsync(proposal.CrewId, cancellationToken);
+        var eligibleCount = await ProposalEligibility.GetEligibleVoterCountAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            cancellationToken);
         var statusBefore = proposal.Status;
         ProposalVotingService.RecalculateStatus(proposal, eligibleCount, utcNow);
         await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
@@ -127,6 +144,11 @@ public class VoteProposalCommandHandler(
             crewRoleProposalService,
             claimPlaceholderIdentityProposalService,
             crewmatePermissionProposalService,
+            crewApplyToFleetProposalService,
+            fleetJoinRequestProposalService,
+            fleetKickCrewProposalService,
+            fleetSettingsProposalService,
+            fleetRulesProposalService,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -141,7 +163,9 @@ public class VoteProposalCommandHandler(
                     CrewId = proposal.CrewId,
                     Kind = NotificationKind.ProposalAccepted,
                     Title = "Proposal accepted",
-                    Body = "Your crew proposal was approved.",
+                    Body = proposal.FleetId.HasValue
+                        ? "Your fleet proposal was approved."
+                        : "Your crew proposal was approved.",
                     ActionUrl = $"/app/crew/proposals/{proposal.Id}",
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
@@ -154,7 +178,9 @@ public class VoteProposalCommandHandler(
                     CrewId = proposal.CrewId,
                     Kind = NotificationKind.ProposalRejected,
                     Title = "Proposal rejected",
-                    Body = "Your crew proposal was rejected.",
+                    Body = proposal.FleetId.HasValue
+                        ? "Your fleet proposal was rejected."
+                        : "Your crew proposal was rejected.",
                     ActionUrl = $"/app/crew/proposals/list/rejected",
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);

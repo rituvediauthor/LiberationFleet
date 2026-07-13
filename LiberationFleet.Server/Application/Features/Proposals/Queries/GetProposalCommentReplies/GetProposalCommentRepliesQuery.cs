@@ -42,7 +42,7 @@ public class GetProposalCommentRepliesQueryHandler(
             return new ProposalCommentRepliesResponse { Success = false, Message = "Proposal not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
         {
             return new ProposalCommentRepliesResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -69,7 +69,7 @@ public class GetProposalCommentRepliesQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ProposalComment,
             replyIds,
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 

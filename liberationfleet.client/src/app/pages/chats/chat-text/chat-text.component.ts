@@ -111,8 +111,11 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.roomId = Number(this.route.snapshot.paramMap.get('id'));
+    const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+      || this.router.url.startsWith('/app/fleet/chats');
     if (this.roomId) {
-      this.notificationContent.markVisited(`/app/crew/chats/${this.roomId}`, this.roomId);
+      const prefix = isFleetScope ? '/app/fleet/chats' : '/app/crew/chats';
+      this.notificationContent.markVisited(`${prefix}/${this.roomId}`, this.roomId);
     }
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
@@ -173,7 +176,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   goBack() {
-    this.navigation.back(['/app/crew/chats']);
+    const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+      || this.router.url.startsWith('/app/fleet/chats');
+    this.navigation.back([isFleetScope ? '/app/fleet/chats' : '/app/crew/chats']);
   }
 
   onAdultGateConfirmed() {
@@ -262,23 +267,44 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.sending = true;
     try {
-      const encrypted = await this.chatCrypto.encryptMessagePayload(
-        this.crewId,
-        this.messageText.trim(),
-        this.authorDisplayName,
-        this.messageAttachments,
-        this.keptEditAttachments
-      );
+      const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+        || this.router.url.startsWith('/app/fleet/chats');
+      const text = this.messageText.trim();
 
-      const request$ = this.editingMessageId
-        ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
-          ...encrypted,
-          mentionedUserIds: this.mentionedUserIds
-        })
-        : this.chatService.sendMessage(this.roomId, {
-          ...encrypted,
-          mentionedUserIds: this.mentionedUserIds
-        });
+      const request$ = isFleetScope
+        ? (this.editingMessageId
+          ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
+              nonce: '',
+              ciphertext: '',
+              keyVersion: 1,
+              body: text,
+              mentionedUserIds: this.mentionedUserIds
+            })
+          : this.chatService.sendMessage(this.roomId, {
+              nonce: '',
+              ciphertext: '',
+              keyVersion: 1,
+              body: text,
+              mentionedUserIds: this.mentionedUserIds
+            }))
+        : await (async () => {
+            const encrypted = await this.chatCrypto.encryptMessagePayload(
+              this.crewId,
+              text,
+              this.authorDisplayName,
+              this.messageAttachments,
+              this.keptEditAttachments
+            );
+            return this.editingMessageId
+              ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
+                  ...encrypted,
+                  mentionedUserIds: this.mentionedUserIds
+                })
+              : this.chatService.sendMessage(this.roomId, {
+                  ...encrypted,
+                  mentionedUserIds: this.mentionedUserIds
+                });
+          })();
 
       request$.subscribe({
         next: response => {

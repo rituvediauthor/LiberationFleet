@@ -14,6 +14,7 @@ export interface Crew {
   joinCode: string;
   distanceMiles?: number;
   allowSurvivalThresholds?: boolean;
+  allowCrossCrewGiving?: boolean;
   requireApprovalForEdits?: boolean;
   inNeedDefaultThreshold?: number;
   libraryOfThingsEnabled?: boolean;
@@ -85,6 +86,7 @@ export interface UpdateCrewRequest {
   zipCode?: string;
   radiusMiles?: number;
   allowSurvivalThresholds: boolean;
+  allowCrossCrewGiving: boolean;
   requireApprovalForEdits: boolean;
   inNeedDefaultThreshold: number;
   libraryOfThingsEnabled: boolean;
@@ -118,7 +120,49 @@ export interface PublicCrewRulesResponse {
 export interface SubmitJoinRequestBody {
   crewId?: number;
   joinCode?: string;
+  invitationId?: number;
   acceptedRuleIds: number[];
+}
+
+export interface InviteCandidate {
+  userId: number;
+  username: string;
+  isFriend: boolean;
+}
+
+export interface InviteCandidateListResponse {
+  success: boolean;
+  message: string;
+  items: InviteCandidate[];
+}
+
+export interface CrewInvitation {
+  id: number;
+  crewId: number;
+  crewName: string;
+  inviterUserId: number;
+  inviterUsername: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface CrewInvitationListResponse {
+  success: boolean;
+  message: string;
+  items: CrewInvitation[];
+}
+
+export interface CrewInvitationDetailResponse {
+  success: boolean;
+  message: string;
+  invitation?: CrewInvitation | null;
+}
+
+export interface CrewInvitationOperationResponse {
+  success: boolean;
+  message: string;
+  invitationId: number;
+  crewId?: number | null;
 }
 
 export interface JoinRequestListItem {

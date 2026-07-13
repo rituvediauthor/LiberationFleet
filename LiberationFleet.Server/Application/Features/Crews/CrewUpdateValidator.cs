@@ -20,9 +20,9 @@ public static class CrewUpdateValidator
             return Failure("Crew name is required.");
         }
 
-        if (request.MaxSize < 2 || request.MaxSize > 100)
+        if (request.MaxSize < 2 || request.MaxSize > 50)
         {
-            return Failure("Crew size must be between 2 and 100.");
+            return Failure("Crew size must be between 2 and 50.");
         }
 
         if (request.MaxSize < memberCount)

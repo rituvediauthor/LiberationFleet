@@ -11,7 +11,7 @@ public class Gift
     public int? MiddlemanUserId { get; set; }
     public GiftType Type { get; set; }
     public decimal Amount { get; set; }
-    public int CrewPaymentPlatformId { get; set; }
+    public int? CrewPaymentPlatformId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? InitiatedGiftId { get; set; }
     public bool IsSurvivalThreshold { get; set; }
@@ -28,5 +28,5 @@ public class Gift
     public User RecipientUser { get; set; } = null!;
     public User? MiddlemanUser { get; set; }
     public Gift? InitiatedGift { get; set; }
-    public CrewPaymentPlatform CrewPaymentPlatform { get; set; } = null!;
+    public CrewPaymentPlatform? CrewPaymentPlatform { get; set; }
 }

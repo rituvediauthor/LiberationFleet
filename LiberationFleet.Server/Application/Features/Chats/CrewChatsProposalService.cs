@@ -1,5 +1,4 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
-using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Proposals;
@@ -60,9 +59,51 @@ public class CrewChatsProposalService(
         return proposal.Id;
     }
 
+    public async Task<int> CreateFleetProposalAsync(
+        int fleetId,
+        int authorUserId,
+        CrewChatProposalAction action,
+        string proposalTitle,
+        string proposalDescription,
+        int? roomId,
+        string purpose,
+        ChatRoomType roomType,
+        string plaintextName,
+        bool isAdultContent,
+        CancellationToken cancellationToken)
+    {
+        var utcNow = DateTime.UtcNow;
+        var proposal = new Proposal
+        {
+            FleetId = fleetId,
+            AuthorUserId = authorUserId,
+            Kind = ProposalKind.FleetChatChange,
+            CreatedAt = utcNow,
+            LastActivityAt = utcNow
+        };
+
+        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        await proposalRepository.AddProposalAsync(proposal, cancellationToken);
+        await proposalRepository.AddCrewChatChangeAsync(new ProposalCrewChatChange
+        {
+            Proposal = proposal,
+            Action = action,
+            RoomId = roomId,
+            Title = proposalTitle,
+            Description = proposalDescription,
+            Purpose = purpose.Trim(),
+            RoomType = roomType,
+            PlaintextName = plaintextName.Trim(),
+            IsAdultContent = isAdultContent
+        }, cancellationToken);
+
+        return proposal.Id;
+    }
+
     public async Task TryApplyApprovedProposalAsync(Proposal proposal, CancellationToken cancellationToken)
     {
-        if (proposal.Kind != ProposalKind.CrewChatChange || proposal.Status != ProposalStatus.Approved)
+        if (proposal.Kind is not (ProposalKind.CrewChatChange or ProposalKind.FleetChatChange)
+            || proposal.Status != ProposalStatus.Approved)
         {
             return;
         }
@@ -74,6 +115,25 @@ public class CrewChatsProposalService(
         }
 
         var utcNow = DateTime.UtcNow;
+
+        if (proposal.Kind == ProposalKind.FleetChatChange)
+        {
+            switch (change.Action)
+            {
+                case CrewChatProposalAction.Create:
+                    await ApplyFleetCreateAsync(proposal, change, utcNow, cancellationToken);
+                    break;
+                case CrewChatProposalAction.Update:
+                    await ApplyFleetUpdateAsync(change, utcNow, cancellationToken);
+                    break;
+                case CrewChatProposalAction.Delete:
+                    await ApplyDeleteAsync(change, utcNow, cancellationToken);
+                    break;
+            }
+
+            change.IsApplied = true;
+            return;
+        }
 
         switch (change.Action)
         {
@@ -105,7 +165,7 @@ public class CrewChatsProposalService(
 
         var room = new ChatRoom
         {
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             Name = string.Empty,
             Purpose = change.Purpose,
             RoomType = change.RoomType,
@@ -122,7 +182,7 @@ public class CrewChatsProposalService(
         {
             ContentType = EncryptedContentType.ChatRoomName,
             ResourceId = room.Id.ToString(),
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             AuthorUserId = authorUserId,
             KeyVersion = change.KeyVersion,
             Nonce = change.NameNonce.Trim(),
@@ -142,8 +202,37 @@ public class CrewChatsProposalService(
         if (savedRoom is not null)
         {
             var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope);
-            await chatRealtimeNotifier.NotifyRoomCreatedAsync(proposal.CrewId, dto, cancellationToken);
+            await chatRealtimeNotifier.NotifyRoomCreatedAsync(proposal.CrewId!.Value, dto, cancellationToken);
         }
+    }
+
+    private async Task ApplyFleetCreateAsync(
+        Proposal proposal,
+        ProposalCrewChatChange change,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        if (!proposal.FleetId.HasValue || string.IsNullOrWhiteSpace(change.PlaintextName))
+        {
+            return;
+        }
+
+        var room = new ChatRoom
+        {
+            FleetId = proposal.FleetId.Value,
+            Name = change.PlaintextName.Trim(),
+            Purpose = change.Purpose,
+            RoomType = change.RoomType,
+            CreatedByUserId = proposal.AuthorUserId,
+            CreatedAt = utcNow,
+            LastActivityAt = utcNow,
+            IsAdultContent = change.IsAdultContent
+        };
+
+        await chatRepository.AddRoomAsync(room, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        change.RoomId = room.Id;
     }
 
     private async Task ApplyUpdateAsync(
@@ -172,7 +261,7 @@ public class CrewChatsProposalService(
         {
             ContentType = EncryptedContentType.ChatRoomName,
             ResourceId = room.Id.ToString(),
-            CrewId = room.CrewId,
+            CrewId = room.CrewId!.Value,
             AuthorUserId = room.CreatedByUserId,
             KeyVersion = change.KeyVersion,
             Nonce = change.NameNonce.Trim(),
@@ -180,6 +269,28 @@ public class CrewChatsProposalService(
             CreatedAt = utcNow,
             UpdatedAt = utcNow
         }, cancellationToken);
+    }
+
+    private async Task ApplyFleetUpdateAsync(
+        ProposalCrewChatChange change,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        if (!change.RoomId.HasValue || string.IsNullOrWhiteSpace(change.PlaintextName))
+        {
+            return;
+        }
+
+        var room = await chatRepository.GetRoomByIdAsync(change.RoomId.Value, cancellationToken);
+        if (room is null)
+        {
+            return;
+        }
+
+        room.Name = change.PlaintextName.Trim();
+        room.Purpose = change.Purpose;
+        room.RoomType = change.RoomType;
+        room.LastActivityAt = utcNow;
     }
 
     private async Task ApplyDeleteAsync(

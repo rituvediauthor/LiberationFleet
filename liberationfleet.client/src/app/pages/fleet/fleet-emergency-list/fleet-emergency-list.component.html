@@ -1,0 +1,21 @@
+<app-page-layout [backButton]="backButton">
+  <div class="emergency-page">
+    <h1 class="page-title">Fleet emergency requests</h1>
+    <p class="page-subtitle">Cross-crew emergency aid within your fleet</p>
+
+    <p *ngIf="loading" class="state-text">Loading emergency requests...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No emergency requests.</p>
+
+    <div class="request-list" *ngIf="!loading && items.length > 0">
+      <article class="request-card" *ngFor="let item of items" (click)="openRequest(item)" role="button" tabindex="0">
+        <h2 class="card-title">{{ item.purposePreview }}</h2>
+        <p class="card-meta">{{ item.requesterUsername }} · {{ formatCreatedAt(item.createdAt) }}</p>
+        <p class="card-status">
+          ${{ item.amountFulfilled }} of ${{ item.amountNeeded }}
+          <span *ngIf="item.amountRemaining > 0"> · ${{ item.amountRemaining }} remaining</span>
+        </p>
+      </article>
+    </div>
+  </div>
+</app-page-layout>

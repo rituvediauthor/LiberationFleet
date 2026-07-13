@@ -135,7 +135,14 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isHighlighted(entry: GiftLogEntry): boolean {
-    return this.giftService.isUserRelated(entry, this.activeUserId);
+    return !this.isCelebration(entry) && this.giftService.isUserRelated(entry, this.activeUserId);
+  }
+
+  isCelebration(entry: GiftLogEntry): boolean {
+    const type = (entry.type || '').toLowerCase();
+    return type === 'seasonstarted'
+      || type === 'cyclestarted'
+      || type === 'survivalthresholdsrefreshed';
   }
 
   formatTimestamp(date: Date): string {

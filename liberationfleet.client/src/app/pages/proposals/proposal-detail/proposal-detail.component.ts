@@ -90,11 +90,15 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private countdownIntervalId?: ReturnType<typeof setInterval>;
   private encryptionReload?: EncryptionReloadHandle;
+  private isFleetScope = false;
 
   ngOnInit() {
+    this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+      || this.router.url.startsWith('/app/fleet/proposals');
     const proposalId = this.proposalId;
     if (proposalId) {
-      this.notificationContent.markVisited(`/app/crew/proposals/${proposalId}`, proposalId);
+      const prefix = this.isFleetScope ? '/app/fleet/proposals' : '/app/crew/proposals';
+      this.notificationContent.markVisited(`${prefix}/${proposalId}`, proposalId);
     }
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadProposal());
 
@@ -105,7 +109,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
-        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
+        this.canAttachFiles = !this.isFleetScope && (membership.canAttachFilesToCrewContent ?? false);
         await this.encryptionContent.whenReady();
         this.loadProposal();
         this.encryptionReload?.markInitialLoadDone();
@@ -237,8 +241,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
   goBack() {
     const fallback = this.proposal
-      ? ['/app/crew/proposals/list', this.proposal.status.toLowerCase()]
-      : ['/app/crew/proposals'];
+      ? [this.isFleetScope ? '/app/fleet/proposals/list' : '/app/crew/proposals/list', this.proposal.status.toLowerCase()]
+      : [this.isFleetScope ? '/app/fleet/proposals' : '/app/crew/proposals'];
     this.navigation.back(fallback);
   }
 

@@ -5,7 +5,9 @@ namespace LiberationFleet.Server.Domain.Entities;
 public class ChatRoom
 {
     public int Id { get; set; }
-    public int CrewId { get; set; }
+    public int? CrewId { get; set; }
+    public int? FleetId { get; set; }
+    public int? LinkedCrewId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;
     public ChatRoomType RoomType { get; set; }
@@ -16,7 +18,9 @@ public class ChatRoom
     public bool AnonymousModeEnabled { get; set; }
     public bool IsAdultContent { get; set; }
 
-    public Crew Crew { get; set; } = null!;
+    public Crew? Crew { get; set; }
+    public Fleet? Fleet { get; set; }
+    public Crew? LinkedCrew { get; set; }
     public User CreatedByUser { get; set; } = null!;
     public ICollection<ChatRoomMessage> Messages { get; set; } = new List<ChatRoomMessage>();
 }

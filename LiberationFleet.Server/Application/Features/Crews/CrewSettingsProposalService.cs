@@ -61,7 +61,7 @@ public class CrewSettingsProposalService(
             return;
         }
 
-        var crew = await crewRepository.GetByIdAsync(proposal.CrewId, cancellationToken);
+        var crew = await crewRepository.GetByIdAsync(proposal.CrewId!.Value, cancellationToken);
         if (crew is null)
         {
             return;
@@ -71,7 +71,7 @@ public class CrewSettingsProposalService(
         change.IsApplied = true;
 
         await notificationService.NotifyCrewAsync(
-            proposal.CrewId,
+            proposal.CrewId!.Value,
             NotificationKind.CrewSettingChanged,
             "Crew setting changed",
             "A crew setting was updated via approved proposal.",
@@ -106,6 +106,7 @@ public class CrewSettingsProposalService(
         crew.MinimumContributionForAttachments = request.MinimumContributionForAttachments;
         crew.MinimumCrewmateTenureDaysForProposals = request.MinimumCrewmateTenureDaysForProposals;
         crew.MinimumContributionForProposals = request.MinimumContributionForProposals;
+        crew.AllowCrossCrewGiving = request.AllowCrossCrewGiving;
     }
 
     private async Task ApplyChangeAsync(Crew crew, ProposalCrewSettingChange change, CancellationToken cancellationToken)
@@ -184,6 +185,9 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.MinimumContributionForProposals:
                 crew.MinimumContributionForProposals = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.AllowCrossCrewGiving:
+                crew.AllowCrossCrewGiving = bool.Parse(change.NewValue);
                 break;
         }
     }

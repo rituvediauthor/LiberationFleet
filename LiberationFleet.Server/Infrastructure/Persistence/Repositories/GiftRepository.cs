@@ -66,6 +66,59 @@ public class GiftRepository : IGiftRepository
         };
     }
 
+    public async Task<GiftLogPage> GetLogPageByCrewIdsAsync(
+        IReadOnlyList<int> crewIds,
+        int limit,
+        DateTime? beforeCreatedAt = null,
+        int? beforeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return new GiftLogPage { Items = Array.Empty<Gift>(), HasMore = false };
+        }
+
+        var query = _context.Gifts
+            .Include(g => g.GiverUser)
+                .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
+            .Include(g => g.RecipientUser)
+                .ThenInclude(u => u.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
+            .Include(g => g.MiddlemanUser)
+                .ThenInclude(u => u!.PaymentPlatforms)
+                    .ThenInclude(p => p.CrewPaymentPlatform)
+            .Include(g => g.CrewPaymentPlatform)
+            .Where(g => crewIds.Contains(g.CrewId));
+
+        if (beforeCreatedAt.HasValue && beforeId.HasValue)
+        {
+            query = query.Where(g =>
+                g.CreatedAt < beforeCreatedAt.Value
+                || (g.CreatedAt == beforeCreatedAt.Value && g.Id < beforeId.Value));
+        }
+
+        var fetched = await query
+            .OrderByDescending(g => g.CreatedAt)
+            .ThenByDescending(g => g.Id)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = fetched.Count > limit;
+        if (hasMore)
+        {
+            fetched = fetched.Take(limit).ToList();
+        }
+
+        fetched.Reverse();
+
+        return new GiftLogPage
+        {
+            Items = fetched,
+            HasMore = hasMore
+        };
+    }
+
     public async Task<IReadOnlySet<int>> GetCompletedInitiatedGiftIdsAsync(int crewId, CancellationToken cancellationToken = default)
     {
         var ids = await _context.Gifts

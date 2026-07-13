@@ -40,7 +40,7 @@ public class JoinVoiceRoomCommandHandler(
             return new VoiceJoinResponse { Success = false, Message = "This room is not a voice channel." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, room.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, room.CrewId!.Value, cancellationToken))
         {
             return new VoiceJoinResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -58,7 +58,7 @@ public class JoinVoiceRoomCommandHandler(
         }
 
         int? previousRoomId = null;
-        var existingSession = await voicePresenceRepository.GetActiveByUserAndCrewAsync(userId, room.CrewId, cancellationToken);
+        var existingSession = await voicePresenceRepository.GetActiveByUserAndCrewAsync(userId, room.CrewId!.Value, cancellationToken);
         if (existingSession is not null)
         {
             previousRoomId = existingSession.ChatRoomId;
@@ -71,7 +71,7 @@ public class JoinVoiceRoomCommandHandler(
         var session = new VoiceParticipantSession
         {
             UserId = userId,
-            CrewId = room.CrewId,
+            CrewId = room.CrewId!.Value,
             ChatRoomId = room.Id,
             JoinedAt = utcNow,
             LastSeenAt = utcNow
@@ -80,7 +80,7 @@ public class JoinVoiceRoomCommandHandler(
         await voicePresenceRepository.AddAsync(session, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var liveKitRoomName = LiveKitRoomNaming.ForVoiceChannel(room.CrewId, room.Id);
+        var liveKitRoomName = LiveKitRoomNaming.ForVoiceChannel(room.CrewId!.Value, room.Id);
         var token = liveKitTokenService.CreateRoomToken(userId.ToString(), user.Username, liveKitRoomName);
 
         return new VoiceJoinResponse

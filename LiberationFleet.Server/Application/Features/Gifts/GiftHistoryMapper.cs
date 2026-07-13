@@ -27,6 +27,9 @@ public static class GiftHistoryMapper
             GiftType.Initiated => "Pending middleman",
             GiftType.Completed when gift.VerificationStatus == GiftVerificationStatus.Verified => "Completed",
             GiftType.Completed => "Awaiting recipient confirmation",
+            GiftType.SeasonStarted => "New season",
+            GiftType.CycleStarted => "New cycle",
+            GiftType.SurvivalThresholdsRefreshed => "Survival thresholds refreshed",
             _ => "Recorded"
         };
     }

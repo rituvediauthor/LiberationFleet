@@ -29,6 +29,13 @@ public class ChatRepository : IChatRepository
             .OrderByDescending(r => r.LastActivityAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ChatRoom>> GetRoomsByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default) =>
+        await _context.ChatRooms
+            .Include(r => r.CreatedByUser)
+            .Where(r => r.FleetId == fleetId && !r.IsDeleted)
+            .OrderByDescending(r => r.LastActivityAt)
+            .ToListAsync(cancellationToken);
+
     public async Task AddRoomAsync(ChatRoom room, CancellationToken cancellationToken = default) =>
         await _context.ChatRooms.AddAsync(room, cancellationToken);
 

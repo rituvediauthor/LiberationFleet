@@ -198,17 +198,17 @@ public class CrewmateKickProposalService(
         if (isSeasonKick)
         {
             await mutualAidService.RemoveMemberFromSeasonAsync(
-                proposal.CrewId,
+                proposal.CrewId!.Value,
                 kick.TargetUserId,
                 cancellationToken);
         }
         else
         {
-            var membership = await membershipRepository.GetMembershipAsync(kick.TargetUserId, proposal.CrewId, cancellationToken);
+            var membership = await membershipRepository.GetMembershipAsync(kick.TargetUserId, proposal.CrewId!.Value, cancellationToken);
             if (membership is not null && !membership.IsBanned)
             {
                 await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
-                    proposal.CrewId,
+                    proposal.CrewId!.Value,
                     kick.TargetUserId,
                     cancellationToken);
                 membership.IsBanned = true;
@@ -236,7 +236,7 @@ public class CrewmateKickProposalService(
             }
 
             await notificationService.NotifyCrewAsync(
-                proposal.CrewId,
+                proposal.CrewId!.Value,
                 NotificationKind.CrewmateKicked,
                 notificationTitle,
                 notificationBody,
@@ -247,7 +247,7 @@ public class CrewmateKickProposalService(
 
         if (!isSeasonKick)
         {
-            await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(proposal.CrewId, cancellationToken);
+            await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(proposal.CrewId!.Value, cancellationToken);
         }
     }
 }

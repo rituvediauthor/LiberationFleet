@@ -31,6 +31,7 @@ public class ChatMessageDto
     public DateTime CreatedAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public string? Body { get; set; }
     public int Id { get; set; }
 }
 
@@ -75,6 +76,9 @@ public class CreateChatRoomRequest
     public string Purpose { get; set; } = string.Empty;
     public string PlaintextName { get; set; } = string.Empty;
     public bool IsAdultContent { get; set; }
+
+    /// <summary>"crew" (default) or "fleet".</summary>
+    public string Scope { get; set; } = "crew";
 }
 
 public class UpdateChatRoomRequest
@@ -100,6 +104,7 @@ public class SendChatMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public string? Body { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
 }
 
@@ -113,5 +118,6 @@ public class UpdateChatMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public string? Body { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
 }

@@ -48,7 +48,7 @@ public class CreateProposalCommentCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Proposal not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId, cancellationToken))
+        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
         {
             return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -88,7 +88,7 @@ public class CreateProposalCommentCommandHandler(
         {
             ContentType = EncryptedContentType.ProposalComment,
             ResourceId = comment.Id.ToString(),
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -106,7 +106,7 @@ public class CreateProposalCommentCommandHandler(
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
             {
                 UserId = notifyUserId,
-                CrewId = proposal.CrewId,
+                CrewId = proposal.CrewId!.Value,
                 Kind = NotificationKind.NewReply,
                 Title = "New reply",
                 Body = parentComment is null
@@ -121,7 +121,7 @@ public class CreateProposalCommentCommandHandler(
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = proposal.CrewId,
+            CrewId = proposal.CrewId!.Value,
             AuthorUserId = userId,
             ContentType = MentionedContentType.ProposalComment,
             ResourceId = comment.Id,

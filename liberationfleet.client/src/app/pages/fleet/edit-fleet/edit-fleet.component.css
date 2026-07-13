@@ -1,0 +1,175 @@
+.form-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.form-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--lf-color-bg-surface);
+  padding: 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 24px;
+  color: var(--lf-color-text-body);
+}
+
+.status-message {
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+}
+
+.status-message.error {
+  color: var(--lf-color-danger);
+}
+
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkbox-group {
+  margin-bottom: 16px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lf-color-text-body);
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--lf-color-accent);
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--lf-color-text-body);
+}
+
+.hint-text {
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.form-input {
+  padding: 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--lf-color-accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+.readonly-group .join-code-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.readonly-group .join-code {
+  margin: 0;
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--lf-color-accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--lf-color-accent-border);
+  border-radius: 8px;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: var(--lf-color-accent-soft-bg);
+}
+
+.leave-btn {
+  margin-top: 24px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--lf-color-danger-border);
+  border-radius: 8px;
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leave-btn:hover {
+  background: var(--lf-color-danger-soft-bg);
+  border-color: var(--lf-color-danger);
+}
+
+.settings-section {
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid var(--lf-color-border);
+}
+
+.section-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.capacity-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.capacity-prefix {
+  font-size: 14px;
+  color: var(--lf-color-text-body);
+  white-space: nowrap;
+}
+
+.preview-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-accent);
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .form-card {
+    padding: 24px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+}

@@ -71,6 +71,18 @@
   border-color: var(--lf-color-accent-border);
 }
 
+.log-entry.celebration {
+  align-self: stretch;
+  max-width: 100%;
+  text-align: center;
+  background: var(--lf-color-accent-soft-bg);
+  border-color: var(--lf-color-accent-border);
+}
+
+.log-entry.celebration .log-message {
+  font-weight: 600;
+}
+
 .log-entry.flagged-not-complete {
   background: var(--lf-color-danger-soft-bg);
   border-color: var(--lf-color-danger-border);
