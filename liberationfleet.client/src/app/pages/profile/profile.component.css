@@ -120,29 +120,6 @@ label {
   padding: 4px 10px;
 }
 
-.role-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.role-btn {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid var(--lf-color-accent-border);
-  border-radius: 8px;
-  background: var(--lf-color-accent-soft-bg-alt);
-  color: var(--lf-color-accent);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.role-btn.demote {
-  border-color: var(--lf-color-danger-border);
-  background: var(--lf-color-danger-soft-bg);
-  color: var(--lf-color-danger);
-}
-
 .readonly-grid {
   display: grid;
   gap: 12px;

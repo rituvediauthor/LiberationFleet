@@ -9,6 +9,7 @@ namespace LiberationFleet.Server.Application.Features.Mentions;
 public sealed class ContentMentionContext
 {
     public int CrewId { get; init; }
+    public int? FleetId { get; init; }
     public int AuthorUserId { get; init; }
     public MentionedContentType ContentType { get; init; }
     public int ResourceId { get; init; }
@@ -20,6 +21,7 @@ public sealed class ContentMentionContext
 
 public class ContentMentionService(
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IContentMentionRepository mentionRepository,
     IUserRepository userRepository,
     NotificationService notificationService,
@@ -37,8 +39,28 @@ public class ContentMentionService(
             return;
         }
 
-        var members = await membershipRepository.GetActiveMembersByCrewIdAsync(context.CrewId, cancellationToken);
-        var validMemberIds = members.Select(m => m.UserId).ToHashSet();
+        HashSet<int> validMemberIds;
+        if (context.FleetId.HasValue)
+        {
+            var fleetCrews = await fleetRepository.GetFleetCrewsAsync(context.FleetId.Value, cancellationToken);
+            validMemberIds = new HashSet<int>();
+            foreach (var fleetCrew in fleetCrews)
+            {
+                var members = await membershipRepository.GetActiveMembersByCrewIdAsync(
+                    fleetCrew.CrewId,
+                    cancellationToken);
+                foreach (var member in members)
+                {
+                    validMemberIds.Add(member.UserId);
+                }
+            }
+        }
+        else
+        {
+            var members = await membershipRepository.GetActiveMembersByCrewIdAsync(context.CrewId, cancellationToken);
+            validMemberIds = members.Select(m => m.UserId).ToHashSet();
+        }
+
         var validMentionIds = requestedIds.Where(validMemberIds.Contains).Distinct().ToList();
 
         IReadOnlyList<int> previousMentionIds = Array.Empty<int>();
@@ -86,6 +108,9 @@ public class ContentMentionService(
         var authorName = string.IsNullOrWhiteSpace(author?.Username)
             ? "A crewmate"
             : author.Username.Trim();
+        var mentionBody = context.FleetId.HasValue
+            ? "You were mentioned in fleet content."
+            : "You were mentioned in crew content.";
 
         await notificationService.NotifyUsersAsync(
             notifyUserIds.Select(userId => new CreateNotificationRequest
@@ -94,7 +119,7 @@ public class ContentMentionService(
                 CrewId = context.CrewId,
                 Kind = NotificationKind.Mention,
                 Title = $"{authorName} mentioned you",
-                Body = "You were mentioned in crew content.",
+                Body = mentionBody,
                 ActionUrl = context.ActionUrl,
                 RelatedEntityId = context.ParentResourceId ?? context.ResourceId,
                 SecondaryEntityId = context.ResourceId,

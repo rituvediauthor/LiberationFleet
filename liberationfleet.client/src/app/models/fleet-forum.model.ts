@@ -60,6 +60,7 @@ export interface CreateFleetForumRequest {
   title: string;
   body: string;
   isAdultContent: boolean;
+  mentionedUserIds?: number[];
 }
 
 export interface UpdateFleetForumRequest {
@@ -70,6 +71,7 @@ export interface UpdateFleetForumRequest {
 export interface CreateFleetForumCommentRequest {
   parentCommentId?: number | null;
   body: string;
+  mentionedUserIds?: number[];
 }
 
 export interface UpdateFleetForumCommentRequest {

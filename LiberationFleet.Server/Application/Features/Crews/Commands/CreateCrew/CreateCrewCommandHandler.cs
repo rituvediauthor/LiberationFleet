@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -14,17 +15,20 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
     private readonly ICrewRepository _crewRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ContentTenureService _contentTenureService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateCrewCommandHandler(
         ICrewRepository crewRepository,
         ICrewMembershipRepository membershipRepository,
         ICurrentUserService currentUserService,
+        ContentTenureService contentTenureService,
         IUnitOfWork unitOfWork)
     {
         _crewRepository = crewRepository;
         _membershipRepository = membershipRepository;
         _currentUserService = currentUserService;
+        _contentTenureService = contentTenureService;
         _unitOfWork = unitOfWork;
     }
 
@@ -72,6 +76,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             IsOrganizer = true,
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
+        await _contentTenureService.OnJoinedCrewAsync(userId.Value, crew.Id, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewOperationResponse

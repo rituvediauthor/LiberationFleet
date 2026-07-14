@@ -114,14 +114,6 @@ export class ProfileComponent implements OnInit {
     return this.profile?.roles ?? [];
   }
 
-  onNominate() {
-    this.toastService.error('Nominate is not available yet.');
-  }
-
-  onDemote() {
-    this.toastService.error('Demote is not available yet.');
-  }
-
   addPaymentPlatform() {
     if (!this.profile) {
       return;

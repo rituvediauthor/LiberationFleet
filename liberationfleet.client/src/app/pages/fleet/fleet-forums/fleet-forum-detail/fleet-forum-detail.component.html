@@ -142,6 +142,8 @@
         class="comment-input"
         [class.expanded]="commentExpanded"
         [(ngModel)]="commentText"
+        appMentionAutocomplete
+        [(mentionedUserIds)]="mentionedUserIds"
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
         [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"

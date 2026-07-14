@@ -4,7 +4,6 @@ import { SignInComponent } from './pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/sign-up/sign-up.component';
 import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
-import { SignInSuccessComponent } from './pages/sign-in-success/sign-in-success.component';
 import { CrewHomeComponent } from './pages/crew-home/crew-home.component';
 import { FriendsComponent } from './pages/friends/friends.component';
 import { ProfileComponent } from './pages/profile/profile.component';
@@ -13,7 +12,6 @@ import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
-import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
 import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
@@ -32,7 +30,7 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'sign-up')?.component).toBe(SignUpComponent);
     expect(routes.find(r => r.path === 'forgot-password')?.component).toBe(ForgotPasswordComponent);
     expect(routes.find(r => r.path === 'reset-password')?.component).toBe(ResetPasswordComponent);
-    expect(routes.find(r => r.path === 'sign-in-success')?.component).toBe(SignInSuccessComponent);
+    expect(routes.find(r => r.path === 'sign-in-success')).toBeUndefined();
   });
 
   it('should define authenticated app routes with authGuard', () => {
@@ -58,6 +56,7 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'app/crew/chats/create')?.component).toBe(ChatCreateComponent);
     expect(routes.find(r => r.path === 'app/crew')?.pathMatch).toBe('full');
     expect(routes.find(r => r.path === 'app/crew/chats')?.pathMatch).toBe('full');
+    expect(routes.find(r => r.path === 'app/profile/preferences/placeholder')).toBeUndefined();
   });
 
   it('should redirect unknown paths to root', () => {

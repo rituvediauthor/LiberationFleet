@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -23,6 +24,7 @@ public class UpsertEncryptedContentCommandHandler(
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
+    ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertEncryptedContentCommand, CryptoOperationResponse>
 {
     private static readonly HashSet<EncryptedContentType> AttachmentTypes =
@@ -70,12 +72,16 @@ public class UpsertEncryptedContentCommandHandler(
                     request.CrewId.Value,
                     crew.CurrentSeasonStartDate,
                     cancellationToken);
+                var crewTenureDays = await contentTenureService.GetCrewTenureDaysAsync(
+                    userId,
+                    request.CrewId.Value,
+                    cancellationToken);
 
                 if (!CrewContentPermissionService.CanAttachFilesToCrewContent(
                         crew,
                         membership,
                         giftStats.LifetimeContributions,
-                        DateTime.UtcNow))
+                        crewTenureDays))
                 {
                     return new CryptoOperationResponse
                     {

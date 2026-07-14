@@ -47,13 +47,16 @@ public class SearchCrewsQueryHandler : IRequestHandler<SearchCrewsQuery, CrewSea
             double? distance = null;
             if (scope == CrewScope.Local)
             {
-                if (string.IsNullOrWhiteSpace(crew.ZipCode) ||
-                    !_zipCodeDistanceService.TryGetDistanceMiles(request.ZipCode!, crew.ZipCode, out var miles))
+                if (string.IsNullOrWhiteSpace(crew.ZipCode)
+                    || !crew.RadiusMiles.HasValue
+                    || string.IsNullOrWhiteSpace(request.ZipCode)
+                    || !_zipCodeDistanceService.TryGetDistanceMiles(request.ZipCode, crew.ZipCode, out var miles))
                 {
                     continue;
                 }
 
-                if (miles > request.RadiusMiles!.Value)
+                var maxRadius = request.RadiusMiles ?? crew.RadiusMiles.Value;
+                if (miles > Math.Min(maxRadius, crew.RadiusMiles.Value))
                 {
                     continue;
                 }

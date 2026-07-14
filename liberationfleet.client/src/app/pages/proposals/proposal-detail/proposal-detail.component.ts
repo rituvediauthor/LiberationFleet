@@ -109,7 +109,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
-        this.canAttachFiles = !this.isFleetScope && (membership.canAttachFilesToCrewContent ?? false);
+        this.canAttachFiles = this.isFleetScope
+          ? (membership.canAttachFilesToFleetContent ?? false)
+          : (membership.canAttachFilesToCrewContent ?? false);
         await this.encryptionContent.whenReady();
         this.loadProposal();
         this.encryptionReload?.markInitialLoadDone();
@@ -456,28 +458,47 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     const editingCommentId = this.editingCommentId;
 
     try {
-      const encrypted = await this.proposalCrypto.encryptCommentPayload(
-        this.crewId,
-        {
-          body,
-          authorDisplayName: this.proposal.usesAnonymousComments
-            ? (this.proposal.viewerAlias ?? 'Anonymous')
-            : this.authorDisplayName
-        },
-        pendingAttachments,
-        this.keptCommentEditAttachments
-      );
-
       const request$ = editingCommentId
-        ? this.proposalService.updateComment(this.proposal.id, editingCommentId, {
-          ...encrypted,
-          mentionedUserIds: this.mentionedUserIds
-        })
-        : this.proposalService.postComment(this.proposal.id, {
-          parentCommentId,
-          ...encrypted,
-          mentionedUserIds: this.mentionedUserIds
-        });
+        ? this.isFleetScope
+          ? this.proposalService.updateComment(this.proposal.id, editingCommentId, {
+            body,
+            mentionedUserIds: this.mentionedUserIds
+          })
+          : this.proposalService.updateComment(this.proposal.id, editingCommentId, {
+            ...(await this.proposalCrypto.encryptCommentPayload(
+              this.crewId,
+              {
+                body,
+                authorDisplayName: this.proposal.usesAnonymousComments
+                  ? (this.proposal.viewerAlias ?? 'Anonymous')
+                  : this.authorDisplayName
+              },
+              pendingAttachments,
+              this.keptCommentEditAttachments
+            )),
+            mentionedUserIds: this.mentionedUserIds
+          })
+        : this.isFleetScope
+          ? this.proposalService.postComment(this.proposal.id, {
+            parentCommentId,
+            body,
+            mentionedUserIds: this.mentionedUserIds
+          })
+          : this.proposalService.postComment(this.proposal.id, {
+            parentCommentId,
+            ...(await this.proposalCrypto.encryptCommentPayload(
+              this.crewId,
+              {
+                body,
+                authorDisplayName: this.proposal.usesAnonymousComments
+                  ? (this.proposal.viewerAlias ?? 'Anonymous')
+                  : this.authorDisplayName
+              },
+              pendingAttachments,
+              this.keptCommentEditAttachments
+            )),
+            mentionedUserIds: this.mentionedUserIds
+          });
 
       request$.subscribe({
         next: result => {
@@ -511,7 +532,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       });
     } catch {
       this.posting = false;
-      this.toastService.error('Failed to encrypt comment');
+      this.toastService.error(this.isFleetScope ? 'Failed to post comment' : 'Failed to encrypt comment');
     }
   }
 
@@ -528,9 +549,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
     this.proposalService.getCommentReplies(this.proposalId, comment.id).subscribe({
       next: async replies => {
-        comment.replies = this.crewId > 0
-          ? await this.proposalCrypto.decryptComments(replies, this.crewId)
-          : replies;
+        comment.replies = this.isFleetScope || this.crewId <= 0
+          ? replies
+          : await this.proposalCrypto.decryptComments(replies, this.crewId);
         comment.repliesExpanded = true;
       },
       error: () => this.toastService.error('Failed to load replies')
@@ -604,7 +625,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       replyToUsername,
       createdAt: new Date(),
       replyCount: 0,
-      hasEncryptedContent: true,
+      hasEncryptedContent: !this.isFleetScope,
       isOwnComment: true,
       canKick: false,
       body,
@@ -679,10 +700,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.proposalService.getProposal(this.proposalId).subscribe({
       next: async proposal => {
-        if (this.crewId > 0) {
-          this.proposal = await this.proposalCrypto.decryptDetail(proposal, this.crewId);
-        } else {
+        if (this.isFleetScope || this.crewId <= 0) {
           this.proposal = proposal;
+        } else {
+          this.proposal = await this.proposalCrypto.decryptDetail(proposal, this.crewId);
         }
         this.loading = false;
       },

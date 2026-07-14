@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleet;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -8,7 +9,8 @@ namespace LiberationFleet.Server.Application.Features.Fleets;
 
 public class FleetSettingsProposalService(
     IProposalRepository proposalRepository,
-    IFleetRepository fleetRepository)
+    IFleetRepository fleetRepository,
+    NotificationService notificationService)
 {
     public async Task<int> CreateProposalsAsync(
         Fleet fleet,
@@ -67,6 +69,27 @@ public class FleetSettingsProposalService(
 
         ApplyChange(fleet, change);
         change.IsApplied = true;
+
+        await NotifyFleetSettingChangedAsync(fleet.Id, proposal.AuthorUserId, cancellationToken);
+    }
+
+    public async Task NotifyFleetSettingChangedAsync(
+        int fleetId,
+        int? excludeUserId,
+        CancellationToken cancellationToken)
+    {
+        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
+        foreach (var fleetCrew in fleetCrews)
+        {
+            await notificationService.NotifyCrewAsync(
+                fleetCrew.CrewId,
+                NotificationKind.FleetSettingChanged,
+                "Fleet setting changed",
+                "Fleet settings were updated.",
+                "/app/fleet/edit",
+                excludeUserId: excludeUserId,
+                cancellationToken: cancellationToken);
+        }
     }
 
     public static void ApplyDirectUpdate(

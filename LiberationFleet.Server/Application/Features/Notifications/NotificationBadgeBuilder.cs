@@ -107,7 +107,8 @@ public static class NotificationBadgeBuilder
             return true;
         }
 
-        if (notification.Kind == NotificationKind.NewChatMessage
+        if ((notification.Kind == NotificationKind.NewChatMessage
+                || notification.Kind == NotificationKind.NewFleetChatMessage)
             && notification.RelatedEntityId.HasValue
             && (mutedChatRoomIds.Contains(notification.RelatedEntityId.Value)
                 || hiddenChatRoomIds.Contains(notification.RelatedEntityId.Value)))
@@ -141,7 +142,8 @@ public static class NotificationBadgeBuilder
     {
         var path = notification.ActionUrl.Split('?')[0];
 
-        if (path.StartsWith("/app/crew/chats/", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/chats/", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/chats/", StringComparison.Ordinal))
         {
             return "chats";
         }
@@ -152,7 +154,8 @@ public static class NotificationBadgeBuilder
             return "forums";
         }
 
-        if (path.StartsWith("/app/crew/proposals", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/proposals", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/proposals", StringComparison.Ordinal))
         {
             return "proposals";
         }
@@ -186,9 +189,10 @@ public static class NotificationBadgeBuilder
 
         return notification.Kind switch
         {
-            NotificationKind.NewChatMessage => "chats",
+            NotificationKind.NewChatMessage or NotificationKind.NewFleetChatMessage => "chats",
             NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply => "forums",
-            NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted => "proposals",
+            NotificationKind.NewProposal or NotificationKind.NewFleetProposal
+                or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted => "proposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
                 or NotificationKind.SurvivalThresholdsRefreshed => "giftLog",
             NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited or NotificationKind.CrewSettingChanged => "rules",
@@ -197,8 +201,7 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
                 or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "library",
-            NotificationKind.NewFleetGifts or NotificationKind.NewFleetProposal or NotificationKind.FleetSettingChanged
-                or NotificationKind.NewFleetChatMessage => "fleet",
+            NotificationKind.NewFleetGifts or NotificationKind.FleetSettingChanged => "fleet",
             _ => null
         };
     }
@@ -208,7 +211,8 @@ public static class NotificationBadgeBuilder
         var path = notification.ActionUrl.Split('?')[0];
         var keys = new List<string>();
 
-        if (TryExtractPathId(path, "/app/crew/chats/", out var chatRoomId))
+        if (TryExtractPathId(path, "/app/crew/chats/", out var chatRoomId)
+            || TryExtractPathId(path, "/app/fleet/chats/", out chatRoomId))
         {
             keys.Add($"chat:{chatRoomId}");
         }
@@ -224,16 +228,20 @@ public static class NotificationBadgeBuilder
         }
 
         if (TryExtractPathId(path, "/app/crew/proposals/", out var proposalId)
-            && !path.Contains("/list/", StringComparison.Ordinal))
+            || TryExtractPathId(path, "/app/fleet/proposals/", out proposalId))
         {
-            keys.Add($"proposal:{proposalId}");
+            if (!path.Contains("/list/", StringComparison.Ordinal))
+            {
+                keys.Add($"proposal:{proposalId}");
+            }
         }
         else if (notification.RelatedEntityId.HasValue && IsProposalKind(notification.Kind))
         {
             keys.Add($"proposal:{notification.RelatedEntityId.Value}");
         }
 
-        if (path.Contains("/app/crew/proposals/list/", StringComparison.Ordinal))
+        if (path.Contains("/app/crew/proposals/list/", StringComparison.Ordinal)
+            || path.Contains("/app/fleet/proposals/list/", StringComparison.Ordinal))
         {
             var status = path.Split('/').LastOrDefault()?.ToLowerInvariant();
             if (status is "approved" or "pending" or "rejected")
@@ -245,7 +253,7 @@ public static class NotificationBadgeBuilder
         {
             var statusKey = notification.Kind switch
             {
-                NotificationKind.NewProposal => "pending",
+                NotificationKind.NewProposal or NotificationKind.NewFleetProposal => "pending",
                 NotificationKind.ProposalAccepted => "approved",
                 NotificationKind.ProposalRejected => "rejected",
                 _ => null
@@ -293,6 +301,7 @@ public static class NotificationBadgeBuilder
 
     private static bool IsProposalKind(NotificationKind kind) =>
         kind is NotificationKind.NewProposal
+            or NotificationKind.NewFleetProposal
             or NotificationKind.ProposalRejected
             or NotificationKind.ProposalAccepted
             or NotificationKind.NewReply;

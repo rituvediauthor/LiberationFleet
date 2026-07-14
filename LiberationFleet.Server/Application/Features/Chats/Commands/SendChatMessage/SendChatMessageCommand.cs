@@ -114,16 +114,28 @@ public class SendChatMessageCommandHandler(
                     await chatRealtimeNotifier.NotifyRoomActivityUpdatedAsync(fleetCrew.CrewId, room.Id, utcNow, cancellationToken);
                     await notificationService.NotifyCrewIfNotMutedAsync(
                         fleetCrew.CrewId,
-                        NotificationKind.NewChatMessage,
+                        NotificationKind.NewFleetChatMessage,
                         MutedContentType.ChatRoom,
                         room.Id,
                         "New chat message",
                         "You have a new message in a fleet chat.",
-                        $"/app/fleet/chats/{room.Id}",
+                        $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
                         relatedEntityId: room.Id,
                         excludeUserId: userId,
                         cancellationToken: cancellationToken);
                 }
+
+                await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+                {
+                    CrewId = membership.CrewId,
+                    FleetId = room.FleetId,
+                    AuthorUserId = userId,
+                    ContentType = MentionedContentType.ChatRoomMessage,
+                    ResourceId = message.Id,
+                    ParentResourceId = room.Id,
+                    ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
+                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+                }, cancellationToken);
             }
             else
             {

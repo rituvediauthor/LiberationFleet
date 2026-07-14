@@ -99,6 +99,7 @@ public class ProposalsController : ControllerBase
         var result = await _mediator.Send(new CreateProposalCommentCommand(
             id,
             body.ParentCommentId,
+            body.Body,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
@@ -116,7 +117,8 @@ public class ProposalsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
-            body.MentionedUserIds));
+            body.MentionedUserIds,
+            body.Body));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

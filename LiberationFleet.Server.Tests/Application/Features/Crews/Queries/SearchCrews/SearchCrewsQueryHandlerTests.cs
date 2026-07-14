@@ -67,8 +67,8 @@ public class SearchCrewsQueryHandlerTests
     public async Task Handle_WhenLocalSearch_FiltersByDistance()
     {
         var userId = 2;
-        var nearbyCrew = HandlerTestFixture.CreateCrew(id: 1, name: "Nearby", scope: CrewScope.Local, zipCode: "10002");
-        var farCrew = HandlerTestFixture.CreateCrew(id: 2, name: "Far", scope: CrewScope.Local, zipCode: "90210");
+        var nearbyCrew = HandlerTestFixture.CreateCrew(id: 1, name: "Nearby", scope: CrewScope.Local, zipCode: "10002", radiusMiles: 25);
+        var farCrew = HandlerTestFixture.CreateCrew(id: 2, name: "Far", scope: CrewScope.Local, zipCode: "90210", radiusMiles: 25);
 
         var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();

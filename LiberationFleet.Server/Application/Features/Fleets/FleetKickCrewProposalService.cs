@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -21,7 +22,8 @@ public sealed class FleetKickCrewResult
 public class FleetKickCrewProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
-    ICrewRepository crewRepository)
+    ICrewRepository crewRepository,
+    ContentTenureService contentTenureService)
 {
     public async Task<FleetKickCrewResult> CreateAsync(
         int fleetId,
@@ -89,6 +91,10 @@ public class FleetKickCrewProposalService(
         var fleetCrew = await fleetRepository.GetFleetCrewAsync(proposal.FleetId.Value, kick.TargetCrewId, cancellationToken);
         if (fleetCrew is not null)
         {
+            await contentTenureService.OnCrewLeftFleetAsync(
+                kick.TargetCrewId,
+                proposal.FleetId.Value,
+                cancellationToken);
             await fleetRepository.RemoveFleetCrewAsync(fleetCrew, cancellationToken);
         }
 

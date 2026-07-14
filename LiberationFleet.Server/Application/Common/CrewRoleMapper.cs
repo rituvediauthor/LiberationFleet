@@ -72,6 +72,11 @@ public static class CrewRoleMapper
     public static IReadOnlyList<CrewRole> MapElectedRoles(CrewMembership membership)
     {
         var roles = new List<CrewRole>();
+        if (membership.IsOrganizer)
+        {
+            roles.Add(CrewRole.Organizer);
+        }
+
         if (membership.IsAdvocate)
         {
             roles.Add(CrewRole.Advocate);
@@ -112,6 +117,7 @@ public static class CrewRoleMapper
     public static bool HasRole(CrewMembership membership, CrewRole role) =>
         role switch
         {
+            CrewRole.Organizer => membership.IsOrganizer,
             CrewRole.Advocate => membership.IsAdvocate,
             CrewRole.Decentralizer => membership.IsDecentralizer,
             CrewRole.CeremonialOrganizer => membership.IsCeremonialOrganizer,
@@ -123,6 +129,7 @@ public static class CrewRoleMapper
     public static string GetDisplayName(CrewRole role) =>
         role switch
         {
+            CrewRole.Organizer => "Organizer",
             CrewRole.Advocate => "Advocate",
             CrewRole.Decentralizer => "Decentralizer",
             CrewRole.CeremonialOrganizer => "Ceremonial organizer",
@@ -134,6 +141,8 @@ public static class CrewRoleMapper
     public static string GetDescription(CrewRole role) =>
         role switch
         {
+            CrewRole.Organizer =>
+                "Full crew access including settings. Can leave the role without a vote; nominating a new organizer requires crew approval.",
             CrewRole.Advocate =>
                 "Resolve conflict and serve as a mouthpiece for anonymous crew opinions. Can toggle anonymous mode in crew chat channels.",
             CrewRole.Decentralizer =>
@@ -166,6 +175,9 @@ public static class CrewRoleMapper
         var normalized = value.Trim().ToLowerInvariant();
         switch (normalized)
         {
+            case "organizer":
+                role = CrewRole.Organizer;
+                return true;
             case "advocate":
                 role = CrewRole.Advocate;
                 return true;
@@ -215,6 +227,9 @@ public static class CrewRoleMapper
         {
             switch (role)
             {
+                case CrewRole.Organizer:
+                    membership.IsOrganizer = assign;
+                    break;
                 case CrewRole.Advocate:
                     membership.IsAdvocate = assign;
                     break;

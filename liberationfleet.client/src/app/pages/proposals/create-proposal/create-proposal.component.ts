@@ -58,9 +58,14 @@ export class CreateProposalComponent implements OnInit {
     this.updateCreateButton();
 
     if (this.isFleetScope) {
-      this.canCreateProposals = true;
-      this.canAttachFiles = false;
-      this.updateCreateButton();
+      this.crewService.getMembership().subscribe({
+        next: membership => {
+          this.crewId = membership.crewId ?? 0;
+          this.canCreateProposals = membership.canCreateFleetProposals ?? false;
+          this.canAttachFiles = membership.canAttachFilesToFleetContent ?? false;
+          this.updateCreateButton();
+        }
+      });
     } else {
       this.crewService.getMembership().subscribe({
         next: membership => {

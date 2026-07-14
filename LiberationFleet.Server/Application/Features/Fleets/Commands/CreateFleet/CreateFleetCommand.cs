@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -21,6 +22,7 @@ public class CreateFleetCommandHandler(
     ICrewRepository crewRepository,
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
+    ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetCommand, FleetOperationResponse>
 {
     public async Task<FleetOperationResponse> Handle(CreateFleetCommand request, CancellationToken cancellationToken)
@@ -98,6 +100,7 @@ public class CreateFleetCommandHandler(
             CrewId = crew.Id,
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
+        await contentTenureService.OnCrewJoinedFleetAsync(crew.Id, fleet.Id, cancellationToken);
 
         await chatRepository.AddRoomAsync(new ChatRoom
         {

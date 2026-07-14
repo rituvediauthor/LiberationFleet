@@ -82,6 +82,19 @@ public class UpdateChatMessageCommandHandler(
             var fleetMessageDto = ChatMapper.MapMessage(message, envelope: null);
             await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, fleetMessageDto, cancellationToken);
 
+            await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+            {
+                CrewId = membership.CrewId,
+                FleetId = room.FleetId,
+                AuthorUserId = userId,
+                ContentType = MentionedContentType.ChatRoomMessage,
+                ResourceId = message.Id,
+                ParentResourceId = room.Id,
+                ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
+                MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+                IsUpdate = true
+            }, cancellationToken);
+
             return new ChatOperationResponse
             {
                 Success = true,

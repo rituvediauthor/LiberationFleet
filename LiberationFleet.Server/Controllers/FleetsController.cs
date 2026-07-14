@@ -365,7 +365,11 @@ public class FleetsController : ControllerBase
     [HttpPost("current/forums")]
     public async Task<IActionResult> CreateForum([FromBody] CreateFleetForumPostRequest body)
     {
-        var result = await _mediator.Send(new CreateFleetForumPostCommand(body.Title, body.Body, body.IsAdultContent));
+        var result = await _mediator.Send(new CreateFleetForumPostCommand(
+            body.Title,
+            body.Body,
+            body.IsAdultContent,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -386,7 +390,11 @@ public class FleetsController : ControllerBase
     [HttpPost("current/forums/{id:int}/comments")]
     public async Task<IActionResult> CreateForumComment(int id, [FromBody] CreateFleetForumCommentRequest body)
     {
-        var result = await _mediator.Send(new CreateFleetForumCommentCommand(id, body.ParentCommentId, body.Body));
+        var result = await _mediator.Send(new CreateFleetForumCommentCommand(
+            id,
+            body.ParentCommentId,
+            body.Body,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

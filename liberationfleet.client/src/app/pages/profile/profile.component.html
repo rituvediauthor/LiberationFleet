@@ -29,10 +29,6 @@
           <ul class="role-list" *ngIf="roles.length">
             <li *ngFor="let role of roles">{{ role }}</li>
           </ul>
-          <div class="role-actions">
-            <button type="button" class="role-btn" (click)="onNominate()">Nominate</button>
-            <button type="button" class="role-btn demote" (click)="onDemote()">Demote</button>
-          </div>
         </section>
 
         <section class="section">

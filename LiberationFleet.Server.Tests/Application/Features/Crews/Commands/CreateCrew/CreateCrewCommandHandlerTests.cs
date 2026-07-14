@@ -200,6 +200,7 @@ public class CreateCrewCommandHandlerTests
             crewRepository.Object,
             membershipRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
+            HandlerTestFixture.CreateContentTenureService(membershipRepository: membershipRepository),
             unitOfWork.Object);
     }
 }

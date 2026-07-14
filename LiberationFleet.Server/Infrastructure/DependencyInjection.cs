@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IVoicePresenceRepository, VoicePresenceRepository>();
         services.AddScoped<ISecurityRepository, SecurityRepository>();
         services.AddScoped<IContentMentionRepository, ContentMentionRepository>();
+        services.AddScoped<IContentTenureRepository, ContentTenureRepository>();
         services.AddScoped<IVoicePresenceNotifier, VoicePresenceNotifier>();
         services.Configure<Infrastructure.LiveKit.LiveKitOptions>(configuration.GetSection(Infrastructure.LiveKit.LiveKitOptions.SectionName));
         services.AddSingleton<ILiveKitTokenService, Infrastructure.LiveKit.LiveKitTokenService>();

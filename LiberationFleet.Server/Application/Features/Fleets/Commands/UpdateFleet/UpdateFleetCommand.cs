@@ -102,6 +102,11 @@ public class UpdateFleetCommandHandler(
         FleetSettingsProposalService.ApplyDirectUpdate(fleet, request, privacy, scope);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await fleetSettingsProposalService.NotifyFleetSettingChangedAsync(
+            fleet.Id,
+            currentUser.UserId.Value,
+            cancellationToken);
+
         return new FleetOperationResponse
         {
             Success = true,

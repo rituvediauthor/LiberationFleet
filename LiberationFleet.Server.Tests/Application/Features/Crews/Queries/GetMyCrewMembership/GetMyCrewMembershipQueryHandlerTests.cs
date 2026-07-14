@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Moq;
@@ -46,7 +47,15 @@ public class GetMyCrewMembershipQueryHandlerTests
             .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(membership);
 
-        var handler = CreateHandler(currentUserId: user.Id, membershipRepository: membershipRepository);
+        var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, crew.Id, It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CrewmateGiftStatsDto());
+
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            membershipRepository: membershipRepository,
+            giftRepository: giftRepository);
 
         var result = await handler.Handle(new GetMyCrewMembershipQuery(), CancellationToken.None);
 
@@ -54,17 +63,23 @@ public class GetMyCrewMembershipQueryHandlerTests
         result.CrewId.Should().Be(crew.Id);
         result.CrewName.Should().Be("Fleet Bravo");
         result.JoinCode.Should().Be("BRAVO123");
+        result.CanCreateFleetProposals.Should().BeFalse();
+        result.CanAttachFilesToFleetContent.Should().BeFalse();
     }
 
     private static GetMyCrewMembershipQueryHandler CreateHandler(
         int? currentUserId = 1,
-        Mock<ICrewMembershipRepository>? membershipRepository = null)
+        Mock<ICrewMembershipRepository>? membershipRepository = null,
+        Mock<IGiftRepository>? giftRepository = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
 
         return new GetMyCrewMembershipQueryHandler(
             membershipRepository.Object,
-            HandlerTestFixture.CreateGiftRepositoryMock().Object,
+            giftRepository.Object,
+            HandlerTestFixture.CreateFleetRepositoryMock().Object,
+            HandlerTestFixture.CreateContentTenureService(),
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
     }
 }

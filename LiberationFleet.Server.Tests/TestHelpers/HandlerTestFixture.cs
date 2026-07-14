@@ -34,6 +34,46 @@ public static class HandlerTestFixture
         return new Mock<IGiftRepository>(MockBehavior.Strict);
     }
 
+    public static ContentTenureService CreateContentTenureService(
+        Mock<IContentTenureRepository>? tenureRepository = null,
+        Mock<ICrewMembershipRepository>? membershipRepository = null,
+        Mock<IFleetRepository>? fleetRepository = null)
+    {
+        tenureRepository ??= new Mock<IContentTenureRepository>(MockBehavior.Loose);
+        tenureRepository
+            .Setup(r => r.GetCrewTenureAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserCrewContentTenure?)null);
+        tenureRepository
+            .Setup(r => r.GetFleetTenureAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserFleetContentTenure?)null);
+        tenureRepository
+            .Setup(r => r.AddCrewTenureAsync(It.IsAny<UserCrewContentTenure>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        tenureRepository
+            .Setup(r => r.AddFleetTenureAsync(It.IsAny<UserFleetContentTenure>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        membershipRepository ??= CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembersByCrewIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CrewMembership>());
+
+        fleetRepository ??= CreateFleetRepositoryMock();
+
+        return new ContentTenureService(
+            tenureRepository.Object,
+            membershipRepository.Object,
+            fleetRepository.Object);
+    }
+
+    public static Mock<IFleetRepository> CreateFleetRepositoryMock()
+    {
+        var mock = new Mock<IFleetRepository>(MockBehavior.Strict);
+        mock.Setup(r => r.GetFleetForCrewAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Fleet?)null);
+        return mock;
+    }
+
     public static Mock<IPaymentPlatformRepository> CreatePaymentPlatformRepositoryMock(bool exists = true)
     {
         var mock = new Mock<IPaymentPlatformRepository>(MockBehavior.Strict);

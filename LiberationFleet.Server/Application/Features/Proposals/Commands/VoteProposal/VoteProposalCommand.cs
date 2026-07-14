@@ -155,18 +155,27 @@ public class VoteProposalCommandHandler(
 
         if (statusBefore != proposal.Status)
         {
+            var notifyCrewId = proposal.CrewId;
+            if (!notifyCrewId.HasValue)
+            {
+                var authorMembership = await membershipRepository.GetActiveMembershipAsync(
+                    proposal.AuthorUserId,
+                    cancellationToken);
+                notifyCrewId = authorMembership?.CrewId;
+            }
+
             if (proposal.Status == ProposalStatus.Approved)
             {
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = proposal.AuthorUserId,
-                    CrewId = proposal.CrewId,
+                    CrewId = notifyCrewId,
                     Kind = NotificationKind.ProposalAccepted,
                     Title = "Proposal accepted",
                     Body = proposal.FleetId.HasValue
                         ? "Your fleet proposal was approved."
                         : "Your crew proposal was approved.",
-                    ActionUrl = $"/app/crew/proposals/{proposal.Id}",
+                    ActionUrl = ProposalRouting.DetailUrl(proposal),
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
             }
@@ -175,13 +184,13 @@ public class VoteProposalCommandHandler(
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = proposal.AuthorUserId,
-                    CrewId = proposal.CrewId,
+                    CrewId = notifyCrewId,
                     Kind = NotificationKind.ProposalRejected,
                     Title = "Proposal rejected",
                     Body = proposal.FleetId.HasValue
                         ? "Your fleet proposal was rejected."
                         : "Your crew proposal was rejected.",
-                    ActionUrl = $"/app/crew/proposals/list/rejected",
+                    ActionUrl = ProposalRouting.RejectedListUrl(proposal),
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
             }

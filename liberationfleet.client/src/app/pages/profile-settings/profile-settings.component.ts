@@ -42,8 +42,4 @@ export class ProfileSettingsComponent {
   goToSecurity() {
     this.router.navigate(['/app/profile/preferences/security']);
   }
-
-  goToPlaceholder(title: string) {
-    this.router.navigate(['/app/profile/preferences/placeholder'], { queryParams: { title } });
-  }
 }

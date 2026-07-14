@@ -4,6 +4,7 @@ using LiberationFleet.Server.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714013853_AddProposalCommentBody")]
+    partial class AddProposalCommentBody
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3037,52 +3040,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("UserBlocks");
                 });
 
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserCrewContentTenure", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CrewId")
-                        .HasColumnType("int");
-
-                    b.Property<long>("AccruedTicks")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L);
-
-                    b.Property<DateTime?>("ClockStartedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("UserId", "CrewId");
-
-                    b.HasIndex("CrewId");
-
-                    b.ToTable("UserCrewContentTenures");
-                });
-
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserFleetContentTenure", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FleetId")
-                        .HasColumnType("int");
-
-                    b.Property<long>("AccruedTicks")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L);
-
-                    b.Property<DateTime?>("ClockStartedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("UserId", "FleetId");
-
-                    b.HasIndex("FleetId");
-
-                    b.ToTable("UserFleetContentTenures");
-                });
-
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserFleetRuleAcceptance", b =>
                 {
                     b.Property<int>("Id")
@@ -4393,44 +4350,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Blocked");
 
                     b.Navigation("Blocker");
-                });
-
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserCrewContentTenure", b =>
-                {
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.Crew", "Crew")
-                        .WithMany()
-                        .HasForeignKey("CrewId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Crew");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserFleetContentTenure", b =>
-                {
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.Fleet", "Fleet")
-                        .WithMany()
-                        .HasForeignKey("FleetId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Fleet");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserFleetRuleAcceptance", b =>

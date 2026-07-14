@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Services;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
@@ -17,7 +18,8 @@ public class GetCrewmateProfileQueryHandler(
     IMutualAidService mutualAidService,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
-    IProposalRepository proposalRepository) : IRequestHandler<GetCrewmateProfileQuery, CrewmateProfileResponse>
+    IProposalRepository proposalRepository,
+    ContentTenureService contentTenureService) : IRequestHandler<GetCrewmateProfileQuery, CrewmateProfileResponse>
 {
     public async Task<CrewmateProfileResponse> Handle(GetCrewmateProfileQuery request, CancellationToken cancellationToken)
     {
@@ -95,6 +97,11 @@ public class GetCrewmateProfileQueryHandler(
             canClaimIdentity = pendingClaim is null;
         }
 
+        var tenureDays = await contentTenureService.GetCrewTenureDaysAsync(
+            request.UserId,
+            viewerMembership.CrewId,
+            cancellationToken);
+
         return new CrewmateProfileResponse
         {
             Success = true,
@@ -115,6 +122,7 @@ public class GetCrewmateProfileQueryHandler(
                     viewerBlockedTarget,
                     targetBlockedViewer),
                 viewerId == request.UserId,
+                tenureDays,
                 canClaimIdentity)
         };
     }

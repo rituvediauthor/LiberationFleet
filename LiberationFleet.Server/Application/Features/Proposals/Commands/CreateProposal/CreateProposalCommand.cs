@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -25,6 +26,7 @@ public class CreateProposalCommandHandler(
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
+    ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(CreateProposalCommand request, CancellationToken cancellationToken)
@@ -57,12 +59,16 @@ public class CreateProposalCommandHandler(
             membership.CrewId,
             crew.CurrentSeasonStartDate,
             cancellationToken);
+        var crewTenureDays = await contentTenureService.GetCrewTenureDaysAsync(
+            userId,
+            membership.CrewId,
+            cancellationToken);
 
         if (!CrewContentPermissionService.CanCreateProposals(
                 crew,
                 membership,
                 giftStats.LifetimeContributions,
-                DateTime.UtcNow))
+                crewTenureDays))
         {
             return new ProposalOperationResponse
             {

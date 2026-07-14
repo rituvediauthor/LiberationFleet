@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -9,7 +10,8 @@ public class FleetJoinRequestProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
     ICrewRepository crewRepository,
-    IChatRepository chatRepository)
+    IChatRepository chatRepository,
+    ContentTenureService contentTenureService)
 {
     public async Task CreateFromCrewApplyAsync(
         int authorUserId,
@@ -90,6 +92,10 @@ public class FleetJoinRequestProposalService(
             CrewId = joinRequest.ApplicantCrewId,
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
+        await contentTenureService.OnCrewJoinedFleetAsync(
+            joinRequest.ApplicantCrewId,
+            joinRequest.FleetId,
+            cancellationToken);
 
         var existingRoom = await fleetRepository.GetLinkedFleetChatRoomAsync(
             joinRequest.FleetId,

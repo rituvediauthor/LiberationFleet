@@ -40,6 +40,8 @@ export interface CrewMembershipStatus {
   libraryOfThingsEnabled?: boolean;
   canAttachFilesToCrewContent?: boolean;
   canCreateProposals?: boolean;
+  canCreateFleetProposals?: boolean;
+  canAttachFilesToFleetContent?: boolean;
   canExportCrewData?: boolean;
 }
 

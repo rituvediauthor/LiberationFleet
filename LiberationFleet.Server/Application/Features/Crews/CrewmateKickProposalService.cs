@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -15,7 +16,8 @@ public class CrewmateKickProposalService(
     IMutualAidService mutualAidService,
     NotificationService notificationService,
     LibraryMemberCleanupService libraryMemberCleanupService,
-    EmptyCrewCleanupService emptyCrewCleanupService)
+    EmptyCrewCleanupService emptyCrewCleanupService,
+    ContentTenureService contentTenureService)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
         int crewId,
@@ -210,6 +212,10 @@ public class CrewmateKickProposalService(
                 await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
                     proposal.CrewId!.Value,
                     kick.TargetUserId,
+                    cancellationToken);
+                await contentTenureService.OnLeftCrewAsync(
+                    kick.TargetUserId,
+                    proposal.CrewId!.Value,
                     cancellationToken);
                 membership.IsBanned = true;
             }

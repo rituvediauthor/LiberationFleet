@@ -16,6 +16,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Crew> Crews => Set<Crew>();
     public DbSet<CrewMembership> CrewMemberships => Set<CrewMembership>();
+    public DbSet<UserCrewContentTenure> UserCrewContentTenures => Set<UserCrewContentTenure>();
+    public DbSet<UserFleetContentTenure> UserFleetContentTenures => Set<UserFleetContentTenure>();
     public DbSet<Fleet> Fleets => Set<Fleet>();
     public DbSet<FleetCrew> FleetCrews => Set<FleetCrew>();
     public DbSet<FleetRule> FleetRules => Set<FleetRule>();
@@ -263,6 +265,34 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserCrewContentTenure>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.CrewId });
+            entity.Property(e => e.AccruedTicks).HasDefaultValue(0L);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserFleetContentTenure>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.FleetId });
+            entity.Property(e => e.AccruedTicks).HasDefaultValue(0L);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -807,6 +837,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         modelBuilder.Entity<ProposalComment>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Body).HasMaxLength(4000);
             entity.HasOne(e => e.Proposal)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(e => e.ProposalId)

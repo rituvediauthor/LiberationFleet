@@ -92,7 +92,7 @@ public class GetProposalDetailQueryHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         EncryptedContentEnvelope? proposalEnvelope = null;
-        if (proposal.Kind == ProposalKind.General)
+        if (proposal.Kind == ProposalKind.General && !proposal.FleetId.HasValue)
         {
             proposalEnvelope = await cryptoRepository.GetEnvelopeAsync(
                 EncryptedContentType.Proposal,
@@ -165,15 +165,20 @@ public class GetProposalDetailQueryHandler(
             .Where(c => !hiddenUserIds.Contains(c.AuthorUserId))
             .ToList();
         var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
-        var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
-        var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
-            EncryptedContentType.ProposalComment,
-            commentIds,
-            proposal.CrewId ?? 0,
-            cancellationToken);
-        var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var usesAnonymousComments = proposal.Kind == ProposalKind.General && !proposal.FleetId.HasValue;
+        IReadOnlyDictionary<string, EncryptedContentEnvelope> commentEnvelopeById =
+            new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
 
-        var usesAnonymousComments = proposal.Kind == ProposalKind.General;
+        if (!proposal.FleetId.HasValue && proposal.CrewId.HasValue)
+        {
+            var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
+            var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.ProposalComment,
+                commentIds,
+                proposal.CrewId.Value,
+                cancellationToken);
+            commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        }
         string? viewerAlias = null;
         IReadOnlyDictionary<int, string> nicknameByUserId = new Dictionary<int, string>();
 

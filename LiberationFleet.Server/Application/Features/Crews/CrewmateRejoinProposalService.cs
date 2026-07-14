@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -22,7 +23,8 @@ public sealed class CrewmateRejoinProposalResult
 public class CrewmateRejoinProposalService(
     IProposalRepository proposalRepository,
     ICrewMembershipRepository membershipRepository,
-    NotificationService notificationService)
+    NotificationService notificationService,
+    ContentTenureService contentTenureService)
 {
     public async Task<CrewmateRejoinProposalResult> CreateProposalAsync(
         int crewId,
@@ -99,6 +101,10 @@ public class CrewmateRejoinProposalService(
         var membership = await membershipRepository.GetMembershipAsync(rejoin.TargetUserId, proposal.CrewId!.Value, cancellationToken);
         if (membership is not null && membership.IsBanned)
         {
+            await contentTenureService.OnLeftCrewAsync(
+                rejoin.TargetUserId,
+                proposal.CrewId!.Value,
+                cancellationToken);
             membershipRepository.Remove(membership);
         }
 

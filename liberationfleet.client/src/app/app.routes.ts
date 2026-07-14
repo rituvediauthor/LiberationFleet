@@ -4,7 +4,6 @@ import { SignInComponent } from './pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/sign-up/sign-up.component';
 import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
-import { SignInSuccessComponent } from './pages/sign-in-success/sign-in-success.component';
 import { CrewHomeComponent } from './pages/crew-home/crew-home.component';
 import { FriendsComponent } from './pages/friends/friends.component';
 import { FriendRequestsComponent } from './pages/friends/friend-requests/friend-requests.component';
@@ -36,7 +35,6 @@ import { SecuritySettingsComponent } from './pages/security-settings/security-se
 import { SecurityAlertsComponent } from './pages/security-alerts/security-alerts.component';
 import { PasswordUpdateComponent } from './pages/password-update/password-update.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
-import { PlaceholderPageComponent } from './pages/placeholder/placeholder-page.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
 import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
@@ -118,10 +116,6 @@ export const routes: Routes = [
   {
     path: 'reset-password',
     component: ResetPasswordComponent
-  },
-  {
-    path: 'sign-in-success',
-    component: SignInSuccessComponent
   },
   {
     path: 'app/crew',
@@ -401,12 +395,6 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'app/profile/preferences/placeholder',
-    component: PlaceholderPageComponent,
-    canActivate: [authGuard],
-    data: { title: 'Preferences', backTo: '/app/profile/preferences' }
-  },
-  {
     path: 'app/profile/settings',
     redirectTo: 'app/profile/preferences',
     pathMatch: 'full'
@@ -414,11 +402,6 @@ export const routes: Routes = [
   {
     path: 'app/profile/settings/notifications',
     redirectTo: 'app/profile/preferences/notifications',
-    pathMatch: 'full'
-  },
-  {
-    path: 'app/profile/settings/placeholder',
-    redirectTo: 'app/profile/preferences/placeholder',
     pathMatch: 'full'
   },
   {

@@ -2,6 +2,7 @@ using System.Text.Json;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -25,7 +26,8 @@ public class CrewJoinRequestProposalService(
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
     IUserRepository userRepository,
-    NotificationService notificationService)
+    NotificationService notificationService,
+    ContentTenureService contentTenureService)
 {
     public async Task<CrewJoinRequestResult> CreateJoinRequestAsync(
         int applicantUserId,
@@ -156,6 +158,15 @@ public class CrewJoinRequestProposalService(
             IsBanned = false,
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
+
+        var applicant = await userRepository.GetByIdWithProfileAsync(joinRequest.ApplicantUserId, cancellationToken);
+        if (applicant is not null && !applicant.IsCrewGiftRecipient)
+        {
+            await contentTenureService.OnJoinedCrewAsync(
+                joinRequest.ApplicantUserId,
+                proposal.CrewId!.Value,
+                cancellationToken);
+        }
 
         await proposalRepository.RejectPendingJoinRequestsForApplicantAsync(
             joinRequest.ApplicantUserId,

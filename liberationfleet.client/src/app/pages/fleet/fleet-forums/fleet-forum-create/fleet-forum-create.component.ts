@@ -7,10 +7,12 @@ import { FleetService } from '../../../../services/fleet.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { NavigationService } from '../../../../services/navigation.service';
 
+import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+
 @Component({
   selector: 'app-fleet-forum-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, MentionAutocompleteDirective],
   templateUrl: './fleet-forum-create.component.html',
   styleUrl: './fleet-forum-create.component.css'
 })
@@ -19,6 +21,7 @@ export class FleetForumCreateComponent implements OnInit {
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   isSubmitting = false;
+  mentionedUserIds: number[] = [];
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -52,7 +55,8 @@ export class FleetForumCreateComponent implements OnInit {
     this.fleetService.createForum({
       title: title.trim(),
       body: body.trim(),
-      isAdultContent: !!isAdultContent
+      isAdultContent: !!isAdultContent,
+      mentionedUserIds: this.mentionedUserIds
     }).subscribe({
       next: result => {
         if (result.success) {

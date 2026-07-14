@@ -248,10 +248,12 @@ public static class ProposalMapper
         return new ProposalCommentDto
         {
             Id = comment.Id,
-            AuthorUserId = 0,
+            AuthorUserId = usesAnonymousComments ? 0 : comment.AuthorUserId,
             AuthorUsername = usesAnonymousComments && !string.IsNullOrWhiteSpace(nickname)
                 ? nickname
-                : AnonymousAuthor,
+                : usesAnonymousComments
+                    ? AnonymousAuthor
+                    : comment.AuthorUser.Username,
             ParentCommentId = comment.ParentCommentId,
             ReplyToCommentId = comment.ReplyToCommentId,
             ReplyToUsername = replyToUsername,
@@ -259,6 +261,7 @@ public static class ProposalMapper
             ReplyCount = replyCount,
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
+            Body = comment.Body,
             IsOwnComment = isOwn,
             CanKick = usesAnonymousComments && !isOwn
         };

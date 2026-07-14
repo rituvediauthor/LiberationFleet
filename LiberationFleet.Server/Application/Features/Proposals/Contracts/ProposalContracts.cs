@@ -46,6 +46,7 @@ public class ProposalCommentDto
     public int ReplyCount { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
+    public string? Body { get; set; }
     public bool IsOwnComment { get; set; }
     public bool CanKick { get; set; }
 }
@@ -108,6 +109,7 @@ public class KickProposalRequest
 public class CreateProposalCommentRequest
 {
     public int? ParentCommentId { get; set; }
+    public string? Body { get; set; }
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
@@ -116,6 +118,7 @@ public class CreateProposalCommentRequest
 
 public class UpdateProposalCommentRequest
 {
+    public string? Body { get; set; }
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;

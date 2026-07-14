@@ -6,5 +6,6 @@ public enum CrewRole
     Decentralizer = 2,
     CeremonialOrganizer = 3,
     Moderator = 4,
-    Intermediary = 5
+    Intermediary = 5,
+    Organizer = 6
 }

@@ -8,7 +8,7 @@ public static class CrewContentPermissionService
         Crew crew,
         CrewMembership membership,
         decimal lifetimeContributions,
-        DateTime utcNow)
+        int tenureDays)
     {
         if (membership.IsOrganizer)
         {
@@ -25,7 +25,7 @@ public static class CrewContentPermissionService
             return false;
         }
 
-        if (GetTenureDays(membership, utcNow) < crew.MinimumCrewmateTenureDaysForAttachments)
+        if (tenureDays < crew.MinimumCrewmateTenureDaysForAttachments)
         {
             return false;
         }
@@ -37,7 +37,7 @@ public static class CrewContentPermissionService
         Crew crew,
         CrewMembership membership,
         decimal lifetimeContributions,
-        DateTime utcNow)
+        int tenureDays)
     {
         if (membership.IsOrganizer)
         {
@@ -49,7 +49,7 @@ public static class CrewContentPermissionService
             return true;
         }
 
-        if (GetTenureDays(membership, utcNow) < crew.MinimumCrewmateTenureDaysForProposals)
+        if (tenureDays < crew.MinimumCrewmateTenureDaysForProposals)
         {
             return false;
         }
@@ -61,20 +61,17 @@ public static class CrewContentPermissionService
         Crew crew,
         CrewMembership membership,
         decimal lifetimeContributions,
-        DateTime utcNow) =>
+        int tenureDays) =>
         !membership.IsOrganizer
         && !membership.CanAttachFiles
-        && !CanAttachFilesToCrewContent(crew, membership, lifetimeContributions, utcNow);
+        && !CanAttachFilesToCrewContent(crew, membership, lifetimeContributions, tenureDays);
 
     public static bool NeedsCreateProposalsPermissionGrant(
         Crew crew,
         CrewMembership membership,
         decimal lifetimeContributions,
-        DateTime utcNow) =>
+        int tenureDays) =>
         !membership.IsOrganizer
         && !membership.CanCreateProposals
-        && !CanCreateProposals(crew, membership, lifetimeContributions, utcNow);
-
-    public static int GetTenureDays(CrewMembership membership, DateTime utcNow) =>
-        Math.Max(0, (int)Math.Floor((utcNow - membership.JoinedAt).TotalDays));
+        && !CanCreateProposals(crew, membership, lifetimeContributions, tenureDays);
 }

@@ -26,13 +26,13 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
 export function resolveNotificationArea(item: NotificationItem): CrewNotificationArea | null {
   const path = item.actionUrl.split('?')[0];
 
-  if (path.startsWith('/app/crew/chats/')) {
+  if (path.startsWith('/app/crew/chats/') || path.startsWith('/app/fleet/chats/')) {
     return 'chats';
   }
   if (path.startsWith('/app/crew/forums/') || path.startsWith('/app/fleet/forums/')) {
     return 'forums';
   }
-  if (path.startsWith('/app/crew/proposals')) {
+  if (path.startsWith('/app/crew/proposals') || path.startsWith('/app/fleet/proposals')) {
     return 'proposals';
   }
   if (path.startsWith('/app/crew/library-of-things')) {
@@ -54,11 +54,13 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
 
   switch (item.kind) {
     case 'NewChatMessage':
+    case 'NewFleetChatMessage':
       return 'chats';
     case 'NewForumPost':
     case 'NewForumComment':
       return 'forums';
     case 'NewProposal':
+    case 'NewFleetProposal':
     case 'ProposalRejected':
     case 'ProposalAccepted':
     case 'NewReply':

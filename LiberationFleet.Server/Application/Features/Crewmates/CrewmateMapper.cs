@@ -102,20 +102,20 @@ public static class CrewmateMapper
         bool isSurvivalThresholdRecipient,
         CrewmateFriendshipStateDto friendshipState,
         bool isSelf,
+        int tenureDays,
         bool canClaimIdentity = false)
     {
-        var utcNow = DateTime.UtcNow;
         var lifetimeContributions = giftStats.LifetimeContributions;
         var canAttachFilesToCrewContent = CrewContentPermissionService.CanAttachFilesToCrewContent(
             crew,
             membership,
             lifetimeContributions,
-            utcNow);
+            tenureDays);
         var canCreateCrewProposals = CrewContentPermissionService.CanCreateProposals(
             crew,
             membership,
             lifetimeContributions,
-            utcNow);
+            tenureDays);
 
         return new CrewmateProfileDto
         {
@@ -142,10 +142,10 @@ public static class CrewmateMapper
             CanAttachFilesToCrewContent = canAttachFilesToCrewContent,
             CanCreateCrewProposals = canCreateCrewProposals,
             CanProposeAttachFilesGrant = !isSelf
-                && CrewContentPermissionService.NeedsAttachFilesPermissionGrant(crew, membership, lifetimeContributions, utcNow),
+                && CrewContentPermissionService.NeedsAttachFilesPermissionGrant(crew, membership, lifetimeContributions, tenureDays),
             CanProposeCreateProposalsGrant = !isSelf
-                && CrewContentPermissionService.NeedsCreateProposalsPermissionGrant(crew, membership, lifetimeContributions, utcNow),
-            CrewmateTenureDays = CrewContentPermissionService.GetTenureDays(membership, utcNow),
+                && CrewContentPermissionService.NeedsCreateProposalsPermissionGrant(crew, membership, lifetimeContributions, tenureDays),
+            CrewmateTenureDays = tenureDays,
             CanToggleCanAttachFiles = CrewRoleAuthorizationService.CanToggleCanAttachFiles(viewerMembership),
             CanModerateAttachments = CrewRoleAuthorizationService.CanModerateAttachments(viewerMembership),
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership),

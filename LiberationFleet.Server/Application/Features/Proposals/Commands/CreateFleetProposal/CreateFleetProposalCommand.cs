@@ -1,7 +1,9 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -13,9 +15,12 @@ public record CreateFleetProposalCommand(string Title, string Description) : IRe
 public class CreateFleetProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    ICrewRepository crewRepository,
+    IGiftRepository giftRepository,
     IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     NotificationService notificationService,
+    ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetProposalCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(
@@ -45,6 +50,35 @@ public class CreateFleetProposalCommandHandler(
         if (fleet is null)
         {
             return new ProposalOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
+        }
+
+        var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+        if (crew is null)
+        {
+            return new ProposalOperationResponse { Success = false, Message = "Crew not found." };
+        }
+
+        var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+            userId,
+            membership.CrewId,
+            crew.CurrentSeasonStartDate,
+            cancellationToken);
+        var fleetTenureDays = await contentTenureService.GetFleetTenureDaysAsync(
+            userId,
+            fleet.Id,
+            cancellationToken);
+
+        if (!FleetContentPermissionService.CanCreateProposals(
+                fleet,
+                membership,
+                giftStats.LifetimeContributions,
+                fleetTenureDays))
+        {
+            return new ProposalOperationResponse
+            {
+                Success = false,
+                Message = "You are not allowed to create proposals in this fleet yet."
+            };
         }
 
         var utcNow = DateTime.UtcNow;

@@ -14,6 +14,8 @@ import { NavigationService } from '../../../../services/navigation.service';
 import { ContentPreferenceService } from '../../../../services/content-preference.service';
 import { ProfileService } from '../../../../services/profile.service';
 
+import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+
 @Component({
   selector: 'app-fleet-forum-detail',
   standalone: true,
@@ -21,7 +23,8 @@ import { ProfileService } from '../../../../services/profile.service';
     CommonModule,
     FormsModule,
     FallibleFooterComponent,
-    AdultContentGateComponent
+    AdultContentGateComponent,
+    MentionAutocompleteDirective
   ],
   templateUrl: './fleet-forum-detail.component.html',
   styleUrl: './fleet-forum-detail.component.css'
@@ -34,6 +37,7 @@ export class FleetForumDetailComponent implements OnInit {
   loadError = '';
   authorDisplayName = '';
   commentText = '';
+  mentionedUserIds: number[] = [];
   commentFocused = false;
   replyParentId: number | null = null;
   posting = false;
@@ -131,6 +135,7 @@ export class FleetForumDetailComponent implements OnInit {
     this.editingCommentParentId = parentCommentId;
     this.replyParentId = parentCommentId;
     this.commentText = comment.body ?? '';
+    this.mentionedUserIds = [];
     this.commentFocused = true;
   }
 
@@ -138,6 +143,7 @@ export class FleetForumDetailComponent implements OnInit {
     this.editingCommentId = null;
     this.editingCommentParentId = null;
     this.commentText = '';
+    this.mentionedUserIds = [];
     this.commentFocused = false;
     this.replyParentId = null;
   }
@@ -220,7 +226,8 @@ export class FleetForumDetailComponent implements OnInit {
       ? this.fleetService.updateForumComment(this.post.id, editingCommentId, { body })
       : this.fleetService.createForumComment(this.post.id, {
           parentCommentId: parentCommentId ?? undefined,
-          body
+          body,
+          mentionedUserIds: this.mentionedUserIds
         });
 
     request$.subscribe({
@@ -233,6 +240,7 @@ export class FleetForumDetailComponent implements OnInit {
             this.refreshPostPreservingScroll();
           }
           this.commentText = '';
+          this.mentionedUserIds = [];
           this.commentFocused = false;
           this.replyParentId = null;
           this.editingCommentId = null;

@@ -35,6 +35,37 @@ public class DemoteCrewRolesCommandHandler(
         }
 
         var roles = CrewRoleMapper.ParseRoles(request.Roles);
+        if (roles.Count == 0)
+        {
+            return new CrewRoleChangeResponse { Success = false, Message = "Select at least one role." };
+        }
+
+        // Self-demotion applies immediately — no proposal/approval required.
+        if (viewerId == request.TargetUserId)
+        {
+            roles = roles.Where(role => CrewRoleMapper.HasRole(viewerMembership, role)).ToList();
+            if (roles.Count == 0)
+            {
+                return new CrewRoleChangeResponse
+                {
+                    Success = false,
+                    Message = "You do not hold the selected roles."
+                };
+            }
+
+            CrewRoleMapper.ApplyRoles(viewerMembership, roles, assign: false);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var labels = string.Join(", ", roles.Select(CrewRoleMapper.GetDisplayName));
+            return new CrewRoleChangeResponse
+            {
+                Success = true,
+                Message = roles.Count == 1
+                    ? $"{labels} removed from your roles."
+                    : $"Removed from your roles: {labels}."
+            };
+        }
+
         var result = await roleProposalService.CreateDemotionAsync(
             viewerMembership.CrewId,
             viewerId,

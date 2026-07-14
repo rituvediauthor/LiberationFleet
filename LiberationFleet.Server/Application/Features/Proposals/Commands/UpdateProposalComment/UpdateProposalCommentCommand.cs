@@ -14,11 +14,13 @@ public record UpdateProposalCommentCommand(
     string Nonce,
     string Ciphertext,
     int KeyVersion,
-    IReadOnlyList<int> MentionedUserIds) : IRequest<ProposalOperationResponse>;
+    IReadOnlyList<int> MentionedUserIds,
+    string? Body) : IRequest<ProposalOperationResponse>;
 
 public class UpdateProposalCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     ContentMentionService contentMentionService,
@@ -31,12 +33,13 @@ public class UpdateProposalCommentCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
         {
-            return new ProposalOperationResponse { Success = false, Message = "Encrypted comment content is required." };
+            return new ProposalOperationResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var userId = currentUser.UserId.Value;
         var proposal = await proposalRepository.GetByIdAsync(request.ProposalId, cancellationToken);
         if (proposal is null)
         {
@@ -54,36 +57,63 @@ public class UpdateProposalCommentCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Only the author can edit this comment." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
+        var (allowed, accessError) = await ProposalEligibility.CanUserAccessProposalAsync(
+            userId,
+            proposal,
+            membershipRepository,
+            fleetRepository,
+            cancellationToken);
+        if (!allowed)
         {
-            return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
+            return new ProposalOperationResponse { Success = false, Message = accessError ?? "Access denied." };
+        }
+
+        var isFleetProposal = proposal.FleetId.HasValue;
+        if (isFleetProposal)
+        {
+            if (string.IsNullOrWhiteSpace(request.Body))
+            {
+                return new ProposalOperationResponse { Success = false, Message = "Comment body is required." };
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        {
+            return new ProposalOperationResponse { Success = false, Message = "Encrypted comment content is required." };
         }
 
         proposal.LastActivityAt = DateTime.UtcNow;
 
-        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        if (isFleetProposal)
         {
-            ContentType = EncryptedContentType.ProposalComment,
-            ResourceId = comment.Id.ToString(),
-            CrewId = proposal.CrewId!.Value,
-            AuthorUserId = userId,
-            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-            Nonce = request.Nonce.Trim(),
-            Ciphertext = request.Ciphertext.Trim(),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        }, cancellationToken);
+            comment.Body = request.Body!.Trim();
+        }
+        else
+        {
+            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.ProposalComment,
+                ResourceId = comment.Id.ToString(),
+                CrewId = proposal.CrewId!.Value,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+                Nonce = request.Nonce.Trim(),
+                Ciphertext = request.Ciphertext.Trim(),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }, cancellationToken);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = proposal.CrewId!.Value,
+            CrewId = membership.CrewId,
+            FleetId = proposal.FleetId,
             AuthorUserId = userId,
             ContentType = MentionedContentType.ProposalComment,
             ResourceId = comment.Id,
             ParentResourceId = proposal.Id,
-            ActionUrl = $"/app/crew/proposals/{proposal.Id}?commentId={comment.Id}",
+            ActionUrl = ProposalRouting.CommentUrl(proposal, comment.Id),
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             IsUpdate = true
         }, cancellationToken);

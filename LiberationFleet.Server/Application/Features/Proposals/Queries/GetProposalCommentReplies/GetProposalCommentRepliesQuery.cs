@@ -21,6 +21,7 @@ public class ProposalCommentRepliesResponse
 public class GetProposalCommentRepliesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     ProposalAnonymousAliasService aliasService,
@@ -42,9 +43,15 @@ public class GetProposalCommentRepliesQueryHandler(
             return new ProposalCommentRepliesResponse { Success = false, Message = "Proposal not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
+        var (allowed, accessError) = await ProposalEligibility.CanUserAccessProposalAsync(
+            userId,
+            proposal,
+            membershipRepository,
+            fleetRepository,
+            cancellationToken);
+        if (!allowed)
         {
-            return new ProposalCommentRepliesResponse { Success = false, Message = "You are not in this crew." };
+            return new ProposalCommentRepliesResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
         var parent = await proposalRepository.GetCommentByIdAsync(request.ParentCommentId, cancellationToken);
@@ -65,15 +72,21 @@ public class GetProposalCommentRepliesQueryHandler(
             .OrderBy(c => c.CreatedAt)
             .ToList();
 
-        var replyIds = replies.Select(r => r.Id.ToString()).ToList();
-        var envelopes = await cryptoRepository.GetEnvelopesAsync(
-            EncryptedContentType.ProposalComment,
-            replyIds,
-            proposal.CrewId!.Value,
-            cancellationToken);
-        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var usesAnonymousComments = proposal.Kind == ProposalKind.General && !proposal.FleetId.HasValue;
+        IReadOnlyDictionary<string, EncryptedContentEnvelope> envelopeById =
+            new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
 
-        var usesAnonymousComments = proposal.Kind == ProposalKind.General;
+        if (!proposal.FleetId.HasValue && proposal.CrewId.HasValue)
+        {
+            var replyIds = replies.Select(r => r.Id.ToString()).ToList();
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.ProposalComment,
+                replyIds,
+                proposal.CrewId.Value,
+                cancellationToken);
+            envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        }
+
         var nicknameUserIds = replies
             .Select(r => r.AuthorUserId)
             .Concat(replies
@@ -129,6 +142,11 @@ public class GetProposalCommentRepliesQueryHandler(
             return nicknameByUserId.TryGetValue(target.AuthorUserId, out var nickname)
                 ? nickname
                 : ProposalMapper.AnonymousAuthor;
+        }
+
+        if (!string.IsNullOrWhiteSpace(target.Body))
+        {
+            return target.AuthorUser.Username;
         }
 
         if (envelopeById.ContainsKey(target.Id.ToString()))

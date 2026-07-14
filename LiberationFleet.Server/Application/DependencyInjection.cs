@@ -9,6 +9,7 @@ using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules;
+using LiberationFleet.Server.Application.Services;
 using MediatR;
 
 namespace LiberationFleet.Server.Application;
@@ -46,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<LibraryMemberCleanupService>();
         services.AddScoped<NotificationService>();
         services.AddScoped<ContentMentionService>();
+        services.AddScoped<ContentTenureService>();
 
         return services;
     }

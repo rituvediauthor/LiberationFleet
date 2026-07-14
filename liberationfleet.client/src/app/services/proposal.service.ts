@@ -102,12 +102,13 @@ export class ProposalService {
 
   postComment(
     proposalId: number,
-    payload: EncryptedContentSendPayload & { parentCommentId?: number | null }
+    payload: EncryptedContentSendPayload & { parentCommentId?: number | null; body?: string }
   ): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/comments`, {
       parentCommentId: payload.parentCommentId ?? null,
-      nonce: payload.nonce,
-      ciphertext: payload.ciphertext,
+      body: payload.body,
+      nonce: payload.nonce ?? '',
+      ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
@@ -116,11 +117,12 @@ export class ProposalService {
   updateComment(
     proposalId: number,
     commentId: number,
-    payload: EncryptedContentSendPayload
+    payload: EncryptedContentSendPayload & { body?: string }
   ): Observable<ProposalOperationResponse> {
     return this.http.put<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/comments/${commentId}`, {
-      nonce: payload.nonce,
-      ciphertext: payload.ciphertext,
+      body: payload.body,
+      nonce: payload.nonce ?? '',
+      ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });

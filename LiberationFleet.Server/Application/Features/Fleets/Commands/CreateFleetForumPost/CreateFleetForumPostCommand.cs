@@ -1,6 +1,8 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -11,7 +13,8 @@ namespace LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFlee
 public record CreateFleetForumPostCommand(
     string Title,
     string Body,
-    bool IsAdultContent) : IRequest<ForumOperationResponse>;
+    bool IsAdultContent,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class CreateFleetForumPostCommandHandler(
     ICurrentUserService currentUser,
@@ -19,6 +22,7 @@ public class CreateFleetForumPostCommandHandler(
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetForumPostCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(CreateFleetForumPostCommand request, CancellationToken cancellationToken)
@@ -82,6 +86,17 @@ public class CreateFleetForumPostCommandHandler(
                 excludeUserId: userId,
                 cancellationToken: cancellationToken);
         }
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = membership.CrewId,
+            FleetId = fleet.Id,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ForumPost,
+            ResourceId = post.Id,
+            ActionUrl = actionUrl,
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+        }, cancellationToken);
 
         return new ForumOperationResponse
         {
