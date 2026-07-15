@@ -53,8 +53,15 @@ public static class DependencyInjection
         services.AddScoped<ISecurityRepository, SecurityRepository>();
         services.AddScoped<IContentMentionRepository, ContentMentionRepository>();
         services.AddScoped<IContentTenureRepository, ContentTenureRepository>();
+        services.AddScoped<IContentReportRepository, ContentReportRepository>();
+        services.AddScoped<IAppDonationRepository, AppDonationRepository>();
         services.AddScoped<IVoicePresenceNotifier, VoicePresenceNotifier>();
         services.Configure<Infrastructure.LiveKit.LiveKitOptions>(configuration.GetSection(Infrastructure.LiveKit.LiveKitOptions.SectionName));
+        services.Configure<Application.Services.ReportEvidenceOptions>(
+            configuration.GetSection(Application.Services.ReportEvidenceOptions.SectionName));
+        services.Configure<Application.Services.StripeDonationOptions>(
+            configuration.GetSection(Application.Services.StripeDonationOptions.SectionName));
+        services.AddSingleton<Application.Services.IReportEvidenceProtector, Application.Services.ReportEvidenceProtector>();
         services.AddSingleton<ILiveKitTokenService, Infrastructure.LiveKit.LiveKitTokenService>();
         services.AddHttpClient();
         services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();

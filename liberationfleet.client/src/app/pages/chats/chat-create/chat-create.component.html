@@ -6,7 +6,7 @@
       <label class="field">
         <span>Type</span>
         <select formControlName="roomType">
-          <option *ngFor="let type of roomTypes" [value]="type.value">{{ type.label }}</option>
+          <option *ngFor="let type of availableRoomTypes" [value]="type.value">{{ type.label }}</option>
         </select>
       </label>
 

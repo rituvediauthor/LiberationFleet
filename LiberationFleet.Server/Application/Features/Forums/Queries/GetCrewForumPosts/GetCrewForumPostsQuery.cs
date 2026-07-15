@@ -42,8 +42,8 @@ public class GetCrewForumPostsQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumPost,
             resourceIds,
-            membership.CrewId,
-            cancellationToken);
+            crewId: membership.CrewId,
+            cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var items = posts.Select(post =>

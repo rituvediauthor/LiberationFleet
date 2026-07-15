@@ -8,6 +8,7 @@ import { NotificationService } from '../../../services/notification.service';
 import { ProposalService } from '../../../services/proposal.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
+import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalListItem, ProposalStatus } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
@@ -25,6 +26,7 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   crewId = 0;
+  fleetId = 0;
   isFleetScope = false;
   backButton!: ActionBarButton;
   resourceCounts: Record<string, number> = {};
@@ -37,6 +39,7 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   private proposalService = inject(ProposalService);
   private proposalCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private toastService = inject(ToastService);
   private notificationService = inject(NotificationService);
   private encryptionContent = inject(EncryptionContentService);
@@ -63,9 +66,17 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     });
 
     if (this.isFleetScope) {
-      void this.encryptionContent.whenReady().then(() => {
-        this.loadProposals();
-        this.encryptionReload?.markInitialLoadDone();
+      this.fleetService.getStatus().subscribe({
+        next: async status => {
+          this.fleetId = status.fleetId ?? 0;
+          await this.encryptionContent.whenReady();
+          this.loadProposals();
+          this.encryptionReload?.markInitialLoadDone();
+        },
+        error: () => {
+          this.errorMessage = 'Failed to load fleet status';
+          this.loading = false;
+        }
       });
       return;
     }
@@ -133,7 +144,9 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
 
     this.proposalService.getProposals(this.status, this.isFleetScope ? 'fleet' : 'crew').subscribe({
       next: async items => {
-        if (!this.isFleetScope && this.crewId > 0) {
+        if (this.isFleetScope && this.fleetId > 0) {
+          this.items = await this.proposalCrypto.decryptListItems(items, { fleetId: this.fleetId });
+        } else if (!this.isFleetScope && this.crewId > 0) {
           this.items = await this.proposalCrypto.decryptListItems(items, this.crewId);
         } else {
           this.items = items;

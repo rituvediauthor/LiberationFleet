@@ -25,10 +25,12 @@ public class User
     public string? SettingsLockPasswordHash { get; set; }
     public int FailedLoginAttempts { get; set; }
     public DateTime? LastFailedLoginAt { get; set; }
+    public DateTime? LastDonationCampaignPromptAt { get; set; }
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();
     public ICollection<UserPaymentPlatform> PaymentPlatforms { get; set; } = new List<UserPaymentPlatform>();
     public ICollection<UserRegisteredDevice> RegisteredDevices { get; set; } = new List<UserRegisteredDevice>();
     public ICollection<SecurityAlert> SecurityAlerts { get; set; } = new List<SecurityAlert>();
+    public ICollection<AppDonation> AppDonations { get; set; } = new List<AppDonation>();
 }

@@ -102,6 +102,32 @@
 
         <div class="checkbox-group">
           <input
+            id="ageConfirmed"
+            type="checkbox"
+            formControlName="ageConfirmed">
+          <label for="ageConfirmed" class="checkbox-label">
+            I confirm that I am 18 years of age or older
+          </label>
+        </div>
+        <span class="error-text" *ngIf="form.get('ageConfirmed')?.hasError('required') && form.get('ageConfirmed')?.touched">
+          You must confirm you are 18 or older
+        </span>
+
+        <div class="checkbox-group">
+          <input
+            id="communityStandards"
+            type="checkbox"
+            formControlName="communityStandardsAccepted">
+          <label for="communityStandards" class="checkbox-label">
+            I agree to the <a href="#" class="privacy-link" (click)="showCommunityStandards($event)">Community Standards</a>
+          </label>
+        </div>
+        <span class="error-text" *ngIf="form.get('communityStandardsAccepted')?.hasError('required') && form.get('communityStandardsAccepted')?.touched">
+          You must agree to the Community Standards
+        </span>
+
+        <div class="checkbox-group">
+          <input
             id="privacy"
             type="checkbox"
             formControlName="privacyPolicyAccepted">
@@ -127,6 +153,20 @@
         <pre *ngIf="!privacyPolicyLoading" class="privacy-dialog-text">{{ privacyPolicyText }}</pre>
       </div>
       <button type="button" class="privacy-dialog-button" (click)="closePrivacyPolicy()">Close</button>
+    </div>
+  </div>
+
+  <div
+    class="privacy-dialog-backdrop"
+    *ngIf="showCommunityStandardsModal"
+    (click)="onCommunityStandardsBackdropClick($event)">
+    <div class="privacy-dialog-card" role="dialog" aria-modal="true" aria-labelledby="community-standards-title">
+      <h2 id="community-standards-title" class="privacy-dialog-title">Community Standards</h2>
+      <div class="privacy-dialog-body">
+        <p *ngIf="communityStandardsLoading" class="privacy-dialog-loading">Loading...</p>
+        <pre *ngIf="!communityStandardsLoading" class="privacy-dialog-text">{{ communityStandardsText }}</pre>
+      </div>
+      <button type="button" class="privacy-dialog-button" (click)="closeCommunityStandards()">Close</button>
     </div>
   </div>
 </app-page-layout>

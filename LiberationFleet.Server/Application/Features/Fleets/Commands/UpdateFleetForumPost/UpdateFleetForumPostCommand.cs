@@ -1,19 +1,26 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Mentions;
+using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetForumPost;
 
 public record UpdateFleetForumPostCommand(
     int PostId,
-    string Title,
-    string Body) : IRequest<ForumOperationResponse>;
+    string Nonce,
+    string Ciphertext,
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class UpdateFleetForumPostCommandHandler(
     ICurrentUserService currentUser,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
+    ICryptoRepository cryptoRepository,
+    ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateFleetForumPostCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(UpdateFleetForumPostCommand request, CancellationToken cancellationToken)
@@ -21,11 +28,6 @@ public class UpdateFleetForumPostCommandHandler(
         if (!currentUser.UserId.HasValue)
         {
             return new ForumOperationResponse { Success = false, Message = "Unauthorized." };
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Body))
-        {
-            return new ForumOperationResponse { Success = false, Message = "Title and body are required." };
         }
 
         var userId = currentUser.UserId.Value;
@@ -40,20 +42,44 @@ public class UpdateFleetForumPostCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Not a fleet forum post." };
         }
 
+        var fleetId = post.FleetId.Value;
         if (post.AuthorUserId != userId)
         {
             return new ForumOperationResponse { Success = false, Message = "Only the author can edit this post." };
         }
 
-        if (!await fleetRepository.IsUserInFleetAsync(userId, post.FleetId.Value, cancellationToken))
+        if (!await fleetRepository.IsUserInFleetAsync(userId, fleetId, cancellationToken))
         {
             return new ForumOperationResponse { Success = false, Message = "You are not in this fleet." };
         }
 
-        post.Title = request.Title.Trim();
-        post.Body = request.Body.Trim();
         post.LastActivityAt = DateTime.UtcNow;
+
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.ForumPost,
+            ResourceId = post.Id.ToString(),
+            FleetId = fleetId,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            FleetId = fleetId,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.ForumPost,
+            ResourceId = post.Id,
+            ActionUrl = $"/app/fleet/forums/{post.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            IsUpdate = true
+        }, cancellationToken);
 
         return new ForumOperationResponse { Success = true, Message = "Forum post updated." };
     }

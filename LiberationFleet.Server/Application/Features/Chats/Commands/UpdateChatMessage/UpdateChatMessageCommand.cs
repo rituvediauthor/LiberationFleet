@@ -49,14 +49,15 @@ public class UpdateChatMessageCommandHandler(
         }
 
         var isFleetRoom = !room.CrewId.HasValue && room.FleetId.HasValue;
+        var hasEncryptedPayload = !string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext);
         if (isFleetRoom)
         {
-            if (string.IsNullOrWhiteSpace(request.Body))
+            if (!hasEncryptedPayload && string.IsNullOrWhiteSpace(request.Body))
             {
                 return new ChatOperationResponse { Success = false, Message = "Message content is required." };
             }
         }
-        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        else if (!hasEncryptedPayload)
         {
             return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
         }
@@ -74,7 +75,7 @@ public class UpdateChatMessageCommandHandler(
 
         var utcNow = DateTime.UtcNow;
 
-        if (isFleetRoom)
+        if (isFleetRoom && !hasEncryptedPayload)
         {
             message.Body = request.Body!.Trim();
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -107,7 +108,8 @@ public class UpdateChatMessageCommandHandler(
         {
             ContentType = EncryptedContentType.ChatRoomMessage,
             ResourceId = message.Id.ToString(),
-            CrewId = membership.CrewId,
+            CrewId = isFleetRoom ? null : membership.CrewId,
+            FleetId = isFleetRoom ? room.FleetId : null,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -115,6 +117,11 @@ public class UpdateChatMessageCommandHandler(
             CreatedAt = utcNow,
             UpdatedAt = utcNow
         }, cancellationToken);
+
+        if (isFleetRoom)
+        {
+            message.Body = null;
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -126,6 +133,29 @@ public class UpdateChatMessageCommandHandler(
         {
             var messageDto = ChatMapper.MapMessage(message, envelope);
             await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, messageDto, cancellationToken);
+        }
+
+        if (isFleetRoom)
+        {
+            await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+            {
+                CrewId = membership.CrewId,
+                FleetId = room.FleetId,
+                AuthorUserId = userId,
+                ContentType = MentionedContentType.ChatRoomMessage,
+                ResourceId = message.Id,
+                ParentResourceId = room.Id,
+                ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
+                MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+                IsUpdate = true
+            }, cancellationToken);
+
+            return new ChatOperationResponse
+            {
+                Success = true,
+                Message = "Message updated.",
+                MessageId = message.Id
+            };
         }
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext

@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetForumCommentReplies;
@@ -14,6 +15,7 @@ public class GetFleetForumCommentRepliesQueryHandler(
     ICurrentUserService currentUser,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
+    ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetFleetForumCommentRepliesQuery, ForumCommentRepliesResponse>
 {
     public async Task<ForumCommentRepliesResponse> Handle(
@@ -37,7 +39,8 @@ public class GetFleetForumCommentRepliesQueryHandler(
             return new ForumCommentRepliesResponse { Success = false, Message = "Not a fleet forum post." };
         }
 
-        if (!await fleetRepository.IsUserInFleetAsync(userId, post.FleetId.Value, cancellationToken))
+        var fleetId = post.FleetId.Value;
+        if (!await fleetRepository.IsUserInFleetAsync(userId, fleetId, cancellationToken))
         {
             return new ForumCommentRepliesResponse { Success = false, Message = "You are not in this fleet." };
         }
@@ -57,10 +60,19 @@ public class GetFleetForumCommentRepliesQueryHandler(
             .OrderBy(c => c.CreatedAt)
             .ToList();
 
+        var replyIds = replies.Select(c => c.Id.ToString()).ToList();
+        var envelopes = await cryptoRepository.GetEnvelopesAsync(
+            EncryptedContentType.ForumComment,
+            replyIds,
+            fleetId: fleetId,
+            cancellationToken: cancellationToken);
+        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
         var items = replies.Select(reply =>
         {
-            var replyToUsername = ResolveReplyToUsername(reply, commentById);
-            return ForumMapper.MapComment(reply, envelope: null, 0, replyToUsername);
+            envelopeById.TryGetValue(reply.Id.ToString(), out var envelope);
+            var replyToUsername = ResolveReplyToUsername(reply, commentById, envelopeById);
+            return ForumMapper.MapComment(reply, envelope, 0, replyToUsername);
         }).ToList();
 
         return new ForumCommentRepliesResponse
@@ -73,10 +85,16 @@ public class GetFleetForumCommentRepliesQueryHandler(
 
     private static string? ResolveReplyToUsername(
         ForumComment reply,
-        IReadOnlyDictionary<int, ForumComment> commentById)
+        IReadOnlyDictionary<int, ForumComment> commentById,
+        IReadOnlyDictionary<string, EncryptedContentEnvelope> envelopeById)
     {
         if (!reply.ReplyToCommentId.HasValue
             || !commentById.TryGetValue(reply.ReplyToCommentId.Value, out var target))
+        {
+            return null;
+        }
+
+        if (envelopeById.ContainsKey(target.Id.ToString()))
         {
             return null;
         }

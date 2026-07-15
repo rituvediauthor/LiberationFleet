@@ -38,11 +38,18 @@ export interface CrewMembershipStatus {
   crewName?: string;
   joinCode?: string;
   libraryOfThingsEnabled?: boolean;
+  isOrganizer?: boolean;
   canAttachFilesToCrewContent?: boolean;
   canCreateProposals?: boolean;
   canCreateFleetProposals?: boolean;
   canAttachFilesToFleetContent?: boolean;
   canExportCrewData?: boolean;
+  crewTenureDays?: number;
+  fleetTenureDays?: number;
+  crewProposalDaysRemaining?: number;
+  crewProposalContributionShortfall?: number;
+  fleetProposalDaysRemaining?: number;
+  fleetProposalContributionShortfall?: number;
 }
 
 export interface CreateCrewRequest {

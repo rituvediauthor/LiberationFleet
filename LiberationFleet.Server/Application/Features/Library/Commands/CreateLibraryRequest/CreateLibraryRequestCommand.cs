@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -22,6 +23,7 @@ public record CreateLibraryRequestCommand(
 public class CreateLibraryRequestCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
@@ -54,7 +56,12 @@ public class CreateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var unit = await libraryRepository.GetUnitByIdForCrewAsync(request.UnitId, membership.CrewId, cancellationToken);
+        var crewIds = await LibraryScopeHelper.GetAccessibleCrewIdsAsync(
+            membership.CrewId,
+            fleetRepository,
+            cancellationToken);
+
+        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(request.UnitId, crewIds, cancellationToken);
         if (unit is null)
         {
             return new LibraryRequestOperationResponse { Success = false, Message = "Item not found." };

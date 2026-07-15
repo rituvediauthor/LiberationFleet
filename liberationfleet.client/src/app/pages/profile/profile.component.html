@@ -102,7 +102,20 @@
             <span class="readonly-label">Survival threshold recipient</span>
             <span class="readonly-value">{{ profile.isSurvivalThresholdRecipient ? 'Yes' : 'No' }}</span>
           </div>
+          <div class="readonly-item">
+            <span class="readonly-label">App donations {{ stats.previousTaxYear || (currentYear - 1) }}</span>
+            <span class="readonly-value">${{ stats.donationsPreviousTaxYearUsd ?? 0 }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">App donations {{ stats.currentTaxYear || currentYear }}</span>
+            <span class="readonly-value">${{ stats.donationsCurrentTaxYearUsd ?? 0 }}</span>
+          </div>
         </div>
+
+        <p class="section-hint donation-hint">
+          App donations support Liberation Fleet (hosting/development), not crew mutual aid.
+          <a routerLink="/app/donate">Donate</a>
+        </p>
 
         <div class="form-group checkbox-group">
           <label class="checkbox-label">

@@ -64,7 +64,11 @@ public class ProposalsController : ControllerBase
     {
         if (string.Equals(body.Scope, "fleet", StringComparison.OrdinalIgnoreCase))
         {
-            var fleetResult = await _mediator.Send(new CreateFleetProposalCommand(body.Title ?? string.Empty, body.Description ?? string.Empty));
+            var fleetResult = await _mediator.Send(new CreateFleetProposalCommand(
+                body.Nonce,
+                body.Ciphertext,
+                body.KeyVersion,
+                body.MentionedUserIds));
             return fleetResult.Success ? Ok(fleetResult) : BadRequest(fleetResult);
         }
 

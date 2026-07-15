@@ -36,11 +36,13 @@ export class ProposalService {
     );
   }
 
-  createFleetProposal(title: string, description: string): Observable<ProposalOperationResponse> {
+  createFleetProposal(payload: EncryptedContentSendPayload): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(this.apiUrl, {
       scope: 'fleet',
-      title,
-      description
+      nonce: payload.nonce,
+      ciphertext: payload.ciphertext,
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }
 

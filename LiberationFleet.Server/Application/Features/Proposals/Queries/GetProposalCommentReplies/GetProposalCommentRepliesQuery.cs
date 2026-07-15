@@ -76,14 +76,24 @@ public class GetProposalCommentRepliesQueryHandler(
         IReadOnlyDictionary<string, EncryptedContentEnvelope> envelopeById =
             new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
 
-        if (!proposal.FleetId.HasValue && proposal.CrewId.HasValue)
+        if (proposal.FleetId.HasValue)
         {
             var replyIds = replies.Select(r => r.Id.ToString()).ToList();
             var envelopes = await cryptoRepository.GetEnvelopesAsync(
                 EncryptedContentType.ProposalComment,
                 replyIds,
-                proposal.CrewId.Value,
-                cancellationToken);
+                fleetId: proposal.FleetId.Value,
+                cancellationToken: cancellationToken);
+            envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        }
+        else if (proposal.CrewId.HasValue)
+        {
+            var replyIds = replies.Select(r => r.Id.ToString()).ToList();
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.ProposalComment,
+                replyIds,
+                crewId: proposal.CrewId.Value,
+                cancellationToken: cancellationToken);
             envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
         }
 

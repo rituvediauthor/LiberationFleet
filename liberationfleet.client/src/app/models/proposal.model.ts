@@ -43,6 +43,8 @@ export interface ProposalListItem {
   currentUserVote?: ProposalVoteChoice | null;
   title?: string;
   descriptionPreview?: string;
+  /** Legacy plaintext forum body when no encrypted envelope exists. */
+  body?: string;
   thumbnailUrl?: string | null;
 }
 

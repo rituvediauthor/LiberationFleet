@@ -35,6 +35,7 @@ import { SecuritySettingsComponent } from './pages/security-settings/security-se
 import { SecurityAlertsComponent } from './pages/security-alerts/security-alerts.component';
 import { PasswordUpdateComponent } from './pages/password-update/password-update.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
+import { DonateComponent } from './pages/donate/donate.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
 import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
@@ -207,6 +208,12 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'app/fleet/chats/create',
+    component: ChatCreateComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet' }
+  },
+  {
     path: 'app/fleet/chats/:id/voice',
     component: ChatVoiceComponent,
     canActivate: [authGuard],
@@ -336,6 +343,11 @@ export const routes: Routes = [
   {
     path: 'app/profile/user',
     component: ProfileComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app/donate',
+    component: DonateComponent,
     canActivate: [authGuard]
   },
   {

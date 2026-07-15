@@ -8,7 +8,7 @@ public static class NotificationBadgeBuilder
 {
     private static readonly string[] AreaKeys =
     [
-        "chats", "forums", "proposals", "giftLog", "rules", "library", "crewmates"
+        "chats", "forums", "proposals", "giftLog", "rules", "library", "crewmates", "fleet"
     ];
 
     public static NotificationBadgeSummaryResponse Build(
@@ -160,24 +160,29 @@ public static class NotificationBadgeBuilder
             return "proposals";
         }
 
-        if (path.StartsWith("/app/crew/library-of-things", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/library-of-things", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/library", StringComparison.Ordinal))
         {
             return "library";
         }
 
-        if (path.StartsWith("/app/crew/rules", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/rules", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/rules", StringComparison.Ordinal))
         {
             return "rules";
         }
 
-        if (path.StartsWith("/app/crew/crewmates", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/crewmates", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/crews", StringComparison.Ordinal))
         {
             return "crewmates";
         }
 
         if (path == "/app/crew/gift-log"
             || path.StartsWith("/app/crew/season-setup", StringComparison.Ordinal)
-            || path.StartsWith("/app/crew/join-season", StringComparison.Ordinal))
+            || path.StartsWith("/app/crew/join-season", StringComparison.Ordinal)
+            || path == "/app/fleet/gift-log"
+            || path.StartsWith("/app/fleet/emergency", StringComparison.Ordinal))
         {
             return "giftLog";
         }

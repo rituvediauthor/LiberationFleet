@@ -51,23 +51,22 @@ public class GetFleetLibraryUnitDetailQueryHandler(
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
 
-        // Fleet browse is read-only: no cross-crew requests yet.
-        var viewer = new LibraryUnitViewerContextDto
-        {
-            IsHolder = unit.CurrentPossessorUserId == userId,
-            CanRequest = false,
-            CanRecordAcquisition = false,
-            MaxRequestQuantity = 0,
-            BrokenPendingConfirmation = unit.BrokenPendingConfirmation,
-            IsRetired = unit.IsRetired,
-            CanReportBroken = false,
-            CanReportFixed = false,
-            CanConfirmBroken = false,
-            CanRecordMaintenance = false,
-            CanReportLost = false,
-            ActiveRequestId = null,
-            ActiveRequestStatus = null
-        };
+        var isHolder = unit.CurrentPossessorUserId == userId;
+        var hasOpenRequest = await libraryRepository.HasOpenRequestForUnitByUserAsync(
+            unit.Id,
+            userId,
+            cancellationToken);
+        var activeRequest = await libraryRepository.GetActiveRequestByUnitAndRequesterAsync(
+            unit.Id,
+            userId,
+            cancellationToken);
+
+        var viewer = LibraryRequestValidation.BuildViewerContext(
+            unit,
+            isHolder,
+            hasOpenRequest,
+            activeRequest,
+            userId);
 
         return new LibraryUnitDetailResponse
         {

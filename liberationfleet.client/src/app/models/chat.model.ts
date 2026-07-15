@@ -68,6 +68,7 @@ export interface CreateChatRoomRequest {
   purpose: string;
   plaintextName: string;
   isAdultContent?: boolean;
+  scope?: 'crew' | 'fleet';
 }
 
 export interface UpdateChatRoomRequest {

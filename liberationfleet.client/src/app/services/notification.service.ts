@@ -188,7 +188,8 @@ export class NotificationService {
       giftLog: counts['giftLog'] ?? 0,
       rules: counts['rules'] ?? 0,
       library: counts['library'] ?? 0,
-      crewmates: counts['crewmates'] ?? 0
+      crewmates: counts['crewmates'] ?? 0,
+      fleet: counts['fleet'] ?? 0
     };
   }
 }

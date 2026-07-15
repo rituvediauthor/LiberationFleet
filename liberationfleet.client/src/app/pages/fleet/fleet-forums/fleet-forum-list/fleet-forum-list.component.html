@@ -21,7 +21,7 @@
                 <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
               </p>
               <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
-              <p class="card-preview">{{ previewBody(item.body) }}</p>
+              <p class="card-preview">{{ previewBody(item) }}</p>
             </div>
           </div>
         </button>

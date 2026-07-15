@@ -48,8 +48,11 @@ export class SignUpComponent {
   signUpButton: ActionBarButton;
   isLoading = false;
   showPrivacyPolicyModal = false;
+  showCommunityStandardsModal = false;
   privacyPolicyText = '';
   privacyPolicyLoading = false;
+  communityStandardsText = '';
+  communityStandardsLoading = false;
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
 
@@ -68,6 +71,8 @@ export class SignUpComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, passwordStrengthValidator]],
       confirmPassword: ['', Validators.required],
+      ageConfirmed: [false, Validators.requiredTrue],
+      communityStandardsAccepted: [false, Validators.requiredTrue],
       privacyPolicyAccepted: [false, Validators.requiredTrue]
     }, {
       validators: passwordMatchValidator
@@ -116,13 +121,28 @@ export class SignUpComponent {
     void this.openPrivacyPolicy();
   }
 
+  showCommunityStandards(event: Event) {
+    event.preventDefault();
+    void this.openCommunityStandards();
+  }
+
   closePrivacyPolicy() {
     this.showPrivacyPolicyModal = false;
+  }
+
+  closeCommunityStandards() {
+    this.showCommunityStandardsModal = false;
   }
 
   onPrivacyBackdropClick(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('privacy-dialog-backdrop')) {
       this.closePrivacyPolicy();
+    }
+  }
+
+  onCommunityStandardsBackdropClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('privacy-dialog-backdrop')) {
+      this.closeCommunityStandards();
     }
   }
 
@@ -142,6 +162,26 @@ export class SignUpComponent {
       this.privacyPolicyText = 'Unable to load the Privacy Policy. Please try again later.';
     } finally {
       this.privacyPolicyLoading = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async openCommunityStandards() {
+    this.showCommunityStandardsModal = true;
+
+    if (this.communityStandardsText) {
+      return;
+    }
+
+    this.communityStandardsLoading = true;
+    try {
+      this.communityStandardsText = await firstValueFrom(
+        this.http.get('/assets/community-standards.txt', { responseType: 'text' })
+      );
+    } catch {
+      this.communityStandardsText = 'Unable to load Community Standards. Please try again later.';
+    } finally {
+      this.communityStandardsLoading = false;
       this.cdr.markForCheck();
     }
   }

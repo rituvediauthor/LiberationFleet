@@ -40,11 +40,14 @@ public class GetMyCrewMembershipQueryHandler(
             cancellationToken);
 
         var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var fleetTenureDays = 0;
         var canCreateFleetProposals = false;
         var canAttachFilesToFleetContent = false;
+        var fleetProposalDaysRemaining = 0;
+        var fleetProposalContributionShortfall = 0m;
         if (fleet is not null)
         {
-            var fleetTenureDays = await contentTenureService.GetFleetTenureDaysAsync(
+            fleetTenureDays = await contentTenureService.GetFleetTenureDaysAsync(
                 userId.Value,
                 fleet.Id,
                 cancellationToken);
@@ -58,6 +61,29 @@ public class GetMyCrewMembershipQueryHandler(
                 membership,
                 giftStats.LifetimeContributions,
                 fleetTenureDays);
+
+            if (!canCreateFleetProposals && !membership.IsOrganizer && !membership.CanCreateProposals)
+            {
+                fleetProposalDaysRemaining = Math.Max(0, fleet.MinimumCrewmateTenureDaysForProposals - fleetTenureDays);
+                fleetProposalContributionShortfall = Math.Max(
+                    0m,
+                    fleet.MinimumContributionForProposals - giftStats.LifetimeContributions);
+            }
+        }
+
+        var canCreateCrewProposals = CrewContentPermissionService.CanCreateProposals(
+            crew,
+            membership,
+            giftStats.LifetimeContributions,
+            crewTenureDays);
+        var crewProposalDaysRemaining = 0;
+        var crewProposalContributionShortfall = 0m;
+        if (!canCreateCrewProposals && !membership.IsOrganizer && !membership.CanCreateProposals)
+        {
+            crewProposalDaysRemaining = Math.Max(0, crew.MinimumCrewmateTenureDaysForProposals - crewTenureDays);
+            crewProposalContributionShortfall = Math.Max(
+                0m,
+                crew.MinimumContributionForProposals - giftStats.LifetimeContributions);
         }
 
         return new CrewMembershipStatusDto
@@ -67,19 +93,22 @@ public class GetMyCrewMembershipQueryHandler(
             CrewName = crew.Name,
             JoinCode = crew.JoinCode,
             LibraryOfThingsEnabled = crew.LibraryOfThingsEnabled,
+            IsOrganizer = membership.IsOrganizer,
             CanAttachFilesToCrewContent = CrewContentPermissionService.CanAttachFilesToCrewContent(
                 crew,
                 membership,
                 giftStats.LifetimeContributions,
                 crewTenureDays),
-            CanCreateProposals = CrewContentPermissionService.CanCreateProposals(
-                crew,
-                membership,
-                giftStats.LifetimeContributions,
-                crewTenureDays),
+            CanCreateProposals = canCreateCrewProposals,
             CanCreateFleetProposals = canCreateFleetProposals,
             CanAttachFilesToFleetContent = canAttachFilesToFleetContent,
-            CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(membership)
+            CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(membership),
+            CrewTenureDays = crewTenureDays,
+            FleetTenureDays = fleetTenureDays,
+            CrewProposalDaysRemaining = crewProposalDaysRemaining,
+            CrewProposalContributionShortfall = crewProposalContributionShortfall,
+            FleetProposalDaysRemaining = fleetProposalDaysRemaining,
+            FleetProposalContributionShortfall = fleetProposalContributionShortfall
         };
     }
 }

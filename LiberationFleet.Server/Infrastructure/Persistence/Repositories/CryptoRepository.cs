@@ -109,6 +109,50 @@ public class CryptoRepository : ICryptoRepository
         existing.WrappedByUserId = distribution.WrappedByUserId;
     }
 
+    public Task<FleetKeyDistribution?> GetFleetKeyDistributionAsync(
+        int fleetId,
+        int userId,
+        int keyVersion,
+        CancellationToken cancellationToken = default) =>
+        _context.FleetKeyDistributions.FirstOrDefaultAsync(
+            d => d.FleetId == fleetId && d.UserId == userId && d.KeyVersion == keyVersion,
+            cancellationToken);
+
+    public async Task<int?> GetLatestFleetKeyVersionAsync(int fleetId, CancellationToken cancellationToken = default)
+    {
+        return await _context.FleetKeyDistributions
+            .Where(d => d.FleetId == fleetId)
+            .Select(d => (int?)d.KeyVersion)
+            .MaxAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<FleetKeyDistribution>> GetFleetKeyDistributionsAsync(
+        int fleetId,
+        int keyVersion,
+        CancellationToken cancellationToken = default) =>
+        await _context.FleetKeyDistributions
+            .Where(d => d.FleetId == fleetId && d.KeyVersion == keyVersion)
+            .ToListAsync(cancellationToken);
+
+    public async Task UpsertFleetKeyDistributionAsync(FleetKeyDistribution distribution, CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.FleetKeyDistributions.FirstOrDefaultAsync(
+            d => d.FleetId == distribution.FleetId
+                && d.UserId == distribution.UserId
+                && d.KeyVersion == distribution.KeyVersion,
+            cancellationToken);
+
+        if (existing is null)
+        {
+            await _context.FleetKeyDistributions.AddAsync(distribution, cancellationToken);
+            return;
+        }
+
+        existing.WrappedFleetKey = distribution.WrappedFleetKey;
+        existing.WrapNonce = distribution.WrapNonce;
+        existing.WrappedByUserId = distribution.WrappedByUserId;
+    }
+
     public Task<EncryptedContentEnvelope?> GetEnvelopeAsync(
         EncryptedContentType contentType,
         string resourceId,
@@ -121,6 +165,7 @@ public class CryptoRepository : ICryptoRepository
         EncryptedContentType contentType,
         IReadOnlyList<string> resourceIds,
         int? crewId = null,
+        int? fleetId = null,
         CancellationToken cancellationToken = default)
     {
         if (resourceIds.Count == 0)
@@ -134,6 +179,11 @@ public class CryptoRepository : ICryptoRepository
         if (crewId.HasValue)
         {
             query = query.Where(e => e.CrewId == crewId);
+        }
+
+        if (fleetId.HasValue)
+        {
+            query = query.Where(e => e.FleetId == fleetId);
         }
 
         return await query.ToListAsync(cancellationToken);
@@ -152,6 +202,7 @@ public class CryptoRepository : ICryptoRepository
         }
 
         existing.CrewId = envelope.CrewId;
+        existing.FleetId = envelope.FleetId;
         existing.AuthorUserId = envelope.AuthorUserId;
         existing.KeyVersion = envelope.KeyVersion;
         existing.Nonce = envelope.Nonce;

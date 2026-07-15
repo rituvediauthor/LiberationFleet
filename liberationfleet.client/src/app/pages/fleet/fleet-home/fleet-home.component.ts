@@ -1,28 +1,41 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../../components/nav-layout/nav-layout.component';
+import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
+import { DonationCampaignWidgetComponent } from '../../../components/donation-campaign-widget/donation-campaign-widget.component';
 import { FleetService } from '../../../services/fleet.service';
+import { NotificationService } from '../../../services/notification.service';
+import { NotificationHubService } from '../../../services/notification-hub.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetStatus } from '../../../models/fleet.model';
 import { NextAidInfo } from '../../../models/gift.model';
+import {
+  CrewNotificationAreaCounts,
+  emptyAreaCounts
+} from '../../../utils/notification-area.util';
 
 @Component({
   selector: 'app-fleet-home',
   standalone: true,
-  imports: [CommonModule, NavLayoutComponent],
+  imports: [CommonModule, NavLayoutComponent, ContentBadgeComponent, DonationCampaignWidgetComponent],
   templateUrl: './fleet-home.component.html',
   styleUrl: './fleet-home.component.css'
 })
-export class FleetHomeComponent implements OnInit {
+export class FleetHomeComponent implements OnInit, OnDestroy {
   status: FleetStatus | null = null;
   nextAid: NextAidInfo | null = null;
   libraryOfThingsEnabled = true;
   loading = true;
+  areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
 
   private router = inject(Router);
   private fleetService = inject(FleetService);
+  private notificationService = inject(NotificationService);
+  private notificationHub = inject(NotificationHubService);
   private toastService = inject(ToastService);
+  private subscriptions = new Subscription();
 
   ngOnInit() {
     this.fleetService.getStatus().subscribe({
@@ -61,6 +74,22 @@ export class FleetHomeComponent implements OnInit {
         this.status = { hasFleet: false };
       }
     });
+
+    this.notificationService.refreshBadges();
+    this.subscriptions.add(
+      this.notificationService.areaCounts$.subscribe(counts => {
+        this.areaCounts = counts;
+      })
+    );
+    this.subscriptions.add(
+      this.notificationHub.notificationReceived$.subscribe(() => {
+        this.notificationService.refreshBadges();
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
   }
 
   get allowCrossCrewGiving(): boolean {

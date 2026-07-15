@@ -72,6 +72,14 @@ public class FleetRepository : IFleetRepository
                  && _context.FleetCrews.Any(fc => fc.FleetId == fleetId && fc.CrewId == m.CrewId),
             cancellationToken);
 
+    public async Task<IReadOnlyList<int>> GetActiveFleetMemberUserIdsAsync(int fleetId, CancellationToken cancellationToken = default) =>
+        await _context.CrewMemberships
+            .Where(m => !m.IsBanned
+                        && _context.FleetCrews.Any(fc => fc.FleetId == fleetId && fc.CrewId == m.CrewId))
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<FleetRule>> GetPublicRulesAsync(int fleetId, CancellationToken cancellationToken = default) =>
         await _context.FleetRules
             .Where(r => r.FleetId == fleetId && r.IsPublic && !r.IsDeleted)

@@ -297,7 +297,7 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
 
         this.roomIsAdultContent = !!room.isAdultContent;
         const decrypted = this.crewId > 0
-          ? await this.chatCrypto.decryptRoom(room, this.crewId)
+          ? await this.chatCrypto.decryptRoom(room, { crewId: this.crewId })
           : room;
         this.roomName = decrypted.name || 'Voice chat';
 

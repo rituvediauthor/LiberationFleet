@@ -59,6 +59,15 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
             };
         }
 
+        if (!user!.IsActive)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "This account has been frozen pending a safety review."
+            };
+        }
+
         if (!string.IsNullOrWhiteSpace(request.DeviceId))
         {
             var device = await _securityRepository.GetDeviceByDeviceIdAsync(user!.Id, request.DeviceId.Trim(), cancellationToken);

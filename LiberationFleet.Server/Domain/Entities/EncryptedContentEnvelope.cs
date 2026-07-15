@@ -11,6 +11,7 @@ public class EncryptedContentEnvelope
     public EncryptedContentType ContentType { get; set; }
     public string ResourceId { get; set; } = string.Empty;
     public int? CrewId { get; set; }
+    public int? FleetId { get; set; }
     public int AuthorUserId { get; set; }
     public int KeyVersion { get; set; } = 1;
     public string Nonce { get; set; } = string.Empty;
@@ -19,5 +20,6 @@ public class EncryptedContentEnvelope
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public Crew? Crew { get; set; }
+    public Fleet? Fleet { get; set; }
     public User AuthorUser { get; set; } = null!;
 }

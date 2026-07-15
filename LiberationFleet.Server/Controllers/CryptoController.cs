@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Features.Crypto.Commands.DeleteCrewAttachment;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertCrewKeyDistribution;
+using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertFleetKeyDistribution;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertEncryptedContent;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertPrivateKeyBackup;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertPublicKey;
@@ -7,6 +8,8 @@ using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewPublicKeys;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContents;
+using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetKeyState;
+using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetPublicKeys;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetMyPrivateKeyBackup;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetPublicKey;
 using MediatR;
@@ -85,6 +88,32 @@ public class CryptoController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    [HttpPut("fleet-keys/{fleetId:int}")]
+    public async Task<IActionResult> UpsertFleetKeyDistribution(int fleetId, [FromBody] UpsertFleetKeyDistributionRequest body)
+    {
+        var result = await _mediator.Send(new UpsertFleetKeyDistributionCommand(
+            fleetId,
+            body.UserId,
+            body.KeyVersion,
+            body.WrappedFleetKey,
+            body.WrapNonce));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("fleet-keys/{fleetId:int}")]
+    public async Task<IActionResult> GetFleetKeyState(int fleetId)
+    {
+        var result = await _mediator.Send(new GetFleetKeyStateQuery(fleetId));
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpGet("keys/public/fleet/{fleetId:int}")]
+    public async Task<IActionResult> GetFleetPublicKeys(int fleetId)
+    {
+        var result = await _mediator.Send(new GetFleetPublicKeysQuery(fleetId));
+        return Ok(result);
+    }
+
     [HttpPut("content")]
     public async Task<IActionResult> UpsertEncryptedContent([FromBody] UpsertEncryptedContentRequest body)
     {
@@ -92,6 +121,7 @@ public class CryptoController : ControllerBase
             body.ContentType,
             body.ResourceId,
             body.CrewId,
+            body.FleetId,
             body.KeyVersion,
             body.Nonce,
             body.Ciphertext));
@@ -102,13 +132,14 @@ public class CryptoController : ControllerBase
     public async Task<IActionResult> GetEncryptedContents(
         [FromQuery] EncryptedContentTypeDto contentType,
         [FromQuery] string resourceIds,
-        [FromQuery] int? crewId = null)
+        [FromQuery] int? crewId = null,
+        [FromQuery] int? fleetId = null)
     {
         var ids = resourceIds
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
 
-        var result = await _mediator.Send(new GetEncryptedContentsQuery(contentType, ids, crewId));
+        var result = await _mediator.Send(new GetEncryptedContentsQuery(contentType, ids, crewId, fleetId));
         return Ok(result);
     }
 

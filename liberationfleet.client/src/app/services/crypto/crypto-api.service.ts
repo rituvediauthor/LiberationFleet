@@ -6,6 +6,7 @@ import {
   CryptoOperationResponse,
   EncryptedContentEnvelope,
   EncryptedContentType,
+  FleetKeyState,
   UserKeyBundle,
   UserPrivateKeyBackup
 } from '../../models/crypto.model';
@@ -33,6 +34,10 @@ export class CryptoApiService {
     return this.http.get<UserKeyBundle[]>(`${this.apiUrl}/keys/public/crew/${crewId}`);
   }
 
+  getFleetPublicKeys(fleetId: number): Observable<UserKeyBundle[]> {
+    return this.http.get<UserKeyBundle[]>(`${this.apiUrl}/keys/public/fleet/${fleetId}`);
+  }
+
   upsertPrivateKeyBackup(backup: UserPrivateKeyBackup): Observable<CryptoOperationResponse> {
     return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/keys/backup`, backup);
   }
@@ -57,10 +62,27 @@ export class CryptoApiService {
     return this.http.get<CrewKeyState>(`${this.apiUrl}/crew-keys/${crewId}`);
   }
 
+  upsertFleetKeyDistribution(
+    fleetId: number,
+    payload: {
+      userId: number;
+      keyVersion: number;
+      wrappedFleetKey: string;
+      wrapNonce: string;
+    }
+  ): Observable<CryptoOperationResponse> {
+    return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/fleet-keys/${fleetId}`, payload);
+  }
+
+  getFleetKeyState(fleetId: number): Observable<FleetKeyState> {
+    return this.http.get<FleetKeyState>(`${this.apiUrl}/fleet-keys/${fleetId}`);
+  }
+
   upsertEncryptedContent(payload: {
     contentType: EncryptedContentType;
     resourceId: string;
     crewId?: number | null;
+    fleetId?: number | null;
     keyVersion: number;
     nonce: string;
     ciphertext: string;
@@ -71,7 +93,8 @@ export class CryptoApiService {
   getEncryptedContents(
     contentType: EncryptedContentType,
     resourceIds: string[],
-    crewId?: number | null
+    crewId?: number | null,
+    fleetId?: number | null
   ): Observable<EncryptedContentEnvelope[]> {
     let params = new HttpParams()
       .set('contentType', contentType)
@@ -79,6 +102,10 @@ export class CryptoApiService {
 
     if (crewId != null) {
       params = params.set('crewId', crewId.toString());
+    }
+
+    if (fleetId != null) {
+      params = params.set('fleetId', fleetId.toString());
     }
 
     return this.http.get<EncryptedContentEnvelope[]>(`${this.apiUrl}/content`, { params });

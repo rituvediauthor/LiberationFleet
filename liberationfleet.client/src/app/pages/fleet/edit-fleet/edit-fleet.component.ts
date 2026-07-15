@@ -4,7 +4,9 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { FleetService } from '../../../services/fleet.service';
+import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetPrivacy, FleetScope, UpdateFleetRequest } from '../../../models/fleet.model';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
@@ -12,7 +14,7 @@ import { isSaveActionDisabled } from '../../../utils/save-button.util';
 @Component({
   selector: 'app-edit-fleet',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent],
   templateUrl: './edit-fleet.component.html',
   styleUrl: './edit-fleet.component.css'
 })
@@ -23,6 +25,8 @@ export class EditFleetComponent implements OnInit {
   loading = true;
   loadError = '';
   isSaving = false;
+  isOrganizer = false;
+  showLeaveDialog = false;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
   private initialFormValues: unknown = null;
@@ -31,6 +35,7 @@ export class EditFleetComponent implements OnInit {
   private router = inject(Router);
   private navigation = inject(NavigationService);
   private fleetService = inject(FleetService);
+  private crewService = inject(CrewService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -57,6 +62,12 @@ export class EditFleetComponent implements OnInit {
     this.form.valueChanges.subscribe(() => this.updateSaveButton());
     this.form.get('scope')?.valueChanges.subscribe(() => this.updateLocalValidators());
 
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.isOrganizer = !!membership.isOrganizer;
+      }
+    });
+
     this.loadFleet();
   }
 
@@ -81,6 +92,29 @@ export class EditFleetComponent implements OnInit {
       () => this.toastService.success('Join code copied'),
       () => this.toastService.error('Failed to copy join code')
     );
+  }
+
+  onLeaveFleet() {
+    this.showLeaveDialog = true;
+  }
+
+  onConfirmLeave() {
+    this.showLeaveDialog = false;
+    this.fleetService.leaveFleet().subscribe({
+      next: result => {
+        if (result.success) {
+          this.toastService.success(result.message);
+          this.router.navigate(['/app/fleet']);
+          return;
+        }
+        this.toastService.error(result.message || 'Failed to leave fleet');
+      },
+      error: err => this.toastService.error(err?.error?.message || 'Failed to leave fleet')
+    });
+  }
+
+  onCancelLeave() {
+    this.showLeaveDialog = false;
   }
 
   onSave() {

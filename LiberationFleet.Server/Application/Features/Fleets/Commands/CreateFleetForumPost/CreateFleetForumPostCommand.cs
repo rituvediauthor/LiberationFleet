@@ -11,8 +11,9 @@ using MediatR;
 namespace LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleetForumPost;
 
 public record CreateFleetForumPostCommand(
-    string Title,
-    string Body,
+    string Nonce,
+    string Ciphertext,
+    int KeyVersion,
     bool IsAdultContent,
     IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
@@ -21,6 +22,7 @@ public class CreateFleetForumPostCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
+    ICryptoRepository cryptoRepository,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetForumPostCommand, ForumOperationResponse>
@@ -32,9 +34,9 @@ public class CreateFleetForumPostCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Body))
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
         {
-            return new ForumOperationResponse { Success = false, Message = "Title and body are required." };
+            return new ForumOperationResponse { Success = false, Message = "Encrypted post content is required." };
         }
 
         var userId = currentUser.UserId.Value;
@@ -60,14 +62,27 @@ public class CreateFleetForumPostCommandHandler(
         {
             FleetId = fleet.Id,
             AuthorUserId = userId,
-            Title = request.Title.Trim(),
-            Body = request.Body.Trim(),
             CreatedAt = utcNow,
             LastActivityAt = utcNow,
             IsAdultContent = request.IsAdultContent
         };
 
         await forumRepository.AddPostAsync(post, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.ForumPost,
+            ResourceId = post.Id.ToString(),
+            FleetId = fleet.Id,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = $"/app/fleet/forums/{post.Id}";

@@ -14,7 +14,11 @@ public static class ProfileMapper
         bool isFinancialMember,
         decimal priorityScore,
         int percentBoost,
-        bool isSurvivalThresholdRecipient)
+        bool isSurvivalThresholdRecipient,
+        decimal donationsPreviousTaxYearUsd = 0m,
+        decimal donationsCurrentTaxYearUsd = 0m,
+        int previousTaxYear = 0,
+        int currentTaxYear = 0)
     {
         return new UserProfileDto
         {
@@ -39,7 +43,15 @@ public static class ProfileMapper
             DisabilityLevel = user.DisabilityLevel,
             NeedsSurvivalAid = user.NeedsSurvivalAid,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
-            Stats = BuildStats(giftStats, isFinancialMember, priorityScore, percentBoost)
+            Stats = BuildStats(
+                giftStats,
+                isFinancialMember,
+                priorityScore,
+                percentBoost,
+                donationsPreviousTaxYearUsd,
+                donationsCurrentTaxYearUsd,
+                previousTaxYear,
+                currentTaxYear)
         };
     }
 
@@ -47,7 +59,11 @@ public static class ProfileMapper
         CrewmateGiftStatsDto giftStats,
         bool isFinancialMember,
         decimal priorityScore,
-        int percentBoost)
+        int percentBoost,
+        decimal donationsPreviousTaxYearUsd,
+        decimal donationsCurrentTaxYearUsd,
+        int previousTaxYear,
+        int currentTaxYear)
     {
         return new UserProfileStatsDto
         {
@@ -57,7 +73,11 @@ public static class ProfileMapper
             LifetimeContributions = giftStats.LifetimeContributions,
             ReceptionThisYear = giftStats.ReceptionThisYear,
             PercentBoost = percentBoost,
-            PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero)
+            PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
+            DonationsPreviousTaxYearUsd = donationsPreviousTaxYearUsd,
+            DonationsCurrentTaxYearUsd = donationsCurrentTaxYearUsd,
+            PreviousTaxYear = previousTaxYear,
+            CurrentTaxYear = currentTaxYear
         };
     }
 }

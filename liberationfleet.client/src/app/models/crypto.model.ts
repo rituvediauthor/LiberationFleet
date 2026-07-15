@@ -45,6 +45,21 @@ export interface CrewKeyState {
   distributions: CrewKeyDistribution[];
 }
 
+export interface FleetKeyDistribution {
+  fleetId: number;
+  userId: number;
+  keyVersion: number;
+  wrappedFleetKey: string;
+  wrapNonce: string;
+  wrappedByUserId: number;
+}
+
+export interface FleetKeyState {
+  latestKeyVersion?: number | null;
+  myDistribution?: FleetKeyDistribution | null;
+  distributions: FleetKeyDistribution[];
+}
+
 export interface EncryptedPayload {
   keyVersion: number;
   nonce: string;
@@ -55,6 +70,7 @@ export interface EncryptedContentEnvelope {
   contentType: EncryptedContentType;
   resourceId: string;
   crewId?: number | null;
+  fleetId?: number | null;
   authorUserId: number;
   keyVersion: number;
   nonce: string;

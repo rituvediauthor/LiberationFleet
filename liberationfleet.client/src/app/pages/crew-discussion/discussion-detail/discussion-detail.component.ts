@@ -29,6 +29,8 @@ import { NotificationContentService } from '../../../services/notification-conte
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
+import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { ContentReportTargetType } from '../../../models/content-report.model';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -42,7 +44,8 @@ import { MentionTextComponent } from '../../../components/mention-text/mention-t
     FallibleFooterComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
-    MentionTextComponent
+    MentionTextComponent,
+    ReportContentDialogComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
@@ -79,6 +82,15 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   currentUserId: number | null = null;
   showAdultGate = false;
   contentRevealed = true;
+  showReportDialog = false;
+  reportTargetType: ContentReportTargetType = 'ForumPost';
+  reportTargetResourceId: number | null = null;
+  reportTargetParentId: number | null = null;
+  reportTargetAuthorUserId: number | null = null;
+  reportEvidenceTitle = '';
+  reportEvidenceText = '';
+  reportEvidenceAuthorUsername = '';
+  reportMediaIds: string[] = [];
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -209,6 +221,47 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
 
   isOwnComment(comment: DiscussionComment): boolean {
     return this.currentUserId != null && comment.authorUserId === this.currentUserId;
+  }
+
+  get isOwnPost(): boolean {
+    return this.post != null && this.currentUserId != null && this.post.authorUserId === this.currentUserId;
+  }
+
+  openReportPost() {
+    if (!this.post) {
+      return;
+    }
+    this.reportTargetType = 'ForumPost';
+    this.reportTargetResourceId = this.post.id;
+    this.reportTargetParentId = null;
+    this.reportTargetAuthorUserId = this.post.authorUserId;
+    this.reportEvidenceTitle = this.post.title ?? '';
+    this.reportEvidenceText = this.post.description ?? '';
+    this.reportEvidenceAuthorUsername = this.post.authorUsername ?? '';
+    this.reportMediaIds = (this.post.resolvedAttachments ?? []).map(a => a.resourceId);
+    this.showReportDialog = true;
+  }
+
+  openReportComment(comment: DiscussionComment, parentCommentId: number | null = null, event?: Event) {
+    event?.stopPropagation();
+    this.openCommentMenuId = null;
+    this.reportTargetType = 'ForumComment';
+    this.reportTargetResourceId = comment.id;
+    this.reportTargetParentId = this.post?.id ?? null;
+    this.reportTargetAuthorUserId = comment.authorUserId;
+    this.reportEvidenceTitle = '';
+    this.reportEvidenceText = comment.body ?? '';
+    this.reportEvidenceAuthorUsername = comment.authorUsername ?? '';
+    this.reportMediaIds = (comment.resolvedAttachments ?? []).map(a => a.resourceId);
+    this.showReportDialog = true;
+  }
+
+  onReportDismissed() {
+    this.showReportDialog = false;
+  }
+
+  onReportSubmitted() {
+    this.showReportDialog = false;
   }
 
   toggleCommentMenu(commentId: number, event: Event) {

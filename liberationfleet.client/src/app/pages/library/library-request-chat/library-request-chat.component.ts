@@ -161,7 +161,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
     this.sending = true;
     try {
       const encrypted = await this.chatCrypto.encryptMessagePayload(
-        this.crewId,
+        { crewId: this.crewId },
         this.messageText.trim(),
         this.authorDisplayName
       );

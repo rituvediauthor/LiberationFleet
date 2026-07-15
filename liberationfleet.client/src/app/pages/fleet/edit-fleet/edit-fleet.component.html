@@ -103,6 +103,25 @@
           </div>
         </section>
       </form>
+
+      <button
+        type="button"
+        class="leave-btn"
+        *ngIf="isOrganizer"
+        (click)="onLeaveFleet()">
+        Leave fleet
+      </button>
     </div>
   </div>
 </app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showLeaveDialog"
+  title="Leave fleet?"
+  message="Your crew will leave this fleet. Access to other crews' library offerings and fleet content will end."
+  confirmLabel="Leave fleet"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmLeave()"
+  (cancelled)="onCancelLeave()"
+  (dismissed)="onCancelLeave()">
+</app-confirm-dialog>

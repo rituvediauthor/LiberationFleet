@@ -3,7 +3,7 @@
     <h1 class="page-title">Create Proposal</h1>
 
     <p class="permission-notice" *ngIf="!canCreateProposals">
-      You do not meet your crew's tenure or contribution requirements to create proposals. A crewmate may propose granting you permission.
+      {{ permissionNotice }}
     </p>
 
     <form [formGroup]="form">

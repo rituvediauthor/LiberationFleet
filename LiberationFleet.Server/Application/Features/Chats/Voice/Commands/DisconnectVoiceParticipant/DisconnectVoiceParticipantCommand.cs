@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Voice.Contracts;
 using LiberationFleet.Server.Infrastructure.LiveKit;
 using MediatR;
@@ -12,6 +13,8 @@ public record DisconnectVoiceParticipantCommand(int RoomId, int TargetUserId) : 
 public class DisconnectVoiceParticipantCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
+    IChatRepository chatRepository,
     IVoicePresenceRepository voicePresenceRepository,
     ILiveKitAdminService liveKitAdminService,
     IVoicePresenceNotifier voicePresenceNotifier,
@@ -29,6 +32,13 @@ public class DisconnectVoiceParticipantCommandHandler(
         if (membership is null || !CrewRoleAuthorizationService.CanModerateAttachments(membership))
         {
             return new VoiceOperationResponse { Success = false, Message = "You do not have permission to disconnect participants." };
+        }
+
+        var room = await chatRepository.GetRoomByIdAsync(request.RoomId, cancellationToken);
+        if (room is null
+            || !await ChatRoomAccess.CanAccessRoomAsync(room, membership, fleetRepository, cancellationToken))
+        {
+            return new VoiceOperationResponse { Success = false, Message = "Chat room not found." };
         }
 
         var session = await voicePresenceRepository.GetByUserAndRoomAsync(request.TargetUserId, request.RoomId, cancellationToken);

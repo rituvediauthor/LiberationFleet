@@ -64,11 +64,18 @@ public class CrewMembershipStatusDto
     public string? CrewName { get; set; }
     public string? JoinCode { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
+    public bool IsOrganizer { get; set; }
     public bool CanAttachFilesToCrewContent { get; set; }
     public bool CanCreateProposals { get; set; }
     public bool CanCreateFleetProposals { get; set; }
     public bool CanAttachFilesToFleetContent { get; set; }
     public bool CanExportCrewData { get; set; }
+    public int CrewTenureDays { get; set; }
+    public int FleetTenureDays { get; set; }
+    public int CrewProposalDaysRemaining { get; set; }
+    public decimal CrewProposalContributionShortfall { get; set; }
+    public int FleetProposalDaysRemaining { get; set; }
+    public decimal FleetProposalContributionShortfall { get; set; }
 }
 
 public class CrewOperationResponse

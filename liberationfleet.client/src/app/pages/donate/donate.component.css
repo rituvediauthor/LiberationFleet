@@ -1,0 +1,86 @@
+.donate-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px 4px 32px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 28px;
+}
+
+.lede,
+.status-note,
+.fine-print {
+  margin: 0 0 16px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
+  font-size: 15px;
+}
+
+.status-note {
+  color: var(--lf-color-text-body);
+  font-weight: 500;
+}
+
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.amount-btn {
+  min-height: 48px;
+  border-radius: 10px;
+  border: 1px solid var(--lf-color-border);
+  background: var(--lf-color-bg-surface);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.amount-btn.selected {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+}
+
+.custom-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.custom-field input {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--lf-color-border);
+  padding: 0 12px;
+  font-size: 16px;
+}
+
+.checkout-btn {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: var(--lf-color-accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.checkout-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fine-print {
+  font-size: 13px;
+}

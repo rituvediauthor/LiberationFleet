@@ -26,6 +26,16 @@ public class CrewKeyDistributionDto
     public int WrappedByUserId { get; set; }
 }
 
+public class FleetKeyDistributionDto
+{
+    public int FleetId { get; set; }
+    public int UserId { get; set; }
+    public int KeyVersion { get; set; }
+    public string WrappedFleetKey { get; set; } = string.Empty;
+    public string WrapNonce { get; set; } = string.Empty;
+    public int WrappedByUserId { get; set; }
+}
+
 public class EncryptedPayloadDto
 {
     public int KeyVersion { get; set; }
@@ -38,6 +48,7 @@ public class EncryptedContentEnvelopeDto
     public EncryptedContentTypeDto ContentType { get; set; }
     public string ResourceId { get; set; } = string.Empty;
     public int? CrewId { get; set; }
+    public int? FleetId { get; set; }
     public int AuthorUserId { get; set; }
     public int KeyVersion { get; set; }
     public string Nonce { get; set; } = string.Empty;
@@ -92,11 +103,20 @@ public class UpsertCrewKeyDistributionRequest
     public string WrapNonce { get; set; } = string.Empty;
 }
 
+public class UpsertFleetKeyDistributionRequest
+{
+    public int UserId { get; set; }
+    public int KeyVersion { get; set; } = 1;
+    public string WrappedFleetKey { get; set; } = string.Empty;
+    public string WrapNonce { get; set; } = string.Empty;
+}
+
 public class UpsertEncryptedContentRequest
 {
     public EncryptedContentTypeDto ContentType { get; set; }
     public string ResourceId { get; set; } = string.Empty;
     public int? CrewId { get; set; }
+    public int? FleetId { get; set; }
     public int KeyVersion { get; set; } = 1;
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;

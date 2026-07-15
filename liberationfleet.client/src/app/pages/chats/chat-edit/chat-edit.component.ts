@@ -103,7 +103,7 @@ export class ChatEditComponent implements OnInit {
       const value = this.form.getRawValue();
       const name = String(value.name).trim();
       const purpose = String(value.purpose).trim();
-      const encrypted = await this.chatCrypto.encryptRoomName(this.crewId, name);
+      const encrypted = await this.chatCrypto.encryptRoomName({ crewId: this.crewId }, name);
       const oldValues = this.initialFormValues ?? { name: '', purpose: '', roomType: 'Text' as ChatRoomType };
 
       this.chatService.updateRoom(this.roomId, {
@@ -186,7 +186,7 @@ export class ChatEditComponent implements OnInit {
             return;
           }
           const decrypted = this.crewId > 0
-            ? await this.chatCrypto.decryptRoom(response.room, this.crewId)
+            ? await this.chatCrypto.decryptRoom(response.room, { crewId: this.crewId })
             : response.room;
           this.form.patchValue({
             name: decrypted.name ?? '',

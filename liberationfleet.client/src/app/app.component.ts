@@ -8,6 +8,7 @@ import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/c
 import { AuthService } from './services/auth.service';
 import { CryptoSessionService } from './services/crypto/crypto-session.service';
 import { CrewCryptoSyncService } from './services/crew-crypto-sync.service';
+import { FleetCryptoSyncService } from './services/fleet-crypto-sync.service';
 import { NotificationHubService } from './services/notification-hub.service';
 import { NotificationService } from './services/notification.service';
 
@@ -25,6 +26,7 @@ export class AppComponent implements OnInit {
   private authService = inject(AuthService);
   private cryptoSession = inject(CryptoSessionService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
+  private fleetCryptoSync = inject(FleetCryptoSyncService);
   private notificationHub = inject(NotificationHubService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
@@ -33,6 +35,7 @@ export class AppComponent implements OnInit {
     void this.authService.getEncryptionReady().then(() => {
       this.syncUnlockDialog();
       void this.syncCrewCryptoIfInApp();
+      void this.syncFleetCryptoIfInApp();
       void this.connectNotificationsIfInApp();
     });
 
@@ -40,6 +43,7 @@ export class AppComponent implements OnInit {
       this.syncUnlockDialog();
       if (unlocked) {
         void this.syncCrewCryptoIfInApp();
+        void this.syncFleetCryptoIfInApp();
       }
     });
 
@@ -54,6 +58,7 @@ export class AppComponent implements OnInit {
   onCryptoUnlocked() {
     this.syncUnlockDialog();
     void this.syncCrewCryptoIfInApp();
+    void this.syncFleetCryptoIfInApp();
   }
 
   private syncUnlockDialog() {
@@ -66,6 +71,13 @@ export class AppComponent implements OnInit {
       return;
     }
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+  }
+
+  private syncFleetCryptoIfInApp() {
+    if (!this.router.url.startsWith('/app')) {
+      return;
+    }
+    void this.fleetCryptoSync.syncActiveFleetKeyDistributions();
   }
 
   private connectNotificationsIfInApp() {

@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
 import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
-import { CrewKeyDistribution, CrewKeyState, UserKeyBundle } from '../../models/crypto.model';
+import { CrewKeyDistribution, CrewKeyState, FleetKeyDistribution, FleetKeyState, UserKeyBundle } from '../../models/crypto.model';
 import { AppStorageService, StorageScope } from '../storage/app-storage.service';
 import { AUTH_TOKEN_STORAGE_KEY } from '../storage/storage-keys';
 import { getUserIdFromToken } from '../../utils/jwt.util';
@@ -20,6 +20,12 @@ interface CrewKeyMaterial {
   keyVersion: number;
 }
 
+interface FleetKeyMaterial {
+  key: CryptoKey;
+  bytes: Uint8Array;
+  keyVersion: number;
+}
+
 const CREW_KEY_POLL_ATTEMPTS = 30;
 const CREW_KEY_POLL_INTERVAL_MS = 2000;
 
@@ -30,6 +36,7 @@ export class CryptoSessionService {
   private identityPrivateKey: CryptoKey | null = null;
   private identityPublicKeySpki: string | null = null;
   private readonly crewKeyMaterial = new Map<number, CrewKeyMaterial>();
+  private readonly fleetKeyMaterial = new Map<number, FleetKeyMaterial>();
   private readonly unlockedSubject = new BehaviorSubject(false);
   private backupWrapVersion: number | null = null;
 
@@ -54,6 +61,7 @@ export class CryptoSessionService {
     this.identityPublicKeySpki = null;
     this.backupWrapVersion = null;
     this.crewKeyMaterial.clear();
+    this.fleetKeyMaterial.clear();
     this.unlockedSubject.next(false);
   }
 
@@ -139,6 +147,34 @@ export class CryptoSessionService {
     }
   }
 
+  async ensureFleetKeyReady(fleetId: number): Promise<CryptoKey> {
+    if (!this.identityPrivateKey) {
+      throw new Error('Encryption keys are locked.');
+    }
+
+    const material = await this.resolveFleetKeyMaterial(fleetId, true);
+    await this.provisionMissingDistributionsForFleet(fleetId, material);
+    return material.key;
+  }
+
+  async syncFleetKeyDistributions(fleetId: number): Promise<void> {
+    if (!this.identityPrivateKey) {
+      return;
+    }
+
+    const cached = this.fleetKeyMaterial.get(fleetId);
+    if (cached) {
+      await this.provisionMissingDistributionsForFleet(fleetId, cached);
+      return;
+    }
+
+    try {
+      await this.ensureFleetKeyReady(fleetId);
+    } catch {
+      // Existing members without cached keys cannot help yet; new members may still be waiting.
+    }
+  }
+
   private async resolveCrewKeyMaterial(crewId: number, waitForDistribution: boolean): Promise<CrewKeyMaterial> {
     const cached = this.crewKeyMaterial.get(crewId);
     if (cached) {
@@ -178,6 +214,91 @@ export class CryptoSessionService {
     const crewKeyBytes = this.cryptoService.generateCrewKeyBytes();
     await this.uploadCrewKeyDistributions(crewId, keyVersion, crewKeyBytes, publicKeys);
     return await this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes);
+  }
+
+  private async resolveFleetKeyMaterial(fleetId: number, waitForDistribution: boolean): Promise<FleetKeyMaterial> {
+    const cached = this.fleetKeyMaterial.get(fleetId);
+    if (cached) {
+      return cached;
+    }
+
+    const state = waitForDistribution
+      ? await this.waitForFleetKeyState(fleetId)
+      : await firstValueFrom(this.cryptoApi.getFleetKeyState(fleetId));
+    const publicKeys = await firstValueFrom(this.cryptoApi.getFleetPublicKeys(fleetId));
+    const publicKeyByUserId = new Map(publicKeys.map(key => [key.userId, key]));
+
+    if (state.myDistribution) {
+      try {
+        return await this.unwrapFleetDistribution(
+          fleetId,
+          state.myDistribution,
+          publicKeyByUserId
+        );
+      } catch {
+        // Distribution may have been wrapped for a previous identity key pair.
+      }
+    }
+
+    const soloRecovery = await this.tryRecoverSoloFleetKey(fleetId, state, publicKeys);
+    if (soloRecovery) {
+      return soloRecovery;
+    }
+
+    if ((state.latestKeyVersion ?? 0) > 0) {
+      throw new Error(
+        'Fleet encryption key is not yet available for your account. Ask a fleet member to open the app, then try again.'
+      );
+    }
+
+    const keyVersion = 1;
+    const fleetKeyBytes = this.cryptoService.generateFleetKeyBytes();
+    await this.uploadFleetKeyDistributions(fleetId, keyVersion, fleetKeyBytes, publicKeys);
+    return await this.cacheFleetKeyMaterial(fleetId, keyVersion, fleetKeyBytes);
+  }
+
+  private async waitForFleetKeyState(fleetId: number): Promise<FleetKeyState> {
+    for (let attempt = 0; attempt < CREW_KEY_POLL_ATTEMPTS; attempt++) {
+      const state = await firstValueFrom(this.cryptoApi.getFleetKeyState(fleetId));
+
+      if (state.myDistribution || (state.latestKeyVersion ?? 0) === 0) {
+        return state;
+      }
+
+      if (attempt < CREW_KEY_POLL_ATTEMPTS - 1) {
+        await this.sleep(CREW_KEY_POLL_INTERVAL_MS);
+      }
+    }
+
+    return firstValueFrom(this.cryptoApi.getFleetKeyState(fleetId));
+  }
+
+  private async provisionMissingDistributionsForFleet(fleetId: number, material: FleetKeyMaterial): Promise<void> {
+    const state = await firstValueFrom(this.cryptoApi.getFleetKeyState(fleetId));
+    const latestVersion = state.latestKeyVersion ?? material.keyVersion;
+    if (latestVersion !== material.keyVersion) {
+      return;
+    }
+
+    const publicKeys = await firstValueFrom(this.cryptoApi.getFleetPublicKeys(fleetId));
+    await this.provisionMissingFleetDistributions(
+      fleetId,
+      material.keyVersion,
+      material.bytes,
+      publicKeys,
+      state.distributions
+    );
+  }
+
+  private async cacheFleetKeyMaterial(
+    fleetId: number,
+    keyVersion: number,
+    fleetKeyBytes: Uint8Array
+  ): Promise<FleetKeyMaterial> {
+    const key = await this.cryptoService.importFleetAesKey(fleetKeyBytes);
+    const material: FleetKeyMaterial = { key, bytes: fleetKeyBytes, keyVersion };
+    this.fleetKeyMaterial.set(fleetId, material);
+    return material;
   }
 
   private async waitForCrewKeyState(crewId: number): Promise<CrewKeyState> {
@@ -275,6 +396,25 @@ export class CryptoSessionService {
     return this.cacheCrewKeyMaterial(crewId, distribution.keyVersion, crewKeyBytes);
   }
 
+  private async unwrapFleetDistribution(
+    fleetId: number,
+    distribution: FleetKeyDistribution,
+    publicKeyByUserId: Map<number, UserKeyBundle>
+  ): Promise<FleetKeyMaterial> {
+    const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId);
+    if (!wrapperPublicKey) {
+      throw new Error('Missing public key for fleet key author.');
+    }
+
+    const fleetKeyBytes = await this.cryptoService.unwrapFleetKey(
+      distribution.wrappedFleetKey,
+      distribution.wrapNonce,
+      wrapperPublicKey.identityPublicKey,
+      this.identityPrivateKey!
+    );
+    return this.cacheFleetKeyMaterial(fleetId, distribution.keyVersion, fleetKeyBytes);
+  }
+
   private async tryRecoverSoloCrewKey(
     crewId: number,
     state: CrewKeyState,
@@ -289,6 +429,22 @@ export class CryptoSessionService {
     const crewKeyBytes = this.cryptoService.generateCrewKeyBytes();
     await this.uploadCrewKeyDistributions(crewId, nextVersion, crewKeyBytes, publicKeys);
     return this.cacheCrewKeyMaterial(crewId, nextVersion, crewKeyBytes);
+  }
+
+  private async tryRecoverSoloFleetKey(
+    fleetId: number,
+    state: FleetKeyState,
+    publicKeys: UserKeyBundle[]
+  ): Promise<FleetKeyMaterial | null> {
+    const currentUserId = this.getCurrentUserId();
+    if (!currentUserId || publicKeys.length !== 1 || publicKeys[0].userId !== currentUserId) {
+      return null;
+    }
+
+    const nextVersion = Math.max(state.latestKeyVersion ?? 0, 0) + 1;
+    const fleetKeyBytes = this.cryptoService.generateFleetKeyBytes();
+    await this.uploadFleetKeyDistributions(fleetId, nextVersion, fleetKeyBytes, publicKeys);
+    return this.cacheFleetKeyMaterial(fleetId, nextVersion, fleetKeyBytes);
   }
 
   private getCurrentUserId(): number | null {
@@ -338,6 +494,61 @@ export class CryptoSessionService {
       wrappedCrewKey: wrapped.wrappedCrewKey,
       wrapNonce: wrapped.wrapNonce
     }));
+  }
+
+  private async uploadFleetKeyDistributions(
+    fleetId: number,
+    keyVersion: number,
+    fleetKeyBytes: Uint8Array,
+    publicKeys: UserKeyBundle[]
+  ): Promise<void> {
+    for (const memberKey of publicKeys) {
+      await this.uploadSingleFleetDistribution(fleetId, keyVersion, fleetKeyBytes, memberKey);
+    }
+  }
+
+  private async uploadSingleFleetDistribution(
+    fleetId: number,
+    keyVersion: number,
+    fleetKeyBytes: Uint8Array,
+    memberKey: UserKeyBundle
+  ): Promise<void> {
+    if (!this.identityPrivateKey) {
+      return;
+    }
+
+    const wrapped = await this.cryptoService.wrapFleetKeyForUser(
+      fleetKeyBytes,
+      memberKey.identityPublicKey,
+      this.identityPrivateKey
+    );
+    await firstValueFrom(this.cryptoApi.upsertFleetKeyDistribution(fleetId, {
+      userId: memberKey.userId,
+      keyVersion,
+      wrappedFleetKey: wrapped.wrappedFleetKey,
+      wrapNonce: wrapped.wrapNonce
+    }));
+  }
+
+  private async provisionMissingFleetDistributions(
+    fleetId: number,
+    keyVersion: number,
+    fleetKeyBytes: Uint8Array,
+    publicKeys: UserKeyBundle[],
+    distributions: { userId: number; keyVersion: number }[]
+  ): Promise<void> {
+    const distributedUserIds = new Set(
+      distributions
+        .filter(d => d.keyVersion === keyVersion)
+        .map(d => d.userId)
+    );
+
+    for (const memberKey of publicKeys) {
+      if (distributedUserIds.has(memberKey.userId)) {
+        continue;
+      }
+      await this.uploadSingleFleetDistribution(fleetId, keyVersion, fleetKeyBytes, memberKey);
+    }
   }
 
   private async provisionMissingDistributions(

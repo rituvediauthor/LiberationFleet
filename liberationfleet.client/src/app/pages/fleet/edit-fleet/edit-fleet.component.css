@@ -164,6 +164,24 @@ label {
   font-weight: 600;
 }
 
+.leave-btn {
+  margin-top: 24px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--lf-color-danger-border);
+  border-radius: 8px;
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leave-btn:hover {
+  background: var(--lf-color-danger-soft-bg);
+  border-color: var(--lf-color-danger);
+}
+
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;

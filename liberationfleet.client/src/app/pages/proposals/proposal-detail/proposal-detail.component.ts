@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ProposalService } from '../../../services/proposal.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
+import { FleetService } from '../../../services/fleet.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
@@ -27,6 +28,8 @@ import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
+import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { ContentReportTargetType } from '../../../models/content-report.model';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -40,7 +43,8 @@ import { MentionTextComponent } from '../../../components/mention-text/mention-t
     KickReasonDialogComponent,
     FallibleFooterComponent,
     MentionAutocompleteDirective,
-    MentionTextComponent
+    MentionTextComponent,
+    ReportContentDialogComponent
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
@@ -49,6 +53,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   proposal: ProposalDetail | null = null;
   loading = true;
   crewId = 0;
+  fleetId = 0;
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
@@ -76,6 +81,16 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   openCommentMenuId: number | null = null;
   openProposalAuthorMenu = false;
   countdownTick = 0;
+  showReportDialog = false;
+  reportTargetType: ContentReportTargetType = 'Proposal';
+  reportTargetResourceId: number | null = null;
+  reportTargetParentId: number | null = null;
+  reportTargetAuthorUserId: number | null = null;
+  reportEvidenceTitle = '';
+  reportEvidenceText = '';
+  reportEvidenceAuthorUsername = '';
+  reportMediaIds: string[] = [];
+  currentUserId: number | null = null;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -84,6 +99,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   private proposalService = inject(ProposalService);
   private proposalCrypto = inject(ProposalCryptoService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
@@ -95,6 +111,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
       || this.router.url.startsWith('/app/fleet/proposals');
+    const token = this.authService.getToken();
+    this.currentUserId = token ? getUserIdFromToken(token) : null;
     const proposalId = this.proposalId;
     if (proposalId) {
       const prefix = this.isFleetScope ? '/app/fleet/proposals' : '/app/crew/proposals';
@@ -112,6 +130,22 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         this.canAttachFiles = this.isFleetScope
           ? (membership.canAttachFilesToFleetContent ?? false)
           : (membership.canAttachFilesToCrewContent ?? false);
+        if (this.isFleetScope) {
+          this.fleetService.getStatus().subscribe({
+            next: async status => {
+              this.fleetId = status.fleetId ?? 0;
+              await this.encryptionContent.whenReady();
+              this.loadProposal();
+              this.encryptionReload?.markInitialLoadDone();
+            },
+            error: () => {
+              this.loading = false;
+              this.toastService.error('Failed to load fleet status');
+            }
+          });
+          return;
+        }
+
         await this.encryptionContent.whenReady();
         this.loadProposal();
         this.encryptionReload?.markInitialLoadDone();
@@ -152,6 +186,50 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.openCommentMenuId = null;
     this.openProposalAuthorMenu = !this.openProposalAuthorMenu;
+  }
+
+  get isOwnProposal(): boolean {
+    return this.proposal != null
+      && this.currentUserId != null
+      && this.proposal.authorUserId === this.currentUserId;
+  }
+
+  openReportProposal() {
+    if (!this.proposal) {
+      return;
+    }
+    this.openProposalAuthorMenu = false;
+    this.reportTargetType = 'Proposal';
+    this.reportTargetResourceId = this.proposal.id;
+    this.reportTargetParentId = null;
+    this.reportTargetAuthorUserId = this.proposal.authorUserId;
+    this.reportEvidenceTitle = this.proposal.title ?? '';
+    this.reportEvidenceText = this.proposal.description ?? '';
+    this.reportEvidenceAuthorUsername = this.proposal.authorUsername ?? '';
+    this.reportMediaIds = (this.proposal.resolvedAttachments ?? []).map(a => a.resourceId);
+    this.showReportDialog = true;
+  }
+
+  openReportComment(comment: ProposalComment, event?: Event) {
+    event?.stopPropagation();
+    this.openCommentMenuId = null;
+    this.reportTargetType = 'ProposalComment';
+    this.reportTargetResourceId = comment.id;
+    this.reportTargetParentId = this.proposal?.id ?? null;
+    this.reportTargetAuthorUserId = comment.authorUserId;
+    this.reportEvidenceTitle = '';
+    this.reportEvidenceText = comment.body ?? '';
+    this.reportEvidenceAuthorUsername = comment.authorUsername ?? '';
+    this.reportMediaIds = (comment.resolvedAttachments ?? []).map(a => a.resourceId);
+    this.showReportDialog = true;
+  }
+
+  onReportDismissed() {
+    this.showReportDialog = false;
+  }
+
+  onReportSubmitted() {
+    this.showReportDialog = false;
   }
 
   rerollNickname(event: Event) {
@@ -447,7 +525,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
   async postComment() {
     const hasContent = this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0;
-    if (!this.proposal || !hasContent || this.posting || this.crewId <= 0) {
+    const cryptoScope = this.cryptoScope;
+    if (!this.proposal || !hasContent || this.posting || !cryptoScope) {
       return;
     }
 
@@ -458,47 +537,28 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     const editingCommentId = this.editingCommentId;
 
     try {
+      const encrypted = await this.proposalCrypto.encryptCommentPayload(
+        cryptoScope,
+        {
+          body,
+          authorDisplayName: this.proposal.usesAnonymousComments
+            ? (this.proposal.viewerAlias ?? 'Anonymous')
+            : this.authorDisplayName
+        },
+        pendingAttachments,
+        this.keptCommentEditAttachments
+      );
+
       const request$ = editingCommentId
-        ? this.isFleetScope
-          ? this.proposalService.updateComment(this.proposal.id, editingCommentId, {
-            body,
-            mentionedUserIds: this.mentionedUserIds
-          })
-          : this.proposalService.updateComment(this.proposal.id, editingCommentId, {
-            ...(await this.proposalCrypto.encryptCommentPayload(
-              this.crewId,
-              {
-                body,
-                authorDisplayName: this.proposal.usesAnonymousComments
-                  ? (this.proposal.viewerAlias ?? 'Anonymous')
-                  : this.authorDisplayName
-              },
-              pendingAttachments,
-              this.keptCommentEditAttachments
-            )),
-            mentionedUserIds: this.mentionedUserIds
-          })
-        : this.isFleetScope
-          ? this.proposalService.postComment(this.proposal.id, {
-            parentCommentId,
-            body,
-            mentionedUserIds: this.mentionedUserIds
-          })
-          : this.proposalService.postComment(this.proposal.id, {
-            parentCommentId,
-            ...(await this.proposalCrypto.encryptCommentPayload(
-              this.crewId,
-              {
-                body,
-                authorDisplayName: this.proposal.usesAnonymousComments
-                  ? (this.proposal.viewerAlias ?? 'Anonymous')
-                  : this.authorDisplayName
-              },
-              pendingAttachments,
-              this.keptCommentEditAttachments
-            )),
-            mentionedUserIds: this.mentionedUserIds
-          });
+        ? this.proposalService.updateComment(this.proposal.id, editingCommentId, {
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        })
+        : this.proposalService.postComment(this.proposal.id, {
+          parentCommentId,
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        });
 
       request$.subscribe({
         next: result => {
@@ -532,7 +592,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       });
     } catch {
       this.posting = false;
-      this.toastService.error(this.isFleetScope ? 'Failed to post comment' : 'Failed to encrypt comment');
+      this.toastService.error('Failed to encrypt comment');
     }
   }
 
@@ -549,9 +609,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
     this.proposalService.getCommentReplies(this.proposalId, comment.id).subscribe({
       next: async replies => {
-        comment.replies = this.isFleetScope || this.crewId <= 0
-          ? replies
-          : await this.proposalCrypto.decryptComments(replies, this.crewId);
+        const scope = this.cryptoScope;
+        comment.replies = scope
+          ? await this.proposalCrypto.decryptComments(replies, scope)
+          : replies;
         comment.repliesExpanded = true;
       },
       error: () => this.toastService.error('Failed to load replies')
@@ -625,7 +686,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       replyToUsername,
       createdAt: new Date(),
       replyCount: 0,
-      hasEncryptedContent: !this.isFleetScope,
+      hasEncryptedContent: true,
       isOwnComment: true,
       canKick: false,
       body,
@@ -696,14 +757,23 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     return updated;
   }
 
+  private get cryptoScope(): { crewId: number } | { fleetId: number } | null {
+    if (this.isFleetScope) {
+      return this.fleetId > 0 ? { fleetId: this.fleetId } : null;
+    }
+
+    return this.crewId > 0 ? { crewId: this.crewId } : null;
+  }
+
   private loadProposal() {
     this.loading = true;
     this.proposalService.getProposal(this.proposalId).subscribe({
       next: async proposal => {
-        if (this.isFleetScope || this.crewId <= 0) {
-          this.proposal = proposal;
+        const scope = this.cryptoScope;
+        if (scope) {
+          this.proposal = await this.proposalCrypto.decryptDetail(proposal, scope);
         } else {
-          this.proposal = await this.proposalCrypto.decryptDetail(proposal, this.crewId);
+          this.proposal = proposal;
         }
         this.loading = false;
       },

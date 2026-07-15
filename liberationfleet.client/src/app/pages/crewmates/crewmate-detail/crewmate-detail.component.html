@@ -166,12 +166,20 @@
           <button
             type="button"
             class="block-btn"
+            [disabled]="actionLoading"
+            (click)="onReportCrewmate()">
+            Report user
+          </button>
+          <button
+            type="button"
+            class="block-btn"
             [disabled]="actionLoading || isBlocked"
             (click)="onBlockCrewmate()">
             {{ isBlocked ? 'Blocked' : 'Block crewmate' }}
           </button>
           <p class="hint-text">
             Blocking hides all comments and messages between you and this crewmate. Neither of you will see the other's content.
+            Use Report for illegal or abusive content — a snapshot may be retained for safety review.
           </p>
         </div>
 
@@ -226,3 +234,15 @@
   (cancelled)="onCancelKickFromSeason()"
   (dismissed)="onCancelKickFromSeason()">
 </app-kick-reason-dialog>
+
+<app-report-content-dialog
+  [visible]="showReportDialog"
+  targetType="UserProfile"
+  [targetResourceId]="userId"
+  [targetAuthorUserId]="userId"
+  [evidenceTitle]="profile?.username || ''"
+  [evidenceText]="profile ? ('Profile report for ' + profile.username) : 'Profile report'"
+  [evidenceAuthorUsername]="profile?.username || ''"
+  (dismissed)="onReportDismissed()"
+  (submitted)="onReportSubmitted()">
+</app-report-content-dialog>

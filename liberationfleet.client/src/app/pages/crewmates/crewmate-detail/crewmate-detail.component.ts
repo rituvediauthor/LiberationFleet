@@ -5,6 +5,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
+import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { CrewmateProfile } from '../../../models/crewmate.model';
@@ -12,7 +13,7 @@ import { CrewmateProfile } from '../../../models/crewmate.model';
 @Component({
   selector: 'app-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent, ReportContentDialogComponent],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'
 })
@@ -24,6 +25,7 @@ export class CrewmateDetailComponent implements OnInit {
   showBlockDialog = false;
   showKickDialog = false;
   showKickFromSeasonDialog = false;
+  showReportDialog = false;
   selectedRoles = new Set<string>();
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
@@ -35,7 +37,7 @@ export class CrewmateDetailComponent implements OnInit {
   private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
   private toastService = inject(ToastService);
-  private userId = 0;
+  userId = 0;
 
   ngOnInit() {
     this.backButton = this.navigation.createBackButton(['/app/crew/crewmates']);
@@ -76,6 +78,18 @@ export class CrewmateDetailComponent implements OnInit {
       return;
     }
     this.showBlockDialog = true;
+  }
+
+  onReportCrewmate() {
+    this.showReportDialog = true;
+  }
+
+  onReportDismissed() {
+    this.showReportDialog = false;
+  }
+
+  onReportSubmitted() {
+    this.showReportDialog = false;
   }
 
   onKickCrewmate() {
@@ -201,7 +215,7 @@ export class CrewmateDetailComponent implements OnInit {
       next: response => {
         this.actionLoading = false;
         if (!response.success) {
-          this.toastService.error(response.message || 'Failed to submit demotion proposal');
+          this.toastService.error(response.message || 'Failed to update roles');
           if (response.proposalId) {
             this.router.navigate(['/app/crew/proposals', response.proposalId]);
           }
@@ -209,15 +223,20 @@ export class CrewmateDetailComponent implements OnInit {
           return;
         }
 
-        this.toastService.success(response.message || 'Demotion proposal submitted');
+        this.toastService.success(
+          response.message
+            || (response.proposalId ? 'Demotion proposal submitted' : 'Roles updated')
+        );
         this.selectedRoles.clear();
         if (response.proposalId) {
           this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else if (this.profile?.isSelf) {
+          this.loadProfile();
         }
       },
       error: () => {
         this.actionLoading = false;
-        this.toastService.error('Failed to submit demotion proposal');
+        this.toastService.error('Failed to update roles');
         this.updateActionButtons();
       }
     });

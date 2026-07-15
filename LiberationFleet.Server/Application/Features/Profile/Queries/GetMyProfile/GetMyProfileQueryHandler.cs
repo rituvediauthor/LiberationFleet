@@ -14,6 +14,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
     private readonly IMutualAidRepository _mutualAidRepository;
     private readonly IMutualAidService _mutualAidService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAppDonationRepository _donationRepository;
 
     public GetMyProfileQueryHandler(
         IUserRepository userRepository,
@@ -21,7 +22,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         ICrewMembershipRepository membershipRepository,
         IMutualAidRepository mutualAidRepository,
         IMutualAidService mutualAidService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IAppDonationRepository donationRepository)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
@@ -29,6 +31,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         _mutualAidRepository = mutualAidRepository;
         _mutualAidService = mutualAidService;
         _currentUserService = currentUserService;
+        _donationRepository = donationRepository;
     }
 
     public async Task<UserProfileDto?> Handle(GetMyProfileQuery request, CancellationToken cancellationToken)
@@ -81,6 +84,17 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 && unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
         }
 
+        var now = DateTime.UtcNow;
+        var currentYear = now.Year;
+        var previousYear = currentYear - 1;
+        var currentStart = new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var previousStart = new DateTime(previousYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var nextStart = new DateTime(currentYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var currentDonations = await _donationRepository.SumCompletedUsdForUserInRangeAsync(
+            userId.Value, currentStart, nextStart, cancellationToken);
+        var previousDonations = await _donationRepository.SumCompletedUsdForUserInRangeAsync(
+            userId.Value, previousStart, currentStart, cancellationToken);
+
         return ProfileMapper.MapUser(
             user,
             giftStats,
@@ -88,6 +102,10 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             isFinancialMember,
             priorityScore,
             user.PercentBonus,
-            isSurvivalRecipient);
+            isSurvivalRecipient,
+            previousDonations,
+            currentDonations,
+            previousYear,
+            currentYear);
     }
 }

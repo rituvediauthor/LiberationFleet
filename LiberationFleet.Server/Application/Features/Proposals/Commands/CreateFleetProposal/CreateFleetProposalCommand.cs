@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Application.Services;
@@ -10,7 +11,11 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Proposals.Commands.CreateFleetProposal;
 
-public record CreateFleetProposalCommand(string Title, string Description) : IRequest<ProposalOperationResponse>;
+public record CreateFleetProposalCommand(
+    string Nonce,
+    string Ciphertext,
+    int KeyVersion,
+    IReadOnlyList<int> MentionedUserIds) : IRequest<ProposalOperationResponse>;
 
 public class CreateFleetProposalCommandHandler(
     ICurrentUserService currentUser,
@@ -19,7 +24,9 @@ public class CreateFleetProposalCommandHandler(
     IGiftRepository giftRepository,
     IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
+    ICryptoRepository cryptoRepository,
     NotificationService notificationService,
+    ContentMentionService contentMentionService,
     ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetProposalCommand, ProposalOperationResponse>
 {
@@ -32,11 +39,9 @@ public class CreateFleetProposalCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var title = request.Title?.Trim() ?? string.Empty;
-        var description = request.Description?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(description))
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
         {
-            return new ProposalOperationResponse { Success = false, Message = "Title and description are required." };
+            return new ProposalOperationResponse { Success = false, Message = "Encrypted proposal content is required." };
         }
 
         var userId = currentUser.UserId.Value;
@@ -93,12 +98,21 @@ public class CreateFleetProposalCommandHandler(
         ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
 
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
-        await proposalRepository.AddFleetNoticeAsync(new ProposalFleetNotice
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
-            Proposal = proposal,
-            Title = title,
-            Description = description
+            ContentType = EncryptedContentType.Proposal,
+            ResourceId = proposal.Id.ToString(),
+            FleetId = fleet.Id,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
         }, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
@@ -114,6 +128,17 @@ public class CreateFleetProposalCommandHandler(
                 excludeUserId: userId,
                 cancellationToken: cancellationToken);
         }
+
+        await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
+        {
+            CrewId = membership.CrewId,
+            FleetId = fleet.Id,
+            AuthorUserId = userId,
+            ContentType = MentionedContentType.Proposal,
+            ResourceId = proposal.Id,
+            ActionUrl = $"/app/fleet/proposals/{proposal.Id}",
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+        }, cancellationToken);
 
         return new ProposalOperationResponse
         {

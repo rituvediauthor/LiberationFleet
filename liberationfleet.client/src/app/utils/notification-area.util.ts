@@ -7,7 +7,8 @@ export type CrewNotificationArea =
   | 'giftLog'
   | 'rules'
   | 'library'
-  | 'crewmates';
+  | 'crewmates'
+  | 'fleet';
 
 export type CrewNotificationAreaCounts = Record<CrewNotificationArea, number>;
 
@@ -19,7 +20,8 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
     giftLog: 0,
     rules: 0,
     library: 0,
-    crewmates: 0
+    crewmates: 0,
+    fleet: 0
   };
 }
 
@@ -35,21 +37,26 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   if (path.startsWith('/app/crew/proposals') || path.startsWith('/app/fleet/proposals')) {
     return 'proposals';
   }
-  if (path.startsWith('/app/crew/library-of-things')) {
+  if (path.startsWith('/app/crew/library-of-things') || path.startsWith('/app/fleet/library')) {
     return 'library';
   }
-  if (path.startsWith('/app/crew/rules')) {
+  if (path.startsWith('/app/crew/rules') || path.startsWith('/app/fleet/rules')) {
     return 'rules';
   }
-  if (path.startsWith('/app/crew/crewmates')) {
+  if (path.startsWith('/app/crew/crewmates') || path.startsWith('/app/fleet/crews')) {
     return 'crewmates';
   }
   if (
     path === '/app/crew/gift-log'
     || path.startsWith('/app/crew/season-setup')
     || path.startsWith('/app/crew/join-season')
+    || path === '/app/fleet/gift-log'
+    || path.startsWith('/app/fleet/emergency')
   ) {
     return 'giftLog';
+  }
+  if (path.startsWith('/app/fleet/')) {
+    return 'fleet';
   }
 
   switch (item.kind) {
@@ -69,11 +76,13 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewCycle':
     case 'NewSeason':
     case 'SurvivalThresholdsRefreshed':
+    case 'NewFleetGifts':
       return 'giftLog';
     case 'NewRule':
     case 'RuleDeleted':
     case 'RuleEdited':
     case 'CrewSettingChanged':
+    case 'FleetSettingChanged':
       return 'rules';
     case 'NewCrewmate':
     case 'CrewmateKicked':

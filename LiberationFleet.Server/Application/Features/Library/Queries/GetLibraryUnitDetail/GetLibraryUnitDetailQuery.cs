@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using MediatR;
 
@@ -10,6 +11,7 @@ public record GetLibraryUnitDetailQuery(int UnitId) : IRequest<LibraryUnitDetail
 public class GetLibraryUnitDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
 {
     public async Task<LibraryUnitDetailResponse> Handle(
@@ -28,7 +30,12 @@ public class GetLibraryUnitDetailQueryHandler(
             return new LibraryUnitDetailResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var unit = await libraryRepository.GetUnitByIdForCrewAsync(request.UnitId, membership.CrewId, cancellationToken);
+        var crewIds = await LibraryScopeHelper.GetAccessibleCrewIdsAsync(
+            membership.CrewId,
+            fleetRepository,
+            cancellationToken);
+
+        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(request.UnitId, crewIds, cancellationToken);
         if (unit is null)
         {
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };

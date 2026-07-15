@@ -1,12 +1,12 @@
 LIBERATION FLEET PRIVACY POLICY
 
-Last updated: June 21, 2026
+Last updated: July 15, 2026
 
 This Privacy Policy describes how Liberation Fleet ("we," "us," or "our") collects, uses, stores, and shares information when you use the Liberation Fleet application and related services (the "Service").
 
-By creating an account or using the Service, you agree to this Privacy Policy. If you do not agree, do not use the Service.
+By creating an account or using the Service, you agree to this Privacy Policy and our Community Standards. If you do not agree, do not use the Service.
 
-IMPORTANT: Liberation Fleet is a mutual-aid coordination tool. We are not a bank, credit union, money transmitter, or payment processor. Gifts are recorded and coordinated through the Service, but payments occur on third-party platforms (such as PayPal, Venmo, Cash App, or Zelle) outside of our control.
+IMPORTANT: Liberation Fleet is a mutual-aid coordination tool for adults 18 years of age or older. We are not a bank, credit union, money transmitter, or payment processor. Gifts are recorded and coordinated through the Service, but payments occur on third-party platforms (such as PayPal, Venmo, Cash App, or Zelle) outside of our control.
 
 
 1. WHO THIS POLICY APPLIES TO
@@ -74,6 +74,19 @@ We automatically collect certain technical information needed to operate the Ser
 2.6 Communications and account recovery
 If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests. Password reset changes your login credentials only. It does not restore access to encrypted content; you still need your recovery key for that.
 
+2.7 Safety reports (report packets)
+When you use Report on content or a profile, we collect:
+- Your user id (as reporter)
+- Report reason category and optional short note
+- Target content type and identifiers (for example message, post, comment, or profile ids)
+- Suspected user ids you identify
+- A one-time evidence snapshot: decrypted text (truncated) and, when you include them, limited media metadata or bytes you choose to attach for that report
+- Timestamps and status of the report (received, escalated, closed)
+
+Routine end-to-end encrypted content remains unread by us. Report evidence is encrypted at rest with a separate report-evidence key (not your crew or fleet content key). Access is limited to safety operations, contracted moderation vendors (when used), and disclosures required by law — including CyberTipline reports to NCMEC for apparent child sexual exploitation when we have actual knowledge.
+
+Retention: non-CSAM report packets are kept for a limited safety window (typically up to 90 days unless an investigation is open). CSAM-related or lawfully escalated packets are preserved as required for CyberTipline / legal compliance.
+
 
 3. HOW WE USE INFORMATION
 
@@ -84,8 +97,9 @@ We use the information we collect to:
 - Record gifts and run mutual-aid features (reception order, thresholds, cycles, verification workflows, and season management)
 - Display information to you and to other members of your crew as the app is designed to do
 - Operate encryption key exchange and store encrypted content on your behalf
+- Process safety reports, quarantine abusive content identifiers, freeze abusive accounts, and file legally required reports (including to NCMEC)
 - Respond to support requests and secure the Service
-- Comply with applicable law and enforce our terms
+- Comply with applicable law and enforce our Community Standards
 
 We do not sell your personal information.
 
@@ -137,9 +151,9 @@ We retain information for as long as your account is active or as needed to prov
 - You may decline to accept this policy, but you will not be able to register for an account.
 
 
-9. CHILDREN
+9. CHILDREN AND AGE REQUIREMENT
 
-The Service is not intended for children under 13 (or the minimum age required in your jurisdiction). We do not knowingly collect personal information from children.
+The Service is intended only for adults 18 years of age or older. We do not knowingly allow minors to register. If you believe a minor has created an account, Report it and contact us so we can disable the account.
 
 
 10. CHANGES TO THIS POLICY

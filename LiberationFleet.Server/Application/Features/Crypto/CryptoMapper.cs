@@ -32,11 +32,22 @@ public static class CryptoMapper
         WrappedByUserId = distribution.WrappedByUserId
     };
 
+    public static FleetKeyDistributionDto MapFleetKeyDistribution(FleetKeyDistribution distribution) => new()
+    {
+        FleetId = distribution.FleetId,
+        UserId = distribution.UserId,
+        KeyVersion = distribution.KeyVersion,
+        WrappedFleetKey = distribution.WrappedFleetKey,
+        WrapNonce = distribution.WrapNonce,
+        WrappedByUserId = distribution.WrappedByUserId
+    };
+
     public static EncryptedContentEnvelopeDto MapEnvelope(EncryptedContentEnvelope envelope) => new()
     {
         ContentType = MapContentType(envelope.ContentType),
         ResourceId = envelope.ResourceId,
         CrewId = envelope.CrewId,
+        FleetId = envelope.FleetId,
         AuthorUserId = envelope.AuthorUserId,
         KeyVersion = envelope.KeyVersion,
         Nonce = envelope.Nonce,

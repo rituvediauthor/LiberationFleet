@@ -17,6 +17,11 @@ public interface ICryptoRepository
     Task<IReadOnlyList<CrewKeyDistribution>> GetCrewKeyDistributionsAsync(int crewId, int keyVersion, CancellationToken cancellationToken = default);
     Task UpsertCrewKeyDistributionAsync(CrewKeyDistribution distribution, CancellationToken cancellationToken = default);
 
+    Task<FleetKeyDistribution?> GetFleetKeyDistributionAsync(int fleetId, int userId, int keyVersion, CancellationToken cancellationToken = default);
+    Task<int?> GetLatestFleetKeyVersionAsync(int fleetId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FleetKeyDistribution>> GetFleetKeyDistributionsAsync(int fleetId, int keyVersion, CancellationToken cancellationToken = default);
+    Task UpsertFleetKeyDistributionAsync(FleetKeyDistribution distribution, CancellationToken cancellationToken = default);
+
     Task<EncryptedContentEnvelope?> GetEnvelopeAsync(
         EncryptedContentType contentType,
         string resourceId,
@@ -25,6 +30,7 @@ public interface ICryptoRepository
         EncryptedContentType contentType,
         IReadOnlyList<string> resourceIds,
         int? crewId = null,
+        int? fleetId = null,
         CancellationToken cancellationToken = default);
     Task UpsertEnvelopeAsync(EncryptedContentEnvelope envelope, CancellationToken cancellationToken = default);
 

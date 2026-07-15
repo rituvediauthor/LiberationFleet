@@ -34,8 +34,8 @@ public class GetCrewRulesQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.RulesDocument,
             resourceIds,
-            membership.CrewId,
-            cancellationToken);
+            crewId: membership.CrewId,
+            cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var items = rules.Select(rule =>

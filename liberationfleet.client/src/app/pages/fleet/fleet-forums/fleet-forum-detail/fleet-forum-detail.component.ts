@@ -1,20 +1,25 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FleetService } from '../../../../services/fleet.service';
+import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { FallibleFooterComponent } from '../../../../components/fallible-footer/fallible-footer.component';
 import { AdultContentGateComponent } from '../../../../components/adult-content-gate/adult-content-gate.component';
 import { FleetForumComment, FleetForumPost } from '../../../../models/fleet-forum.model';
+import { ProposalComment, ProposalDetail } from '../../../../models/proposal.model';
 import { AuthService } from '../../../../services/auth.service';
 import { getUserIdFromToken } from '../../../../utils/jwt.util';
 import { AdultContentService } from '../../../../services/adult-content.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { ContentPreferenceService } from '../../../../services/content-preference.service';
 import { ProfileService } from '../../../../services/profile.service';
+import { EncryptionContentService, EncryptionReloadHandle } from '../../../../services/encryption-content.service';
 
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+import { ReportContentDialogComponent } from '../../../../components/report-content-dialog/report-content-dialog.component';
+import { ContentReportTargetType } from '../../../../models/content-report.model';
 
 @Component({
   selector: 'app-fleet-forum-detail',
@@ -24,17 +29,19 @@ import { MentionAutocompleteDirective } from '../../../../directives/mention-aut
     FormsModule,
     FallibleFooterComponent,
     AdultContentGateComponent,
-    MentionAutocompleteDirective
+    MentionAutocompleteDirective,
+    ReportContentDialogComponent
   ],
   templateUrl: './fleet-forum-detail.component.html',
   styleUrl: './fleet-forum-detail.component.css'
 })
-export class FleetForumDetailComponent implements OnInit {
+export class FleetForumDetailComponent implements OnInit, OnDestroy {
   @ViewChild('detailScroll') detailScroll?: ElementRef<HTMLElement>;
 
   post: FleetForumPost | null = null;
   loading = true;
   loadError = '';
+  fleetId = 0;
   authorDisplayName = '';
   commentText = '';
   mentionedUserIds: number[] = [];
@@ -51,19 +58,33 @@ export class FleetForumDetailComponent implements OnInit {
   currentUserId: number | null = null;
   showAdultGate = false;
   contentRevealed = true;
+  showReportDialog = false;
+  reportTargetType: ContentReportTargetType = 'ForumPost';
+  reportTargetResourceId: number | null = null;
+  reportTargetParentId: number | null = null;
+  reportTargetAuthorUserId: number | null = null;
+  reportEvidenceTitle = '';
+  reportEvidenceText = '';
+  reportEvidenceAuthorUsername = '';
+  reportMediaIds: string[] = [];
 
   private route = inject(ActivatedRoute);
   private navigation = inject(NavigationService);
   private fleetService = inject(FleetService);
+  private forumCrypto = inject(ProposalCryptoService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
   private profileService = inject(ProfileService);
+  private encryptionContent = inject(EncryptionContentService);
+  private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
+
+    this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadPost());
 
     this.profileService.getProfile().subscribe({
       next: profile => {
@@ -71,10 +92,25 @@ export class FleetForumDetailComponent implements OnInit {
       }
     });
 
-    this.contentPreferenceService.ensureLoaded().subscribe({
-      next: () => this.loadPost(),
-      error: () => this.loadPost()
+    this.fleetService.getStatus().subscribe({
+      next: async status => {
+        this.fleetId = status.fleetId ?? 0;
+        await this.encryptionContent.whenReady();
+        this.contentPreferenceService.ensureLoaded().subscribe({
+          next: () => this.loadPost(),
+          error: () => this.loadPost()
+        });
+        this.encryptionReload?.markInitialLoadDone();
+      },
+      error: () => {
+        this.loadError = 'Failed to load fleet status';
+        this.loading = false;
+      }
     });
+  }
+
+  ngOnDestroy() {
+    this.encryptionReload?.subscription.unsubscribe();
   }
 
   get postId(): number {
@@ -121,6 +157,47 @@ export class FleetForumDetailComponent implements OnInit {
 
   isOwnComment(comment: FleetForumComment): boolean {
     return this.currentUserId != null && comment.authorUserId === this.currentUserId;
+  }
+
+  get isOwnPost(): boolean {
+    return this.post != null && this.currentUserId != null && this.post.authorUserId === this.currentUserId;
+  }
+
+  openReportPost() {
+    if (!this.post) {
+      return;
+    }
+    this.reportTargetType = 'ForumPost';
+    this.reportTargetResourceId = this.post.id;
+    this.reportTargetParentId = null;
+    this.reportTargetAuthorUserId = this.post.authorUserId;
+    this.reportEvidenceTitle = this.post.title ?? '';
+    this.reportEvidenceText = this.post.description ?? this.post.body ?? '';
+    this.reportEvidenceAuthorUsername = this.post.authorUsername ?? '';
+    this.reportMediaIds = [];
+    this.showReportDialog = true;
+  }
+
+  openReportComment(comment: FleetForumComment, event?: Event) {
+    event?.stopPropagation();
+    this.openCommentMenuId = null;
+    this.reportTargetType = 'ForumComment';
+    this.reportTargetResourceId = comment.id;
+    this.reportTargetParentId = this.post?.id ?? null;
+    this.reportTargetAuthorUserId = comment.authorUserId;
+    this.reportEvidenceTitle = '';
+    this.reportEvidenceText = comment.body ?? '';
+    this.reportEvidenceAuthorUsername = comment.authorUsername ?? '';
+    this.reportMediaIds = [];
+    this.showReportDialog = true;
+  }
+
+  onReportDismissed() {
+    this.showReportDialog = false;
+  }
+
+  onReportSubmitted() {
+    this.showReportDialog = false;
   }
 
   toggleCommentMenu(commentId: number, event: Event) {
@@ -171,7 +248,7 @@ export class FleetForumDetailComponent implements OnInit {
 
     this.editing = true;
     this.editTitle = this.post.title ?? '';
-    this.editBody = this.post.body ?? '';
+    this.editBody = this.post.description ?? this.post.body ?? '';
   }
 
   cancelEdit() {
@@ -180,8 +257,8 @@ export class FleetForumDetailComponent implements OnInit {
     this.editBody = '';
   }
 
-  saveEdit() {
-    if (!this.post?.canEdit || this.savingEdit) {
+  async saveEdit() {
+    if (!this.post?.canEdit || this.savingEdit || this.fleetId <= 0) {
       return;
     }
 
@@ -193,26 +270,43 @@ export class FleetForumDetailComponent implements OnInit {
     }
 
     this.savingEdit = true;
-    this.fleetService.updateForum(this.post.id, { title, body }).subscribe({
-      next: result => {
-        this.savingEdit = false;
-        if (result.success) {
-          this.toastService.success('Post updated');
-          this.cancelEdit();
-          this.loadPost();
-          return;
+    try {
+      const encrypted = await this.forumCrypto.encryptProposalPayload(
+        { fleetId: this.fleetId },
+        {
+          title,
+          description: body,
+          authorDisplayName: this.authorDisplayName
         }
-        this.toastService.error(result.message || 'Failed to update post');
-      },
-      error: () => {
-        this.savingEdit = false;
-        this.toastService.error('Failed to update post');
-      }
-    });
+      );
+
+      this.fleetService.updateForum(this.post.id, {
+        ...encrypted,
+        mentionedUserIds: []
+      }).subscribe({
+        next: result => {
+          this.savingEdit = false;
+          if (result.success) {
+            this.toastService.success('Post updated');
+            this.cancelEdit();
+            this.loadPost();
+            return;
+          }
+          this.toastService.error(result.message || 'Failed to update post');
+        },
+        error: () => {
+          this.savingEdit = false;
+          this.toastService.error('Failed to update post');
+        }
+      });
+    } catch {
+      this.savingEdit = false;
+      this.toastService.error('Failed to encrypt post content');
+    }
   }
 
-  postComment() {
-    if (!this.post || !this.commentText.trim() || this.posting) {
+  async postComment() {
+    if (!this.post || !this.commentText.trim() || this.posting || this.fleetId <= 0) {
       return;
     }
 
@@ -221,42 +315,57 @@ export class FleetForumDetailComponent implements OnInit {
     const editingCommentId = this.editingCommentId;
 
     this.posting = true;
-
-    const request$ = editingCommentId
-      ? this.fleetService.updateForumComment(this.post.id, editingCommentId, { body })
-      : this.fleetService.createForumComment(this.post.id, {
-          parentCommentId: parentCommentId ?? undefined,
+    try {
+      const encrypted = await this.forumCrypto.encryptCommentPayload(
+        { fleetId: this.fleetId },
+        {
           body,
+          authorDisplayName: this.authorDisplayName
+        }
+      );
+
+      const request$ = editingCommentId
+        ? this.fleetService.updateForumComment(this.post.id, editingCommentId, {
+          ...encrypted,
+          mentionedUserIds: this.mentionedUserIds
+        })
+        : this.fleetService.createForumComment(this.post.id, {
+          parentCommentId: parentCommentId ?? undefined,
+          ...encrypted,
           mentionedUserIds: this.mentionedUserIds
         });
 
-    request$.subscribe({
-      next: result => {
-        this.posting = false;
-        if (result.success) {
-          if (!editingCommentId && result.commentId) {
-            this.insertPostedComment(result.commentId, body, parentCommentId);
-          } else {
-            this.refreshPostPreservingScroll();
+      request$.subscribe({
+        next: result => {
+          this.posting = false;
+          if (result.success) {
+            if (!editingCommentId && result.commentId) {
+              this.insertPostedComment(result.commentId, body, parentCommentId);
+            } else {
+              this.refreshPostPreservingScroll();
+            }
+            this.commentText = '';
+            this.mentionedUserIds = [];
+            this.commentFocused = false;
+            this.replyParentId = null;
+            this.editingCommentId = null;
+            this.editingCommentParentId = null;
+            this.toastService.success(editingCommentId ? 'Comment updated' : 'Comment posted');
+            return;
           }
-          this.commentText = '';
-          this.mentionedUserIds = [];
-          this.commentFocused = false;
-          this.replyParentId = null;
-          this.editingCommentId = null;
-          this.editingCommentParentId = null;
-          this.toastService.success(editingCommentId ? 'Comment updated' : 'Comment posted');
-          return;
+          this.toastService.error(
+            result.message || (editingCommentId ? 'Failed to update comment' : 'Failed to post comment')
+          );
+        },
+        error: () => {
+          this.posting = false;
+          this.toastService.error(editingCommentId ? 'Failed to update comment' : 'Failed to post comment');
         }
-        this.toastService.error(
-          result.message || (editingCommentId ? 'Failed to update comment' : 'Failed to post comment')
-        );
-      },
-      error: () => {
-        this.posting = false;
-        this.toastService.error(editingCommentId ? 'Failed to update comment' : 'Failed to post comment');
-      }
-    });
+      });
+    } catch {
+      this.posting = false;
+      this.toastService.error('Failed to encrypt comment');
+    }
   }
 
   toggleReplies(comment: FleetForumComment) {
@@ -271,12 +380,19 @@ export class FleetForumDetailComponent implements OnInit {
     }
 
     this.fleetService.getForumCommentReplies(this.postId, comment.id).subscribe({
-      next: response => {
+      next: async response => {
         if (!response.success) {
           this.toastService.error(response.message || 'Failed to load replies');
           return;
         }
-        comment.replies = response.items ?? [];
+
+        const replies = response.items ?? [];
+        comment.replies = this.fleetId > 0
+          ? await this.forumCrypto.decryptComments(
+            replies as unknown as ProposalComment[],
+            { fleetId: this.fleetId }
+          ) as unknown as FleetForumComment[]
+          : replies;
         comment.repliesExpanded = true;
       },
       error: () => this.toastService.error('Failed to load replies')
@@ -338,7 +454,7 @@ export class FleetForumDetailComponent implements OnInit {
       createdAt: new Date().toISOString(),
       replyCount: 0,
       body,
-      hasEncryptedContent: false
+      hasEncryptedContent: true
     };
 
     if (!parentCommentId) {
@@ -427,31 +543,49 @@ export class FleetForumDetailComponent implements OnInit {
     }
 
     this.fleetService.getForum(this.postId).subscribe({
-      next: response => {
-        if (!response.success || !response.post) {
+      next: async response => {
+        try {
+          if (!response.success || !response.post) {
+            if (!options?.silent) {
+              this.post = null;
+              this.loading = false;
+            }
+            this.loadError = response.message || 'Failed to load post';
+            this.toastService.error(this.loadError);
+            return;
+          }
+
+          const post = response.post;
+          if (this.fleetId > 0) {
+            this.post = await this.forumCrypto.decryptDetail(
+              post as unknown as ProposalDetail,
+              { fleetId: this.fleetId }
+            ) as unknown as FleetForumPost;
+          } else {
+            this.post = post;
+          }
+
+          const resourceKey = this.adultContentService.resourceKey('forum', this.postId);
+          if (this.adultContentService.needsAgeGate(this.post.isAdultContent, resourceKey)) {
+            this.showAdultGate = true;
+            this.contentRevealed = false;
+          } else {
+            this.contentRevealed = true;
+          }
+
+          options?.onLoaded?.();
+        } catch (error: unknown) {
           if (!options?.silent) {
             this.post = null;
+          }
+          this.loadError = error instanceof Error
+            ? error.message
+            : 'Failed to decrypt post';
+          this.toastService.error(this.loadError);
+        } finally {
+          if (!options?.silent) {
             this.loading = false;
           }
-          this.loadError = response.message || 'Failed to load post';
-          this.toastService.error(this.loadError);
-          return;
-        }
-
-        this.post = response.post;
-
-        const resourceKey = this.adultContentService.resourceKey('forum', this.postId);
-        if (this.adultContentService.needsAgeGate(this.post.isAdultContent, resourceKey)) {
-          this.showAdultGate = true;
-          this.contentRevealed = false;
-        } else {
-          this.contentRevealed = true;
-        }
-
-        options?.onLoaded?.();
-
-        if (!options?.silent) {
-          this.loading = false;
         }
       },
       error: err => {

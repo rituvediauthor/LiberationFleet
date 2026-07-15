@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
@@ -20,7 +20,7 @@ import { mergePaymentPlatformOptions } from '../../utils/payment-platform-option
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent, PaymentPlatformEditorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, PageLayoutComponent, RecoveryKeyDisplayComponent, PaymentPlatformEditorComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -28,6 +28,7 @@ export class ProfileComponent implements OnInit {
   form!: FormGroup;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];
+  readonly currentYear = new Date().getFullYear();
   isLoading = true;
   isSaving = false;
   loadError = '';

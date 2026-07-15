@@ -15,6 +15,7 @@ public record GetDurableLibraryUnitsQuery(
 public class GetDurableLibraryUnitsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository) : IRequestHandler<GetDurableLibraryUnitsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
@@ -34,8 +35,13 @@ public class GetDurableLibraryUnitsQueryHandler(
             return new LibraryUnitListResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var page = await libraryRepository.GetDurableUnitsForCrewAsync(
+        var crewIds = await LibraryScopeHelper.GetAccessibleCrewIdsAsync(
             membership.CrewId,
+            fleetRepository,
+            cancellationToken);
+
+        var page = await libraryRepository.GetDurableUnitsForCrewIdsAsync(
+            crewIds,
             request.Search,
             request.CategoryIds,
             Math.Clamp(request.Limit, 1, 100),

@@ -14,7 +14,9 @@ namespace LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFlee
 public record CreateFleetForumCommentCommand(
     int PostId,
     int? ParentCommentId,
-    string Body,
+    string Nonce,
+    string Ciphertext,
+    int KeyVersion,
     IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
 
 public class CreateFleetForumCommentCommandHandler(
@@ -22,6 +24,7 @@ public class CreateFleetForumCommentCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
+    ICryptoRepository cryptoRepository,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetForumCommentCommand, ForumOperationResponse>
@@ -33,9 +36,9 @@ public class CreateFleetForumCommentCommandHandler(
             return new ForumOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Body))
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
         {
-            return new ForumOperationResponse { Success = false, Message = "Comment body is required." };
+            return new ForumOperationResponse { Success = false, Message = "Encrypted comment content is required." };
         }
 
         var userId = currentUser.UserId.Value;
@@ -85,12 +88,27 @@ public class CreateFleetForumCommentCommandHandler(
             AuthorUserId = userId,
             ParentCommentId = threadRootId,
             ReplyToCommentId = replyToCommentId,
-            Body = request.Body.Trim(),
             CreatedAt = utcNow
         };
 
         await forumRepository.AddCommentAsync(comment, cancellationToken);
         post.LastActivityAt = utcNow;
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.ForumComment,
+            ResourceId = comment.Id.ToString(),
+            FleetId = fleetId,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = $"/app/fleet/forums/{post.Id}?commentId={comment.Id}";

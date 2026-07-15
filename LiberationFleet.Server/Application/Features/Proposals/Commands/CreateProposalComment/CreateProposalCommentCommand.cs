@@ -62,18 +62,12 @@ public class CreateProposalCommentCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
-        var isFleetProposal = proposal.FleetId.HasValue;
-        if (isFleetProposal)
-        {
-            if (string.IsNullOrWhiteSpace(request.Body))
-            {
-                return new ProposalOperationResponse { Success = false, Message = "Comment body is required." };
-            }
-        }
-        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
         {
             return new ProposalOperationResponse { Success = false, Message = "Encrypted comment content is required." };
         }
+
+        var isFleetProposal = proposal.FleetId.HasValue;
 
         ProposalComment? parentComment = null;
         int? threadRootId = null;
@@ -98,7 +92,7 @@ public class CreateProposalCommentCommandHandler(
             AuthorUserId = userId,
             ParentCommentId = threadRootId,
             ReplyToCommentId = replyToCommentId,
-            Body = isFleetProposal ? request.Body!.Trim() : null,
+            Body = null,
             CreatedAt = utcNow
         };
 
@@ -107,23 +101,21 @@ public class CreateProposalCommentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (!isFleetProposal)
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
-            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
-            {
-                ContentType = EncryptedContentType.ProposalComment,
-                ResourceId = comment.Id.ToString(),
-                CrewId = proposal.CrewId!.Value,
-                AuthorUserId = userId,
-                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-                Nonce = request.Nonce.Trim(),
-                Ciphertext = request.Ciphertext.Trim(),
-                CreatedAt = utcNow,
-                UpdatedAt = utcNow
-            }, cancellationToken);
+            ContentType = EncryptedContentType.ProposalComment,
+            ResourceId = comment.Id.ToString(),
+            CrewId = isFleetProposal ? null : proposal.CrewId,
+            FleetId = isFleetProposal ? proposal.FleetId : null,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
 
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = ProposalRouting.CommentUrl(proposal, comment.Id);
         var notifyCrewId = proposal.CrewId ?? membership.CrewId;

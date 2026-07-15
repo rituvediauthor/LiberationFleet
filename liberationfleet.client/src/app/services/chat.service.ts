@@ -36,7 +36,8 @@ export class ChatService {
       roomType: request.roomType,
       purpose: request.purpose,
       plaintextName: request.plaintextName,
-      isAdultContent: request.isAdultContent ?? false
+      isAdultContent: request.isAdultContent ?? false,
+      scope: request.scope ?? 'crew'
     });
   }
 

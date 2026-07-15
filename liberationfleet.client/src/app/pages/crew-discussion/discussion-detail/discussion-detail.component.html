@@ -85,9 +85,10 @@
         [attachments]="nonImageAttachments">
       </app-proposal-attachment-display>
 
-      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete)">
+      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete || !isOwnPost)">
         <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit post</button>
         <button type="button" class="danger-btn" *ngIf="p.canDelete" (click)="deletePost()">Delete post</button>
+        <button type="button" class="link-btn" *ngIf="!isOwnPost" (click)="openReportPost()">Report</button>
       </div>
     </div>
 
@@ -101,7 +102,7 @@
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
             </p>
-            <div class="menu-wrap" *ngIf="isOwnComment(comment)">
+            <div class="menu-wrap">
               <button
                 type="button"
                 class="icon-btn"
@@ -110,7 +111,8 @@
                 <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
               </button>
               <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
-                <button type="button" (click)="startEditComment(comment, null, $event)">Edit</button>
+                <button type="button" *ngIf="isOwnComment(comment)" (click)="startEditComment(comment, null, $event)">Edit</button>
+                <button type="button" *ngIf="!isOwnComment(comment)" (click)="openReportComment(comment, null, $event)">Report</button>
               </div>
             </div>
           </div>
@@ -138,7 +140,7 @@
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
                 </p>
-                <div class="menu-wrap" *ngIf="isOwnComment(reply)">
+                <div class="menu-wrap">
                   <button
                     type="button"
                     class="icon-btn"
@@ -147,7 +149,8 @@
                     <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
                   </button>
                   <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
-                    <button type="button" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
+                    <button type="button" *ngIf="isOwnComment(reply)" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
+                    <button type="button" *ngIf="!isOwnComment(reply)" (click)="openReportComment(reply, comment.id, $event)">Report</button>
                   </div>
                 </div>
               </div>
@@ -227,3 +230,19 @@
   (confirmed)="onAdultGateConfirmed()"
   (declined)="onAdultGateDeclined()">
 </app-adult-content-gate>
+
+<app-report-content-dialog
+  [visible]="showReportDialog"
+  [targetType]="reportTargetType"
+  [targetResourceId]="reportTargetResourceId"
+  [targetParentId]="reportTargetParentId"
+  [targetAuthorUserId]="reportTargetAuthorUserId"
+  [crewId]="crewId"
+  [fleetId]="null"
+  [evidenceTitle]="reportEvidenceTitle"
+  [evidenceText]="reportEvidenceText"
+  [evidenceAuthorUsername]="reportEvidenceAuthorUsername"
+  [evidenceMediaResourceIds]="reportMediaIds"
+  (dismissed)="onReportDismissed()"
+  (submitted)="onReportSubmitted()">
+</app-report-content-dialog>

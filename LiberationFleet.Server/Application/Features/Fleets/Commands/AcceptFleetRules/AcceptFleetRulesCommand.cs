@@ -36,11 +36,6 @@ public class AcceptFleetRulesCommandHandler(
             return new FleetOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
         }
 
-        if (await acceptanceRepository.GetAsync(userId, fleet.Id, cancellationToken) is not null)
-        {
-            return new FleetOperationResponse { Success = true, Message = "Rules already accepted." };
-        }
-
         var publicRules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);
         var requiredRuleIds = publicRules.Select(r => r.Id).OrderBy(id => id).ToList();
         var acceptedRuleIds = request.AcceptedRuleIds.Distinct().OrderBy(id => id).ToList();
@@ -54,13 +49,23 @@ public class AcceptFleetRulesCommandHandler(
             };
         }
 
-        await acceptanceRepository.AddAsync(new UserFleetRuleAcceptance
+        var json = JsonSerializer.Serialize(acceptedRuleIds);
+        var existing = await acceptanceRepository.GetAsync(userId, fleet.Id, cancellationToken);
+        if (existing is null)
         {
-            UserId = userId,
-            FleetId = fleet.Id,
-            AcceptedRuleIdsJson = JsonSerializer.Serialize(acceptedRuleIds),
-            AcceptedAt = DateTime.UtcNow
-        }, cancellationToken);
+            await acceptanceRepository.AddAsync(new UserFleetRuleAcceptance
+            {
+                UserId = userId,
+                FleetId = fleet.Id,
+                AcceptedRuleIdsJson = json,
+                AcceptedAt = DateTime.UtcNow
+            }, cancellationToken);
+        }
+        else
+        {
+            existing.AcceptedRuleIdsJson = json;
+            existing.AcceptedAt = DateTime.UtcNow;
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -16,6 +16,7 @@ public class GetFleetForumPostsQueryHandler(
     IFleetRepository fleetRepository,
     IUserRepository userRepository,
     IForumRepository forumRepository,
+    ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetFleetForumPostsQuery, ForumListResponse>
 {
     public async Task<ForumListResponse> Handle(GetFleetForumPostsQuery request, CancellationToken cancellationToken)
@@ -52,7 +53,19 @@ public class GetFleetForumPostsQueryHandler(
                 && !hiddenUserIds.Contains(post.AuthorUserId))
             .ToList();
 
-        var items = posts.Select(post => ForumMapper.MapListItem(post, envelope: null)).ToList();
+        var resourceIds = posts.Select(p => p.Id.ToString()).ToList();
+        var envelopes = await cryptoRepository.GetEnvelopesAsync(
+            EncryptedContentType.ForumPost,
+            resourceIds,
+            fleetId: fleet.Id,
+            cancellationToken: cancellationToken);
+        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
+        var items = posts.Select(post =>
+        {
+            envelopeById.TryGetValue(post.Id.ToString(), out var envelope);
+            return ForumMapper.MapListItem(post, envelope);
+        }).ToList();
 
         return new ForumListResponse
         {

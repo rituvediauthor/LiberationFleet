@@ -1,0 +1,69 @@
+.donation-widget {
+  position: relative;
+  background: var(--lf-color-bg-surface);
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dismiss-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lf-color-text-subtle);
+  cursor: pointer;
+}
+
+.dismiss-btn:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-text-body);
+}
+
+.donation-banner {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.donation-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--lf-color-text-subtle);
+  margin-bottom: 8px;
+  padding-right: 28px;
+}
+
+.donation-copy {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: var(--lf-color-text-body);
+}
+
+.donate-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: var(--lf-color-accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}

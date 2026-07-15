@@ -17,6 +17,7 @@ public interface IFleetRepository
     Task<FleetCrew?> GetFleetCrewAsync(int fleetId, int crewId, CancellationToken cancellationToken = default);
     Task<int> CountActiveFleetMembersAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<bool> IsUserInFleetAsync(int userId, int fleetId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<int>> GetActiveFleetMemberUserIdsAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FleetRule>> GetPublicRulesAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FleetRule>> GetRulesAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<FleetRule?> GetRuleByIdAsync(int ruleId, CancellationToken cancellationToken = default);

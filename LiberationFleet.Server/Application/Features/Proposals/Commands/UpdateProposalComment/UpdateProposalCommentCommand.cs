@@ -68,40 +68,28 @@ public class UpdateProposalCommentCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
-        var isFleetProposal = proposal.FleetId.HasValue;
-        if (isFleetProposal)
-        {
-            if (string.IsNullOrWhiteSpace(request.Body))
-            {
-                return new ProposalOperationResponse { Success = false, Message = "Comment body is required." };
-            }
-        }
-        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
         {
             return new ProposalOperationResponse { Success = false, Message = "Encrypted comment content is required." };
         }
 
+        var isFleetProposal = proposal.FleetId.HasValue;
         proposal.LastActivityAt = DateTime.UtcNow;
+        comment.Body = null;
 
-        if (isFleetProposal)
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
-            comment.Body = request.Body!.Trim();
-        }
-        else
-        {
-            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
-            {
-                ContentType = EncryptedContentType.ProposalComment,
-                ResourceId = comment.Id.ToString(),
-                CrewId = proposal.CrewId!.Value,
-                AuthorUserId = userId,
-                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-                Nonce = request.Nonce.Trim(),
-                Ciphertext = request.Ciphertext.Trim(),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            }, cancellationToken);
-        }
+            ContentType = EncryptedContentType.ProposalComment,
+            ResourceId = comment.Id.ToString(),
+            CrewId = isFleetProposal ? null : proposal.CrewId,
+            FleetId = isFleetProposal ? proposal.FleetId : null,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -19,6 +19,13 @@
   gap: 20px;
 }
 
+.aid-widget-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
 .fleet-name-link .menu-label {
   font-size: 18px;
 }

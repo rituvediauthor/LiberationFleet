@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="requestButton">
   <div class="unit-detail-page">
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
@@ -27,9 +27,9 @@
           {{ detail.remainingStock }} available
         </p>
 
-        <p class="notice">
-          Cross-crew library requests aren't available yet. Use your crew Library of Things for offerings from your crew.
-        </p>
+        <button type="button" class="secondary-link" (click)="openFullDetail()">
+          Open full library detail
+        </button>
       </div>
     </ng-container>
   </div>

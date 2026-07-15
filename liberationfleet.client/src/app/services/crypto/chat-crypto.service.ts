@@ -5,6 +5,11 @@ import { CryptoSessionService } from './crypto-session.service';
 import { CryptoService } from './crypto.service';
 import { ProposalCryptoService } from './proposal-crypto.service';
 
+export interface ChatCryptoScope {
+  crewId?: number;
+  fleetId?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -15,7 +20,7 @@ export class ChatCryptoService {
     private proposalCrypto: ProposalCryptoService
   ) {}
 
-  async decryptRooms(rooms: ChatRoomListItem[], crewId: number): Promise<ChatRoomListItem[]> {
+  async decryptRooms(rooms: ChatRoomListItem[], scope: ChatCryptoScope): Promise<ChatRoomListItem[]> {
     if (!this.cryptoSession.isUnlocked()) {
       return rooms.map(room => ({
         ...room,
@@ -23,11 +28,11 @@ export class ChatCryptoService {
       }));
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(rooms.map(room => this.decryptRoomWithKey(room, crewKey)));
+    const scopeKey = await this.resolveScopeKey(scope);
+    return Promise.all(rooms.map(room => this.decryptRoomWithKey(room, scopeKey)));
   }
 
-  async decryptRoom(room: ChatRoomListItem, crewId: number): Promise<ChatRoomListItem> {
+  async decryptRoom(room: ChatRoomListItem, scope: ChatCryptoScope): Promise<ChatRoomListItem> {
     if (!this.cryptoSession.isUnlocked()) {
       return {
         ...room,
@@ -35,20 +40,20 @@ export class ChatCryptoService {
       };
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return this.decryptRoomWithKey(room, crewKey);
+    const scopeKey = await this.resolveScopeKey(scope);
+    return this.decryptRoomWithKey(room, scopeKey);
   }
 
-  async encryptRoomName(crewId: number, name: string): Promise<{ nonce: string; ciphertext: string }> {
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return this.cryptoService.encryptJson<ChatRoomNamePayload>(crewKey, { name });
+  async encryptRoomName(scope: ChatCryptoScope, name: string): Promise<{ nonce: string; ciphertext: string }> {
+    const scopeKey = await this.resolveScopeKey(scope);
+    return this.cryptoService.encryptJson<ChatRoomNamePayload>(scopeKey, { name });
   }
 
-  async decryptMessages(messages: ChatMessage[], crewId: number): Promise<ChatMessage[]> {
-    return Promise.all(messages.map(message => this.decryptSingleMessage(message, crewId)));
+  async decryptMessages(messages: ChatMessage[], scope: ChatCryptoScope): Promise<ChatMessage[]> {
+    return Promise.all(messages.map(message => this.decryptSingleMessage(message, scope)));
   }
 
-  async decryptSingleMessage(message: ChatMessage, crewId: number): Promise<ChatMessage> {
+  async decryptSingleMessage(message: ChatMessage, scope: ChatCryptoScope): Promise<ChatMessage> {
     if (!message.hasEncryptedContent || !message.encryptedPayload) {
       return message;
     }
@@ -61,33 +66,54 @@ export class ChatCryptoService {
       };
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return this.decryptMessage(message, crewKey, crewId);
+    const scopeKey = await this.resolveScopeKey(scope);
+    return this.decryptMessage(message, scopeKey, scope);
   }
 
   async encryptMessagePayload(
-    crewId: number,
+    scope: ChatCryptoScope,
     body: string,
     authorDisplayName: string,
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
+    if (scope.fleetId) {
+      const fleetKey = await this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
+      return this.cryptoService.encryptJson(fleetKey, {
+        body,
+        authorDisplayName,
+        attachments: existingAttachments
+      });
+    }
+
     return this.proposalCrypto.encryptCommentPayload(
-      crewId,
+      scope.crewId!,
       { body, authorDisplayName },
       newAttachments,
       existingAttachments
     );
   }
 
-  private async decryptRoomWithKey(room: ChatRoomListItem, crewKey: CryptoKey): Promise<ChatRoomListItem> {
+  private async resolveScopeKey(scope: ChatCryptoScope): Promise<CryptoKey> {
+    if (scope.fleetId) {
+      return this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
+    }
+
+    if (scope.crewId) {
+      return this.cryptoSession.ensureCrewKeyReady(scope.crewId);
+    }
+
+    throw new Error('Encryption scope is required.');
+  }
+
+  private async decryptRoomWithKey(room: ChatRoomListItem, scopeKey: CryptoKey): Promise<ChatRoomListItem> {
     if (!room.hasEncryptedContent || !room.encryptedPayload) {
       return room;
     }
 
     try {
       const payload = await this.cryptoService.decryptJson<ChatRoomNamePayload>(
-        crewKey,
+        scopeKey,
         room.encryptedPayload.nonce,
         room.encryptedPayload.ciphertext
       );
@@ -99,8 +125,8 @@ export class ChatCryptoService {
 
   private async decryptMessage(
     message: ChatMessage,
-    crewKey: CryptoKey,
-    crewId: number
+    scopeKey: CryptoKey,
+    scope: ChatCryptoScope
   ): Promise<ChatMessage> {
     if (!message.hasEncryptedContent || !message.encryptedPayload) {
       return message;
@@ -108,12 +134,14 @@ export class ChatCryptoService {
 
     try {
       const payload = await this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-        crewKey,
+        scopeKey,
         message.encryptedPayload.nonce,
         message.encryptedPayload.ciphertext
       );
       const attachments = payload.attachments ?? [];
-      const resolvedAttachments = await this.proposalCrypto.decryptAttachments(crewId, attachments);
+      const resolvedAttachments = scope.crewId
+        ? await this.proposalCrypto.decryptAttachments(scope.crewId, attachments)
+        : [];
       return {
         ...message,
         body: payload.body,

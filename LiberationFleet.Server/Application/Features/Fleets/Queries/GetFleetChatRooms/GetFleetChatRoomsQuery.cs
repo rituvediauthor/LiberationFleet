@@ -15,7 +15,8 @@ public class GetFleetChatRoomsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IUserRepository userRepository,
-    IChatRepository chatRepository) : IRequestHandler<GetFleetChatRoomsQuery, ChatRoomListResponse>
+    IChatRepository chatRepository,
+    ICryptoRepository cryptoRepository) : IRequestHandler<GetFleetChatRoomsQuery, ChatRoomListResponse>
 {
     public async Task<ChatRoomListResponse> Handle(GetFleetChatRoomsQuery request, CancellationToken cancellationToken)
     {
@@ -44,7 +45,19 @@ public class GetFleetChatRoomsQueryHandler(
             .Where(room => !AdultContentAccess.IsBlocked(preference, room.IsAdultContent))
             .ToList();
 
-        var items = rooms.Select(room => ChatMapper.MapListItem(room, nameEnvelope: null, membership)).ToList();
+        var resourceIds = rooms.Select(room => room.Id.ToString()).ToList();
+        var nameEnvelopes = await cryptoRepository.GetEnvelopesAsync(
+            Domain.Enums.EncryptedContentType.ChatRoomName,
+            resourceIds,
+            fleetId: fleet.Id,
+            cancellationToken: cancellationToken);
+        var envelopeByRoomId = nameEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
+        var items = rooms.Select(room =>
+        {
+            envelopeByRoomId.TryGetValue(room.Id.ToString(), out var nameEnvelope);
+            return ChatMapper.MapListItem(room, nameEnvelope, membership);
+        }).ToList();
 
         return new ChatRoomListResponse
         {

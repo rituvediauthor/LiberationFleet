@@ -16,6 +16,7 @@ public class GetFleetForumPostDetailQueryHandler(
     IFleetRepository fleetRepository,
     IUserRepository userRepository,
     IForumRepository forumRepository,
+    ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetFleetForumPostDetailQuery, ForumDetailResponse>
 {
     public async Task<ForumDetailResponse> Handle(GetFleetForumPostDetailQuery request, CancellationToken cancellationToken)
@@ -62,21 +63,34 @@ public class GetFleetForumPostDetailQueryHandler(
             return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
         }
 
+        var postEnvelope = await cryptoRepository.GetEnvelopeAsync(
+            EncryptedContentType.ForumPost,
+            post.Id.ToString(),
+            cancellationToken);
+
         var comments = await forumRepository.GetCommentsByPostIdAsync(post.Id, cancellationToken);
         var visibleComments = comments.Where(c => !hiddenUserIds.Contains(c.AuthorUserId)).ToList();
         var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
+        var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
+        var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
+            EncryptedContentType.ForumComment,
+            commentIds,
+            fleetId: fleetId,
+            cancellationToken: cancellationToken);
+        var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var commentDtos = topLevel.Select(comment =>
         {
+            commentEnvelopeById.TryGetValue(comment.Id.ToString(), out var envelope);
             var replyCount = visibleComments.Count(c => c.ParentCommentId == comment.Id);
-            return ForumMapper.MapComment(comment, envelope: null, replyCount);
+            return ForumMapper.MapComment(comment, envelope, replyCount);
         }).ToList();
 
         return new ForumDetailResponse
         {
             Success = true,
             Message = "Forum post loaded.",
-            Post = ForumMapper.MapDetail(post, envelope: null, commentDtos, userId)
+            Post = ForumMapper.MapDetail(post, postEnvelope, commentDtos, userId)
         };
     }
 }

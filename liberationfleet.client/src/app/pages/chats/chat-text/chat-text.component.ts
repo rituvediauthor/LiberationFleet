@@ -23,6 +23,7 @@ import { ChatService } from '../../../services/chat.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
 import { CrewService } from '../../../services/crew.service';
+import { FleetService } from '../../../services/fleet.service';
 import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
@@ -37,6 +38,7 @@ import { NotificationContentService } from '../../../services/notification-conte
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
+import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 
 @Component({
   selector: 'app-chat-text',
@@ -49,7 +51,8 @@ import { MentionTextComponent } from '../../../components/mention-text/mention-t
     FallibleFooterComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
-    MentionTextComponent
+    MentionTextComponent,
+    ReportContentDialogComponent
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -66,6 +69,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   canAttachFiles = false;
   messages: ChatMessage[] = [];
   crewId = 0;
+  fleetId = 0;
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
@@ -74,6 +78,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   keptEditAttachments: ProposalAttachment[] = [];
   editingMessageId: number | null = null;
   openMessageMenuId: number | null = null;
+  showReportDialog = false;
+  reportTarget: ChatMessage | null = null;
   composerFocused = false;
   pickingFile = false;
   loading = true;
@@ -92,6 +98,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private chatHub = inject(ChatHubService);
   private chatCrypto = inject(ChatCryptoService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private profileService = inject(ProfileService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
@@ -152,6 +159,24 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           void this.chatHub.joinCrew(this.crewId);
         }
         void this.chatHub.joinRoom(this.roomId);
+        const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+          || this.router.url.startsWith('/app/fleet/chats');
+        if (isFleetScope) {
+          this.canAttachFiles = membership.canAttachFilesToFleetContent ?? false;
+          this.fleetService.getStatus().subscribe({
+            next: status => {
+              this.fleetId = status.fleetId ?? 0;
+              this.contentPreferenceService.ensureLoaded().subscribe({
+                next: () => this.loadRoomName()
+              });
+            },
+            error: () => {
+              this.loading = false;
+              this.loadError = 'Failed to load fleet membership';
+            }
+          });
+          return;
+        }
         this.contentPreferenceService.ensureLoaded().subscribe({
           next: () => this.loadRoomName()
         });
@@ -248,6 +273,27 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.composerFocused = true;
   }
 
+  openReportMessage(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    this.openMessageMenuId = null;
+    this.reportTarget = message;
+    this.showReportDialog = true;
+  }
+
+  onReportDismissed() {
+    this.showReportDialog = false;
+    this.reportTarget = null;
+  }
+
+  onReportSubmitted() {
+    this.showReportDialog = false;
+    this.reportTarget = null;
+  }
+
+  get reportMediaIds(): string[] {
+    return (this.reportTarget?.resolvedAttachments ?? []).map(a => a.resourceId);
+  }
+
   cancelEditMessage() {
     this.editingMessageId = null;
     this.messageText = '';
@@ -270,41 +316,27 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
         || this.router.url.startsWith('/app/fleet/chats');
       const text = this.messageText.trim();
+      const cryptoScope = isFleetScope && this.fleetId > 0
+        ? { fleetId: this.fleetId }
+        : { crewId: this.crewId };
 
-      const request$ = isFleetScope
-        ? (this.editingMessageId
-          ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
-              nonce: '',
-              ciphertext: '',
-              keyVersion: 1,
-              body: text,
-              mentionedUserIds: this.mentionedUserIds
-            })
-          : this.chatService.sendMessage(this.roomId, {
-              nonce: '',
-              ciphertext: '',
-              keyVersion: 1,
-              body: text,
-              mentionedUserIds: this.mentionedUserIds
-            }))
-        : await (async () => {
-            const encrypted = await this.chatCrypto.encryptMessagePayload(
-              this.crewId,
-              text,
-              this.authorDisplayName,
-              this.messageAttachments,
-              this.keptEditAttachments
-            );
-            return this.editingMessageId
-              ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
-                  ...encrypted,
-                  mentionedUserIds: this.mentionedUserIds
-                })
-              : this.chatService.sendMessage(this.roomId, {
-                  ...encrypted,
-                  mentionedUserIds: this.mentionedUserIds
-                });
-          })();
+      const encrypted = await this.chatCrypto.encryptMessagePayload(
+        cryptoScope,
+        text,
+        this.authorDisplayName,
+        this.messageAttachments,
+        this.keptEditAttachments
+      );
+
+      const request$ = this.editingMessageId
+        ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
+            ...encrypted,
+            mentionedUserIds: this.mentionedUserIds
+          })
+        : this.chatService.sendMessage(this.roomId, {
+            ...encrypted,
+            mentionedUserIds: this.mentionedUserIds
+          });
 
       request$.subscribe({
         next: response => {
@@ -390,6 +422,14 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private getCryptoScope() {
+    const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+      || this.router.url.startsWith('/app/fleet/chats');
+    return isFleetScope && this.fleetId > 0
+      ? { fleetId: this.fleetId }
+      : { crewId: this.crewId };
+  }
+
   private loadRoomName() {
     this.chatService.getRoom(this.roomId).subscribe({
       next: async response => {
@@ -412,7 +452,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         this.canToggleAnonymousMode = !!room.canToggleAnonymousMode;
 
         const decrypted = this.crewId > 0
-          ? await this.chatCrypto.decryptRoom(room, this.crewId)
+          ? await this.chatCrypto.decryptRoom(room, this.getCryptoScope())
           : room;
         this.roomName = decrypted.name || 'Chat';
         this.loadLatestMessages(true);
@@ -426,7 +466,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async onMessageUpdated(message: ChatMessage) {
     const decrypted = this.crewId > 0
-      ? await this.chatCrypto.decryptSingleMessage(message, this.crewId)
+      ? await this.chatCrypto.decryptSingleMessage(message, this.getCryptoScope())
       : message;
     this.messages = this.messages.map(existing =>
       existing.id === decrypted.id ? decrypted : existing
@@ -444,7 +484,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       : true;
 
     const decrypted = this.crewId > 0
-      ? await this.chatCrypto.decryptSingleMessage(message, this.crewId)
+      ? await this.chatCrypto.decryptSingleMessage(message, this.getCryptoScope())
       : message;
     this.messages = [...this.messages, decrypted];
 
@@ -465,7 +505,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this.hasMore = response.hasMore;
           this.messages = this.crewId > 0
-            ? await this.chatCrypto.decryptMessages(response.items ?? [], this.crewId)
+            ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
           if (scrollToBottom) {
             setTimeout(() => this.scrollToBottom(), 0);
@@ -502,7 +542,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this.hasMore = response.hasMore;
           const older = this.crewId > 0
-            ? await this.chatCrypto.decryptMessages(response.items ?? [], this.crewId)
+            ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
           this.messages = [...older, ...this.messages];
           setTimeout(() => {

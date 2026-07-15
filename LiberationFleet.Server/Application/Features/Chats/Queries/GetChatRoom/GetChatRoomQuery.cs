@@ -74,6 +74,15 @@ public class GetChatRoomQueryHandler(
                 room.Id.ToString(),
                 cancellationToken);
         }
+        else if (room.FleetId.HasValue)
+        {
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.ChatRoomName,
+                [room.Id.ToString()],
+                fleetId: room.FleetId.Value,
+                cancellationToken: cancellationToken);
+            nameEnvelope = envelopes.FirstOrDefault();
+        }
 
         return new ChatRoomDetailResponse
         {

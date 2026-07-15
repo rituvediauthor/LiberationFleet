@@ -302,7 +302,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
           }
           const items = response.items ?? [];
           this.rooms = this.crewId > 0
-            ? await this.chatCrypto.decryptRooms(items, this.crewId)
+            ? await this.chatCrypto.decryptRooms(items, { crewId: this.crewId })
             : items;
         } finally {
           this.loading = false;
@@ -326,7 +326,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
     }
 
     const decrypted = this.crewId > 0
-      ? await this.chatCrypto.decryptRoom(room, this.crewId)
+      ? await this.chatCrypto.decryptRoom(room, { crewId: this.crewId })
       : room;
     this.rooms = [decrypted, ...this.rooms];
   }

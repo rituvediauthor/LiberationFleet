@@ -18,7 +18,7 @@ public static class SettingsLockHelper
 
         if (string.IsNullOrWhiteSpace(user.SettingsLockPasswordHash))
         {
-            return Task.FromResult((true, string.Empty));
+            return Task.FromResult((false, "Settings lock is enabled but no password is set. Re-enable settings lock with a password."));
         }
 
         if (string.IsNullOrWhiteSpace(settingsPassword))

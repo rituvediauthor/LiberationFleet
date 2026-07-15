@@ -1,0 +1,46 @@
+<div
+  class="report-dialog-backdrop"
+  *ngIf="visible"
+  (click)="onBackdropClick($event)">
+  <div class="report-dialog-card" role="dialog" aria-modal="true" aria-labelledby="report-dialog-title">
+    <h2 id="report-dialog-title">Report content</h2>
+    <p class="hint">
+      Reports of child sexual exploitation are prioritized for legally required safety handling.
+      A one-time decrypted snapshot of this item may be retained for review.
+    </p>
+
+    <label class="field">
+      <span>Reason</span>
+      <select [(ngModel)]="reason">
+        <option value="" disabled>Select a reason</option>
+        <option *ngFor="let option of reasons" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label class="field confirm-field" *ngIf="isCsam">
+      <input type="checkbox" [(ngModel)]="involvesMinorConfirmed" />
+      <span>I understand this report concerns sexual exploitation involving a minor and will be treated as a serious legal safety matter.</span>
+    </label>
+
+    <label class="field">
+      <span>Optional details</span>
+      <textarea
+        rows="3"
+        maxlength="1000"
+        [(ngModel)]="note"
+        placeholder="Add context (optional)"></textarea>
+    </label>
+
+    <label class="field confirm-field" *ngIf="allowBlock && targetAuthorUserId">
+      <input type="checkbox" [(ngModel)]="alsoBlockAuthor" />
+      <span>Also block this user</span>
+    </label>
+
+    <div class="actions">
+      <button type="button" class="btn secondary" [disabled]="submitting" (click)="close()">Cancel</button>
+      <button type="button" class="btn primary" [disabled]="!canSubmit" (click)="submit()">
+        {{ submitting ? 'Submitting…' : 'Submit report' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../../components/page-layout/page-layout.component';
 import { LibraryImageCarouselComponent } from '../../../../components/library-image-carousel/library-image-carousel.component';
 import { FleetService } from '../../../../services/fleet.service';
@@ -17,12 +17,14 @@ import { NavigationService } from '../../../../services/navigation.service';
 })
 export class FleetLibraryDetailComponent implements OnInit {
   backButton!: ActionBarButton;
+  requestButton: ActionBarButton | null = null;
   detail: LibraryUnitDetail | null = null;
   loading = true;
   errorMessage = '';
   unitId = 0;
 
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private navigation = inject(NavigationService);
   private fleetService = inject(FleetService);
   private toastService = inject(ToastService);
@@ -42,6 +44,7 @@ export class FleetLibraryDetailComponent implements OnInit {
       next: item => {
         this.detail = item;
         this.loading = false;
+        this.updateRequestButton();
       },
       error: err => {
         this.loading = false;
@@ -66,5 +69,24 @@ export class FleetLibraryDetailComponent implements OnInit {
       return 'From';
     }
     return 'Holder';
+  }
+
+  openFullDetail() {
+    void this.router.navigate(['/app/crew/library-of-things/units', this.unitId], {
+      queryParams: { fromFleet: '1' }
+    });
+  }
+
+  private updateRequestButton() {
+    if (!this.detail?.viewer.canRequest) {
+      this.requestButton = null;
+      return;
+    }
+
+    this.requestButton = {
+      label: 'Request',
+      type: 'primary',
+      onClick: () => this.openFullDetail()
+    };
   }
 }

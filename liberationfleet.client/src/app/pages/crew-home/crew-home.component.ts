@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
+import { DonationCampaignWidgetComponent } from '../../components/donation-campaign-widget/donation-campaign-widget.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'app-crew-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, NavLayoutComponent, ContentBadgeComponent],
+  imports: [CommonModule, RouterLink, NavLayoutComponent, ContentBadgeComponent, DonationCampaignWidgetComponent],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
 })

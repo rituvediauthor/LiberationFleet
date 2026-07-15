@@ -91,8 +91,8 @@ public class GetCrewProposalsQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.Proposal,
             resourceIds,
-            membership.CrewId,
-            cancellationToken);
+            crewId: membership.CrewId,
+            cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var crewSettingChanges = await proposalRepository.GetCrewSettingChangesByProposalIdsAsync(

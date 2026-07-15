@@ -1,0 +1,36 @@
+LIBERATION FLEET COMMUNITY STANDARDS
+(Acceptable Use Policy)
+
+Last updated: July 15, 2026
+
+Liberation Fleet is for adults (18+) coordinating mutual aid. By using the Service you agree to these standards.
+
+1. AGE
+You must be at least 18 years old. Accounts for or depicting minors in a sexual context are forbidden.
+
+2. ILLEGAL CONTENT — ZERO TOLERANCE
+You may not create, share, request, or store:
+- Child sexual abuse material (CSAM), child sexual exploitation, grooming, or online enticement of a minor
+- Child sex trafficking content
+- Non-consensual intimate images (including deepfakes of a real person)
+- Credible threats of violence or content that facilitates violent crime
+- Other material that is illegal under United States federal law
+
+Reports of child sexual exploitation are treated as highest priority. When you report such content, a temporary plaintext evidence snapshot may be retained so we can file required reports to the National Center for Missing & Exploited Children (NCMEC) CyberTipline.
+
+3. HARASSMENT AND ABUSE
+Do not stalk, harass, dox, or target other users. Use Block and Report. Crew kick proposals are for crew governance; they do not replace platform reports for illegal content.
+
+4. SPAM AND SCAMS
+Do not use the Service for unsolicited spam, phishing, or financial fraud.
+
+5. ENCRYPTION AND REPORTS
+Most crew and fleet content is end-to-end encrypted. We cannot read it in normal operation. If you Report content, your device may send a one-time decrypted snapshot of that item (and limited metadata) sealed for safety review. Routine chat is not monitored.
+
+6. ENFORCEMENT
+We may freeze accounts, remove or quarantine content identifiers, preserve report evidence, and report apparent child sexual exploitation to NCMEC when we have actual knowledge. We may refuse service to anyone who violates these standards.
+
+7. CONTACT
+Use in-app Report for abusive or illegal content. For account issues, contact the operators through the channel published on our website when available.
+
+These standards are part of your agreement to use Liberation Fleet together with the Privacy Policy.

@@ -29,6 +29,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 
 @Component({
   selector: 'app-friend-dm',
@@ -38,7 +39,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
-    FallibleFooterComponent
+    FallibleFooterComponent,
+    ReportContentDialogComponent
   ],
   templateUrl: './friend-dm.component.html',
   styleUrl: './friend-dm.component.css'
@@ -66,6 +68,8 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   hasMore = false;
   sending = false;
   loadError = '';
+  showReportDialog = false;
+  reportTarget: DirectMessage | null = null;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -196,6 +200,27 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     this.composerFocused = true;
   }
 
+  openReportMessage(message: DirectMessage, event?: Event) {
+    event?.stopPropagation();
+    this.openMessageMenuId = null;
+    this.reportTarget = message;
+    this.showReportDialog = true;
+  }
+
+  onReportDismissed() {
+    this.showReportDialog = false;
+    this.reportTarget = null;
+  }
+
+  onReportSubmitted() {
+    this.showReportDialog = false;
+    this.reportTarget = null;
+  }
+
+  get reportMediaIds(): string[] {
+    return (this.reportTarget?.resolvedAttachments ?? []).map(a => a.resourceId);
+  }
+
   cancelEditMessage() {
     this.editingMessageId = null;
     this.messageText = '';
@@ -216,7 +241,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     this.sending = true;
     try {
       const encrypted = await this.chatCrypto.encryptMessagePayload(
-        this.crewId,
+        { crewId: this.crewId },
         this.messageText.trim(),
         this.authorDisplayName,
         this.messageAttachments,
@@ -358,12 +383,12 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
       ...message,
       authorUsername: message.authorUsername
     }));
-    const decrypted = await this.chatCrypto.decryptMessages(chatMessages, this.crewId);
+    const decrypted = await this.chatCrypto.decryptMessages(chatMessages, { crewId: this.crewId });
     return decrypted as DirectMessage[];
   }
 
   private async decryptMessage(message: DirectMessage): Promise<DirectMessage> {
-    const decrypted = await this.chatCrypto.decryptSingleMessage(message, this.crewId);
+    const decrypted = await this.chatCrypto.decryptSingleMessage(message, { crewId: this.crewId });
     return decrypted as DirectMessage;
   }
 

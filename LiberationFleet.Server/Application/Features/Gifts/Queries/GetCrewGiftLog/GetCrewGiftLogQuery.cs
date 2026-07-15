@@ -67,8 +67,8 @@ public class GetCrewGiftLogQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.GiftLogEntry,
             giftIds,
-            membership.CrewId,
-            cancellationToken);
+            crewId: membership.CrewId,
+            cancellationToken: cancellationToken);
         var envelopeByGiftId = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var items = page.Items.Select(gift =>

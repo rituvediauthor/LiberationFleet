@@ -192,10 +192,11 @@ public class CreateChatRoomCommandHandler(
         }
 
         var utcNow = DateTime.UtcNow;
+        var hasEncryptedName = !string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext);
         var room = new ChatRoom
         {
             FleetId = fleet.Id,
-            Name = request.PlaintextName.Trim(),
+            Name = hasEncryptedName ? string.Empty : request.PlaintextName.Trim(),
             Purpose = request.Purpose.Trim(),
             RoomType = ChatRoomType.Text,
             CreatedByUserId = userId,
@@ -206,6 +207,24 @@ public class CreateChatRoomCommandHandler(
 
         await chatRepository.AddRoomAsync(room, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (hasEncryptedName)
+        {
+            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.ChatRoomName,
+                ResourceId = room.Id.ToString(),
+                FleetId = fleet.Id,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+                Nonce = request.Nonce.Trim(),
+                Ciphertext = request.Ciphertext.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            }, cancellationToken);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         return new ChatOperationResponse
         {

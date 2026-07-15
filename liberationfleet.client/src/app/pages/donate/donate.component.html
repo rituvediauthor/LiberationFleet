@@ -1,0 +1,52 @@
+<app-page-layout [backButton]="backButton">
+  <div class="donate-page">
+    <h1>Donate</h1>
+    <p class="lede">
+      Support hosting and development of the Liberation Fleet app. This is separate from mutual-aid gifts to crewmates.
+      Payment is processed by Stripe — Liberation Fleet does not store your card details.
+    </p>
+
+    <p class="status-note" *ngIf="statusNote">{{ statusNote }}</p>
+
+    <div class="amount-grid" role="group" aria-label="Donation amount">
+      <button
+        type="button"
+        class="amount-btn"
+        *ngFor="let amount of presets"
+        [class.selected]="selectedUsd === amount"
+        (click)="selectPreset(amount)">
+        ${{ amount }}
+      </button>
+      <button
+        type="button"
+        class="amount-btn"
+        [class.selected]="selectedUsd === 'custom'"
+        (click)="selectCustom()">
+        Custom
+      </button>
+    </div>
+
+    <label class="custom-field" *ngIf="selectedUsd === 'custom'">
+      <span>Custom amount (USD)</span>
+      <input
+        type="number"
+        min="1"
+        max="5000"
+        step="1"
+        [(ngModel)]="customUsd"
+        placeholder="e.g. 15" />
+    </label>
+
+    <button
+      type="button"
+      class="checkout-btn"
+      [disabled]="submitting || !donationsEnabled || amountCents == null"
+      (click)="startCheckout()">
+      {{ submitting ? 'Redirecting…' : 'Continue to secure checkout' }}
+    </button>
+
+    <p class="fine-print">
+      You will complete payment on Stripe’s hosted page. We only record the completed donation amount for your tax-year summary.
+    </p>
+  </div>
+</app-page-layout>

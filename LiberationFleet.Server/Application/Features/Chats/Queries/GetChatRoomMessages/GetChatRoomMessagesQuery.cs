@@ -57,8 +57,18 @@ public class GetChatRoomMessagesQueryHandler(
             var envelopes = await cryptoRepository.GetEnvelopesAsync(
                 EncryptedContentType.ChatRoomMessage,
                 resourceIds,
-                room.CrewId.Value,
-                cancellationToken);
+                crewId: room.CrewId.Value,
+                cancellationToken: cancellationToken);
+            envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        }
+        else if (room.FleetId.HasValue)
+        {
+            var resourceIds = messages.Select(m => m.Id.ToString()).ToList();
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.ChatRoomMessage,
+                resourceIds,
+                fleetId: room.FleetId.Value,
+                cancellationToken: cancellationToken);
             envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
         }
 

@@ -358,7 +358,7 @@ export class LibraryUnitDetailComponent implements OnInit {
         recipientId: crewGiftRecipientUserId,
         recipientName: GiftLogCryptoService.crewGiftRecipientName,
         amount: cost,
-        platform: 'In-kind (Library)',
+        platform: 'Library of Things',
         timestamp: new Date(),
         message,
         relatedUserIds: [this.currentUserId, crewGiftRecipientUserId],

@@ -1,12 +1,30 @@
-<app-page-layout [backButton]="backButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
   <div class="library-hub-page">
     <h1 class="page-title">Fleet Library of Things</h1>
-    <p class="page-subtitle">Browse goods and services offered across crews in your fleet</p>
+    <p class="page-subtitle">Browse and request goods and services offered across crews in your fleet</p>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <nav class="section-menu" aria-label="Fleet library sections" *ngIf="!loading && libraryEnabled">
+      <button type="button" class="menu-link" (click)="openRequests()">
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-hand-holding-heart menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="sectionBadgeCount('library-section:requests')"></app-content-badge>
+        </span>
+        <span class="menu-label">Requests</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openMyRequests()">
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="sectionBadgeCount('library-section:requests-mine')"></app-content-badge>
+        </span>
+        <span class="menu-label">My Requests</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
       <button type="button" class="menu-link" (click)="openSection('durable')">
         <i class="fa-solid fa-couch menu-icon" aria-hidden="true"></i>
         <span class="menu-label">Durable Goods</span>
@@ -22,6 +40,15 @@
       <button type="button" class="menu-link" (click)="openSection('services')">
         <i class="fa-solid fa-screwdriver-wrench menu-icon" aria-hidden="true"></i>
         <span class="menu-label">Services</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openMine()">
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-warehouse menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="sectionBadgeCount('library-section:mine')"></app-content-badge>
+        </span>
+        <span class="menu-label">My Offerings</span>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
     </nav>

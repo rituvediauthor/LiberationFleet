@@ -42,8 +42,8 @@ public class GetCrewChatRoomsQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ChatRoomName,
             resourceIds,
-            membership.CrewId,
-            cancellationToken);
+            crewId: membership.CrewId,
+            cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var items = rooms.Select(room =>

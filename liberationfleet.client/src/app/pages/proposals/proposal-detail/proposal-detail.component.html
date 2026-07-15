@@ -27,7 +27,7 @@
             You cannot vote on a proposal to remove you from the crew.
           </p>
         </div>
-        <div class="menu-wrap" *ngIf="p.canKickAuthor">
+        <div class="menu-wrap" *ngIf="p.canKickAuthor || !isOwnProposal">
           <button
             type="button"
             class="icon-btn"
@@ -36,7 +36,10 @@
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
           <div class="dropdown-menu" *ngIf="openProposalAuthorMenu" (click)="$event.stopPropagation()">
-            <button type="button" (click)="kickFromProposalAuthor($event)">
+            <button type="button" *ngIf="!isOwnProposal" (click)="openReportProposal()">
+              Report
+            </button>
+            <button type="button" *ngIf="p.canKickAuthor" (click)="kickFromProposalAuthor($event)">
               Kick from crew
             </button>
           </div>
@@ -103,7 +106,7 @@
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
             </p>
-            <div class="menu-wrap" *ngIf="comment.isOwnComment || (p.usesAnonymousComments && comment.canKick)">
+            <div class="menu-wrap">
               <button
                 type="button"
                 class="icon-btn"
@@ -117,6 +120,9 @@
                 </button>
                 <button type="button" *ngIf="p.usesAnonymousComments && comment.isOwnComment" (click)="rerollNickname($event)">
                   Reroll nickname
+                </button>
+                <button type="button" *ngIf="!comment.isOwnComment" (click)="openReportComment(comment, $event)">
+                  Report
                 </button>
                 <button type="button" *ngIf="comment.canKick" (click)="kickFromComment(comment, $event)">
                   Kick from crew
@@ -148,7 +154,7 @@
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
                 </p>
-                <div class="menu-wrap" *ngIf="reply.isOwnComment || (p.usesAnonymousComments && reply.canKick)">
+                <div class="menu-wrap">
                   <button
                     type="button"
                     class="icon-btn"
@@ -162,6 +168,9 @@
                     </button>
                     <button type="button" *ngIf="p.usesAnonymousComments && reply.isOwnComment" (click)="rerollNickname($event)">
                       Reroll nickname
+                    </button>
+                    <button type="button" *ngIf="!reply.isOwnComment" (click)="openReportComment(reply, $event)">
+                      Report
                     </button>
                     <button type="button" *ngIf="reply.canKick" (click)="kickFromComment(reply, $event)">
                       Kick from crew
@@ -277,4 +286,20 @@
   (cancelled)="onCancelKickProposal()"
   (dismissed)="onCancelKickProposal()">
 </app-kick-reason-dialog>
+
+<app-report-content-dialog
+  [visible]="showReportDialog"
+  [targetType]="reportTargetType"
+  [targetResourceId]="reportTargetResourceId"
+  [targetParentId]="reportTargetParentId"
+  [targetAuthorUserId]="reportTargetAuthorUserId"
+  [crewId]="fleetId > 0 ? null : crewId"
+  [fleetId]="fleetId > 0 ? fleetId : null"
+  [evidenceTitle]="reportEvidenceTitle"
+  [evidenceText]="reportEvidenceText"
+  [evidenceAuthorUsername]="reportEvidenceAuthorUsername"
+  [evidenceMediaResourceIds]="reportMediaIds"
+  (dismissed)="onReportDismissed()"
+  (submitted)="onReportSubmitted()">
+</app-report-content-dialog>
 

@@ -68,8 +68,8 @@ public class GetForumPostDetailQueryHandler(
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.ForumComment,
             commentIds,
-            crewId,
-            cancellationToken);
+            crewId: crewId,
+            cancellationToken: cancellationToken);
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var commentDtos = topLevel.Select(comment =>

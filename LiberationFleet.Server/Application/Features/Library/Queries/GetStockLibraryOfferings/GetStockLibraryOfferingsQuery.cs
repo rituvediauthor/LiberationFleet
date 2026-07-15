@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -16,6 +17,7 @@ public record GetStockLibraryOfferingsQuery(
 public class GetStockLibraryOfferingsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository) : IRequestHandler<GetStockLibraryOfferingsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
@@ -35,8 +37,13 @@ public class GetStockLibraryOfferingsQueryHandler(
             return new LibraryUnitListResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var page = await libraryRepository.GetStockUnitsForCrewAsync(
+        var crewIds = await LibraryScopeHelper.GetAccessibleCrewIdsAsync(
             membership.CrewId,
+            fleetRepository,
+            cancellationToken);
+
+        var page = await libraryRepository.GetStockUnitsForCrewIdsAsync(
+            crewIds,
             request.Kind,
             request.Search,
             request.CategoryIds,

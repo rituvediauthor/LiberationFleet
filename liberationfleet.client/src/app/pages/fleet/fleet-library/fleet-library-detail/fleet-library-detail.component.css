@@ -95,3 +95,14 @@
   color: var(--lf-color-text-secondary);
   font-size: 14px;
 }
+
+.secondary-link {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--lf-color-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}

@@ -111,6 +111,10 @@ export class FleetService {
     return this.http.put<FleetOperationResult>(`${this.apiUrl}/current`, request);
   }
 
+  leaveFleet(): Observable<FleetOperationResult> {
+    return this.http.post<FleetOperationResult>(`${this.apiUrl}/leave`, {});
+  }
+
   getCrews(): Observable<FleetCrewListResponse> {
     return this.http.get<FleetCrewListResponse>(`${this.apiUrl}/current/crews`);
   }
@@ -264,11 +268,22 @@ export class FleetService {
   }
 
   createForum(body: CreateFleetForumRequest): Observable<FleetForumOperationResponse> {
-    return this.http.post<FleetForumOperationResponse>(`${this.apiUrl}/current/forums`, body);
+    return this.http.post<FleetForumOperationResponse>(`${this.apiUrl}/current/forums`, {
+      nonce: body.nonce,
+      ciphertext: body.ciphertext,
+      keyVersion: body.keyVersion ?? 1,
+      isAdultContent: body.isAdultContent ?? false,
+      mentionedUserIds: body.mentionedUserIds ?? []
+    });
   }
 
   updateForum(id: number, body: UpdateFleetForumRequest): Observable<FleetForumOperationResponse> {
-    return this.http.put<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}`, body);
+    return this.http.put<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}`, {
+      nonce: body.nonce,
+      ciphertext: body.ciphertext,
+      keyVersion: body.keyVersion ?? 1,
+      mentionedUserIds: body.mentionedUserIds ?? []
+    });
   }
 
   deleteForum(id: number): Observable<FleetForumOperationResponse> {
@@ -276,7 +291,13 @@ export class FleetService {
   }
 
   createForumComment(id: number, body: CreateFleetForumCommentRequest): Observable<FleetForumOperationResponse> {
-    return this.http.post<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}/comments`, body);
+    return this.http.post<FleetForumOperationResponse>(`${this.apiUrl}/current/forums/${id}/comments`, {
+      parentCommentId: body.parentCommentId ?? null,
+      nonce: body.nonce,
+      ciphertext: body.ciphertext,
+      keyVersion: body.keyVersion ?? 1,
+      mentionedUserIds: body.mentionedUserIds ?? []
+    });
   }
 
   updateForumComment(
@@ -286,7 +307,12 @@ export class FleetService {
   ): Observable<FleetForumOperationResponse> {
     return this.http.put<FleetForumOperationResponse>(
       `${this.apiUrl}/current/forums/${postId}/comments/${commentId}`,
-      body
+      {
+        nonce: body.nonce,
+        ciphertext: body.ciphertext,
+        keyVersion: body.keyVersion ?? 1,
+        mentionedUserIds: body.mentionedUserIds ?? []
+      }
     );
   }
 }

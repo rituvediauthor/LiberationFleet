@@ -42,6 +42,10 @@ export interface UserProfileStats {
   receptionThisYear: number;
   percentBoost: number;
   priorityScore: number;
+  donationsPreviousTaxYearUsd?: number;
+  donationsCurrentTaxYearUsd?: number;
+  currentTaxYear?: number;
+  previousTaxYear?: number;
 }
 
 export interface UpdateProfileRequest {

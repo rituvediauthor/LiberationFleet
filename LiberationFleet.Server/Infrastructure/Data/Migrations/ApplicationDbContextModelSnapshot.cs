@@ -22,6 +22,53 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.AppDonation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("AmountCents")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("StripeCheckoutSessionId")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("StripePaymentIntentId")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StripeCheckoutSessionId");
+
+                    b.HasIndex("UserId", "Status", "CompletedAt");
+
+                    b.ToTable("AppDonations");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoom", b =>
                 {
                     b.Property<int>("Id")
@@ -168,6 +215,122 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ContentMentions");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CrewId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EscalatedToNcmecAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EscalatedToVendorAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EvidenceCiphertext")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EvidenceNonce")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int?>("FleetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OpsNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReporterNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("ReporterUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TargetAuthorFrozen")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("TargetAuthorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetParentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TargetQuarantined")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("TargetResourceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VendorLabel")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("TargetAuthorUserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("ContentReports");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentReportAccessLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AccessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("ContentReportId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentReportId");
+
+                    b.ToTable("ContentReportAccessLogs");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
@@ -782,6 +945,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int?>("CrewId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("FleetId")
+                        .HasColumnType("int");
+
                     b.Property<int>("KeyVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -805,10 +971,15 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.HasIndex("CrewId");
 
+                    b.HasIndex("FleetId");
+
                     b.HasIndex("ContentType", "ResourceId")
                         .IsUnique();
 
-                    b.ToTable("EncryptedContentEnvelopes");
+                    b.ToTable("EncryptedContentEnvelopes", t =>
+                        {
+                            t.HasCheckConstraint("CK_EncryptedContentEnvelopes_CrewOrFleet", "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FallibleClickStats", b =>
@@ -961,6 +1132,51 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("FleetCrews");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetKeyDistribution", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FleetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("KeyVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WrapNonce")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WrappedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WrappedFleetKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WrappedByUserId");
+
+                    b.HasIndex("FleetId", "UserId", "KeyVersion")
+                        .IsUnique();
+
+                    b.ToTable("FleetKeyDistributions");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetRule", b =>
@@ -2958,6 +3174,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<DateTime?>("LastDonationCampaignPromptAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("LastFailedLoginAt")
                         .HasColumnType("datetime2");
 
@@ -3377,6 +3596,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("VoiceParticipantSessions");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.AppDonation", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany("AppDonations")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatRoom", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "CreatedByUser")
@@ -3453,6 +3683,35 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Crew");
 
                     b.Navigation("MentionedUser");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentReport", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "TargetAuthor")
+                        .WithMany()
+                        .HasForeignKey("TargetAuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Reporter");
+
+                    b.Navigation("TargetAuthor");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentReportAccessLog", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ContentReport", "ContentReport")
+                        .WithMany("AccessLogs")
+                        .HasForeignKey("ContentReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentReport");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
@@ -3684,9 +3943,16 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasForeignKey("CrewId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Fleet", "Fleet")
+                        .WithMany()
+                        .HasForeignKey("FleetId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("AuthorUser");
 
                     b.Navigation("Crew");
+
+                    b.Navigation("Fleet");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FallibleClickUser", b =>
@@ -3728,6 +3994,33 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Crew");
 
                     b.Navigation("Fleet");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetKeyDistribution", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Fleet", "Fleet")
+                        .WithMany()
+                        .HasForeignKey("FleetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "WrappedByUser")
+                        .WithMany()
+                        .HasForeignKey("WrappedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Fleet");
+
+                    b.Navigation("User");
+
+                    b.Navigation("WrappedByUser");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetRule", b =>
@@ -4561,6 +4854,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Messages");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentReport", b =>
+                {
+                    b.Navigation("AccessLogs");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Crew", b =>
                 {
                     b.Navigation("Memberships");
@@ -4663,6 +4961,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.User", b =>
                 {
+                    b.Navigation("AppDonations");
+
                     b.Navigation("CrewMemberships");
 
                     b.Navigation("PasswordResetTokens");

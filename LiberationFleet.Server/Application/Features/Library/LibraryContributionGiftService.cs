@@ -20,7 +20,7 @@ public class LibraryContributionGiftService(
     IGiftRepository giftRepository,
     CrewGiftRecipientService crewGiftRecipientService)
 {
-    public const string InKindPlatformName = "In-kind (Library)";
+    public const string InKindPlatformName = "Library of Things";
 
     public async Task<CreatorContributionGiftDetails?> TryAwardCreatorForStockUseAsync(
         int crewId,

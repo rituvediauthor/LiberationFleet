@@ -71,8 +71,9 @@ public class CreateForumPostRequest
 
 public class CreateFleetForumPostRequest
 {
-    public string Title { get; set; } = string.Empty;
-    public string Body { get; set; } = string.Empty;
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
     public bool IsAdultContent { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
 }
@@ -87,8 +88,10 @@ public class UpdateForumPostRequest
 
 public class UpdateFleetForumPostRequest
 {
-    public string Title { get; set; } = string.Empty;
-    public string Body { get; set; } = string.Empty;
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class CreateForumCommentRequest
@@ -103,7 +106,9 @@ public class CreateForumCommentRequest
 public class CreateFleetForumCommentRequest
 {
     public int? ParentCommentId { get; set; }
-    public string Body { get; set; } = string.Empty;
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
     public List<int> MentionedUserIds { get; set; } = [];
 }
 
@@ -117,7 +122,10 @@ public class UpdateForumCommentRequest
 
 public class UpdateFleetForumCommentRequest
 {
-    public string Body { get; set; } = string.Empty;
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+    public List<int> MentionedUserIds { get; set; } = [];
 }
 
 public class ForumCommentRepliesResponse

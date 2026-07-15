@@ -1,0 +1,94 @@
+.report-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+}
+
+.report-dialog-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--lf-color-bg-surface);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--lf-color-text-body);
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+  line-height: 1.4;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--lf-color-text-body);
+}
+
+.field select,
+.field textarea {
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  background: var(--lf-color-bg);
+  color: var(--lf-color-text-body);
+}
+
+.confirm-field {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.confirm-field input {
+  margin-top: 3px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--lf-color-border);
+  color: var(--lf-color-text-body);
+}
+
+.btn.primary {
+  background: var(--lf-color-danger, #b3261e);
+  color: #fff;
+}

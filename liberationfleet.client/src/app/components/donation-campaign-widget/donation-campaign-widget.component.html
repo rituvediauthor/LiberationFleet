@@ -1,0 +1,10 @@
+<div class="donation-widget" *ngIf="visible" role="region" aria-label="Donation request">
+  <button type="button" class="dismiss-btn" (click)="dismiss($event)" aria-label="Dismiss">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+  <button type="button" class="donation-banner" (click)="goDonate()">
+    <span class="donation-label">Support Liberation Fleet</span>
+    <p class="donation-copy">{{ message }}</p>
+    <span class="donate-cta">Donate</span>
+  </button>
+</div>

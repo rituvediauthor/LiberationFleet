@@ -151,6 +151,50 @@ export class CryptoService {
     return new Uint8Array(decrypted);
   }
 
+  generateFleetKeyBytes(): Uint8Array {
+    return crypto.getRandomValues(new Uint8Array(32));
+  }
+
+  async wrapFleetKeyForUser(
+    fleetKeyBytes: Uint8Array,
+    recipientPublicKeySpki: string,
+    wrapperPrivateKey: CryptoKey
+  ): Promise<{ wrappedFleetKey: string; wrapNonce: string }> {
+    const recipientPublicKey = await this.importPublicKeySpki(recipientPublicKeySpki);
+    const wrapKey = await this.deriveSharedAesKey(wrapperPrivateKey, recipientPublicKey, 'fleet-key-wrap-v1');
+    const wrapNonce = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: AES_ALGORITHM, iv: wrapNonce },
+      wrapKey,
+      fleetKeyBytes
+    );
+
+    return {
+      wrappedFleetKey: bytesToBase64(new Uint8Array(encrypted)),
+      wrapNonce: bytesToBase64(wrapNonce)
+    };
+  }
+
+  async unwrapFleetKey(
+    wrappedFleetKey: string,
+    wrapNonce: string,
+    wrappedByPublicKeySpki: string,
+    recipientPrivateKey: CryptoKey
+  ): Promise<Uint8Array> {
+    const wrappedByPublicKey = await this.importPublicKeySpki(wrappedByPublicKeySpki);
+    const wrapKey = await this.deriveSharedAesKey(recipientPrivateKey, wrappedByPublicKey, 'fleet-key-wrap-v1');
+    const decrypted = await crypto.subtle.decrypt(
+      { name: AES_ALGORITHM, iv: base64ToBytes(wrapNonce) },
+      wrapKey,
+      base64ToBytes(wrappedFleetKey)
+    );
+    return new Uint8Array(decrypted);
+  }
+
+  async importFleetAesKey(rawKey: Uint8Array): Promise<CryptoKey> {
+    return this.importCrewAesKey(rawKey);
+  }
+
   async importCrewAesKey(rawKey: Uint8Array): Promise<CryptoKey> {
     return crypto.subtle.importKey('raw', rawKey, { name: AES_ALGORITHM }, false, ['encrypt', 'decrypt']);
   }

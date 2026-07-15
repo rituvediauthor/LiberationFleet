@@ -8,6 +8,7 @@ using LiberationFleet.Server.Application.Features.Fleets.Commands.CreateFleetRul
 using LiberationFleet.Server.Application.Features.Fleets.Commands.DeleteFleetForumPost;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.DeleteFleetRule;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.InviteCrewToFleet;
+using LiberationFleet.Server.Application.Features.Fleets.Commands.LeaveFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.ProposeFleetKickCrew;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetRule;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.RecordFleetGifts;
@@ -160,6 +161,13 @@ public class FleetsController : ControllerBase
             body.MinimumContributionForAttachments,
             body.MinimumCrewmateTenureDaysForProposals,
             body.MinimumContributionForProposals));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("leave")]
+    public async Task<IActionResult> Leave()
+    {
+        var result = await _mediator.Send(new LeaveFleetCommand());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -366,8 +374,9 @@ public class FleetsController : ControllerBase
     public async Task<IActionResult> CreateForum([FromBody] CreateFleetForumPostRequest body)
     {
         var result = await _mediator.Send(new CreateFleetForumPostCommand(
-            body.Title,
-            body.Body,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
             body.IsAdultContent,
             body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
@@ -376,7 +385,12 @@ public class FleetsController : ControllerBase
     [HttpPut("current/forums/{id:int}")]
     public async Task<IActionResult> UpdateForum(int id, [FromBody] UpdateFleetForumPostRequest body)
     {
-        var result = await _mediator.Send(new UpdateFleetForumPostCommand(id, body.Title, body.Body));
+        var result = await _mediator.Send(new UpdateFleetForumPostCommand(
+            id,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -393,7 +407,9 @@ public class FleetsController : ControllerBase
         var result = await _mediator.Send(new CreateFleetForumCommentCommand(
             id,
             body.ParentCommentId,
-            body.Body,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
             body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
@@ -402,7 +418,13 @@ public class FleetsController : ControllerBase
     public async Task<IActionResult> UpdateForumComment(int postId, int commentId, [FromBody] UpdateFleetForumCommentRequest body)
     {
         body ??= new UpdateFleetForumCommentRequest();
-        var result = await _mediator.Send(new UpdateFleetForumCommentCommand(postId, commentId, body.Body));
+        var result = await _mediator.Send(new UpdateFleetForumCommentCommand(
+            postId,
+            commentId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
+            body.MentionedUserIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

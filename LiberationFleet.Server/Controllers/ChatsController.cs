@@ -49,6 +49,7 @@ public class ChatsController : ControllerBase
     [HttpPost("rooms")]
     public async Task<IActionResult> CreateRoom([FromBody] CreateChatRoomRequest body)
     {
+        var isFleetScope = string.Equals(body.Scope, "fleet", StringComparison.OrdinalIgnoreCase);
         var result = await _mediator.Send(new CreateChatRoomCommand(
             body.Nonce,
             body.Ciphertext,
@@ -56,7 +57,8 @@ public class ChatsController : ControllerBase
             body.RoomType,
             body.Purpose,
             body.PlaintextName,
-            body.IsAdultContent));
+            body.IsAdultContent,
+            isFleetScope));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

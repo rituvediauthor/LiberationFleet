@@ -1,3 +1,5 @@
+import { EncryptedPayload } from './crypto.model';
+
 export interface FleetForumListItem {
   id: number;
   authorUserId: number;
@@ -5,8 +7,10 @@ export interface FleetForumListItem {
   lastActivityAt: string;
   title?: string | null;
   body?: string | null;
+  descriptionPreview?: string | null;
   isAdultContent: boolean;
   hasEncryptedContent: boolean;
+  encryptedPayload?: EncryptedPayload | null;
 }
 
 export interface FleetForumComment {
@@ -20,6 +24,7 @@ export interface FleetForumComment {
   replyCount: number;
   body?: string | null;
   hasEncryptedContent?: boolean;
+  encryptedPayload?: EncryptedPayload | null;
   replies?: FleetForumComment[];
   repliesExpanded?: boolean;
 }
@@ -28,6 +33,7 @@ export interface FleetForumPost extends FleetForumListItem {
   createdAt: string;
   canEdit: boolean;
   canDelete: boolean;
+  description?: string | null;
   comments: FleetForumComment[];
 }
 
@@ -56,24 +62,26 @@ export interface FleetForumOperationResponse {
   commentId?: number;
 }
 
-export interface CreateFleetForumRequest {
-  title: string;
-  body: string;
+export interface EncryptedFleetForumSend {
+  nonce: string;
+  ciphertext: string;
+  keyVersion?: number;
+}
+
+export interface CreateFleetForumRequest extends EncryptedFleetForumSend {
   isAdultContent: boolean;
   mentionedUserIds?: number[];
 }
 
-export interface UpdateFleetForumRequest {
-  title: string;
-  body: string;
-}
-
-export interface CreateFleetForumCommentRequest {
-  parentCommentId?: number | null;
-  body: string;
+export interface UpdateFleetForumRequest extends EncryptedFleetForumSend {
   mentionedUserIds?: number[];
 }
 
-export interface UpdateFleetForumCommentRequest {
-  body: string;
+export interface CreateFleetForumCommentRequest extends EncryptedFleetForumSend {
+  parentCommentId?: number | null;
+  mentionedUserIds?: number[];
+}
+
+export interface UpdateFleetForumCommentRequest extends EncryptedFleetForumSend {
+  mentionedUserIds?: number[];
 }

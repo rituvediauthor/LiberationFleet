@@ -55,14 +55,15 @@ public class SendChatMessageCommandHandler(
         }
 
         var isFleetRoom = !room.CrewId.HasValue && room.FleetId.HasValue;
+        var hasEncryptedPayload = !string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext);
         if (isFleetRoom)
         {
-            if (string.IsNullOrWhiteSpace(request.Body))
+            if (!hasEncryptedPayload && string.IsNullOrWhiteSpace(request.Body))
             {
                 return new ChatOperationResponse { Success = false, Message = "Message content is required." };
             }
         }
-        else if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        else if (!hasEncryptedPayload)
         {
             return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
         }
@@ -73,7 +74,7 @@ public class SendChatMessageCommandHandler(
             ChatRoomId = room.Id,
             AuthorUserId = userId,
             CreatedAt = utcNow,
-            Body = isFleetRoom ? request.Body!.Trim() : null
+            Body = isFleetRoom && !hasEncryptedPayload ? request.Body!.Trim() : null
         };
 
         await chatRepository.AddMessageAsync(message, cancellationToken);
@@ -81,7 +82,25 @@ public class SendChatMessageCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         EncryptedContentEnvelope? envelope = null;
-        if (!isFleetRoom)
+        if (isFleetRoom && hasEncryptedPayload)
+        {
+            envelope = new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.ChatRoomMessage,
+                ResourceId = message.Id.ToString(),
+                FleetId = room.FleetId,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+                Nonce = request.Nonce.Trim(),
+                Ciphertext = request.Ciphertext.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            };
+
+            await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        else if (!isFleetRoom)
         {
             envelope = new EncryptedContentEnvelope
             {

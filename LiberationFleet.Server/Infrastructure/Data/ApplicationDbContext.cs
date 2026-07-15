@@ -35,6 +35,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<UserKeyBundle> UserKeyBundles => Set<UserKeyBundle>();
     public DbSet<UserPrivateKeyBackup> UserPrivateKeyBackups => Set<UserPrivateKeyBackup>();
     public DbSet<CrewKeyDistribution> CrewKeyDistributions => Set<CrewKeyDistribution>();
+    public DbSet<FleetKeyDistribution> FleetKeyDistributions => Set<FleetKeyDistribution>();
     public DbSet<EncryptedContentEnvelope> EncryptedContentEnvelopes => Set<EncryptedContentEnvelope>();
     public DbSet<Proposal> Proposals => Set<Proposal>();
     public DbSet<ProposalVote> ProposalVotes => Set<ProposalVote>();
@@ -81,6 +82,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<LibraryRequest> LibraryRequests => Set<LibraryRequest>();
     public DbSet<LibraryRequestMessage> LibraryRequestMessages => Set<LibraryRequestMessage>();
     public DbSet<LibraryMaintenanceRecord> LibraryMaintenanceRecords => Set<LibraryMaintenanceRecord>();
+    public DbSet<ContentReport> ContentReports => Set<ContentReport>();
+    public DbSet<ContentReportAccessLog> ContentReportAccessLogs => Set<ContentReportAccessLog>();
+    public DbSet<AppDonation> AppDonations => Set<AppDonation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -509,6 +513,27 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<FleetKeyDistribution>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.FleetId, e.UserId, e.KeyVersion }).IsUnique();
+            entity.Property(e => e.WrappedFleetKey).IsRequired();
+            entity.Property(e => e.WrapNonce).IsRequired();
+            entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.WrappedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.WrappedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<EncryptedContentEnvelope>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -517,10 +542,19 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Nonce).IsRequired();
             entity.Property(e => e.Ciphertext).IsRequired();
             entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_EncryptedContentEnvelopes_CrewOrFleet",
+                "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
             entity.HasOne(e => e.AuthorUser)
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
@@ -1002,6 +1036,53 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.BlockedUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ContentReport>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ReporterNote).HasMaxLength(1000);
+            entity.Property(e => e.EvidenceNonce).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.EvidenceCiphertext).IsRequired();
+            entity.Property(e => e.VendorLabel).HasMaxLength(64);
+            entity.Property(e => e.OpsNotes).HasMaxLength(2000);
+            entity.HasIndex(e => new { e.Status, e.CreatedAt });
+            entity.HasIndex(e => e.ReporterUserId);
+            entity.HasOne(e => e.Reporter)
+                .WithMany()
+                .HasForeignKey(e => e.ReporterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.TargetAuthor)
+                .WithMany()
+                .HasForeignKey(e => e.TargetAuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ContentReportAccessLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Actor).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(128).IsRequired();
+            entity.HasIndex(e => e.ContentReportId);
+            entity.HasOne(e => e.ContentReport)
+                .WithMany(r => r.AccessLogs)
+                .HasForeignKey(e => e.ContentReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AppDonation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Currency).HasMaxLength(8).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.StripeCheckoutSessionId).HasMaxLength(256);
+            entity.Property(e => e.StripePaymentIntentId).HasMaxLength(256);
+            entity.HasIndex(e => e.StripeCheckoutSessionId);
+            entity.HasIndex(e => new { e.UserId, e.Status, e.CompletedAt });
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.AppDonations)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Notification>(entity =>

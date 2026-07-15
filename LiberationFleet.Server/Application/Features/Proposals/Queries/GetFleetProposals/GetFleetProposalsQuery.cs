@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Application.Features.Rules;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -17,6 +18,7 @@ public class GetFleetProposalsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
+    ICryptoRepository cryptoRepository,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
     CrewChatsProposalService crewChatsProposalService,
@@ -105,6 +107,17 @@ public class GetFleetProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.General).Select(p => p.Id),
             cancellationToken);
 
+        var generalResourceIds = proposals
+            .Where(p => p.Kind == ProposalKind.General)
+            .Select(p => p.Id.ToString())
+            .ToList();
+        var envelopes = await cryptoRepository.GetEnvelopesAsync(
+            EncryptedContentType.Proposal,
+            generalResourceIds,
+            fleetId: fleet.Id,
+            cancellationToken: cancellationToken);
+        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -113,17 +126,22 @@ public class GetFleetProposalsQueryHandler(
             fleetKickCrews.TryGetValue(proposal.Id, out var fleetKickCrew);
             fleetRuleChanges.TryGetValue(proposal.Id, out var fleetRuleChange);
             fleetNotices.TryGetValue(proposal.Id, out var fleetNotice);
+            EncryptedContentEnvelope? envelope = null;
+            if (proposal.Kind == ProposalKind.General)
+            {
+                envelopeById.TryGetValue(proposal.Id.ToString(), out envelope);
+            }
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
                 proposal,
-                envelope: null,
+                envelope,
                 currentUserVote: currentUserVote,
                 fleetRuleChange: fleetRuleChange,
                 fleetSettingChange: fleetSettingChange,
                 fleetJoinRequest: fleetJoinRequest,
                 fleetKickCrew: fleetKickCrew,
-                fleetNotice: fleetNotice));
+                fleetNotice: envelope is null ? fleetNotice : null));
         }
 
         return new ProposalListResponse

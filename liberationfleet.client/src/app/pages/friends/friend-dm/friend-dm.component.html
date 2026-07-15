@@ -20,7 +20,7 @@
             <span>·</span>
             <span>{{ message.createdAt | date:'short' }}</span>
           </p>
-          <div class="message-actions" *ngIf="isOwnMessage(message)">
+          <div class="message-actions">
             <button
               type="button"
               class="kebab-btn"
@@ -29,7 +29,8 @@
               <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
             </button>
             <div class="message-menu" *ngIf="openMessageMenuId === message.id" (click)="$event.stopPropagation()">
-              <button type="button" (click)="startEditMessage(message, $event)">Edit</button>
+              <button type="button" *ngIf="isOwnMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
+              <button type="button" *ngIf="!isOwnMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
             </div>
           </div>
         </div>
@@ -96,3 +97,18 @@
     </div>
   </div>
 </div>
+
+<app-report-content-dialog
+  [visible]="showReportDialog"
+  targetType="DirectMessage"
+  [targetResourceId]="reportTarget?.id ?? null"
+  [targetParentId]="friendUserId"
+  [targetAuthorUserId]="reportTarget?.authorUserId ?? null"
+  [crewId]="crewId > 0 ? crewId : null"
+  [fleetId]="null"
+  [evidenceText]="reportTarget?.body || ''"
+  [evidenceAuthorUsername]="reportTarget?.authorUsername || ''"
+  [evidenceMediaResourceIds]="reportMediaIds"
+  (dismissed)="onReportDismissed()"
+  (submitted)="onReportSubmitted()">
+</app-report-content-dialog>

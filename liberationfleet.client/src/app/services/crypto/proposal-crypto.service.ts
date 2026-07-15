@@ -17,6 +17,11 @@ import { CryptoSessionService } from './crypto-session.service';
 import { bytesToBase64 } from './crypto-encoding.util';
 import { compressMediaFile } from '../../utils/media-compression.util';
 
+export interface ProposalCryptoScope {
+  crewId?: number;
+  fleetId?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -27,7 +32,8 @@ export class ProposalCryptoService {
     private cryptoSession: CryptoSessionService
   ) {}
 
-  async decryptListItems(items: ProposalListItem[], crewId: number): Promise<ProposalListItem[]> {
+  async decryptListItems(items: ProposalListItem[], scope: ProposalCryptoScope | number): Promise<ProposalListItem[]> {
+    const normalizedScope = this.normalizeScope(scope);
     const mapPlaintext = (item: ProposalListItem): ProposalListItem => ({
       ...item,
       title: item.title ?? 'Editing crew settings',
@@ -50,13 +56,14 @@ export class ProposalCryptoService {
       });
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(items.map(async item => this.decryptListItem(item, crewKey, crewId)));
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    return Promise.all(items.map(async item => this.decryptListItem(item, scopeKey, normalizedScope)));
   }
 
-  async decryptDetail(proposal: ProposalDetail, crewId: number): Promise<ProposalDetail> {
+  async decryptDetail(proposal: ProposalDetail, scope: ProposalCryptoScope | number): Promise<ProposalDetail> {
+    const normalizedScope = this.normalizeScope(scope);
     const usesAnonymousComments = proposal.usesAnonymousComments ?? false;
-    const comments = await this.decryptCommentsForDetail(proposal.comments, crewId, usesAnonymousComments);
+    const comments = await this.decryptCommentsForDetail(proposal.comments, normalizedScope, usesAnonymousComments);
 
     if (proposal.hasPlaintextContent) {
       return {
@@ -64,6 +71,16 @@ export class ProposalCryptoService {
         title: proposal.title ?? 'Editing crew settings',
         description: proposal.description ?? proposal.descriptionPreview ?? '',
         authorUsername: this.isAnonymousAuthor(proposal) ? 'Anonymous' : (proposal.authorUsername ?? 'Anonymous'),
+        comments
+      };
+    }
+
+    if (!proposal.hasEncryptedContent) {
+      return {
+        ...proposal,
+        title: proposal.title ?? '',
+        description: proposal.description ?? proposal.body ?? proposal.descriptionPreview ?? '',
+        authorUsername: proposal.authorUsername ?? 'Unknown',
         comments
       };
     }
@@ -78,17 +95,17 @@ export class ProposalCryptoService {
       };
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    const decrypted = await this.decryptListItem(proposal, crewKey, crewId);
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    const decrypted = await this.decryptListItem(proposal, scopeKey, normalizedScope);
     let payload: ProposalEncryptedPayload | null = null;
     try {
-      payload = await this.decryptProposalPayload(proposal, crewKey);
+      payload = await this.decryptProposalPayload(proposal, scopeKey);
     } catch {
       payload = null;
     }
 
     const attachments = payload?.attachments ?? [];
-    const resolvedAttachments = await this.decryptAttachments(crewId, attachments);
+    const resolvedAttachments = await this.decryptAttachments(normalizedScope, attachments);
     const unableToDecrypt = proposal.hasEncryptedContent && !payload;
 
     return {
@@ -104,7 +121,7 @@ export class ProposalCryptoService {
 
   private async decryptCommentsForDetail(
     comments: ProposalComment[],
-    crewId: number,
+    scope: ProposalCryptoScope,
     usesAnonymousComments = false
   ): Promise<ProposalComment[]> {
     if (!this.cryptoSession.isUnlocked()) {
@@ -115,36 +132,38 @@ export class ProposalCryptoService {
       }));
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(comments.map(comment => this.decryptComment(comment, crewKey, crewId, usesAnonymousComments)));
+    const scopeKey = await this.resolveScopeKey(scope);
+    return Promise.all(comments.map(comment => this.decryptComment(comment, scopeKey, scope, usesAnonymousComments)));
   }
 
   async encryptProposalPayload(
-    crewId: number,
+    scope: ProposalCryptoScope | number,
     payload: ProposalEncryptedPayload,
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    const uploadedAttachments = await this.uploadAttachments(crewId, newAttachments);
+    const normalizedScope = this.normalizeScope(scope);
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    const uploadedAttachments = await this.uploadAttachments(normalizedScope, newAttachments);
     const allAttachments = [...existingAttachments, ...uploadedAttachments];
     const fullPayload: ProposalEncryptedPayload = {
       ...payload,
       attachments: allAttachments,
       thumbnailResourceId: allAttachments.find(a => a.type === 'image')?.resourceId ?? null
     };
-    return this.cryptoService.encryptJson(crewKey, fullPayload);
+    return this.cryptoService.encryptJson(scopeKey, fullPayload);
   }
 
   async encryptCommentPayload(
-    crewId: number,
+    scope: ProposalCryptoScope | number,
     payload: ProposalCommentEncryptedPayload,
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    const storedAttachments = await this.uploadAttachments(crewId, newAttachments);
-    return this.cryptoService.encryptJson(crewKey, {
+    const normalizedScope = this.normalizeScope(scope);
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    const storedAttachments = await this.uploadAttachments(normalizedScope, newAttachments);
+    return this.cryptoService.encryptJson(scopeKey, {
       ...payload,
       attachments: [...existingAttachments, ...storedAttachments]
     });
@@ -167,8 +186,8 @@ export class ProposalCryptoService {
 
   private async decryptListItem(
     item: ProposalListItem,
-    crewKey: CryptoKey,
-    crewId: number
+    scopeKey: CryptoKey,
+    scope: ProposalCryptoScope
   ): Promise<ProposalListItem> {
     if (item.hasPlaintextContent) {
       return {
@@ -180,16 +199,20 @@ export class ProposalCryptoService {
     }
 
     if (!item.hasEncryptedContent || !item.encryptedPayload) {
-      return item;
+      return {
+        ...item,
+        title: item.title ?? '',
+        descriptionPreview: item.descriptionPreview ?? item.body ?? ''
+      };
     }
 
     try {
       const payload = await this.cryptoService.decryptJson<ProposalEncryptedPayload>(
-        crewKey,
+        scopeKey,
         item.encryptedPayload.nonce,
         item.encryptedPayload.ciphertext
       );
-      const thumbnailUrl = await this.resolveThumbnail(crewKey, payload, crewId);
+      const thumbnailUrl = await this.resolveThumbnail(scopeKey, payload, scope);
       return {
         ...item,
         title: payload.title,
@@ -220,23 +243,24 @@ export class ProposalCryptoService {
     );
   }
 
-  async decryptComments(comments: ProposalComment[], crewId: number): Promise<ProposalComment[]> {
+  async decryptComments(comments: ProposalComment[], scope: ProposalCryptoScope | number): Promise<ProposalComment[]> {
+    const normalizedScope = this.normalizeScope(scope);
     if (!this.cryptoSession.isUnlocked()) {
       return comments.map(c => ({
         ...c,
-        body: '[Encrypted]',
+        body: c.hasEncryptedContent ? '[Encrypted]' : c.body,
         authorUsername: c.authorUsername || '[Encrypted]'
       }));
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return Promise.all(comments.map(comment => this.decryptComment(comment, crewKey, crewId)));
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    return Promise.all(comments.map(comment => this.decryptComment(comment, scopeKey, normalizedScope)));
   }
 
   private async decryptComment(
     comment: ProposalComment,
-    crewKey: CryptoKey,
-    crewId: number,
+    scopeKey: CryptoKey,
+    scope: ProposalCryptoScope,
     usesAnonymousComments = false
   ): Promise<ProposalComment> {
     if (!comment.hasEncryptedContent || !comment.encryptedPayload) {
@@ -245,12 +269,12 @@ export class ProposalCryptoService {
 
     try {
       const payload = await this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-        crewKey,
+        scopeKey,
         comment.encryptedPayload.nonce,
         comment.encryptedPayload.ciphertext
       );
       const attachments = payload.attachments ?? [];
-      const resolvedAttachments = await this.decryptAttachments(crewId, attachments);
+      const resolvedAttachments = await this.decryptAttachments(scope, attachments);
       const serverUsername = comment.authorUsername;
       let authorUsername = serverUsername || 'Anonymous';
       if (!usesAnonymousComments && (!authorUsername || authorUsername === 'Anonymous')) {
@@ -270,9 +294,10 @@ export class ProposalCryptoService {
   }
 
   async decryptAttachments(
-    crewId: number,
+    scope: ProposalCryptoScope | number,
     attachments: ProposalAttachment[]
   ): Promise<ResolvedAttachment[]> {
+    const normalizedScope = this.normalizeScope(scope);
     if (!attachments.length) {
       return [];
     }
@@ -281,7 +306,7 @@ export class ProposalCryptoService {
       return attachments.map(attachment => ({ ...attachment }));
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
     const grouped = new Map<string, ProposalAttachment[]>();
     for (const attachment of attachments) {
       const contentType = attachment.type === 'image'
@@ -299,12 +324,17 @@ export class ProposalCryptoService {
       const resourceIds = bucket.map(attachment => attachment.resourceId);
       try {
         const envelopes = await firstValueFrom(
-          this.cryptoApi.getEncryptedContents(contentType as EncryptedContentType, resourceIds, crewId)
+          this.cryptoApi.getEncryptedContents(
+            contentType as EncryptedContentType,
+            resourceIds,
+            normalizedScope.crewId,
+            normalizedScope.fleetId
+          )
         );
         for (const envelope of envelopes) {
           try {
             const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
-              crewKey,
+              scopeKey,
               envelope.nonce,
               envelope.ciphertext
             );
@@ -325,9 +355,9 @@ export class ProposalCryptoService {
   }
 
   private async decryptAttachment(
-    crewKey: CryptoKey,
+    scopeKey: CryptoKey,
     attachment: ProposalAttachment,
-    crewId: number
+    scope: ProposalCryptoScope
   ): Promise<ResolvedAttachment> {
     const contentType = attachment.type === 'image'
       ? 'ImageAsset'
@@ -337,7 +367,12 @@ export class ProposalCryptoService {
 
     try {
       const envelopes = await firstValueFrom(
-        this.cryptoApi.getEncryptedContents(contentType, [attachment.resourceId], crewId)
+        this.cryptoApi.getEncryptedContents(
+          contentType,
+          [attachment.resourceId],
+          scope.crewId,
+          scope.fleetId
+        )
       );
       const envelope = envelopes[0];
       if (!envelope) {
@@ -345,7 +380,7 @@ export class ProposalCryptoService {
       }
 
       const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
-        crewKey,
+        scopeKey,
         envelope.nonce,
         envelope.ciphertext
       );
@@ -356,9 +391,9 @@ export class ProposalCryptoService {
   }
 
   private async resolveThumbnail(
-    crewKey: CryptoKey,
+    scopeKey: CryptoKey,
     payload: ProposalEncryptedPayload,
-    crewId: number
+    scope: ProposalCryptoScope
   ): Promise<string | null> {
     const thumbId = payload.thumbnailResourceId
       ?? payload.attachments?.find(a => a.type === 'image')?.resourceId;
@@ -367,7 +402,12 @@ export class ProposalCryptoService {
     }
 
     const envelopes = await firstValueFrom(
-      this.cryptoApi.getEncryptedContents('ImageAsset', [thumbId], crewId)
+      this.cryptoApi.getEncryptedContents(
+        'ImageAsset',
+        [thumbId],
+        scope.crewId,
+        scope.fleetId
+      )
     );
     const envelope = envelopes[0];
     if (!envelope) {
@@ -376,7 +416,7 @@ export class ProposalCryptoService {
 
     try {
       const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
-        crewKey,
+        scopeKey,
         envelope.nonce,
         envelope.ciphertext
       );
@@ -386,12 +426,12 @@ export class ProposalCryptoService {
     }
   }
 
-  private async uploadAttachments(crewId: number, attachments: PendingAttachment[]): Promise<ProposalAttachment[]> {
+  private async uploadAttachments(scope: ProposalCryptoScope, attachments: PendingAttachment[]): Promise<ProposalAttachment[]> {
     if (!attachments.length) {
       return [];
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    const scopeKey = await this.resolveScopeKey(scope);
     const results: ProposalAttachment[] = [];
 
     for (const attachment of attachments) {
@@ -407,7 +447,7 @@ export class ProposalCryptoService {
         dataUrl = await this.readBlobAsDataUrl(attachment.blob);
       }
 
-      const encrypted = await this.cryptoService.encryptJson(crewKey, { dataUrl });
+      const encrypted = await this.cryptoService.encryptJson(scopeKey, { dataUrl });
       const contentType = attachment.type === 'image'
         ? 'ImageAsset'
         : attachment.type === 'video'
@@ -417,7 +457,8 @@ export class ProposalCryptoService {
       await firstValueFrom(this.cryptoApi.upsertEncryptedContent({
         contentType,
         resourceId: attachment.resourceId,
-        crewId,
+        crewId: scope.crewId,
+        fleetId: scope.fleetId,
         keyVersion: 1,
         nonce: encrypted.nonce,
         ciphertext: encrypted.ciphertext
@@ -432,6 +473,22 @@ export class ProposalCryptoService {
     }
 
     return results;
+  }
+
+  private normalizeScope(scope: ProposalCryptoScope | number): ProposalCryptoScope {
+    return typeof scope === 'number' ? { crewId: scope } : scope;
+  }
+
+  private async resolveScopeKey(scope: ProposalCryptoScope): Promise<CryptoKey> {
+    if (scope.fleetId) {
+      return this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
+    }
+
+    if (scope.crewId) {
+      return this.cryptoSession.ensureCrewKeyReady(scope.crewId);
+    }
+
+    throw new Error('Encryption scope is required.');
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {

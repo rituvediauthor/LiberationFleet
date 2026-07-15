@@ -6,14 +6,17 @@
 
       <div class="crew-dashboard">
 
-        <div class="info-widget" *ngIf="seasonStarted">
+        <div class="aid-widget-slot">
+          <app-donation-campaign-widget
+            variant="crew"
+            [enabled]="!!membership?.hasCrew">
+          </app-donation-campaign-widget>
 
-          <span class="info-label">Next aid</span>
-
-          <p class="info-text">{{ nextAidHeadline }}</p>
-
-          <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
-
+          <div class="info-widget" *ngIf="seasonStarted">
+            <span class="info-label">Next aid</span>
+            <p class="info-text">{{ nextAidHeadline }}</p>
+            <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
+          </div>
         </div>
 
 

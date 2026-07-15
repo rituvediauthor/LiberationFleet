@@ -4,6 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../../components/page-layout/page-layout.component';
 import { FleetService } from '../../../../services/fleet.service';
+import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
+import { ProfileService } from '../../../../services/profile.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { NavigationService } from '../../../../services/navigation.service';
 
@@ -21,12 +23,16 @@ export class FleetForumCreateComponent implements OnInit {
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   isSubmitting = false;
+  fleetId = 0;
   mentionedUserIds: number[] = [];
+  authorDisplayName = '';
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private navigation = inject(NavigationService);
   private fleetService = inject(FleetService);
+  private forumCrypto = inject(ProposalCryptoService);
+  private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -39,12 +45,24 @@ export class FleetForumCreateComponent implements OnInit {
     this.backButton = this.navigation.createBackButton(['/app/fleet/forums']);
     this.updateCreateButton();
 
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        this.fleetId = status.fleetId ?? 0;
+      }
+    });
+
+    this.profileService.getProfile().subscribe({
+      next: profile => {
+        this.authorDisplayName = profile.username;
+      }
+    });
+
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());
   }
 
   onSubmit() {
-    if (this.form.invalid || this.isSubmitting) {
+    if (this.form.invalid || this.isSubmitting || this.fleetId <= 0) {
       return;
     }
 
@@ -52,31 +70,43 @@ export class FleetForumCreateComponent implements OnInit {
     this.updateCreateButton();
 
     const { title, body, isAdultContent } = this.form.getRawValue();
-    this.fleetService.createForum({
-      title: title.trim(),
-      body: body.trim(),
-      isAdultContent: !!isAdultContent,
-      mentionedUserIds: this.mentionedUserIds
-    }).subscribe({
-      next: result => {
-        if (result.success) {
-          this.toastService.success(result.message || 'Forum post created');
-          if (result.postId) {
-            this.router.navigate(['/app/fleet/forums', result.postId]);
-          } else {
-            this.router.navigate(['/app/fleet/forums']);
-          }
-          return;
-        }
-        this.toastService.error(result.message || 'Failed to create forum post');
-        this.isSubmitting = false;
-        this.updateCreateButton();
-      },
-      error: err => {
-        this.toastService.error(err?.error?.message || 'Failed to create forum post');
-        this.isSubmitting = false;
-        this.updateCreateButton();
+    this.forumCrypto.encryptProposalPayload(
+      { fleetId: this.fleetId },
+      {
+        title: title.trim(),
+        description: body.trim(),
+        authorDisplayName: this.authorDisplayName
       }
+    ).then(encrypted => {
+      this.fleetService.createForum({
+        ...encrypted,
+        isAdultContent: !!isAdultContent,
+        mentionedUserIds: this.mentionedUserIds
+      }).subscribe({
+        next: result => {
+          if (result.success) {
+            this.toastService.success(result.message || 'Forum post created');
+            if (result.postId) {
+              this.router.navigate(['/app/fleet/forums', result.postId]);
+            } else {
+              this.router.navigate(['/app/fleet/forums']);
+            }
+            return;
+          }
+          this.toastService.error(result.message || 'Failed to create forum post');
+          this.isSubmitting = false;
+          this.updateCreateButton();
+        },
+        error: err => {
+          this.toastService.error(err?.error?.message || 'Failed to create forum post');
+          this.isSubmitting = false;
+          this.updateCreateButton();
+        }
+      });
+    }).catch(() => {
+      this.toastService.error('Failed to encrypt post content.');
+      this.isSubmitting = false;
+      this.updateCreateButton();
     });
   }
 

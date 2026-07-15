@@ -60,8 +60,8 @@ public class GetDirectMessagesQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.DirectMessage,
             resourceIds,
-            access.CrewId,
-            cancellationToken);
+            crewId: access.CrewId,
+            cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var hasMore = false;

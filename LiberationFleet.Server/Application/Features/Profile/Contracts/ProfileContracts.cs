@@ -19,6 +19,10 @@ public class UserProfileStatsDto
     public decimal ReceptionThisYear { get; set; }
     public int PercentBoost { get; set; }
     public int PriorityScore { get; set; }
+    public decimal DonationsPreviousTaxYearUsd { get; set; }
+    public decimal DonationsCurrentTaxYearUsd { get; set; }
+    public int CurrentTaxYear { get; set; }
+    public int PreviousTaxYear { get; set; }
 }
 
 public class UserProfileDto
