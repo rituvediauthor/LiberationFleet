@@ -38,7 +38,14 @@
   box-sizing: border-box;
 }
 
-.form-input:focus {
+.form-input:focus-visible {
+  outline: var(--lf-focus-ring-width, 3px) solid var(--lf-focus-ring-color, var(--lf-color-accent-strong));
+  outline-offset: var(--lf-focus-ring-offset, 2px);
+  border-color: var(--lf-color-accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+.form-input:focus:not(:focus-visible) {
   outline: none;
   border-color: var(--lf-color-accent);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);

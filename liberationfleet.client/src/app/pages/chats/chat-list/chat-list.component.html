@@ -34,8 +34,12 @@
                 <span class="occupant-name">{{ occupant.username }}</span>
                 <span class="occupant-badges">
                   <i *ngIf="occupant.isSpeaking && !occupant.isMuted" class="fa-solid fa-microphone-lines speaking-icon" aria-hidden="true"></i>
-                  <i *ngIf="occupant.isMuted" class="fa-solid fa-microphone-slash muted-icon" aria-label="Muted"></i>
-                  <i *ngIf="occupant.isDeafened" class="fa-solid fa-headphones-slash deafened-icon" aria-label="Deafened"></i>
+                  <span *ngIf="occupant.isMuted" aria-label="Muted">
+                    <i class="fa-solid fa-microphone-slash muted-icon" aria-hidden="true"></i>
+                  </span>
+                  <span *ngIf="occupant.isDeafened" aria-label="Deafened">
+                    <i class="fa-solid fa-headphones-slash deafened-icon" aria-hidden="true"></i>
+                  </span>
                 </span>
               </li>
             </ul>
@@ -48,16 +52,23 @@
             type="button"
             class="kebab-btn"
             aria-label="Chat room options"
+            [attr.aria-expanded]="openMenuRoomId === room.id"
+            aria-haspopup="menu"
             (click)="toggleMenu(room.id, $event)">
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
 
-          <div class="room-menu" *ngIf="openMenuRoomId === room.id" (click)="$event.stopPropagation()">
-            <button type="button" (click)="editRoom(room, $event)">Edit</button>
-            <button type="button" (click)="muteRoom(room, $event)">
+          <div
+            class="room-menu"
+            role="menu"
+            *ngIf="openMenuRoomId === room.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="editRoom(room, $event)">Edit</button>
+            <button type="button" role="menuitem" (click)="muteRoom(room, $event)">
               {{ isRoomMuted(room.id) ? 'Unmute' : 'Mute' }}
             </button>
-            <button type="button" (click)="hideRoom(room, $event)">Hide</button>
+            <button type="button" role="menuitem" (click)="hideRoom(room, $event)">Hide</button>
           </div>
         </div>
       </div>
@@ -97,8 +108,12 @@
                 <span class="occupant-name">{{ occupant.username }}</span>
                 <span class="occupant-badges">
                   <i *ngIf="occupant.isSpeaking && !occupant.isMuted" class="fa-solid fa-microphone-lines speaking-icon" aria-hidden="true"></i>
-                  <i *ngIf="occupant.isMuted" class="fa-solid fa-microphone-slash muted-icon" aria-label="Muted"></i>
-                  <i *ngIf="occupant.isDeafened" class="fa-solid fa-headphones-slash deafened-icon" aria-label="Deafened"></i>
+                  <span *ngIf="occupant.isMuted" aria-label="Muted">
+                    <i class="fa-solid fa-microphone-slash muted-icon" aria-hidden="true"></i>
+                  </span>
+                  <span *ngIf="occupant.isDeafened" aria-label="Deafened">
+                    <i class="fa-solid fa-headphones-slash deafened-icon" aria-hidden="true"></i>
+                  </span>
                 </span>
               </li>
             </ul>
@@ -111,13 +126,20 @@
             type="button"
             class="kebab-btn"
             aria-label="Hidden chat room options"
+            [attr.aria-expanded]="openMenuRoomId === room.id"
+            aria-haspopup="menu"
             (click)="toggleMenu(room.id, $event)">
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
 
-          <div class="room-menu" *ngIf="openMenuRoomId === room.id" (click)="$event.stopPropagation()">
-            <button type="button" (click)="editRoom(room, $event)">Edit</button>
-            <button type="button" (click)="unhideRoom(room, $event)">Unhide</button>
+          <div
+            class="room-menu"
+            role="menu"
+            *ngIf="openMenuRoomId === room.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="editRoom(room, $event)">Edit</button>
+            <button type="button" role="menuitem" (click)="unhideRoom(room, $event)">Unhide</button>
           </div>
         </div>
       </div>

@@ -22,16 +22,18 @@
 
     <figure class="attachment-item" *ngFor="let attachment of nonImageAttachments">
       <video
-        *ngIf="attachment.type === 'video' && attachment.dataUrl"
-        [src]="attachment.dataUrl"
+        *ngIf="attachment.type === 'video' && safeDataUrl(attachment) as videoUrl"
+        [src]="videoUrl"
+        [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
         preload="metadata"></video>
       <audio
-        *ngIf="attachment.type === 'audio' && attachment.dataUrl"
-        [src]="attachment.dataUrl"
+        *ngIf="attachment.type === 'audio' && safeDataUrl(attachment) as audioUrl"
+        [src]="audioUrl"
+        [attr.aria-label]="attachment.fileName || 'Audio attachment'"
         controls
         preload="metadata"></audio>
-      <p class="attachment-fallback" *ngIf="!attachment.dataUrl">
+      <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
       </p>
       <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
@@ -48,20 +50,22 @@
   <ng-template #stackedAttachments>
     <figure class="attachment-item" *ngFor="let attachment of attachments">
       <img
-        *ngIf="attachment.type === 'image' && attachment.dataUrl"
-        [src]="attachment.dataUrl"
+        *ngIf="attachment.type === 'image' && safeDataUrl(attachment) as imageUrl"
+        [src]="imageUrl"
         [alt]="attachment.fileName || 'Image attachment'" />
       <video
-        *ngIf="attachment.type === 'video' && attachment.dataUrl"
-        [src]="attachment.dataUrl"
+        *ngIf="attachment.type === 'video' && safeDataUrl(attachment) as videoUrl"
+        [src]="videoUrl"
+        [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
         preload="metadata"></video>
       <audio
-        *ngIf="attachment.type === 'audio' && attachment.dataUrl"
-        [src]="attachment.dataUrl"
+        *ngIf="attachment.type === 'audio' && safeDataUrl(attachment) as audioUrl"
+        [src]="audioUrl"
+        [attr.aria-label]="attachment.fileName || 'Audio attachment'"
         controls
         preload="metadata"></audio>
-      <p class="attachment-fallback" *ngIf="!attachment.dataUrl">
+      <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
       </p>
       <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>

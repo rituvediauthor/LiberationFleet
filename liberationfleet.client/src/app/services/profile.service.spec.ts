@@ -56,6 +56,8 @@ describe('ProfileService', () => {
       paymentPlatforms: [],
       inNeedOfAid: true,
       emergencyLevel: 1,
+      peopleRepresentedCount: 1,
+      disabilityLevel: 0,
       needsSurvivalAid: false
     };
 

@@ -70,6 +70,14 @@ export class LibraryCategoryPickerComponent {
     }
   }
 
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && this.dropdownOpen) {
+      event.preventDefault();
+      this.dropdownOpen = false;
+    }
+  }
+
   private emitSelection(ids: number[]) {
     this.selectedIds = ids;
     this.selectedIdsChange.emit(ids);

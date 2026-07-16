@@ -48,6 +48,11 @@ export class SignInComponent {
     };
   }
 
+  isInvalid(controlName: string): boolean {
+    const control = this.form.get(controlName);
+    return !!control && control.invalid && (control.touched || control.dirty);
+  }
+
   onSubmit() {
     if (this.form.invalid || this.isLoading) {
       return;
@@ -65,7 +70,6 @@ export class SignInComponent {
 
     this.authService.login(credentials).subscribe({
       next: () => {
-        this.toastService.success('Sign in successful!');
         this.router.navigate(['/app/crew']);
       },
       error: (error) => {

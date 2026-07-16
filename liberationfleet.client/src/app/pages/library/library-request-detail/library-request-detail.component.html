@@ -30,18 +30,35 @@
             class="form-input textarea"
             rows="5"
             formControlName="purpose"
-            placeholder="Why is this item needed?"></textarea>
+            placeholder="Why is this item needed?"
+            [attr.aria-invalid]="isInvalid('purpose')"
+            [attr.aria-describedby]="isInvalid('purpose') ? 'purpose-error' : null"></textarea>
+          <span id="purpose-error" class="error-text" role="alert" *ngIf="isInvalid('purpose')">Purpose is required</span>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="neededByStart">Needed from</label>
-            <input id="neededByStart" class="form-input" type="date" formControlName="neededByStart" />
+            <input
+              id="neededByStart"
+              class="form-input"
+              type="date"
+              formControlName="neededByStart"
+              [attr.aria-invalid]="isInvalid('neededByStart')"
+              [attr.aria-describedby]="isInvalid('neededByStart') ? 'neededByStart-error' : null" />
+            <span id="neededByStart-error" class="error-text" role="alert" *ngIf="isInvalid('neededByStart')">Start date is required</span>
           </div>
 
           <div class="form-group">
             <label for="neededByEnd">Needed until</label>
-            <input id="neededByEnd" class="form-input" type="date" formControlName="neededByEnd" />
+            <input
+              id="neededByEnd"
+              class="form-input"
+              type="date"
+              formControlName="neededByEnd"
+              [attr.aria-invalid]="isInvalid('neededByEnd')"
+              [attr.aria-describedby]="isInvalid('neededByEnd') ? 'neededByEnd-error' : null" />
+            <span id="neededByEnd-error" class="error-text" role="alert" *ngIf="isInvalid('neededByEnd')">End date is required</span>
           </div>
         </div>
       </form>

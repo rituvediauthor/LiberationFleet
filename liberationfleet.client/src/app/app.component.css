@@ -3,8 +3,9 @@
   height: 100%;
 }
 
-.app-container > :not(router-outlet):not(app-toast-container):not(app-crypto-unlock-dialog) {
+.app-main {
   display: block;
+  width: 100%;
   height: 100%;
 }
 

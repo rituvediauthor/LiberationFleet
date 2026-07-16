@@ -1,6 +1,7 @@
 @import './themes/light.css';
 @import './themes/dark.css';
 @import './themes/base.css';
+@import './themes/a11y.css';
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 
 *,
@@ -59,7 +60,9 @@ app-root {
   box-shadow: var(--lf-shadow-dropdown);
 }
 
-.dropdown-menu button {
+.dropdown-menu button,
+.friend-menu button,
+.message-menu button {
   display: block;
   width: 100%;
   padding: 8px 10px;
@@ -71,8 +74,20 @@ app-root {
   cursor: pointer;
 }
 
-.dropdown-menu button:hover {
+.dropdown-menu button:hover,
+.friend-menu button:hover,
+.message-menu button:hover,
+.dropdown-menu button:focus-visible,
+.friend-menu button:focus-visible,
+.message-menu button:focus-visible {
   background: var(--lf-color-bg-hover);
+  outline: none;
+}
+
+.dropdown-menu button:focus-visible,
+.friend-menu button:focus-visible,
+.message-menu button:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--lf-focus-ring-color, var(--lf-color-accent-strong));
 }
 
 .mention-composer-host {

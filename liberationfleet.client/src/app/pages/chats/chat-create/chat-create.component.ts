@@ -11,6 +11,7 @@ import { FleetService } from '../../../services/fleet.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomType } from '../../../models/chat.model';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-chat-create',
@@ -109,6 +110,10 @@ export class ChatCreateComponent implements OnInit {
     return this.isFleetScope
       ? this.roomTypes.filter(t => t.value === 'Text')
       : this.roomTypes;
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   async onSubmit() {

@@ -4,10 +4,12 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
 import { CrewService } from '../../services/crew.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { Crew, CrewScope, PublicCrewRule } from '../../models/crew.model';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 type JoinMode = 'find' | 'code';
 type JoinStep = 'select' | 'rules';
@@ -16,7 +18,7 @@ const JOIN_CODE_LENGTH = 8;
 @Component({
   selector: 'app-join-crew',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RouterLink, HubLoadingComponent],
   templateUrl: './join-crew.component.html',
   styleUrl: './join-crew.component.css'
 })
@@ -100,6 +102,10 @@ export class JoinCrewComponent implements OnInit {
 
   get isLocal(): boolean {
     return this.form.get('scope')?.value === 'Local';
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   get allRulesAccepted(): boolean {

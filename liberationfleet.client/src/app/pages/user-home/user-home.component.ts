@@ -27,4 +27,8 @@ export class UserHomeComponent {
   goToPreferences() {
     this.router.navigate(['/app/profile/preferences']);
   }
+
+  goToDonate() {
+    this.router.navigate(['/app/donate']);
+  }
 }

@@ -54,16 +54,23 @@
             type="button"
             class="kebab-btn"
             aria-label="Friend options"
+            [attr.aria-expanded]="openMenuUserId === friend.userId"
+            aria-haspopup="menu"
             (click)="toggleMenu(friend.userId, $event)">
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
 
-          <div class="friend-menu" *ngIf="openMenuUserId === friend.userId" (click)="$event.stopPropagation()">
-            <button type="button" (click)="muteFriend(friend, $event)">
+          <div
+            class="friend-menu"
+            role="menu"
+            *ngIf="openMenuUserId === friend.userId"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="muteFriend(friend, $event)">
               {{ friend.isMuted ? 'Unmute' : 'Mute' }}
             </button>
-            <button type="button" (click)="unfriend(friend, $event)">Unfriend</button>
-            <button type="button" (click)="blockFriend(friend, $event)">Block</button>
+            <button type="button" role="menuitem" (click)="unfriend(friend, $event)">Unfriend</button>
+            <button type="button" role="menuitem" (click)="blockFriend(friend, $event)">Block</button>
           </div>
         </div>
       </div>
@@ -72,10 +79,12 @@
 </app-nav-layout>
 
 <app-confirm-dialog
-  *ngIf="showBlockDialog"
+  [visible]="showBlockDialog"
   title="Block friend"
   message="Are you sure you want to block this friend? Comments, messages, and other content will be hidden from each of you."
   confirmLabel="Block"
-  (confirm)="onConfirmBlock()"
-  (cancel)="onCancelBlock()">
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmBlock()"
+  (cancelled)="onCancelBlock()"
+  (dismissed)="onCancelBlock()">
 </app-confirm-dialog>

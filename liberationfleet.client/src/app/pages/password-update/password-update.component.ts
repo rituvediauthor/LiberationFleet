@@ -6,6 +6,7 @@ import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { SecurityService } from '../../services/security.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -75,6 +76,10 @@ export class PasswordUpdateComponent {
     this.form.statusChanges.subscribe(() => {
       this.saveButton.disabled = !this.form.valid || this.isLoading;
     });
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   hasPasswordRequirement(requirement: string): boolean {

@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-kick-reason-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AccessibleDialogDirective],
   templateUrl: './kick-reason-dialog.component.html',
   styleUrl: './kick-reason-dialog.component.css'
 })
@@ -20,6 +21,8 @@ export class KickReasonDialogComponent {
   @Output() dismissed = new EventEmitter<void>();
 
   reason = '';
+
+  readonly onEscape = () => this.onCancel();
 
   onConfirm() {
     const trimmed = this.reason.trim();

@@ -14,13 +14,34 @@
       <form [formGroup]="form">
         <div class="form-group">
           <label for="username">Username</label>
-          <input id="username" type="text" formControlName="username" class="form-input">
-          <span class="hint-text">Must be unique across the platform</span>
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            class="form-input"
+            [attr.aria-invalid]="isInvalid('username')"
+            [attr.aria-describedby]="isInvalid('username') ? 'username-error username-hint' : 'username-hint'">
+          <span class="hint-text" id="username-hint">Must be unique across the platform</span>
+          <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username')">
+            Username is required
+          </span>
         </div>
 
         <div class="form-group">
           <label for="email">Email</label>
-          <input id="email" type="email" formControlName="email" class="form-input">
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="form-input"
+            [attr.aria-invalid]="isInvalid('email')"
+            [attr.aria-describedby]="isInvalid('email') ? 'email-error' : null">
+          <span id="email-error" class="error-text" role="alert" *ngIf="isInvalid('email') && form.get('email')?.hasError('required')">
+            Email is required
+          </span>
+          <span class="error-text" role="alert" *ngIf="isInvalid('email') && form.get('email')?.hasError('email')">
+            Enter a valid email address
+          </span>
         </div>
 
         <section class="section">
@@ -127,21 +148,57 @@
 
         <div class="form-group">
           <label for="emergencyLevel">Emergency level (0–3)</label>
-          <input id="emergencyLevel" type="number" formControlName="emergencyLevel" class="form-input" min="0" max="3" step="1">
+          <input
+            id="emergencyLevel"
+            type="number"
+            formControlName="emergencyLevel"
+            class="form-input"
+            min="0"
+            max="3"
+            step="1"
+            [attr.aria-invalid]="isInvalid('emergencyLevel')"
+            [attr.aria-describedby]="isInvalid('emergencyLevel') ? 'emergencyLevel-error' : null">
+          <span id="emergencyLevel-error" class="error-text" role="alert" *ngIf="isInvalid('emergencyLevel')">
+            Emergency level must be between 0 and 3
+          </span>
         </div>
 
         <div class="form-group">
           <label for="peopleRepresentedCount">Number of people represented</label>
-          <input id="peopleRepresentedCount" type="number" formControlName="peopleRepresentedCount" class="form-input" min="0" max="99" step="1">
-          <span class="hint-text">Individuals you provide for, including partner, children, or elders. Affects priority score.</span>
+          <input
+            id="peopleRepresentedCount"
+            type="number"
+            formControlName="peopleRepresentedCount"
+            class="form-input"
+            min="0"
+            max="99"
+            step="1"
+            [attr.aria-invalid]="isInvalid('peopleRepresentedCount')"
+            [attr.aria-describedby]="isInvalid('peopleRepresentedCount') ? 'peopleRepresentedCount-error peopleRepresentedCount-hint' : 'peopleRepresentedCount-hint'">
+          <span class="hint-text" id="peopleRepresentedCount-hint">Individuals you provide for, including partner, children, or elders. Affects priority score.</span>
+          <span id="peopleRepresentedCount-error" class="error-text" role="alert" *ngIf="isInvalid('peopleRepresentedCount')">
+            Must be between 0 and 99
+          </span>
         </div>
 
         <div class="form-group">
           <label for="disabilityLevel">Level of disability (0–3)</label>
-          <input id="disabilityLevel" type="number" formControlName="disabilityLevel" class="form-input" min="0" max="3" step="1">
-          <span class="hint-text">
+          <input
+            id="disabilityLevel"
+            type="number"
+            formControlName="disabilityLevel"
+            class="form-input"
+            min="0"
+            max="3"
+            step="1"
+            [attr.aria-invalid]="isInvalid('disabilityLevel')"
+            [attr.aria-describedby]="isInvalid('disabilityLevel') ? 'disabilityLevel-error disabilityLevel-hint' : 'disabilityLevel-hint'">
+          <span class="hint-text" id="disabilityLevel-hint">
             0 = none; 1 = minor but self-sufficient; 2 = reduced ability to provide for yourself;
             3 = reliance on service workers or animals for daily life. Affects priority score.
+          </span>
+          <span id="disabilityLevel-error" class="error-text" role="alert" *ngIf="isInvalid('disabilityLevel')">
+            Disability level must be between 0 and 3
           </span>
         </div>
 

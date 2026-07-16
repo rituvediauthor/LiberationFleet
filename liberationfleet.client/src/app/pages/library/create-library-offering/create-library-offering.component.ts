@@ -15,6 +15,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind } from '../../../models/library.model';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-create-library-offering',
@@ -110,6 +111,10 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   get offeringKind(): LibraryOfferingKind {
     return this.form.get('offeringKind')?.value ?? 'Durable';
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   get fulfillmentMode(): LibraryFulfillmentMode {

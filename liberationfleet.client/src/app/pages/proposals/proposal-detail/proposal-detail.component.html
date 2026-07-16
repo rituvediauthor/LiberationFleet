@@ -32,14 +32,21 @@
             type="button"
             class="icon-btn"
             aria-label="Proposal options"
+            [attr.aria-expanded]="openProposalAuthorMenu"
+            aria-haspopup="menu"
             (click)="toggleProposalAuthorMenu($event)">
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
-          <div class="dropdown-menu" *ngIf="openProposalAuthorMenu" (click)="$event.stopPropagation()">
-            <button type="button" *ngIf="!isOwnProposal" (click)="openReportProposal()">
+          <div
+            class="dropdown-menu"
+            role="menu"
+            *ngIf="openProposalAuthorMenu"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" *ngIf="!isOwnProposal" (click)="openReportProposal()">
               Report
             </button>
-            <button type="button" *ngIf="p.canKickAuthor" (click)="kickFromProposalAuthor($event)">
+            <button type="button" role="menuitem" *ngIf="p.canKickAuthor" (click)="kickFromProposalAuthor($event)">
               Kick from crew
             </button>
           </div>
@@ -111,20 +118,27 @@
                 type="button"
                 class="icon-btn"
                 aria-label="Comment options"
+                [attr.aria-expanded]="openCommentMenuId === comment.id"
+                aria-haspopup="menu"
                 (click)="toggleCommentMenu(comment.id, $event)">
                 <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
               </button>
-              <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
-                <button type="button" *ngIf="comment.isOwnComment" (click)="startEditComment(comment, null, $event)">
+              <div
+                class="dropdown-menu"
+                role="menu"
+                *ngIf="openCommentMenuId === comment.id"
+                (click)="$event.stopPropagation()"
+                (keydown.escape)="closeMenus()">
+                <button type="button" role="menuitem" *ngIf="comment.isOwnComment" (click)="startEditComment(comment, null, $event)">
                   Edit
                 </button>
-                <button type="button" *ngIf="p.usesAnonymousComments && comment.isOwnComment" (click)="rerollNickname($event)">
+                <button type="button" role="menuitem" *ngIf="p.usesAnonymousComments && comment.isOwnComment" (click)="rerollNickname($event)">
                   Reroll nickname
                 </button>
-                <button type="button" *ngIf="!comment.isOwnComment" (click)="openReportComment(comment, $event)">
+                <button type="button" role="menuitem" *ngIf="!comment.isOwnComment" (click)="openReportComment(comment, $event)">
                   Report
                 </button>
-                <button type="button" *ngIf="comment.canKick" (click)="kickFromComment(comment, $event)">
+                <button type="button" role="menuitem" *ngIf="comment.canKick" (click)="kickFromComment(comment, $event)">
                   Kick from crew
                 </button>
               </div>
@@ -159,20 +173,27 @@
                     type="button"
                     class="icon-btn"
                     aria-label="Reply options"
+                    [attr.aria-expanded]="openCommentMenuId === reply.id"
+                    aria-haspopup="menu"
                     (click)="toggleCommentMenu(reply.id, $event)">
                     <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
                   </button>
-                  <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
-                    <button type="button" *ngIf="reply.isOwnComment" (click)="startEditComment(reply, comment.id, $event)">
+                  <div
+                    class="dropdown-menu"
+                    role="menu"
+                    *ngIf="openCommentMenuId === reply.id"
+                    (click)="$event.stopPropagation()"
+                    (keydown.escape)="closeMenus()">
+                    <button type="button" role="menuitem" *ngIf="reply.isOwnComment" (click)="startEditComment(reply, comment.id, $event)">
                       Edit
                     </button>
-                    <button type="button" *ngIf="p.usesAnonymousComments && reply.isOwnComment" (click)="rerollNickname($event)">
+                    <button type="button" role="menuitem" *ngIf="p.usesAnonymousComments && reply.isOwnComment" (click)="rerollNickname($event)">
                       Reroll nickname
                     </button>
-                    <button type="button" *ngIf="!reply.isOwnComment" (click)="openReportComment(reply, $event)">
+                    <button type="button" role="menuitem" *ngIf="!reply.isOwnComment" (click)="openReportComment(reply, $event)">
                       Report
                     </button>
-                    <button type="button" *ngIf="reply.canKick" (click)="kickFromComment(reply, $event)">
+                    <button type="button" role="menuitem" *ngIf="reply.canKick" (click)="kickFromComment(reply, $event)">
                       Kick from crew
                     </button>
                   </div>
@@ -198,7 +219,7 @@
 
   <div class="detail-action-bar" *ngIf="!editing">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
 
     <div class="comment-composer" [class.expanded]="commentExpanded">
@@ -211,6 +232,7 @@
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
         [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
+        [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
         rows="1"></textarea>
 
       <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
@@ -260,9 +282,17 @@
 <p class="loading-text" *ngIf="loading">Loading proposal...</p>
 
 <div class="vote-dialog-backdrop" *ngIf="showVoteDialog" (click)="closeVoteDialog()">
-  <div class="vote-dialog" role="dialog" (click)="$event.stopPropagation()">
-    <h2>Cast your vote</h2>
-    <p class="vote-note">Votes are anonymous to other crew members.</p>
+  <div
+    class="vote-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="vote-dialog-title"
+    aria-describedby="vote-dialog-note"
+    [appAccessibleDialog]="showVoteDialog"
+    [appAccessibleDialogEscape]="closeVoteDialog"
+    (click)="$event.stopPropagation()">
+    <h2 id="vote-dialog-title">Cast your vote</h2>
+    <p class="vote-note" id="vote-dialog-note">Votes are anonymous to other crew members.</p>
     <label class="vote-option">
       <input type="radio" name="vote" value="approve" [(ngModel)]="selectedVote" />
       Approve

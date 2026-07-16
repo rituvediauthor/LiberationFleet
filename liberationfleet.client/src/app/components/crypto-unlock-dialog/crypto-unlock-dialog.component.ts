@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../toast/toast.component';
+import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-crypto-unlock-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AccessibleDialogDirective],
   templateUrl: './crypto-unlock-dialog.component.html',
   styleUrl: './crypto-unlock-dialog.component.css'
 })

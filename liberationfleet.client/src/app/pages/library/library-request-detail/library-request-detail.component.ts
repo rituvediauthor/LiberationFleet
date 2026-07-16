@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
@@ -77,6 +78,10 @@ export class LibraryRequestDetailComponent implements OnInit {
         this.errorMessage = 'Failed to load crew membership.';
       }
     });
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   get cardItem() {

@@ -1,8 +1,15 @@
 <div class="dialog-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
-  <div class="dialog-card" role="dialog" aria-modal="true" aria-label="18+ content warning">
+  <div
+    class="dialog-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="adult-gate-title"
+    aria-describedby="adult-gate-message"
+    [appAccessibleDialog]="visible"
+    [appAccessibleDialogEscape]="onEscape">
     <span class="adult-marker" aria-hidden="true">18+</span>
-    <h2 class="dialog-title">Adult content</h2>
-    <p class="dialog-message">
+    <h2 class="dialog-title" id="adult-gate-title">Adult content</h2>
+    <p class="dialog-message" id="adult-gate-message">
       This content may include adult or graphic material. You must be 18 or older to view it.
       Do you consent to viewing this content?
     </p>

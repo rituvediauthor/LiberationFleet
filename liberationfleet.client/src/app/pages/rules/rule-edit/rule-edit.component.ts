@@ -10,6 +10,7 @@ import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-rule-edit',
@@ -83,6 +84,10 @@ export class RuleEditComponent implements OnInit {
 
   get saveButtonLabel(): string {
     return this.requireApprovalForEdits ? 'Submit proposal' : 'Save';
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   async onSubmit() {

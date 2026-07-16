@@ -5,7 +5,17 @@
     <form [formGroup]="form">
       <div class="form-group">
         <label for="title">Title</label>
-        <input id="title" class="form-input" type="text" formControlName="title" placeholder="Post title" />
+        <input
+          id="title"
+          class="form-input"
+          type="text"
+          formControlName="title"
+          placeholder="Post title"
+          [attr.aria-invalid]="isInvalid('title')"
+          [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
+        <span id="title-error" class="error-text" role="alert" *ngIf="isInvalid('title')">
+          Title is required
+        </span>
       </div>
 
       <div class="form-group">
@@ -17,7 +27,12 @@
           formControlName="body"
           appMentionAutocomplete
           [(mentionedUserIds)]="mentionedUserIds"
-          placeholder="Write your post"></textarea>
+          placeholder="Write your post"
+          [attr.aria-invalid]="isInvalid('body')"
+          [attr.aria-describedby]="isInvalid('body') ? 'body-error' : null"></textarea>
+        <span id="body-error" class="error-text" role="alert" *ngIf="isInvalid('body')">
+          Body is required
+        </span>
       </div>
 
       <label class="checkbox-field">

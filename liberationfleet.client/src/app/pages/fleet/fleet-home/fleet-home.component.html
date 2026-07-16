@@ -1,11 +1,12 @@
 <app-nav-layout activeTab="fleet">
   <div class="fleet-home">
-    <p *ngIf="loading" class="loading-text">Loading fleet...</p>
+    <app-hub-loading *ngIf="loading" variant="fleet" label="Loading fleet..."></app-hub-loading>
 
     <ng-container *ngIf="!loading && status?.hasFleet; else noFleet">
       <div class="fleet-dashboard">
-        <div class="aid-widget-slot">
-          <app-donation-campaign-widget
+        <h1 class="sr-only">{{ status?.fleetName || 'Fleet' }}</h1>
+
+        <div class="aid-widget-slot">          <app-donation-campaign-widget
             variant="fleet"
             [enabled]="!!status?.hasFleet">
           </app-donation-campaign-widget>
@@ -20,7 +21,7 @@
         <nav class="fleet-menu" aria-label="Fleet actions">
           <button type="button" class="menu-link fleet-name-link" (click)="goToEditFleet()">
             <span class="menu-icon-wrap">
-              <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+              <app-brand-logo class="menu-brand-logo" variant="fleet" size="sm" alt=""></app-brand-logo>
             </span>
             <span class="menu-label">{{ status?.fleetName }}</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>

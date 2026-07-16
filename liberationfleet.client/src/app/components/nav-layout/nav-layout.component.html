@@ -7,26 +7,52 @@
   </div>
 
   <nav class="bottom-nav" aria-label="Main navigation">
-    <a routerLink="/app/crew" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item" #crewNav="routerLinkActive">
-      <app-brand-logo class="nav-logo" variant="crew" size="sm" [monochrome]="!crewNav.isActive"></app-brand-logo>
+    <a
+      routerLink="/app/crew"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="nav-item"
+      #crewNav="routerLinkActive"
+      [attr.aria-current]="crewNav.isActive ? 'page' : null">
+      <app-brand-logo class="nav-logo" variant="crew" size="sm" [monochrome]="!crewNav.isActive" alt=""></app-brand-logo>
       <span class="nav-label">Crew</span>
     </a>
-    <a routerLink="/app/fleet" routerLinkActive="active" class="nav-item">
-      <i class="fa-solid fa-ship nav-icon" aria-hidden="true"></i>
+    <a
+      routerLink="/app/fleet"
+      routerLinkActive="active"
+      class="nav-item"
+      #fleetNav="routerLinkActive"
+      [attr.aria-current]="fleetNav.isActive ? 'page' : null">
+      <app-brand-logo class="nav-logo" variant="fleet" size="sm" [monochrome]="!fleetNav.isActive" alt=""></app-brand-logo>
       <span class="nav-label">Fleet</span>
     </a>
-    <a routerLink="/app/friends" routerLinkActive="active" class="nav-item">
+    <a
+      routerLink="/app/friends"
+      routerLinkActive="active"
+      class="nav-item"
+      #friendsNav="routerLinkActive"
+      [attr.aria-current]="friendsNav.isActive ? 'page' : null">
       <i class="fa-solid fa-user-group nav-icon" aria-hidden="true"></i>
       <span class="nav-label">Friends</span>
     </a>
-    <a routerLink="/app/notifications" routerLinkActive="active" class="nav-item">
+    <a
+      routerLink="/app/notifications"
+      routerLinkActive="active"
+      class="nav-item"
+      #notificationsNav="routerLinkActive"
+      [attr.aria-current]="notificationsNav.isActive ? 'page' : null">
       <span class="nav-icon-wrap">
         <i class="fa-solid fa-bell nav-icon" aria-hidden="true"></i>
         <app-content-badge [count]="unreadCount"></app-content-badge>
       </span>
       <span class="nav-label">Notifications</span>
     </a>
-    <a routerLink="/app/profile" routerLinkActive="active" class="nav-item">
+    <a
+      routerLink="/app/profile"
+      routerLinkActive="active"
+      class="nav-item"
+      #profileNav="routerLinkActive"
+      [attr.aria-current]="profileNav.isActive ? 'page' : null">
       <i class="fa-solid fa-user nav-icon" aria-hidden="true"></i>
       <span class="nav-label">Profile</span>
     </a>

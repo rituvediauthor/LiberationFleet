@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { provideRouter } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { CrewHomeComponent } from './crew-home.component';
 import { CrewService } from '../../services/crew.service';
@@ -18,7 +19,13 @@ describe('CrewHomeComponent', () => {
     crewService = createCrewServiceMock();
     giftService = createGiftServiceMock();
     crewService.getMembership.and.returnValue(of({ hasCrew: false }));
-    giftService.getSeasonStatus.and.returnValue(of({ seasonStarted: true }));
+    giftService.getSeasonStatus.and.returnValue(of({
+      seasonStarted: true,
+      userInSeason: true,
+      userSeasonReady: true,
+      readyCount: 3,
+      canStartSeason: false
+    }));
     giftService.getNextAidInfo.and.returnValue(of({
       recipientName: 'Ritu',
       amount: 20,
@@ -28,7 +35,7 @@ describe('CrewHomeComponent', () => {
     }));
 
     await TestBed.configureTestingModule({
-      imports: [CrewHomeComponent],
+      imports: [CrewHomeComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         { provide: CrewService, useValue: crewService },
@@ -47,14 +54,16 @@ describe('CrewHomeComponent', () => {
   it('should create and load membership on init', () => {
     expect(component).toBeTruthy();
     expect(crewService.getMembership).toHaveBeenCalled();
+    expect(component.loading).toBeFalse();
     expect(component.membership?.hasCrew).toBeFalse();
   });
 
   it('should show welcome actions when user has no crew', () => {
     const buttons = fixture.nativeElement.querySelectorAll('.action-btn');
-    expect(buttons.length).toBe(2);
+    expect(buttons.length).toBe(3);
     expect(buttons[0].textContent).toContain('Create Crew');
     expect(buttons[1].textContent).toContain('Join Crew');
+    expect(buttons[2].textContent).toContain('My Join Requests');
   });
 
   it('should show crew dashboard when user has a crew', () => {
@@ -67,16 +76,15 @@ describe('CrewHomeComponent', () => {
     component.ngOnInit();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.join-code')?.textContent).toContain('ALPHA123');
-    expect(fixture.nativeElement.querySelector('.crew-name')?.textContent).toContain('Alpha Fleet');
+    expect(fixture.nativeElement.querySelector('.crew-name-link .menu-label')?.textContent).toContain('Alpha Fleet');
     expect(fixture.nativeElement.querySelector('.info-text')?.textContent).toContain('Ritu needs $20');
     expect(fixture.nativeElement.querySelector('.info-platform')?.textContent).toContain('Venmo: @ritu');
-    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(8);
+    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(9);
   });
 
   it('should navigate to gift log', () => {
     component.goToGiftLog();
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
+    expect(giftService.navigateToGiftLogEntry).toHaveBeenCalledWith(router);
   });
 
   it('should navigate to create crew page', () => {
@@ -103,8 +111,8 @@ describe('CrewHomeComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const chatsButton = Array.from(fixture.nativeElement.querySelectorAll('.menu-link'))
-      .find((button: Element) => button.textContent?.includes('Chats')) as HTMLButtonElement | undefined;
+    const chatsButton = Array.from(fixture.nativeElement.querySelectorAll('.menu-link') as NodeListOf<Element>)
+      .find(button => button.textContent?.includes('Chats')) as HTMLButtonElement | undefined;
 
     expect(chatsButton).toBeDefined();
 

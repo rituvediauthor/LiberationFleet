@@ -1,9 +1,9 @@
 <app-page-layout [backButton]="backButton">
   <div class="theme-settings-page">
-    <h1>Theme</h1>
+    <h1 id="theme-settings-heading">Theme</h1>
     <p class="intro">Choose how Liberation Fleet looks. Each preview shows sample UI styled with that theme.</p>
 
-    <div class="theme-list">
+    <div class="theme-list" role="radiogroup" aria-labelledby="theme-settings-heading">
       <section class="theme-option" *ngFor="let theme of themes">
         <div class="theme-option-header">
           <h2>{{ theme.label }}</h2>

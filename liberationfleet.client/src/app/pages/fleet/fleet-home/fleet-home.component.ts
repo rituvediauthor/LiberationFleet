@@ -5,6 +5,8 @@ import { Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../../components/nav-layout/nav-layout.component';
 import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { DonationCampaignWidgetComponent } from '../../../components/donation-campaign-widget/donation-campaign-widget.component';
+import { BrandLogoComponent } from '../../../components/brand-logo/brand-logo.component';
+import { HubLoadingComponent } from '../../../components/hub-loading/hub-loading.component';
 import { FleetService } from '../../../services/fleet.service';
 import { NotificationService } from '../../../services/notification.service';
 import { NotificationHubService } from '../../../services/notification-hub.service';
@@ -19,7 +21,14 @@ import {
 @Component({
   selector: 'app-fleet-home',
   standalone: true,
-  imports: [CommonModule, NavLayoutComponent, ContentBadgeComponent, DonationCampaignWidgetComponent],
+  imports: [
+    CommonModule,
+    NavLayoutComponent,
+    ContentBadgeComponent,
+    DonationCampaignWidgetComponent,
+    BrandLogoComponent,
+    HubLoadingComponent
+  ],
   templateUrl: './fleet-home.component.html',
   styleUrl: './fleet-home.component.css'
 })

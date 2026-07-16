@@ -1,7 +1,14 @@
 <div class="dialog-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
-  <div class="dialog-card" role="alertdialog" aria-modal="true" [attr.aria-label]="title">
-    <h2 class="dialog-title">{{ title }}</h2>
-    <p class="dialog-message">{{ message }}</p>
+  <div
+    class="dialog-card"
+    role="alertdialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId"
+    [attr.aria-describedby]="messageId"
+    [appAccessibleDialog]="visible"
+    [appAccessibleDialogEscape]="onEscape">
+    <h2 class="dialog-title" [id]="titleId">{{ title }}</h2>
+    <p class="dialog-message" [id]="messageId">{{ message }}</p>
     <div class="dialog-actions" [class.has-cancel]="cancelLabel">
       <button *ngIf="cancelLabel" type="button" class="dialog-button cancel" (click)="cancelled.emit()">{{ cancelLabel }}</button>
       <button type="button" class="dialog-button" (click)="onConfirm()">{{ confirmLabel }}</button>

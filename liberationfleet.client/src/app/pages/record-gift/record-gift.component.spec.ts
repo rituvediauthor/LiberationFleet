@@ -1,13 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { RecordGiftComponent } from './record-gift.component';
 import { GiftService } from '../../services/gift.service';
+import { CrewService } from '../../services/crew.service';
+import { ProfileService } from '../../services/profile.service';
 import { AuthService } from '../../services/auth.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import {
   createAuthServiceMock,
+  createCrewServiceMock,
   createGiftServiceMock,
+  createProfileServiceMock,
   createToastServiceMock
 } from '../../testing/test-helpers';
 
@@ -21,15 +27,49 @@ describe('RecordGiftComponent', () => {
   beforeEach(async () => {
     giftService = createGiftServiceMock();
     toastService = createToastServiceMock();
+    const crewService = createCrewServiceMock();
+    const profileService = createProfileServiceMock();
+    const navigation = jasmine.createSpyObj<NavigationService>('NavigationService', ['createBackButton', 'back']);
+    navigation.createBackButton.and.returnValue({
+      label: 'back',
+      type: 'back',
+      onClick: () => undefined
+    });
 
+    giftService.getReceptionOrder.and.returnValue(of([]));
     giftService.getCrewMembers.and.returnValue(of([
-      { id: 2, username: 'Ritu' },
-      { id: 3, username: 'Ruth' }
+      { id: 2, username: 'Ritu', platformIds: [1] },
+      { id: 3, username: 'Ruth', platformIds: [2] }
     ]));
-    giftService.getPendingMiddlemanGifts.and.returnValue(of([
-      { id: 10, initiatorId: 2, initiatorName: 'Ritu', recipientId: 3, recipientName: 'Ruth', amount: 30, platform: 'Cash App' }
+    giftService.recordGifts.and.returnValue(of({ success: true, message: 'Gifts recorded.' }));
+
+    crewService.getPaymentPlatforms.and.returnValue(of([
+      { id: 1, name: 'PayPal' },
+      { id: 2, name: 'Cash App' }
     ]));
-    giftService.recordGift.and.returnValue(of({ success: true, message: 'Gift recorded.' }));
+
+    profileService.getProfile.and.returnValue(of({
+      id: 1,
+      username: 'James',
+      email: 'james@example.com',
+      paymentPlatforms: [{ id: 1, platformId: 1, platform: 'PayPal', handle: 'james' }],
+      roles: [],
+      inNeedOfAid: false,
+      emergencyLevel: 0,
+      peopleRepresentedCount: 1,
+      disabilityLevel: 0,
+      needsSurvivalAid: false,
+      isSurvivalThresholdRecipient: false,
+      stats: {
+        sacrificeCountLastSeason: 0,
+        averageMonthlyContributions: 0,
+        membershipStatus: true,
+        lifetimeContributions: 0,
+        receptionThisYear: 0,
+        percentBoost: 0,
+        priorityScore: 0
+      }
+    }));
 
     const authService = createAuthServiceMock();
     Object.defineProperty(authService, 'currentUser$', {
@@ -37,11 +77,14 @@ describe('RecordGiftComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [RecordGiftComponent],
+      imports: [RecordGiftComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         { provide: GiftService, useValue: giftService },
+        { provide: CrewService, useValue: crewService },
+        { provide: ProfileService, useValue: profileService },
         { provide: AuthService, useValue: authService },
+        { provide: NavigationService, useValue: navigation },
         { provide: ToastService, useValue: toastService }
       ]
     }).compileComponents();
@@ -52,74 +95,46 @@ describe('RecordGiftComponent', () => {
     fixture = TestBed.createComponent(RecordGiftComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    await fixture.whenStable();
   });
 
-  it('should enable log gift when direct gift form is valid', () => {
-    component.form.patchValue({
-      amount: 25,
-      recipientId: '2',
-      paymentPlatformId: 1
-    });
-
-    expect(component.logButton.disabled).toBeFalse();
+  it('should create and load reception order', () => {
+    expect(component).toBeTruthy();
+    expect(giftService.getReceptionOrder).toHaveBeenCalled();
+    expect(component.loading).toBeFalse();
   });
 
-  it('should record a direct gift with all relevant fields', () => {
+  it('should enable record when a custom gift row is complete', () => {
+    component.activeUserId = 1;
     component.form.patchValue({
-      amount: 25,
-      recipientId: '2',
-      paymentPlatformId: 1
+      customRecipientId: '2',
+      customAmount: 25,
+      customPaymentPlatformId: '1'
+    });
+    fixture.detectChanges();
+
+    expect(component.recordButton.disabled).toBeFalse();
+  });
+
+  it('should record custom gifts via recordGifts', () => {
+    component.activeUserId = 1;
+    component.form.patchValue({
+      customRecipientId: '2',
+      customAmount: 25,
+      customPaymentPlatformId: '1'
     });
 
-    component.onConfirmLog();
+    component.onConfirmRecord();
 
-    expect(giftService.recordGift).toHaveBeenCalledWith({
-      amount: 25,
-      paymentPlatformId: 1,
-      recipientId: 2,
-      middlemanId: undefined
-    });
+    expect(giftService.recordGifts).toHaveBeenCalledWith([
+      jasmine.objectContaining({
+        amount: 25,
+        paymentPlatformId: 1,
+        recipientId: 2,
+        isCustom: true
+      })
+    ]);
     expect(toastService.success).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
-  });
-
-  it('should clear recipient when completing as middleman and send only completingGiftId', () => {
-    component.form.patchValue({
-      amount: 25,
-      recipientId: '2',
-      paymentPlatformId: 1
-    });
-    component.form.patchValue({ completingAsMiddleman: true });
-    component.form.patchValue({
-      pendingGiftId: '10',
-      amount: 30,
-      paymentPlatformId: 3
-    });
-
-    component.onConfirmLog();
-
-    expect(giftService.recordGift).toHaveBeenCalledWith({
-      amount: 30,
-      paymentPlatformId: 3,
-      completingGiftId: 10
-    });
-  });
-
-  it('should record an initiated gift with middleman', () => {
-    component.form.patchValue({
-      amount: 40,
-      recipientId: '2',
-      useMiddleman: true,
-      middlemanId: '3',
-      paymentPlatformId: 2
-    });
-    component.onConfirmLog();
-
-    expect(giftService.recordGift).toHaveBeenCalledWith({
-      amount: 40,
-      paymentPlatformId: 2,
-      recipientId: 2,
-      middlemanId: 3
-    });
   });
 });

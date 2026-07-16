@@ -17,7 +17,16 @@
 
         <div class="form-group">
           <label for="name">Fleet name</label>
-          <input id="name" type="text" formControlName="name" class="form-input">
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="form-input"
+            [attr.aria-invalid]="isInvalid('name')"
+            [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null">
+          <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
+            Fleet name is required
+          </span>
         </div>
 
         <div class="form-group">
@@ -43,12 +52,35 @@
         <ng-container *ngIf="isLocal">
           <div class="form-group">
             <label for="zipCode">Zip code</label>
-            <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric">
+            <input
+              id="zipCode"
+              type="text"
+              formControlName="zipCode"
+              class="form-input"
+              maxlength="5"
+              inputmode="numeric"
+              [attr.aria-invalid]="isInvalid('zipCode')"
+              [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
+            <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
+              Enter a valid 5-digit zip code
+            </span>
           </div>
 
           <div class="form-group">
             <label for="radiusMiles">Distance (miles)</label>
-            <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+            <input
+              id="radiusMiles"
+              type="number"
+              formControlName="radiusMiles"
+              class="form-input"
+              min="1"
+              max="500"
+              step="1"
+              [attr.aria-invalid]="isInvalid('radiusMiles')"
+              [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
+            <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
+              Distance must be between 1 and 500 miles
+            </span>
           </div>
         </ng-container>
 

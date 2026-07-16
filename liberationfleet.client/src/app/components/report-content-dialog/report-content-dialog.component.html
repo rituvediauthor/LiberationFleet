@@ -2,7 +2,13 @@
   class="report-dialog-backdrop"
   *ngIf="visible"
   (click)="onBackdropClick($event)">
-  <div class="report-dialog-card" role="dialog" aria-modal="true" aria-labelledby="report-dialog-title">
+  <div
+    class="report-dialog-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="report-dialog-title"
+    [appAccessibleDialog]="visible"
+    [appAccessibleDialogEscape]="onEscape">
     <h2 id="report-dialog-title">Report content</h2>
     <p class="hint">
       Reports of child sexual exploitation are prioritized for legally required safety handling.

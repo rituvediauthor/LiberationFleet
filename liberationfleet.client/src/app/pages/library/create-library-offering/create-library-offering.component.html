@@ -40,7 +40,15 @@
 
       <div class="form-group">
         <label for="title">Name</label>
-        <input id="title" class="form-input" type="text" formControlName="title" placeholder="Item or service name" />
+        <input
+          id="title"
+          class="form-input"
+          type="text"
+          formControlName="title"
+          placeholder="Item or service name"
+          [attr.aria-invalid]="isInvalid('title')"
+          [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
+        <span id="title-error" class="error-text" role="alert" *ngIf="isInvalid('title')">Name is required</span>
       </div>
 
       <div class="form-group">
@@ -59,18 +67,44 @@
           class="form-input textarea"
           rows="8"
           formControlName="description"
-          placeholder="Describe the offering"></textarea>
+          placeholder="Describe the offering"
+          [attr.aria-invalid]="isInvalid('description')"
+          [attr.aria-describedby]="isInvalid('description') ? 'description-error' : null"></textarea>
+        <span id="description-error" class="error-text" role="alert" *ngIf="isInvalid('description')">Description is required</span>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="valuePerUnit">Value per unit ($)</label>
-          <input id="valuePerUnit" class="form-input" type="number" min="0.01" step="0.01" formControlName="valuePerUnit" />
+          <input
+            id="valuePerUnit"
+            class="form-input"
+            type="number"
+            min="0.01"
+            step="0.01"
+            formControlName="valuePerUnit"
+            [attr.aria-invalid]="isInvalid('valuePerUnit')"
+            [attr.aria-describedby]="isInvalid('valuePerUnit') ? 'valuePerUnit-error' : null" />
+          <span id="valuePerUnit-error" class="error-text" role="alert" *ngIf="isInvalid('valuePerUnit')">
+            Enter a value of at least $0.01
+          </span>
         </div>
 
         <div class="form-group" *ngIf="offeringKind !== 'Service'">
           <label for="quantity">{{ quantityLabel }}</label>
-          <input id="quantity" class="form-input" type="number" min="1" max="100" step="1" formControlName="quantity" />
+          <input
+            id="quantity"
+            class="form-input"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            formControlName="quantity"
+            [attr.aria-invalid]="isInvalid('quantity')"
+            [attr.aria-describedby]="isInvalid('quantity') ? 'quantity-error' : null" />
+          <span id="quantity-error" class="error-text" role="alert" *ngIf="isInvalid('quantity')">
+            Quantity must be between 1 and 100
+          </span>
         </div>
       </div>
 
@@ -92,7 +126,7 @@
           *ngIf="canAttachFiles"
           [attachments]="attachments"
           [allowAudioRecording]="false"
-          acceptTypes="image/*">
+          [allowedKinds]="['image']">
         </app-proposal-attachment-picker>
         <p class="hint-text" *ngIf="!canAttachFiles">Image uploads require crew file attachment permission.</p>
       </div>

@@ -13,6 +13,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
 import { PendingAttachment } from '../../../models/crew-discussion.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-discussion-create',
@@ -72,6 +73,10 @@ export class DiscussionCreateComponent implements OnInit {
 
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   onSubmit() {

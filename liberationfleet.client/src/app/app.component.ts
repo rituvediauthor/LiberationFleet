@@ -52,6 +52,7 @@ export class AppComponent implements OnInit {
     ).subscribe(() => {
       this.syncUnlockDialog();
       void this.connectNotificationsIfInApp();
+      this.focusMainContent();
     });
   }
 
@@ -59,6 +60,22 @@ export class AppComponent implements OnInit {
     this.syncUnlockDialog();
     void this.syncCrewCryptoIfInApp();
     void this.syncFleetCryptoIfInApp();
+  }
+
+  private focusMainContent() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    // Don't steal focus from skip-link or within an open dialog.
+    const active = document.activeElement as HTMLElement | null;
+    if (active?.classList.contains('skip-link')) {
+      return;
+    }
+    if (active?.closest('[aria-modal="true"]')) {
+      return;
+    }
+    const main = document.getElementById('main-content');
+    main?.focus({ preventScroll: true });
   }
 
   private syncUnlockDialog() {

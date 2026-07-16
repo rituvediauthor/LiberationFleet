@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { UserService } from '../../services/user.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-forgot-password',
@@ -47,6 +48,10 @@ export class ForgotPasswordComponent {
     this.form.statusChanges.subscribe(() => {
       this.sendButton.disabled = !this.form.valid || this.isLoading;
     });
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   onSubmit() {

@@ -60,6 +60,10 @@ export class DonateComponent implements OnInit {
     return this.selectedUsd * 100;
   }
 
+  get customAmountOutOfRange(): boolean {
+    return this.customUsd != null && (this.customUsd < 1 || this.customUsd > 5000);
+  }
+
   selectPreset(amount: number) {
     this.selectedUsd = amount;
   }

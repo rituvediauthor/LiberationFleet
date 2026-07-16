@@ -2,12 +2,14 @@
 
   <div class="crew-home">
 
-    <ng-container *ngIf="membership?.hasCrew; else noCrew">
+    <app-hub-loading *ngIf="loading" variant="crew" label="Loading crew..."></app-hub-loading>
+
+    <ng-container *ngIf="!loading && membership?.hasCrew; else noCrew">
 
       <div class="crew-dashboard">
+        <h1 class="sr-only">{{ membership?.crewName || 'Crew' }}</h1>
 
-        <div class="aid-widget-slot">
-          <app-donation-campaign-widget
+        <div class="aid-widget-slot">          <app-donation-campaign-widget
             variant="crew"
             [enabled]="!!membership?.hasCrew">
           </app-donation-campaign-widget>
@@ -27,7 +29,7 @@
 
             <span class="menu-icon-wrap">
 
-              <i class="fa-solid fa-ship menu-icon" aria-hidden="true"></i>
+              <app-brand-logo class="menu-brand-logo" variant="crew" size="sm" alt=""></app-brand-logo>
 
             </span>
 
@@ -186,6 +188,8 @@
 
     <ng-template #noCrew>
 
+      <ng-container *ngIf="!loading">
+
       <div class="hero">
 
         <h1>Welcome to LiberationFleet</h1>
@@ -203,6 +207,8 @@
         <button type="button" class="action-btn secondary" (click)="goToJoinRequests()">My Join Requests</button>
 
       </div>
+
+      </ng-container>
 
     </ng-template>
 

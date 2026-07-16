@@ -9,7 +9,17 @@
     <form [formGroup]="form">
       <div class="form-group">
         <label for="title">Title</label>
-        <input id="title" class="form-input" type="text" formControlName="title" placeholder="Proposal title" />
+        <input
+          id="title"
+          class="form-input"
+          type="text"
+          formControlName="title"
+          placeholder="Proposal title"
+          [attr.aria-invalid]="isInvalid('title')"
+          [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
+        <span id="title-error" class="error-text" role="alert" *ngIf="isInvalid('title')">
+          Title is required
+        </span>
       </div>
 
       <div class="form-group">
@@ -21,7 +31,12 @@
           formControlName="description"
           appMentionAutocomplete
           [(mentionedUserIds)]="mentionedUserIds"
-          placeholder="Describe your proposal"></textarea>
+          placeholder="Describe your proposal"
+          [attr.aria-invalid]="isInvalid('description')"
+          [attr.aria-describedby]="isInvalid('description') ? 'description-error' : null"></textarea>
+        <span id="description-error" class="error-text" role="alert" *ngIf="isInvalid('description')">
+          Description is required
+        </span>
       </div>
 
       <app-proposal-attachment-picker *ngIf="canAttachFiles" [attachments]="attachments"></app-proposal-attachment-picker>

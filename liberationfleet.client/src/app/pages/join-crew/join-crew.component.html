@@ -1,5 +1,7 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
-  <div class="form-container">
+<app-page-layout [backButton]="backButton" [primaryButton]="isSubmitting ? undefined : primaryButton">
+  <app-hub-loading *ngIf="isSubmitting" variant="crew" label="Submitting join request..."></app-hub-loading>
+
+  <div class="form-container" *ngIf="!isSubmitting">
     <div class="form-card">
       <ng-container *ngIf="joinStep === 'select'">
         <h1>Join Crew</h1>
@@ -9,8 +11,8 @@
         </p>
 
         <form [formGroup]="form">
-          <div class="form-group">
-            <span class="group-label">How would you like to join?</span>
+          <div class="form-group" role="radiogroup" aria-labelledby="join-mode-label">
+            <span class="group-label" id="join-mode-label">How would you like to join?</span>
             <label class="radio-option">
               <input type="radio" formControlName="mode" value="find">
               Find a crew
@@ -33,8 +35,11 @@
                 autocapitalize="characters"
                 spellcheck="false"
                 placeholder="8-character code"
+                aria-describedby="joinCode-hint"
+                [attr.aria-invalid]="isInvalid('joinCode')"
                 (input)="onJoinCodeInput($event)">
-              <span class="hint-text">Enter the join code shown on your crew's home page.</span>
+              <span class="hint-text" id="joinCode-hint">Enter the join code shown on your crew's home page.</span>
+              <span class="error-text" role="alert" *ngIf="isInvalid('joinCode')">Enter a valid {{ joinCodeLength }}-character join code.</span>
             </div>
           </ng-container>
 
@@ -50,19 +55,43 @@
             <ng-container *ngIf="isLocal">
               <div class="form-group">
                 <label for="zipCode">Zip Code</label>
-                <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric" placeholder="5-digit zip">
+                <input
+                  id="zipCode"
+                  type="text"
+                  formControlName="zipCode"
+                  class="form-input"
+                  maxlength="5"
+                  inputmode="numeric"
+                  placeholder="5-digit zip"
+                  [attr.aria-invalid]="isInvalid('zipCode')"
+                  [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
+                <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
+                  Enter a valid 5-digit zip code
+                </span>
               </div>
 
               <div class="form-group">
                 <label for="radiusMiles">Max Radius (miles)</label>
-                <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+                <input
+                  id="radiusMiles"
+                  type="number"
+                  formControlName="radiusMiles"
+                  class="form-input"
+                  min="1"
+                  max="500"
+                  step="1"
+                  [attr.aria-invalid]="isInvalid('radiusMiles')"
+                  [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
+                <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
+                  Distance must be between 1 and 500 miles
+                </span>
               </div>
             </ng-container>
 
-            <div class="search-status" *ngIf="isSearching">Searching...</div>
+            <div class="search-status" role="status" *ngIf="isSearching">Searching...</div>
 
             <div class="results-section" *ngIf="hasSearched && !isSearching">
-              <p class="results-summary">{{ searchMessage }} ({{ totalCount }} total)</p>
+              <p class="results-summary" role="status">{{ searchMessage }} ({{ totalCount }} total)</p>
 
               <ul class="results-list" *ngIf="searchResults.length > 0">
                 <li *ngFor="let crew of searchResults">
@@ -70,6 +99,7 @@
                     type="button"
                     class="result-item"
                     [class.selected]="selectedCrew?.id === crew.id"
+                    [attr.aria-pressed]="selectedCrew?.id === crew.id"
                     (click)="selectCrew(crew)">
                     <span class="result-name">{{ crew.name }}</span>
                     <span class="result-meta">

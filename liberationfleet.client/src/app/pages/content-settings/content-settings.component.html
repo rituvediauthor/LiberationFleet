@@ -1,12 +1,16 @@
 <app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
   <div class="content-settings-page">
-    <h1>Content</h1>
+    <h1 id="content-settings-heading">Content</h1>
     <p class="intro">Choose how 18+ chats and forums are shown.</p>
 
     <p *ngIf="loading" class="state-text">Loading preferences...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
-    <div class="preference-list" *ngIf="!loading">
+    <div
+      class="preference-list"
+      role="radiogroup"
+      aria-labelledby="content-settings-heading"
+      *ngIf="!loading">
       <label class="preference-row" *ngFor="let option of options">
         <input
           type="radio"

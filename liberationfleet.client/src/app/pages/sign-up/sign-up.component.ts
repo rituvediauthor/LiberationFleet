@@ -6,12 +6,14 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
+import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 import { AuthService } from '../../services/auth.service';
 import { NavigationService } from '../../services/navigation.service';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 import { AuthResult } from '../../models/user.model';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -38,7 +40,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 @Component({
   selector: 'app-sign-up',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent, AccessibleDialogDirective],
   templateUrl: './sign-up.component.html',
   styleUrl: './sign-up.component.css'
 })
@@ -49,10 +51,13 @@ export class SignUpComponent {
   isLoading = false;
   showPrivacyPolicyModal = false;
   showCommunityStandardsModal = false;
+  showTermsOfUseModal = false;
   privacyPolicyText = '';
   privacyPolicyLoading = false;
   communityStandardsText = '';
   communityStandardsLoading = false;
+  termsOfUseText = '';
+  termsOfUseLoading = false;
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
 
@@ -72,6 +77,7 @@ export class SignUpComponent {
       password: ['', [Validators.required, passwordStrengthValidator]],
       confirmPassword: ['', Validators.required],
       ageConfirmed: [false, Validators.requiredTrue],
+      termsOfUseAccepted: [false, Validators.requiredTrue],
       communityStandardsAccepted: [false, Validators.requiredTrue],
       privacyPolicyAccepted: [false, Validators.requiredTrue]
     }, {
@@ -116,6 +122,10 @@ export class SignUpComponent {
     }
   }
 
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
+  }
+
   showPrivacyPolicy(event: Event) {
     event.preventDefault();
     void this.openPrivacyPolicy();
@@ -126,13 +136,22 @@ export class SignUpComponent {
     void this.openCommunityStandards();
   }
 
-  closePrivacyPolicy() {
-    this.showPrivacyPolicyModal = false;
+  showTermsOfUse(event: Event) {
+    event.preventDefault();
+    void this.openTermsOfUse();
   }
 
-  closeCommunityStandards() {
+  closePrivacyPolicy = () => {
+    this.showPrivacyPolicyModal = false;
+  };
+
+  closeCommunityStandards = () => {
     this.showCommunityStandardsModal = false;
-  }
+  };
+
+  closeTermsOfUse = () => {
+    this.showTermsOfUseModal = false;
+  };
 
   onPrivacyBackdropClick(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('privacy-dialog-backdrop')) {
@@ -143,6 +162,12 @@ export class SignUpComponent {
   onCommunityStandardsBackdropClick(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('privacy-dialog-backdrop')) {
       this.closeCommunityStandards();
+    }
+  }
+
+  onTermsOfUseBackdropClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('privacy-dialog-backdrop')) {
+      this.closeTermsOfUse();
     }
   }
 
@@ -182,6 +207,26 @@ export class SignUpComponent {
       this.communityStandardsText = 'Unable to load Community Standards. Please try again later.';
     } finally {
       this.communityStandardsLoading = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async openTermsOfUse() {
+    this.showTermsOfUseModal = true;
+
+    if (this.termsOfUseText) {
+      return;
+    }
+
+    this.termsOfUseLoading = true;
+    try {
+      this.termsOfUseText = await firstValueFrom(
+        this.http.get('/assets/terms-of-use.txt', { responseType: 'text' })
+      );
+    } catch {
+      this.termsOfUseText = 'Unable to load the Terms of Use. Please try again later.';
+    } finally {
+      this.termsOfUseLoading = false;
       this.cdr.markForCheck();
     }
   }

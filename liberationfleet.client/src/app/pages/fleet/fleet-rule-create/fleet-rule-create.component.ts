@@ -7,6 +7,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetRuleOperationResponse } from '../../../models/fleet.model';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-fleet-rule-create',
@@ -50,6 +51,10 @@ export class FleetRuleCreateComponent implements OnInit {
 
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   onSubmit() {

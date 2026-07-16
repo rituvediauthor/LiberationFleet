@@ -9,11 +9,12 @@ import {
 } from '../../models/content-report.model';
 import { ContentReportService } from '../../services/content-report.service';
 import { ToastService } from '../toast/toast.component';
+import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-report-content-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AccessibleDialogDirective],
   templateUrl: './report-content-dialog.component.html',
   styleUrl: './report-content-dialog.component.css'
 })
@@ -40,6 +41,8 @@ export class ReportContentDialogComponent {
   alsoBlockAuthor = true;
   involvesMinorConfirmed = false;
   submitting = false;
+
+  readonly onEscape = () => this.close();
 
   constructor(
     private reportService: ContentReportService,

@@ -13,6 +13,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-create-proposal',
@@ -100,6 +101,10 @@ export class CreateProposalComponent implements OnInit {
 
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   onSubmit() {

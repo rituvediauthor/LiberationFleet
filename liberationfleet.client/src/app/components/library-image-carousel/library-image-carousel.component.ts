@@ -1,10 +1,11 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-library-image-carousel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AccessibleDialogDirective],
   templateUrl: './library-image-carousel.component.html',
   styleUrl: './library-image-carousel.component.css'
 })
@@ -16,6 +17,7 @@ export class LibraryImageCarouselComponent {
 
   activeIndex = 0;
   selectedIndex: number | null = null;
+  closeFullBound = () => this.closeFull();
 
   openFull(index: number) {
     this.selectedIndex = index;

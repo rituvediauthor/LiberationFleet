@@ -16,6 +16,7 @@ import { PaymentPlatformOption } from '../../models/gift.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-profile',
@@ -113,6 +114,10 @@ export class ProfileComponent implements OnInit {
 
   get roles(): string[] {
     return this.profile?.roles ?? [];
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   addPaymentPlatform() {

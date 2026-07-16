@@ -100,6 +100,11 @@
   flex-shrink: 0;
 }
 
+.menu-brand-logo {
+  width: 24px;
+  height: 24px;
+}
+
 .menu-badge {
   position: absolute;
   top: -7px;

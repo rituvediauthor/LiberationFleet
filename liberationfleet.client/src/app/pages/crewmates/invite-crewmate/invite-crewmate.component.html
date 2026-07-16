@@ -9,7 +9,14 @@
       <form [formGroup]="form">
         <div class="form-group">
           <label for="username">Username</label>
-          <input id="username" type="text" formControlName="username" class="form-input" placeholder="Search username">
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            class="form-input"
+            placeholder="Search username"
+            aria-describedby="username-hint">
+          <span id="username-hint" class="hint-text sr-only">Search by exact or partial username</span>
         </div>
 
         <label class="checkbox-option">
@@ -18,10 +25,10 @@
         </label>
       </form>
 
-      <p class="search-status" *ngIf="loading">Searching...</p>
+      <p class="search-status" role="status" *ngIf="loading">Searching...</p>
 
       <div class="results-section" *ngIf="hasLoaded && !loading">
-        <p class="results-summary" *ngIf="candidates.length === 0">No matching users found.</p>
+        <p class="results-summary" role="status" *ngIf="candidates.length === 0">No matching users found.</p>
 
         <ul class="results-list" *ngIf="candidates.length > 0">
           <li *ngFor="let candidate of candidates">
@@ -29,6 +36,7 @@
               type="button"
               class="result-item"
               [class.selected]="selected?.userId === candidate.userId"
+              [attr.aria-pressed]="selected?.userId === candidate.userId"
               (click)="selectCandidate(candidate)">
               <span class="result-name">{{ candidate.username }}</span>
               <span class="result-meta" *ngIf="candidate.isFriend">Friend</span>

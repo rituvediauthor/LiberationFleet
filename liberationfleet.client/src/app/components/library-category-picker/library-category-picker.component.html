@@ -20,11 +20,13 @@
       (input)="onSearchInput()"
       [placeholder]="searchPlaceholder"
       aria-label="Search categories"
+      [attr.aria-expanded]="dropdownOpen"
+      aria-haspopup="listbox"
       autocomplete="off" />
 
-    <ul class="dropdown-list" *ngIf="dropdownOpen">
-      <li *ngIf="availableCategories.length === 0" class="dropdown-empty">{{ emptyMessage }}</li>
-      <li *ngFor="let category of availableCategories">
+    <ul class="dropdown-list" role="listbox" *ngIf="dropdownOpen">
+      <li *ngIf="availableCategories.length === 0" class="dropdown-empty" role="option" aria-disabled="true">{{ emptyMessage }}</li>
+      <li *ngFor="let category of availableCategories" role="option">
         <button type="button" class="dropdown-option" (click)="selectCategory(category.id)">
           {{ category.name }}
         </button>

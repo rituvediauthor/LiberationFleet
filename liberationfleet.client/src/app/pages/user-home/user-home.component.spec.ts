@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { UserHomeComponent } from './user-home.component';
 
 describe('UserHomeComponent', () => {
@@ -9,7 +10,7 @@ describe('UserHomeComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UserHomeComponent],
+      imports: [UserHomeComponent, HttpClientTestingModule],
       providers: [provideRouter([])]
     }).compileComponents();
 
@@ -27,15 +28,22 @@ describe('UserHomeComponent', () => {
     expect(navLayout).toBeTruthy();
 
     const links = fixture.nativeElement.querySelectorAll('.menu-link');
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(5);
     expect(links[0].textContent).toContain('User Profile');
-    expect(links[1].textContent).toContain('Activity center');
-    expect(links[2].textContent).toContain('Preferences');
+    expect(links[1].textContent).toContain('Gift History');
+    expect(links[2].textContent).toContain('Activity center');
+    expect(links[3].textContent).toContain('Preferences');
+    expect(links[4].textContent).toContain('Donate');
   });
 
   it('should navigate to user profile page', () => {
     component.goToUserProfile();
     expect(router.navigate).toHaveBeenCalledWith(['/app/profile/user']);
+  });
+
+  it('should navigate to gift history', () => {
+    component.goToGiftHistory();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/profile/gift-history']);
   });
 
   it('should navigate to activity center placeholder', () => {
@@ -46,5 +54,10 @@ describe('UserHomeComponent', () => {
   it('should navigate to preferences placeholder', () => {
     component.goToPreferences();
     expect(router.navigate).toHaveBeenCalledWith(['/app/profile/preferences']);
+  });
+
+  it('should navigate to donate', () => {
+    component.goToDonate();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/donate']);
   });
 });

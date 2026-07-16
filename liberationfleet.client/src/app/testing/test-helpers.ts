@@ -57,7 +57,8 @@ export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {
     'getPublicRules',
     'getPublicRulesByJoinCode',
     'submitJoinRequest',
-    'getMyJoinRequests'
+    'getMyJoinRequests',
+    'getPaymentPlatforms'
   ]);
 }
 
@@ -65,15 +66,25 @@ export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {
   const mock = jasmine.createSpyObj<GiftService>('GiftService', [
     'getNextAidInfo',
     'getSeasonStatus',
+    'getReceptionOrder',
     'getCrewMembers',
     'getPaymentPlatforms',
     'getPendingMiddlemanGifts',
     'getLogs',
     'isUserRelated',
-    'recordGift'
+    'recordGift',
+    'recordGifts',
+    'navigateToGiftLogEntry'
   ]);
   mock.getCrewMembers.and.returnValue(of([]));
-  mock.getSeasonStatus.and.returnValue(of({ seasonStarted: false }));
+  mock.getReceptionOrder.and.returnValue(of([]));
+  mock.getSeasonStatus.and.returnValue(of({
+    seasonStarted: false,
+    userInSeason: false,
+    userSeasonReady: false,
+    readyCount: 0,
+    canStartSeason: false
+  }));
   mock.getPaymentPlatforms.and.returnValue(of([
     { id: 1, name: 'PayPal' },
     { id: 2, name: 'Cash App' },
@@ -84,6 +95,7 @@ export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {
   mock.getPendingMiddlemanGifts.and.returnValue(of([]));
   mock.getLogs.and.returnValue(of({ items: [], hasMore: false }));
   mock.recordGift.and.returnValue(of({ success: true, message: 'Gift recorded' }));
+  mock.recordGifts.and.returnValue(of({ success: true, message: 'Gifts recorded' }));
   return mock;
 }
 

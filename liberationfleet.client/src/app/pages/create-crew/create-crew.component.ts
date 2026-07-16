@@ -3,15 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
+import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
 import { CrewService } from '../../services/crew.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewPrivacy, CrewScope } from '../../models/crew.model';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-create-crew',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, HubLoadingComponent],
   templateUrl: './create-crew.component.html',
   styleUrl: './create-crew.component.css'
 })
@@ -53,6 +55,10 @@ export class CreateCrewComponent {
 
   get isLocal(): boolean {
     return this.form.get('scope')?.value === 'Local';
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   private updateLocalValidators() {

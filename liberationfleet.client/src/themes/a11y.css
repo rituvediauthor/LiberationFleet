@@ -1,0 +1,113 @@
+/* Liberation Fleet — WCAG-oriented accessibility foundations */
+
+:root {
+  --lf-focus-ring-color: var(--lf-color-accent-strong, #1d4ed8);
+  --lf-focus-ring-width: 3px;
+  --lf-focus-ring-offset: 2px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: 0;
+  z-index: 100000;
+  padding: 10px 14px;
+  border-radius: 0 0 8px 8px;
+  background: var(--lf-color-accent-strong);
+  color: var(--lf-color-text-inverse);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-120%);
+  transition: transform 0.15s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: none;
+  box-shadow: 0 0 0 var(--lf-focus-ring-width) color-mix(in srgb, var(--lf-color-text-inverse) 70%, transparent);
+}
+
+.app-main:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: var(--lf-focus-ring-width) solid var(--lf-focus-ring-color);
+  outline-offset: var(--lf-focus-ring-offset);
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+[tabindex]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: var(--lf-color-input-focus);
+  outline: var(--lf-focus-ring-width) solid var(--lf-focus-ring-color);
+  outline-offset: var(--lf-focus-ring-offset);
+  box-shadow: none;
+}
+
+.nav-item:focus-visible,
+.action-button:focus-visible,
+.icon-btn:focus-visible,
+.menu-link:focus-visible,
+.kebab-btn:focus-visible,
+.toast-close:focus-visible,
+.dialog-button:focus-visible {
+  outline: var(--lf-focus-ring-width) solid var(--lf-focus-ring-color);
+  outline-offset: var(--lf-focus-ring-offset);
+}
+
+.error-text[role='alert'],
+[aria-invalid='true'] {
+  /* Ensure invalid state is also distinguishable beyond color alone via thicker border */
+}
+
+input[aria-invalid='true'],
+textarea[aria-invalid='true'],
+select[aria-invalid='true'] {
+  border-color: var(--lf-color-danger);
+  border-width: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skip-link {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --lf-focus-ring-width: 4px;
+  }
+
+  :focus-visible {
+    outline-width: 4px;
+  }
+}

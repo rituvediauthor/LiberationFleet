@@ -9,6 +9,7 @@ import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewPrivacy, CrewScope, CycleCapMode, UpdateCrewRequest } from '../../models/crew.model';
 import { isSaveActionDisabled } from '../../utils/save-button.util';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-edit-crew',
@@ -93,6 +94,10 @@ export class EditCrewComponent implements OnInit {
 
   get allowCrewmateFileAttachments(): boolean {
     return !!this.form.get('allowCrewmateFileAttachments')?.value;
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   get memberCycleCapPreview(): number {

@@ -1,5 +1,6 @@
-import { Component, Injectable } from '@angular/core';
+import { Component, Injectable, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { BehaviorSubject } from 'rxjs';
 
 export interface Toast {
@@ -16,6 +17,7 @@ export class ToastService {
   private toasts: Toast[] = [];
   private toastSubject = new BehaviorSubject<Toast[]>([]);
   public toasts$ = this.toastSubject.asObservable();
+  private liveAnnouncer = inject(LiveAnnouncer);
 
   show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration = 3000) {
     const id = Date.now().toString();
@@ -23,6 +25,7 @@ export class ToastService {
 
     this.toasts.push(toast);
     this.toastSubject.next([...this.toasts]);
+    void this.liveAnnouncer.announce(message, type === 'error' ? 'assertive' : 'polite');
 
     if (duration > 0) {
       setTimeout(() => {

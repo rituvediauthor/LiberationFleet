@@ -11,6 +11,7 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomType } from '../../../models/chat.model';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-chat-edit',
@@ -89,6 +90,10 @@ export class ChatEditComponent implements OnInit {
 
   get saveButtonLabel(): string {
     return this.requireApprovalForEdits ? 'Submit proposal' : 'Save';
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   async onSubmit() {

@@ -28,7 +28,18 @@
 
         <div class="form-group">
           <label for="estimate">Estimated monthly contribution ($)</label>
-          <input id="estimate" type="number" formControlName="estimatedMonthlyContribution" class="form-input" min="0.01" step="0.01">
+          <input
+            id="estimate"
+            type="number"
+            formControlName="estimatedMonthlyContribution"
+            class="form-input"
+            min="0.01"
+            step="0.01"
+            [attr.aria-invalid]="isInvalid('estimatedMonthlyContribution')"
+            [attr.aria-describedby]="isInvalid('estimatedMonthlyContribution') ? 'estimate-error' : null">
+          <span id="estimate-error" class="error-text" role="alert" *ngIf="isInvalid('estimatedMonthlyContribution')">
+            Enter an estimate of at least $0.01
+          </span>
         </div>
 
         <div class="ready-checkbox-row">

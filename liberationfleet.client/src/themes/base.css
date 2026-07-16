@@ -38,9 +38,18 @@ select {
   color: var(--lf-color-text-primary);
 }
 
-input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']):focus,
-textarea:focus,
-select:focus {
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: var(--lf-color-input-focus);
+  outline: var(--lf-focus-ring-width, 3px) solid var(--lf-focus-ring-color, var(--lf-color-accent-strong));
+  outline-offset: var(--lf-focus-ring-offset, 2px);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lf-color-input-focus) 20%, transparent);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']):focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
   border-color: var(--lf-color-input-focus);
   outline: none;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--lf-color-input-focus) 20%, transparent);

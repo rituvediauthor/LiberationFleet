@@ -34,3 +34,16 @@
   color: var(--lf-color-text-muted);
   text-align: center;
 }
+
+.fallible-donate {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--lf-color-accent);
+  text-decoration: none;
+}
+
+.fallible-donate:hover {
+  text-decoration: underline;
+}

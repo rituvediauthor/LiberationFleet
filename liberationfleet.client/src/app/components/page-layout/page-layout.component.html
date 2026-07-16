@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  <div class="action-bar">
+  <div class="action-bar" role="toolbar" aria-label="Page actions">
     <button
       *ngIf="backButton"
       class="action-button back-button"
@@ -23,7 +23,7 @@
       type="button"
       aria-label="LiberationFleet home"
       (click)="onBrandNavClick()">
-      <app-brand-logo variant="lf" size="sm"></app-brand-logo>
+      <app-brand-logo variant="lf" size="sm" alt=""></app-brand-logo>
     </button>
 
     <button
@@ -32,7 +32,7 @@
       type="button"
       aria-label="Go to crew home"
       (click)="goToCrewHome()">
-      <app-brand-logo variant="crew" size="sm"></app-brand-logo>
+      <app-brand-logo variant="crew" size="sm" alt=""></app-brand-logo>
     </button>
 
     <ng-content select="[actionBar]"></ng-content>

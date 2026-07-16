@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { provideRouter } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { SignInComponent } from './sign-in.component';
 import { AuthService } from '../../services/auth.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { createAuthServiceMock, createToastServiceMock } from '../../testing/test-helpers';
 
@@ -19,7 +21,7 @@ describe('SignInComponent', () => {
     toastService = createToastServiceMock();
 
     await TestBed.configureTestingModule({
-      imports: [SignInComponent],
+      imports: [SignInComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         { provide: AuthService, useValue: authService },
@@ -54,11 +56,11 @@ describe('SignInComponent', () => {
     component.form.setValue({ usernameOrEmail: 'user@example.com', password: 'password123' });
     component.onSubmit();
 
-    expect(authService.login).toHaveBeenCalledWith({
+    expect(authService.login).toHaveBeenCalledWith(jasmine.objectContaining({
       usernameOrEmail: 'user@example.com',
       password: 'password123'
-    });
-    expect(toastService.success).toHaveBeenCalledWith('Sign in successful!');
+    }));
+    expect(toastService.success).not.toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
@@ -74,8 +76,10 @@ describe('SignInComponent', () => {
   });
 
   it('should navigate back to home when back button is clicked', () => {
+    const navigation = TestBed.inject(NavigationService);
+    spyOn(navigation, 'back');
     component.backButton.onClick?.();
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(navigation.back).toHaveBeenCalledWith(['/']);
   });
 
   it('should show validation errors when fields are touched', () => {

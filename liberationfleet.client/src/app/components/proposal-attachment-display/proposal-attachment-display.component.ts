@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ResolvedAttachment } from '../../models/proposal.model';
 import { EncryptedContentType } from '../../models/crypto.model';
 import { LibraryImageCarouselComponent } from '../library-image-carousel/library-image-carousel.component';
+import { isSafeMediaDataUrl } from '../../utils/media-attachment-allowlist.util';
 
 @Component({
   selector: 'app-proposal-attachment-display',
@@ -30,12 +31,16 @@ export class ProposalAttachmentDisplayComponent {
 
   get imageUrls(): string[] {
     return this.imageAttachments
-      .filter(attachment => attachment.dataUrl)
-      .map(attachment => attachment.dataUrl!);
+      .map(attachment => attachment.dataUrl)
+      .filter((url): url is string => !!url && isSafeMediaDataUrl(url));
+  }
+
+  safeDataUrl(attachment: ResolvedAttachment): string | null {
+    return isSafeMediaDataUrl(attachment.dataUrl) ? attachment.dataUrl! : null;
   }
 
   get unresolvedImageAttachments(): ResolvedAttachment[] {
-    return this.imageAttachments.filter(attachment => !attachment.dataUrl);
+    return this.imageAttachments.filter(attachment => !this.safeDataUrl(attachment));
   }
 
   deleteAttachment(attachment: ResolvedAttachment) {
@@ -48,7 +53,7 @@ export class ProposalAttachmentDisplayComponent {
 
   deleteActiveImage() {
     const activeIndex = this.imageCarousel?.activeIndex ?? 0;
-    const resolvedImages = this.imageAttachments.filter(attachment => attachment.dataUrl);
+    const resolvedImages = this.imageAttachments.filter(attachment => !!this.safeDataUrl(attachment));
     const attachment = resolvedImages[activeIndex];
     if (attachment) {
       this.deleteAttachment(attachment);

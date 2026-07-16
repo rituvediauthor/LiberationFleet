@@ -14,6 +14,7 @@ import { PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '..
 import { PaymentPlatformOption, SeasonReadyResult, SeasonSetupSaveResult } from '../../models/gift.model';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-season-setup',
@@ -104,6 +105,10 @@ export class SeasonSetupComponent implements OnInit {
 
   get paymentPlatforms(): PaymentPlatformAccount[] {
     return this.profile?.paymentPlatforms ?? [];
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   get hasValidPlatforms(): boolean {

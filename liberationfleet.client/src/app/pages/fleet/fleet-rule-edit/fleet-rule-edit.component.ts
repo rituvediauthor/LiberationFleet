@@ -8,6 +8,7 @@ import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetRuleOperationResponse } from '../../../models/fleet.model';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-fleet-rule-edit',
@@ -65,6 +66,10 @@ export class FleetRuleEditComponent implements OnInit {
 
   get saveButtonLabel(): string {
     return this.requireApprovalForEdits ? 'Submit proposal' : 'Save';
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   onSubmit() {

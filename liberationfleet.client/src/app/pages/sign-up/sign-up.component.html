@@ -3,7 +3,7 @@
     <div class="form-card">
       <h1>Sign Up</h1>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="off">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="off" novalidate>
         <input
           type="text"
           tabindex="-1"
@@ -23,8 +23,10 @@
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
-            placeholder="Choose a username">
-          <span class="error-text" *ngIf="form.get('username')?.hasError('required') && form.get('username')?.touched">
+            placeholder="Choose a username"
+            [attr.aria-invalid]="isInvalid('username')"
+            [attr.aria-describedby]="isInvalid('username') ? 'username-error' : null">
+          <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username') && form.get('username')?.hasError('required')">
             Username is required
           </span>
         </div>
@@ -38,11 +40,13 @@
             formControlName="email"
             class="form-input"
             autocomplete="off"
-            placeholder="Enter your email">
-          <span class="error-text" *ngIf="form.get('email')?.hasError('required') && form.get('email')?.touched">
+            placeholder="Enter your email"
+            [attr.aria-invalid]="isInvalid('email')"
+            [attr.aria-describedby]="isInvalid('email') ? 'email-error' : null">
+          <span id="email-error" class="error-text" role="alert" *ngIf="isInvalid('email') && form.get('email')?.hasError('required')">
             Email is required
           </span>
-          <span class="error-text" *ngIf="form.get('email')?.hasError('email') && form.get('email')?.touched">
+          <span class="error-text" role="alert" *ngIf="isInvalid('email') && form.get('email')?.hasError('email')">
             Please enter a valid email
           </span>
         </div>
@@ -56,28 +60,30 @@
             formControlName="password"
             class="form-input"
             autocomplete="new-password"
-            placeholder="Create a strong password">
-          <div class="password-requirements" *ngIf="form.get('password')?.touched">
+            placeholder="Create a strong password"
+            [attr.aria-invalid]="isInvalid('password')"
+            [attr.aria-describedby]="isInvalid('password') ? 'password-requirements password-error' : 'password-requirements'">
+          <div class="password-requirements" id="password-requirements" *ngIf="form.get('password')?.touched">
             <p class="requirement" [class.valid]="hasPasswordRequirement('uppercase')">
-              <span class="check">{{ hasPasswordRequirement('uppercase') ? '✓' : '○' }}</span> At least one uppercase letter
+              <span class="check" aria-hidden="true">{{ hasPasswordRequirement('uppercase') ? '✓' : '○' }}</span> At least one uppercase letter
             </p>
             <p class="requirement" [class.valid]="hasPasswordRequirement('lowercase')">
-              <span class="check">{{ hasPasswordRequirement('lowercase') ? '✓' : '○' }}</span> At least one lowercase letter
+              <span class="check" aria-hidden="true">{{ hasPasswordRequirement('lowercase') ? '✓' : '○' }}</span> At least one lowercase letter
             </p>
             <p class="requirement" [class.valid]="hasPasswordRequirement('number')">
-              <span class="check">{{ hasPasswordRequirement('number') ? '✓' : '○' }}</span> At least one number
+              <span class="check" aria-hidden="true">{{ hasPasswordRequirement('number') ? '✓' : '○' }}</span> At least one number
             </p>
             <p class="requirement" [class.valid]="hasPasswordRequirement('special')">
-              <span class="check">{{ hasPasswordRequirement('special') ? '✓' : '○' }}</span> At least one special character
+              <span class="check" aria-hidden="true">{{ hasPasswordRequirement('special') ? '✓' : '○' }}</span> At least one special character
             </p>
             <p class="requirement" [class.valid]="hasPasswordRequirement('length')">
-              <span class="check">{{ hasPasswordRequirement('length') ? '✓' : '○' }}</span> At least 8 characters
+              <span class="check" aria-hidden="true">{{ hasPasswordRequirement('length') ? '✓' : '○' }}</span> At least 8 characters
             </p>
           </div>
-          <span class="error-text" *ngIf="form.get('password')?.hasError('required') && form.get('password')?.touched">
+          <span id="password-error" class="error-text" role="alert" *ngIf="isInvalid('password') && form.get('password')?.hasError('required')">
             Password is required
           </span>
-          <span class="error-text" *ngIf="form.get('password')?.hasError('passwordStrength') && form.get('password')?.touched">
+          <span class="error-text" role="alert" *ngIf="isInvalid('password') && form.get('password')?.hasError('passwordStrength')">
             Password must meet all requirements
           </span>
         </div>
@@ -91,11 +97,13 @@
             formControlName="confirmPassword"
             class="form-input"
             autocomplete="new-password"
-            placeholder="Confirm your password">
-          <span class="error-text" *ngIf="form.get('confirmPassword')?.hasError('required') && form.get('confirmPassword')?.touched">
+            placeholder="Confirm your password"
+            [attr.aria-invalid]="isInvalid('confirmPassword') || (form.hasError('passwordMismatch') && form.get('confirmPassword')?.touched)"
+            [attr.aria-describedby]="(isInvalid('confirmPassword') || form.hasError('passwordMismatch')) && form.get('confirmPassword')?.touched ? 'confirm-password-error' : null">
+          <span id="confirm-password-error" class="error-text" role="alert" *ngIf="isInvalid('confirmPassword') && form.get('confirmPassword')?.hasError('required')">
             Please confirm your password
           </span>
-          <span class="error-text" *ngIf="form.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
+          <span class="error-text" role="alert" *ngIf="form.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
             Passwords do not match
           </span>
         </div>
@@ -104,25 +112,41 @@
           <input
             id="ageConfirmed"
             type="checkbox"
-            formControlName="ageConfirmed">
+            formControlName="ageConfirmed"
+            [attr.aria-invalid]="isInvalid('ageConfirmed')">
           <label for="ageConfirmed" class="checkbox-label">
             I confirm that I am 18 years of age or older
           </label>
         </div>
-        <span class="error-text" *ngIf="form.get('ageConfirmed')?.hasError('required') && form.get('ageConfirmed')?.touched">
+        <span id="age-error" class="error-text" role="alert" *ngIf="isInvalid('ageConfirmed')">
           You must confirm you are 18 or older
+        </span>
+
+        <div class="checkbox-group">
+          <input
+            id="termsOfUse"
+            type="checkbox"
+            formControlName="termsOfUseAccepted"
+            [attr.aria-invalid]="isInvalid('termsOfUseAccepted')">
+          <label for="termsOfUse" class="checkbox-label">
+            I agree to the <a href="#" class="privacy-link" (click)="showTermsOfUse($event)">Terms of Use</a>
+          </label>
+        </div>
+        <span class="error-text" role="alert" *ngIf="isInvalid('termsOfUseAccepted')">
+          You must agree to the Terms of Use
         </span>
 
         <div class="checkbox-group">
           <input
             id="communityStandards"
             type="checkbox"
-            formControlName="communityStandardsAccepted">
+            formControlName="communityStandardsAccepted"
+            [attr.aria-invalid]="isInvalid('communityStandardsAccepted')">
           <label for="communityStandards" class="checkbox-label">
             I agree to the <a href="#" class="privacy-link" (click)="showCommunityStandards($event)">Community Standards</a>
           </label>
         </div>
-        <span class="error-text" *ngIf="form.get('communityStandardsAccepted')?.hasError('required') && form.get('communityStandardsAccepted')?.touched">
+        <span class="error-text" role="alert" *ngIf="isInvalid('communityStandardsAccepted')">
           You must agree to the Community Standards
         </span>
 
@@ -130,12 +154,13 @@
           <input
             id="privacy"
             type="checkbox"
-            formControlName="privacyPolicyAccepted">
+            formControlName="privacyPolicyAccepted"
+            [attr.aria-invalid]="isInvalid('privacyPolicyAccepted')">
           <label for="privacy" class="checkbox-label">
             I agree to the <a href="#" class="privacy-link" (click)="showPrivacyPolicy($event)">Privacy Policy</a>
           </label>
         </div>
-        <span class="error-text" *ngIf="form.get('privacyPolicyAccepted')?.hasError('required') && form.get('privacyPolicyAccepted')?.touched">
+        <span class="error-text" role="alert" *ngIf="isInvalid('privacyPolicyAccepted')">
           You must agree to the Privacy Policy
         </span>
       </form>
@@ -144,9 +169,35 @@
 
   <div
     class="privacy-dialog-backdrop"
+    *ngIf="showTermsOfUseModal"
+    (click)="onTermsOfUseBackdropClick($event)">
+    <div
+      class="privacy-dialog-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="terms-of-use-title"
+      [appAccessibleDialog]="showTermsOfUseModal"
+      [appAccessibleDialogEscape]="closeTermsOfUse">
+      <h2 id="terms-of-use-title" class="privacy-dialog-title">Terms of Use</h2>
+      <div class="privacy-dialog-body">
+        <p *ngIf="termsOfUseLoading" class="privacy-dialog-loading">Loading...</p>
+        <pre *ngIf="!termsOfUseLoading" class="privacy-dialog-text">{{ termsOfUseText }}</pre>
+      </div>
+      <button type="button" class="privacy-dialog-button" (click)="closeTermsOfUse()">Close</button>
+    </div>
+  </div>
+
+  <div
+    class="privacy-dialog-backdrop"
     *ngIf="showPrivacyPolicyModal"
     (click)="onPrivacyBackdropClick($event)">
-    <div class="privacy-dialog-card" role="dialog" aria-modal="true" aria-labelledby="privacy-policy-title">
+    <div
+      class="privacy-dialog-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="privacy-policy-title"
+      [appAccessibleDialog]="showPrivacyPolicyModal"
+      [appAccessibleDialogEscape]="closePrivacyPolicy">
       <h2 id="privacy-policy-title" class="privacy-dialog-title">Privacy Policy</h2>
       <div class="privacy-dialog-body">
         <p *ngIf="privacyPolicyLoading" class="privacy-dialog-loading">Loading...</p>
@@ -160,7 +211,13 @@
     class="privacy-dialog-backdrop"
     *ngIf="showCommunityStandardsModal"
     (click)="onCommunityStandardsBackdropClick($event)">
-    <div class="privacy-dialog-card" role="dialog" aria-modal="true" aria-labelledby="community-standards-title">
+    <div
+      class="privacy-dialog-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="community-standards-title"
+      [appAccessibleDialog]="showCommunityStandardsModal"
+      [appAccessibleDialogEscape]="closeCommunityStandards">
       <h2 id="community-standards-title" class="privacy-dialog-title">Community Standards</h2>
       <div class="privacy-dialog-body">
         <p *ngIf="communityStandardsLoading" class="privacy-dialog-loading">Loading...</p>

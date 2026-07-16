@@ -116,7 +116,21 @@ public class GetMyProfileQueryHandlerTests
             membershipRepository.Object,
             mutualAidRepository.Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
-            HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
+            HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
+            CreateDonationRepositoryMock().Object);
+    }
+
+    private static Mock<IAppDonationRepository> CreateDonationRepositoryMock()
+    {
+        var donationRepository = new Mock<IAppDonationRepository>(MockBehavior.Loose);
+        donationRepository
+            .Setup(r => r.SumCompletedUsdForUserInRangeAsync(
+                It.IsAny<int>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0m);
+        return donationRepository;
     }
 
     private static Mock<IMutualAidRepository> SetupDefaultMutualAidRepository()

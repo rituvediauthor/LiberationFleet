@@ -10,6 +10,7 @@ import { ToastService } from '../../../../components/toast/toast.component';
 import { NavigationService } from '../../../../services/navigation.service';
 
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+import { isControlInvalidForA11y } from '../../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-fleet-forum-create',
@@ -59,6 +60,10 @@ export class FleetForumCreateComponent implements OnInit {
 
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   onSubmit() {

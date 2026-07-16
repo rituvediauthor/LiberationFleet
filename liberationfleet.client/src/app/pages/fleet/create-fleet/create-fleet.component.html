@@ -1,25 +1,34 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="createButton">
-  <div class="form-container">
+<app-page-layout [backButton]="backButton" [primaryButton]="isLoading ? undefined : createButton">
+  <app-hub-loading *ngIf="isLoading" variant="fleet" label="Creating fleet..."></app-hub-loading>
+
+  <div class="form-container" *ngIf="!isLoading">
     <div class="form-card">
       <h1>Create Fleet</h1>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-group">
           <label for="name">Fleet Name</label>
-          <input id="name" type="text" formControlName="name" class="form-input" placeholder="Enter fleet name">
-          <span class="error-text" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="form-input"
+            placeholder="Enter fleet name"
+            [attr.aria-invalid]="isInvalid('name')"
+            [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null">
+          <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
             Fleet name is required
           </span>
         </div>
 
         <div class="form-group">
           <label for="privacy">Privacy</label>
-          <select id="privacy" formControlName="privacy" class="form-input">
+          <select id="privacy" formControlName="privacy" class="form-input" aria-describedby="privacy-hint">
             <option value="Public">Public</option>
             <option value="Private">Private</option>
             <option value="InviteOnly">Invite Only</option>
           </select>
-          <span class="hint-text">
+          <span class="hint-text" id="privacy-hint">
             Public appears in search. Private is findable only with the full join code. Invite Only cannot be searched — a crew must be invited.
           </span>
         </div>
@@ -35,16 +44,34 @@
         <ng-container *ngIf="isLocal">
           <div class="form-group">
             <label for="zipCode">Zip Code</label>
-            <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric" placeholder="5-digit zip">
-            <span class="error-text" *ngIf="form.get('zipCode')?.invalid && form.get('zipCode')?.touched">
+            <input
+              id="zipCode"
+              type="text"
+              formControlName="zipCode"
+              class="form-input"
+              maxlength="5"
+              inputmode="numeric"
+              placeholder="5-digit zip"
+              [attr.aria-invalid]="isInvalid('zipCode')"
+              [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
+            <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
               Enter a valid 5-digit zip code
             </span>
           </div>
 
           <div class="form-group">
             <label for="radiusMiles">Distance (miles)</label>
-            <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
-            <span class="error-text" *ngIf="form.get('radiusMiles')?.invalid && form.get('radiusMiles')?.touched">
+            <input
+              id="radiusMiles"
+              type="number"
+              formControlName="radiusMiles"
+              class="form-input"
+              min="1"
+              max="500"
+              step="1"
+              [attr.aria-invalid]="isInvalid('radiusMiles')"
+              [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
+            <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
               Distance must be between 1 and 500 miles
             </span>
           </div>

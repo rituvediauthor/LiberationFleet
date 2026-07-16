@@ -4,7 +4,7 @@
       Attach file
       <input
         type="file"
-        [attr.accept]="acceptTypes"
+        [attr.accept]="resolvedAcceptTypes"
         multiple
         hidden
         (click)="onFileInputClick()"
@@ -14,15 +14,15 @@
     <button
       type="button"
       class="attach-btn"
-      *ngIf="allowAudioRecording && !audioRecorder.isRecording"
+      *ngIf="canRecordAudio && !audioRecorder.isRecording"
       (mousedown)="$event.preventDefault()"
       (click)="startRecording()">
       Record audio
     </button>
   </div>
 
-  <div class="recording-panel" *ngIf="allowAudioRecording && audioRecorder.isRecording">
-    <span class="recording-indicator">Recording {{ audioRecorder.formatElapsed() }} / 3:00</span>
+  <div class="recording-panel" *ngIf="canRecordAudio && audioRecorder.isRecording">
+    <span class="recording-indicator" role="status">Recording {{ audioRecorder.formatElapsed() }} / 3:00</span>
     <button type="button" class="attach-btn stop-btn" (mousedown)="$event.preventDefault()" (click)="stopRecording()">Stop</button>
     <button type="button" class="attach-btn cancel-btn" (mousedown)="$event.preventDefault()" (click)="cancelRecording()">Cancel</button>
   </div>
@@ -30,7 +30,12 @@
   <ul class="attachment-list" *ngIf="attachments.length > 0">
     <li *ngFor="let attachment of attachments; let i = index">
       <span>{{ attachmentLabel(attachment) }}</span>
-      <button type="button" class="remove-btn" (mousedown)="$event.preventDefault()" (click)="removeAttachment(i)">Remove</button>
+      <button
+        type="button"
+        class="remove-btn"
+        [attr.aria-label]="'Remove ' + attachmentLabel(attachment)"
+        (mousedown)="$event.preventDefault()"
+        (click)="removeAttachment(i)">Remove</button>
     </li>
   </ul>
 </div>

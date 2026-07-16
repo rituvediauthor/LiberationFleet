@@ -21,11 +21,12 @@ import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { VoiceDevicePreferences, VoiceParticipant } from '../../../models/voice.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-chat-voice',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent, AdultContentGateComponent],
+  imports: [CommonModule, FormsModule, PageLayoutComponent, AdultContentGateComponent, AccessibleDialogDirective],
   templateUrl: './chat-voice.component.html',
   styleUrl: './chat-voice.component.css'
 })
@@ -216,9 +217,9 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
     await this.loadDevices();
   }
 
-  closeDeviceSettings() {
+  closeDeviceSettings = () => {
     this.showDeviceSettings = false;
-  }
+  };
 
   async saveDeviceSettings() {
     await this.voiceLiveKit.applyDevicePreferences(this.devicePreferences);

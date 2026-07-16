@@ -4,14 +4,21 @@ Last updated: July 15, 2026
 
 This Privacy Policy describes how Liberation Fleet ("we," "us," or "our") collects, uses, stores, and shares information when you use the Liberation Fleet application and related services (the "Service").
 
-By creating an account or using the Service, you agree to this Privacy Policy and our Community Standards. If you do not agree, do not use the Service.
+By creating an account or using the Service, you agree to this Privacy Policy, our Terms of Use, and our Community Standards. If you do not agree, do not use the Service.
 
-IMPORTANT: Liberation Fleet is a mutual-aid coordination tool for adults 18 years of age or older. We are not a bank, credit union, money transmitter, or payment processor. Gifts are recorded and coordinated through the Service, but payments occur on third-party platforms (such as PayPal, Venmo, Cash App, or Zelle) outside of our control.
+IMPORTANT NOTICES
+- The Service is for adults 18 years of age or older only.
+- Liberation Fleet is a mutual-aid coordination and community tool. We are not a bank, credit union, money transmitter, payment processor, insurer, or financial advisor.
+- Peer gifts between users are arranged and completed on third-party platforms you choose (for example PayPal, Venmo, Cash App, or Zelle). Those platforms have their own privacy policies.
+- Optional donations that support hosting and development of the app are processed by Stripe. Card numbers and full payment credentials are collected and stored by Stripe, not by Liberation Fleet.
+- Much user-generated content is end-to-end encrypted. We cannot read that content in normal operation. Structural account, crew, fleet, gift-calculation, library preview, notification, and safety-report data may be stored in readable form as described below.
+
+This policy is written to match how the product works today. It is not legal advice. Operators should have counsel review it before production launch.
 
 
 1. WHO THIS POLICY APPLIES TO
 
-This policy applies to anyone who registers for an account, joins a crew, or otherwise uses the Service.
+This policy applies to anyone who registers for an account, joins a crew or fleet, uses friends/direct messages, library features, voice channels, donations, reporting tools, or otherwise uses the Service.
 
 
 2. INFORMATION WE COLLECT
@@ -21,102 +28,157 @@ When you sign up, we collect:
 - Username
 - Email address
 - Password (stored only as a secure one-way hash; we do not store your plain-text password)
+- Confirmation that you are 18 or older and that you accepted our Terms of Use, Community Standards, and Privacy Policy
 
 You may also provide profile and mutual-aid information, including:
 - Whether you are in need of aid
 - Emergency level and survival-aid preferences
-- Payment platform handles you choose to share with your crew (for example, a Venmo username)
-- Other profile settings you enter in the app
+- People represented count and disability-level settings used in mutual-aid calculations
+- Payment platform handles you choose to share with your crew (for example a Venmo username)
+- Adult-content display preference (block, ask, or show)
+- Notification preferences
+- Settings lock / secondary password features (stored as hashes where applicable)
+- Calendar-year totals of donations you made to support the Liberation Fleet app (amounts we record after Stripe confirms payment)
 
-2.2 Crew and membership information
-If you create or join a crew, we collect:
-- Crew name, size limits, privacy setting (public or private), and scope (online or local)
+2.2 Crew and fleet membership information
+If you create or join a crew or fleet, we collect:
+- Names, size limits, privacy settings (public, private, or invite-only), and scope (online or local)
 - Join codes
-- Optional location information such as zip code and search radius for local crews
-- Your role and status in the crew (organizer, honorary member, season participation, estimated monthly contribution, priority scores, and related season data)
+- Optional location information such as zip code and search radius for local groups
+- Your role and status (for example organizer, honorary member, season participation, estimated monthly contribution, priority scores, attachment/proposal permission gates, and related season or fleet settings)
+- Voting, proposal status, kick, and governance metadata needed to run crew/fleet features
 
-2.3 Gift and mutual-aid records
-To operate gift logging, verification, reception order, survival thresholds, and seasonal cycles, we store gift and mutual-aid data on our servers, including:
+2.3 Friends and social graph
+We store friendship requests, acceptances, blocks, mute/hide preferences, and related timestamps so we can show your friends list and enforce blocking.
+
+2.4 Gift and mutual-aid records
+To operate gift logging, verification, reception order, survival thresholds, and seasonal cycles, we store gift and mutual-aid data on our servers in readable form, including:
 - Who gave a gift, who received it, and any middleman involved (by user account)
 - Gift amounts
 - Whether a gift was direct, initiated through a middleman, or completed by a middleman
 - Whether a gift applied to a survival threshold or a cycle
-- Payment platform used
+- Payment platform category used
 - Gift verification status and timestamps
 - Aggregated reception and contribution totals used for mutual-aid calculations
 
-This structural gift and mutual-aid information is stored on our servers in readable form so the Service can calculate reception order, contributions, and season rules. It is not hidden from our systems.
+This structural gift and mutual-aid information is stored so the Service can calculate reception order, contributions, and season rules. It is not hidden from our systems.
 
-2.4 Encrypted content (end-to-end encryption)
-We also support encryption for certain user-generated content, including crew proposals, forums, projects, and gift log display fields. For gift log entries, this may include encrypted versions of:
-- Display names shown in the log
-- The human-readable gift message text
-- Payment platform name as shown in the log
+2.5 Encrypted content (end-to-end encryption)
+We support client-side encryption for much user-generated content, including (as implemented):
+- Crew proposals and comments
+- Crew and fleet forum posts and comments
+- Crew chat messages and certain related fields
+- Direct messages between friends
+- Certain library item bodies and library request/message content
+- Gift-log display fields (for example display names or message text shown in the log)
+- Media attachments (images, video, and audio encrypted as opaque ciphertext)
 
 We store:
 - Your public encryption key
 - An encrypted backup of your private encryption key (wrapped with your 12-word recovery key; we cannot read your private key without it)
-- Crew encryption keys wrapped for each crew member
-- Encrypted content envelopes (ciphertext only)
+- Crew and fleet encryption keys wrapped for eligible members
+- Encrypted content envelopes (nonce + ciphertext only)
 
-Your login password is used only for authentication. It is not used to encrypt your private key backup on new accounts. Resetting your login password does not change or recover your recovery key.
+Your login password is used for authentication. It is not used to encrypt your private key backup on new accounts. Resetting your login password does not change or recover your recovery key.
 
-We do not hold the keys needed to decrypt crew content. Only you and other members of your crew who have valid keys can decrypt that content on their devices.
+We do not hold the keys needed to decrypt end-to-end encrypted content in normal operation. Only you and other members who have valid keys can decrypt that content on their devices.
 
-Encryption does not currently extend to gift amounts, participant identities stored in gift records, or mutual-aid calculation data described in section 2.3.
+Encryption does not extend to:
+- Gift amounts, participant identities in gift records, or mutual-aid calculation data (section 2.4)
+- Crew/fleet settings and membership metadata (section 2.2)
+- Library titles and short previews used for browsing
+- Notification titles/bodies shown in the app
+- Voice-channel presence metadata
+- App donation records and safety-report evidence packets as described below
 
-2.5 Technical and usage information
-We automatically collect certain technical information needed to operate the Service, such as:
-- Authentication tokens issued when you sign in
-- Server logs (for example, IP address, browser or device type, request timestamps, and error logs)
-- Information required to maintain security and prevent abuse
+Some fleet chat may be stored in readable form when a client does not send an encrypted envelope. Prefer features that mark content as encrypted in the product UI.
 
-2.6 Communications and account recovery
-If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests. Password reset changes your login credentials only. It does not restore access to encrypted content; you still need your recovery key for that.
+2.6 Media attachments
+When you attach media, your device processes allowed file types, may compress or re-encode them, encrypts them, and uploads ciphertext. We do not store your attachment as ordinary host files. Allowed types are limited (raster images such as JPEG/PNG/WebP/GIF, common video and audio formats). Potentially hazardous types such as SVG, HTML, and executable formats are blocked by the client. Size limits apply.
 
-2.7 Safety reports (report packets)
+2.7 Library of Things
+For Library offerings and requests we may store plaintext browsing fields such as title, short description preview, value, quantity/stock, categories, dates, and short purpose previews, plus encrypted envelopes for fuller payloads and private messages related to a request.
+
+2.8 Voice channels
+Voice audio is carried by our voice provider (LiveKit). Liberation Fleet may store session metadata such as who joined a voice room and mute/deafen/speaking state. We do not end-to-end encrypt LiveKit media streams through Liberation Fleet’s content-key system.
+
+2.9 In-app notifications
+We store notification records (title, body, action links, related ids, read state) and your notification preference settings so we can deliver alerts about proposals, gifts, chats, forums, library activity, fleet events, and similar.
+
+2.10 App donations (Stripe)
+If you donate to support the app:
+- Stripe processes the payment on Stripe’s hosted Checkout pages
+- We do not collect or store your full card number, CVC, or bank credentials
+- After Stripe confirms a successful payment via webhook, we may store your user id, donation amount, currency, status, Stripe session/payment identifiers, and timestamps
+- Your profile may show calendar-year donation totals for your own reference (these are not tax advice and are not a formal tax receipt unless separately provided)
+
+2.11 Safety reports (report packets)
 When you use Report on content or a profile, we collect:
 - Your user id (as reporter)
 - Report reason category and optional short note
-- Target content type and identifiers (for example message, post, comment, or profile ids)
+- Target content type and identifiers
 - Suspected user ids you identify
 - A one-time evidence snapshot: decrypted text (truncated) and, when you include them, limited media metadata or bytes you choose to attach for that report
-- Timestamps and status of the report (received, escalated, closed)
+- Timestamps and status of the report (received, escalated, closed, and similar)
 
-Routine end-to-end encrypted content remains unread by us. Report evidence is encrypted at rest with a separate report-evidence key (not your crew or fleet content key). Access is limited to safety operations, contracted moderation vendors (when used), and disclosures required by law — including CyberTipline reports to NCMEC for apparent child sexual exploitation when we have actual knowledge.
+Routine end-to-end encrypted content remains unread by us unless submitted as report evidence. Report evidence is encrypted at rest with a separate report-evidence key (not your crew or fleet content key). Access is limited to safety operations, contracted moderation vendors (when used), and disclosures required by law — including CyberTipline reports to NCMEC for apparent child sexual exploitation when we have actual knowledge.
 
 Retention: non-CSAM report packets are kept for a limited safety window (typically up to 90 days unless an investigation is open). CSAM-related or lawfully escalated packets are preserved as required for CyberTipline / legal compliance.
+
+2.12 Technical and usage information
+We automatically collect certain technical information needed to operate the Service, such as:
+- Authentication tokens issued when you sign in
+- Registered or remembered devices (device identifiers, user-agent strings, trust/block status) when that feature is used
+- Server logs (for example IP address, browser or device type, request timestamps, and error logs)
+- Information required to maintain security and prevent abuse
+
+We do not currently use consumer product-analytics SDKs (such as Google Analytics) in the application.
+
+2.13 Account recovery communications
+If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests. Password reset changes your login credentials only. It does not restore access to encrypted content; you still need your recovery key for that.
 
 
 3. HOW WE USE INFORMATION
 
 We use the information we collect to:
-- Create and manage your account
+- Create and manage your account and security settings
 - Authenticate you and maintain your session
-- Enable you to create, join, and participate in crews
+- Enable you to create, join, and participate in crews, fleets, friends lists, chats, forums, proposals, library features, and voice channels
 - Record gifts and run mutual-aid features (reception order, thresholds, cycles, verification workflows, and season management)
-- Display information to you and to other members of your crew as the app is designed to do
+- Display information to you and to other members of groups you join as the app is designed to do
 - Operate encryption key exchange and store encrypted content on your behalf
+- Process app donations through Stripe and show your donation history totals
 - Process safety reports, quarantine abusive content identifiers, freeze abusive accounts, and file legally required reports (including to NCMEC)
+- Deliver notifications and honor mute/hide preferences
 - Respond to support requests and secure the Service
-- Comply with applicable law and enforce our Community Standards
+- Comply with applicable law and enforce our Terms of Use and Community Standards
 
 We do not sell your personal information.
 
 
 4. WHO CAN SEE YOUR INFORMATION
 
-4.1 Within your crew
-Much of the information in the Service is shared with other members of crews you join, including usernames, payment handles you provide, gift activity, and mutual-aid status relevant to your crew's season.
+4.1 Within crews and fleets
+Much of the information in the Service is shared with other members of crews or fleets you join, including usernames, payment handles you provide, gift activity, library browsing fields, and mutual-aid status relevant to shared seasons or fleets.
 
-4.2 Crew discovery
-If a crew is set to "Public," certain crew details (such as name, size, and scope) may be visible to other users searching for crews. Private crews are not listed in public search results.
+4.2 Friends and direct messages
+Friends can see information needed for friendship features. Direct message bodies are end-to-end encrypted between participants; conversation metadata may be stored on our servers.
 
-4.3 Service operators
-Authorized administrators and hosting providers may access server-stored data as needed to operate, secure, and maintain the Service. Because much gift and mutual-aid data is stored in readable form on our servers, it could be accessed by someone with database or administrative access.
+4.3 Discovery
+If a crew or fleet is set to Public, certain details (such as name, size, and scope) may be visible to other users searching. Private groups are findable with a join code as designed. Invite-only groups are not searchable by browse.
 
-4.4 Legal and safety
-We may disclose information if we believe it is reasonably necessary to comply with law, respond to lawful requests, protect the rights and safety of users or the public, or investigate fraud or security issues.
+4.4 Service operators and processors
+Authorized administrators and hosting providers may access server-stored data as needed to operate, secure, and maintain the Service. Because gift calculation data and other structural records are stored in readable form, they could be accessed by someone with database or administrative access.
+
+We use subprocessors to provide parts of the Service, including:
+- Stripe (app donations)
+- LiveKit (voice media transport)
+- Hosting, email, or moderation vendors we engage for operations (when configured)
+
+Those providers process data under their own terms and privacy policies as applicable.
+
+4.5 Legal and safety
+We may disclose information if we believe it is reasonably necessary to comply with law, respond to lawful requests, protect the rights and safety of users or the public, investigate fraud or security issues, or report apparent child sexual exploitation to NCMEC.
 
 
 5. HOW WE PROTECT INFORMATION
@@ -125,51 +187,62 @@ We use administrative, technical, and organizational measures intended to protec
 - Password hashing for account credentials
 - HTTPS encryption for data in transit between your browser and our servers
 - Access controls on our systems
-- Client-side encryption for certain display content, as described in section 2.4
+- Client-side end-to-end encryption for much user-generated content and media
+- Separate sealed storage for safety-report evidence
+- Client-side restrictions on hazardous attachment types
 
-No method of transmission or storage is completely secure. A security incident could expose information stored on our servers, including gift amounts and who gave to whom, even when some display text is encrypted.
+No method of transmission or storage is completely secure. A security incident could expose information stored on our servers, including gift amounts and who gave to whom, even when some content is end-to-end encrypted on user devices.
 
 
-6. WHAT WE DO NOT COLLECT OR PROCESS
+6. WHAT WE DO NOT COLLECT OR PROCESS (IN THE ORDINARY COURSE)
 
-- We do not process card payments or hold your money.
-- We do not receive full payment credentials from PayPal, Venmo, or similar services through normal use of the app.
-- We are not responsible for the privacy practices of third-party payment platforms you use to send or receive money.
+- We do not process peer gift card payments or hold user money for mutual-aid gifts.
+- We do not receive full card credentials for app donations; Stripe does.
+- We do not proactively scan the plaintext of end-to-end encrypted crew/fleet content.
+- We are not responsible for the privacy practices of third-party payment platforms you use to send or receive peer gifts.
 
 
 7. DATA RETENTION
 
-We retain information for as long as your account is active or as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. You may request account deletion by contacting us; some information may be retained where required by law or for legitimate business purposes (such as security logs).
+We retain information for as long as your account is active or as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. Safety-report retention follows section 2.11. You may request account deletion by contacting us; some information may be retained where required by law or for legitimate security, fraud-prevention, donation, or safety purposes.
 
 
 8. YOUR CHOICES
 
-- You can update certain profile and payment information in the app.
-- You can leave a crew or stop using the Service.
-- Encrypted content is unlocked with your 12-word recovery key on each device (or for the browser session if you choose to remember it). Your login password does not decrypt crew content on new accounts.
+- You can update certain profile, payment-handle, adult-content, and notification settings in the app.
+- You can leave a crew or fleet, unfriend or block users, mute or hide content, and stop using the Service.
+- Encrypted content is unlocked with your 12-word recovery key on each device (or for the browser session if you choose to remember it). Your login password does not decrypt content keys on new accounts.
 - If you lose your recovery key, we cannot restore access to encrypted content.
 - You may decline to accept this policy, but you will not be able to register for an account.
 
 
 9. CHILDREN AND AGE REQUIREMENT
 
-The Service is intended only for adults 18 years of age or older. We do not knowingly allow minors to register. If you believe a minor has created an account, Report it and contact us so we can disable the account.
+The Service is intended only for adults 18 years of age or older. We do not knowingly allow minors to register. Sexual content involving minors is strictly prohibited. If you believe a minor has created an account or that child sexual exploitation material exists on the Service, use Report immediately and contact us so we can freeze accounts and take required action.
 
 
-10. CHANGES TO THIS POLICY
+10. INTERNATIONAL USERS
 
-We may update this Privacy Policy from time to time. We will revise the "Last updated" date when we do. Continued use of the Service after changes become effective means you accept the updated policy.
+The Service is designed primarily for users in the United States. If you access the Service from another country, you understand that your information may be processed in the United States and that different privacy laws may apply.
 
 
-11. CONTACT
+11. CHANGES TO THIS POLICY
+
+We may update this Privacy Policy from time to time. We will revise the "Last updated" date when we do. Material changes may also be announced in the app or by other reasonable means. Continued use of the Service after changes become effective means you accept the updated policy.
+
+
+12. CONTACT
 
 If you have questions about this Privacy Policy or our data practices, contact the Liberation Fleet project administrators through the contact method provided in the app or on the project website.
 
 
 SUMMARY (NOT A SUBSTITUTE FOR THE FULL POLICY)
 
-- We store account, crew, gift, and mutual-aid data on our servers.
-- Gift amounts and who gave to whom are stored in readable form for app features to work.
-- Some gift log display text may be encrypted so we cannot read it.
-- Crew members can see information relevant to your shared mutual-aid activity.
-- We are not a bank or payment processor; payments happen on external platforms.
+- We store account, crew/fleet, gift-calculation, library preview, notification, donation metadata, and safety-report data on our servers.
+- Gift amounts and who gave to whom are stored in readable form so mutual-aid features work.
+- Much chat, forum, proposal, DM, and media content is end-to-end encrypted so we cannot read it in normal operation.
+- App donations are processed by Stripe; we keep amount and Stripe ids, not your card number.
+- Voice media is handled by LiveKit; we may keep join/presence metadata.
+- Crew/fleet members and friends can see information required for shared features.
+- We are not a bank; peer payments happen on external platforms.
+- Reporting may send a one-time evidence snapshot for safety and legal compliance.

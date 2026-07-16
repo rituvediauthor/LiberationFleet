@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-recovery-key-display',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AccessibleDialogDirective],
   templateUrl: './recovery-key-display.component.html',
   styleUrl: './recovery-key-display.component.css'
 })

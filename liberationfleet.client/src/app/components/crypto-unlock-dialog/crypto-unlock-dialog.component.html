@@ -1,5 +1,10 @@
 <div class="dialog-backdrop" *ngIf="visible">
-  <div class="dialog" role="dialog" aria-labelledby="crypto-unlock-title">
+  <div
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="crypto-unlock-title"
+    [appAccessibleDialog]="visible">
     <h2 id="crypto-unlock-title">Unlock encrypted content</h2>
     <p class="dialog-note">
       Enter your 12-word recovery key to decrypt crew posts, proposals, forums, and encrypted gift messages.

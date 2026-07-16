@@ -9,6 +9,7 @@ import { RuleCryptoService } from '../../../services/crypto/rule-crypto.service'
 import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-rule-create',
@@ -64,6 +65,10 @@ export class RuleCreateComponent implements OnInit {
 
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.valueChanges.subscribe(() => this.updateCreateButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   async onSubmit() {

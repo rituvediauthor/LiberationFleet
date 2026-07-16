@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { UserService } from '../../services/user.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -123,6 +124,10 @@ export class ResetPasswordComponent implements OnInit {
       default:
         return false;
     }
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   onSubmit() {

@@ -15,6 +15,8 @@ export class BrandLogoComponent {
   @Input({ required: true }) variant!: BrandLogoVariant;
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() alt = '';
+  /** When true, image is treated as decorative (empty alt) even if beside labeled text/button. */
+  @Input() decorative = false;
   @Input() monochrome = false;
 
   readonly themeService = inject(ThemeService);
@@ -35,10 +37,16 @@ export class BrandLogoComponent {
   }
 
   get resolvedAlt(): string {
+    if (this.decorative) {
+      return '';
+    }
     if (this.alt) {
       return this.alt;
     }
 
-    return this.variant === 'lf' ? 'LiberationFleet logo' : 'Crew logo';
+    if (this.variant === 'crew') {
+      return 'Crew logo';
+    }
+    return 'LiberationFleet logo';
   }
 }

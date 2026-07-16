@@ -6,6 +6,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
   selector: 'app-emergency-request-create',
@@ -37,6 +38,10 @@ export class EmergencyRequestCreateComponent implements OnInit {
 
     this.updateSubmitButton();
     this.form.statusChanges.subscribe(() => this.updateSubmitButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   private updateSubmitButton() {

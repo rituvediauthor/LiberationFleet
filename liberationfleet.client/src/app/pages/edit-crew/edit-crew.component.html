@@ -17,13 +17,34 @@
 
         <div class="form-group">
           <label for="name">Crew name</label>
-          <input id="name" type="text" formControlName="name" class="form-input">
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="form-input"
+            [attr.aria-invalid]="isInvalid('name')"
+            [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null">
+          <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
+            Crew name is required
+          </span>
         </div>
 
         <div class="form-group">
           <label for="maxSize">Crew size</label>
-          <input id="maxSize" type="number" formControlName="maxSize" class="form-input" [attr.min]="memberCount > 2 ? memberCount : 2" max="50" step="1">
-          <span class="hint-text" *ngIf="memberCount > 0">Crew size cannot be less than the current member count ({{ memberCount }}).</span>
+          <input
+            id="maxSize"
+            type="number"
+            formControlName="maxSize"
+            class="form-input"
+            [attr.min]="memberCount > 2 ? memberCount : 2"
+            max="50"
+            step="1"
+            [attr.aria-invalid]="isInvalid('maxSize')"
+            [attr.aria-describedby]="isInvalid('maxSize') ? 'maxSize-error maxSize-hint' : (memberCount > 0 ? 'maxSize-hint' : null)">
+          <span class="hint-text" id="maxSize-hint" *ngIf="memberCount > 0">Crew size cannot be less than the current member count ({{ memberCount }}).</span>
+          <span id="maxSize-error" class="error-text" role="alert" *ngIf="isInvalid('maxSize')">
+            Size must be between 2 and 50
+          </span>
         </div>
 
         <div class="form-group">
@@ -49,12 +70,35 @@
         <ng-container *ngIf="isLocal">
           <div class="form-group">
             <label for="zipCode">Zip code</label>
-            <input id="zipCode" type="text" formControlName="zipCode" class="form-input" maxlength="5" inputmode="numeric">
+            <input
+              id="zipCode"
+              type="text"
+              formControlName="zipCode"
+              class="form-input"
+              maxlength="5"
+              inputmode="numeric"
+              [attr.aria-invalid]="isInvalid('zipCode')"
+              [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
+            <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
+              Enter a valid 5-digit zip code
+            </span>
           </div>
 
           <div class="form-group">
             <label for="radiusMiles">Distance (miles)</label>
-            <input id="radiusMiles" type="number" formControlName="radiusMiles" class="form-input" min="1" max="500" step="1">
+            <input
+              id="radiusMiles"
+              type="number"
+              formControlName="radiusMiles"
+              class="form-input"
+              min="1"
+              max="500"
+              step="1"
+              [attr.aria-invalid]="isInvalid('radiusMiles')"
+              [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
+            <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
+              Distance must be between 1 and 500 miles
+            </span>
           </div>
         </ng-container>
 
@@ -82,8 +126,19 @@
 
         <div class="form-group">
           <label for="inNeedDefaultThreshold">In-need default threshold ($)</label>
-          <input id="inNeedDefaultThreshold" type="number" formControlName="inNeedDefaultThreshold" class="form-input" min="0" step="1">
-          <span class="hint-text">Crewmates whose avg. monthly contributions (3 mo) fall below this are automatically marked in need of aid.</span>
+          <input
+            id="inNeedDefaultThreshold"
+            type="number"
+            formControlName="inNeedDefaultThreshold"
+            class="form-input"
+            min="0"
+            step="1"
+            [attr.aria-invalid]="isInvalid('inNeedDefaultThreshold')"
+            [attr.aria-describedby]="isInvalid('inNeedDefaultThreshold') ? 'inNeedDefaultThreshold-error inNeedDefaultThreshold-hint' : 'inNeedDefaultThreshold-hint'">
+          <span class="hint-text" id="inNeedDefaultThreshold-hint">Crewmates whose avg. monthly contributions (3 mo) fall below this are automatically marked in need of aid.</span>
+          <span id="inNeedDefaultThreshold-error" class="error-text" role="alert" *ngIf="isInvalid('inNeedDefaultThreshold')">
+            Threshold must be 0 or greater
+          </span>
         </div>
 
         <section class="settings-section">

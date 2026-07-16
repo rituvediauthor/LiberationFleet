@@ -30,6 +30,7 @@ import { MentionAutocompleteDirective } from '../../../directives/mention-autoco
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
+import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -44,7 +45,8 @@ import { ContentReportTargetType } from '../../../models/content-report.model';
     FallibleFooterComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,
-    ReportContentDialogComponent
+    ReportContentDialogComponent,
+    AccessibleDialogDirective
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
@@ -342,10 +344,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.selectedVote = '';
   }
 
-  closeVoteDialog() {
+  closeVoteDialog = () => {
     this.showVoteDialog = false;
     this.selectedVote = '';
-  }
+  };
 
   submitVote() {
     if (!this.proposal || !this.selectedVote) {

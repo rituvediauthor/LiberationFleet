@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { provideRouter } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { CreateCrewComponent } from './create-crew.component';
 import { CrewService } from '../../services/crew.service';
+import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { createCrewServiceMock, createToastServiceMock } from '../../testing/test-helpers';
 
@@ -19,7 +21,7 @@ describe('CreateCrewComponent', () => {
     toastService = createToastServiceMock();
 
     await TestBed.configureTestingModule({
-      imports: [CreateCrewComponent],
+      imports: [CreateCrewComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         { provide: CrewService, useValue: crewService },
@@ -124,7 +126,9 @@ describe('CreateCrewComponent', () => {
   });
 
   it('should navigate back to crew home', () => {
+    const navigation = TestBed.inject(NavigationService);
+    spyOn(navigation, 'back');
     component.backButton.onClick?.();
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
+    expect(navigation.back).toHaveBeenCalledWith(['/app/crew']);
   });
 });

@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FallibleService } from '../../services/fallible.service';
 
 const FALLIBLE_DOC_URL =
@@ -7,6 +8,7 @@ const FALLIBLE_DOC_URL =
 @Component({
   selector: 'app-fallible-footer',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './fallible-footer.component.html',
   styleUrl: './fallible-footer.component.css'
 })

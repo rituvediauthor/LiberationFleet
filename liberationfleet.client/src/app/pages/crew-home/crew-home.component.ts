@@ -5,6 +5,8 @@ import { Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { DonationCampaignWidgetComponent } from '../../components/donation-campaign-widget/donation-campaign-widget.component';
+import { BrandLogoComponent } from '../../components/brand-logo/brand-logo.component';
+import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
@@ -22,12 +24,21 @@ import {
 @Component({
   selector: 'app-crew-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, NavLayoutComponent, ContentBadgeComponent, DonationCampaignWidgetComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    NavLayoutComponent,
+    ContentBadgeComponent,
+    DonationCampaignWidgetComponent,
+    BrandLogoComponent,
+    HubLoadingComponent
+  ],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
 })
 export class CrewHomeComponent implements OnInit, OnDestroy {
   membership: CrewMembershipStatus | null = null;
+  loading = true;
   nextAid: NextAidInfo | null = null;
   seasonStarted = false;
   libraryOfThingsEnabled = true;
@@ -51,20 +62,27 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.crewService.getMembership().subscribe(status => {
-      this.membership = status;
-      this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
-      if (status.hasCrew) {
-        this.giftService.getSeasonStatus().subscribe({
-          next: seasonStatus => {
-            this.seasonStarted = seasonStatus.seasonStarted;
-            if (seasonStatus.seasonStarted) {
-              this.giftService.getNextAidInfo().subscribe({
-                next: info => this.nextAid = info
-              });
+    this.crewService.getMembership().subscribe({
+      next: status => {
+        this.membership = status;
+        this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+        this.loading = false;
+        if (status.hasCrew) {
+          this.giftService.getSeasonStatus().subscribe({
+            next: seasonStatus => {
+              this.seasonStarted = seasonStatus.seasonStarted;
+              if (seasonStatus.seasonStarted) {
+                this.giftService.getNextAidInfo().subscribe({
+                  next: info => this.nextAid = info
+                });
+              }
             }
-          }
-        });
+          });
+        }
+      },
+      error: () => {
+        this.membership = { hasCrew: false };
+        this.loading = false;
       }
     });
 

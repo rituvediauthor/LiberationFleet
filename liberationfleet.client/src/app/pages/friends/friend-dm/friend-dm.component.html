@@ -25,12 +25,19 @@
               type="button"
               class="kebab-btn"
               aria-label="Message options"
+              [attr.aria-expanded]="openMessageMenuId === message.id"
+              aria-haspopup="menu"
               (click)="toggleMessageMenu(message.id, $event)">
               <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
             </button>
-            <div class="message-menu" *ngIf="openMessageMenuId === message.id" (click)="$event.stopPropagation()">
-              <button type="button" *ngIf="isOwnMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
-              <button type="button" *ngIf="!isOwnMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
+            <div
+              class="message-menu"
+              role="menu"
+              *ngIf="openMessageMenuId === message.id"
+              (click)="$event.stopPropagation()"
+              (keydown.escape)="closeMenus()">
+              <button type="button" role="menuitem" *ngIf="isOwnMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
+              <button type="button" role="menuitem" *ngIf="!isOwnMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
             </div>
           </div>
         </div>
@@ -48,7 +55,7 @@
   <div class="chat-action-bar">
     <div class="chat-action-bar-inner">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
 
     <div class="composer" [class.expanded]="composerExpanded">
@@ -59,6 +66,7 @@
         (focus)="onComposerFocus()"
         (blur)="onComposerBlur()"
         [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
+        [attr.aria-label]="editingMessageId ? 'Edit message' : 'Message'"
         rows="1"></textarea>
 
       <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">

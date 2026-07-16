@@ -113,6 +113,8 @@ describe('ProfileComponent', () => {
       email: 'james.updated@example.com',
       inNeedOfAid: false,
       emergencyLevel: 2,
+      peopleRepresentedCount: 1,
+      disabilityLevel: 0,
       needsSurvivalAid: true,
       paymentPlatforms: [{ id: 1, platformId: 1, platform: 'PayPal', handle: 'james@example.com' }]
     });

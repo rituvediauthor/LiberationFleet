@@ -91,6 +91,7 @@ public class GetCrewGiftLogQueryHandlerTests
                 EncryptedContentType.GiftLogEntry,
                 It.IsAny<IReadOnlyList<string>>(),
                 crew.Id,
+                null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
 
@@ -120,6 +121,7 @@ public class GetCrewGiftLogQueryHandlerTests
             .Setup(r => r.GetEnvelopesAsync(
                 It.IsAny<EncryptedContentType>(),
                 It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<int?>(),
                 It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());

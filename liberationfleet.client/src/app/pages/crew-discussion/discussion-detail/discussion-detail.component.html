@@ -1,7 +1,7 @@
 <div class="discussion-detail-page" *ngIf="loading || loadError">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
   </div>
   <p class="loading-text" *ngIf="loading">Loading post...</p>
@@ -14,7 +14,7 @@
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && !contentRevealed">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
   </div>
 </div>
@@ -107,12 +107,19 @@
                 type="button"
                 class="icon-btn"
                 aria-label="Comment options"
+                [attr.aria-expanded]="openCommentMenuId === comment.id"
+                aria-haspopup="menu"
                 (click)="toggleCommentMenu(comment.id, $event)">
                 <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
               </button>
-              <div class="dropdown-menu" *ngIf="openCommentMenuId === comment.id" (click)="$event.stopPropagation()">
-                <button type="button" *ngIf="isOwnComment(comment)" (click)="startEditComment(comment, null, $event)">Edit</button>
-                <button type="button" *ngIf="!isOwnComment(comment)" (click)="openReportComment(comment, null, $event)">Report</button>
+              <div
+                class="dropdown-menu"
+                role="menu"
+                *ngIf="openCommentMenuId === comment.id"
+                (click)="$event.stopPropagation()"
+                (keydown.escape)="closeMenus()">
+                <button type="button" role="menuitem" *ngIf="isOwnComment(comment)" (click)="startEditComment(comment, null, $event)">Edit</button>
+                <button type="button" role="menuitem" *ngIf="!isOwnComment(comment)" (click)="openReportComment(comment, null, $event)">Report</button>
               </div>
             </div>
           </div>
@@ -145,12 +152,19 @@
                     type="button"
                     class="icon-btn"
                     aria-label="Reply options"
+                    [attr.aria-expanded]="openCommentMenuId === reply.id"
+                    aria-haspopup="menu"
                     (click)="toggleCommentMenu(reply.id, $event)">
                     <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
                   </button>
-                  <div class="dropdown-menu" *ngIf="openCommentMenuId === reply.id" (click)="$event.stopPropagation()">
-                    <button type="button" *ngIf="isOwnComment(reply)" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
-                    <button type="button" *ngIf="!isOwnComment(reply)" (click)="openReportComment(reply, comment.id, $event)">Report</button>
+                  <div
+                    class="dropdown-menu"
+                    role="menu"
+                    *ngIf="openCommentMenuId === reply.id"
+                    (click)="$event.stopPropagation()"
+                    (keydown.escape)="closeMenus()">
+                    <button type="button" role="menuitem" *ngIf="isOwnComment(reply)" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
+                    <button type="button" role="menuitem" *ngIf="!isOwnComment(reply)" (click)="openReportComment(reply, comment.id, $event)">Report</button>
                   </div>
                 </div>
               </div>
@@ -174,7 +188,7 @@
 
   <div class="detail-action-bar" *ngIf="!editing">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left"></i>
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
 
     <div class="comment-composer" [class.expanded]="commentExpanded">
@@ -187,6 +201,7 @@
         (focus)="onCommentFocus()"
         (blur)="onCommentBlur()"
         [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
+        [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
         rows="1"></textarea>
 
       <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">

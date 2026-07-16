@@ -38,15 +38,22 @@
             type="button"
             class="kebab-btn"
             [attr.aria-label]="config.label + ' options'"
+            [attr.aria-expanded]="openMenuItemId === item.id"
+            aria-haspopup="menu"
             (click)="toggleMenu(item.id, $event)">
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
 
-          <div class="post-menu" *ngIf="openMenuItemId === item.id" (click)="$event.stopPropagation()">
-            <button type="button" (click)="toggleMute(item, $event)">
+          <div
+            class="post-menu"
+            role="menu"
+            *ngIf="openMenuItemId === item.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="toggleMute(item, $event)">
               {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
             </button>
-            <button type="button" (click)="hideItem(item, $event)">Hide</button>
+            <button type="button" role="menuitem" (click)="hideItem(item, $event)">Hide</button>
           </div>
         </div>
       </div>
@@ -90,13 +97,20 @@
             type="button"
             class="kebab-btn"
             [attr.aria-label]="'Hidden ' + config.label + ' options'"
+            [attr.aria-expanded]="openMenuItemId === item.id"
+            aria-haspopup="menu"
             (click)="toggleMenu(item.id, $event)">
             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
           </button>
 
-          <div class="post-menu" *ngIf="openMenuItemId === item.id" (click)="$event.stopPropagation()">
-            <button type="button" (click)="editItem(item, $event)">Edit</button>
-            <button type="button" (click)="unhideItem(item, $event)">Unhide</button>
+          <div
+            class="post-menu"
+            role="menu"
+            *ngIf="openMenuItemId === item.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="editItem(item, $event)">Edit</button>
+            <button type="button" role="menuitem" (click)="unhideItem(item, $event)">Unhide</button>
           </div>
         </div>
       </div>

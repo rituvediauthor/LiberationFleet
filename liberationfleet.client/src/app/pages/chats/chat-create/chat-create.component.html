@@ -12,21 +12,31 @@
 
       <label class="field">
         <span>Name</span>
-        <input type="text" formControlName="name" maxlength="120" placeholder="General, Planning, Hangout..." />
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          maxlength="120"
+          placeholder="General, Planning, Hangout..."
+          [attr.aria-invalid]="isInvalid('name')"
+          [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null" />
       </label>
-      <span class="error-text" *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')">
+      <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
         Name is required
       </span>
 
       <label class="field">
         <span>Purpose</span>
         <textarea
+          id="purpose"
           formControlName="purpose"
           rows="4"
           maxlength="2000"
-          placeholder="Describe what this channel is for"></textarea>
+          placeholder="Describe what this channel is for"
+          [attr.aria-invalid]="isInvalid('purpose')"
+          [attr.aria-describedby]="isInvalid('purpose') ? 'purpose-error' : null"></textarea>
       </label>
-      <span class="error-text" *ngIf="form.get('purpose')?.touched && form.get('purpose')?.hasError('required')">
+      <span id="purpose-error" class="error-text" role="alert" *ngIf="isInvalid('purpose')">
         Purpose is required
       </span>
 

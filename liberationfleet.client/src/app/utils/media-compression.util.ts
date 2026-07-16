@@ -1,7 +1,9 @@
+import { MAX_VIDEO_BYTES } from './media-attachment-allowlist.util';
+
 const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
-const SKIP_IMAGE_BYTES = 250 * 1024;
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+/** Only skip re-encode for already-safe JPEG under size/dimension limits. */
+const SKIP_SAFE_JPEG_BYTES = 250 * 1024;
 const TARGET_VIDEO_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_DIMENSION = 1280;
 const MAX_VIDEO_DURATION_SEC = 45;
@@ -23,14 +25,18 @@ export async function compressMediaFile(
 }
 
 async function compressImage(file: File): Promise<File> {
-  if (file.type === 'image/gif') {
-    return file;
-  }
-
+  // Always rasterize through canvas → JPEG so SVG/polyglots cannot be stored as-is.
+  // Skip only for small, already-JPEG files that decode successfully.
+  const mime = (file.type || '').toLowerCase();
   const bitmap = await createImageBitmap(file);
   try {
     const longestEdge = Math.max(bitmap.width, bitmap.height);
-    if (file.size <= SKIP_IMAGE_BYTES && longestEdge <= MAX_IMAGE_DIMENSION) {
+    const alreadySafeJpeg =
+      (mime === 'image/jpeg' || mime === 'image/jpg')
+      && file.size <= SKIP_SAFE_JPEG_BYTES
+      && longestEdge <= MAX_IMAGE_DIMENSION;
+
+    if (alreadySafeJpeg) {
       return file;
     }
 
@@ -43,7 +49,7 @@ async function compressImage(file: File): Promise<File> {
     canvas.height = height;
     const context = canvas.getContext('2d');
     if (!context) {
-      return file;
+      throw new Error('Unable to process image.');
     }
 
     context.drawImage(bitmap, 0, 0, width, height);

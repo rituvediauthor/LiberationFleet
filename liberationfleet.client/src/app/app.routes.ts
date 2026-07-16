@@ -100,35 +100,42 @@ import { FleetForumDetailComponent } from './pages/fleet/fleet-forums/fleet-foru
 export const routes: Routes = [
   {
     path: '',
-    component: ProductLandingComponent
+    component: ProductLandingComponent,
+    title: 'Home'
   },
   {
     path: 'sign-in',
-    component: SignInComponent
+    component: SignInComponent,
+    title: 'Sign In'
   },
   {
     path: 'sign-up',
-    component: SignUpComponent
+    component: SignUpComponent,
+    title: 'Sign Up'
   },
   {
     path: 'forgot-password',
-    component: ForgotPasswordComponent
+    component: ForgotPasswordComponent,
+    title: 'Forgot Password'
   },
   {
     path: 'reset-password',
-    component: ResetPasswordComponent
+    component: ResetPasswordComponent,
+    title: 'Reset Password'
   },
   {
     path: 'app/crew',
     component: CrewHomeComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    title: 'Crew'
   },
   {
     path: 'app/fleet',
     component: FleetHomeComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    title: 'Fleet'
   },
   {
     path: 'app/fleet/create',
@@ -338,17 +345,20 @@ export const routes: Routes = [
     path: 'app/profile',
     component: UserHomeComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    title: 'Profile'
   },
   {
     path: 'app/profile/user',
     component: ProfileComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    title: 'Edit Profile'
   },
   {
     path: 'app/donate',
     component: DonateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    title: 'Donate'
   },
   {
     path: 'app/profile/gift-history',

@@ -5,6 +5,12 @@ import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.ser
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
 import { compressMediaFile } from '../../utils/media-compression.util';
+import {
+  AttachmentMediaKind,
+  defaultAcceptAttribute,
+  MAX_AUDIO_BYTES,
+  validateAttachmentFile
+} from '../../utils/media-attachment-allowlist.util';
 
 @Component({
   selector: 'app-proposal-attachment-picker',
@@ -16,7 +22,10 @@ import { compressMediaFile } from '../../utils/media-compression.util';
 export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() attachments: PendingAttachment[] = [];
   @Input() allowAudioRecording = true;
-  @Input() acceptTypes = 'image/*,video/*,audio/*';
+  /** Restrict which media kinds may be attached (library offerings use image-only). */
+  @Input() allowedKinds: AttachmentMediaKind[] = ['image', 'video', 'audio'];
+  /** @deprecated Prefer allowedKinds; still honored if set for the file dialog hint. */
+  @Input() acceptTypes?: string;
   @Output() fileDialogOpenChange = new EventEmitter<boolean>();
 
   audioRecorder = new AudioRecorderController();
@@ -34,6 +43,14 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         this.addAudioAttachment(blob);
       }
     };
+  }
+
+  get resolvedAcceptTypes(): string {
+    return this.acceptTypes?.trim() || defaultAcceptAttribute(this.allowedKinds);
+  }
+
+  get canRecordAudio(): boolean {
+    return this.allowAudioRecording && this.allowedKinds.includes('audio');
   }
 
   ngOnDestroy() {
@@ -67,19 +84,25 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
   private async addSelectedFiles(files: File[]) {
     for (const file of files) {
-      const type = this.resolveAttachmentType(file);
-      if (!type) {
-        this.toastService.error(`Unsupported file type: ${file.name}`);
+      const result = validateAttachmentFile(file, this.allowedKinds);
+      if (!result.ok) {
+        if (result.reason === 'too-large') {
+          this.toastService.error(`${file.name} is too large for this attachment type.`);
+        } else if (result.reason === 'blocked') {
+          this.toastService.error(`${file.name} is not an allowed file type.`);
+        } else {
+          this.toastService.error(`Unsupported file type: ${file.name}`);
+        }
         continue;
       }
 
       try {
-        const compressed = type === 'audio'
+        const compressed = result.kind === 'audio'
           ? file
-          : await compressMediaFile(file, type);
+          : await compressMediaFile(file, result.kind);
         this.attachments.push({
           file: compressed,
-          type,
+          type: result.kind,
           resourceId: this.proposalCrypto.createResourceId(),
           previewUrl: URL.createObjectURL(compressed)
         });
@@ -97,6 +120,9 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   }
 
   async startRecording() {
+    if (!this.canRecordAudio) {
+      return;
+    }
     try {
       await this.audioRecorder.start();
     } catch {
@@ -146,47 +172,16 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     }
   }
 
-  private resolveAttachmentType(file: File): PendingAttachment['type'] | null {
-    const mime = file.type.toLowerCase();
-    if (mime.startsWith('image/')) {
-      return 'image';
-    }
-    if (mime.startsWith('video/')) {
-      return 'video';
-    }
-    if (mime.startsWith('audio/')) {
-      return 'audio';
-    }
-
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-      case 'webp':
-      case 'bmp':
-      case 'heic':
-        return 'image';
-      case 'mp4':
-      case 'mov':
-      case 'webm':
-      case 'mkv':
-      case 'avi':
-        return 'video';
-      case 'mp3':
-      case 'wav':
-      case 'm4a':
-      case 'ogg':
-      case 'aac':
-      case 'flac':
-        return 'audio';
-      default:
-        return null;
-    }
-  }
-
   private addAudioAttachment(blob: Blob) {
+    if (!this.allowedKinds.includes('audio')) {
+      this.toastService.error('Audio attachments are not allowed here.');
+      return;
+    }
+    if (blob.size > MAX_AUDIO_BYTES) {
+      this.toastService.error('Recording is too large.');
+      return;
+    }
+
     this.attachments.push({
       blob,
       type: 'audio',
