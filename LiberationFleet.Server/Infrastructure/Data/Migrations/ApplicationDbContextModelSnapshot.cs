@@ -365,6 +365,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CurrentSeasonStartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageResourceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<decimal>("InNeedDefaultThreshold")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)
@@ -936,6 +940,13 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("CiphertextCharLength")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ColdBlobPath")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
                     b.Property<int>("ContentType")
                         .HasColumnType("int");
 
@@ -947,6 +958,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<int?>("FleetId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("FrozenAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("KeyVersion")
                         .ValueGeneratedOnAdd()
@@ -962,6 +976,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int>("StorageTier")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -975,6 +994,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.HasIndex("ContentType", "ResourceId")
                         .IsUnique();
+
+                    b.HasIndex("StorageTier", "CreatedAt");
 
                     b.ToTable("EncryptedContentEnvelopes", t =>
                         {
@@ -1040,6 +1061,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("ImageResourceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("JoinCode")
                         .IsRequired()
@@ -2235,6 +2260,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("ProposalId")
                         .HasColumnType("int");
 
+                    b.Property<int>("RerollCount")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -3134,6 +3162,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<string>("AvatarResourceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");

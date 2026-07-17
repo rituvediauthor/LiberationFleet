@@ -117,10 +117,18 @@ export class LibraryService {
     );
   }
 
-  getMyOfferings(options?: { search?: string; limit?: number; offset?: number }): Observable<LibraryOfferingListPage> {
+  getMyOfferings(options?: {
+    search?: string;
+    categoryIds?: number[];
+    limit?: number;
+    offset?: number;
+  }): Observable<LibraryOfferingListPage> {
     let params = new HttpParams();
     if (options?.search?.trim()) {
       params = params.set('search', options.search.trim());
+    }
+    for (const categoryId of options?.categoryIds ?? []) {
+      params = params.append('categoryIds', categoryId.toString());
     }
     if (options?.limit) {
       params = params.set('limit', options.limit.toString());

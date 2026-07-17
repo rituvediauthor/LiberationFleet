@@ -26,6 +26,13 @@
     <div class="post-content-card">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
+          <app-user-avatar
+            [resourceId]="p.authorAvatarResourceId"
+            [crewId]="crewId || null"
+            [fallbackInitial]="p.authorUsername"
+            size="sm"
+            [alt]="p.authorUsername + ' avatar'">
+          </app-user-avatar>
           <span class="author">{{ p.authorUsername }}</span>
           <span>·</span>
           <span>{{ p.createdAt | date:'medium' }}</span>
@@ -69,6 +76,13 @@
         <article class="comment" *ngFor="let comment of p.comments">
           <div class="comment-header">
             <p class="comment-meta">
+              <app-user-avatar
+                [resourceId]="comment.authorAvatarResourceId"
+                [crewId]="crewId || null"
+                [fallbackInitial]="comment.authorUsername"
+                size="sm"
+                [alt]="comment.authorUsername + ' avatar'">
+              </app-user-avatar>
               <strong>{{ comment.authorUsername }}</strong>
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
@@ -110,6 +124,13 @@
             <article class="comment reply" *ngFor="let reply of comment.replies">
               <div class="comment-header">
                 <p class="comment-meta">
+                  <app-user-avatar
+                    [resourceId]="reply.authorAvatarResourceId"
+                    [crewId]="crewId || null"
+                    [fallbackInitial]="reply.authorUsername"
+                    size="sm"
+                    [alt]="reply.authorUsername + ' avatar'">
+                  </app-user-avatar>
                   <strong>{{ formatCommentAuthor(reply, comment.replies) }}</strong>
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
@@ -155,36 +176,39 @@
     </button>
 
     <div class="comment-composer" [class.expanded]="commentExpanded">
-      <textarea
-        class="comment-input"
-        [class.expanded]="commentExpanded"
-        [(ngModel)]="commentText"
-        appMentionAutocomplete
-        [(mentionedUserIds)]="mentionedUserIds"
-        (focus)="onCommentFocus()"
-        (blur)="onCommentBlur()"
-        [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
-        [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
-        rows="1"></textarea>
+      <div class="composer-input-row">
+        <textarea
+          class="comment-input"
+          [class.expanded]="commentExpanded"
+          [(ngModel)]="commentText"
+          appMentionAutocomplete
+          [(mentionedUserIds)]="mentionedUserIds"
+          (focus)="onCommentFocus()"
+          (blur)="onCommentBlur()"
+          [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
+          [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
+          rows="1"></textarea>
+
+        <div class="composer-actions-col" *ngIf="commentExpanded">
+          <button
+            type="button"
+            class="composer-send-btn"
+            [disabled]="posting || !canPostComment()"
+            (click)="postComment()"
+            [attr.aria-label]="editingCommentId ? 'Save' : 'Post'">
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="composer-cancel-btn"
+            *ngIf="editingCommentId"
+            [disabled]="posting"
+            (click)="cancelEditComment()">
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
-
-    <button
-      type="button"
-      class="action-btn secondary"
-      *ngIf="editingCommentId"
-      [disabled]="posting"
-      (click)="cancelEditComment()">
-      Cancel
-    </button>
-
-    <button
-      type="button"
-      class="action-btn primary"
-      *ngIf="commentExpanded"
-      [disabled]="posting || !canPostComment()"
-      (click)="postComment()">
-      {{ editingCommentId ? 'Save' : 'Post' }}
-    </button>
   </div>
 </div>
 

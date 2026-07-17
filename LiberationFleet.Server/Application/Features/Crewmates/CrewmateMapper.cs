@@ -121,10 +121,11 @@ public static class CrewmateMapper
         {
             UserId = crewmate.Id,
             Username = crewmate.Username,
+            AvatarResourceId = crewmate.AvatarResourceId,
             Roles = CrewRoleMapper.MapRoles(membership),
             ElectedRoles = CrewRoleMapper.MapElectedRoleDtos(membership),
             PaymentPlatforms = MapPaymentPlatforms(crewmate),
-            SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
+            SacrificeCountLastSeason = membership.EmergencySacrificesThisSeason,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = lifetimeContributions,

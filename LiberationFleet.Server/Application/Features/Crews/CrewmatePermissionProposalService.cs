@@ -21,9 +21,11 @@ public sealed class CrewmatePermissionProposalResult
 
 public class CrewmatePermissionProposalService(
     IProposalRepository proposalRepository,
+    IFleetRepository fleetRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
-    NotificationService notificationService)
+    NotificationService notificationService,
+    IUnitOfWork unitOfWork)
 {
     public Task<CrewmatePermissionProposalResult> CreateAttachFilesGrantAsync(
         int crewId,
@@ -114,6 +116,25 @@ public class CrewmatePermissionProposalService(
             Title = title,
             Description = description
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyCrewAsync(
             crewId,

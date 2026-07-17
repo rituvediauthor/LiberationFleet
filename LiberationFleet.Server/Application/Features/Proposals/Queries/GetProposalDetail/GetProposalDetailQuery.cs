@@ -165,7 +165,7 @@ public class GetProposalDetailQueryHandler(
             .Where(c => !hiddenUserIds.Contains(c.AuthorUserId))
             .ToList();
         var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
-        var usesAnonymousComments = proposal.Kind == ProposalKind.General && !proposal.FleetId.HasValue;
+        var usesAnonymousComments = true;
         IReadOnlyDictionary<string, EncryptedContentEnvelope> commentEnvelopeById =
             new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
 
@@ -190,25 +190,29 @@ public class GetProposalDetailQueryHandler(
             commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
         }
         string? viewerAlias = null;
+        var aliasRerollsRemaining = 0;
         IReadOnlyDictionary<int, string> nicknameByUserId = new Dictionary<int, string>();
 
         if (usesAnonymousComments)
         {
             var viewerAliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
             viewerAlias = viewerAliasEntity.Nickname;
+            aliasRerollsRemaining = viewerAliasEntity.RerollsRemaining;
 
-            var authorIds = visibleComments.Select(c => c.AuthorUserId).Distinct();
-            nicknameByUserId = await aliasService.GetNicknameMapAsync(proposal.Id, authorIds, cancellationToken);
+            var authorIds = visibleComments.Select(c => c.AuthorUserId).Distinct().ToList();
+            var nicknameMap = new Dictionary<int, string>(
+                await aliasService.GetNicknameMapAsync(proposal.Id, authorIds, cancellationToken))
+            {
+                [userId] = viewerAlias
+            };
 
-            foreach (var authorId in authorIds.Where(id => !nicknameByUserId.ContainsKey(id)))
+            foreach (var authorId in authorIds.Where(id => !nicknameMap.ContainsKey(id)))
             {
                 var created = await aliasService.GetOrCreateAsync(proposal.Id, authorId, cancellationToken);
-                nicknameByUserId = new Dictionary<int, string>(nicknameByUserId)
-                {
-                    [created.UserId] = created.Nickname
-                };
+                nicknameMap[created.UserId] = created.Nickname;
             }
 
+            nicknameByUserId = nicknameMap;
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
@@ -248,6 +252,7 @@ public class GetProposalDetailQueryHandler(
                 crewmatePermissionGrant,
                 currentUserVote,
                 viewerAlias,
+                aliasRerollsRemaining,
                 fleetRuleChange,
                 fleetSettingChange,
                 fleetJoinRequest,

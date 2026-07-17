@@ -19,6 +19,7 @@ import { NotificationPreference } from '../../models/notification.model';
 export class NotificationSettingsComponent implements OnInit {
   preferences: NotificationPreference[] = [];
   loading = true;
+  activeTab: 'Crew' | 'Fleet' = 'Crew';
 
   get crewPreferences(): NotificationPreference[] {
     return this.preferences.filter(p => (p.category || 'Crew') === 'Crew');
@@ -27,6 +28,11 @@ export class NotificationSettingsComponent implements OnInit {
   get fleetPreferences(): NotificationPreference[] {
     return this.preferences.filter(p => p.category === 'Fleet');
   }
+
+  get visiblePreferences(): NotificationPreference[] {
+    return this.activeTab === 'Fleet' ? this.fleetPreferences : this.crewPreferences;
+  }
+
   saving = false;
   errorMessage = '';
   showPasswordDialog = false;

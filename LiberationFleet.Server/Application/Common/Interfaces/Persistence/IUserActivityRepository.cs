@@ -22,6 +22,7 @@ public sealed class UserActivityRecord
     public string? Detail { get; init; }
     public DateTime CreatedAt { get; init; }
     public int CrewId { get; init; }
+    public int? FleetId { get; init; }
     public int ResourceId { get; init; }
     public int? ParentResourceId { get; init; }
     public int? RelatedUserId { get; init; }

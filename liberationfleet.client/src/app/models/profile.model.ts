@@ -23,6 +23,7 @@ export interface UserProfile {
   id: number;
   username: string;
   email: string;
+  avatarResourceId?: string | null;
   paymentPlatforms: PaymentPlatformAccount[];
   roles: string[];
   inNeedOfAid: boolean;
@@ -51,6 +52,7 @@ export interface UserProfileStats {
 export interface UpdateProfileRequest {
   username: string;
   email: string;
+  avatarResourceId?: string | null;
   paymentPlatforms: PaymentPlatformAccount[];
   inNeedOfAid: boolean;
   emergencyLevel: number;

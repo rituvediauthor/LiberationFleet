@@ -41,6 +41,22 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, string?>> GetAvatarResourceIdsAsync(
+        IReadOnlyList<int> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+        {
+            return new Dictionary<int, string?>();
+        }
+
+        var distinctIds = userIds.Distinct().ToList();
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => distinctIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.AvatarResourceId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<User>> SearchByUsernameAsync(
         string usernameFragment,
         int limit = 20,

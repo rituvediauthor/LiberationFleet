@@ -34,6 +34,7 @@ public class Crew
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
     public bool AllowCrossCrewGiving { get; set; }
+    public string? ImageResourceId { get; set; }
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();

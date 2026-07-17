@@ -23,5 +23,6 @@ public enum CrewSettingField
     MinimumContributionForAttachments = 18,
     MinimumCrewmateTenureDaysForProposals = 19,
     MinimumContributionForProposals = 20,
-    AllowCrossCrewGiving = 21
+    AllowCrossCrewGiving = 21,
+    ImageResourceId = 22
 }

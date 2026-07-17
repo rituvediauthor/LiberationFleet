@@ -38,4 +38,14 @@ public interface ICryptoRepository
         EncryptedContentType contentType,
         IReadOnlyList<string> resourceIds,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Hot Image/Video/Audio envelopes older than <paramref name="createdBefore"/> with large ciphertext.
+    /// </summary>
+    Task<IReadOnlyList<EncryptedContentEnvelope>> GetDeepFreezeCandidatesAsync(
+        IReadOnlyList<EncryptedContentType> contentTypes,
+        DateTime createdBefore,
+        int take,
+        int minimumCiphertextChars,
+        CancellationToken cancellationToken = default);
 }

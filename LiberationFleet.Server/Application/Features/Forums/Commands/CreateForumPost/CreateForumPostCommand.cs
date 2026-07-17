@@ -14,7 +14,8 @@ public record CreateForumPostCommand(
     string Ciphertext,
     int KeyVersion,
     bool IsAdultContent,
-    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
+    IReadOnlyList<int> MentionedUserIds,
+    string? Preview = null) : IRequest<ForumOperationResponse>;
 
 public class CreateForumPostCommandHandler(
     ICurrentUserService currentUser,
@@ -78,7 +79,7 @@ public class CreateForumPostCommandHandler(
             MutedContentType.Forum,
             post.Id,
             "New forum post",
-            "A new forum post was published.",
+            NotificationPreview.BodyOrFallback(request.Preview, "A new forum post was published."),
             $"/app/crew/forums/{post.Id}",
             relatedEntityId: post.Id,
             excludeUserId: userId,
@@ -91,7 +92,8 @@ public class CreateForumPostCommandHandler(
             ContentType = MentionedContentType.ForumPost,
             ResourceId = post.Id,
             ActionUrl = $"/app/crew/forums/{post.Id}",
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            Preview = request.Preview
         }, cancellationToken);
 
         return new ForumOperationResponse

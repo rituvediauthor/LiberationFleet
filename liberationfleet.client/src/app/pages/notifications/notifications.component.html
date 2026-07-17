@@ -25,6 +25,14 @@
         [class.unavailable]="item.isTargetAvailable === false"
         *ngFor="let item of items"
         (click)="openNotification(item)">
+        <app-user-avatar
+          *ngIf="showActorAvatar(item)"
+          class="notification-avatar"
+          [resourceId]="item.actorAvatarResourceId"
+          [crewId]="crewId || null"
+          size="sm"
+          alt="">
+        </app-user-avatar>
         <div class="card-main">
           <h2>{{ item.title }}</h2>
           <p>{{ item.body }}</p>

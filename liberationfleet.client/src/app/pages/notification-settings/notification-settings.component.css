@@ -15,6 +15,29 @@
   font-size: 14px;
 }
 
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.settings-tab {
+  flex: 1;
+  height: 40px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-tab.active {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg);
+  color: var(--lf-color-accent);
+}
+
 .state-text {
   color: var(--lf-color-text-secondary);
   font-size: 14px;

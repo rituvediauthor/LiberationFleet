@@ -11,11 +11,13 @@ import {
   NotificationFilterCategory,
   NotificationItem
 } from '../../models/notification.model';
+import { CrewService } from '../../services/crew.service';
+import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, NavLayoutComponent],
+  imports: [CommonModule, NavLayoutComponent, UserAvatarComponent],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css'
 })
@@ -25,14 +27,26 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   errorMessage = '';
   selectedFilter: NotificationFilterCategory = 'All';
   readonly filterOptions = NOTIFICATION_FILTER_OPTIONS;
+  crewId = 0;
 
   private notificationService = inject(NotificationService);
   private notificationTargetService = inject(NotificationTargetService);
+  private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private router = inject(Router);
 
   ngOnInit() {
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+      }
+    });
     this.loadNotifications();
+  }
+
+  /** Avatars only for notifications that have a known non-anonymous actor picture. */
+  showActorAvatar(item: NotificationItem): boolean {
+    return !!item.actorUserId && !!item.actorAvatarResourceId?.trim();
   }
 
   ngOnDestroy() {

@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -17,6 +18,7 @@ public class DeleteCrewAttachmentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICryptoRepository cryptoRepository,
+    IMediaDeepFreezeService deepFreezeService,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteCrewAttachmentCommand, CryptoOperationResponse>
 {
     private static readonly HashSet<EncryptedContentType> AttachmentTypes =
@@ -61,6 +63,7 @@ public class DeleteCrewAttachmentCommandHandler(
             return new CryptoOperationResponse { Success = false, Message = "Attachment not found." };
         }
 
+        await deepFreezeService.DeleteColdBlobIfPresentAsync(envelope, cancellationToken);
         await cryptoRepository.DeleteEnvelopesAsync(domainType, [request.ResourceId.Trim()], cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

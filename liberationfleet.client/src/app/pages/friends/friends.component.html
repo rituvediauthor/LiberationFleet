@@ -41,6 +41,13 @@
         <button type="button" class="friend-open" (click)="openFriend(friend)">
           <div class="friend-main">
             <p class="friend-name">
+              <app-user-avatar
+                [resourceId]="friend.avatarResourceId"
+                [crewId]="crewId || null"
+                [fallbackInitial]="friend.username"
+                size="sm"
+                [alt]="friend.username + ' avatar'">
+              </app-user-avatar>
               {{ friend.username }}
               <span *ngIf="friend.isMuted" class="muted-badge">Muted</span>
             </p>

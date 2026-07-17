@@ -14,4 +14,10 @@ public interface IContentReportRepository
         int resourceId,
         int? parentId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clears sealed evidence for expired non-CSAM reports (does not delete CSAM / NCMEC-queued packets).
+    /// Returns number of reports purged.
+    /// </summary>
+    Task<int> PurgeExpiredNonCsamEvidenceAsync(int retentionDays, CancellationToken cancellationToken = default);
 }

@@ -11,6 +11,7 @@ import { NavigationService } from '../../../../services/navigation.service';
 
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../../utils/a11y-form.util';
+import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-fleet-forum-create',
@@ -86,7 +87,8 @@ export class FleetForumCreateComponent implements OnInit {
       this.fleetService.createForum({
         ...encrypted,
         isAdultContent: !!isAdultContent,
-        mentionedUserIds: this.mentionedUserIds
+        mentionedUserIds: this.mentionedUserIds,
+        notificationPreview: truncateNotificationPreview(body.trim())
       }).subscribe({
         next: result => {
           if (result.success) {

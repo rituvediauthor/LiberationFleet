@@ -16,6 +16,13 @@
         [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">
           <p class="message-meta">
+            <app-user-avatar
+              [resourceId]="message.authorAvatarResourceId"
+              [crewId]="crewId || null"
+              [fallbackInitial]="message.authorUsername"
+              size="sm"
+              [alt]="message.authorUsername + ' avatar'">
+            </app-user-avatar>
             <strong>{{ message.authorUsername }}</strong>
             <span>·</span>
             <span>{{ message.createdAt | date:'short' }}</span>
@@ -59,15 +66,36 @@
     </button>
 
     <div class="composer" [class.expanded]="composerExpanded">
-      <textarea
-        class="message-input"
-        [class.expanded]="composerExpanded"
-        [(ngModel)]="messageText"
-        (focus)="onComposerFocus()"
-        (blur)="onComposerBlur()"
-        [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
-        [attr.aria-label]="editingMessageId ? 'Edit message' : 'Message'"
-        rows="1"></textarea>
+      <div class="composer-input-row">
+        <textarea
+          class="message-input"
+          [class.expanded]="composerExpanded"
+          [(ngModel)]="messageText"
+          (focus)="onComposerFocus()"
+          (blur)="onComposerBlur()"
+          [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
+          [attr.aria-label]="editingMessageId ? 'Edit message' : 'Message'"
+          rows="1"></textarea>
+
+        <div class="composer-actions-col" *ngIf="composerExpanded">
+          <button
+            type="button"
+            class="composer-send-btn"
+            [disabled]="sending || !canSend()"
+            (click)="sendMessage()"
+            [attr.aria-label]="editingMessageId ? 'Save' : 'Send'">
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="composer-cancel-btn"
+            *ngIf="editingMessageId"
+            [disabled]="sending"
+            (click)="cancelEditMessage()">
+            Cancel
+          </button>
+        </div>
+      </div>
 
       <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
@@ -84,24 +112,6 @@
         (fileDialogOpenChange)="onFileDialogOpenChange($event)">
       </app-proposal-attachment-picker>
     </div>
-
-    <button
-      type="button"
-      class="cancel-btn"
-      *ngIf="editingMessageId"
-      [disabled]="sending"
-      (click)="cancelEditMessage()">
-      Cancel
-    </button>
-
-    <button
-      type="button"
-      class="send-btn"
-      *ngIf="composerExpanded"
-      [disabled]="sending || !canSend()"
-      (click)="sendMessage()">
-      {{ editingMessageId ? 'Save' : 'Send' }}
-    </button>
     </div>
   </div>
 </div>

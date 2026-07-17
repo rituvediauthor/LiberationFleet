@@ -11,6 +11,7 @@ import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { LibraryAccessService } from '../../services/library-access.service';
 import { NotificationService } from '../../services/notification.service';
 import { NotificationHubService } from '../../services/notification-hub.service';
@@ -43,6 +44,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   seasonStarted = false;
   libraryOfThingsEnabled = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
+  crewImageSrc: string | null = null;
 
   private router = inject(Router);
   private crewService = inject(CrewService);
@@ -50,23 +52,28 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private libraryAccess = inject(LibraryAccessService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private cryptoSession = inject(CryptoSessionService);
+  private proposalCrypto = inject(ProposalCryptoService);
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
-    this.cryptoSession.unlocked$.subscribe(unlocked => {
-      if (unlocked) {
-        void this.crewCryptoSync.syncActiveCrewKeyDistributions();
-      }
-    });
+    this.subscriptions.add(
+      this.cryptoSession.unlocked$.subscribe(unlocked => {
+        if (unlocked) {
+          void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+        }
+        void this.refreshCrewImage();
+      })
+    );
 
     this.crewService.getMembership().subscribe({
       next: status => {
         this.membership = status;
         this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
         this.loading = false;
+        void this.refreshCrewImage();
         if (status.hasCrew) {
           this.giftService.getSeasonStatus().subscribe({
             next: seasonStatus => {
@@ -82,6 +89,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.membership = { hasCrew: false };
+        this.crewImageSrc = null;
         this.loading = false;
       }
     });
@@ -101,6 +109,21 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
+  }
+
+  private async refreshCrewImage() {
+    const crewId = this.membership?.crewId;
+    const resourceId = this.membership?.imageResourceId;
+    if (!crewId || !resourceId || !this.cryptoSession.isUnlocked()) {
+      this.crewImageSrc = null;
+      return;
+    }
+
+    this.crewImageSrc = await this.proposalCrypto.decryptImageDataUrl(
+      { crewId },
+      resourceId,
+      'ImageAsset'
+    );
   }
 
   get nextAidHeadline(): string {

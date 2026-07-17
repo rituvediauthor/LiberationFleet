@@ -11,7 +11,8 @@ public record GetNotificationsQuery(string? Category, int Limit = 50, int? Befor
 
 public class GetNotificationsQueryHandler(
     ICurrentUserService currentUser,
-    INotificationRepository notificationRepository) : IRequestHandler<GetNotificationsQuery, NotificationListResponse>
+    INotificationRepository notificationRepository,
+    IUserRepository userRepository) : IRequestHandler<GetNotificationsQuery, NotificationListResponse>
 {
     public async Task<NotificationListResponse> Handle(GetNotificationsQuery request, CancellationToken cancellationToken)
     {
@@ -30,12 +31,30 @@ public class GetNotificationsQueryHandler(
             cancellationToken);
         var unreadCount = await notificationRepository.GetUnreadCountAsync(userId, cancellationToken);
 
+        var actorIds = notifications
+            .Where(n => n.ActorUserId.HasValue)
+            .Select(n => n.ActorUserId!.Value)
+            .Distinct()
+            .ToList();
+        var avatars = await userRepository.GetAvatarResourceIdsAsync(actorIds, cancellationToken);
+
+        var items = notifications.Select(n =>
+        {
+            var dto = NotificationMapper.Map(n);
+            if (n.ActorUserId.HasValue && avatars.TryGetValue(n.ActorUserId.Value, out var avatar))
+            {
+                dto.ActorAvatarResourceId = avatar;
+            }
+
+            return dto;
+        }).ToList();
+
         return new NotificationListResponse
         {
             Success = true,
             Message = "Notifications loaded.",
             UnreadCount = unreadCount,
-            Items = notifications.Select(NotificationMapper.Map).ToList()
+            Items = items
         };
     }
 

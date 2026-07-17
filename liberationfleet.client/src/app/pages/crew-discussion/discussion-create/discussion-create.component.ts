@@ -14,6 +14,7 @@ import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../
 import { PendingAttachment } from '../../../models/crew-discussion.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-discussion-create',
@@ -100,7 +101,8 @@ export class DiscussionCreateComponent implements OnInit {
       this.discussionService.createPost(this.config, {
         ...encrypted,
         isAdultContent: !!isAdultContent,
-        mentionedUserIds: this.mentionedUserIds
+        mentionedUserIds: this.mentionedUserIds,
+        notificationPreview: truncateNotificationPreview(description.trim())
       }).subscribe({
         next: result => {
           if (result.success) {

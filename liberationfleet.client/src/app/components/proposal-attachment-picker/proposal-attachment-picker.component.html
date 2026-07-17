@@ -1,11 +1,15 @@
 <div class="attachment-picker">
-  <div class="attachment-actions">
-    <label class="attach-btn" (mousedown)="$event.preventDefault()">
-      Attach file
+  <div class="attachment-actions" *ngIf="canAddMore">
+    <label
+      class="attach-btn attach-icon-btn"
+      aria-label="Attach file"
+      title="Attach file"
+      (mousedown)="$event.preventDefault()">
+      <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
       <input
         type="file"
         [attr.accept]="resolvedAcceptTypes"
-        multiple
+        [multiple]="maxAttachments !== 1"
         hidden
         (click)="onFileInputClick()"
         (change)="onFileSelected($event)"
@@ -13,11 +17,13 @@
     </label>
     <button
       type="button"
-      class="attach-btn"
+      class="attach-btn attach-icon-btn"
       *ngIf="canRecordAudio && !audioRecorder.isRecording"
+      aria-label="Record audio"
+      title="Record audio"
       (mousedown)="$event.preventDefault()"
       (click)="startRecording()">
-      Record audio
+      <i class="fa-solid fa-microphone" aria-hidden="true"></i>
     </button>
   </div>
 
@@ -29,6 +35,11 @@
 
   <ul class="attachment-list" *ngIf="attachments.length > 0">
     <li *ngFor="let attachment of attachments; let i = index">
+      <img
+        *ngIf="attachment.type === 'image' && attachment.previewUrl"
+        class="attachment-preview"
+        [src]="attachment.previewUrl"
+        alt="">
       <span>{{ attachmentLabel(attachment) }}</span>
       <button
         type="button"

@@ -56,6 +56,7 @@ public class GetFriendRequestsQueryHandler(
             {
                 UserId = otherUser.Id,
                 Username = otherUser.Username,
+                AvatarResourceId = otherUser.AvatarResourceId,
                 LastLoginAt = otherUser.LastLoginAt,
                 Direction = friendship.RequesterUserId == userId
                     ? FriendRequestDirectionDto.Outgoing

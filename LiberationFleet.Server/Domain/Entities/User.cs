@@ -26,6 +26,7 @@ public class User
     public int FailedLoginAttempts { get; set; }
     public DateTime? LastFailedLoginAt { get; set; }
     public DateTime? LastDonationCampaignPromptAt { get; set; }
+    public string? AvatarResourceId { get; set; }
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();

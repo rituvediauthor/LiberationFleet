@@ -12,6 +12,11 @@
   object-fit: contain;
 }
 
+.has-custom .logo-image {
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 .size-sm {
   width: 28px;
   height: 28px;

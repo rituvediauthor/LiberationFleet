@@ -1,0 +1,5 @@
+<span class="user-avatar" [class]="'size-' + size" [attr.aria-hidden]="!alt ? 'true' : null">
+  <img *ngIf="src && !anonymous" [src]="src" [alt]="alt" class="user-avatar-img" />
+  <span *ngIf="(!src || anonymous) && initial" class="user-avatar-initial">{{ initial }}</span>
+  <i *ngIf="(!src || anonymous) && !initial" class="fa-solid fa-user user-avatar-icon" aria-hidden="true"></i>
+</span>

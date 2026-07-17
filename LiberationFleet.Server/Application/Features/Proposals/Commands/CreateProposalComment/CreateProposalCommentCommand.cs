@@ -128,9 +128,11 @@ public class CreateProposalCommentCommandHandler(
                 CrewId = notifyCrewId,
                 Kind = NotificationKind.NewReply,
                 Title = "New reply",
-                Body = parentComment is null
-                    ? "Someone commented on your proposal."
-                    : "Someone replied to your proposal comment.",
+                Body = NotificationPreview.BodyOrFallback(
+                    request.Body,
+                    parentComment is null
+                        ? "Someone commented on your proposal."
+                        : "Someone replied to your proposal comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = proposal.Id,
                 SecondaryEntityId = comment.Id,
@@ -147,16 +149,14 @@ public class CreateProposalCommentCommandHandler(
             ResourceId = comment.Id,
             ParentResourceId = proposal.Id,
             ActionUrl = actionUrl,
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            Preview = request.Body
         }, cancellationToken);
 
         string? alias = null;
-        if (proposal.Kind == ProposalKind.General && !isFleetProposal)
-        {
-            var aliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
-            alias = aliasEntity.Nickname;
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        var aliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
+        alias = aliasEntity.Nickname;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new ProposalOperationResponse
         {

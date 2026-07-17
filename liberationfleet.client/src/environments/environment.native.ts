@@ -1,8 +1,9 @@
+/**
+ * Capacitor / native shell environment.
+ * BEFORE shipping: set apiBaseUrl to your Azure App Service (or custom domain) HTTPS origin.
+ * Example: 'https://app-lfleet-production.azurewebsites.net'
+ */
 export const environment = {
   production: true,
-  /**
-   * Required for Capacitor / native shells: absolute API origin (no trailing slash).
-   * Example: https://api.liberationfleet.com
-   */
-  apiBaseUrl: ''
+  apiBaseUrl: 'https://REPLACE_WITH_YOUR_API_ORIGIN'
 };

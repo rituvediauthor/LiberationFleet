@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -12,6 +13,44 @@ public static class ProposalVotingService
     {
         proposal.Status = ProposalStatus.Pending;
         proposal.ApprovalTimerEndsAt = utcNow.AddHours(24);
+    }
+
+    /// <summary>Record the submitter's automatic approve vote once the proposal has an Id.</summary>
+    public static async Task EnsureAuthorApproveVoteAsync(
+        IProposalRepository proposalRepository,
+        Proposal proposal,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        var existing = await proposalRepository.GetVoteAsync(proposal.Id, proposal.AuthorUserId, cancellationToken);
+        if (existing is not null)
+        {
+            return;
+        }
+
+        await proposalRepository.AddVoteAsync(new ProposalVote
+        {
+            ProposalId = proposal.Id,
+            UserId = proposal.AuthorUserId,
+            IsApprove = true,
+            VotedAt = utcNow
+        }, cancellationToken);
+        proposal.ApproveCount++;
+    }
+
+    public static async Task RecalculateAfterAuthorVoteAsync(
+        Proposal proposal,
+        IProposalRepository proposalRepository,
+        IFleetRepository fleetRepository,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        var eligibleCount = await ProposalEligibility.GetEligibleVoterCountAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            cancellationToken);
+        RecalculateStatus(proposal, eligibleCount, utcNow);
     }
 
     public static void ApplyDisapproveTimerExtension(Proposal proposal, DateTime utcNow)

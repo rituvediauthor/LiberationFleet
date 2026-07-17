@@ -17,6 +17,7 @@ export interface FleetStatus {
   joinCode?: string;
   libraryOfThingsEnabled?: boolean;
   needsRuleAcceptance?: boolean;
+  imageResourceId?: string | null;
 }
 
 export interface FleetLibraryStatus {
@@ -43,6 +44,7 @@ export interface Fleet {
   minimumContributionForAttachments?: number;
   minimumCrewmateTenureDaysForProposals?: number;
   minimumContributionForProposals?: number;
+  imageResourceId?: string | null;
 }
 
 export interface CreateFleetRequest {
@@ -92,6 +94,7 @@ export interface UpdateFleetRequest {
   minimumContributionForAttachments: number;
   minimumCrewmateTenureDaysForProposals: number;
   minimumContributionForProposals: number;
+  imageResourceId?: string | null;
 }
 
 export interface PublicFleetRule {

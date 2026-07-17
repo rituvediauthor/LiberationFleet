@@ -4,6 +4,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../../components/page-layout/page-layout.component';
 import { LibraryImageCarouselComponent } from '../../../../components/library-image-carousel/library-image-carousel.component';
 import { FleetService } from '../../../../services/fleet.service';
+import { CrewService } from '../../../../services/crew.service';
+import { LibraryCryptoService } from '../../../../services/crypto/library-crypto.service';
+import { EncryptionContentService } from '../../../../services/encryption-content.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { LibraryUnitDetail } from '../../../../models/library.model';
 import { NavigationService } from '../../../../services/navigation.service';
@@ -22,11 +25,15 @@ export class FleetLibraryDetailComponent implements OnInit {
   loading = true;
   errorMessage = '';
   unitId = 0;
+  private crewId = 0;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private navigation = inject(NavigationService);
   private fleetService = inject(FleetService);
+  private crewService = inject(CrewService);
+  private libraryCrypto = inject(LibraryCryptoService);
+  private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -40,17 +47,12 @@ export class FleetLibraryDetailComponent implements OnInit {
       return;
     }
 
-    this.fleetService.getLibraryUnit(this.unitId).subscribe({
-      next: item => {
-        this.detail = item;
-        this.loading = false;
-        this.updateRequestButton();
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+        this.loadDetail();
       },
-      error: err => {
-        this.loading = false;
-        this.errorMessage = err?.message ?? 'Failed to load item.';
-        this.toastService.error(this.errorMessage);
-      }
+      error: () => this.loadDetail()
     });
   }
 
@@ -77,8 +79,40 @@ export class FleetLibraryDetailComponent implements OnInit {
     });
   }
 
+  private loadDetail() {
+    this.fleetService.getLibraryUnit(this.unitId).subscribe({
+      next: item => {
+        void this.applyDetail(item);
+      },
+      error: err => {
+        this.loading = false;
+        this.errorMessage = err?.message ?? 'Failed to load item.';
+        this.toastService.error(this.errorMessage);
+      }
+    });
+  }
+
+  private async applyDetail(item: LibraryUnitDetail) {
+    this.detail = item;
+    this.loading = false;
+    this.updateRequestButton();
+
+    try {
+      await this.encryptionContent.whenReady();
+      const decryptCrewId = item.crewId && item.crewId > 0 ? item.crewId : this.crewId;
+      if (decryptCrewId <= 0 || (item.crewId && item.crewId !== this.crewId && this.crewId > 0)) {
+        // Cross-crew fleet offerings cannot be decrypted with the viewer's crew key.
+        return;
+      }
+      this.detail = await this.libraryCrypto.enrichUnitDetail(item, this.crewId || decryptCrewId);
+      this.updateRequestButton();
+    } catch {
+      // Keep plaintext detail if enrichment fails.
+    }
+  }
+
   private updateRequestButton() {
-    if (!this.detail?.viewer.canRequest) {
+    if (!this.detail?.viewer?.canRequest) {
       this.requestButton = null;
       return;
     }

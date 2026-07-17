@@ -26,6 +26,7 @@ public class UpsertEncryptedContentCommandHandler(
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
+    IMediaDeepFreezeService deepFreezeService,
     ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertEncryptedContentCommand, CryptoOperationResponse>
 {
@@ -34,7 +35,8 @@ public class UpsertEncryptedContentCommandHandler(
         EncryptedContentType.GiftLogEntry,
         EncryptedContentType.ImageAsset,
         EncryptedContentType.VideoAsset,
-        EncryptedContentType.AudioAsset
+        EncryptedContentType.AudioAsset,
+        EncryptedContentType.ProfileAvatar
     ];
 
     private static readonly HashSet<EncryptedContentType> AttachmentTypes =
@@ -50,6 +52,7 @@ public class UpsertEncryptedContentCommandHandler(
     /// </summary>
     private const int MaxMediaCiphertextChars = 20 * 1024 * 1024;
     private const int MaxGiftLogCiphertextChars = 512 * 1024;
+    private const int MaxProfileAvatarCiphertextChars = 5 * 1024 * 1024;
 
     public async Task<CryptoOperationResponse> Handle(UpsertEncryptedContentCommand request, CancellationToken cancellationToken)
     {
@@ -78,11 +81,25 @@ public class UpsertEncryptedContentCommandHandler(
             return new CryptoOperationResponse { Success = false, Message = "Encrypted gift log entry is too large." };
         }
 
+        if (domainType == EncryptedContentType.ProfileAvatar && ciphertextLength > MaxProfileAvatarCiphertextChars)
+        {
+            return new CryptoOperationResponse { Success = false, Message = "Encrypted profile picture is too large." };
+        }
+
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
         if (hasCrewScope == hasFleetScope)
         {
             return new CryptoOperationResponse { Success = false, Message = "Exactly one of crew or fleet scope is required." };
+        }
+
+        if (domainType == EncryptedContentType.ProfileAvatar && !hasCrewScope)
+        {
+            return new CryptoOperationResponse
+            {
+                Success = false,
+                Message = "Profile pictures require crew membership. Join a crew to upload an avatar."
+            };
         }
 
         var userId = currentUser.UserId.Value;
@@ -130,6 +147,8 @@ public class UpsertEncryptedContentCommandHandler(
             {
                 return new CryptoOperationResponse { Success = false, Message = "Only the author can update this encrypted content." };
             }
+
+            await deepFreezeService.DeleteColdBlobIfPresentAsync(existing, cancellationToken);
         }
 
         if (hasCrewScope && AttachmentTypes.Contains(domainType))
@@ -165,6 +184,40 @@ public class UpsertEncryptedContentCommandHandler(
             }
         }
 
+        if (hasFleetScope && AttachmentTypes.Contains(domainType))
+        {
+            var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+            var fleet = await fleetRepository.GetByIdAsync(request.FleetId!.Value, cancellationToken);
+            if (membership is null || fleet is null
+                || !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId.Value, cancellationToken))
+            {
+                return new CryptoOperationResponse { Success = false, Message = "You are not allowed to attach files in this fleet." };
+            }
+
+            var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+                userId,
+                membership.CrewId,
+                membership.Crew?.CurrentSeasonStartDate,
+                cancellationToken);
+            var fleetTenureDays = await contentTenureService.GetFleetTenureDaysAsync(
+                userId,
+                request.FleetId.Value,
+                cancellationToken);
+
+            if (!FleetContentPermissionService.CanAttachFilesToFleetContent(
+                    fleet,
+                    membership,
+                    giftStats.LifetimeContributions,
+                    fleetTenureDays))
+            {
+                return new CryptoOperationResponse
+                {
+                    Success = false,
+                    Message = "You are not allowed to attach files in this fleet."
+                };
+            }
+        }
+
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = domainType,
@@ -175,6 +228,8 @@ public class UpsertEncryptedContentCommandHandler(
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
             Ciphertext = request.Ciphertext.Trim(),
+            CiphertextCharLength = request.Ciphertext.Trim().Length,
+            StorageTier = EncryptedContentStorageTier.Hot,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         }, cancellationToken);

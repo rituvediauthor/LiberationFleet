@@ -78,6 +78,9 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
 
         user.Username = request.Username.Trim();
         user.Email = request.Email.Trim();
+        user.AvatarResourceId = string.IsNullOrWhiteSpace(request.AvatarResourceId)
+            ? null
+            : request.AvatarResourceId.Trim();
         user.InNeedOfAid = request.InNeedOfAid;
         user.EmergencyLevel = request.EmergencyLevel;
         user.PeopleRepresentedCount = request.PeopleRepresentedCount;

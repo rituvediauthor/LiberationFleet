@@ -54,6 +54,8 @@ public class EncryptedContentEnvelopeDto
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public DateTime UpdatedAt { get; set; }
+    /// <summary>hot | deepFreeze — ciphertext is hydrated for deepFreeze on read.</summary>
+    public string StorageTier { get; set; } = "hot";
 }
 
 public enum EncryptedContentTypeDto
@@ -72,7 +74,8 @@ public enum EncryptedContentTypeDto
     ForumComment = 12,
     ChatRoomName = 14,
     LibraryRequest = 15,
-    LibraryRequestMessage = 16
+    LibraryRequestMessage = 16,
+    ProfileAvatar = 19
 }
 
 public class CryptoOperationResponse

@@ -1,8 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
-using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
-using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Proposals.Commands.RerollProposalAlias;
@@ -12,6 +10,7 @@ public record RerollProposalAliasCommand(int ProposalId) : IRequest<ProposalOper
 public class RerollProposalAliasCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ProposalAnonymousAliasService aliasService,
     IUnitOfWork unitOfWork) : IRequestHandler<RerollProposalAliasCommand, ProposalOperationResponse>
@@ -32,23 +31,29 @@ public class RerollProposalAliasCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Proposal not found." };
         }
 
-        if (proposal.Kind != ProposalKind.General)
+        var (allowed, accessError) = await ProposalEligibility.CanUserAccessProposalAsync(
+            userId,
+            proposal,
+            membershipRepository,
+            fleetRepository,
+            cancellationToken);
+        if (!allowed)
         {
-            return new ProposalOperationResponse { Success = false, Message = "Nicknames are only used on general proposals." };
+            return new ProposalOperationResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
-        {
-            return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
-        }
-
-        var alias = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
+        await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var rerolled = await aliasService.RerollAsync(proposal.Id, userId, cancellationToken);
+        var (rerolled, error) = await aliasService.TryRerollAsync(proposal.Id, userId, cancellationToken);
         if (rerolled is null)
         {
-            return new ProposalOperationResponse { Success = false, Message = "Could not reroll nickname." };
+            return new ProposalOperationResponse
+            {
+                Success = false,
+                Message = error ?? "Could not regenerate alias.",
+                AliasRerollsRemaining = 0
+            };
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -56,8 +61,9 @@ public class RerollProposalAliasCommandHandler(
         return new ProposalOperationResponse
         {
             Success = true,
-            Message = "Nickname updated.",
-            Alias = rerolled.Nickname
+            Message = "Alias updated.",
+            Alias = rerolled.Nickname,
+            AliasRerollsRemaining = rerolled.RerollsRemaining
         };
     }
 }

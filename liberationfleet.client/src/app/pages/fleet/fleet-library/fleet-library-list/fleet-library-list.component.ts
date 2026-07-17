@@ -7,7 +7,10 @@ import { PageLayoutComponent, ActionBarButton } from '../../../../components/pag
 import { LibraryItemCardComponent } from '../../../../components/library-item-card/library-item-card.component';
 import { LibraryCategoryPickerComponent } from '../../../../components/library-category-picker/library-category-picker.component';
 import { LibraryService } from '../../../../services/library.service';
+import { LibraryCryptoService } from '../../../../services/crypto/library-crypto.service';
 import { FleetService } from '../../../../services/fleet.service';
+import { CrewService } from '../../../../services/crew.service';
+import { EncryptionContentService } from '../../../../services/encryption-content.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { LibraryCategory, LibraryOfferingKind, LibraryUnitListItem } from '../../../../models/library.model';
 import { NavigationService } from '../../../../services/navigation.service';
@@ -35,6 +38,7 @@ export class FleetLibraryListComponent implements OnInit, AfterViewInit, OnDestr
   pageTitle = 'Offerings';
   kind: LibraryOfferingKind = 'Durable';
   holderLabel = 'Holder';
+  private crewId = 0;
 
   private readonly pageSize = 30;
   private navigation = inject(NavigationService);
@@ -42,6 +46,9 @@ export class FleetLibraryListComponent implements OnInit, AfterViewInit, OnDestr
   private route = inject(ActivatedRoute);
   private fleetService = inject(FleetService);
   private libraryService = inject(LibraryService);
+  private libraryCrypto = inject(LibraryCryptoService);
+  private crewService = inject(CrewService);
+  private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
   private searchChanges$ = new Subject<string>();
   private destroy$ = new Subject<void>();
@@ -57,7 +64,15 @@ export class FleetLibraryListComponent implements OnInit, AfterViewInit, OnDestr
     this.kind = (data['kind'] as LibraryOfferingKind) ?? this.kind;
     this.holderLabel = this.kind === 'Service' ? 'Offered by' : this.kind === 'Consumable' ? 'From' : 'Holder';
 
-    this.loadItems(true);
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+        this.loadItems(true);
+      },
+      error: () => {
+        this.loadItems(true);
+      }
+    });
 
     this.libraryService.getCategories({ inUseOnly: true, kind: this.kind }).subscribe({
       next: categories => {
@@ -147,11 +162,7 @@ export class FleetLibraryListComponent implements OnInit, AfterViewInit, OnDestr
 
     loader.subscribe({
       next: page => {
-        this.items = reset ? page.items : [...this.items, ...page.items];
-        this.hasMore = page.hasMore;
-        this.loading = false;
-        this.loadingMore = false;
-        setTimeout(() => this.setupLoadMoreObserver(), 0);
+        void this.applyPage(page, reset);
       },
       error: err => {
         this.loading = false;
@@ -160,6 +171,36 @@ export class FleetLibraryListComponent implements OnInit, AfterViewInit, OnDestr
         this.toastService.error(this.errorMessage);
       }
     });
+  }
+
+  private async applyPage(page: { items: LibraryUnitListItem[]; hasMore: boolean }, reset: boolean) {
+    const merged = reset ? page.items : [...this.items, ...page.items];
+    this.hasMore = page.hasMore;
+    this.items = merged;
+    this.loading = false;
+    this.loadingMore = false;
+    setTimeout(() => this.setupLoadMoreObserver(), 0);
+
+    try {
+      await this.encryptionContent.whenReady();
+      if (this.crewId <= 0) {
+        return;
+      }
+
+      // Only decrypt offerings for the viewer's crew; other crews' keys are not available.
+      const ownCrewItems = page.items.filter(
+        item => !item.crewId || item.crewId === this.crewId
+      );
+      if (ownCrewItems.length === 0) {
+        return;
+      }
+
+      const enriched = await this.libraryCrypto.enrichUnitListItems(ownCrewItems, this.crewId);
+      const enrichedByUnitId = new Map(enriched.map(item => [item.unitId, item]));
+      this.items = this.items.map(item => enrichedByUnitId.get(item.unitId) ?? item);
+    } catch {
+      // Keep plaintext list if enrichment fails.
+    }
   }
 
   private loadMore() {

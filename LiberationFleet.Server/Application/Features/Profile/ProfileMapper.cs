@@ -25,6 +25,7 @@ public static class ProfileMapper
             Id = user.Id,
             Username = user.Username,
             Email = user.Email,
+            AvatarResourceId = user.AvatarResourceId,
             PaymentPlatforms = user.PaymentPlatforms
                 .OrderBy(p => p.Id)
                 .Select(p => new PaymentPlatformAccountDto
@@ -45,6 +46,7 @@ public static class ProfileMapper
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             Stats = BuildStats(
                 giftStats,
+                membership,
                 isFinancialMember,
                 priorityScore,
                 percentBoost,
@@ -57,6 +59,7 @@ public static class ProfileMapper
 
     private static UserProfileStatsDto BuildStats(
         CrewmateGiftStatsDto giftStats,
+        CrewMembership? membership,
         bool isFinancialMember,
         decimal priorityScore,
         int percentBoost,
@@ -67,7 +70,10 @@ public static class ProfileMapper
     {
         return new UserProfileStatsDto
         {
-            SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
+            // Prefer the membership counter: it increments only on emergency responses
+            // (recorded gift, already-logged, or cycle split), not every gift given.
+            SacrificeCountLastSeason = membership?.EmergencySacrificesThisSeason
+                ?? giftStats.SacrificeCountLastSeason,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = giftStats.LifetimeContributions,

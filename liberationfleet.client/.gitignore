@@ -40,3 +40,17 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Capacitor / native local artifacts (commit android/ and ios/ project folders)
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+android/.idea/
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/App/public/
+*.keystore
+*.jks
+!debug.keystore

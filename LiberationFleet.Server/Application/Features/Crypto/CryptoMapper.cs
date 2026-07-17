@@ -52,7 +52,8 @@ public static class CryptoMapper
         KeyVersion = envelope.KeyVersion,
         Nonce = envelope.Nonce,
         Ciphertext = envelope.Ciphertext,
-        UpdatedAt = envelope.UpdatedAt
+        UpdatedAt = envelope.UpdatedAt,
+        StorageTier = envelope.StorageTier == EncryptedContentStorageTier.DeepFreeze ? "deepFreeze" : "hot"
     };
 
     public static EncryptedPayloadDto MapPayload(EncryptedContentEnvelope envelope) => new()
@@ -79,6 +80,7 @@ public static class CryptoMapper
         EncryptedContentTypeDto.ChatRoomName => EncryptedContentType.ChatRoomName,
         EncryptedContentTypeDto.LibraryRequest => EncryptedContentType.LibraryRequest,
         EncryptedContentTypeDto.LibraryRequestMessage => EncryptedContentType.LibraryRequestMessage,
+        EncryptedContentTypeDto.ProfileAvatar => EncryptedContentType.ProfileAvatar,
         _ => EncryptedContentType.GiftLogEntry
     };
 
@@ -99,6 +101,7 @@ public static class CryptoMapper
         EncryptedContentType.ChatRoomName => EncryptedContentTypeDto.ChatRoomName,
         EncryptedContentType.LibraryRequest => EncryptedContentTypeDto.LibraryRequest,
         EncryptedContentType.LibraryRequestMessage => EncryptedContentTypeDto.LibraryRequestMessage,
+        EncryptedContentType.ProfileAvatar => EncryptedContentTypeDto.ProfileAvatar,
         _ => EncryptedContentTypeDto.GiftLogEntry
     };
 }

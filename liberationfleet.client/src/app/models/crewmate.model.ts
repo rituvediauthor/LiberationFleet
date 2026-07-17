@@ -9,6 +9,7 @@ export interface CrewmatePlatformDisplay {
 export interface CrewmateListItem {
   userId: number;
   username: string;
+  avatarResourceId?: string | null;
   lastLoginAt: string | null;
   isSelf: boolean;
   isPlaceholderMember: boolean;
@@ -56,6 +57,7 @@ export interface CrewRoleChangeResponse {
 export interface CrewmateProfile {
   userId: number;
   username: string;
+  avatarResourceId?: string | null;
   roles: string[];
   electedRoles: CrewmateElectedRole[];
   paymentPlatforms: CrewmatePaymentPlatform[];

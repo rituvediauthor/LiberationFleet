@@ -71,7 +71,8 @@ public class CrewsController : ControllerBase
             body.MinimumContributionForAttachments,
             body.MinimumCrewmateTenureDaysForProposals,
             body.MinimumContributionForProposals,
-            body.AllowCrossCrewGiving));
+            body.AllowCrossCrewGiving,
+            body.ImageResourceId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

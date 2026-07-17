@@ -11,13 +11,15 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 
 public class CrewmateKickProposalService(
     IProposalRepository proposalRepository,
+    IFleetRepository fleetRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     IMutualAidService mutualAidService,
     NotificationService notificationService,
     LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService,
-    ContentTenureService contentTenureService)
+    ContentTenureService contentTenureService,
+    IUnitOfWork unitOfWork)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
         int crewId,
@@ -151,6 +153,25 @@ public class CrewmateKickProposalService(
             Title = title,
             Description = description
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyCrewAsync(
             crewId,

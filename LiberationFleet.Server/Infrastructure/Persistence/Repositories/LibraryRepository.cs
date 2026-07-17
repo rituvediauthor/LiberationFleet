@@ -250,6 +250,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         int crewId,
         int creatorUserId,
         string? search,
+        IReadOnlyCollection<int> categoryIds,
         int limit,
         int offset,
         CancellationToken cancellationToken = default)
@@ -268,6 +269,11 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             query = query.Where(o =>
                 o.TitleNormalized.Contains(normalized)
                 || o.Categories.Any(c => c.Category.Name.ToLower().Contains(normalized)));
+        }
+
+        if (categoryIds.Count > 0)
+        {
+            query = query.Where(o => o.Categories.Any(c => categoryIds.Contains(c.CategoryId)));
         }
 
         var ordered = query

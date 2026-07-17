@@ -14,6 +14,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-create-proposal',
@@ -137,7 +138,9 @@ export class CreateProposalComponent implements OnInit {
       ).then(encrypted => {
         this.proposalService.createFleetProposal({
           ...encrypted,
-          mentionedUserIds: this.mentionedUserIds
+          mentionedUserIds: this.mentionedUserIds,
+          title: title.trim(),
+          description: truncateNotificationPreview(description.trim())
         }).subscribe({
           next: result => this.handleCreateResult(result),
           error: err => this.handleCreateError(err)
@@ -167,7 +170,9 @@ export class CreateProposalComponent implements OnInit {
     ).then(encrypted => {
       this.proposalService.createProposal({
         ...encrypted,
-        mentionedUserIds: this.mentionedUserIds
+        mentionedUserIds: this.mentionedUserIds,
+        title: title.trim(),
+        description: truncateNotificationPreview(description.trim())
       }).subscribe({
         next: result => this.handleCreateResult(result),
         error: err => this.handleCreateError(err)

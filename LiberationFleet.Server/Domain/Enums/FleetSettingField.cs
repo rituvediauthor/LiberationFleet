@@ -13,5 +13,6 @@ public enum FleetSettingField
     MinimumCrewmateTenureDaysForAttachments = 8,
     MinimumContributionForAttachments = 9,
     MinimumCrewmateTenureDaysForProposals = 10,
-    MinimumContributionForProposals = 11
+    MinimumContributionForProposals = 11,
+    ImageResourceId = 12
 }

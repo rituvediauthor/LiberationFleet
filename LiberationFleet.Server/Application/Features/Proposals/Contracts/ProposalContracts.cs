@@ -7,6 +7,7 @@ public class ProposalListItemDto
     public int Id { get; set; }
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
+    public string? AuthorAvatarResourceId { get; set; }
     public DateTime LastActivityAt { get; set; }
     public string Status { get; set; } = string.Empty;
     public int ApproveCount { get; set; }
@@ -18,6 +19,10 @@ public class ProposalListItemDto
     public string? DescriptionPreview { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
     public string? CurrentUserVote { get; set; }
+    /// <summary>Crew/fleet setting field name when this is a setting-change proposal (e.g. ImageResourceId).</summary>
+    public string? SettingField { get; set; }
+    /// <summary>Proposed new setting value (e.g. image resource id).</summary>
+    public string? SettingNewValue { get; set; }
 }
 
 public class ProposalDetailDto : ProposalListItemDto
@@ -28,6 +33,7 @@ public class ProposalDetailDto : ProposalListItemDto
     public bool CanDelete { get; set; }
     public bool UsesAnonymousComments { get; set; }
     public string? ViewerAlias { get; set; }
+    public int AliasRerollsRemaining { get; set; }
     public bool CanKickAuthor { get; set; }
     public bool CanVote { get; set; } = true;
     public bool IsKickVoteTarget { get; set; }
@@ -39,6 +45,7 @@ public class ProposalCommentDto
     public int Id { get; set; }
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
+    public string? AuthorAvatarResourceId { get; set; }
     public int? ParentCommentId { get; set; }
     public int? ReplyToCommentId { get; set; }
     public string? ReplyToUsername { get; set; }
@@ -72,6 +79,7 @@ public class ProposalOperationResponse
     public int? ProposalId { get; set; }
     public int? CommentId { get; set; }
     public string? Alias { get; set; }
+    public int? AliasRerollsRemaining { get; set; }
     public ProposalDetailDto? Proposal { get; set; }
 }
 

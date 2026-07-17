@@ -10,7 +10,8 @@ namespace LiberationFleet.Server.Application.Features.Fleets;
 public class FleetSettingsProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
-    NotificationService notificationService)
+    NotificationService notificationService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<int> CreateProposalsAsync(
         Fleet fleet,
@@ -20,6 +21,7 @@ public class FleetSettingsProposalService(
     {
         var utcNow = DateTime.UtcNow;
         var created = 0;
+        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
 
         foreach (var change in changes)
         {
@@ -34,14 +36,47 @@ public class FleetSettingsProposalService(
 
             ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
             await proposalRepository.AddProposalAsync(proposal, cancellationToken);
+            var description = FleetSettingsChangeDescriber.BuildDescription(change);
             await proposalRepository.AddFleetSettingChangeAsync(new ProposalFleetSettingChange
             {
                 Proposal = proposal,
                 Field = change.Field,
                 NewValue = change.NewValue,
                 Title = FleetSettingsChangeDescriber.DefaultTitle,
-                Description = FleetSettingsChangeDescriber.BuildDescription(change)
+                Description = description
             }, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+                proposalRepository,
+                proposal,
+                utcNow,
+                cancellationToken);
+            var statusBefore = proposal.Status;
+            await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+                proposal,
+                proposalRepository,
+                fleetRepository,
+                utcNow,
+                cancellationToken);
+            if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+            {
+                await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+            }
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            foreach (var fleetCrew in fleetCrews)
+            {
+                await notificationService.NotifyCrewAsync(
+                    fleetCrew.CrewId,
+                    NotificationKind.NewFleetProposal,
+                    "New fleet proposal",
+                    NotificationPreview.BodyOrFallback(description, "A fleet setting change was proposed."),
+                    $"/app/fleet/proposals/{proposal.Id}",
+                    relatedEntityId: proposal.Id,
+                    excludeUserId: authorUserId,
+                    cancellationToken: cancellationToken);
+            }
             created++;
         }
 
@@ -70,14 +105,16 @@ public class FleetSettingsProposalService(
         ApplyChange(fleet, change);
         change.IsApplied = true;
 
-        await NotifyFleetSettingChangedAsync(fleet.Id, proposal.AuthorUserId, cancellationToken);
+        await NotifyFleetSettingChangedAsync(fleet.Id, proposal.AuthorUserId, cancellationToken, change.Description);
     }
 
     public async Task NotifyFleetSettingChangedAsync(
         int fleetId,
         int? excludeUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? preview = null)
     {
+        var body = NotificationPreview.BodyOrFallback(preview, "Fleet settings were updated.");
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
         foreach (var fleetCrew in fleetCrews)
         {
@@ -85,7 +122,7 @@ public class FleetSettingsProposalService(
                 fleetCrew.CrewId,
                 NotificationKind.FleetSettingChanged,
                 "Fleet setting changed",
-                "Fleet settings were updated.",
+                body,
                 "/app/fleet/edit",
                 excludeUserId: excludeUserId,
                 cancellationToken: cancellationToken);
@@ -110,6 +147,9 @@ public class FleetSettingsProposalService(
         fleet.MinimumContributionForAttachments = request.MinimumContributionForAttachments;
         fleet.MinimumCrewmateTenureDaysForProposals = request.MinimumCrewmateTenureDaysForProposals;
         fleet.MinimumContributionForProposals = request.MinimumContributionForProposals;
+        fleet.ImageResourceId = string.IsNullOrWhiteSpace(request.ImageResourceId)
+            ? null
+            : request.ImageResourceId.Trim();
     }
 
     private static void ApplyChange(Fleet fleet, ProposalFleetSettingChange change)
@@ -157,6 +197,9 @@ public class FleetSettingsProposalService(
                 break;
             case FleetSettingField.MinimumContributionForProposals:
                 fleet.MinimumContributionForProposals = decimal.Parse(change.NewValue);
+                break;
+            case FleetSettingField.ImageResourceId:
+                fleet.ImageResourceId = string.IsNullOrEmpty(change.NewValue) ? null : change.NewValue;
                 break;
         }
     }

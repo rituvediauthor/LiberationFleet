@@ -102,4 +102,31 @@ public class ContentReportRepository(ApplicationDbContext context) : IContentRep
                 break;
         }
     }
+
+    public async Task<int> PurgeExpiredNonCsamEvidenceAsync(int retentionDays, CancellationToken cancellationToken = default)
+    {
+        retentionDays = Math.Clamp(retentionDays, 1, 3650);
+        var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
+
+        var expired = await context.ContentReports
+            .Where(r => r.CreatedAt < cutoff
+                && r.Reason != ContentReportReason.ChildSexualExploitation
+                && r.Status != ContentReportStatus.QueuedForNcmec
+                && r.EscalatedToNcmecAt == null
+                && r.EvidenceCiphertext != string.Empty)
+            .ToListAsync(cancellationToken);
+
+        foreach (var report in expired)
+        {
+            report.EvidenceCiphertext = string.Empty;
+            report.EvidenceNonce = string.Empty;
+            if (report.Status is ContentReportStatus.Received or ContentReportStatus.Actioned or ContentReportStatus.EscalatedToVendor)
+            {
+                report.Status = ContentReportStatus.Closed;
+                report.ClosedAt ??= DateTime.UtcNow;
+            }
+        }
+
+        return expired.Count;
+    }
 }

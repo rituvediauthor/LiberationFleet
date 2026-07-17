@@ -1,4 +1,9 @@
-<span class="brand-logo" [class.size-sm]="size === 'sm'" [class.size-md]="size === 'md'" [class.size-lg]="size === 'lg'">
+<span
+  class="brand-logo"
+  [class.size-sm]="size === 'sm'"
+  [class.size-md]="size === 'md'"
+  [class.size-lg]="size === 'lg'"
+  [class.has-custom]="!!customSrc">
   <img
     class="logo-image"
     [src]="resolveSrc(themeService.theme$ | async)"

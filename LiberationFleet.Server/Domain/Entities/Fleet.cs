@@ -20,6 +20,7 @@ public class Fleet
     public decimal MinimumContributionForAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
+    public string? ImageResourceId { get; set; }
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<FleetCrew> Crews { get; set; } = new List<FleetCrew>();

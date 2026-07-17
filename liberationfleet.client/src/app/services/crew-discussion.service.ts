@@ -66,7 +66,8 @@ export class CrewDiscussionService {
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,
       isAdultContent: payload.isAdultContent ?? false,
-      mentionedUserIds: payload.mentionedUserIds ?? []
+      mentionedUserIds: payload.mentionedUserIds ?? [],
+      notificationPreview: payload.notificationPreview ?? payload.description ?? null
     });
   }
 
@@ -97,7 +98,8 @@ export class CrewDiscussionService {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,
-      mentionedUserIds: payload.mentionedUserIds ?? []
+      mentionedUserIds: payload.mentionedUserIds ?? [],
+      notificationPreview: payload.notificationPreview ?? payload.body ?? null
     });
   }
 

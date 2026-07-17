@@ -25,7 +25,8 @@ public class GetProposalCommentRepliesQueryHandler(
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     ProposalAnonymousAliasService aliasService,
-    IUserBlockRepository blockRepository) : IRequestHandler<GetProposalCommentRepliesQuery, ProposalCommentRepliesResponse>
+    IUserBlockRepository blockRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<GetProposalCommentRepliesQuery, ProposalCommentRepliesResponse>
 {
     public async Task<ProposalCommentRepliesResponse> Handle(
         GetProposalCommentRepliesQuery request,
@@ -72,7 +73,7 @@ public class GetProposalCommentRepliesQueryHandler(
             .OrderBy(c => c.CreatedAt)
             .ToList();
 
-        var usesAnonymousComments = proposal.Kind == ProposalKind.General && !proposal.FleetId.HasValue;
+        var usesAnonymousComments = true;
         IReadOnlyDictionary<string, EncryptedContentEnvelope> envelopeById =
             new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
 
@@ -102,10 +103,23 @@ public class GetProposalCommentRepliesQueryHandler(
             .Concat(replies
                 .Where(r => r.ReplyToCommentId.HasValue && commentById.ContainsKey(r.ReplyToCommentId.Value))
                 .Select(r => commentById[r.ReplyToCommentId!.Value].AuthorUserId))
-            .Distinct();
-        var nicknameByUserId = usesAnonymousComments
-            ? await aliasService.GetNicknameMapAsync(proposal.Id, nicknameUserIds, cancellationToken)
-            : new Dictionary<int, string>();
+            .Distinct()
+            .ToList();
+        var nicknameByUserId = await aliasService.GetNicknameMapAsync(proposal.Id, nicknameUserIds, cancellationToken);
+
+        foreach (var authorId in nicknameUserIds.Where(id => !nicknameByUserId.ContainsKey(id)))
+        {
+            var created = await aliasService.GetOrCreateAsync(proposal.Id, authorId, cancellationToken);
+            nicknameByUserId = new Dictionary<int, string>(nicknameByUserId)
+            {
+                [created.UserId] = created.Nickname
+            };
+        }
+
+        if (nicknameUserIds.Count > 0)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         var items = replies.Select(reply =>
         {

@@ -11,11 +11,13 @@ import { NotificationService } from '../../services/notification.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { FriendListItem } from '../../models/friend.model';
 import { formatLastActive } from '../../models/crewmate.model';
+import { CrewService } from '../../services/crew.service';
+import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-friends',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent],
   templateUrl: './friends.component.html',
   styleUrl: './friends.component.css'
 })
@@ -28,11 +30,13 @@ export class FriendsComponent implements OnInit, OnDestroy {
   actionLoading = false;
   showBlockDialog = false;
   blockTarget: FriendListItem | null = null;
+  crewId = 0;
   activityTick = 0;
 
   private router = inject(Router);
   private friendService = inject(FriendService);
   private crewmateService = inject(CrewmateService);
+  private crewService = inject(CrewService);
   private notificationService = inject(NotificationService);
   private toastService = inject(ToastService);
   private searchChanged$ = new Subject<string>();
@@ -47,6 +51,12 @@ export class FriendsComponent implements OnInit, OnDestroy {
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;
     }, 60000);
+
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+      }
+    });
 
     this.loadFriends();
   }

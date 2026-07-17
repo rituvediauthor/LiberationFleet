@@ -18,6 +18,8 @@ export class BrandLogoComponent {
   /** When true, image is treated as decorative (empty alt) even if beside labeled text/button. */
   @Input() decorative = false;
   @Input() monochrome = false;
+  /** Optional decrypted custom image (crew/fleet image). Falls back to brand assets when empty. */
+  @Input() customSrc: string | null = null;
 
   readonly themeService = inject(ThemeService);
 
@@ -30,6 +32,9 @@ export class BrandLogoComponent {
   }
 
   resolveSrc(theme: AppThemeId | null | undefined): string {
+    if (this.customSrc) {
+      return this.customSrc;
+    }
     if (this.monochrome) {
       return this.greySrc;
     }

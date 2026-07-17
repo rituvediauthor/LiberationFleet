@@ -87,7 +87,7 @@ public class RecordFleetGiftsCommandHandler(
                 return new GiftOperationResponse
                 {
                     Success = false,
-                    Message = "Your crew does not allow cross-crew giving."
+                    Message = "Your crew does not allow giving aid to other crews in the fleet."
                 };
             }
 

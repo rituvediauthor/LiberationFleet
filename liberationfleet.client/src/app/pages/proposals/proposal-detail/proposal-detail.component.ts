@@ -31,6 +31,9 @@ import { MentionTextComponent } from '../../../components/mention-text/mention-t
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
 import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -46,7 +49,8 @@ import { AccessibleDialogDirective } from '../../../directives/accessible-dialog
     MentionAutocompleteDirective,
     MentionTextComponent,
     ReportContentDialogComponent,
-    AccessibleDialogDirective
+    AccessibleDialogDirective,
+    UserAvatarComponent
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
@@ -69,6 +73,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   selectedVote: ProposalVoteChoice | '' = '';
   attachmentsExpanded = true;
   posting = false;
+  rerollingAlias = false;
   savingEdit = false;
   editing = false;
   editTitle = '';
@@ -93,6 +98,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   reportEvidenceAuthorUsername = '';
   reportMediaIds: string[] = [];
   currentUserId: number | null = null;
+  proposedImageSrc: string | null = null;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -106,9 +112,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
+  private images = inject(EncryptedImageCacheService);
   private countdownIntervalId?: ReturnType<typeof setInterval>;
   private encryptionReload?: EncryptionReloadHandle;
-  private isFleetScope = false;
+  isFleetScope = false;
 
   ngOnInit() {
     this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
@@ -237,26 +244,35 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   rerollNickname(event: Event) {
     event.stopPropagation();
     this.openCommentMenuId = null;
-    if (!this.proposal) {
+    if (!this.proposal || this.rerollingAlias || (this.proposal.aliasRerollsRemaining ?? 0) <= 0) {
       return;
     }
 
+    this.rerollingAlias = true;
     this.proposalService.rerollAlias(this.proposal.id).subscribe({
       next: result => {
+        this.rerollingAlias = false;
         if (!result.success) {
-          this.toastService.error(result.message || 'Failed to reroll nickname');
+          this.toastService.error(result.message || 'Failed to regenerate alias');
+          if (typeof result.aliasRerollsRemaining === 'number' && this.proposal) {
+            this.proposal = { ...this.proposal, aliasRerollsRemaining: result.aliasRerollsRemaining };
+          }
           return;
         }
-        this.toastService.success(`Your nickname is now ${result.alias ?? 'updated'}`);
+        this.toastService.success(`Your alias is now ${result.alias ?? 'updated'}`);
         if (this.proposal && result.alias) {
           this.proposal = {
             ...this.proposal,
             viewerAlias: result.alias,
+            aliasRerollsRemaining: result.aliasRerollsRemaining ?? Math.max(0, (this.proposal.aliasRerollsRemaining ?? 1) - 1),
             comments: this.proposal.comments.map(comment => this.applyAliasToOwnComment(comment, result.alias!))
           };
         }
       },
-      error: () => this.toastService.error('Failed to reroll nickname')
+      error: () => {
+        this.rerollingAlias = false;
+        this.toastService.error('Failed to regenerate alias');
+      }
     });
   }
 
@@ -543,9 +559,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         cryptoScope,
         {
           body,
-          authorDisplayName: this.proposal.usesAnonymousComments
-            ? (this.proposal.viewerAlias ?? 'Anonymous')
-            : this.authorDisplayName
+          authorDisplayName: this.proposal.viewerAlias ?? 'Anonymous'
         },
         pendingAttachments,
         this.keptCommentEditAttachments
@@ -559,6 +573,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         : this.proposalService.postComment(this.proposal.id, {
           parentCommentId,
           ...encrypted,
+          body: truncateNotificationPreview(body),
           mentionedUserIds: this.mentionedUserIds
         });
 
@@ -613,7 +628,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       next: async replies => {
         const scope = this.cryptoScope;
         comment.replies = scope
-          ? await this.proposalCrypto.decryptComments(replies, scope)
+          ? await this.proposalCrypto.decryptComments(replies, scope, this.proposal?.usesAnonymousComments ?? true)
           : replies;
         comment.repliesExpanded = true;
       },
@@ -673,9 +688,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
     const token = this.authService.getToken();
     const authorUserId = token ? getUserIdFromToken(token) ?? 0 : 0;
-    const displayName = this.proposal.usesAnonymousComments
-      ? (this.proposal.viewerAlias ?? 'Anonymous')
-      : this.authorDisplayName;
+    const displayName = this.proposal.viewerAlias ?? 'Anonymous';
     const { threadRootId, replyToCommentId, replyToUsername } = parentCommentId
       ? this.resolveReplyTargets(parentCommentId)
       : { threadRootId: null as number | null, replyToCommentId: null as number | null, replyToUsername: null as string | null };
@@ -777,6 +790,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         } else {
           this.proposal = proposal;
         }
+        await this.refreshProposedImage();
         this.loading = false;
       },
       error: err => {
@@ -784,6 +798,29 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         this.toastService.error(err?.message ?? 'Failed to load proposal');
       }
     });
+  }
+
+  isAnonymousAuthor(userId: number | null | undefined): boolean {
+    return !userId || userId === 0;
+  }
+
+  private async refreshProposedImage(): Promise<void> {
+    this.proposedImageSrc = null;
+    const proposal = this.proposal;
+    if (!proposal || proposal.settingField !== 'ImageResourceId' || !proposal.settingNewValue?.trim()) {
+      return;
+    }
+
+    const scope = this.cryptoScope;
+    if (!scope) {
+      return;
+    }
+
+    this.proposedImageSrc = await this.images.getDataUrl(
+      scope,
+      proposal.settingNewValue.trim(),
+      'ImageAsset'
+    );
   }
 }
 

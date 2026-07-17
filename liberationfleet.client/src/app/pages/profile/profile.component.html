@@ -12,6 +12,38 @@
       <h1>Profile</h1>
 
       <form [formGroup]="form">
+        <section class="section avatar-section">
+          <h2>Profile picture</h2>
+          <p class="section-hint">
+            One image, encrypted with your crew key. Requires an unlocked encryption session and crew membership.
+          </p>
+
+          <div class="avatar-preview" *ngIf="displayAvatarUrl">
+            <img [src]="displayAvatarUrl" alt="Profile avatar preview">
+            <button
+              type="button"
+              class="text-btn"
+              *ngIf="canEditAvatar || avatarResourceId"
+              (click)="clearAvatar()">
+              Remove
+            </button>
+          </div>
+
+          <app-proposal-attachment-picker
+            *ngIf="canEditAvatar"
+            [attachments]="avatarAttachments"
+            [allowedKinds]="['image']"
+            [maxAttachments]="1"
+            [allowAudioRecording]="false"
+            (attachmentsChange)="onAvatarAttachmentsChange()">
+          </app-proposal-attachment-picker>
+
+          <p class="hint-text" *ngIf="!canEditAvatar">
+            <ng-container *ngIf="crewId <= 0">Join a crew to upload a profile picture.</ng-container>
+            <ng-container *ngIf="crewId > 0 && !encryptionUnlocked">Unlock encryption to upload or view your profile picture.</ng-container>
+          </p>
+        </section>
+
         <div class="form-group">
           <label for="username">Username</label>
           <input

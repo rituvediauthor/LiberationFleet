@@ -45,7 +45,9 @@ To manually unfreeze after false positive (with counsel approval): set `Users.Is
 ## 5. Retention
 
 Configured by `ReportEvidence:NonCsamRetentionDays` (default 90).  
-CSAM / escalated packets: preserve until legal counsel says otherwise; do not purge opportunistically.
+`ContentReportRetentionHostedService` clears sealed evidence for expired **non-CSAM** packets on a ~12h schedule and closes those reports.
+
+CSAM / escalated packets (`QueuedForNcmec` or `EscalatedToNcmecAt` set): preserve until legal counsel says otherwise; do not purge opportunistically.
 
 ## 6. Production secrets
 
@@ -55,9 +57,20 @@ Set in environment / secret store:
 "ReportEvidence": {
   "AesKeyBase64": "<32-byte key, base64>",
   "VendorApiKey": "<long random secret>",
-  "NonCsamRetentionDays": 90
+  "NonCsamRetentionDays": 90,
+  "AutoEscalateNonCsamToVendor": false,
+  "VendorNotifyUrl": ""
 }
 ```
 
 Generate AES key: `[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])`  
 or use a proper CSPRNG.
+
+## 7. Registration status (ops)
+
+- [ ] ESP registration submitted at CyberTipline
+- [ ] Compliance contact named
+- [ ] Production `AesKeyBase64` + `VendorApiKey` stored in secret manager (not git)
+- [ ] First dry-run filing using a synthetic / test report in a non-production environment (if NCMEC provides a test path) or tabletop walkthrough of this runbook
+
+Until registration is approved, do **not** process live CSAM-category reports in production beyond acknowledging and preserving evidence offline with counsel.

@@ -11,11 +11,12 @@ import {
   formatLastActive,
   formatPlatformDisplay
 } from '../../../models/crewmate.model';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-crewmate-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, UserAvatarComponent],
   templateUrl: './crewmate-list.component.html',
   styleUrl: './crewmate-list.component.css'
 })
@@ -24,6 +25,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   canExportCrewData = false;
+  crewId = 0;
   backButton!: ActionBarButton;
   addButton!: ActionBarButton;
 
@@ -53,6 +55,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.canExportCrewData = !!membership.canExportCrewData;
+        this.crewId = membership.crewId ?? 0;
       }
     });
 

@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertEncryptedContent;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Moq;
 
@@ -86,6 +87,7 @@ public class UpsertEncryptedContentCommandHandlerTests
             HandlerTestFixture.CreateCrewRepositoryMock().Object,
             HandlerTestFixture.CreateGiftRepositoryMock().Object,
             new Mock<ICryptoRepository>(MockBehavior.Loose).Object,
+            new Mock<IMediaDeepFreezeService>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateContentTenureService(),
             HandlerTestFixture.CreateUnitOfWorkMock().Object);
     }

@@ -71,7 +71,7 @@ export class ChatService {
       nonce: payload.nonce ?? '',
       ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
-      body: payload.body ?? null,
+      body: payload.body ?? payload.notificationPreview ?? null,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }

@@ -115,7 +115,10 @@ export class ProposalCryptoService {
       description: payload?.description ?? (unableToDecrypt ? '[Unable to decrypt]' : ''),
       attachments,
       resolvedAttachments,
-      comments
+      comments,
+      viewerAlias: proposal.viewerAlias,
+      usesAnonymousComments: proposal.usesAnonymousComments,
+      aliasRerollsRemaining: proposal.aliasRerollsRemaining
     };
   }
 
@@ -243,7 +246,11 @@ export class ProposalCryptoService {
     );
   }
 
-  async decryptComments(comments: ProposalComment[], scope: ProposalCryptoScope | number): Promise<ProposalComment[]> {
+  async decryptComments(
+    comments: ProposalComment[],
+    scope: ProposalCryptoScope | number,
+    usesAnonymousComments = false
+  ): Promise<ProposalComment[]> {
     const normalizedScope = this.normalizeScope(scope);
     if (!this.cryptoSession.isUnlocked()) {
       return comments.map(c => ({
@@ -254,7 +261,7 @@ export class ProposalCryptoService {
     }
 
     const scopeKey = await this.resolveScopeKey(normalizedScope);
-    return Promise.all(comments.map(comment => this.decryptComment(comment, scopeKey, normalizedScope)));
+    return Promise.all(comments.map(comment => this.decryptComment(comment, scopeKey, normalizedScope, usesAnonymousComments)));
   }
 
   private async decryptComment(
@@ -512,5 +519,79 @@ export class ProposalCryptoService {
   createResourceId(): string {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
     return bytesToBase64(bytes).replace(/[/+=]/g, '').slice(0, 22);
+  }
+
+  async uploadImageAttachment(
+    scope: ProposalCryptoScope | number,
+    attachment: PendingAttachment,
+    contentType: Extract<EncryptedContentType, 'ImageAsset' | 'ProfileAvatar'> = 'ImageAsset'
+  ): Promise<string> {
+    const normalizedScope = this.normalizeScope(scope);
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+
+    let file = attachment.file;
+    if (file && attachment.type === 'image') {
+      file = await compressMediaFile(file, 'image');
+    }
+
+    let dataUrl = attachment.previewUrl ?? '';
+    if (file) {
+      dataUrl = await this.readFileAsDataUrl(file);
+    } else if (attachment.blob) {
+      dataUrl = await this.readBlobAsDataUrl(attachment.blob);
+    }
+
+    const encrypted = await this.cryptoService.encryptJson(scopeKey, { dataUrl });
+    const result = await firstValueFrom(this.cryptoApi.upsertEncryptedContent({
+      contentType,
+      resourceId: attachment.resourceId,
+      crewId: normalizedScope.crewId,
+      fleetId: normalizedScope.fleetId,
+      keyVersion: 1,
+      nonce: encrypted.nonce,
+      ciphertext: encrypted.ciphertext
+    }));
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to upload image.');
+    }
+
+    return attachment.resourceId;
+  }
+
+  async decryptImageDataUrl(
+    scope: ProposalCryptoScope | number,
+    resourceId: string,
+    contentType: Extract<EncryptedContentType, 'ImageAsset' | 'ProfileAvatar'> = 'ImageAsset'
+  ): Promise<string | null> {
+    const normalizedScope = this.normalizeScope(scope);
+    if (!resourceId || !this.cryptoSession.isUnlocked()) {
+      return null;
+    }
+
+    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    const envelopes = await firstValueFrom(
+      this.cryptoApi.getEncryptedContents(
+        contentType,
+        [resourceId],
+        normalizedScope.crewId,
+        normalizedScope.fleetId
+      )
+    );
+    const envelope = envelopes[0];
+    if (!envelope) {
+      return null;
+    }
+
+    try {
+      const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+        scopeKey,
+        envelope.nonce,
+        envelope.ciphertext
+      );
+      return blobPayload.dataUrl;
+    } catch {
+      return null;
+    }
   }
 }

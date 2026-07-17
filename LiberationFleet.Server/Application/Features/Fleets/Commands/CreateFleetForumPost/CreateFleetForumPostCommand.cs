@@ -15,7 +15,8 @@ public record CreateFleetForumPostCommand(
     string Ciphertext,
     int KeyVersion,
     bool IsAdultContent,
-    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
+    IReadOnlyList<int> MentionedUserIds,
+    string? Preview = null) : IRequest<ForumOperationResponse>;
 
 public class CreateFleetForumPostCommandHandler(
     ICurrentUserService currentUser,
@@ -91,11 +92,11 @@ public class CreateFleetForumPostCommandHandler(
         {
             await notificationService.NotifyCrewIfNotMutedAsync(
                 fleetCrew.CrewId,
-                NotificationKind.NewForumPost,
+                NotificationKind.NewFleetForumPost,
                 MutedContentType.Forum,
                 post.Id,
-                "New forum post",
-                "A new forum post was published.",
+                "New fleet forum post",
+                NotificationPreview.BodyOrFallback(request.Preview, "A new forum post was published in your fleet."),
                 actionUrl,
                 relatedEntityId: post.Id,
                 excludeUserId: userId,
@@ -110,7 +111,8 @@ public class CreateFleetForumPostCommandHandler(
             ContentType = MentionedContentType.ForumPost,
             ResourceId = post.Id,
             ActionUrl = actionUrl,
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            Preview = request.Preview
         }, cancellationToken);
 
         return new ForumOperationResponse

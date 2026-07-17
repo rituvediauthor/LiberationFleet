@@ -61,7 +61,18 @@ public static class DependencyInjection
             configuration.GetSection(Application.Services.ReportEvidenceOptions.SectionName));
         services.Configure<Application.Services.StripeDonationOptions>(
             configuration.GetSection(Application.Services.StripeDonationOptions.SectionName));
+        services.Configure<Application.Services.MediaDeepFreezeOptions>(
+            configuration.GetSection(Application.Services.MediaDeepFreezeOptions.SectionName));
         services.AddSingleton<Application.Services.IReportEvidenceProtector, Application.Services.ReportEvidenceProtector>();
+        services.AddHttpClient(nameof(Application.Services.ReportVendorNotifier));
+        services.AddSingleton<Application.Services.IReportVendorNotifier, Application.Services.ReportVendorNotifier>();
+        services.AddSingleton<Storage.LocalDeepFreezeBlobStore>();
+        services.AddSingleton<Storage.AzureDeepFreezeBlobStore>();
+        services.AddSingleton<Storage.NullDeepFreezeBlobStore>();
+        services.AddSingleton<IDeepFreezeBlobStore, Storage.DeepFreezeBlobStoreRouter>();
+        services.AddScoped<Application.Services.IMediaDeepFreezeService, Application.Services.MediaDeepFreezeService>();
+        services.AddHostedService<Background.ContentReportRetentionHostedService>();
+        services.AddHostedService<Background.MediaDeepFreezeHostedService>();
         services.AddSingleton<ILiveKitTokenService, Infrastructure.LiveKit.LiveKitTokenService>();
         services.AddHttpClient();
         services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();

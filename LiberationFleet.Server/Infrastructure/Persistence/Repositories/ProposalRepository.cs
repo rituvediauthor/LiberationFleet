@@ -419,12 +419,21 @@ public class ProposalRepository : IProposalRepository
         }
     }
 
-    public Task<ProposalAnonymousAlias?> GetAnonymousAliasAsync(
+    public async Task<ProposalAnonymousAlias?> GetAnonymousAliasAsync(
         int proposalId,
         int userId,
-        CancellationToken cancellationToken = default) =>
-        _context.ProposalAnonymousAliases
+        CancellationToken cancellationToken = default)
+    {
+        var local = _context.ProposalAnonymousAliases.Local
+            .FirstOrDefault(a => a.ProposalId == proposalId && a.UserId == userId);
+        if (local is not null)
+        {
+            return local;
+        }
+
+        return await _context.ProposalAnonymousAliases
             .FirstOrDefaultAsync(a => a.ProposalId == proposalId && a.UserId == userId, cancellationToken);
+    }
 
     public async Task<IReadOnlyList<ProposalAnonymousAlias>> GetAnonymousAliasesAsync(
         int proposalId,
@@ -437,18 +446,35 @@ public class ProposalRepository : IProposalRepository
             return Array.Empty<ProposalAnonymousAlias>();
         }
 
-        return await _context.ProposalAnonymousAliases
+        var fromDb = await _context.ProposalAnonymousAliases
             .Where(a => a.ProposalId == proposalId && ids.Contains(a.UserId))
             .ToListAsync(cancellationToken);
+
+        var byUserId = fromDb.ToDictionary(a => a.UserId);
+        foreach (var local in _context.ProposalAnonymousAliases.Local
+                     .Where(a => a.ProposalId == proposalId && ids.Contains(a.UserId)))
+        {
+            byUserId[local.UserId] = local;
+        }
+
+        return byUserId.Values.ToList();
     }
 
     public async Task<IReadOnlyList<string>> GetAnonymousNicknamesAsync(
         int proposalId,
-        CancellationToken cancellationToken = default) =>
-        await _context.ProposalAnonymousAliases
+        CancellationToken cancellationToken = default)
+    {
+        var fromDb = await _context.ProposalAnonymousAliases
             .Where(a => a.ProposalId == proposalId)
             .Select(a => a.Nickname)
             .ToListAsync(cancellationToken);
+
+        var local = _context.ProposalAnonymousAliases.Local
+            .Where(a => a.ProposalId == proposalId)
+            .Select(a => a.Nickname);
+
+        return fromDb.Concat(local).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
 
     public async Task AddAnonymousAliasAsync(
         ProposalAnonymousAlias alias,

@@ -22,6 +22,7 @@ public class ProposalAnonymousAliasService(IProposalRepository proposalRepositor
             ProposalId = proposalId,
             UserId = userId,
             Nickname = ProposalNicknameGenerator.Generate(taken),
+            RerollCount = 0,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -30,7 +31,7 @@ public class ProposalAnonymousAliasService(IProposalRepository proposalRepositor
         return alias;
     }
 
-    public async Task<ProposalAnonymousAlias?> RerollAsync(
+    public async Task<(ProposalAnonymousAlias? Alias, string? Error)> TryRerollAsync(
         int proposalId,
         int userId,
         CancellationToken cancellationToken = default)
@@ -38,14 +39,20 @@ public class ProposalAnonymousAliasService(IProposalRepository proposalRepositor
         var alias = await proposalRepository.GetAnonymousAliasAsync(proposalId, userId, cancellationToken);
         if (alias is null)
         {
-            return null;
+            return (null, "Alias not found.");
+        }
+
+        if (alias.RerollCount >= ProposalAnonymousAlias.MaxRerolls)
+        {
+            return (null, "You can only regenerate your alias twice per proposal.");
         }
 
         var taken = await proposalRepository.GetAnonymousNicknamesAsync(proposalId, cancellationToken);
         var withoutCurrent = taken.Where(n => !string.Equals(n, alias.Nickname, StringComparison.OrdinalIgnoreCase)).ToList();
         alias.Nickname = ProposalNicknameGenerator.Generate(withoutCurrent);
+        alias.RerollCount++;
         alias.UpdatedAt = DateTime.UtcNow;
-        return alias;
+        return (alias, null);
     }
 
     public async Task<IReadOnlyDictionary<int, string>> GetNicknameMapAsync(

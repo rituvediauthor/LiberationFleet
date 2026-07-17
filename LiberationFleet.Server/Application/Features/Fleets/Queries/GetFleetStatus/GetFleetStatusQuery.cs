@@ -51,7 +51,8 @@ public class GetFleetStatusQueryHandler(
             AllowCrossCrewGiving = crew?.AllowCrossCrewGiving ?? false,
             JoinCode = fleet.JoinCode,
             LibraryOfThingsEnabled = fleet.LibraryOfThingsEnabled,
-            NeedsRuleAcceptance = needsRuleAcceptance
+            NeedsRuleAcceptance = needsRuleAcceptance,
+            ImageResourceId = fleet.ImageResourceId
         };
     }
 

@@ -1,5 +1,15 @@
 <article class="thread-entry" [class.compact]="compact">
   <p class="thread-entry-meta">
+    <app-user-avatar
+      class="thread-entry-avatar"
+      [anonymous]="anonymous"
+      [resourceId]="avatarResourceId"
+      [crewId]="crewId"
+      [fleetId]="fleetId"
+      [fallbackInitial]="anonymous ? '' : authorName"
+      size="sm"
+      [alt]="anonymous ? '' : (authorName ? authorName + ' avatar' : '')">
+    </app-user-avatar>
     <strong>{{ authorName }}</strong>
     <span *ngIf="createdAt">·</span>
     <span *ngIf="createdAt">{{ createdAt | date:'short' }}</span>

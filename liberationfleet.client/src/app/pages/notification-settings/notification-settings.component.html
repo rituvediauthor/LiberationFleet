@@ -7,10 +7,31 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <ng-container *ngIf="!loading && preferences.length > 0">
-      <section class="preference-section" *ngIf="crewPreferences.length > 0">
-        <h2>Crew notifications</h2>
+      <div class="settings-tabs" role="tablist" aria-label="Notification categories">
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab"
+          [class.active]="activeTab === 'Crew'"
+          [attr.aria-selected]="activeTab === 'Crew'"
+          (click)="activeTab = 'Crew'">
+          Crew
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab"
+          [class.active]="activeTab === 'Fleet'"
+          [attr.aria-selected]="activeTab === 'Fleet'"
+          (click)="activeTab = 'Fleet'">
+          Fleet
+        </button>
+      </div>
+
+      <section class="preference-section" *ngIf="visiblePreferences.length > 0">
+        <h2 class="sr-only">{{ activeTab }} notifications</h2>
         <div class="preference-list">
-          <label class="preference-row" *ngFor="let preference of crewPreferences">
+          <label class="preference-row" *ngFor="let preference of visiblePreferences">
             <input
               type="checkbox"
               [checked]="preference.isEnabled"
@@ -20,18 +41,9 @@
         </div>
       </section>
 
-      <section class="preference-section" *ngIf="fleetPreferences.length > 0">
-        <h2>Fleet notifications</h2>
-        <div class="preference-list">
-          <label class="preference-row" *ngFor="let preference of fleetPreferences">
-            <input
-              type="checkbox"
-              [checked]="preference.isEnabled"
-              (change)="togglePreference(preference)">
-            <span>{{ preference.label }}</span>
-          </label>
-        </div>
-      </section>
+      <p *ngIf="visiblePreferences.length === 0" class="state-text">
+        No {{ activeTab.toLowerCase() }} notification options yet.
+      </p>
     </ng-container>
   </div>
 </app-page-layout>

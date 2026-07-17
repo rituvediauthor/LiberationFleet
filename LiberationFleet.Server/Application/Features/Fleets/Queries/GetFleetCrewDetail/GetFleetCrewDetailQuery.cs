@@ -44,17 +44,27 @@ public class GetFleetCrewDetailQueryHandler(
         }
 
         var members = await membershipRepository.GetActiveMembersByCrewIdAsync(request.CrewId, cancellationToken);
+        var isOwnCrew = membership.CrewId == crew.Id;
         return new FleetCrewDetailResponse
         {
             Success = true,
             Message = "Crew detail loaded.",
-            CrewId = crew.Id,
-            CrewName = crew.Name,
-            Members = members.Select(m => new FleetCrewmateDto
+            Crew = new FleetCrewDetailDto
             {
-                UserId = m.UserId,
-                Username = m.User?.Username ?? $"User {m.UserId}"
-            }).ToList()
+                CrewId = crew.Id,
+                CrewName = crew.Name,
+                MemberCount = members.Count,
+                MaxSize = crew.MaxSize,
+                IsOwnCrew = isOwnCrew,
+                // Viewer is already in a crew, so join is not available from this screen.
+                CanJoin = false,
+                CanKick = !isOwnCrew,
+                Crewmates = members.Select(m => new FleetCrewmateDto
+                {
+                    UserId = m.UserId,
+                    Username = m.User?.Username ?? $"User {m.UserId}"
+                }).ToList()
+            }
         };
     }
 }

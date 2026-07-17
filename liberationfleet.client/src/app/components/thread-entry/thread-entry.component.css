@@ -15,7 +15,12 @@
   color: var(--lf-color-text-secondary);
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+
+.thread-entry-avatar {
+  margin-right: 2px;
 }
 
 .thread-entry-body {

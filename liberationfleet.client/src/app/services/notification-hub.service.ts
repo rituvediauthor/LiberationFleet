@@ -3,6 +3,7 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@micros
 import { Subject } from 'rxjs';
 import { NotificationItem } from '../models/notification.model';
 import { AuthService } from './auth.service';
+import { ApiUrlService } from './api-url.service';
 import { NotificationService } from './notification.service';
 
 @Injectable({
@@ -17,7 +18,8 @@ export class NotificationHubService implements OnDestroy {
 
   constructor(
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private apiUrl: ApiUrlService
   ) {}
 
   ngOnDestroy() {
@@ -60,7 +62,7 @@ export class NotificationHubService implements OnDestroy {
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl('/hubs/notifications', {
+      .withUrl(this.apiUrl.resolveHub('/hubs/notifications'), {
         accessTokenFactory: () => this.authService.getToken() ?? ''
       })
       .withAutomaticReconnect()

@@ -13,6 +13,7 @@ public class NotificationDto
     public int? RelatedEntityId { get; set; }
     public int? SecondaryEntityId { get; set; }
     public int? ActorUserId { get; set; }
+    public string? ActorAvatarResourceId { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
 }

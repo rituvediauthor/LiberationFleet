@@ -29,6 +29,34 @@
           </span>
         </div>
 
+        <section class="settings-section">
+          <h2 class="section-title">Crew image</h2>
+          <p class="hint-text">One image shown on the crew hub. Requires file attachment permission.</p>
+
+          <div class="entity-image-preview" *ngIf="displayImageUrl">
+            <img [src]="displayImageUrl" alt="Crew image preview">
+            <button
+              type="button"
+              class="text-btn"
+              *ngIf="canAttachFiles"
+              (click)="clearImage()">
+              Remove
+            </button>
+          </div>
+
+          <app-proposal-attachment-picker
+            *ngIf="canAttachFiles"
+            [attachments]="imageAttachments"
+            [allowedKinds]="['image']"
+            [maxAttachments]="1"
+            [allowAudioRecording]="false"
+            (attachmentsChange)="onImageAttachmentsChange()">
+          </app-proposal-attachment-picker>
+          <p class="hint-text" *ngIf="!canAttachFiles">
+            You need crew file attachment permission to change the crew image.
+          </p>
+        </section>
+
         <div class="form-group">
           <label for="maxSize">Crew size</label>
           <input
@@ -114,7 +142,7 @@
             <input type="checkbox" formControlName="allowCrossCrewGiving">
             Allow cross-crew giving
           </label>
-          <span class="hint-text">When enabled, crewmates can give and receive aid across crews in the same fleet.</span>
+          <span class="hint-text">When enabled, crewmates in this crew can give aid to crewmates in other crews in the same fleet. Your crew can still receive aid from other crews when this is off.</span>
         </div>
 
         <div class="form-group checkbox-group">

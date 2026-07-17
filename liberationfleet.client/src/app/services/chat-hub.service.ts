@@ -3,6 +3,7 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@micros
 import { Subject } from 'rxjs';
 import { ChatMessage, ChatRoomListItem } from '../models/chat.model';
 import { AuthService } from './auth.service';
+import { ApiUrlService } from './api-url.service';
 
 export interface ChatRoomActivityUpdate {
   roomId: number;
@@ -30,7 +31,10 @@ export class ChatHubService implements OnDestroy {
   readonly directMessageReceived$ = new Subject<DirectMessageReceivedEvent>();
   readonly directMessageUpdated$ = new Subject<DirectMessageReceivedEvent>();
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private apiUrl: ApiUrlService
+  ) {}
 
   ngOnDestroy() {
     void this.disconnect();
@@ -106,7 +110,7 @@ export class ChatHubService implements OnDestroy {
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl('/hubs/chat', {
+      .withUrl(this.apiUrl.resolveHub('/hubs/chat'), {
         accessTokenFactory: () => this.authService.getToken() ?? ''
       })
       .withAutomaticReconnect()

@@ -11,7 +11,16 @@
       <div class="request-list">
         <div class="request-card" *ngFor="let request of incomingRequests">
           <div class="request-main">
-            <p class="request-name">{{ request.username }}</p>
+            <p class="request-name">
+              <app-user-avatar
+                [resourceId]="request.avatarResourceId"
+                [crewId]="crewId || null"
+                [fallbackInitial]="request.username"
+                size="sm"
+                [alt]="request.username + ' avatar'">
+              </app-user-avatar>
+              {{ request.username }}
+            </p>
             <p class="request-activity">{{ formatActivity(request) }}</p>
           </div>
           <div class="request-actions">
@@ -27,7 +36,16 @@
       <div class="request-list">
         <div class="request-card" *ngFor="let request of outgoingRequests">
           <div class="request-main">
-            <p class="request-name">{{ request.username }}</p>
+            <p class="request-name">
+              <app-user-avatar
+                [resourceId]="request.avatarResourceId"
+                [crewId]="crewId || null"
+                [fallbackInitial]="request.username"
+                size="sm"
+                [alt]="request.username + ' avatar'">
+              </app-user-avatar>
+              {{ request.username }}
+            </p>
             <p class="request-activity">{{ formatActivity(request) }}</p>
           </div>
           <div class="request-actions">

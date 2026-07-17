@@ -208,6 +208,11 @@ public class CryptoRepository : ICryptoRepository
         existing.Nonce = envelope.Nonce;
         existing.Ciphertext = envelope.Ciphertext;
         existing.UpdatedAt = envelope.UpdatedAt;
+        // Re-upload brings content back to hot SQL storage.
+        existing.StorageTier = EncryptedContentStorageTier.Hot;
+        existing.ColdBlobPath = null;
+        existing.FrozenAt = null;
+        existing.CiphertextCharLength = envelope.Ciphertext?.Length ?? 0;
     }
 
     public async Task DeleteEnvelopesAsync(
@@ -223,5 +228,28 @@ public class CryptoRepository : ICryptoRepository
         await _context.EncryptedContentEnvelopes
             .Where(e => e.ContentType == contentType && resourceIds.Contains(e.ResourceId))
             .ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EncryptedContentEnvelope>> GetDeepFreezeCandidatesAsync(
+        IReadOnlyList<EncryptedContentType> contentTypes,
+        DateTime createdBefore,
+        int take,
+        int minimumCiphertextChars,
+        CancellationToken cancellationToken = default)
+    {
+        if (contentTypes.Count == 0 || take <= 0)
+        {
+            return Array.Empty<EncryptedContentEnvelope>();
+        }
+
+        return await _context.EncryptedContentEnvelopes
+            .Where(e =>
+                contentTypes.Contains(e.ContentType)
+                && e.StorageTier == EncryptedContentStorageTier.Hot
+                && e.CreatedAt < createdBefore
+                && e.Ciphertext.Length >= minimumCiphertextChars)
+            .OrderBy(e => e.CreatedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
     }
 }

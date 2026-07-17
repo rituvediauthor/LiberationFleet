@@ -3,7 +3,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   align-items: center;
 }
 
@@ -16,6 +16,17 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.attach-icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
 }
 
 .recording-indicator {
@@ -44,9 +55,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--lf-color-border);
   font-size: 13px;
+}
+
+.attachment-preview {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .remove-btn {

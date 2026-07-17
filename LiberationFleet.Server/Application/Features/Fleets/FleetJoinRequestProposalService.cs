@@ -11,7 +11,8 @@ public class FleetJoinRequestProposalService(
     IFleetRepository fleetRepository,
     ICrewRepository crewRepository,
     IChatRepository chatRepository,
-    ContentTenureService contentTenureService)
+    ContentTenureService contentTenureService,
+    IUnitOfWork unitOfWork)
 {
     public async Task CreateFromCrewApplyAsync(
         int authorUserId,
@@ -52,6 +53,25 @@ public class FleetJoinRequestProposalService(
             Title = $"Allow {crew.Name} to join the fleet",
             Description = $"{crew.Name} requested to join fleet {fleet.Name}."
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task TryApplyApprovedProposalAsync(Proposal proposal, CancellationToken cancellationToken)

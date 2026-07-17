@@ -42,7 +42,9 @@ export class ProposalService {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,
-      mentionedUserIds: payload.mentionedUserIds ?? []
+      mentionedUserIds: payload.mentionedUserIds ?? [],
+      title: payload.title ?? '',
+      description: payload.description ?? payload.notificationPreview ?? ''
     });
   }
 
@@ -78,7 +80,9 @@ export class ProposalService {
       nonce: payload.nonce,
       ciphertext: payload.ciphertext,
       keyVersion: payload.keyVersion ?? 1,
-      mentionedUserIds: payload.mentionedUserIds ?? []
+      mentionedUserIds: payload.mentionedUserIds ?? [],
+      title: payload.title ?? '',
+      description: payload.description ?? payload.notificationPreview ?? ''
     });
   }
 
@@ -108,7 +112,7 @@ export class ProposalService {
   ): Observable<ProposalOperationResponse> {
     return this.http.post<ProposalOperationResponse>(`${this.apiUrl}/${proposalId}/comments`, {
       parentCommentId: payload.parentCommentId ?? null,
-      body: payload.body,
+      body: payload.body ?? payload.notificationPreview ?? null,
       nonce: payload.nonce ?? '',
       ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
@@ -184,6 +188,7 @@ export class ProposalService {
       isKickVoteTarget: proposal.isKickVoteTarget ?? false,
       usesAnonymousComments: proposal.usesAnonymousComments,
       viewerAlias: proposal.viewerAlias,
+      aliasRerollsRemaining: proposal.aliasRerollsRemaining,
       canKickAuthor: proposal.canKickAuthor,
       comments: (proposal.comments ?? []).map(comment => ({
         ...comment,

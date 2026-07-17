@@ -13,6 +13,15 @@
       <div class="proposal-header" *ngIf="!editing">
         <div class="proposal-header-main">
           <p class="meta">
+            <app-user-avatar
+              [anonymous]="isAnonymousAuthor(p.authorUserId)"
+              [resourceId]="p.authorAvatarResourceId"
+              [crewId]="crewId || null"
+              [fleetId]="fleetId || null"
+              [fallbackInitial]="isAnonymousAuthor(p.authorUserId) ? '' : p.authorUsername"
+              size="sm"
+              [alt]="isAnonymousAuthor(p.authorUserId) ? '' : p.authorUsername + ' avatar'">
+            </app-user-avatar>
             <span class="author">{{ p.authorUsername }}</span>
             <span>·</span>
             <span>{{ p.createdAt | date:'medium' }}</span>
@@ -90,6 +99,10 @@
 
       <div class="proposal-body" *ngIf="!editing">
         <p class="description"><app-mention-text [text]="p.description ?? ''" /></p>
+        <div class="proposed-image" *ngIf="proposedImageSrc">
+          <p class="proposed-image-label">Proposed {{ isFleetScope ? 'fleet' : 'crew' }} image</p>
+          <img [src]="proposedImageSrc" alt="Proposed image preview" />
+        </div>
       </div>
 
       <app-proposal-attachment-display
@@ -109,6 +122,15 @@
         <article class="comment" *ngFor="let comment of p.comments">
           <div class="comment-header">
             <p class="comment-meta">
+              <app-user-avatar
+                [anonymous]="isAnonymousAuthor(comment.authorUserId)"
+                [resourceId]="comment.authorAvatarResourceId"
+                [crewId]="crewId || null"
+                [fleetId]="fleetId || null"
+                [fallbackInitial]="isAnonymousAuthor(comment.authorUserId) ? '' : comment.authorUsername"
+                size="sm"
+                [alt]="isAnonymousAuthor(comment.authorUserId) ? '' : comment.authorUsername + ' avatar'">
+              </app-user-avatar>
               <strong>{{ comment.authorUsername }}</strong>
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
@@ -132,8 +154,8 @@
                 <button type="button" role="menuitem" *ngIf="comment.isOwnComment" (click)="startEditComment(comment, null, $event)">
                   Edit
                 </button>
-                <button type="button" role="menuitem" *ngIf="p.usesAnonymousComments && comment.isOwnComment" (click)="rerollNickname($event)">
-                  Reroll nickname
+                <button type="button" role="menuitem" *ngIf="p.usesAnonymousComments && comment.isOwnComment && (p.aliasRerollsRemaining ?? 0) > 0" (click)="rerollNickname($event)">
+                  Regenerate alias
                 </button>
                 <button type="button" role="menuitem" *ngIf="!comment.isOwnComment" (click)="openReportComment(comment, $event)">
                   Report
@@ -164,6 +186,15 @@
             <article class="comment reply" *ngFor="let reply of comment.replies">
               <div class="comment-header">
                 <p class="comment-meta">
+                  <app-user-avatar
+                    [anonymous]="isAnonymousAuthor(reply.authorUserId)"
+                    [resourceId]="reply.authorAvatarResourceId"
+                    [crewId]="crewId || null"
+                    [fleetId]="fleetId || null"
+                    [fallbackInitial]="isAnonymousAuthor(reply.authorUserId) ? '' : reply.authorUsername"
+                    size="sm"
+                    [alt]="isAnonymousAuthor(reply.authorUserId) ? '' : reply.authorUsername + ' avatar'">
+                  </app-user-avatar>
                   <strong>{{ formatCommentAuthor(reply, comment.replies) }}</strong>
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
@@ -187,8 +218,8 @@
                     <button type="button" role="menuitem" *ngIf="reply.isOwnComment" (click)="startEditComment(reply, comment.id, $event)">
                       Edit
                     </button>
-                    <button type="button" role="menuitem" *ngIf="p.usesAnonymousComments && reply.isOwnComment" (click)="rerollNickname($event)">
-                      Reroll nickname
+                    <button type="button" role="menuitem" *ngIf="p.usesAnonymousComments && reply.isOwnComment && (p.aliasRerollsRemaining ?? 0) > 0" (click)="rerollNickname($event)">
+                      Regenerate alias
                     </button>
                     <button type="button" role="menuitem" *ngIf="!reply.isOwnComment" (click)="openReportComment(reply, $event)">
                       Report
@@ -218,64 +249,82 @@
   </div>
 
   <div class="detail-action-bar" *ngIf="!editing">
-    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
-    </button>
+    <div class="detail-action-bar-main">
+      <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+        <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+      </button>
 
-    <div class="comment-composer" [class.expanded]="commentExpanded">
-      <textarea
-        class="comment-input"
-        [class.expanded]="commentExpanded"
-        [(ngModel)]="commentText"
-        appMentionAutocomplete
-        [(mentionedUserIds)]="mentionedUserIds"
-        (focus)="onCommentFocus()"
-        (blur)="onCommentBlur()"
-        [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
-        [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
-        rows="1"></textarea>
+      <div class="comment-composer" [class.expanded]="commentExpanded">
+        <div class="composer-input-row">
+          <textarea
+            class="comment-input"
+            [class.expanded]="commentExpanded"
+            [(ngModel)]="commentText"
+            appMentionAutocomplete
+            [(mentionedUserIds)]="mentionedUserIds"
+            (focus)="onCommentFocus()"
+            (blur)="onCommentBlur()"
+            [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
+            [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
+            rows="1"></textarea>
 
-      <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
-        <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
-          <span>{{ attachment.fileName || attachment.resourceId }}</span>
-          <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
+          <div class="composer-actions-col" *ngIf="commentExpanded">
+            <button
+              type="button"
+              class="composer-send-btn"
+              [disabled]="posting || !canPostComment()"
+              (click)="postComment()"
+              [attr.aria-label]="editingCommentId ? 'Save' : 'Post'">
+              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="composer-cancel-btn"
+              *ngIf="editingCommentId"
+              [disabled]="posting"
+              (click)="cancelEditComment()">
+              Cancel
+            </button>
+          </div>
         </div>
+
+        <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
+          <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
+            <span>{{ attachment.fileName || attachment.resourceId }}</span>
+            <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
+          </div>
+        </div>
+
+        <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
+          class="comment-attachment-picker"
+          [class.collapsed]="!commentExpanded"
+          [attachments]="commentAttachments"
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+        </app-proposal-attachment-picker>
       </div>
 
-      <app-proposal-attachment-picker
-        *ngIf="canAttachFiles"
-        class="comment-attachment-picker"
-        [class.collapsed]="!commentExpanded"
-        [attachments]="commentAttachments"
-        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
-      </app-proposal-attachment-picker>
+      <button
+        type="button"
+        class="action-btn secondary"
+        *ngIf="!commentExpanded && p.canVote"
+        (click)="openVoteDialog()">
+        Vote
+      </button>
     </div>
 
-    <button
-      type="button"
-      class="action-btn secondary"
-      *ngIf="editingCommentId"
-      [disabled]="posting"
-      (click)="cancelEditComment()">
-      Cancel
-    </button>
-
-    <button
-      type="button"
-      class="action-btn primary"
-      *ngIf="commentExpanded"
-      [disabled]="posting || !canPostComment()"
-      (click)="postComment()">
-      {{ editingCommentId ? 'Save' : 'Post' }}
-    </button>
-
-    <button
-      type="button"
-      class="action-btn secondary"
-      *ngIf="!commentExpanded && proposal?.canVote"
-      (click)="openVoteDialog()">
-      Vote
-    </button>
+    <p class="alias-note" *ngIf="p.viewerAlias">
+      <span>Your anonymous alias is {{ p.viewerAlias }}</span>
+      <button
+        type="button"
+        class="alias-regen-btn"
+        *ngIf="(p.aliasRerollsRemaining ?? 0) > 0"
+        [disabled]="rerollingAlias"
+        (click)="rerollNickname($event)"
+        [attr.aria-label]="'Regenerate anonymous alias, ' + p.aliasRerollsRemaining + ' remaining'">
+        regenerate
+      </button>
+    </p>
   </div>
 </div>
 

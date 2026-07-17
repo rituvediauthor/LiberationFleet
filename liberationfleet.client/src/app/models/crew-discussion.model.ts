@@ -19,6 +19,7 @@ export interface DiscussionListItem {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   lastActivityAt: Date;
   hasEncryptedContent?: boolean;
   encryptedPayload?: EncryptedPayload | null;
@@ -32,6 +33,7 @@ export interface DiscussionComment {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   parentCommentId?: number | null;
   replyToCommentId?: number | null;
   replyToUsername?: string | null;

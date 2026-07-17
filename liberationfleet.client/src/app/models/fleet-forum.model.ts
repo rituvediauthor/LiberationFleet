@@ -4,6 +4,7 @@ export interface FleetForumListItem {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   lastActivityAt: string;
   title?: string | null;
   body?: string | null;
@@ -17,6 +18,7 @@ export interface FleetForumComment {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   parentCommentId?: number | null;
   replyToCommentId?: number | null;
   replyToUsername?: string | null;
@@ -71,6 +73,7 @@ export interface EncryptedFleetForumSend {
 export interface CreateFleetForumRequest extends EncryptedFleetForumSend {
   isAdultContent: boolean;
   mentionedUserIds?: number[];
+  notificationPreview?: string | null;
 }
 
 export interface UpdateFleetForumRequest extends EncryptedFleetForumSend {
@@ -80,6 +83,7 @@ export interface UpdateFleetForumRequest extends EncryptedFleetForumSend {
 export interface CreateFleetForumCommentRequest extends EncryptedFleetForumSend {
   parentCommentId?: number | null;
   mentionedUserIds?: number[];
+  notificationPreview?: string | null;
 }
 
 export interface UpdateFleetForumCommentRequest extends EncryptedFleetForumSend {

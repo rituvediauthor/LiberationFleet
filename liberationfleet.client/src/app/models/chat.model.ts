@@ -25,6 +25,7 @@ export interface ChatMessage {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   createdAt: string;
   hasEncryptedContent: boolean;
   encryptedPayload?: EncryptedPayload | null;

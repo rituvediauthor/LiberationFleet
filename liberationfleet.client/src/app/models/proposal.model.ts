@@ -32,6 +32,7 @@ export interface ProposalListItem {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   lastActivityAt: Date;
   status: ProposalStatus;
   approveCount: number;
@@ -46,12 +47,15 @@ export interface ProposalListItem {
   /** Legacy plaintext forum body when no encrypted envelope exists. */
   body?: string;
   thumbnailUrl?: string | null;
+  settingField?: string | null;
+  settingNewValue?: string | null;
 }
 
 export interface ProposalComment {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   parentCommentId?: number | null;
   replyToCommentId?: number | null;
   replyToUsername?: string | null;
@@ -76,6 +80,7 @@ export interface ProposalDetail extends ProposalListItem {
   isKickVoteTarget?: boolean;
   usesAnonymousComments?: boolean;
   viewerAlias?: string | null;
+  aliasRerollsRemaining?: number;
   canKickAuthor?: boolean;
   description?: string;
   attachments?: ProposalAttachment[];
@@ -101,6 +106,7 @@ export interface ProposalOperationResponse {
   proposalId?: number;
   commentId?: number;
   alias?: string;
+  aliasRerollsRemaining?: number;
 }
 
 export interface ProposalCommentRepliesResponse {

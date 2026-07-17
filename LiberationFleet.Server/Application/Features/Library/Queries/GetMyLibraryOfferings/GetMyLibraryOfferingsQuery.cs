@@ -7,6 +7,7 @@ namespace LiberationFleet.Server.Application.Features.Library.Queries.GetMyLibra
 
 public record GetMyLibraryOfferingsQuery(
     string? Search = null,
+    IReadOnlyList<int>? CategoryIds = null,
     int Limit = 30,
     int Offset = 0) : IRequest<LibraryOfferingListResponse>;
 
@@ -35,6 +36,7 @@ public class GetMyLibraryOfferingsQueryHandler(
             membership.CrewId,
             userId,
             request.Search,
+            request.CategoryIds ?? Array.Empty<int>(),
             Math.Clamp(request.Limit, 1, 100),
             Math.Max(request.Offset, 0),
             cancellationToken);

@@ -201,8 +201,21 @@ public static class CrewSettingsChangeDetector
                 request.AllowCrossCrewGiving.ToString()));
         }
 
+        var newImageResourceId = NormalizeResourceId(request.ImageResourceId);
+        var currentImageResourceId = crew.ImageResourceId ?? string.Empty;
+        if (!string.Equals(currentImageResourceId, newImageResourceId, StringComparison.Ordinal))
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.ImageResourceId,
+                currentImageResourceId,
+                newImageResourceId));
+        }
+
         return changes;
     }
+
+    public static string NormalizeResourceId(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 }
 
 public static class CrewSettingsChangeDescriber
@@ -256,6 +269,10 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.AllowCrossCrewGiving =>
                 $"Proposal to set \"Allow cross-crew giving\" to \"{FormatBool(change.NewValue)}\".",
+            CrewSettingField.ImageResourceId =>
+                string.IsNullOrEmpty(change.NewValue)
+                    ? "Proposal to remove the crew image."
+                    : "Proposal to set a new crew image.",
             _ => "Proposal to change crew settings."
         };
 

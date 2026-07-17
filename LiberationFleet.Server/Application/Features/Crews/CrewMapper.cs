@@ -32,6 +32,7 @@ public static class CrewMapper
         MinimumCrewmateTenureDaysForProposals = crew.MinimumCrewmateTenureDaysForProposals,
         MinimumContributionForProposals = crew.MinimumContributionForProposals,
         AllowCrossCrewGiving = crew.AllowCrossCrewGiving,
-        MonthlyGivingCapacity = monthlyGivingCapacity
+        MonthlyGivingCapacity = monthlyGivingCapacity,
+        ImageResourceId = crew.ImageResourceId
     };
 }

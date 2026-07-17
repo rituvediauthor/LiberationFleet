@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { PendingAttachment } from '../../models/proposal.model';
+import { PendingAttachment, ProposalCommentEncryptedPayload, ResolvedAttachment } from '../../models/proposal.model';
 import {
   LibraryRequestDetail,
   LibraryRequestListItem,
@@ -7,7 +7,6 @@ import {
   LibraryUnitDetail,
   LibraryUnitListItem
 } from '../../models/library.model';
-import { ProposalCommentEncryptedPayload } from '../../models/proposal.model';
 import { ProposalCryptoService } from './proposal-crypto.service';
 import { CryptoSessionService } from './crypto-session.service';
 import { CryptoApiService } from './crypto-api.service';
@@ -251,10 +250,15 @@ export class LibraryCryptoService {
           message.encryptedPayload.nonce,
           message.encryptedPayload.ciphertext
         );
+        const resolvedAttachments: ResolvedAttachment[] = await this.proposalCrypto.decryptAttachments(
+          { crewId },
+          payload.attachments ?? []
+        );
         return {
           ...message,
           body: payload.body,
-          authorUsername: payload.authorDisplayName ?? message.authorUsername
+          authorUsername: payload.authorDisplayName ?? message.authorUsername,
+          resolvedAttachments
         };
       } catch {
         return { ...message, body: '[Unable to decrypt]' };

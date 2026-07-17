@@ -24,6 +24,7 @@ export class ProfileService {
     return this.updateProfile({
       username: profile.username,
       email: profile.email,
+      avatarResourceId: profile.avatarResourceId,
       inNeedOfAid: profile.inNeedOfAid,
       emergencyLevel: profile.emergencyLevel,
       peopleRepresentedCount: profile.peopleRepresentedCount,

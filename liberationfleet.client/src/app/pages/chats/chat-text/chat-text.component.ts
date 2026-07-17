@@ -39,6 +39,8 @@ import { ContentPreferenceService } from '../../../services/content-preference.s
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-chat-text',
@@ -52,7 +54,8 @@ import { ReportContentDialogComponent } from '../../../components/report-content
     AdultContentGateComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,
-    ReportContentDialogComponent
+    ReportContentDialogComponent,
+    UserAvatarComponent
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -335,6 +338,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           })
         : this.chatService.sendMessage(this.roomId, {
             ...encrypted,
+            body: truncateNotificationPreview(text),
             mentionedUserIds: this.mentionedUserIds
           });
 
@@ -368,11 +372,15 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   displayAuthor(message: ChatMessage): string {
-    if (this.anonymousModeEnabled && !this.isOwnMessage(message)) {
+    if (this.isAnonymousAuthor(message)) {
       return 'Anonymous';
     }
 
     return message.authorUsername;
+  }
+
+  isAnonymousAuthor(message: ChatMessage): boolean {
+    return this.anonymousModeEnabled && !this.isOwnMessage(message);
   }
 
   toggleAnonymousMode() {

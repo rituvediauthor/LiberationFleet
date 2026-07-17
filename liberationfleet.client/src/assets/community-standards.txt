@@ -1,7 +1,7 @@
 LIBERATION FLEET COMMUNITY STANDARDS
 (Acceptable Use Policy)
 
-Last updated: July 15, 2026
+Last updated: July 16, 2026
 
 Liberation Fleet is for adults (18+) coordinating mutual aid. By using the Service you agree to these standards together with the Terms of Use and Privacy Policy.
 
@@ -38,5 +38,7 @@ We may freeze accounts, remove or quarantine content identifiers, preserve repor
 
 9. CONTACT
 Use in-app Report for abusive or illegal content. For account issues, contact the operators through the channel published on our website when available.
+
+Operators: engineering and ops documentation for report packets, NCMEC filing, and vendor triage lives in the project docs folder (SAFETY-REPORTING.md). That documentation is for operators; it does not change your rights under this Acceptable Use Policy.
 
 These standards are part of your agreement to use Liberation Fleet together with the Terms of Use and Privacy Policy.

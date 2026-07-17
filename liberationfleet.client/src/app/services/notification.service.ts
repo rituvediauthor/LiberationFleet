@@ -187,6 +187,7 @@ export class NotificationService {
       proposals: counts['proposals'] ?? 0,
       giftLog: counts['giftLog'] ?? 0,
       rules: counts['rules'] ?? 0,
+      settings: counts['settings'] ?? 0,
       library: counts['library'] ?? 0,
       crewmates: counts['crewmates'] ?? 0,
       fleet: counts['fleet'] ?? 0

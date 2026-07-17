@@ -29,6 +29,7 @@ public class CrewDto
     public decimal MinimumContributionForProposals { get; set; }
     public bool AllowCrossCrewGiving { get; set; }
     public decimal MonthlyGivingCapacity { get; set; }
+    public string? ImageResourceId { get; set; }
 }
 
 public class UpdateCrewRequest
@@ -55,6 +56,7 @@ public class UpdateCrewRequest
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
     public bool AllowCrossCrewGiving { get; set; }
+    public string? ImageResourceId { get; set; }
 }
 
 public class CrewMembershipStatusDto
@@ -65,6 +67,7 @@ public class CrewMembershipStatusDto
     public string? JoinCode { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool IsOrganizer { get; set; }
+    public string? ImageResourceId { get; set; }
     public bool CanAttachFilesToCrewContent { get; set; }
     public bool CanCreateProposals { get; set; }
     public bool CanCreateFleetProposals { get; set; }

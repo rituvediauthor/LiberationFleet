@@ -19,7 +19,10 @@ import { EncryptionContentService, EncryptionReloadHandle } from '../../../../se
 
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
 import { ReportContentDialogComponent } from '../../../../components/report-content-dialog/report-content-dialog.component';
+import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
 import { ContentReportTargetType } from '../../../../models/content-report.model';
+import { CrewService } from '../../../../services/crew.service';
+import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-fleet-forum-detail',
@@ -30,7 +33,8 @@ import { ContentReportTargetType } from '../../../../models/content-report.model
     FallibleFooterComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
-    ReportContentDialogComponent
+    ReportContentDialogComponent,
+    UserAvatarComponent
   ],
   templateUrl: './fleet-forum-detail.component.html',
   styleUrl: './fleet-forum-detail.component.css'
@@ -42,6 +46,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   loading = true;
   loadError = '';
   fleetId = 0;
+  crewId = 0;
   authorDisplayName = '';
   commentText = '';
   mentionedUserIds: number[] = [];
@@ -77,6 +82,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
   private profileService = inject(ProfileService);
+  private crewService = inject(CrewService);
   private encryptionContent = inject(EncryptionContentService);
   private encryptionReload?: EncryptionReloadHandle;
 
@@ -89,6 +95,12 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.authorDisplayName = profile.username;
+      }
+    });
+
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
       }
     });
 
@@ -332,6 +344,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
         : this.fleetService.createForumComment(this.post.id, {
           parentCommentId: parentCommentId ?? undefined,
           ...encrypted,
+          notificationPreview: truncateNotificationPreview(body),
           mentionedUserIds: this.mentionedUserIds
         });
 

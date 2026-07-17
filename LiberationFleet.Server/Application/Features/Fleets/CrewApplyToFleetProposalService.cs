@@ -26,7 +26,8 @@ public class CrewApplyToFleetProposalService(
     ICrewRepository crewRepository,
     IChatRepository chatRepository,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
-    ContentTenureService contentTenureService)
+    ContentTenureService contentTenureService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<CrewApplyToFleetResult> CreateAsync(
         int authorUserId,
@@ -87,6 +88,25 @@ public class CrewApplyToFleetProposalService(
                 : $"{crew.Name} wants to apply to join fleet {fleet.Name}.",
             InitiatedByFleetInvite = initiatedByFleetInvite
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return CrewApplyToFleetResult.Succeeded(
             proposal.Id,

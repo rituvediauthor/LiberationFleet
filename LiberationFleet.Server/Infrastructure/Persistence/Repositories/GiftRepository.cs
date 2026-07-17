@@ -243,7 +243,8 @@ public class GiftRepository : IGiftRepository
             && g.RecipientUserId == userId
             && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
 
-        var sacrificeQuery = contributedGifts;
+        // Sacrifices only count responses to emergency requests, not ordinary gifts.
+        var sacrificeQuery = contributedGifts.Where(g => g.EmergencyRequestId != null);
         if (seasonStartDate.HasValue)
         {
             sacrificeQuery = sacrificeQuery.Where(g => g.CreatedAt >= seasonStartDate.Value);

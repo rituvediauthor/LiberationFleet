@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Tests.TestHelpers;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Reports.Commands.CreateContentReport;
@@ -127,11 +128,57 @@ public class CreateContentReportCommandHandlerTests
         unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenNcii_QuarantinesWithoutFreezingAuthor()
+    {
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        var reportRepository = CreateReportRepositoryMock();
+        var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
+        var author = HandlerTestFixture.CreateUser(id: 99, username: "author");
+
+        reportRepository
+            .Setup(r => r.SoftDeleteTargetAsync(
+                ContentReportTargetType.ChatMessage,
+                55,
+                null,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler(
+            userId: 1,
+            reportRepository: reportRepository,
+            userRepository: userRepository,
+            unitOfWork: unitOfWork);
+
+        var result = await handler.Handle(new CreateContentReportCommand(
+            ContentReportReason.NonConsensualIntimateImage,
+            ContentReportTargetType.ChatMessage,
+            TargetResourceId: 55,
+            TargetParentId: null,
+            TargetAuthorUserId: 99,
+            CrewId: 10,
+            FleetId: null,
+            ReporterNote: null,
+            EvidencePlaintextJson: """{"text":"evidence"}""",
+            AlsoBlockAuthor: false), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Status.Should().Be(ContentReportStatus.Received);
+        author.IsActive.Should().BeTrue();
+        reportRepository.Verify(r => r.SoftDeleteTargetAsync(
+            ContentReportTargetType.ChatMessage,
+            55,
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
+        userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static CreateContentReportCommandHandler CreateHandler(
         int? userId,
         Mock<IContentReportRepository>? reportRepository = null,
         Mock<IUserRepository>? userRepository = null,
-        Mock<IUnitOfWork>? unitOfWork = null)
+        Mock<IUnitOfWork>? unitOfWork = null,
+        bool autoEscalateNonCsam = false)
     {
         reportRepository ??= CreateReportRepositoryMock();
         userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
@@ -142,6 +189,15 @@ public class CreateContentReportCommandHandlerTests
 
         var blocks = new Mock<IUserBlockRepository>(MockBehavior.Loose);
         var friendships = new Mock<IFriendshipRepository>(MockBehavior.Loose);
+        var notifier = new Mock<IReportVendorNotifier>(MockBehavior.Loose);
+        notifier.Setup(n => n.NotifyNewReportAsync(It.IsAny<ContentReport>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var options = Options.Create(new ReportEvidenceOptions
+        {
+            AutoEscalateNonCsamToVendor = autoEscalateNonCsam,
+            NonCsamRetentionDays = 90
+        });
 
         return new CreateContentReportCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(userId).Object,
@@ -150,6 +206,8 @@ public class CreateContentReportCommandHandlerTests
             blocks.Object,
             friendships.Object,
             evidence.Object,
+            notifier.Object,
+            options,
             unitOfWork.Object);
     }
 

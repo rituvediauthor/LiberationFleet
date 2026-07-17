@@ -10,7 +10,9 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 public class CrewSettingsProposalService(
     IProposalRepository proposalRepository,
     ICrewRepository crewRepository,
-    NotificationService notificationService)
+    IFleetRepository fleetRepository,
+    NotificationService notificationService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<int> CreateProposalsAsync(
         Crew crew,
@@ -34,14 +36,44 @@ public class CrewSettingsProposalService(
 
             ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
             await proposalRepository.AddProposalAsync(proposal, cancellationToken);
+            var description = CrewSettingsChangeDescriber.BuildDescription(change);
             await proposalRepository.AddCrewSettingChangeAsync(new ProposalCrewSettingChange
             {
                 Proposal = proposal,
                 Field = change.Field,
                 NewValue = change.NewValue,
                 Title = CrewSettingsChangeDescriber.DefaultTitle,
-                Description = CrewSettingsChangeDescriber.BuildDescription(change)
+                Description = description
             }, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+                proposalRepository,
+                proposal,
+                utcNow,
+                cancellationToken);
+            var statusBefore = proposal.Status;
+            await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+                proposal,
+                proposalRepository,
+                fleetRepository,
+                utcNow,
+                cancellationToken);
+            if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+            {
+                await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+            }
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await notificationService.NotifyCrewAsync(
+                crew.Id,
+                NotificationKind.NewProposal,
+                "New proposal",
+                NotificationPreview.BodyOrFallback(description, "A crew setting change was proposed."),
+                $"/app/crew/proposals/{proposal.Id}",
+                relatedEntityId: proposal.Id,
+                excludeUserId: authorUserId,
+                cancellationToken: cancellationToken);
             created++;
         }
 
@@ -74,7 +106,7 @@ public class CrewSettingsProposalService(
             proposal.CrewId!.Value,
             NotificationKind.CrewSettingChanged,
             "Crew setting changed",
-            "A crew setting was updated via approved proposal.",
+            NotificationPreview.BodyOrFallback(change.Description, "A crew setting was updated via approved proposal."),
             "/app/crew/edit",
             cancellationToken: cancellationToken);
     }
@@ -107,6 +139,9 @@ public class CrewSettingsProposalService(
         crew.MinimumCrewmateTenureDaysForProposals = request.MinimumCrewmateTenureDaysForProposals;
         crew.MinimumContributionForProposals = request.MinimumContributionForProposals;
         crew.AllowCrossCrewGiving = request.AllowCrossCrewGiving;
+        crew.ImageResourceId = string.IsNullOrWhiteSpace(request.ImageResourceId)
+            ? null
+            : request.ImageResourceId.Trim();
     }
 
     private async Task ApplyChangeAsync(Crew crew, ProposalCrewSettingChange change, CancellationToken cancellationToken)
@@ -188,6 +223,9 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.AllowCrossCrewGiving:
                 crew.AllowCrossCrewGiving = bool.Parse(change.NewValue);
+                break;
+            case CrewSettingField.ImageResourceId:
+                crew.ImageResourceId = string.IsNullOrEmpty(change.NewValue) ? null : change.NewValue;
                 break;
         }
     }

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -12,6 +13,8 @@ public class CrewChatsProposalService(
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
     IChatRealtimeNotifier chatRealtimeNotifier,
+    NotificationService notificationService,
+    IFleetRepository fleetRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<int> CreateProposalAsync(
@@ -55,6 +58,35 @@ public class CrewChatsProposalService(
             KeyVersion = keyVersion <= 0 ? 1 : keyVersion,
             IsAdultContent = isAdultContent
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            crewId,
+            NotificationKind.NewProposal,
+            "New proposal",
+            NotificationPreview.BodyOrFallback(proposalDescription, "A crew chat change was proposed."),
+            $"/app/crew/proposals/{proposal.Id}",
+            relatedEntityId: proposal.Id,
+            excludeUserId: authorUserId,
+            cancellationToken: cancellationToken);
 
         return proposal.Id;
     }
@@ -94,8 +126,42 @@ public class CrewChatsProposalService(
             Purpose = purpose.Trim(),
             RoomType = roomType,
             PlaintextName = plaintextName.Trim(),
+            KeyVersion = 1,
             IsAdultContent = isAdultContent
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
+        foreach (var fleetCrew in fleetCrews)
+        {
+            await notificationService.NotifyCrewAsync(
+                fleetCrew.CrewId,
+                NotificationKind.NewFleetProposal,
+                "New fleet proposal",
+                NotificationPreview.BodyOrFallback(proposalDescription, "A fleet chat change was proposed."),
+                $"/app/fleet/proposals/{proposal.Id}",
+                relatedEntityId: proposal.Id,
+                excludeUserId: authorUserId,
+                cancellationToken: cancellationToken);
+        }
 
         return proposal.Id;
     }

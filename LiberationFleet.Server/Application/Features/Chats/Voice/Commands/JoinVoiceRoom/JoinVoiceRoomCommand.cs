@@ -19,6 +19,7 @@ public class JoinVoiceRoomCommandHandler(
     IVoicePresenceRepository voicePresenceRepository,
     ILiveKitTokenService liveKitTokenService,
     ILiveKitAdminService liveKitAdminService,
+    IVoicePresenceNotifier voicePresenceNotifier,
     IUnitOfWork unitOfWork) : IRequestHandler<JoinVoiceRoomCommand, VoiceJoinResponse>
 {
     public async Task<VoiceJoinResponse> Handle(JoinVoiceRoomCommand request, CancellationToken cancellationToken)
@@ -79,6 +80,7 @@ public class JoinVoiceRoomCommandHandler(
 
         await voicePresenceRepository.AddAsync(session, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await voicePresenceNotifier.NotifyPresenceUpdatedAsync(room.CrewId!.Value, cancellationToken);
 
         var liveKitRoomName = LiveKitRoomNaming.ForVoiceChannel(room.CrewId!.Value, room.Id);
         var token = liveKitTokenService.CreateRoomToken(userId.ToString(), user.Username, liveKitRoomName);

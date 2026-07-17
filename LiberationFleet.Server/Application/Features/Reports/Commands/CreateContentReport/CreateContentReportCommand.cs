@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Options;
 
 namespace LiberationFleet.Server.Application.Features.Reports.Commands.CreateContentReport;
 
@@ -35,6 +36,8 @@ public class CreateContentReportCommandHandler(
     IUserBlockRepository blockRepository,
     IFriendshipRepository friendshipRepository,
     IReportEvidenceProtector evidenceProtector,
+    IReportVendorNotifier vendorNotifier,
+    IOptions<ReportEvidenceOptions> reportOptions,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateContentReportCommand, CreateContentReportResponse>
 {
     private const int MaxEvidenceChars = 50_000;
@@ -64,7 +67,6 @@ public class CreateContentReportCommandHandler(
             return Fail("Invalid report reason or target.");
         }
 
-        // Validate JSON shape loosely
         try
         {
             using var _ = JsonDocument.Parse(request.EvidencePlaintextJson);
@@ -78,7 +80,14 @@ public class CreateContentReportCommandHandler(
         var (nonce, ciphertext) = evidenceProtector.Seal(request.EvidencePlaintextJson);
 
         var isCsam = request.Reason == ContentReportReason.ChildSexualExploitation;
-        var status = isCsam ? ContentReportStatus.QueuedForNcmec : ContentReportStatus.Received;
+        var isNcii = request.Reason == ContentReportReason.NonConsensualIntimateImage;
+        var autoEscalate = !isCsam && reportOptions.Value.AutoEscalateNonCsamToVendor;
+
+        var status = isCsam
+            ? ContentReportStatus.QueuedForNcmec
+            : autoEscalate
+                ? ContentReportStatus.EscalatedToVendor
+                : ContentReportStatus.Received;
 
         var report = new ContentReport
         {
@@ -95,14 +104,19 @@ public class CreateContentReportCommandHandler(
             EvidenceCiphertext = ciphertext,
             Status = status,
             CreatedAt = DateTime.UtcNow,
-            EscalatedToNcmecAt = isCsam ? DateTime.UtcNow : null
+            EscalatedToNcmecAt = isCsam ? DateTime.UtcNow : null,
+            EscalatedToVendorAt = autoEscalate ? DateTime.UtcNow : null
         };
 
-        if (isCsam && request.TargetResourceId.HasValue && request.TargetType != ContentReportTargetType.UserProfile)
+        var shouldQuarantine = (isCsam || isNcii)
+            && request.TargetResourceId.HasValue
+            && request.TargetType != ContentReportTargetType.UserProfile;
+
+        if (shouldQuarantine)
         {
             await reportRepository.SoftDeleteTargetAsync(
                 request.TargetType,
-                request.TargetResourceId.Value,
+                request.TargetResourceId!.Value,
                 request.TargetParentId,
                 cancellationToken);
             report.TargetQuarantined = true;
@@ -153,9 +167,20 @@ public class CreateContentReportCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        try
+        {
+            await vendorNotifier.NotifyNewReportAsync(report, cancellationToken);
+        }
+        catch
+        {
+            // Best-effort; notifier logs failures.
+        }
+
         var message = isCsam
             ? "Report received. Child-exploitation reports are prioritized for required safety handling."
-            : "Report received. Thank you.";
+            : isNcii
+                ? "Report received. The reported content has been hidden pending review."
+                : "Report received. Thank you.";
 
         return new CreateContentReportResponse
         {

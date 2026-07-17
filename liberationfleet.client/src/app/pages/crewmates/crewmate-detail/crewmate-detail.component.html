@@ -7,10 +7,19 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <div class="profile-card" *ngIf="!loading && profile">
-      <h1 class="profile-name">
-        {{ profile.username }}
-        <span class="non-member-badge" *ngIf="profile.isPlaceholderMember">Non-member</span>
-      </h1>
+      <div class="profile-hero">
+        <app-user-avatar
+          [resourceId]="profile.avatarResourceId"
+          [crewId]="crewId || null"
+          [fallbackInitial]="profile.username"
+          size="lg"
+          [alt]="profile.username + ' avatar'">
+        </app-user-avatar>
+        <h1 class="profile-name">
+          {{ profile.username }}
+          <span class="non-member-badge" *ngIf="profile.isPlaceholderMember">Non-member</span>
+        </h1>
+      </div>
 
       <section class="section claim-section" *ngIf="profile.canClaimIdentity">
         <h2>Is this you?</h2>

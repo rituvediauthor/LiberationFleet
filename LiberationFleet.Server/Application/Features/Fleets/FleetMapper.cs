@@ -21,7 +21,8 @@ public static class FleetMapper
         MinimumCrewmateTenureDaysForAttachments = fleet.MinimumCrewmateTenureDaysForAttachments,
         MinimumContributionForAttachments = fleet.MinimumContributionForAttachments,
         MinimumCrewmateTenureDaysForProposals = fleet.MinimumCrewmateTenureDaysForProposals,
-        MinimumContributionForProposals = fleet.MinimumContributionForProposals
+        MinimumContributionForProposals = fleet.MinimumContributionForProposals,
+        ImageResourceId = fleet.ImageResourceId
     };
 
     public static FleetRuleDto MapRule(FleetRule rule) => new()

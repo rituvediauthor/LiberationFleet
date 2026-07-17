@@ -49,7 +49,13 @@ public class ForumsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateForumPostRequest body)
     {
-        var result = await _mediator.Send(new CreateForumPostCommand(body.Nonce, body.Ciphertext, body.KeyVersion, body.IsAdultContent, body.MentionedUserIds));
+        var result = await _mediator.Send(new CreateForumPostCommand(
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
+            body.IsAdultContent,
+            body.MentionedUserIds,
+            body.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -76,7 +82,8 @@ public class ForumsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
-            body.MentionedUserIds));
+            body.MentionedUserIds,
+            body.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

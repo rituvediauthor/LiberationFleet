@@ -11,7 +11,7 @@
             [enabled]="!!status?.hasFleet">
           </app-donation-campaign-widget>
 
-          <div class="info-widget" *ngIf="allowCrossCrewGiving">
+          <div class="info-widget" *ngIf="status?.hasFleet">
             <span class="info-label">Next aid</span>
             <p class="info-text">{{ nextAidHeadline }}</p>
             <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
@@ -21,7 +21,14 @@
         <nav class="fleet-menu" aria-label="Fleet actions">
           <button type="button" class="menu-link fleet-name-link" (click)="goToEditFleet()">
             <span class="menu-icon-wrap">
-              <app-brand-logo class="menu-brand-logo" variant="fleet" size="sm" alt=""></app-brand-logo>
+              <app-brand-logo
+                class="menu-brand-logo"
+                variant="fleet"
+                size="sm"
+                alt=""
+                [customSrc]="fleetImageSrc">
+              </app-brand-logo>
+              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
             </span>
             <span class="menu-label">{{ status?.fleetName }}</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -39,7 +46,6 @@
           <button
             type="button"
             class="menu-link"
-            *ngIf="allowCrossCrewGiving"
             (click)="goToGiftLog()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
@@ -52,7 +58,6 @@
           <button
             type="button"
             class="menu-link"
-            *ngIf="allowCrossCrewGiving"
             (click)="goToEmergencyRequests()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>

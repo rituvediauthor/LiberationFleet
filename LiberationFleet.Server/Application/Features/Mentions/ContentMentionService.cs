@@ -17,6 +17,7 @@ public sealed class ContentMentionContext
     public string ActionUrl { get; init; } = string.Empty;
     public IReadOnlyList<int> MentionedUserIds { get; init; } = Array.Empty<int>();
     public bool IsUpdate { get; init; }
+    public string? Preview { get; init; }
 }
 
 public class ContentMentionService(
@@ -108,9 +109,11 @@ public class ContentMentionService(
         var authorName = string.IsNullOrWhiteSpace(author?.Username)
             ? "A crewmate"
             : author.Username.Trim();
-        var mentionBody = context.FleetId.HasValue
-            ? "You were mentioned in fleet content."
-            : "You were mentioned in crew content.";
+        var mentionBody = NotificationPreview.BodyOrFallback(
+            context.Preview,
+            context.FleetId.HasValue
+                ? "You were mentioned in fleet content."
+                : "You were mentioned in crew content.");
 
         await notificationService.NotifyUsersAsync(
             notifyUserIds.Select(userId => new CreateNotificationRequest

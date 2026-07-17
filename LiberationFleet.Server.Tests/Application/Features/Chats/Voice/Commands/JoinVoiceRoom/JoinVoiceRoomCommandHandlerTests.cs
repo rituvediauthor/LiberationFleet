@@ -131,39 +131,59 @@ public class JoinVoiceRoomCommandHandlerTests
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.SetupGet(u => u.UserId).Returns(userId);
 
-        membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
-        membershipRepository
-            .Setup(r => r.IsUserInCrewAsync(userId, room.CrewId!.Value, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        if (membershipRepository is null)
+        {
+            membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+            membershipRepository
+                .Setup(r => r.IsUserInCrewAsync(userId, room.CrewId!.Value, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+        }
 
-        userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
-        var user = HandlerTestFixture.CreateUser();
-        user.Id = userId;
-        userRepository
-            .Setup(r => r.GetByIdWithProfileAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(user);
+        if (userRepository is null)
+        {
+            userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+            var user = HandlerTestFixture.CreateUser();
+            user.Id = userId;
+            userRepository
+                .Setup(r => r.GetByIdWithProfileAsync(userId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+        }
 
-        chatRepository ??= new Mock<IChatRepository>(MockBehavior.Strict);
-        chatRepository
-            .Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(room);
+        if (chatRepository is null)
+        {
+            chatRepository = new Mock<IChatRepository>(MockBehavior.Strict);
+            chatRepository
+                .Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(room);
+        }
 
-        voicePresenceRepository ??= new Mock<IVoicePresenceRepository>(MockBehavior.Strict);
-        voicePresenceRepository
-            .Setup(r => r.GetActiveByUserAndCrewAsync(userId, room.CrewId!.Value, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((VoiceParticipantSession?)null);
-        voicePresenceRepository
-            .Setup(r => r.AddAsync(It.IsAny<VoiceParticipantSession>(), It.IsAny<CancellationToken>()))
+        if (voicePresenceRepository is null)
+        {
+            voicePresenceRepository = new Mock<IVoicePresenceRepository>(MockBehavior.Strict);
+            voicePresenceRepository
+                .Setup(r => r.GetActiveByUserAndCrewAsync(userId, room.CrewId!.Value, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((VoiceParticipantSession?)null);
+            voicePresenceRepository
+                .Setup(r => r.AddAsync(It.IsAny<VoiceParticipantSession>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+        }
+
+        liveKitAdminService ??= new Mock<ILiveKitAdminService>(MockBehavior.Loose);
+        if (liveKitTokenService is null)
+        {
+            liveKitTokenService = new Mock<ILiveKitTokenService>(MockBehavior.Strict);
+            liveKitTokenService
+                .Setup(s => s.CreateRoomToken(userId.ToString(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns("livekit-token");
+            liveKitTokenService
+                .Setup(s => s.GetWebSocketUrl())
+                .Returns("ws://localhost:7880");
+        }
+
+        var notifier = new Mock<IVoicePresenceNotifier>(MockBehavior.Loose);
+        notifier
+            .Setup(n => n.NotifyPresenceUpdatedAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-
-        liveKitAdminService ??= new Mock<ILiveKitAdminService>(MockBehavior.Strict);
-        liveKitTokenService ??= new Mock<ILiveKitTokenService>(MockBehavior.Strict);
-        liveKitTokenService
-            .Setup(s => s.CreateRoomToken(userId.ToString(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns("livekit-token");
-        liveKitTokenService
-            .Setup(s => s.GetWebSocketUrl())
-            .Returns("ws://localhost:7880");
 
         return new JoinVoiceRoomCommandHandler(
             currentUser.Object,
@@ -173,6 +193,7 @@ public class JoinVoiceRoomCommandHandlerTests
             voicePresenceRepository.Object,
             liveKitTokenService.Object,
             liveKitAdminService.Object,
+            notifier.Object,
             HandlerTestFixture.CreateUnitOfWorkMock().Object);
     }
 }

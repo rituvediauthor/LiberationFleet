@@ -28,6 +28,7 @@ public class ChatMessageDto
 {
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
+    public string? AuthorAvatarResourceId { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }

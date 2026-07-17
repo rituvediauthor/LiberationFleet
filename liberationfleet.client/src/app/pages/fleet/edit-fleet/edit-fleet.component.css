@@ -151,6 +151,32 @@ label {
   color: var(--lf-color-text-body);
 }
 
+.entity-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.entity-image-preview img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--lf-color-border);
+  background: var(--lf-color-bg-muted);
+}
+
+.text-btn {
+  border: none;
+  background: none;
+  color: var(--lf-color-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
 .capacity-input-row {
   display: flex;
   align-items: center;

@@ -81,6 +81,7 @@ public class GetFriendsQueryHandler(
             {
                 UserId = friend.Id,
                 Username = friend.Username,
+                AvatarResourceId = friend.AvatarResourceId,
                 LastLoginAt = friend.LastLoginAt,
                 LastMessageAt = lastMessageAt,
                 IsMuted = mutedFriendIds.Contains(friendId)

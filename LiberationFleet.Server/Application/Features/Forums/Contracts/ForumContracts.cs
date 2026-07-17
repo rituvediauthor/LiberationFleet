@@ -7,6 +7,7 @@ public class ForumListItemDto
     public int Id { get; set; }
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
+    public string? AuthorAvatarResourceId { get; set; }
     public DateTime LastActivityAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
@@ -28,6 +29,7 @@ public class ForumCommentDto
     public int Id { get; set; }
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
+    public string? AuthorAvatarResourceId { get; set; }
     public int? ParentCommentId { get; set; }
     public int? ReplyToCommentId { get; set; }
     public string? ReplyToUsername { get; set; }
@@ -67,6 +69,7 @@ public class CreateForumPostRequest
     public int KeyVersion { get; set; } = 1;
     public bool IsAdultContent { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
+    public string? NotificationPreview { get; set; }
 }
 
 public class CreateFleetForumPostRequest
@@ -76,6 +79,7 @@ public class CreateFleetForumPostRequest
     public int KeyVersion { get; set; } = 1;
     public bool IsAdultContent { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
+    public string? NotificationPreview { get; set; }
 }
 
 public class UpdateForumPostRequest
@@ -101,6 +105,7 @@ public class CreateForumCommentRequest
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public List<int> MentionedUserIds { get; set; } = [];
+    public string? NotificationPreview { get; set; }
 }
 
 public class CreateFleetForumCommentRequest
@@ -110,6 +115,7 @@ public class CreateFleetForumCommentRequest
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public List<int> MentionedUserIds { get; set; } = [];
+    public string? NotificationPreview { get; set; }
 }
 
 public class UpdateForumCommentRequest

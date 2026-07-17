@@ -29,6 +29,34 @@
           </span>
         </div>
 
+        <section class="settings-section">
+          <h2 class="section-title">Fleet image</h2>
+          <p class="hint-text">One image shown on the fleet hub. Requires file attachment permission.</p>
+
+          <div class="entity-image-preview" *ngIf="displayImageUrl">
+            <img [src]="displayImageUrl" alt="Fleet image preview">
+            <button
+              type="button"
+              class="text-btn"
+              *ngIf="canAttachFiles"
+              (click)="clearImage()">
+              Remove
+            </button>
+          </div>
+
+          <app-proposal-attachment-picker
+            *ngIf="canAttachFiles"
+            [attachments]="imageAttachments"
+            [allowedKinds]="['image']"
+            [maxAttachments]="1"
+            [allowAudioRecording]="false"
+            (attachmentsChange)="onImageAttachmentsChange()">
+          </app-proposal-attachment-picker>
+          <p class="hint-text" *ngIf="!canAttachFiles">
+            You need fleet file attachment permission to change the fleet image.
+          </p>
+        </section>
+
         <div class="form-group">
           <label for="privacy">Fleet privacy</label>
           <select id="privacy" formControlName="privacy" class="form-input">

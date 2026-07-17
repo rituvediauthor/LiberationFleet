@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="isLoading ? undefined : createButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="isLoading ? null : createButton">
   <app-hub-loading *ngIf="isLoading" variant="fleet" label="Creating fleet..."></app-hub-loading>
 
   <div class="form-container" *ngIf="!isLoading">

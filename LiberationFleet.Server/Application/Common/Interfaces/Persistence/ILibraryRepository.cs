@@ -55,6 +55,7 @@ public interface ILibraryRepository
         int crewId,
         int creatorUserId,
         string? search,
+        IReadOnlyCollection<int> categoryIds,
         int limit,
         int offset,
         CancellationToken cancellationToken = default);

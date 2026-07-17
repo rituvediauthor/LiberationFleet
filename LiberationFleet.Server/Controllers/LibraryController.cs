@@ -99,10 +99,11 @@ public class LibraryController(IMediator mediator) : ControllerBase
     [HttpGet("offerings/mine")]
     public async Task<IActionResult> GetMyOfferings(
         [FromQuery] string? search,
+        [FromQuery] int[]? categoryIds,
         [FromQuery] int limit = 30,
         [FromQuery] int offset = 0)
     {
-        var result = await mediator.Send(new GetMyLibraryOfferingsQuery(search, limit, offset));
+        var result = await mediator.Send(new GetMyLibraryOfferingsQuery(search, categoryIds, limit, offset));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

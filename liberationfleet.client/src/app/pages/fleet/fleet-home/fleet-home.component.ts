@@ -10,7 +10,8 @@ import { HubLoadingComponent } from '../../../components/hub-loading/hub-loading
 import { FleetService } from '../../../services/fleet.service';
 import { NotificationService } from '../../../services/notification.service';
 import { NotificationHubService } from '../../../services/notification-hub.service';
-import { ToastService } from '../../../components/toast/toast.component';
+import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
+import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { FleetStatus } from '../../../models/fleet.model';
 import { NextAidInfo } from '../../../models/gift.model';
 import {
@@ -38,15 +39,21 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   libraryOfThingsEnabled = true;
   loading = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
+  fleetImageSrc: string | null = null;
 
   private router = inject(Router);
   private fleetService = inject(FleetService);
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
-  private toastService = inject(ToastService);
+  private cryptoSession = inject(CryptoSessionService);
+  private proposalCrypto = inject(ProposalCryptoService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
+    this.subscriptions.add(
+      this.cryptoSession.unlocked$.subscribe(() => void this.refreshFleetImage())
+    );
+
     this.fleetService.getStatus().subscribe({
       next: status => {
         if (status.hasFleet && status.needsRuleAcceptance) {
@@ -57,8 +64,9 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
         this.status = status;
         this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
         this.loading = false;
+        void this.refreshFleetImage();
 
-        if (status.hasFleet && status.allowCrossCrewGiving) {
+        if (status.hasFleet) {
           this.fleetService.getNextAid().subscribe({
             next: result => {
               if (result.success && result.nextAid) {
@@ -81,6 +89,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
       error: () => {
         this.loading = false;
         this.status = { hasFleet: false };
+        this.fleetImageSrc = null;
       }
     });
 
@@ -101,8 +110,19 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  get allowCrossCrewGiving(): boolean {
-    return !!this.status?.allowCrossCrewGiving;
+  private async refreshFleetImage() {
+    const fleetId = this.status?.fleetId;
+    const resourceId = this.status?.imageResourceId;
+    if (!fleetId || !resourceId || !this.cryptoSession.isUnlocked()) {
+      this.fleetImageSrc = null;
+      return;
+    }
+
+    this.fleetImageSrc = await this.proposalCrypto.decryptImageDataUrl(
+      { fleetId },
+      resourceId,
+      'ImageAsset'
+    );
   }
 
   get nextAidHeadline(): string {
@@ -161,18 +181,10 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   }
 
   goToGiftLog() {
-    if (!this.allowCrossCrewGiving) {
-      this.toastService.error('Your crew has disabled cross-crew giving');
-      return;
-    }
     this.router.navigate(['/app/fleet/gift-log']);
   }
 
   goToEmergencyRequests() {
-    if (!this.allowCrossCrewGiving) {
-      this.toastService.error('Your crew has disabled cross-crew giving');
-      return;
-    }
     this.router.navigate(['/app/fleet/emergency-requests']);
   }
 

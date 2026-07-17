@@ -29,7 +29,14 @@
 
             <span class="menu-icon-wrap">
 
-              <app-brand-logo class="menu-brand-logo" variant="crew" size="sm" alt=""></app-brand-logo>
+              <app-brand-logo
+                class="menu-brand-logo"
+                variant="crew"
+                size="sm"
+                alt=""
+                [customSrc]="crewImageSrc">
+              </app-brand-logo>
+              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
 
             </span>
 

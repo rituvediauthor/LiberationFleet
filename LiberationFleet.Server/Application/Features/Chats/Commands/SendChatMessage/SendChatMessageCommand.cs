@@ -137,7 +137,7 @@ public class SendChatMessageCommandHandler(
                         MutedContentType.ChatRoom,
                         room.Id,
                         "New chat message",
-                        "You have a new message in a fleet chat.",
+                        NotificationPreview.BodyOrFallback(request.Body, "You have a new message in a fleet chat."),
                         $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
                         relatedEntityId: room.Id,
                         excludeUserId: userId,
@@ -153,7 +153,8 @@ public class SendChatMessageCommandHandler(
                     ResourceId = message.Id,
                     ParentResourceId = room.Id,
                     ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
-                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+                    Preview = request.Body
                 }, cancellationToken);
             }
             else
@@ -166,7 +167,7 @@ public class SendChatMessageCommandHandler(
                     MutedContentType.ChatRoom,
                     room.Id,
                     "New chat message",
-                    "You have a new message in a crew chat.",
+                    NotificationPreview.BodyOrFallback(request.Body, "You have a new message in a crew chat."),
                     $"/app/crew/chats/{room.Id}",
                     relatedEntityId: room.Id,
                     excludeUserId: userId,
@@ -180,7 +181,8 @@ public class SendChatMessageCommandHandler(
                     ResourceId = message.Id,
                     ParentResourceId = room.Id,
                     ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
-                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+                    Preview = request.Body
                 }, cancellationToken);
             }
         }

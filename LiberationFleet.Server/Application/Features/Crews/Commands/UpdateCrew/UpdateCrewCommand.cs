@@ -1,8 +1,10 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -30,12 +32,15 @@ public record UpdateCrewCommand(
     decimal MinimumContributionForAttachments,
     int MinimumCrewmateTenureDaysForProposals,
     decimal MinimumContributionForProposals,
-    bool AllowCrossCrewGiving) : IRequest<CrewOperationResponse>;
+    bool AllowCrossCrewGiving,
+    string? ImageResourceId = null) : IRequest<CrewOperationResponse>;
 
 public class UpdateCrewCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     CrewSettingsProposalService crewSettingsProposalService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateCrewCommand, CrewOperationResponse>
@@ -66,10 +71,42 @@ public class UpdateCrewCommandHandler(
             return validationError;
         }
 
+        var imageResourceId = CrewSettingsChangeDetector.NormalizeResourceId(request.ImageResourceId);
+        if (imageResourceId.Length > 64)
+        {
+            return new CrewOperationResponse { Success = false, Message = "Crew image resource id is too long." };
+        }
+
         var changes = CrewSettingsChangeDetector.DetectChanges(crew, request, privacy, scope);
         if (changes.Count == 0)
         {
             return new CrewOperationResponse { Success = false, Message = "No changes to save." };
+        }
+
+        if (changes.Any(c => c.Field == CrewSettingField.ImageResourceId))
+        {
+            var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+                currentUser.UserId.Value,
+                membership.CrewId,
+                crew.CurrentSeasonStartDate,
+                cancellationToken);
+            var tenureDays = await contentTenureService.GetCrewTenureDaysAsync(
+                currentUser.UserId.Value,
+                membership.CrewId,
+                cancellationToken);
+
+            if (!CrewContentPermissionService.CanAttachFilesToCrewContent(
+                    crew,
+                    membership,
+                    giftStats.LifetimeContributions,
+                    tenureDays))
+            {
+                return new CrewOperationResponse
+                {
+                    Success = false,
+                    Message = "You are not allowed to change the crew image."
+                };
+            }
         }
 
         if (crew.RequireApprovalForEdits)
@@ -97,11 +134,14 @@ public class UpdateCrewCommandHandler(
         CrewSettingsProposalService.ApplyDirectUpdate(crew, request, privacy, scope);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var preview = string.Join(
+            " ",
+            changes.Select(c => CrewSettingsChangeDescriber.BuildDescription(c)));
         await notificationService.NotifyCrewAsync(
             membership.CrewId,
             NotificationKind.CrewSettingChanged,
             "Crew setting changed",
-            "Crew settings were updated.",
+            NotificationPreview.BodyOrFallback(preview, "Crew settings were updated."),
             "/app/crew/edit",
             excludeUserId: currentUser.UserId.Value,
             cancellationToken: cancellationToken);

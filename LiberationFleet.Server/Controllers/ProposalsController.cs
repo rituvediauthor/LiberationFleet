@@ -68,11 +68,19 @@ public class ProposalsController : ControllerBase
                 body.Nonce,
                 body.Ciphertext,
                 body.KeyVersion,
-                body.MentionedUserIds));
+                body.MentionedUserIds,
+                body.Title,
+                body.Description));
             return fleetResult.Success ? Ok(fleetResult) : BadRequest(fleetResult);
         }
 
-        var result = await _mediator.Send(new CreateProposalCommand(body.Nonce, body.Ciphertext, body.KeyVersion, body.MentionedUserIds));
+        var result = await _mediator.Send(new CreateProposalCommand(
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
+            body.MentionedUserIds,
+            body.Title,
+            body.Description));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

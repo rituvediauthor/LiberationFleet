@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="isSubmitting ? undefined : primaryButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="isSubmitting ? null : primaryButton">
   <app-hub-loading *ngIf="isSubmitting" variant="crew" label="Submitting join request..."></app-hub-loading>
 
   <div class="form-container" *ngIf="!isSubmitting">

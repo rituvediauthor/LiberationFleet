@@ -6,17 +6,28 @@ import { NavigationService } from '../../../services/navigation.service';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
+import { LibraryCategoryPickerComponent } from '../../../components/library-category-picker/library-category-picker.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
-import { LibraryOfferingListItem, LibraryUnitListItem } from '../../../models/library.model';
+import {
+  LibraryCategory,
+  LibraryOfferingListItem,
+  LibraryUnitListItem
+} from '../../../models/library.model';
 
 @Component({
   selector: 'app-library-my-offerings',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent, LibraryItemCardComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    PageLayoutComponent,
+    LibraryItemCardComponent,
+    LibraryCategoryPickerComponent
+  ],
   templateUrl: './library-my-offerings.component.html',
   styleUrl: './library-my-offerings.component.css'
 })
@@ -25,11 +36,14 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
 
   backButton!: ActionBarButton;
   displayItems: { offering: LibraryOfferingListItem; card: LibraryUnitListItem }[] = [];
+  categories: LibraryCategory[] = [];
+  selectedCategoryIds: number[] = [];
   searchQuery = '';
   loading = true;
   loadingMore = false;
   hasMore = false;
   errorMessage = '';
+  showFilters = false;
   crewId = 0;
 
   private readonly pageSize = 30;
@@ -62,6 +76,15 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
       }
     });
 
+    this.libraryService.getCategories({ inUseOnly: true }).subscribe({
+      next: categories => {
+        this.categories = categories;
+      },
+      error: () => {
+        this.toastService.error('Failed to load categories');
+      }
+    });
+
     this.searchChanges$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.loadItems(true));
@@ -79,6 +102,15 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
 
   onSearchChange() {
     this.searchChanges$.next(this.searchQuery);
+  }
+
+  toggleFilters() {
+    this.showFilters = !this.showFilters;
+  }
+
+  onCategoriesChange(categoryIds: number[]) {
+    this.selectedCategoryIds = categoryIds;
+    this.loadItems(true);
   }
 
   openItem(item: LibraryOfferingListItem) {
@@ -142,6 +174,7 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
 
     this.libraryService.getMyOfferings({
       search: this.searchQuery,
+      categoryIds: [...this.selectedCategoryIds],
       limit: this.pageSize,
       offset: reset ? 0 : this.loadedOfferings.length
     }).subscribe({
@@ -169,7 +202,6 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
     this.loadedOfferings = items;
     this.hasMore = page.hasMore;
 
-    // Render rows immediately with basic (un-decrypted) cards so the list appears fast.
     const newRows = page.items.map(offering => ({
       offering,
       card: this.buildBasicCard(offering)
@@ -180,7 +212,6 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
     this.loadingMore = false;
     setTimeout(() => this.setupLoadMoreObserver(), 0);
 
-    // Decrypt/enrich in the background, then patch the already-visible rows.
     void this.enrichRows(newRows);
   }
 

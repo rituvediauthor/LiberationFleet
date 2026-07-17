@@ -23,7 +23,8 @@ public class FleetKickCrewProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
     ICrewRepository crewRepository,
-    ContentTenureService contentTenureService)
+    ContentTenureService contentTenureService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<FleetKickCrewResult> CreateAsync(
         int fleetId,
@@ -71,6 +72,25 @@ public class FleetKickCrewProposalService(
                 ? $"Proposal to remove {targetCrew.Name} from the fleet."
                 : $"Proposal to remove {targetCrew.Name} from the fleet. Reason: {reason.Trim()}"
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return FleetKickCrewResult.Succeeded(proposal.Id, "Kick proposal submitted.");
     }

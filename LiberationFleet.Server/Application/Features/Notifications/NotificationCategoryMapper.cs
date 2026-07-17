@@ -12,7 +12,6 @@ public static class NotificationCategoryMapper
         NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
             => NotificationFilterCategory.Proposals,
         NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited
-            or NotificationKind.CrewSettingChanged
             => NotificationFilterCategory.Rules,
         _ => null
     };
@@ -38,8 +37,7 @@ public static class NotificationCategoryMapper
         [
             NotificationKind.NewRule,
             NotificationKind.RuleDeleted,
-            NotificationKind.RuleEdited,
-            NotificationKind.CrewSettingChanged
+            NotificationKind.RuleEdited
         ],
         _ => Array.Empty<NotificationKind>()
     };

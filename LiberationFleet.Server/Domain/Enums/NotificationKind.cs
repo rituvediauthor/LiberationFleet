@@ -33,5 +33,7 @@ public enum NotificationKind
     NewFleetGifts = 31,
     NewFleetProposal = 32,
     FleetSettingChanged = 33,
-    NewFleetChatMessage = 34
+    NewFleetChatMessage = 34,
+    NewFleetForumPost = 35,
+    NewFleetForumComment = 36
 }

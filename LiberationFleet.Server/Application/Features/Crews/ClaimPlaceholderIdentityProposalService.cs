@@ -21,10 +21,12 @@ public sealed class ClaimPlaceholderIdentityProposalResult
 
 public class ClaimPlaceholderIdentityProposalService(
     IProposalRepository proposalRepository,
+    IFleetRepository fleetRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     PlaceholderCrewmateService placeholderCrewmateService,
-    NotificationService notificationService)
+    NotificationService notificationService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<ClaimPlaceholderIdentityProposalResult> CreateProposalAsync(
         int crewId,
@@ -94,6 +96,25 @@ public class ClaimPlaceholderIdentityProposalService(
                 $"{placeholderUser.Username} was added as a non-member without an account. " +
                 "Approval will transfer their reception history to the claimant's account and remove the placeholder profile."
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyCrewAsync(
             crewId,

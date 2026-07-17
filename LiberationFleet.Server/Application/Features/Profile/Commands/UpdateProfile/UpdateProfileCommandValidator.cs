@@ -25,6 +25,10 @@ public class UpdateProfileCommandValidator : AbstractValidator<UpdateProfileComm
         RuleFor(x => x.DisabilityLevel)
             .InclusiveBetween(0, 3).WithMessage("Disability level must be between 0 and 3");
 
+        RuleFor(x => x.AvatarResourceId)
+            .MaximumLength(64)
+            .When(x => !string.IsNullOrWhiteSpace(x.AvatarResourceId));
+
         RuleForEach(x => x.PaymentPlatforms).ChildRules(platform =>
         {
             platform.RuleFor(p => p.PlatformId)

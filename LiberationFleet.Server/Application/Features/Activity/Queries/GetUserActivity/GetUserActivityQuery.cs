@@ -15,6 +15,7 @@ public record GetUserActivityQuery(
 public class GetUserActivityQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IUserActivityRepository activityRepository) : IRequestHandler<GetUserActivityQuery, UserActivityListResponse>
 {
     public async Task<UserActivityListResponse> Handle(GetUserActivityQuery request, CancellationToken cancellationToken)
@@ -40,11 +41,20 @@ public class GetUserActivityQueryHandler(
         var page = hasMore ? records.Take(limit).ToList() : records;
 
         var accessibleCrewIds = new HashSet<int>();
-        foreach (var crewId in page.Select(item => item.CrewId).Distinct())
+        foreach (var crewId in page.Select(item => item.CrewId).Where(id => id > 0).Distinct())
         {
             if (await membershipRepository.IsUserInCrewAsync(userId, crewId, cancellationToken))
             {
                 accessibleCrewIds.Add(crewId);
+            }
+        }
+
+        var accessibleFleetIds = new HashSet<int>();
+        foreach (var fleetId in page.Select(item => item.FleetId).Where(id => id.HasValue && id.Value > 0).Select(id => id!.Value).Distinct())
+        {
+            if (await fleetRepository.IsUserInFleetAsync(userId, fleetId, cancellationToken))
+            {
+                accessibleFleetIds.Add(fleetId);
             }
         }
 
@@ -67,7 +77,9 @@ public class GetUserActivityQueryHandler(
                 RelatedUserId = record.RelatedUserId,
                 ChatRoomType = record.ChatRoomType,
                 LibraryUnitId = record.LibraryUnitId,
-                IsAccessible = record.ResourceExists && accessibleCrewIds.Contains(record.CrewId),
+                IsAccessible = record.ResourceExists && (
+                    (record.CrewId > 0 && accessibleCrewIds.Contains(record.CrewId))
+                    || (record.FleetId is int fleetId && accessibleFleetIds.Contains(fleetId))),
                 PreviewContentType = record.PreviewContentType?.ToString(),
                 ThumbnailResourceId = record.ThumbnailResourceId,
                 PlaintextPreview = string.IsNullOrWhiteSpace(record.PlaintextPreview) ? null : record.PlaintextPreview

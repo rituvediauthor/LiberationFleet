@@ -9,11 +9,13 @@ import { ReportContentDialogComponent } from '../../../components/report-content
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { CrewmateProfile } from '../../../models/crewmate.model';
+import { CrewService } from '../../../services/crew.service';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent, ReportContentDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent, ReportContentDialogComponent, UserAvatarComponent],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'
 })
@@ -27,6 +29,7 @@ export class CrewmateDetailComponent implements OnInit {
   showKickFromSeasonDialog = false;
   showReportDialog = false;
   selectedRoles = new Set<string>();
+  crewId = 0;
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
@@ -36,6 +39,7 @@ export class CrewmateDetailComponent implements OnInit {
 
   private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
+  private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   userId = 0;
 
@@ -48,6 +52,12 @@ export class CrewmateDetailComponent implements OnInit {
       this.errorMessage = 'Invalid crewmate.';
       return;
     }
+
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+      }
+    });
 
     this.loadProfile();
   }

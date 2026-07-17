@@ -39,6 +39,22 @@ h2 {
   margin: 0 0 16px;
 }
 
+.avatar-section .avatar-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.avatar-preview img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--lf-color-border);
+  background: var(--lf-color-bg-muted);
+}
+
 .form-group {
   margin-bottom: 20px;
   display: flex;

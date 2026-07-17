@@ -273,7 +273,8 @@ export class FleetService {
       ciphertext: body.ciphertext,
       keyVersion: body.keyVersion ?? 1,
       isAdultContent: body.isAdultContent ?? false,
-      mentionedUserIds: body.mentionedUserIds ?? []
+      mentionedUserIds: body.mentionedUserIds ?? [],
+      notificationPreview: body.notificationPreview ?? null
     });
   }
 
@@ -296,7 +297,8 @@ export class FleetService {
       nonce: body.nonce,
       ciphertext: body.ciphertext,
       keyVersion: body.keyVersion ?? 1,
-      mentionedUserIds: body.mentionedUserIds ?? []
+      mentionedUserIds: body.mentionedUserIds ?? [],
+      notificationPreview: body.notificationPreview ?? null
     });
   }
 

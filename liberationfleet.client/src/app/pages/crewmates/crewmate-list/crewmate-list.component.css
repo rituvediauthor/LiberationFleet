@@ -73,6 +73,14 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--lf-color-text-primary);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.crewmate-avatar {
+  flex-shrink: 0;
 }
 
 .non-member-badge {

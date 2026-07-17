@@ -23,6 +23,14 @@
         (click)="openCrewmate(crewmate)">
         <div class="crewmate-main">
           <p class="crewmate-name">
+            <app-user-avatar
+              class="crewmate-avatar"
+              [resourceId]="crewmate.avatarResourceId"
+              [crewId]="crewId || null"
+              [fallbackInitial]="crewmate.username"
+              size="sm"
+              [alt]="crewmate.username + ' avatar'">
+            </app-user-avatar>
             {{ crewmate.username }}
             <span class="in-season-badge" *ngIf="crewmate.isInSeason">In season</span>
             <span class="non-member-badge" *ngIf="crewmate.isPlaceholderMember">Placeholder</span>

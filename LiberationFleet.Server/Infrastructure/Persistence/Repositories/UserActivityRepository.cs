@@ -105,7 +105,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 Detail = room.RoomType == ChatRoomType.Voice ? "Voice chat" : "Text chat",
                 PlaintextPreview = Truncate(string.IsNullOrWhiteSpace(room.Purpose) ? room.Name : room.Purpose, 120),
                 CreatedAt = room.CreatedAt,
-                CrewId = room.CrewId!.Value,
+                CrewId = room.CrewId ?? 0,
+                FleetId = room.FleetId,
                 ResourceId = room.Id,
                 ChatRoomType = room.RoomType,
                 ResourceExists = true
@@ -140,6 +141,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 PreviewContentType = EncryptedContentType.ChatRoomMessage,
                 CreatedAt = pair.message.CreatedAt,
                 CrewId = pair.room.CrewId ?? 0,
+                FleetId = pair.room.FleetId,
                 ResourceId = pair.message.Id,
                 ParentResourceId = pair.room.Id,
                 ChatRoomType = pair.room.RoomType,
@@ -177,6 +179,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 PreviewContentType = EncryptedContentType.ForumPost,
                 CreatedAt = post.CreatedAt,
                 CrewId = post.CrewId ?? 0,
+                FleetId = post.FleetId,
                 ResourceId = post.Id,
                 ResourceExists = true
             })
@@ -209,6 +212,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
                 PreviewContentType = EncryptedContentType.ForumComment,
                 CreatedAt = pair.comment.CreatedAt,
                 CrewId = pair.post.CrewId ?? 0,
+                FleetId = pair.post.FleetId,
                 ResourceId = pair.comment.Id,
                 ParentResourceId = pair.post.Id,
                 ResourceExists = true
@@ -474,7 +478,8 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
             PlaintextPreview = Truncate(ResolveProposalTitle(proposal), 120),
             PreviewContentType = EncryptedContentType.Proposal,
             CreatedAt = proposal.CreatedAt,
-            CrewId = proposal.CrewId!.Value,
+            CrewId = proposal.CrewId ?? 0,
+            FleetId = proposal.FleetId,
             ResourceId = proposal.Id,
             ResourceExists = true
         }).ToList();
@@ -510,6 +515,7 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
             PreviewContentType = EncryptedContentType.ProposalComment,
             CreatedAt = pair.comment.CreatedAt,
             CrewId = pair.proposal.CrewId ?? 0,
+            FleetId = pair.proposal.FleetId,
             ResourceId = pair.comment.Id,
             ParentResourceId = pair.proposal.Id,
             ResourceExists = true

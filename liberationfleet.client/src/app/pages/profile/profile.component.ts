@@ -6,13 +6,16 @@ import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
+import { ProposalAttachmentPickerComponent } from '../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
+import { PendingAttachment } from '../../models/proposal.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
@@ -21,7 +24,16 @@ import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, PageLayoutComponent, RecoveryKeyDisplayComponent, PaymentPlatformEditorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterLink,
+    PageLayoutComponent,
+    RecoveryKeyDisplayComponent,
+    PaymentPlatformEditorComponent,
+    ProposalAttachmentPickerComponent
+  ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -39,8 +51,13 @@ export class ProfileComponent implements OnInit {
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
   rotatingRecoveryKey = false;
+  crewId = 0;
+  avatarAttachments: PendingAttachment[] = [];
+  avatarResourceId: string | null = null;
+  avatarPreviewUrl: string | null = null;
   private initialFormValues: unknown = null;
   private initialPaymentPlatforms: PaymentPlatformSnapshot[] = [];
+  private initialAvatarResourceId: string | null = null;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -50,6 +67,7 @@ export class ProfileComponent implements OnInit {
   private profileService = inject(ProfileService);
   private crewService = inject(CrewService);
   private cryptoSession = inject(CryptoSessionService);
+  private proposalCrypto = inject(ProposalCryptoService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -61,14 +79,42 @@ export class ProfileComponent implements OnInit {
       label: 'Save',
       type: 'primary',
       disabled: true,
-      onClick: () => this.onSave()
+      onClick: () => void this.onSave()
     };
+
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+        void this.refreshAvatarPreview();
+      }
+    });
 
     this.loadProfile();
     void this.loadEncryptionStatus();
     this.cryptoSession.unlocked$.subscribe(unlocked => {
       this.encryptionUnlocked = unlocked;
+      void this.refreshAvatarPreview();
+      this.updateSaveButton();
     });
+  }
+
+  get canEditAvatar(): boolean {
+    return this.crewId > 0 && this.encryptionUnlocked;
+  }
+
+  get displayAvatarUrl(): string | null {
+    return this.avatarAttachments[0]?.previewUrl ?? this.avatarPreviewUrl;
+  }
+
+  clearAvatar() {
+    this.avatarAttachments = [];
+    this.avatarResourceId = null;
+    this.avatarPreviewUrl = null;
+    this.updateSaveButton();
+  }
+
+  onAvatarAttachmentsChange() {
+    this.updateSaveButton();
   }
 
   async startRecoveryKeyRotation() {
@@ -141,7 +187,7 @@ export class ProfileComponent implements OnInit {
     this.router.navigate(['/sign-in']);
   }
 
-  onSave() {
+  async onSave() {
     if (!this.profile || !this.form || this.form.invalid || this.isSaving) {
       return;
     }
@@ -152,54 +198,85 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
+    if (this.avatarAttachments.length > 0 && !this.canEditAvatar) {
+      this.toastService.error(
+        this.crewId > 0
+          ? 'Unlock encryption before uploading an avatar.'
+          : 'Join a crew to upload a profile avatar.'
+      );
+      return;
+    }
+
     this.isSaving = true;
     this.updateSaveButton();
 
-    const v = this.form.getRawValue();
-    const payload = {
-      username: String(v.username).trim(),
-      email: String(v.email).trim(),
-      inNeedOfAid: !!v.inNeedOfAid,
-      emergencyLevel: Number(v.emergencyLevel),
-      peopleRepresentedCount: Number(v.peopleRepresentedCount),
-      disabilityLevel: Number(v.disabilityLevel),
-      needsSurvivalAid: !!v.needsSurvivalAid,
-      paymentPlatforms: this.getPaymentPlatformsForSave()
-    };
-
-    this.profileService.updateProfile(payload).subscribe({
-      next: (result) => {
-        if (result.success && result.profile) {
-          this.profile = result.profile;
-          this.loadPlatformOptions();
-          this.form.patchValue({
-            username: result.profile.username,
-            email: result.profile.email,
-            inNeedOfAid: result.profile.inNeedOfAid,
-            emergencyLevel: result.profile.emergencyLevel,
-            peopleRepresentedCount: result.profile.peopleRepresentedCount,
-            disabilityLevel: result.profile.disabilityLevel,
-            needsSurvivalAid: result.profile.needsSurvivalAid
-          });
-          this.captureInitialState();
-          this.authService.updateCurrentUser({
-            id: result.profile.id,
-            username: result.profile.username,
-            email: result.profile.email
-          });
-          this.toastService.success(result.message);
-        } else {
-          this.toastService.error(result.message || 'Failed to save profile');
-        }
-        this.isSaving = false;
-        this.updateSaveButton();
-      },
-      error: (error) => {
-        this.toastService.error(this.extractErrorMessage(error));
-        this.isSaving = false;
-        this.updateSaveButton();
+    try {
+      let avatarResourceId = this.avatarResourceId;
+      if (this.avatarAttachments.length > 0) {
+        avatarResourceId = await this.proposalCrypto.uploadImageAttachment(
+          { crewId: this.crewId },
+          this.avatarAttachments[0],
+          'ProfileAvatar'
+        );
+        this.avatarResourceId = avatarResourceId;
+        this.avatarPreviewUrl = this.avatarAttachments[0].previewUrl ?? this.avatarPreviewUrl;
+        this.avatarAttachments = [];
       }
-    });
+
+      const v = this.form.getRawValue();
+      const payload = {
+        username: String(v.username).trim(),
+        email: String(v.email).trim(),
+        avatarResourceId,
+        inNeedOfAid: !!v.inNeedOfAid,
+        emergencyLevel: Number(v.emergencyLevel),
+        peopleRepresentedCount: Number(v.peopleRepresentedCount),
+        disabilityLevel: Number(v.disabilityLevel),
+        needsSurvivalAid: !!v.needsSurvivalAid,
+        paymentPlatforms: this.getPaymentPlatformsForSave()
+      };
+
+      this.profileService.updateProfile(payload).subscribe({
+        next: (result) => {
+          if (result.success && result.profile) {
+            this.profile = result.profile;
+            this.avatarResourceId = result.profile.avatarResourceId ?? null;
+            this.loadPlatformOptions();
+            this.form.patchValue({
+              username: result.profile.username,
+              email: result.profile.email,
+              inNeedOfAid: result.profile.inNeedOfAid,
+              emergencyLevel: result.profile.emergencyLevel,
+              peopleRepresentedCount: result.profile.peopleRepresentedCount,
+              disabilityLevel: result.profile.disabilityLevel,
+              needsSurvivalAid: result.profile.needsSurvivalAid
+            });
+            this.captureInitialState();
+            void this.refreshAvatarPreview();
+            this.authService.updateCurrentUser({
+              id: result.profile.id,
+              username: result.profile.username,
+              email: result.profile.email
+            });
+            this.toastService.success(result.message);
+          } else {
+            this.toastService.error(result.message || 'Failed to save profile');
+          }
+          this.isSaving = false;
+          this.updateSaveButton();
+        },
+        error: (error) => {
+          this.toastService.error(this.extractErrorMessage(error));
+          this.isSaving = false;
+          this.updateSaveButton();
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to upload avatar';
+      this.toastService.error(message);
+      this.isSaving = false;
+      this.updateSaveButton();
+    }
   }
 
   onPaymentPlatformChange() {
@@ -223,6 +300,7 @@ export class ProfileComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: (profile) => {
         this.profile = profile;
+        this.avatarResourceId = profile.avatarResourceId ?? null;
         this.syncPlatformOptions();
         this.authService.updateCurrentUser({
           id: profile.id,
@@ -231,6 +309,7 @@ export class ProfileComponent implements OnInit {
         });
         this.buildForm(profile);
         this.captureInitialState();
+        void this.refreshAvatarPreview();
         this.isLoading = false;
         this.updateSaveButton();
       },
@@ -240,6 +319,21 @@ export class ProfileComponent implements OnInit {
         this.updateSaveButton();
       }
     });
+  }
+
+  private async refreshAvatarPreview() {
+    if (!this.avatarResourceId || !this.crewId || !this.encryptionUnlocked) {
+      if (!this.avatarAttachments.length) {
+        this.avatarPreviewUrl = null;
+      }
+      return;
+    }
+
+    this.avatarPreviewUrl = await this.proposalCrypto.decryptImageDataUrl(
+      { crewId: this.crewId },
+      this.avatarResourceId,
+      'ProfileAvatar'
+    );
   }
 
   private loadPlatformOptions() {
@@ -283,7 +377,7 @@ export class ProfileComponent implements OnInit {
       label: 'Save',
       type: 'primary',
       disabled,
-      onClick: () => this.onSave()
+      onClick: () => void this.onSave()
     };
   }
 
@@ -294,6 +388,7 @@ export class ProfileComponent implements OnInit {
 
     this.initialFormValues = this.form.getRawValue();
     this.initialPaymentPlatforms = this.serializePlatforms(this.profile.paymentPlatforms);
+    this.initialAvatarResourceId = this.avatarResourceId;
   }
 
   private hasProfileChanges(): boolean {
@@ -306,7 +401,9 @@ export class ProfileComponent implements OnInit {
       this.serializePlatforms(this.profile.paymentPlatforms),
       this.initialPaymentPlatforms
     );
-    return formChanged || platformsChanged;
+    const avatarChanged = this.avatarAttachments.length > 0
+      || (this.avatarResourceId ?? null) !== (this.initialAvatarResourceId ?? null);
+    return formChanged || platformsChanged || avatarChanged;
   }
 
   private serializePlatforms(platforms: PaymentPlatformAccount[]): PaymentPlatformSnapshot[] {

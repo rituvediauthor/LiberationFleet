@@ -33,6 +33,8 @@ services:
       - "50000-50100:50000-50100/udp"
     volumes:
       - ./infrastructure/livekit.yaml:/etc/livekit.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   coturn:
@@ -49,6 +51,8 @@ services:
       - --realm=liberationfleet.local
       - --user=livekit:livekitturn
       - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
     restart: unless-stopped
 
 volumes:

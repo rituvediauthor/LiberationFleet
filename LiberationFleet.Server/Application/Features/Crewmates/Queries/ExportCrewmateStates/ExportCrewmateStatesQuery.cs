@@ -76,7 +76,7 @@ public class ExportCrewmateStatesQueryHandler(
                 EmergencyLevel = user.EmergencyLevel,
                 PeopleRepresentedCount = user.PeopleRepresentedCount,
                 DisabilityLevel = user.DisabilityLevel,
-                SacrificeCountLastSeason = giftStats.SacrificeCountLastSeason,
+                SacrificeCountLastSeason = member.EmergencySacrificesThisSeason,
                 IsSurvivalThresholdRecipient = isSurvivalRecipient,
                 EstimatedMonthlyContribution = member.EstimatedMonthlyContribution,
                 PaymentPlatforms = CrewmateMapper.MapPaymentPlatforms(user),

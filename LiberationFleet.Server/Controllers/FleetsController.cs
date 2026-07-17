@@ -160,7 +160,8 @@ public class FleetsController : ControllerBase
             body.MinimumCrewmateTenureDaysForAttachments,
             body.MinimumContributionForAttachments,
             body.MinimumCrewmateTenureDaysForProposals,
-            body.MinimumContributionForProposals));
+            body.MinimumContributionForProposals,
+            body.ImageResourceId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -178,21 +179,21 @@ public class FleetsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
-    [HttpGet("crews/{crewId:int}")]
+    [HttpGet("current/crews/{crewId:int}")]
     public async Task<IActionResult> GetCrewDetail(int crewId)
     {
         var result = await _mediator.Send(new GetFleetCrewDetailQuery(crewId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
-    [HttpPost("crews/{crewId:int}/kick")]
+    [HttpPost("current/crews/{crewId:int}/kick")]
     public async Task<IActionResult> ProposeKickCrew(int crewId, [FromBody] ProposeFleetKickCrewBody? body)
     {
         var result = await _mediator.Send(new ProposeFleetKickCrewCommand(crewId, body?.Reason));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
-    [HttpPost("crews/{crewId:int}/join")]
+    [HttpPost("current/crews/{crewId:int}/join")]
     public async Task<IActionResult> JoinCrew(int crewId, [FromBody] SubmitJoinRequestBody? body)
     {
         var result = await _mediator.Send(new SubmitJoinRequestCommand(
@@ -378,7 +379,8 @@ public class FleetsController : ControllerBase
             body.Ciphertext,
             body.KeyVersion,
             body.IsAdultContent,
-            body.MentionedUserIds));
+            body.MentionedUserIds,
+            body.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -410,7 +412,8 @@ public class FleetsController : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion,
-            body.MentionedUserIds));
+            body.MentionedUserIds,
+            body.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -22,9 +22,11 @@ public sealed class CrewmateRejoinProposalResult
 
 public class CrewmateRejoinProposalService(
     IProposalRepository proposalRepository,
+    IFleetRepository fleetRepository,
     ICrewMembershipRepository membershipRepository,
     NotificationService notificationService,
-    ContentTenureService contentTenureService)
+    ContentTenureService contentTenureService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<CrewmateRejoinProposalResult> CreateProposalAsync(
         int crewId,
@@ -71,6 +73,25 @@ public class CrewmateRejoinProposalService(
             Description =
                 $"Allow {username} to find and join the crew again. Approval removes the kick ban but does not restore membership automatically."
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyCrewAsync(
             crewId,

@@ -1,6 +1,8 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -18,12 +20,15 @@ public record UpdateFleetCommand(
     int MinimumCrewmateTenureDaysForAttachments,
     decimal MinimumContributionForAttachments,
     int MinimumCrewmateTenureDaysForProposals,
-    decimal MinimumContributionForProposals) : IRequest<FleetOperationResponse>;
+    decimal MinimumContributionForProposals,
+    string? ImageResourceId = null) : IRequest<FleetOperationResponse>;
 
 public class UpdateFleetCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     FleetSettingsProposalService fleetSettingsProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateFleetCommand, FleetOperationResponse>
 {
@@ -70,10 +75,42 @@ public class UpdateFleetCommandHandler(
             };
         }
 
+        var imageResourceId = FleetSettingsChangeDetector.NormalizeResourceId(request.ImageResourceId);
+        if (imageResourceId.Length > 64)
+        {
+            return new FleetOperationResponse { Success = false, Message = "Fleet image resource id is too long." };
+        }
+
         var changes = FleetSettingsChangeDetector.DetectChanges(fleet, request, privacy, scope);
         if (changes.Count == 0)
         {
             return new FleetOperationResponse { Success = false, Message = "No changes to save." };
+        }
+
+        if (changes.Any(c => c.Field == FleetSettingField.ImageResourceId))
+        {
+            var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+                currentUser.UserId.Value,
+                membership.CrewId,
+                membership.Crew?.CurrentSeasonStartDate,
+                cancellationToken);
+            var tenureDays = await contentTenureService.GetFleetTenureDaysAsync(
+                currentUser.UserId.Value,
+                fleet.Id,
+                cancellationToken);
+
+            if (!FleetContentPermissionService.CanAttachFilesToFleetContent(
+                    fleet,
+                    membership,
+                    giftStats.LifetimeContributions,
+                    tenureDays))
+            {
+                return new FleetOperationResponse
+                {
+                    Success = false,
+                    Message = "You are not allowed to change the fleet image."
+                };
+            }
         }
 
         var crewCount = (await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken)).Count;
@@ -102,10 +139,14 @@ public class UpdateFleetCommandHandler(
         FleetSettingsProposalService.ApplyDirectUpdate(fleet, request, privacy, scope);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var preview = string.Join(
+            " ",
+            changes.Select(c => FleetSettingsChangeDescriber.BuildDescription(c)));
         await fleetSettingsProposalService.NotifyFleetSettingChangedAsync(
             fleet.Id,
             currentUser.UserId.Value,
-            cancellationToken);
+            cancellationToken,
+            preview);
 
         return new FleetOperationResponse
         {

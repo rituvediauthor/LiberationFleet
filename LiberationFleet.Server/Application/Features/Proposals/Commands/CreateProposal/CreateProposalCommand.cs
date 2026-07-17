@@ -15,7 +15,9 @@ public record CreateProposalCommand(
     string Nonce,
     string Ciphertext,
     int KeyVersion,
-    IReadOnlyList<int> MentionedUserIds) : IRequest<ProposalOperationResponse>;
+    IReadOnlyList<int> MentionedUserIds,
+    string? Title = null,
+    string? Description = null) : IRequest<ProposalOperationResponse>;
 
 public class CreateProposalCommandHandler(
     ICurrentUserService currentUser,
@@ -23,6 +25,7 @@ public class CreateProposalCommandHandler(
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IProposalRepository proposalRepository,
+    IFleetRepository fleetRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
@@ -105,11 +108,24 @@ public class CreateProposalCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         await notificationService.NotifyCrewAsync(
             membership.CrewId,
             NotificationKind.NewProposal,
             "New proposal",
-            "A new crew proposal was submitted.",
+            NotificationPreview.BodyOrFallback(request.Description, "A new crew proposal was submitted."),
             $"/app/crew/proposals/{proposal.Id}",
             relatedEntityId: proposal.Id,
             excludeUserId: userId,
@@ -122,7 +138,8 @@ public class CreateProposalCommandHandler(
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
             ActionUrl = $"/app/crew/proposals/{proposal.Id}",
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            Preview = request.Description
         }, cancellationToken);
 
         return new ProposalOperationResponse

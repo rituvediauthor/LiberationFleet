@@ -118,9 +118,19 @@ export class VoiceLiveKitService {
       return this.localMuted;
     }
 
-    await this.room.localParticipant.setMicrophoneEnabled(!muted, this.buildAudioCaptureOptions());
-    this.localMuted = muted;
-    return this.localMuted;
+    try {
+      await this.room.localParticipant.setMicrophoneEnabled(!muted, this.buildAudioCaptureOptions());
+      this.localMuted = muted;
+      return this.localMuted;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Microphone permission denied';
+      this.connectionState$.next({
+        connected: this.room.state === ConnectionState.Connected,
+        reconnecting: false,
+        error: message
+      });
+      throw error;
+    }
   }
 
   async setDeafened(deafened: boolean): Promise<boolean> {

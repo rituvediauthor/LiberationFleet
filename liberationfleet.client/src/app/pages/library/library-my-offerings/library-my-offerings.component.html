@@ -7,10 +7,28 @@
       (ngModelChange)="onSearchChange()"
       placeholder="Search your offerings..."
       aria-label="Search your offerings" />
+    <button
+      type="button"
+      class="filter-btn"
+      [class.active]="showFilters"
+      (click)="toggleFilters()">
+      <i class="fa-solid fa-filter" aria-hidden="true"></i>
+      Filters
+    </button>
   </div>
 
   <div class="my-offerings-page">
     <h1 class="page-title">My Offerings</h1>
+
+    <div class="filter-panel" *ngIf="showFilters">
+      <p class="filter-label">Categories</p>
+      <app-library-category-picker
+        [categories]="categories"
+        [selectedIds]="selectedCategoryIds"
+        (selectedIdsChange)="onCategoriesChange($event)"
+        searchPlaceholder="Filter by category...">
+      </app-library-category-picker>
+    </div>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>

@@ -108,6 +108,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.TwoFactorEnabled).HasDefaultValue(false);
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
             entity.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
+            entity.Property(e => e.AvatarResourceId).HasMaxLength(64);
         });
 
         modelBuilder.Entity<UserRegisteredDevice>(entity =>
@@ -214,6 +215,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
             entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.AllowCrossCrewGiving).HasDefaultValue(false);
+            entity.Property(e => e.ImageResourceId).HasMaxLength(64);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
@@ -234,6 +236,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
             entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.ImageResourceId).HasMaxLength(64);
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
@@ -538,10 +541,13 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.ContentType, e.ResourceId }).IsUnique();
+            entity.HasIndex(e => new { e.StorageTier, e.CreatedAt });
             entity.Property(e => e.ResourceId).IsRequired().HasMaxLength(128);
             entity.Property(e => e.Nonce).IsRequired();
             entity.Property(e => e.Ciphertext).IsRequired();
+            entity.Property(e => e.ColdBlobPath).HasMaxLength(512);
             entity.Property(e => e.KeyVersion).HasDefaultValue(1);
+            entity.Property(e => e.StorageTier).HasDefaultValue(EncryptedContentStorageTier.Hot);
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_EncryptedContentEnvelopes_CrewOrFleet",
                 "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));

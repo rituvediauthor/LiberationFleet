@@ -30,6 +30,7 @@ public class UserProfileDto
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
     public IReadOnlyList<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = Array.Empty<PaymentPlatformAccountDto>();
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
     public bool InNeedOfAid { get; set; }

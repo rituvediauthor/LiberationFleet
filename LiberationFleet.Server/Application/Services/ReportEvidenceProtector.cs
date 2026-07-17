@@ -15,6 +15,17 @@ public class ReportEvidenceOptions
     public string VendorApiKey { get; set; } = string.Empty;
 
     public int NonCsamRetentionDays { get; set; } = 90;
+
+    /// <summary>
+    /// When true, non-CSAM reports are marked EscalatedToVendor on create so a contractor can poll /ops.
+    /// CSAM reports always go to QueuedForNcmec regardless of this flag.
+    /// </summary>
+    public bool AutoEscalateNonCsamToVendor { get; set; }
+
+    /// <summary>
+    /// Optional HTTPS URL. On new report create, POSTs JSON metadata (no evidence) so a vendor can wake up.
+    /// </summary>
+    public string VendorNotifyUrl { get; set; } = string.Empty;
 }
 
 public interface IReportEvidenceProtector

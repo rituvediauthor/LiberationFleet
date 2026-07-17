@@ -8,7 +8,7 @@ public static class NotificationBadgeBuilder
 {
     private static readonly string[] AreaKeys =
     [
-        "chats", "forums", "proposals", "giftLog", "rules", "library", "crewmates", "fleet"
+        "chats", "forums", "proposals", "giftLog", "rules", "settings", "library", "crewmates", "fleet"
     ];
 
     public static NotificationBadgeSummaryResponse Build(
@@ -136,7 +136,9 @@ public static class NotificationBadgeBuilder
         kind is NotificationKind.NewForumPost
             or NotificationKind.NewForumComment
             or NotificationKind.NewReply
-            or NotificationKind.Mention;
+            or NotificationKind.Mention
+            or NotificationKind.NewFleetForumPost
+            or NotificationKind.NewFleetForumComment;
 
     private static string? ResolveArea(Notification notification)
     {
@@ -172,6 +174,12 @@ public static class NotificationBadgeBuilder
             return "rules";
         }
 
+        if (path.Equals("/app/crew/edit", StringComparison.Ordinal)
+            || path.Equals("/app/fleet/edit", StringComparison.Ordinal))
+        {
+            return "settings";
+        }
+
         if (path.StartsWith("/app/crew/crewmates", StringComparison.Ordinal)
             || path.StartsWith("/app/fleet/crews", StringComparison.Ordinal))
         {
@@ -195,18 +203,20 @@ public static class NotificationBadgeBuilder
         return notification.Kind switch
         {
             NotificationKind.NewChatMessage or NotificationKind.NewFleetChatMessage => "chats",
-            NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply => "forums",
+            NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply
+                or NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment => "forums",
             NotificationKind.NewProposal or NotificationKind.NewFleetProposal
                 or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted => "proposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
                 or NotificationKind.SurvivalThresholdsRefreshed => "giftLog",
-            NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited or NotificationKind.CrewSettingChanged => "rules",
+            NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "rules",
+            NotificationKind.CrewSettingChanged or NotificationKind.FleetSettingChanged => "settings",
             NotificationKind.NewCrewmate or NotificationKind.CrewmateKicked or NotificationKind.CrewmateRejoinAllowed
                 or NotificationKind.JoinRequestFromPerson or NotificationKind.JoinRequestFromCrew => "crewmates",
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
                 or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "library",
-            NotificationKind.NewFleetGifts or NotificationKind.FleetSettingChanged => "fleet",
+            NotificationKind.NewFleetGifts => "fleet",
             _ => null
         };
     }

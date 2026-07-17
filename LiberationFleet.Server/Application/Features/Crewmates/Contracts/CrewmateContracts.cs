@@ -38,6 +38,7 @@ public class CrewmateListItemDto
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public bool IsSelf { get; set; }
     public bool IsPlaceholderMember { get; set; }
@@ -70,6 +71,7 @@ public class CrewmateProfileDto
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
     public IReadOnlyList<CrewmateElectedRoleDto> ElectedRoles { get; set; } = Array.Empty<CrewmateElectedRoleDto>();
     public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();

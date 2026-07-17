@@ -100,6 +100,8 @@ public static class ProposalMapper
         if (fleetSettingChange is not null)
         {
             ApplyPlaintext(dto, fleetSettingChange.Title, fleetSettingChange.Description);
+            dto.SettingField = fleetSettingChange.Field.ToString();
+            dto.SettingNewValue = fleetSettingChange.NewValue;
             return dto;
         }
 
@@ -130,6 +132,8 @@ public static class ProposalMapper
         if (crewSettingChange is not null)
         {
             ApplyPlaintext(dto, crewSettingChange.Title, crewSettingChange.Description);
+            dto.SettingField = crewSettingChange.Field.ToString();
+            dto.SettingNewValue = crewSettingChange.NewValue;
             return dto;
         }
 
@@ -158,6 +162,7 @@ public static class ProposalMapper
         ProposalCrewmatePermissionGrant? crewmatePermissionGrant = null,
         string? currentUserVote = null,
         string? viewerAlias = null,
+        int aliasRerollsRemaining = 0,
         ProposalFleetRuleChange? fleetRuleChange = null,
         ProposalFleetSettingChange? fleetSettingChange = null,
         ProposalFleetJoinRequest? fleetJoinRequest = null,
@@ -200,7 +205,10 @@ public static class ProposalMapper
             ?? crewApplyToFleet?.Description
             ?? fleetNotice?.Description
             ?? crewSettingChange?.Description;
-        var usesAnonymousComments = proposal.Kind == ProposalKind.General && !proposal.FleetId.HasValue;
+        var usesAnonymousComments = true;
+        var canKickAuthor = proposal.Kind == ProposalKind.General
+            && !proposal.FleetId.HasValue
+            && proposal.AuthorUserId != viewerUserId;
 
         var isKickVoteTarget = crewmateKick is not null && crewmateKick.TargetUserId == viewerUserId;
 
@@ -209,6 +217,7 @@ public static class ProposalMapper
             Id = listItem.Id,
             AuthorUserId = listItem.AuthorUserId,
             AuthorUsername = listItem.AuthorUsername,
+            AuthorAvatarResourceId = listItem.AuthorAvatarResourceId,
             LastActivityAt = listItem.LastActivityAt,
             Status = listItem.Status,
             ApproveCount = listItem.ApproveCount,
@@ -220,13 +229,16 @@ public static class ProposalMapper
             DescriptionPreview = listItem.DescriptionPreview,
             EncryptedPayload = listItem.EncryptedPayload,
             CurrentUserVote = listItem.CurrentUserVote,
+            SettingField = listItem.SettingField,
+            SettingNewValue = listItem.SettingNewValue,
             CreatedAt = proposal.CreatedAt,
             Description = plaintextDescription,
             CanEdit = !isSystemProposal && proposal.AuthorUserId == viewerUserId && !proposal.FleetId.HasValue,
             CanDelete = !isSystemProposal && proposal.AuthorUserId == viewerUserId,
             UsesAnonymousComments = usesAnonymousComments,
-            CanKickAuthor = usesAnonymousComments && proposal.AuthorUserId != viewerUserId,
+            CanKickAuthor = canKickAuthor,
             ViewerAlias = viewerAlias,
+            AliasRerollsRemaining = aliasRerollsRemaining,
             IsKickVoteTarget = isKickVoteTarget,
             CanVote = proposal.Status == ProposalStatus.Pending && !isKickVoteTarget,
             Comments = comments
@@ -254,6 +266,7 @@ public static class ProposalMapper
                 : usesAnonymousComments
                     ? AnonymousAuthor
                     : comment.AuthorUser.Username,
+            AuthorAvatarResourceId = usesAnonymousComments ? null : comment.AuthorUser?.AvatarResourceId,
             ParentCommentId = comment.ParentCommentId,
             ReplyToCommentId = comment.ReplyToCommentId,
             ReplyToUsername = replyToUsername,

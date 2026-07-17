@@ -18,6 +18,7 @@ public class FleetDto
     public decimal MinimumContributionForAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
+    public string? ImageResourceId { get; set; }
 }
 
 public class UpdateFleetRequest
@@ -34,6 +35,7 @@ public class UpdateFleetRequest
     public decimal MinimumContributionForAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
+    public string? ImageResourceId { get; set; }
 }
 
 public class CreateFleetRequest
@@ -54,6 +56,7 @@ public class FleetMembershipStatusDto
     public string? JoinCode { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool NeedsRuleAcceptance { get; set; }
+    public string? ImageResourceId { get; set; }
 }
 
 public class InviteCrewToFleetRequest
@@ -185,9 +188,19 @@ public class FleetCrewDetailResponse
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
+    public FleetCrewDetailDto? Crew { get; set; }
+}
+
+public class FleetCrewDetailDto
+{
     public int CrewId { get; set; }
     public string CrewName { get; set; } = string.Empty;
-    public IReadOnlyList<FleetCrewmateDto> Members { get; set; } = Array.Empty<FleetCrewmateDto>();
+    public int MemberCount { get; set; }
+    public int? MaxSize { get; set; }
+    public bool IsOwnCrew { get; set; }
+    public bool CanKick { get; set; }
+    public bool CanJoin { get; set; }
+    public IReadOnlyList<FleetCrewmateDto> Crewmates { get; set; } = Array.Empty<FleetCrewmateDto>();
 }
 
 public class ProposeFleetKickCrewBody

@@ -6,6 +6,7 @@ export type CrewNotificationArea =
   | 'proposals'
   | 'giftLog'
   | 'rules'
+  | 'settings'
   | 'library'
   | 'crewmates'
   | 'fleet';
@@ -19,6 +20,7 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
     proposals: 0,
     giftLog: 0,
     rules: 0,
+    settings: 0,
     library: 0,
     crewmates: 0,
     fleet: 0
@@ -42,6 +44,9 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   }
   if (path.startsWith('/app/crew/rules') || path.startsWith('/app/fleet/rules')) {
     return 'rules';
+  }
+  if (path === '/app/crew/edit' || path === '/app/fleet/edit') {
+    return 'settings';
   }
   if (path.startsWith('/app/crew/crewmates') || path.startsWith('/app/fleet/crews')) {
     return 'crewmates';
@@ -81,9 +86,10 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewRule':
     case 'RuleDeleted':
     case 'RuleEdited':
+      return 'rules';
     case 'CrewSettingChanged':
     case 'FleetSettingChanged':
-      return 'rules';
+      return 'settings';
     case 'NewCrewmate':
     case 'CrewmateKicked':
     case 'CrewmateRejoinAllowed':

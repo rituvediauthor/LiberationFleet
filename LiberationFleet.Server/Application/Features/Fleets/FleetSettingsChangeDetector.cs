@@ -106,8 +106,21 @@ public static class FleetSettingsChangeDetector
                 request.MinimumContributionForProposals.ToString("0.##")));
         }
 
+        var newImageResourceId = NormalizeResourceId(request.ImageResourceId);
+        var currentImageResourceId = fleet.ImageResourceId ?? string.Empty;
+        if (!string.Equals(currentImageResourceId, newImageResourceId, StringComparison.Ordinal))
+        {
+            changes.Add(new FleetSettingChangeItem(
+                FleetSettingField.ImageResourceId,
+                currentImageResourceId,
+                newImageResourceId));
+        }
+
         return changes;
     }
+
+    public static string NormalizeResourceId(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 }
 
 public static class FleetSettingsChangeDescriber
@@ -141,6 +154,10 @@ public static class FleetSettingsChangeDescriber
                 $"Proposal to change minimum tenure for proposals from {change.OldValue} to {change.NewValue} days.",
             FleetSettingField.MinimumContributionForProposals =>
                 $"Proposal to change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
+            FleetSettingField.ImageResourceId =>
+                string.IsNullOrEmpty(change.NewValue)
+                    ? "Proposal to remove the fleet image."
+                    : "Proposal to set a new fleet image.",
             _ => "Proposal to change fleet settings."
         };
 }

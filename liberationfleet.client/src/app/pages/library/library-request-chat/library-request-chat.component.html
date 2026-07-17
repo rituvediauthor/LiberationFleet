@@ -12,13 +12,19 @@
           #messageItem
           class="message-bubble"
           *ngFor="let message of messages"
-          [class.own]="isOwnMessage(message)">
+          [class.own]="isOwnMessage(message)"
+          [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
           <p class="message-meta">
             <strong>{{ message.authorUsername }}</strong>
             <span>·</span>
             <span>{{ message.createdAt | date:'short' }}</span>
           </p>
           <p class="message-body" *ngIf="message.body"><app-mention-text [text]="message.body" /></p>
+          <app-proposal-attachment-display
+            [attachments]="message.resolvedAttachments ?? []"
+            [compact]="true"
+            [crewId]="crewId">
+          </app-proposal-attachment-display>
         </article>
       </div>
 
@@ -33,27 +39,39 @@
       </button>
 
       <div class="composer" [class.expanded]="composerExpanded">
-        <textarea
-          class="message-input"
-          [class.expanded]="composerExpanded"
-          [(ngModel)]="messageText"
-          appMentionAutocomplete
-          [(mentionedUserIds)]="mentionedUserIds"
-          (focus)="onComposerFocus()"
-          (blur)="onComposerBlur()"
-          placeholder="Message..."
-          aria-label="Message"
-          rows="1"></textarea>
-      </div>
+        <div class="composer-input-row">
+          <textarea
+            class="message-input"
+            [class.expanded]="composerExpanded"
+            [(ngModel)]="messageText"
+            appMentionAutocomplete
+            [(mentionedUserIds)]="mentionedUserIds"
+            (focus)="onComposerFocus()"
+            (blur)="onComposerBlur()"
+            placeholder="Message..."
+            aria-label="Message"
+            rows="1"></textarea>
 
-      <button
-        type="button"
-        class="send-btn"
-        *ngIf="composerExpanded"
-        [disabled]="sending || !canSend()"
-        (click)="sendMessage()">
-        Send
-      </button>
+          <div class="composer-actions-col" *ngIf="composerExpanded">
+            <button
+              type="button"
+              class="composer-send-btn"
+              [disabled]="sending || !canSend()"
+              (click)="sendMessage()"
+              aria-label="Send">
+              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
+          class="message-attachment-picker"
+          [class.collapsed]="!composerExpanded"
+          [attachments]="messageAttachments"
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+        </app-proposal-attachment-picker>
+      </div>
     </div>
   </div>
 </div>

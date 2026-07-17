@@ -30,7 +30,9 @@ export type NotificationKind =
   | 'NewFleetGifts'
   | 'NewFleetProposal'
   | 'FleetSettingChanged'
-  | 'NewFleetChatMessage';
+  | 'NewFleetChatMessage'
+  | 'NewFleetForumPost'
+  | 'NewFleetForumComment';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 
@@ -69,6 +71,8 @@ export interface NotificationItem {
   actionUrl: string;
   relatedEntityId?: number | null;
   secondaryEntityId?: number | null;
+  actorUserId?: number | null;
+  actorAvatarResourceId?: string | null;
   isRead: boolean;
   createdAt: string;
   isTargetAvailable?: boolean | null;

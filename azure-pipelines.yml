@@ -1,0 +1,221 @@
+# LiberationFleet — Azure DevOps CI/CD
+#
+# Stages: Build → Test → Publish image → Terraform → Deploy
+#
+# Setup (once):
+# 1. Create service connections:
+#    - Azure Resource Manager: `azure-liberationfleet` (subscription used by Terraform + deploy)
+#    - Docker Registry (ACR): created automatically after first Terraform apply, or use
+#      `az acr credential` / managed service connection named `acr-liberationfleet`
+# 2. Variable groups:
+#    - `liberationfleet-shared`
+#        TF_STATE_RG, TF_STATE_STORAGE, TF_STATE_CONTAINER
+#    - `liberationfleet-staging`
+#        ENVIRONMENT=staging, AZURE_RESOURCE_GROUP (from terraform output),
+#        WEB_APP_NAME, ACR_NAME, ACR_LOGIN_SERVER
+#    - `liberationfleet-production`
+#        same keys for production
+# 3. Environments: `staging`, `production` (add approval checks on production)
+# 4. Pipeline variables (secret): none required if using service connections + Key Vault
+#
+# Triggers on main for staging; production is manual or via environment approval on main.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - docs/**
+      - "**/*.md"
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  - group: liberationfleet-shared
+  - name: imageRepository
+    value: liberationfleet
+  - name: dockerfilePath
+    value: LiberationFleet.Server/Dockerfile
+  - name: terraformWorkingDirectory
+    value: $(Build.SourcesDirectory)/infrastructure/terraform
+  - name: dotnetVersion
+    value: "10.0.x"
+  - name: vmImage
+    value: ubuntu-latest
+
+stages:
+  - stage: Build
+    displayName: Build and test
+    jobs:
+      - job: BuildTest
+        displayName: Restore, build, test
+        pool:
+          vmImage: $(vmImage)
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: UseDotNet@2
+            displayName: Use .NET SDK
+            inputs:
+              packageType: sdk
+              version: $(dotnetVersion)
+              includePreviewVersions: true
+
+          - task: DotNetCoreCLI@2
+            displayName: Restore
+            inputs:
+              command: restore
+              projects: "**/*.csproj"
+
+          - task: DotNetCoreCLI@2
+            displayName: Build
+            inputs:
+              command: build
+              projects: "**/*.csproj"
+              arguments: "--configuration Release --no-restore"
+
+          - task: DotNetCoreCLI@2
+            displayName: Test
+            inputs:
+              command: test
+              projects: "LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj"
+              arguments: "--configuration Release --no-build --collect:\"XPlat Code Coverage\""
+              publishTestResults: true
+
+          - script: |
+              set -euo pipefail
+              IMAGE_TAG="$(Build.SourceVersion)"
+              echo "##vso[task.setvariable variable=ImageTag;isOutput=true]${IMAGE_TAG:0:12}"
+              echo "##vso[task.setvariable variable=ImageTag]${IMAGE_TAG:0:12}"
+            name: setTag
+            displayName: Compute image tag
+
+          - task: Docker@2
+            displayName: Build image (no push)
+            inputs:
+              command: build
+              repository: $(imageRepository)
+              dockerfile: $(dockerfilePath)
+              buildContext: $(Build.SourcesDirectory)
+              tags: |
+                $(ImageTag)
+                latest
+              arguments: --pull
+
+  - stage: TerraformPlanPR
+    displayName: Terraform plan (PR)
+    dependsOn: []
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    variables:
+      - group: liberationfleet-shared
+      - group: liberationfleet-staging
+    jobs:
+      - job: PlanStaging
+        displayName: Plan staging changes
+        pool:
+          vmImage: $(vmImage)
+        steps:
+          - checkout: self
+          - template: .azure/pipelines/templates/terraform-apply.yml
+            parameters:
+              environmentName: staging
+              azureSubscription: azure-liberationfleet
+              terraformWorkingDirectory: $(terraformWorkingDirectory)
+              backendResourceGroup: $(TF_STATE_RG)
+              backendStorageAccount: $(TF_STATE_STORAGE)
+              backendContainer: $(TF_STATE_CONTAINER)
+              backendKey: staging.terraform.tfstate
+              apply: false
+
+  - stage: DeployStaging
+    displayName: Deploy staging
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: liberationfleet-shared
+      - group: liberationfleet-staging
+      - name: ImageTag
+        value: $[ stageDependencies.Build.BuildTest.outputs['setTag.ImageTag'] ]
+    jobs:
+      - deployment: Staging
+        displayName: Staging infra + app
+        environment: staging
+        pool:
+          vmImage: $(vmImage)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: .azure/pipelines/templates/terraform-apply.yml
+                  parameters:
+                    environmentName: staging
+                    azureSubscription: azure-liberationfleet
+                    terraformWorkingDirectory: $(terraformWorkingDirectory)
+                    backendResourceGroup: $(TF_STATE_RG)
+                    backendStorageAccount: $(TF_STATE_STORAGE)
+                    backendContainer: $(TF_STATE_CONTAINER)
+                    backendKey: staging.terraform.tfstate
+                    apply: true
+
+                - template: .azure/pipelines/templates/docker-push-deploy.yml
+                  parameters:
+                    azureSubscription: azure-liberationfleet
+                    acrName: $(ACR_NAME)
+                    acrLoginServer: $(ACR_LOGIN_SERVER)
+                    imageRepository: $(imageRepository)
+                    imageTag: $(ImageTag)
+                    resourceGroup: $(AZURE_RESOURCE_GROUP)
+                    webAppName: $(WEB_APP_NAME)
+                    dockerfilePath: $(dockerfilePath)
+
+  - stage: DeployProduction
+    displayName: Deploy production
+    dependsOn:
+      - Build
+      - DeployStaging
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: liberationfleet-shared
+      - group: liberationfleet-production
+      - name: ImageTag
+        value: $[ stageDependencies.Build.BuildTest.outputs['setTag.ImageTag'] ]
+    jobs:
+      - deployment: Production
+        displayName: Production infra + app
+        environment: production
+        pool:
+          vmImage: $(vmImage)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: .azure/pipelines/templates/terraform-apply.yml
+                  parameters:
+                    environmentName: production
+                    azureSubscription: azure-liberationfleet
+                    terraformWorkingDirectory: $(terraformWorkingDirectory)
+                    backendResourceGroup: $(TF_STATE_RG)
+                    backendStorageAccount: $(TF_STATE_STORAGE)
+                    backendContainer: $(TF_STATE_CONTAINER)
+                    backendKey: production.terraform.tfstate
+                    apply: true
+
+                - template: .azure/pipelines/templates/docker-push-deploy.yml
+                  parameters:
+                    azureSubscription: azure-liberationfleet
+                    acrName: $(ACR_NAME)
+                    acrLoginServer: $(ACR_LOGIN_SERVER)
+                    imageRepository: $(imageRepository)
+                    imageTag: $(ImageTag)
+                    resourceGroup: $(AZURE_RESOURCE_GROUP)
+                    webAppName: $(WEB_APP_NAME)
+                    dockerfilePath: $(dockerfilePath)

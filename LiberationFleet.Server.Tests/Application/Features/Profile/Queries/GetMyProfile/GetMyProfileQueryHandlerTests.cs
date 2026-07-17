@@ -67,7 +67,7 @@ public class GetMyProfileQueryHandlerTests
         var giftStats = new CrewmateGiftStatsDto
         {
             LifetimeContributions = 150,
-            SacrificeCountLastSeason = 3,
+            SacrificeCountLastSeason = 99, // ignored when membership emergency counter is present
             AverageMonthlyContributions = 30,
             ReceptionThisYear = 40
         };
@@ -77,10 +77,13 @@ public class GetMyProfileQueryHandlerTests
             .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(giftStats);
 
+        var membership = HandlerTestFixture.CreateMembership(user, HandlerTestFixture.CreateCrew());
+        membership.EmergencySacrificesThisSeason = 3;
+
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         membershipRepository
             .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(HandlerTestFixture.CreateMembership(user, HandlerTestFixture.CreateCrew()));
+            .ReturnsAsync(membership);
 
         var handler = CreateHandler(
             currentUserId: user.Id,

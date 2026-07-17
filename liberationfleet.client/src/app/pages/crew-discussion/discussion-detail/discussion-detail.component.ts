@@ -30,7 +30,9 @@ import { ContentPreferenceService } from '../../../services/content-preference.s
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -45,7 +47,8 @@ import { ContentReportTargetType } from '../../../models/content-report.model';
     AdultContentGateComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,
-    ReportContentDialogComponent
+    ReportContentDialogComponent,
+    UserAvatarComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
@@ -425,6 +428,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
         : this.discussionService.postComment(this.config, this.post.id, {
           parentCommentId,
           ...encrypted,
+          notificationPreview: truncateNotificationPreview(body),
           mentionedUserIds: this.mentionedUserIds
         });
 

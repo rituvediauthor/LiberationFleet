@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -7,7 +8,9 @@ namespace LiberationFleet.Server.Application.Features.Fleets;
 
 public class FleetRulesProposalService(
     IProposalRepository proposalRepository,
-    IFleetRepository fleetRepository)
+    IFleetRepository fleetRepository,
+    NotificationService notificationService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<int> CreateProposalAsync(
         int fleetId,
@@ -44,6 +47,39 @@ public class FleetRulesProposalService(
             RuleDescription = ruleDescription,
             IsPublic = isPublic
         }, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+            proposalRepository,
+            proposal,
+            utcNow,
+            cancellationToken);
+        var statusBefore = proposal.Status;
+        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+            proposal,
+            proposalRepository,
+            fleetRepository,
+            utcNow,
+            cancellationToken);
+        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
+        foreach (var fleetCrew in fleetCrews)
+        {
+            await notificationService.NotifyCrewAsync(
+                fleetCrew.CrewId,
+                NotificationKind.NewFleetProposal,
+                "New fleet proposal",
+                NotificationPreview.BodyOrFallback(proposalDescription, "A fleet rule change was proposed."),
+                $"/app/fleet/proposals/{proposal.Id}",
+                relatedEntityId: proposal.Id,
+                excludeUserId: authorUserId,
+                cancellationToken: cancellationToken);
+        }
 
         return proposal.Id;
     }

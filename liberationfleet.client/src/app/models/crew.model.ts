@@ -30,6 +30,7 @@ export interface Crew {
   minimumContributionForAttachments?: number;
   minimumCrewmateTenureDaysForProposals?: number;
   minimumContributionForProposals?: number;
+  imageResourceId?: string | null;
 }
 
 export interface CrewMembershipStatus {
@@ -39,6 +40,7 @@ export interface CrewMembershipStatus {
   joinCode?: string;
   libraryOfThingsEnabled?: boolean;
   isOrganizer?: boolean;
+  imageResourceId?: string | null;
   canAttachFilesToCrewContent?: boolean;
   canCreateProposals?: boolean;
   canCreateFleetProposals?: boolean;
@@ -110,6 +112,7 @@ export interface UpdateCrewRequest {
   minimumContributionForAttachments: number;
   minimumCrewmateTenureDaysForProposals: number;
   minimumContributionForProposals: number;
+  imageResourceId?: string | null;
 }
 
 export interface PublicCrewRule {

@@ -14,7 +14,8 @@ export type EncryptedContentType =
   | 'VideoAsset'
   | 'ProposalComment'
   | 'ForumComment'
-  | 'ChatRoomName';
+  | 'ChatRoomName'
+  | 'ProfileAvatar';
 
 export interface UserKeyBundle {
   userId: number;

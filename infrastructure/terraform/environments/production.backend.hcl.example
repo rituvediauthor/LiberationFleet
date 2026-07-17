@@ -1,0 +1,7 @@
+# Copy to production.backend.hcl after bootstrap.
+
+resource_group_name  = "rg-lfleet-tfstate"
+storage_account_name = "stlfeetftstate"
+container_name       = "tfstate"
+key                  = "production.terraform.tfstate"
+# use_azuread_auth   = true

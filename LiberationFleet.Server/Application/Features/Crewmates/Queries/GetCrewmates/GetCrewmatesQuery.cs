@@ -52,6 +52,7 @@ public class GetCrewmatesQueryHandler(
             {
                 UserId = member.UserId,
                 Username = member.User.Username,
+                AvatarResourceId = member.User.AvatarResourceId,
                 LastLoginAt = member.User.LastLoginAt,
                 IsSelf = member.UserId == viewerId,
                 IsPlaceholderMember = member.IsPlaceholderMember,

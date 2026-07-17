@@ -1,3 +1,5 @@
+import { ResolvedAttachment } from './proposal.model';
+
 export interface LibraryCategory {
   id: number;
   name: string;
@@ -198,6 +200,7 @@ export interface LibraryRequestMessage {
     ciphertext: string;
   } | null;
   body?: string;
+  resolvedAttachments?: ResolvedAttachment[];
 }
 
 export interface LibraryRequestMessageListResponse {

@@ -15,6 +15,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
+import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
+import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
@@ -26,6 +28,7 @@ import { AuthService } from '../../../services/auth.service';
 import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { LibraryRequestMessage } from '../../../models/library.model';
+import { PendingAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 
 @Component({
@@ -36,7 +39,9 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     FormsModule,
     FallibleFooterComponent,
     MentionAutocompleteDirective,
-    MentionTextComponent
+    MentionTextComponent,
+    ProposalAttachmentDisplayComponent,
+    ProposalAttachmentPickerComponent
   ],
   templateUrl: './library-request-chat.component.html',
   styleUrl: './library-request-chat.component.css'
@@ -53,7 +58,10 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   messages: LibraryRequestMessage[] = [];
   messageText = '';
   mentionedUserIds: number[] = [];
+  messageAttachments: PendingAttachment[] = [];
+  canAttachFiles = false;
   composerFocused = false;
+  pickingFile = false;
   loading = true;
   loadingOlder = false;
   hasMore = false;
@@ -102,6 +110,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
         await this.encryptionContent.whenReady();
         this.loadRequestTitle();
         this.loadLatestMessages(true);
@@ -135,18 +144,34 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
 
   onComposerBlur() {
     setTimeout(() => {
-      if (!this.messageText.trim()) {
+      if (this.pickingFile) {
+        return;
+      }
+      if (!this.messageText.trim() && this.messageAttachments.length === 0) {
         this.composerFocused = false;
       }
     }, 150);
   }
 
+  onFileDialogOpenChange(open: boolean) {
+    this.pickingFile = open;
+    if (open) {
+      this.composerFocused = true;
+      return;
+    }
+    if (!this.messageText.trim() && this.messageAttachments.length === 0) {
+      this.composerFocused = false;
+    }
+  }
+
   get composerExpanded(): boolean {
-    return this.composerFocused || Boolean(this.messageText.trim());
+    return this.composerFocused
+      || Boolean(this.messageText.trim())
+      || this.messageAttachments.length > 0;
   }
 
   canSend(): boolean {
-    return Boolean(this.messageText.trim());
+    return Boolean(this.messageText.trim()) || this.messageAttachments.length > 0;
   }
 
   isOwnMessage(message: LibraryRequestMessage): boolean {
@@ -159,11 +184,13 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
     }
 
     this.sending = true;
+    const pendingAttachments = [...this.messageAttachments];
     try {
       const encrypted = await this.chatCrypto.encryptMessagePayload(
         { crewId: this.crewId },
         this.messageText.trim(),
-        this.authorDisplayName
+        this.authorDisplayName,
+        pendingAttachments
       );
 
       this.libraryService.sendRequestMessage(this.requestId, {
@@ -179,6 +206,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
 
           this.messageText = '';
           this.mentionedUserIds = [];
+          this.messageAttachments = [];
           this.composerFocused = false;
           this.loadLatestMessages(true);
         },

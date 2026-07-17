@@ -7,6 +7,7 @@ public class FriendListItemDto
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime? LastMessageAt { get; set; }
     public bool IsMuted { get; set; }
@@ -29,6 +30,7 @@ public class FriendRequestListItemDto
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public FriendRequestDirectionDto Direction { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -74,6 +76,7 @@ public class DirectMessageDto
     public int Id { get; set; }
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
+    public string? AuthorAvatarResourceId { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }

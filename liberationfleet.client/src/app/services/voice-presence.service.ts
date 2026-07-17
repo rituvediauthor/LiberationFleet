@@ -3,6 +3,7 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@micros
 import { BehaviorSubject, Subject } from 'rxjs';
 import { VoiceParticipant, VoicePresenceSnapshot, VoiceRoomPresence } from '../models/voice.model';
 import { AuthService } from './auth.service';
+import { ApiUrlService } from './api-url.service';
 import { VoiceApiService } from './voice-api.service';
 
 @Injectable({
@@ -19,7 +20,8 @@ export class VoicePresenceService implements OnDestroy {
 
   constructor(
     private authService: AuthService,
-    private voiceApi: VoiceApiService
+    private voiceApi: VoiceApiService,
+    private apiUrl: ApiUrlService
   ) {}
 
   ngOnDestroy() {
@@ -116,7 +118,7 @@ export class VoicePresenceService implements OnDestroy {
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl('/hubs/voice', {
+      .withUrl(this.apiUrl.resolveHub('/hubs/voice'), {
         accessTokenFactory: () => this.authService.getToken() ?? ''
       })
       .withAutomaticReconnect()
@@ -141,6 +143,21 @@ export class VoicePresenceService implements OnDestroy {
       });
 
       this.presenceSubject.next(rooms);
+    });
+
+    this.connection.onreconnected(async () => {
+      const crewId = this.joinedCrewId;
+      if (crewId == null || !this.connection) {
+        return;
+      }
+
+      try {
+        // Force re-join after reconnect; hub groups are not preserved.
+        this.joinedCrewId = null;
+        await this.ensureCrewSubscribed(crewId);
+      } catch {
+        // Presence will refresh on next explicit ensureCrewSubscribed.
+      }
     });
 
     await this.connection.start();

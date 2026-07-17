@@ -70,8 +70,8 @@ export class FleetRecordGiftComponent implements OnInit {
     this.fleetService.getStatus().subscribe({
       next: status => {
         if (!status.hasFleet || !status.allowCrossCrewGiving) {
-          this.toastService.error('Cross-crew giving is not enabled for your crew.');
-          void this.router.navigate(['/app/fleet']);
+          this.toastService.error('Your crew does not allow giving aid to other crews in the fleet.');
+          void this.router.navigate(['/app/fleet/gift-log']);
           return;
         }
 

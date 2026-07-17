@@ -24,9 +24,12 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() allowAudioRecording = true;
   /** Restrict which media kinds may be attached (library offerings use image-only). */
   @Input() allowedKinds: AttachmentMediaKind[] = ['image', 'video', 'audio'];
+  /** Max number of attachments; omit or set 0 for unlimited. */
+  @Input() maxAttachments = 0;
   /** @deprecated Prefer allowedKinds; still honored if set for the file dialog hint. */
   @Input() acceptTypes?: string;
   @Output() fileDialogOpenChange = new EventEmitter<boolean>();
+  @Output() attachmentsChange = new EventEmitter<void>();
 
   audioRecorder = new AudioRecorderController();
 
@@ -51,6 +54,10 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
   get canRecordAudio(): boolean {
     return this.allowAudioRecording && this.allowedKinds.includes('audio');
+  }
+
+  get canAddMore(): boolean {
+    return this.maxAttachments <= 0 || this.attachments.length < this.maxAttachments;
   }
 
   ngOnDestroy() {
@@ -84,6 +91,15 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
   private async addSelectedFiles(files: File[]) {
     for (const file of files) {
+      if (!this.canAddMore) {
+        this.toastService.error(
+          this.maxAttachments === 1
+            ? 'Only one attachment is allowed.'
+            : `You can attach at most ${this.maxAttachments} files.`
+        );
+        break;
+      }
+
       const result = validateAttachmentFile(file, this.allowedKinds);
       if (!result.ok) {
         if (result.reason === 'too-large') {
@@ -113,6 +129,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     }
 
     this.cdr.markForCheck();
+    this.attachmentsChange.emit();
   }
 
   onFileInputCancel() {
@@ -145,6 +162,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     }
     this.attachments.splice(index, 1);
     this.cdr.markForCheck();
+    this.attachmentsChange.emit();
   }
 
   attachmentLabel(attachment: PendingAttachment): string {
@@ -173,6 +191,14 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   }
 
   private addAudioAttachment(blob: Blob) {
+    if (!this.canAddMore) {
+      this.toastService.error(
+        this.maxAttachments === 1
+          ? 'Only one attachment is allowed.'
+          : `You can attach at most ${this.maxAttachments} files.`
+      );
+      return;
+    }
     if (!this.allowedKinds.includes('audio')) {
       this.toastService.error('Audio attachments are not allowed here.');
       return;
@@ -189,5 +215,6 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       previewUrl: URL.createObjectURL(blob)
     });
     this.cdr.markForCheck();
+    this.attachmentsChange.emit();
   }
 }

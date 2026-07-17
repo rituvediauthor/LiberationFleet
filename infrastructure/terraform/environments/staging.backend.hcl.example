@@ -1,0 +1,8 @@
+# Copy to backend.hcl (do not commit secrets / subscription-specific IDs if policy forbids).
+# Created by: infrastructure/terraform/bootstrap
+
+resource_group_name  = "rg-lfleet-tfstate"
+storage_account_name = "stlfeetftstate"
+container_name       = "tfstate"
+key                  = "staging.terraform.tfstate"
+# use_azuread_auth   = true

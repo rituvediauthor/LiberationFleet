@@ -5,6 +5,7 @@ import { ResolvedAttachment } from './proposal.model';
 export interface FriendListItem {
   userId: number;
   username: string;
+  avatarResourceId?: string | null;
   lastLoginAt: string | null;
   lastMessageAt: string | null;
   isMuted: boolean;
@@ -21,6 +22,7 @@ export type FriendRequestDirection = 'incoming' | 'outgoing';
 export interface FriendRequestListItem {
   userId: number;
   username: string;
+  avatarResourceId?: string | null;
   lastLoginAt: string | null;
   direction: FriendRequestDirection;
   createdAt: string;
@@ -60,6 +62,7 @@ export interface DirectMessage {
   id: number;
   authorUserId: number;
   authorUsername: string;
+  authorAvatarResourceId?: string | null;
   createdAt: string;
   hasEncryptedContent: boolean;
   encryptedPayload?: EncryptedPayload | null;

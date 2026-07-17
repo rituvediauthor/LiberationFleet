@@ -17,7 +17,8 @@ public record CreateFleetForumCommentCommand(
     string Nonce,
     string Ciphertext,
     int KeyVersion,
-    IReadOnlyList<int> MentionedUserIds) : IRequest<ForumOperationResponse>;
+    IReadOnlyList<int> MentionedUserIds,
+    string? Preview = null) : IRequest<ForumOperationResponse>;
 
 public class CreateFleetForumCommentCommandHandler(
     ICurrentUserService currentUser,
@@ -120,7 +121,7 @@ public class CreateFleetForumCommentCommandHandler(
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.NewReply,
                 Title = "New reply",
-                Body = "Someone replied to your forum comment.",
+                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone replied to your forum comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
@@ -134,11 +135,11 @@ public class CreateFleetForumCommentCommandHandler(
             {
                 await notificationService.NotifyCrewIfNotMutedAsync(
                     fleetCrew.CrewId,
-                    NotificationKind.NewForumComment,
+                    NotificationKind.NewFleetForumComment,
                     MutedContentType.Forum,
                     post.Id,
-                    "New forum comment",
-                    "A new comment was posted on a forum thread.",
+                    "New fleet forum comment",
+                    NotificationPreview.BodyOrFallback(request.Preview, "A new comment was posted on a fleet forum thread."),
                     actionUrl,
                     relatedEntityId: post.Id,
                     secondaryEntityId: comment.Id,
@@ -156,7 +157,8 @@ public class CreateFleetForumCommentCommandHandler(
             ResourceId = comment.Id,
             ParentResourceId = post.Id,
             ActionUrl = actionUrl,
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
+            Preview = request.Preview
         }, cancellationToken);
 
         return new ForumOperationResponse

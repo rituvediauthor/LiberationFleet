@@ -160,6 +160,8 @@ public class NotificationService(
         NotificationKind.NewFleetProposal => "New fleet proposal",
         NotificationKind.FleetSettingChanged => "Fleet setting changed",
         NotificationKind.NewFleetChatMessage => "New fleet chat message",
+        NotificationKind.NewFleetForumPost => "New fleet forum post",
+        NotificationKind.NewFleetForumComment => "New fleet forum comment",
         _ => kind.ToString()
     };
 
@@ -169,7 +171,9 @@ public class NotificationService(
             or NotificationKind.NewFleetGifts
             or NotificationKind.NewFleetProposal
             or NotificationKind.FleetSettingChanged
-            or NotificationKind.NewFleetChatMessage => "Fleet",
+            or NotificationKind.NewFleetChatMessage
+            or NotificationKind.NewFleetForumPost
+            or NotificationKind.NewFleetForumComment => "Fleet",
         _ => "Crew"
     };
 
@@ -179,7 +183,7 @@ public class NotificationService(
         CrewId = request.CrewId,
         Kind = request.Kind,
         Title = request.Title.Trim(),
-        Body = request.Body.Trim(),
+        Body = NotificationPreview.Truncate(request.Body),
         ActionUrl = request.ActionUrl.Trim(),
         RelatedEntityId = request.RelatedEntityId,
         SecondaryEntityId = request.SecondaryEntityId,
