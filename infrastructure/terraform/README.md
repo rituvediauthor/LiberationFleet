@@ -1,10 +1,12 @@
 # LiberationFleet — Azure infrastructure (Terraform)
 
-Hosts the combined ASP.NET + Angular container (see `LiberationFleet.Server/Dockerfile`) on **Azure App Service (Linux)**, with **Azure SQL**, **Key Vault**, **ACR**, and **Application Insights**.
+Hosts the combined ASP.NET + Angular container (`LiberationFleet.Server/Dockerfile`) on **Azure App Service (Linux)**, with **Azure SQL**, **Key Vault**, **ACR**, **Application Insights**, and **deep-freeze Blob storage**.
 
-Voice (LiveKit + TURN) is **not** provisioned here — use [LiveKit Cloud](https://livekit.io/cloud) or a separate VM/Container Apps stack with UDP, then set `livekit_host` and Key Vault secrets `LiveKit-ApiKey` / `LiveKit-ApiSecret`.
+**Operator walkthrough (click-by-click):** [`docs/AZURE-GO-LIVE.md`](../../docs/AZURE-GO-LIVE.md)
 
-Media deep freeze (chat/forum photos & videos older than 60 days) uses an Azure Storage account (`modules/deep-freeze-storage`) with Cool blob tier; see [`docs/MEDIA-DEEP-FREEZE.md`](../../docs/MEDIA-DEEP-FREEZE.md).
+Voice (LiveKit + TURN) is **not** provisioned here — use [LiveKit Cloud](https://livekit.io/cloud) or a separate stack, then set `livekit_host` and Key Vault secrets. See [`docs/LIVEKIT-SETUP.md`](../../docs/LIVEKIT-SETUP.md).
+
+Media deep freeze: [`docs/MEDIA-DEEP-FREEZE.md`](../../docs/MEDIA-DEEP-FREEZE.md).
 
 ## Architecture
 
@@ -15,43 +17,63 @@ Browser ──HTTPS/WSS──► App Service (SPA + API + SignalR)
               ▼             ▼              ▼                  ▼
            Azure SQL    Key Vault   App Insights    Blob (deep freeze)
 ```
-**Scale note:** SignalR is in-process. Keep **one App Service instance** until you add Azure SignalR or a Redis backplane.
+
+**Scale note:** SignalR is in-process. Keep **one App Service instance** until Azure SignalR or a Redis backplane is added.
 
 ## Prerequisites
 
-- Azure subscription + Owner/Contributor
-- Terraform >= 1.6
-- Azure CLI logged in (`az login`)
-- Azure DevOps (or adapt the pipeline to GitHub Actions)
+- Azure subscription (Owner/Contributor)
+- Terraform ≥ 1.6
+- Azure CLI (`az login`)
+- Azure DevOps for CI/CD (optional for first local apply)
 
-## One-time bootstrap (remote state)
+## Step-by-step: bootstrap remote state
+
+Detailed version: [AZURE-GO-LIVE Step 5](../../docs/AZURE-GO-LIVE.md#step-5--bootstrap-terraform-remote-state-one-time).
 
 ```bash
 cd infrastructure/terraform/bootstrap
 terraform init
 terraform apply -var="location=eastus"
+terraform output
 ```
 
-Copy the `backend_hcl_snippet` output into:
+Copy `backend_hcl_snippet` into:
 
-- `environments/staging.backend.hcl`
-- `environments/production.backend.hcl` (change `key` to `production.terraform.tfstate`)
+- `environments/staging.backend.hcl` (key = `staging.terraform.tfstate`)
+- `environments/production.backend.hcl` (key = `production.terraform.tfstate`)
 
-These `*.backend.hcl` files are gitignored.
+Start from `*.backend.hcl.example`. These files are **gitignored**.
 
-## Apply (local)
+## Step-by-step: apply an environment
 
 ```bash
 cd infrastructure/terraform
 
+# Staging
 terraform init -backend-config=environments/staging.backend.hcl
 terraform plan  -var-file=environments/staging.tfvars
 terraform apply -var-file=environments/staging.tfvars
+
+# Production (separate state file)
+terraform init -reconfigure -backend-config=environments/production.backend.hcl
+terraform plan  -var-file=environments/production.tfvars
+terraform apply -var-file=environments/production.tfvars
 ```
 
-After apply:
+### Important outputs
 
-1. Push an image to ACR (pipeline does this), or manually:
+| Output | Use |
+|--------|-----|
+| `resource_group_name` | CLI + ADO `AZURE_RESOURCE_GROUP` |
+| `web_app_name` | Deploy + ADO `WEB_APP_NAME` |
+| `acr_name` / `acr_login_server` | Docker + ADO |
+| `app_public_url` | Browser, Stripe base URL |
+| `key_vault_name` | Secrets UI |
+
+## After apply
+
+1. **Deploy an image** — pipeline on `main`, or manual:
    ```bash
    az acr login --name <acr_name>
    docker build -t <login_server>/liberationfleet:<tag> -f LiberationFleet.Server/Dockerfile .
@@ -59,12 +81,15 @@ After apply:
    az webapp config container set \
      --name <web_app_name> \
      --resource-group <rg> \
-     --docker-custom-image-name <login_server>/liberationfleet:<tag>
+     --docker-custom-image-name <login_server>/liberationfleet:<tag> \
+     --docker-registry-server-url https://<login_server>
+   az webapp restart --name <web_app_name> --resource-group <rg>
    ```
-2. Update Key Vault secrets for Stripe / LiveKit / report vendor (placeholders ignore_changes).
-3. Point Stripe webhook to `https://<app>/api/donations/stripe/webhook`.
+2. **Key Vault** — set Stripe / LiveKit / report vendor secrets (placeholders use `ignore_changes`). See [AZURE-GO-LIVE Step 7](../../docs/AZURE-GO-LIVE.md#step-7--secrets-in-key-vault).
+3. **Stripe webhook** → `https://<app>/api/donations/stripe/webhook` ([DONATION-SETUP.md](../../docs/DONATION-SETUP.md)).
+4. Optional: set `livekit_host` in `*.tfvars` and re-apply.
 
-## Secrets
+## Secrets map
 
 | Key Vault secret | App setting |
 |------------------|-------------|
@@ -79,13 +104,32 @@ After apply:
 
 JWT and report AES keys are generated on first apply. SQL password is random and stored only in Key Vault.
 
+## CORS (App Service)
+
+Terraform sets:
+
+- App public URL  
+- `capacitor://localhost`, `ionic://localhost`, `https://localhost`, `http://localhost`
+
+After a custom domain, add `Cors__AllowedOrigins__N` for `https://your.domain`.
+
 ## CI/CD
 
-See root `azure-pipelines.yml`:
+See root `azure-pipelines.yml` and [`.azure/pipelines/README.md`](../../.azure/pipelines/README.md).
 
-1. **Build** — restore, test, Docker build
-2. **Publish** — push image to ACR
-3. **Infrastructure** — `terraform plan` / `apply` (environment approvals for production)
-4. **Deploy** — update App Service container tag + restart
+1. Build / test / Docker  
+2. Terraform plan/apply (Environment approvals for production)  
+3. Push to ACR + update App Service container tag  
 
-Required Azure DevOps variable groups / service connections are documented in that file.
+## Modules
+
+| Path | Responsibility |
+|------|----------------|
+| `modules/resource-group` | RG |
+| `modules/container-registry` | ACR |
+| `modules/app-service` | Linux Web App + settings |
+| `modules/sql` | Azure SQL |
+| `modules/key-vault` | Vault + secret placeholders |
+| `modules/monitoring` | App Insights |
+| `modules/deep-freeze-storage` | Cool-tier blob for media deep freeze |
+| `bootstrap/` | Remote state storage only |

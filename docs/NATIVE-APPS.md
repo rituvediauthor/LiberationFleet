@@ -1,4 +1,4 @@
-# Native iOS & Android (Capacitor)
+# Native iOS & Android (Capacitor) — step-by-step
 
 Liberation Fleet ships three clients from one Angular codebase:
 
@@ -8,92 +8,161 @@ Liberation Fleet ships three clients from one Angular codebase:
 | **iOS** | Capacitor shell → App Store |
 | **Android** | Capacitor shell → Google Play |
 
+Related: [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md), [STORE-SUBMISSION.md](./STORE-SUBMISSION.md), [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md).
+
+Bundle / application ID: **`com.liberationfleet.app`**
+
+---
+
 ## Prerequisites
 
-- Node 20+
-- For Android: Android Studio + JDK 17 + Android SDK
-- For iOS: **macOS** + Xcode 15+ + CocoaPods (`sudo gem install cocoapods`)
-- A deployed HTTPS API (Azure) with CORS allowing Capacitor origins
+| Tool | Notes |
+|------|--------|
+| Node 20+ | `node -v` |
+| npm | Comes with Node |
+| Android | Android Studio + JDK 17 + Android SDK (Windows, macOS, or Linux) |
+| iOS | **macOS** + Xcode 15+ + CocoaPods (`sudo gem install cocoapods`) |
+| Backend | Deployed HTTPS API ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)) with CORS for Capacitor origins |
 
-## One-time setup
+---
+
+## Step 1 — Install JS dependencies
 
 ```bash
 cd liberationfleet.client
 npm install
-
-# Set your production API origin (required for native)
-# Edit src/environments/environment.native.ts → apiBaseUrl
-# Example: 'https://app-lfleet-production.azurewebsites.net'
-
-npm run build:native
-npx cap add android   # Windows or Mac
-npx cap add ios       # Mac only
 ```
 
-Commit the generated `android/` and `ios/` folders (industry default for Capacitor).
+---
 
-## Day-to-day build
+## Step 2 — Point native builds at your API
 
-```bash
-cd liberationfleet.client
-# After changing Angular code or apiBaseUrl:
-npm run cap:sync
+1. Open `liberationfleet.client/src/environments/environment.native.ts`.
+2. Set:
+   ```ts
+   apiBaseUrl: 'https://your-production-or-staging-host'
+   ```
+   - No trailing slash.
+   - Must be HTTPS in production.
+   - Never ship the placeholder `REPLACE_WITH_YOUR_API_ORIGIN`.
+3. Save the file.
 
-# Open native IDEs:
-npm run cap:android   # Android Studio
-npm run cap:ios       # Xcode (Mac)
-```
+How it works:
 
-## How the native app talks to Azure
-
-1. `environment.native.ts` sets `apiBaseUrl` to the Azure HTTPS origin.
-2. `ApiBaseUrlInterceptor` rewrites `/api/...` requests to that origin.
-3. SignalR hubs (`/hubs/chat`, `/hubs/notifications`, `/hubs/voice`) use `ApiUrlService.resolveHub(...)`.
-4. API CORS must include Capacitor origins (already in `appsettings.json`):
+1. `apiBaseUrl` is the Azure (or custom domain) origin.
+2. `ApiBaseUrlInterceptor` rewrites `/api/...` to that origin.
+3. SignalR hubs use `ApiUrlService.resolveHub(...)`.
+4. CORS on the API must allow Capacitor origins (Terraform already sets these on App Service):
    - `capacitor://localhost`
    - `ionic://localhost`
    - `https://localhost` / `http://localhost`
+5. If you use a **custom web domain**, also add `Cors__AllowedOrigins__N` = `https://your.domain` on App Service — [AZURE-GO-LIVE Step 10](./AZURE-GO-LIVE.md#step-10--custom-domain--tls).
 
-Production Azure: also set `Cors__AllowedOrigins__N` to your **custom web domain** and keep the Capacitor origins.
+---
 
-## Store assets you must supply
+## Step 3 — Build the native web assets
 
-| Asset | iOS | Android |
-|-------|-----|---------|
-| App icon | 1024×1024 App Store | Adaptive icon (foreground/background) |
-| Splash | Launch screen storyboard / Cap splash | Splash theme |
-| Screenshots | 6.7", 6.1", iPad if supported | Phone + 7" / 10" tablets if needed |
-| Privacy policy URL | Required | Required |
-| Support URL | Required | Required |
+```bash
+cd liberationfleet.client
+npm run build:native
+```
 
-Use `@capacitor/assets` or Android Studio / Xcode asset catalogs once branding art is final.
+---
 
-## Capabilities to enable in native projects
+## Step 4 — Add native platforms (one time)
+
+```bash
+cd liberationfleet.client
+npx cap add android   # Windows, Mac, or Linux
+npx cap add ios       # Mac only
+```
+
+Commit the generated `android/` and `ios/` folders (usual Capacitor practice).
+
+---
+
+## Step 5 — Sync after every Angular or env change
+
+```bash
+cd liberationfleet.client
+npm run cap:sync
+```
+
+This copies the web build into the native projects and updates plugins.
+
+---
+
+## Step 6 — Open IDEs and run on a device
+
+```bash
+npm run cap:android   # opens Android Studio
+npm run cap:ios       # opens Xcode (Mac)
+```
+
+### Android Studio
+
+1. Wait for Gradle sync.
+2. Select a physical device or emulator → **Run**.
+3. Confirm login works against `apiBaseUrl`.
+
+### Xcode
+
+1. Select your Team for signing.
+2. Pick a physical device (recommended) or simulator → **Run**.
+3. Trust the developer cert on the device if prompted.
+
+---
+
+## Step 7 — Permissions (voice / media)
 
 | Feature | iOS (`Info.plist`) | Android (`AndroidManifest.xml`) |
 |---------|--------------------|----------------------------------|
 | Microphone (voice) | `NSMicrophoneUsageDescription` | `RECORD_AUDIO` |
-| Camera (if you add capture) | `NSCameraUsageDescription` | `CAMERA` |
+| Camera (if native capture later) | `NSCameraUsageDescription` | `CAMERA` |
 | Photo library | `NSPhotoLibraryUsageDescription` | Read media permissions (API 33+) |
-| Network | ATS HTTPS (default) | Internet permission (default) |
-| Background audio (optional) | Background Modes → Audio | Foreground service if needed |
+| Network | ATS HTTPS (default) | Internet (default) |
 
-LiveKit WebRTC works inside Capacitor WebView when mic permission is granted.
+Example mic string:
+
+> Liberation Fleet needs the microphone for crew voice chat.
+
+LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted. See [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md).
+
+---
+
+## Step 8 — Store assets you must supply
+
+| Asset | iOS | Android |
+|-------|-----|---------|
+| App icon | 1024×1024 App Store | Adaptive icon (foreground/background) |
+| Splash | Launch screen / Cap splash | Splash theme |
+| Screenshots | 6.7", 6.1", iPad if supported | Phone (+ tablets if you declare them) |
+| Privacy policy URL | Required | Required |
+| Support URL | Required | Required |
+
+Use `@capacitor/assets` or IDE asset catalogs once branding art is final. Submission flow: [STORE-SUBMISSION.md](./STORE-SUBMISSION.md).
+
+---
 
 ## Stripe donations on mobile
 
-Stripe Checkout opens an external browser / Custom Tabs. That is allowed for **digital donations to your org** in many cases, but Apple/Google policies around payments are strict for digital goods. Keep donations as **voluntary tips to Liberation Fleet** (already the product intent) and avoid selling digital unlockables outside IAP. Confirm with counsel before submission.
+Stripe Checkout opens an external browser / Custom Tabs. Frame donations as **voluntary tips to Liberation Fleet**, not unlockable digital goods. Confirm with counsel before store submission (Apple/Google payment rules). Setup: [DONATION-SETUP.md](./DONATION-SETUP.md).
+
+---
 
 ## Push notifications (not yet wired)
 
-In-app notifications use SignalR. Store apps will need **APNs + FCM** (or Azure Notification Hubs) for background push — tracked as a follow-up. See `docs/LAUNCH-CHECKLIST.md`.
+In-app notifications use SignalR (works while the app is open). Background push needs **APNs + FCM** (or Azure Notification Hubs) — tracked in [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md).
+
+---
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| API calls fail on device | `apiBaseUrl` empty/wrong; CORS missing Capacitor origins |
-| SignalR disconnects | Same as above; ensure WebSockets enabled on App Service |
-| Blank screen | Run `npm run cap:sync` after Angular changes |
-| Mic denied | Add usage strings / permissions above |
-| iOS build fails on Windows | Use a Mac or cloud Mac CI for `cap add ios` / Archive |
+| API calls fail on device | Wrong/empty `apiBaseUrl`; CORS missing Capacitor origins |
+| SignalR disconnects | Same as above; WebSockets enabled on App Service (Terraform sets this) |
+| Blank screen | Run `npm run build:native` then `npm run cap:sync` |
+| Mic denied | Add usage strings / `RECORD_AUDIO` |
+| iOS build fails on Windows | Use a Mac or cloud Mac for `cap add ios` / Archive |
+| Login works on web, not device | Device hitting HTTP or old `apiBaseUrl`; re-sync after env change |
