@@ -15,6 +15,12 @@ public class CrewMembership
     public bool IsModerator { get; set; }
     public bool IsIntermediary { get; set; }
     public int IntermediaryFailedCompletions { get; set; }
+    public bool IsRepresentative { get; set; }
+    /// <summary>Inclusive UTC start of the Representative term.</summary>
+    public DateTime? RepresentativeTermStartUtc { get; set; }
+    /// <summary>Exclusive UTC end of the Representative term.</summary>
+    public DateTime? RepresentativeTermEndUtc { get; set; }
+    public decimal RepresentativeReceivedAmount { get; set; }
     public int EmergencySacrificesThisSeason { get; set; }
     public bool IsPlaceholderMember { get; set; }
     public bool CanAttachFiles { get; set; }

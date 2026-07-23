@@ -9,11 +9,17 @@ public static class PrivacyAccess
 
     /// <summary>
     /// Private crews/fleets can be reached with an exact join code.
-    /// Invite-only ones cannot be discovered this way.
+    /// Invite-only and fleet-members-only cannot be discovered this way.
     /// </summary>
     public static bool CanDiscoverByJoinCode(CrewPrivacy privacy) =>
         privacy is CrewPrivacy.Public or CrewPrivacy.Private;
 
+    public static bool IsFleetScopedCrewPrivacy(CrewPrivacy privacy) =>
+        privacy == CrewPrivacy.FleetMembersOnly;
+
     public static string InviteOnlyJoinMessage(string entityName) =>
         $"This {entityName} is invite-only. You must receive an invitation to join.";
+
+    public static string FleetMembersOnlyJoinMessage() =>
+        "This crew is for fleet members only. You must already be in the same fleet to join.";
 }

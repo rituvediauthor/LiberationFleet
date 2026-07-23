@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { CrewmateService } from '../../../services/crewmate.service';
@@ -10,7 +11,7 @@ import { CrewRoleDefinition } from '../../../models/crewmate.model';
 @Component({
   selector: 'app-nominate-roles',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, FormsModule, PageLayoutComponent],
   templateUrl: './nominate-roles.component.html',
   styleUrl: './nominate-roles.component.css'
 })
@@ -21,6 +22,8 @@ export class NominateRolesComponent implements OnInit {
   loading = true;
   submitting = false;
   errorMessage = '';
+  termStartDate = '';
+  termEndDate = '';
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
 
@@ -48,12 +51,35 @@ export class NominateRolesComponent implements OnInit {
     return this.selectedRoles.has(role);
   }
 
+  get requiresRepresentativeTerm(): boolean {
+    return [...this.selectedRoles].some(role => {
+      const definition = this.roles.find(r => r.role === role);
+      return definition?.requiresTermDates === true;
+    });
+  }
+
+  get minTermStartDate(): string {
+    const tomorrow = new Date();
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    return tomorrow.toISOString().slice(0, 10);
+  }
+
   toggleRole(role: string) {
     if (this.selectedRoles.has(role)) {
       this.selectedRoles.delete(role);
     } else {
       this.selectedRoles.add(role);
     }
+
+    if (!this.requiresRepresentativeTerm) {
+      this.termStartDate = '';
+      this.termEndDate = '';
+    }
+
+    this.updatePrimaryButton();
+  }
+
+  onTermDatesChanged() {
     this.updatePrimaryButton();
   }
 
@@ -99,25 +125,53 @@ export class NominateRolesComponent implements OnInit {
     });
   }
 
+  private canSubmit(): boolean {
+    if (this.submitting || this.selectedRoles.size === 0) {
+      return false;
+    }
+
+    if (!this.requiresRepresentativeTerm) {
+      return true;
+    }
+
+    if (!this.termStartDate || !this.termEndDate) {
+      return false;
+    }
+
+    return this.termEndDate > this.termStartDate && this.termStartDate >= this.minTermStartDate;
+  }
+
   private updatePrimaryButton() {
-    const count = this.selectedRoles.size;
     this.primaryButton = {
       label: 'Nominate',
       type: 'primary',
-      disabled: this.submitting || count === 0,
+      disabled: !this.canSubmit(),
       onClick: () => this.submitNomination()
     };
   }
 
+  private toUtcIsoDate(dateOnly: string, endOfDay: boolean): string {
+    return endOfDay
+      ? `${dateOnly}T23:59:59.999Z`
+      : `${dateOnly}T00:00:00.000Z`;
+  }
+
   private submitNomination() {
-    if (this.submitting || this.selectedRoles.size === 0) {
+    if (!this.canSubmit()) {
       return;
     }
 
     this.submitting = true;
     this.updatePrimaryButton();
 
-    this.crewmateService.nominateRoles(this.userId, [...this.selectedRoles]).subscribe({
+    const termStart = this.requiresRepresentativeTerm
+      ? this.toUtcIsoDate(this.termStartDate, false)
+      : null;
+    const termEnd = this.requiresRepresentativeTerm
+      ? this.toUtcIsoDate(this.termEndDate, true)
+      : null;
+
+    this.crewmateService.nominateRoles(this.userId, [...this.selectedRoles], termStart, termEnd).subscribe({
       next: response => {
         this.submitting = false;
         this.updatePrimaryButton();

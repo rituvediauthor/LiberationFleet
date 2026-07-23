@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="saveButton">
   <div class="form-container">
     <p *ngIf="loading" class="status-message">Loading crew settings...</p>
     <p *ngIf="!loading && loadError" class="status-message error">{{ loadError }}</p>
@@ -81,9 +81,10 @@
             <option value="Public">Public</option>
             <option value="Private">Private</option>
             <option value="InviteOnly">Invite Only</option>
+            <option value="FleetMembersOnly">Fleet members only</option>
           </select>
           <span class="hint-text">
-            Public appears in search. Private is findable only with the full join code. Invite Only cannot be searched — members must be invited.
+            Public appears in search. Private is findable only with the full join code. Invite Only cannot be searched — members must be invited. Fleet members only allows people already in your fleet (including No-Crew) to join.
           </span>
         </div>
 

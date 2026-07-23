@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
@@ -18,7 +19,7 @@ public class CrewmateKickProposalService(
     NotificationService notificationService,
     LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService,
-    ContentTenureService contentTenureService,
+    FleetMembershipService fleetMembershipService,
     IUnitOfWork unitOfWork)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
@@ -234,7 +235,7 @@ public class CrewmateKickProposalService(
                     proposal.CrewId!.Value,
                     kick.TargetUserId,
                     cancellationToken);
-                await contentTenureService.OnLeftCrewAsync(
+                await fleetMembershipService.RetainInFleetAsNoCrewAsync(
                     kick.TargetUserId,
                     proposal.CrewId!.Value,
                     cancellationToken);

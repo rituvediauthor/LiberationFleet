@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Services;
 using MediatR;
@@ -14,7 +15,7 @@ public class LeaveCrewCommandHandler(
     ICrewMembershipRepository membershipRepository,
     LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService,
-    ContentTenureService contentTenureService,
+    FleetMembershipService fleetMembershipService,
     IUnitOfWork unitOfWork) : IRequestHandler<LeaveCrewCommand, CrewOperationResponse>
 {
     public async Task<CrewOperationResponse> Handle(LeaveCrewCommand request, CancellationToken cancellationToken)
@@ -33,7 +34,7 @@ public class LeaveCrewCommandHandler(
         var crewId = membership.CrewId;
         var userId = currentUser.UserId.Value;
         await libraryMemberCleanupService.CleanupForDepartingMemberAsync(crewId, userId, cancellationToken);
-        await contentTenureService.OnLeftCrewAsync(userId, crewId, cancellationToken);
+        await fleetMembershipService.RetainInFleetAsNoCrewAsync(userId, crewId, cancellationToken);
         membershipRepository.Remove(membership);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(crewId, cancellationToken);

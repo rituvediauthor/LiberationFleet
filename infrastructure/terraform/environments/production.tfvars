@@ -1,6 +1,6 @@
 project_name = "lfleet"
 environment  = "production"
-location     = "eastus"
+location     = "westus2"
 
 app_service_sku = "P0v3"
 sql_sku_name    = "GP_S_Gen5_2"

@@ -12,7 +12,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { FallibleFooterComponent } from '../../components/fallible-footer/fallible-footer.component';
 import { GiftService } from '../../services/gift.service';
 import { CrewService } from '../../services/crew.service';
 import { CrewmateService } from '../../services/crewmate.service';
@@ -27,7 +26,7 @@ import { NotificationContentService } from '../../services/notification-content.
 @Component({
   selector: 'app-gift-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, FallibleFooterComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './gift-log.component.html',
   styleUrl: './gift-log.component.css'
 })

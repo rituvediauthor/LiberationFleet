@@ -17,12 +17,20 @@
       </div>
 
       <p class="page-subtitle">
-        {{ crew.memberCount }}<ng-container *ngIf="crew.maxSize">/{{ crew.maxSize }}</ng-container> members
-        <span *ngIf="crew.isOwnCrew"> · Your crew</span>
+        <ng-container *ngIf="crew.isNoCrew; else normalSubtitle">
+          {{ crew.memberCount }} fleet members without a crew
+          <span *ngIf="crew.isOwnCrew"> · You are here</span>
+        </ng-container>
+        <ng-template #normalSubtitle>
+          {{ crew.memberCount }}<ng-container *ngIf="crew.maxSize">/{{ crew.maxSize }}</ng-container> members
+          <span *ngIf="crew.isOwnCrew"> · Your crew</span>
+        </ng-template>
       </p>
 
-      <h2 class="section-title">Crewmates</h2>
-      <p *ngIf="crew.crewmates.length === 0" class="state-text">No crewmates listed.</p>
+      <h2 class="section-title">{{ crew.isNoCrew ? 'Members' : 'Crewmates' }}</h2>
+      <p *ngIf="crew.crewmates.length === 0" class="state-text">
+        {{ crew.isNoCrew ? 'No one is currently without a crew.' : 'No crewmates listed.' }}
+      </p>
 
       <div class="crewmate-list" *ngIf="crew.crewmates.length > 0">
         <button

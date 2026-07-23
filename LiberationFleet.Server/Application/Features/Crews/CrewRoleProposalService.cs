@@ -33,6 +33,8 @@ public class CrewRoleProposalService(
         int authorUserId,
         int targetUserId,
         IReadOnlyList<CrewRole> roles,
+        DateTime? representativeTermStartUtc,
+        DateTime? representativeTermEndUtc,
         CancellationToken cancellationToken) =>
         CreateProposalAsync(
             crewId,
@@ -40,6 +42,8 @@ public class CrewRoleProposalService(
             targetUserId,
             CrewRoleProposalAction.Nominate,
             roles,
+            representativeTermStartUtc,
+            representativeTermEndUtc,
             cancellationToken);
 
     public Task<CrewRoleProposalResult> CreateDemotionAsync(
@@ -54,6 +58,8 @@ public class CrewRoleProposalService(
             targetUserId,
             CrewRoleProposalAction.Demote,
             roles,
+            representativeTermStartUtc: null,
+            representativeTermEndUtc: null,
             cancellationToken);
 
     private async Task<CrewRoleProposalResult> CreateProposalAsync(
@@ -62,6 +68,8 @@ public class CrewRoleProposalService(
         int targetUserId,
         CrewRoleProposalAction action,
         IReadOnlyList<CrewRole> roles,
+        DateTime? representativeTermStartUtc,
+        DateTime? representativeTermEndUtc,
         CancellationToken cancellationToken)
     {
         if (roles.Count == 0)
@@ -81,12 +89,28 @@ public class CrewRoleProposalService(
             return CrewRoleProposalResult.Failed("Crewmate not found.");
         }
 
+        CrewRoleMapper.ClearExpiredRepresentativeTerm(membership);
+
         if (action == CrewRoleProposalAction.Nominate)
         {
             roles = roles.Where(role => !CrewRoleMapper.HasRole(membership, role)).ToList();
             if (roles.Count == 0)
             {
                 return CrewRoleProposalResult.Failed("This crewmate already holds the selected roles.");
+            }
+
+            if (roles.Contains(CrewRole.Representative))
+            {
+                var termError = ValidateRepresentativeTerm(representativeTermStartUtc, representativeTermEndUtc);
+                if (termError is not null)
+                {
+                    return CrewRoleProposalResult.Failed(termError);
+                }
+            }
+            else
+            {
+                representativeTermStartUtc = null;
+                representativeTermEndUtc = null;
             }
         }
         else
@@ -96,6 +120,9 @@ public class CrewRoleProposalService(
             {
                 return CrewRoleProposalResult.Failed("This crewmate does not hold the selected roles.");
             }
+
+            representativeTermStartUtc = null;
+            representativeTermEndUtc = null;
         }
 
         var pending = await proposalRepository.GetPendingCrewRoleChangeForTargetAsync(
@@ -128,7 +155,7 @@ public class CrewRoleProposalService(
             ? $"Nominate {targetUser.Username} as {roleList}"
             : $"Remove {roleList} from {targetUser.Username}";
         var description = action == CrewRoleProposalAction.Nominate
-            ? $"Assign {targetUser.Username} the following crew role(s): {roleList}."
+            ? BuildNominationDescription(targetUser.Username, roleList, roles, representativeTermStartUtc, representativeTermEndUtc)
             : $"Remove the following role(s) from {targetUser.Username}: {roleList}.";
 
         await proposalRepository.AddCrewRoleChangeAsync(new ProposalCrewRoleChange
@@ -138,7 +165,9 @@ public class CrewRoleProposalService(
             Action = action,
             RolesJson = CrewRoleMapper.SerializeRoles(roles),
             Title = title,
-            Description = description
+            Description = description,
+            RepresentativeTermStartUtc = representativeTermStartUtc,
+            RepresentativeTermEndUtc = representativeTermEndUtc
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -201,7 +230,9 @@ public class CrewRoleProposalService(
         CrewRoleMapper.ApplyRoles(
             membership,
             roles,
-            assign: roleChange.Action == CrewRoleProposalAction.Nominate);
+            assign: roleChange.Action == CrewRoleProposalAction.Nominate,
+            representativeTermStartUtc: roleChange.RepresentativeTermStartUtc,
+            representativeTermEndUtc: roleChange.RepresentativeTermEndUtc);
 
         roleChange.IsApplied = true;
 
@@ -222,5 +253,44 @@ public class CrewRoleProposalService(
                 relatedEntityId: roleChange.TargetUserId,
                 cancellationToken: cancellationToken);
         }
+    }
+
+    private static string? ValidateRepresentativeTerm(DateTime? startUtc, DateTime? endUtc)
+    {
+        if (!startUtc.HasValue || !endUtc.HasValue)
+        {
+            return "Representative nominations require a future start date and end date.";
+        }
+
+        var now = DateTime.UtcNow;
+        if (startUtc.Value <= now)
+        {
+            return "Representative term start must be in the future.";
+        }
+
+        if (endUtc.Value <= startUtc.Value)
+        {
+            return "Representative term end must be after the start date.";
+        }
+
+        return null;
+    }
+
+    private static string BuildNominationDescription(
+        string username,
+        string roleList,
+        IReadOnlyList<CrewRole> roles,
+        DateTime? termStartUtc,
+        DateTime? termEndUtc)
+    {
+        var description = $"Assign {username} the following crew role(s): {roleList}.";
+        if (roles.Contains(CrewRole.Representative) && termStartUtc.HasValue && termEndUtc.HasValue)
+        {
+            description +=
+                $" Representative term: {termStartUtc.Value:yyyy-MM-dd} through {termEndUtc.Value:yyyy-MM-dd} (UTC). " +
+                "During the term they receive mutual aid ahead of cycles (except survival thresholds) so they can attend government functions for the crew.";
+        }
+
+        return description;
     }
 }

@@ -18,6 +18,7 @@ public class SubmitJoinRequestCommandHandler(
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
     ICrewInvitationRepository invitationRepository,
+    IFleetRepository fleetRepository,
     CrewJoinRequestProposalService joinRequestProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<SubmitJoinRequestCommand, JoinRequestOperationResponse>
 {
@@ -76,7 +77,20 @@ public class SubmitJoinRequestCommandHandler(
             };
         }
 
-        if (crew.Privacy == CrewPrivacy.Private
+        if (PrivacyAccess.IsFleetScopedCrewPrivacy(crew.Privacy))
+        {
+            var targetFleet = await fleetRepository.GetFleetForCrewAsync(crew.Id, cancellationToken);
+            if (targetFleet is null
+                || !await fleetRepository.IsUserInFleetAsync(userId, targetFleet.Id, cancellationToken))
+            {
+                return new JoinRequestOperationResponse
+                {
+                    Success = false,
+                    Message = PrivacyAccess.FleetMembersOnlyJoinMessage()
+                };
+            }
+        }
+        else if (crew.Privacy == CrewPrivacy.Private
             && invitation is null
             && string.IsNullOrWhiteSpace(request.JoinCode))
         {

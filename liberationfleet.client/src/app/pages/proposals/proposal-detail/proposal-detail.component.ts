@@ -11,7 +11,6 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
-import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import {
   PendingAttachment,
@@ -45,7 +44,6 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     ProposalAttachmentPickerComponent,
     LibraryImageCarouselComponent,
     KickReasonDialogComponent,
-    FallibleFooterComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,
     ReportContentDialogComponent,

@@ -67,3 +67,57 @@
   line-height: 1.45;
   color: var(--lf-color-text-secondary);
 }
+
+.term-dates {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--lf-color-border);
+}
+
+.term-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lf-color-text-primary);
+}
+
+.term-hint {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
+}
+
+.term-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lf-color-text-primary);
+}
+
+.form-input {
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-primary);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  .term-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

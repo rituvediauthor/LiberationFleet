@@ -16,10 +16,16 @@
         <div class="crew-main">
           <p class="crew-name">
             {{ crew.crewName }}
-            <span class="own-badge" *ngIf="crew.isOwnCrew">Your crew</span>
+            <span class="own-badge" *ngIf="crew.isOwnCrew && !crew.isNoCrew">Your crew</span>
+            <span class="own-badge" *ngIf="crew.isOwnCrew && crew.isNoCrew">You</span>
           </p>
           <p class="crew-meta">
-            {{ crew.memberCount }}<ng-container *ngIf="crew.maxSize">/{{ crew.maxSize }}</ng-container> members
+            <ng-container *ngIf="crew.isNoCrew; else normalMeta">
+              {{ crew.memberCount }} fleet members without a crew
+            </ng-container>
+            <ng-template #normalMeta>
+              {{ crew.memberCount }}<ng-container *ngIf="crew.maxSize">/{{ crew.maxSize }}</ng-container> members
+            </ng-template>
           </p>
         </div>
         <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>

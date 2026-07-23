@@ -51,14 +51,14 @@ Start from `*.backend.hcl.example`. These files are **gitignored**.
 cd infrastructure/terraform
 
 # Staging
-terraform init -backend-config=environments/staging.backend.hcl
-terraform plan  -var-file=environments/staging.tfvars
-terraform apply -var-file=environments/staging.tfvars
+terraform init -backend-config="environments/staging.backend.hcl"
+terraform plan  -var-file="environments/staging.tfvars"
+terraform apply -var-file="environments/staging.tfvars"
 
 # Production (separate state file)
-terraform init -reconfigure -backend-config=environments/production.backend.hcl
-terraform plan  -var-file=environments/production.tfvars
-terraform apply -var-file=environments/production.tfvars
+terraform init -reconfigure -backend-config="environments/production.backend.hcl"
+terraform plan  -var-file="environments/production.tfvars"
+terraform apply -var-file="environments/production.tfvars"
 ```
 
 ### Important outputs

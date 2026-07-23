@@ -1,4 +1,4 @@
-export type CrewPrivacy = 'Public' | 'Private' | 'InviteOnly';
+export type CrewPrivacy = 'Public' | 'Private' | 'InviteOnly' | 'FleetMembersOnly';
 export type CrewScope = 'Local' | 'Online';
 export type CycleCapMode = 'CapacityBased' | 'Fixed';
 

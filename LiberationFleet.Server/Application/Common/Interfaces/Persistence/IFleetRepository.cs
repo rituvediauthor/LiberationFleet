@@ -11,6 +11,7 @@ public interface IFleetRepository
     Task<IReadOnlyList<Fleet>> SearchPublicAsync(CrewScope scope, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FleetCrew>> GetFleetCrewsAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<Fleet?> GetFleetForCrewAsync(int crewId, CancellationToken cancellationToken = default);
+    Task<Fleet?> GetFleetForUserAsync(int userId, CancellationToken cancellationToken = default);
     Task<bool> IsCrewInFleetAsync(int crewId, int fleetId, CancellationToken cancellationToken = default);
     Task AddFleetCrewAsync(FleetCrew fleetCrew, CancellationToken cancellationToken = default);
     Task RemoveFleetCrewAsync(FleetCrew fleetCrew, CancellationToken cancellationToken = default);
@@ -23,4 +24,12 @@ public interface IFleetRepository
     Task<FleetRule?> GetRuleByIdAsync(int ruleId, CancellationToken cancellationToken = default);
     Task AddRuleAsync(FleetRule rule, CancellationToken cancellationToken = default);
     Task<ChatRoom?> GetLinkedFleetChatRoomAsync(int fleetId, int linkedCrewId, CancellationToken cancellationToken = default);
+
+    Task<FleetMembership?> GetFleetMembershipAsync(int userId, int fleetId, CancellationToken cancellationToken = default);
+    Task<FleetMembership?> GetFleetMembershipForUserAsync(int userId, CancellationToken cancellationToken = default);
+    Task EnsureFleetMembershipAsync(int userId, int fleetId, CancellationToken cancellationToken = default);
+    Task RemoveFleetMembershipAsync(FleetMembership membership, CancellationToken cancellationToken = default);
+    Task RemoveFleetMembershipForUserAsync(int userId, int fleetId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FleetMembership>> GetNoCrewMembershipsAsync(int fleetId, CancellationToken cancellationToken = default);
+    Task<int> CountNoCrewMembersAsync(int fleetId, CancellationToken cancellationToken = default);
 }

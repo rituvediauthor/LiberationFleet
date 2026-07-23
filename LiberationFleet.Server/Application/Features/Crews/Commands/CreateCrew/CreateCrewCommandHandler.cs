@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -16,6 +17,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
     private readonly ICrewMembershipRepository _membershipRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ContentTenureService _contentTenureService;
+    private readonly FleetMembershipService _fleetMembershipService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateCrewCommandHandler(
@@ -23,12 +25,14 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         ICrewMembershipRepository membershipRepository,
         ICurrentUserService currentUserService,
         ContentTenureService contentTenureService,
+        FleetMembershipService fleetMembershipService,
         IUnitOfWork unitOfWork)
     {
         _crewRepository = crewRepository;
         _membershipRepository = membershipRepository;
         _currentUserService = currentUserService;
         _contentTenureService = contentTenureService;
+        _fleetMembershipService = fleetMembershipService;
         _unitOfWork = unitOfWork;
     }
 
@@ -77,6 +81,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             JoinedAt = DateTime.UtcNow
         }, cancellationToken);
         await _contentTenureService.OnJoinedCrewAsync(userId.Value, crew.Id, cancellationToken);
+        await _fleetMembershipService.AttachCreatedCrewToFleetIfNeededAsync(userId.Value, crew.Id, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewOperationResponse

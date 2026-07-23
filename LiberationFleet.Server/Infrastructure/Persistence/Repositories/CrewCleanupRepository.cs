@@ -9,6 +9,8 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
 {
     public async Task CleanupCrewExceptGiftsAsync(int crewId, CancellationToken cancellationToken = default)
     {
+        await DetachCrewFromFleetAsync(crewId, cancellationToken);
+
         var chatRoomIds = await context.ChatRooms
             .Where(r => r.CrewId == crewId)
             .Select(r => r.Id)
@@ -120,6 +122,31 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             await context.Crews
                 .Where(c => c.Id == crewId)
                 .ExecuteDeleteAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Removes the crew from any fleet and soft-deletes its linked fleet chat room
+    /// (clearing LinkedCrewId so Restrict FK does not block crew deletion).
+    /// </summary>
+    private async Task DetachCrewFromFleetAsync(int crewId, CancellationToken cancellationToken)
+    {
+        var linkedRooms = await context.ChatRooms
+            .Where(r => r.LinkedCrewId == crewId)
+            .ToListAsync(cancellationToken);
+        foreach (var room in linkedRooms)
+        {
+            room.IsDeleted = true;
+            room.LinkedCrewId = null;
+        }
+
+        await context.FleetCrews
+            .Where(fc => fc.CrewId == crewId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        if (linkedRooms.Count > 0)
+        {
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 

@@ -9,7 +9,6 @@ public record GetFleetLibraryStatusQuery : IRequest<FleetLibraryStatusDto>;
 
 public class GetFleetLibraryStatusQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository) : IRequestHandler<GetFleetLibraryStatusQuery, FleetLibraryStatusDto>
 {
     public async Task<FleetLibraryStatusDto> Handle(GetFleetLibraryStatusQuery request, CancellationToken cancellationToken)
@@ -19,16 +18,10 @@ public class GetFleetLibraryStatusQueryHandler(
             return new FleetLibraryStatusDto { Success = false, Message = "Unauthorized." };
         }
 
-        var membership = await membershipRepository.GetActiveMembershipAsync(currentUser.UserId.Value, cancellationToken);
-        if (membership is null)
-        {
-            return new FleetLibraryStatusDto { Success = false, Message = "You are not in a crew." };
-        }
-
-        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForUserAsync(currentUser.UserId.Value, cancellationToken);
         if (fleet is null)
         {
-            return new FleetLibraryStatusDto { Success = false, Message = "Your crew is not in a fleet." };
+            return new FleetLibraryStatusDto { Success = false, Message = "You are not in a fleet." };
         }
 
         return new FleetLibraryStatusDto

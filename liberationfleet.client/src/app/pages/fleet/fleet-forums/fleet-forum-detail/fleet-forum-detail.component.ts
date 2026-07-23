@@ -5,7 +5,6 @@ import { ActivatedRoute } from '@angular/router';
 import { FleetService } from '../../../../services/fleet.service';
 import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../../../../components/toast/toast.component';
-import { FallibleFooterComponent } from '../../../../components/fallible-footer/fallible-footer.component';
 import { AdultContentGateComponent } from '../../../../components/adult-content-gate/adult-content-gate.component';
 import { FleetForumComment, FleetForumPost } from '../../../../models/fleet-forum.model';
 import { ProposalComment, ProposalDetail } from '../../../../models/proposal.model';
@@ -30,7 +29,6 @@ import { truncateNotificationPreview } from '../../../../utils/notification-prev
   imports: [
     CommonModule,
     FormsModule,
-    FallibleFooterComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
     ReportContentDialogComponent,

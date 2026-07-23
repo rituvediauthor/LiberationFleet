@@ -24,6 +24,8 @@ export class PageLayoutComponent {
   @Input() secondaryButton: ActionBarButton | null = null;
   @Input() fillHeight = false;
   @Input() brandNavButton = false;
+  /** Attribution + donate strip. Hide on discourse/comms and create/edit forms. */
+  @Input() showFallibleFooter = true;
 
   constructor(private router: Router) {}
 

@@ -59,6 +59,12 @@ h1 {
   border-radius: 999px;
 }
 
+.entry-unverified {
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+  font-style: italic;
+}
+
 .entry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

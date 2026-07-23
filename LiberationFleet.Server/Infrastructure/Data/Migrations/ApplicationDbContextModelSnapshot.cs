@@ -667,12 +667,29 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsRepresentative")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsSeasonReady")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
                     b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("RepresentativeReceivedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("RepresentativeTermEndUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RepresentativeTermStartUtc")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("UserId")
@@ -1204,6 +1221,36 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("FleetKeyDistributions");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetMembership", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("FleetId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FleetId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "FleetId")
+                        .IsUnique();
+
+                    b.ToTable("FleetMemberships");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetRule", b =>
                 {
                     b.Property<int>("Id")
@@ -1419,6 +1466,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsCustomGift")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsRepresentativeGift")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -2551,6 +2603,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<int>("ProposalId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("RepresentativeTermEndUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RepresentativeTermStartUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("RolesJson")
                         .IsRequired()
@@ -4053,6 +4111,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("User");
 
                     b.Navigation("WrappedByUser");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetMembership", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Fleet", "Fleet")
+                        .WithMany()
+                        .HasForeignKey("FleetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Fleet");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.FleetRule", b =>

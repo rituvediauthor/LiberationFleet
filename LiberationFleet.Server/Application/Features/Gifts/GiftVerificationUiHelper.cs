@@ -12,6 +12,7 @@ public static class GiftVerificationUiHelper
 
     public const string FlagNotComplete = "notComplete";
     public const string FlagCantComplete = "cantComplete";
+    public const string FlagUnverified = "unverified";
 
     public static string? GetDisplayFlag(Gift gift)
     {
@@ -20,6 +21,8 @@ public static class GiftVerificationUiHelper
             GiftVerificationStatus.TransferNotReceived => FlagNotComplete,
             GiftVerificationStatus.RecipientNotReceived => FlagNotComplete,
             GiftVerificationStatus.MiddlemanCannotComplete => FlagCantComplete,
+            GiftVerificationStatus.Pending when gift.Type == GiftType.Direct => FlagUnverified,
+            GiftVerificationStatus.AwaitingRecipientVerification => FlagUnverified,
             _ => null
         };
     }

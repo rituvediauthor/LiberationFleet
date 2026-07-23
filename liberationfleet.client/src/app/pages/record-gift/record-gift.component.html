@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="recordButton">
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="recordButton">
   <div class="form-container">
     <div class="form-card">
       <h1>Record Gift</h1>
@@ -43,8 +43,9 @@
           [formGroup]="$any(entries.at(i))">
           <div class="entry-header">
             <span class="entry-name">{{ entry.username }}</span>
-            <span class="entry-need">needs ${{ entry.amountNeeded }}</span>
+            <span class="entry-need">{{ entryNeedLabel(entry) }}</span>
             <span class="entry-type">{{ entryTypeLabel(entry) }}</span>
+            <span *ngIf="entry.hasUnverifiedPending" class="entry-unverified" title="Includes gifts awaiting verification">Unverified gifts pending</span>
           </div>
 
           <div class="entry-grid">

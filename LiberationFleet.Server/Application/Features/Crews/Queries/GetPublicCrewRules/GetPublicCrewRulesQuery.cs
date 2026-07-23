@@ -13,7 +13,8 @@ public class GetPublicCrewRulesQueryHandler(
     ICurrentUserService currentUser,
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
-    ICrewMembershipRepository membershipRepository) : IRequestHandler<GetPublicCrewRulesQuery, PublicCrewRulesResponse>
+    ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository) : IRequestHandler<GetPublicCrewRulesQuery, PublicCrewRulesResponse>
 {
     public async Task<PublicCrewRulesResponse> Handle(GetPublicCrewRulesQuery request, CancellationToken cancellationToken)
     {
@@ -53,7 +54,20 @@ public class GetPublicCrewRulesQueryHandler(
             };
         }
 
-        if (!PrivacyAccess.CanDiscoverByBrowse(crew.Privacy) && !hasJoinCode)
+        if (PrivacyAccess.IsFleetScopedCrewPrivacy(crew.Privacy))
+        {
+            var targetFleet = await fleetRepository.GetFleetForCrewAsync(crew.Id, cancellationToken);
+            if (targetFleet is null
+                || !await fleetRepository.IsUserInFleetAsync(currentUser.UserId.Value, targetFleet.Id, cancellationToken))
+            {
+                return new PublicCrewRulesResponse
+                {
+                    Success = false,
+                    Message = PrivacyAccess.FleetMembersOnlyJoinMessage()
+                };
+            }
+        }
+        else if (!PrivacyAccess.CanDiscoverByBrowse(crew.Privacy) && !hasJoinCode)
         {
             return new PublicCrewRulesResponse { Success = false, Message = "Crew not found." };
         }

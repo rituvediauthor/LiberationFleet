@@ -17,6 +17,7 @@
           [class.highlighted]="isHighlighted(entry)"
           [class.flagged-not-complete]="entry.displayFlag === 'notComplete'"
           [class.flagged-cant-complete]="entry.displayFlag === 'cantComplete'"
+          [class.flagged-unverified]="entry.displayFlag === 'unverified' || entry.status === 'unverified'"
           [class.celebration]="isCelebration(entry)">
           <div
             *ngIf="hasMore && i === loadMoreTriggerIndex"
@@ -24,6 +25,7 @@
             class="load-more-sentinel"
             aria-hidden="true"></div>
           <p class="log-message">{{ entry.message }}</p>
+          <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>
           <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
 
           <div *ngIf="entry.availableActions?.length" class="verification-row">
@@ -82,8 +84,6 @@
         (click)="exportGiftLog()">
         Download gift log
       </button>
-
-      <app-fallible-footer></app-fallible-footer>
     </div>
   </div>
 

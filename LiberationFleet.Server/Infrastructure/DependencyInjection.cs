@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<Application.Services.IMediaDeepFreezeService, Application.Services.MediaDeepFreezeService>();
         services.AddHostedService<Background.ContentReportRetentionHostedService>();
         services.AddHostedService<Background.MediaDeepFreezeHostedService>();
+        services.AddHostedService<Background.GiftAutoVerifyHostedService>();
         services.AddSingleton<ILiveKitTokenService, Infrastructure.LiveKit.LiveKitTokenService>();
         services.AddHttpClient();
         services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();

@@ -93,6 +93,11 @@ public class ReceptionOrderEntryDto
     public string? RecipientPreferredPlatformName { get; set; }
     public string? RecipientPreferredPlatformHandle { get; set; }
     public IReadOnlyList<PlatformAccountDto> RecipientPlatformAccounts { get; set; } = Array.Empty<PlatformAccountDto>();
+    /// <summary>Pending unverified gifts already counted in AmountNeeded (optimistic).</summary>
+    public bool HasUnverifiedPending { get; set; }
+    public decimal PendingUnverifiedAmount { get; set; }
+    /// <summary>True for Representative entries: no cap; AmountNeeded is not a remaining-need figure.</summary>
+    public bool IsUnlimitedNeed { get; set; }
 }
 
 public class PlatformAccountDto
@@ -118,6 +123,8 @@ public class NextAidDto
     public string PlatformDisplayKind { get; set; } = NextAidPlatformDisplayKind.None;
     public string? PlatformName { get; set; }
     public string? PlatformHandle { get; set; }
+    public bool HasUnverifiedPending { get; set; }
+    public bool IsUnlimitedNeed { get; set; }
 }
 
 public static class NextAidPlatformDisplayKind

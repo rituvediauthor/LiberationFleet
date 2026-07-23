@@ -130,10 +130,17 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     if (!this.nextAid) {
       return 'No aid needed right now';
     }
-    if (this.nextAid.isCurrentUserRecipient) {
-      return `You're next! $${this.nextAid.amount} still needed`;
+    const unverifiedNote = this.nextAid.hasUnverifiedPending ? ' (unverified gifts pending)' : '';
+    if (this.nextAid.isUnlimitedNeed) {
+      if (this.nextAid.isCurrentUserRecipient) {
+        return `You're next as Representative — open for aid (no maximum)${unverifiedNote}`;
+      }
+      return `${this.nextAid.recipientName} is Representative — open for aid (no maximum)${unverifiedNote}`;
     }
-    return `${this.nextAid.recipientName} needs $${this.nextAid.amount}`;
+    if (this.nextAid.isCurrentUserRecipient) {
+      return `You're next! $${this.nextAid.amount} still needed${unverifiedNote}`;
+    }
+    return `${this.nextAid.recipientName} needs $${this.nextAid.amount}${unverifiedNote}`;
   }
 
   get nextAidPlatformLine(): string | null {

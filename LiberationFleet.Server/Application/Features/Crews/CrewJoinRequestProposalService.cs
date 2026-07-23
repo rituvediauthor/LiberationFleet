@@ -189,6 +189,15 @@ public class CrewJoinRequestProposalService(
                 cancellationToken);
         }
 
+        var joinedFleet = await fleetRepository.GetFleetForCrewAsync(proposal.CrewId!.Value, cancellationToken);
+        if (joinedFleet is not null)
+        {
+            await fleetRepository.RemoveFleetMembershipForUserAsync(
+                joinRequest.ApplicantUserId,
+                joinedFleet.Id,
+                cancellationToken);
+        }
+
         await proposalRepository.RejectPendingJoinRequestsForApplicantAsync(
             joinRequest.ApplicantUserId,
             proposal.Id,

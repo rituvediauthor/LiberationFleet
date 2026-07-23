@@ -40,6 +40,7 @@ export interface CrewRoleDefinition {
   role: string;
   displayName: string;
   description: string;
+  requiresTermDates?: boolean;
 }
 
 export interface CrewRoleDefinitionsResponse {

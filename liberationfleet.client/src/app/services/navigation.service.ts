@@ -1,74 +1,48 @@
 import { Injectable, inject } from '@angular/core';
-import { Location } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, takeUntil, timer } from 'rxjs';
+import { filter } from 'rxjs';
 import { ActionBarButton } from '../components/page-layout/page-layout.component';
 
-/**
- * Routes that often auto-redirect based on membership/season state.
- * Landing on these via history.back() can bounce the user back to the page they left.
- */
-const HISTORY_REDIRECT_TRAPS = [
-  '/app/crew/season-setup',
-  '/app/crew/join-season',
-  '/app/crew/library-of-things/unlock'
-] as const;
+/** In-app notifications list (not notification preference settings). */
+const NOTIFICATIONS_ROUTE = '/app/notifications';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NavigationService {
-  private location = inject(Location);
   private router = inject(Router);
 
-  back(fallback: string | string[] = '/app/crew'): void {
-    const currentUrl = this.normalizeUrl(this.router.url);
-    const fallbackCommands = this.toCommands(fallback);
-    let leftCurrent = false;
-    let settled = false;
+  /** URL before the current navigation (path + query, no hash). */
+  private previousUrl: string | null = null;
+  private currentUrl: string;
 
-    const finishWithFallback = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      void this.router.navigate(fallbackCommands, { replaceUrl: true });
-    };
+  constructor() {
+    this.currentUrl = this.normalizeUrl(this.router.url);
 
-    const navigationWatcher = this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntil(timer(400))
-      )
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(event => {
         const nextUrl = this.normalizeUrl(event.urlAfterRedirects);
-
-        if (nextUrl === currentUrl) {
-          if (leftCurrent) {
-            // history.back() briefly left, then a redirect bounced us back.
-            finishWithFallback();
-          }
+        if (nextUrl === this.currentUrl) {
           return;
         }
-
-        leftCurrent = true;
-
-        if (this.isRedirectTrap(nextUrl) || this.isSameLogicalRoute(nextUrl, currentUrl)) {
-          finishWithFallback();
-        } else {
-          settled = true;
-        }
+        this.previousUrl = this.currentUrl;
+        this.currentUrl = nextUrl;
       });
+  }
 
-    this.location.back();
+  /**
+   * UI back: go to the page's canonical parent (`fallback`), unless the user
+   * arrived here directly from the notifications list — then return there.
+   * Does not use browser history (avoids bouncing through create/submit stacks).
+   */
+  back(fallback: string | string[] = '/app/crew'): void {
+    if (this.isNotificationsList(this.previousUrl)) {
+      void this.router.navigate([NOTIFICATIONS_ROUTE]);
+      return;
+    }
 
-    // If history cannot go back (or back is a no-op), use the fallback.
-    setTimeout(() => {
-      if (!settled && !leftCurrent && this.normalizeUrl(this.router.url) === currentUrl) {
-        navigationWatcher.unsubscribe();
-        finishWithFallback();
-      }
-    }, 50);
+    void this.router.navigate(this.toCommands(fallback));
   }
 
   createBackButton(fallback: string | string[] = '/app/crew'): ActionBarButton {
@@ -79,12 +53,12 @@ export class NavigationService {
     };
   }
 
-  private isRedirectTrap(url: string): boolean {
-    return HISTORY_REDIRECT_TRAPS.some(trap => url === trap || url.startsWith(`${trap}?`));
-  }
-
-  private isSameLogicalRoute(a: string, b: string): boolean {
-    return this.stripQuery(a) === this.stripQuery(b);
+  private isNotificationsList(url: string | null): boolean {
+    if (!url) {
+      return false;
+    }
+    const path = this.stripQuery(url);
+    return path === NOTIFICATIONS_ROUTE;
   }
 
   private normalizeUrl(url: string): string {

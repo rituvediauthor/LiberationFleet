@@ -128,7 +128,17 @@ export class RecordGiftComponent implements OnInit {
     if (entry.entryType === 'catchUp') {
       return 'Catch-up';
     }
+    if (entry.entryType === 'representative') {
+      return 'Representative';
+    }
     return 'Cycle';
+  }
+
+  entryNeedLabel(entry: ReceptionOrderEntry): string {
+    if (entry.isUnlimitedNeed || entry.entryType === 'representative') {
+      return 'no maximum';
+    }
+    return `needs $${entry.amountNeeded}`;
   }
 
   platformsForEntry(entry: ReceptionOrderEntry): PaymentPlatformOption[] {

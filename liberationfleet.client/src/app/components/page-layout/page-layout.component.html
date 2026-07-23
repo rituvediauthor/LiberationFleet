@@ -2,7 +2,7 @@
   <div class="page-content" [class.page-content-fill]="fillHeight">
     <div class="page-content-inner" [class.page-content-inner-fill]="fillHeight">
       <ng-content></ng-content>
-      <app-fallible-footer></app-fallible-footer>
+      <app-fallible-footer *ngIf="showFallibleFooter"></app-fallible-footer>
     </div>
   </div>
 

@@ -16,7 +16,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
-import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatService } from '../../../services/chat.service';
@@ -50,7 +49,6 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
-    FallibleFooterComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,

@@ -362,4 +362,54 @@ public class GiftRepository : IGiftRepository
             }
         }
     }
+
+    public async Task<IReadOnlyList<PendingReceptionCredit>> GetPendingReceptionCreditsAsync(
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var gifts = await _context.Gifts
+            .AsNoTracking()
+            .Where(g => g.CrewId == crewId
+                && g.CountsTowardReception
+                && !g.ReceptionApplied
+                && (
+                    (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)
+                    || (g.Type == GiftType.Completed
+                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)))
+            .Select(g => new PendingReceptionCredit
+            {
+                RecipientUserId = g.RecipientUserId,
+                SeasonCycleId = g.SeasonCycleId,
+                IsSurvivalThreshold = g.IsSurvivalThreshold,
+                IsRepresentativeGift = g.IsRepresentativeGift,
+                Amount = g.Amount
+            })
+            .ToListAsync(cancellationToken);
+
+        return gifts;
+    }
+
+    public async Task<IReadOnlyList<Gift>> GetGiftsDueForAutoVerificationAsync(
+        DateTime createdBeforeUtc,
+        int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Gifts
+            .Include(g => g.GiverUser)
+            .Include(g => g.RecipientUser)
+            .Include(g => g.MiddlemanUser)
+            .Include(g => g.CrewPaymentPlatform)
+            .Where(g => g.CountsTowardReception
+                && !g.ReceptionApplied
+                && !g.IsCustomGift
+                && g.CreatedAt <= createdBeforeUtc
+                && (
+                    (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)
+                    || (g.Type == GiftType.Completed
+                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)))
+            .OrderBy(g => g.CreatedAt)
+            .ThenBy(g => g.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
 }

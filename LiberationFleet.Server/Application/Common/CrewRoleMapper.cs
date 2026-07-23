@@ -40,6 +40,11 @@ public static class CrewRoleMapper
             roles.Add("Intermediary");
         }
 
+        if (membership.IsRepresentative)
+        {
+            roles.Add("Representative");
+        }
+
         if (membership.IsHonoraryMember)
         {
             roles.Add("Honorary member");
@@ -56,7 +61,8 @@ public static class CrewRoleMapper
             {
                 Role = GetRoleKey(role),
                 DisplayName = GetDisplayName(role),
-                Description = GetDescription(role)
+                Description = GetDescription(role),
+                RequiresTermDates = role == CrewRole.Representative
             })
             .ToList();
 
@@ -102,6 +108,11 @@ public static class CrewRoleMapper
             roles.Add(CrewRole.Intermediary);
         }
 
+        if (membership.IsRepresentative)
+        {
+            roles.Add(CrewRole.Representative);
+        }
+
         return roles;
     }
 
@@ -112,6 +123,7 @@ public static class CrewRoleMapper
         || membership.IsCeremonialOrganizer
         || membership.IsModerator
         || membership.IsIntermediary
+        || membership.IsRepresentative
         || membership.IsHonoraryMember;
 
     public static bool HasRole(CrewMembership membership, CrewRole role) =>
@@ -123,6 +135,7 @@ public static class CrewRoleMapper
             CrewRole.CeremonialOrganizer => membership.IsCeremonialOrganizer,
             CrewRole.Moderator => membership.IsModerator,
             CrewRole.Intermediary => membership.IsIntermediary,
+            CrewRole.Representative => membership.IsRepresentative,
             _ => false
         };
 
@@ -135,6 +148,7 @@ public static class CrewRoleMapper
             CrewRole.CeremonialOrganizer => "Ceremonial organizer",
             CrewRole.Moderator => "Moderator",
             CrewRole.Intermediary => "Intermediary",
+            CrewRole.Representative => "Representative",
             _ => role.ToString()
         };
 
@@ -153,8 +167,50 @@ public static class CrewRoleMapper
                 "Delete inappropriate file attachments and restrict a crewmate's ability to attach files.",
             CrewRole.Intermediary =>
                 "Bridge gifts when giver and recipient do not share a payment platform. Automatically loses the role after failing to complete two gifts.",
+            CrewRole.Representative =>
+                "Serve a fixed term receiving mutual aid (except survival thresholds) so they can take time off work to speak or vote for the crew at government functions. Nominations require a future start and end date.",
             _ => string.Empty
         };
+
+    public static bool IsRepresentativeTermActive(CrewMembership membership, DateTime? utcNow = null)
+    {
+        if (!membership.IsRepresentative
+            || !membership.RepresentativeTermStartUtc.HasValue
+            || !membership.RepresentativeTermEndUtc.HasValue)
+        {
+            return false;
+        }
+
+        var now = utcNow ?? DateTime.UtcNow;
+        return now >= membership.RepresentativeTermStartUtc.Value
+            && now < membership.RepresentativeTermEndUtc.Value;
+    }
+
+    /// <summary>Clears the role when the term end has passed. Returns true if membership was changed.</summary>
+    public static bool ClearExpiredRepresentativeTerm(CrewMembership membership, DateTime? utcNow = null)
+    {
+        if (!membership.IsRepresentative || !membership.RepresentativeTermEndUtc.HasValue)
+        {
+            return false;
+        }
+
+        var now = utcNow ?? DateTime.UtcNow;
+        if (now < membership.RepresentativeTermEndUtc.Value)
+        {
+            return false;
+        }
+
+        ClearRepresentative(membership);
+        return true;
+    }
+
+    public static void ClearRepresentative(CrewMembership membership)
+    {
+        membership.IsRepresentative = false;
+        membership.RepresentativeTermStartUtc = null;
+        membership.RepresentativeTermEndUtc = null;
+        membership.RepresentativeReceivedAmount = 0m;
+    }
 
     public static IReadOnlyList<CrewRole> ParseRoles(IEnumerable<string> roleNames)
     {
@@ -194,6 +250,9 @@ public static class CrewRoleMapper
             case "intermediary":
                 role = CrewRole.Intermediary;
                 return true;
+            case "representative":
+                role = CrewRole.Representative;
+                return true;
             default:
                 role = default;
                 return Enum.TryParse(value, ignoreCase: true, out role);
@@ -221,7 +280,12 @@ public static class CrewRoleMapper
         }
     }
 
-    public static void ApplyRoles(CrewMembership membership, IEnumerable<CrewRole> roles, bool assign)
+    public static void ApplyRoles(
+        CrewMembership membership,
+        IEnumerable<CrewRole> roles,
+        bool assign,
+        DateTime? representativeTermStartUtc = null,
+        DateTime? representativeTermEndUtc = null)
     {
         foreach (var role in roles.Distinct())
         {
@@ -247,6 +311,19 @@ public static class CrewRoleMapper
                     if (assign)
                     {
                         membership.IntermediaryFailedCompletions = 0;
+                    }
+                    break;
+                case CrewRole.Representative:
+                    if (assign)
+                    {
+                        membership.IsRepresentative = true;
+                        membership.RepresentativeTermStartUtc = representativeTermStartUtc;
+                        membership.RepresentativeTermEndUtc = representativeTermEndUtc;
+                        membership.RepresentativeReceivedAmount = 0m;
+                    }
+                    else
+                    {
+                        ClearRepresentative(membership);
                     }
                     break;
             }

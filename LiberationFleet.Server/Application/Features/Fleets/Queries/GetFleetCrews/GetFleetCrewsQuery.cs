@@ -20,16 +20,18 @@ public class GetFleetCrewsQueryHandler(
             return new FleetCrewListResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var membership = await membershipRepository.GetActiveMembershipAsync(currentUser.UserId.Value, cancellationToken);
-        if (membership is null)
-        {
-            return new FleetCrewListResponse { Success = false, Message = "You are not in a crew." };
-        }
-
-        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForUserAsync(userId, cancellationToken);
         if (fleet is null)
         {
-            return new FleetCrewListResponse { Success = false, Message = "Your crew is not in a fleet." };
+            return new FleetCrewListResponse
+            {
+                Success = false,
+                Message = membership is null
+                    ? "You are not in a fleet."
+                    : "Your crew is not in a fleet."
+            };
         }
 
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
@@ -42,9 +44,21 @@ public class GetFleetCrewsQueryHandler(
                 CrewId = fc.CrewId,
                 CrewName = fc.Crew?.Name ?? "Unknown crew",
                 MemberCount = memberCount,
-                JoinedAt = fc.JoinedAt
+                JoinedAt = fc.JoinedAt,
+                IsOwnCrew = membership?.CrewId == fc.CrewId
             });
         }
+
+        var noCrewCount = await fleetRepository.CountNoCrewMembersAsync(fleet.Id, cancellationToken);
+        items.Add(new FleetCrewListItemDto
+        {
+            CrewId = 0,
+            CrewName = "No-Crew",
+            MemberCount = noCrewCount,
+            JoinedAt = DateTime.MinValue,
+            IsOwnCrew = membership is null,
+            IsNoCrew = true
+        });
 
         return new FleetCrewListResponse
         {

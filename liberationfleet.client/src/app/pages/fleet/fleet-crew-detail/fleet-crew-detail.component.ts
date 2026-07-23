@@ -33,8 +33,9 @@ export class FleetCrewDetailComponent implements OnInit {
 
   ngOnInit() {
     this.backButton = this.navigation.createBackButton(['/app/fleet/crews']);
-    this.crewId = Number(this.route.snapshot.paramMap.get('id'));
-    if (!this.crewId) {
+    const rawId = this.route.snapshot.paramMap.get('id');
+    this.crewId = Number(rawId);
+    if (rawId === null || Number.isNaN(this.crewId) || this.crewId < 0) {
       this.loading = false;
       this.errorMessage = 'Invalid crew.';
       return;

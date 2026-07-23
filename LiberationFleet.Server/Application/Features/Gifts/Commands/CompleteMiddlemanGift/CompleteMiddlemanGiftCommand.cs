@@ -86,9 +86,11 @@ public class CompleteMiddlemanGiftCommandHandler(
             CrewPaymentPlatformId = request.PaymentPlatformId,
             InitiatedGiftId = initiated.Id,
             IsSurvivalThreshold = initiated.IsSurvivalThreshold,
+            IsRepresentativeGift = initiated.IsRepresentativeGift,
             IsCustomGift = initiated.IsCustomGift,
             CountsTowardReception = true,
             CountsTowardContribution = true,
+            SeasonCycleId = initiated.SeasonCycleId,
             VerificationStatus = GiftVerificationStatus.AwaitingRecipientVerification,
             CreatedAt = DateTime.UtcNow
         };

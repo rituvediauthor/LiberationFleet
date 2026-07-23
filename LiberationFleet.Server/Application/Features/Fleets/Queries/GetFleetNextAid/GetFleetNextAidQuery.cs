@@ -37,7 +37,9 @@ public class GetFleetNextAidQueryHandler(
             IsCurrentUserRecipient = first.UserId == userId,
             PlatformDisplayKind = platformDisplay.Kind,
             PlatformName = platformDisplay.Name,
-            PlatformHandle = platformDisplay.Handle
+            PlatformHandle = platformDisplay.Handle,
+            HasUnverifiedPending = first.HasUnverifiedPending,
+            IsUnlimitedNeed = first.IsUnlimitedNeed
         };
     }
 

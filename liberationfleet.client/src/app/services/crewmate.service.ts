@@ -103,8 +103,17 @@ export class CrewmateService {
     return this.http.get<CrewRoleDefinitionsResponse>(`${this.apiUrl}/roles`);
   }
 
-  nominateRoles(userId: number, roles: string[]): Observable<CrewRoleChangeResponse> {
-    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/nominate-roles`, { roles });
+  nominateRoles(
+    userId: number,
+    roles: string[],
+    representativeTermStartUtc?: string | null,
+    representativeTermEndUtc?: string | null
+  ): Observable<CrewRoleChangeResponse> {
+    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/nominate-roles`, {
+      roles,
+      representativeTermStartUtc: representativeTermStartUtc ?? null,
+      representativeTermEndUtc: representativeTermEndUtc ?? null
+    });
   }
 
   demoteRoles(userId: number, roles: string[]): Observable<CrewRoleChangeResponse> {

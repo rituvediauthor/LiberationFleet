@@ -10,7 +10,6 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
-import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
 import {
@@ -43,7 +42,6 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
     LibraryImageCarouselComponent,
-    FallibleFooterComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,

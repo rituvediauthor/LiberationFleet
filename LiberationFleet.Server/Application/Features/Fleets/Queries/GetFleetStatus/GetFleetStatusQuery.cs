@@ -22,14 +22,12 @@ public class GetFleetStatusQueryHandler(
             return new FleetMembershipStatusDto();
         }
 
-        var membership = await membershipRepository.GetActiveMembershipAsync(currentUser.UserId.Value, cancellationToken);
-        if (membership is null)
-        {
-            return new FleetMembershipStatusDto();
-        }
-
-        var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
-        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        var crew = membership is null
+            ? null
+            : await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForUserAsync(userId, cancellationToken);
         if (fleet is null)
         {
             return new FleetMembershipStatusDto
@@ -40,7 +38,7 @@ public class GetFleetStatusQueryHandler(
 
         var publicRules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);
         var requiredRuleIds = publicRules.Select(r => r.Id).OrderBy(id => id).ToList();
-        var acceptance = await acceptanceRepository.GetAsync(currentUser.UserId.Value, fleet.Id, cancellationToken);
+        var acceptance = await acceptanceRepository.GetAsync(userId, fleet.Id, cancellationToken);
         var needsRuleAcceptance = publicRules.Count > 0 && !HasAcceptedCurrentRules(acceptance?.AcceptedRuleIdsJson, requiredRuleIds);
 
         return new FleetMembershipStatusDto
@@ -52,7 +50,8 @@ public class GetFleetStatusQueryHandler(
             JoinCode = fleet.JoinCode,
             LibraryOfThingsEnabled = fleet.LibraryOfThingsEnabled,
             NeedsRuleAcceptance = needsRuleAcceptance,
-            ImageResourceId = fleet.ImageResourceId
+            ImageResourceId = fleet.ImageResourceId,
+            IsNoCrewMember = membership is null
         };
     }
 

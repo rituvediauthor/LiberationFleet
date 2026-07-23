@@ -18,6 +18,7 @@ export interface FleetStatus {
   libraryOfThingsEnabled?: boolean;
   needsRuleAcceptance?: boolean;
   imageResourceId?: string | null;
+  isNoCrewMember?: boolean;
 }
 
 export interface FleetLibraryStatus {
@@ -205,6 +206,8 @@ export interface FleetCrewListItem {
   memberCount: number;
   maxSize?: number;
   isOwnCrew?: boolean;
+  isNoCrew?: boolean;
+  joinedAt?: string;
 }
 
 export interface FleetCrewListResponse {
@@ -225,6 +228,7 @@ export interface FleetCrewDetail {
   memberCount: number;
   maxSize?: number;
   isOwnCrew?: boolean;
+  isNoCrew?: boolean;
   canKick?: boolean;
   canJoin?: boolean;
   crewmates: FleetCrewmateSummary[];

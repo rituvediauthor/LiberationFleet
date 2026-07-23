@@ -7,7 +7,11 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Commands.NominateCrewRoles;
 
-public record NominateCrewRolesCommand(int TargetUserId, IReadOnlyList<string> Roles) : IRequest<CrewRoleChangeResponse>;
+public record NominateCrewRolesCommand(
+    int TargetUserId,
+    IReadOnlyList<string> Roles,
+    DateTime? RepresentativeTermStartUtc = null,
+    DateTime? RepresentativeTermEndUtc = null) : IRequest<CrewRoleChangeResponse>;
 
 public class NominateCrewRolesCommandHandler(
     ICurrentUserService currentUser,
@@ -40,6 +44,8 @@ public class NominateCrewRolesCommandHandler(
             viewerId,
             request.TargetUserId,
             roles,
+            request.RepresentativeTermStartUtc,
+            request.RepresentativeTermEndUtc,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

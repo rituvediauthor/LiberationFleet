@@ -16,7 +16,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
-import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FriendService } from '../../../services/friend.service';
@@ -40,7 +39,6 @@ import { ReportContentDialogComponent } from '../../../components/report-content
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
-    FallibleFooterComponent,
     ReportContentDialogComponent,
     UserAvatarComponent
   ],

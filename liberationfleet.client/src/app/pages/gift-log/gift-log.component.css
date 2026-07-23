@@ -93,6 +93,23 @@
   border-color: var(--lf-color-flag-orange);
 }
 
+.log-entry.flagged-unverified {
+  border-color: var(--lf-color-border-strong, #9aa3b2);
+}
+
+.unverified-badge {
+  display: inline-block;
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lf-color-text-secondary);
+  background: var(--lf-color-bg-hover);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
 .log-message {
   margin: 0 0 6px;
   font-size: 15px;

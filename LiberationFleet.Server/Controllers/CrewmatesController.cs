@@ -153,7 +153,11 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> NominateRoles(int userId, [FromBody] CrewRoleChangeRequest body)
     {
         body ??= new CrewRoleChangeRequest();
-        var result = await _mediator.Send(new NominateCrewRolesCommand(userId, body.Roles));
+        var result = await _mediator.Send(new NominateCrewRolesCommand(
+            userId,
+            body.Roles,
+            body.RepresentativeTermStartUtc,
+            body.RepresentativeTermEndUtc));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

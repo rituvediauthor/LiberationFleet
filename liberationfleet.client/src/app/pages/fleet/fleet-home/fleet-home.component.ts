@@ -129,6 +129,12 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     if (!this.nextAid) {
       return 'No aid needed right now';
     }
+    if (this.nextAid.isUnlimitedNeed) {
+      if (this.nextAid.isCurrentUserRecipient) {
+        return `You're next as Representative — open for aid (no maximum)`;
+      }
+      return `${this.nextAid.recipientName} is Representative — open for aid (no maximum)`;
+    }
     if (this.nextAid.isCurrentUserRecipient) {
       return `You're next! $${this.nextAid.amount} still needed`;
     }

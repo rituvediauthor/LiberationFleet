@@ -12,7 +12,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FallibleFooterComponent } from '../../../components/fallible-footer/fallible-footer.component';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
@@ -37,7 +36,6 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
   imports: [
     CommonModule,
     FormsModule,
-    FallibleFooterComponent,
     MentionAutocompleteDirective,
     MentionTextComponent,
     ProposalAttachmentDisplayComponent,

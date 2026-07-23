@@ -125,6 +125,7 @@ public class FleetKickCrewProposalService(
         if (room is not null)
         {
             room.IsDeleted = true;
+            room.LinkedCrewId = null;
         }
 
         kick.IsApplied = true;

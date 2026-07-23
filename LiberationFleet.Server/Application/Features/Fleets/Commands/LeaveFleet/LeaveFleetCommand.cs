@@ -22,10 +22,25 @@ public class LeaveFleetCommandHandler(
             return new FleetOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var membership = await membershipRepository.GetActiveMembershipAsync(currentUser.UserId.Value, cancellationToken);
+        var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
         {
-            return new FleetOperationResponse { Success = false, Message = "You are not in a crew." };
+            var noCrewMembership = await fleetRepository.GetFleetMembershipForUserAsync(userId, cancellationToken);
+            if (noCrewMembership is null)
+            {
+                return new FleetOperationResponse { Success = false, Message = "You are not in a fleet." };
+            }
+
+            await contentTenureService.PauseFleetAsync(userId, noCrewMembership.FleetId, cancellationToken);
+            await fleetRepository.RemoveFleetMembershipAsync(noCrewMembership, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new FleetOperationResponse
+            {
+                Success = true,
+                Message = "You left the fleet."
+            };
         }
 
         if (!membership.IsOrganizer)
@@ -56,6 +71,7 @@ public class LeaveFleetCommandHandler(
         if (room is not null)
         {
             room.IsDeleted = true;
+            room.LinkedCrewId = null;
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

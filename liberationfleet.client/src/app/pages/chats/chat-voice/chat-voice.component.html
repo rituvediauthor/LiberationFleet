@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton">
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton">
   <div class="chat-voice-page" *ngIf="contentRevealed">
     <h1>{{ roomName }}</h1>
     <p class="status-text" *ngIf="loading || connecting">Connecting to voice channel...</p>

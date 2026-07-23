@@ -114,6 +114,7 @@ public class CrewRoleDefinitionDto
     public string Role { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public bool RequiresTermDates { get; set; }
 }
 
 public class CrewRoleDefinitionsResponse
@@ -126,6 +127,8 @@ public class CrewRoleDefinitionsResponse
 public class CrewRoleChangeRequest
 {
     public List<string> Roles { get; set; } = [];
+    public DateTime? RepresentativeTermStartUtc { get; set; }
+    public DateTime? RepresentativeTermEndUtc { get; set; }
 }
 
 public class CrewRoleChangeResponse

@@ -20,6 +20,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<UserFleetContentTenure> UserFleetContentTenures => Set<UserFleetContentTenure>();
     public DbSet<Fleet> Fleets => Set<Fleet>();
     public DbSet<FleetCrew> FleetCrews => Set<FleetCrew>();
+    public DbSet<FleetMembership> FleetMemberships => Set<FleetMembership>();
     public DbSet<FleetRule> FleetRules => Set<FleetRule>();
     public DbSet<CrewInvitation> CrewInvitations => Set<CrewInvitation>();
     public DbSet<UserFleetRuleAcceptance> UserFleetRuleAcceptances => Set<UserFleetRuleAcceptance>();
@@ -258,6 +259,21 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<FleetMembership>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.FleetId }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<FleetRule>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -315,6 +331,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsModerator).HasDefaultValue(false);
             entity.Property(e => e.IsIntermediary).HasDefaultValue(false);
             entity.Property(e => e.IntermediaryFailedCompletions).HasDefaultValue(0);
+            entity.Property(e => e.IsRepresentative).HasDefaultValue(false);
+            entity.Property(e => e.RepresentativeReceivedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.EmergencySacrificesThisSeason).HasDefaultValue(0);
             entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
             entity.Property(e => e.CanAttachFiles).HasDefaultValue(false);
@@ -338,6 +356,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.IsSurvivalThreshold).HasDefaultValue(false);
+            entity.Property(e => e.IsRepresentativeGift).HasDefaultValue(false);
             entity.Property(e => e.CountsTowardReception).HasDefaultValue(true);
             entity.Property(e => e.IsCustomGift).HasDefaultValue(false);
             entity.Property(e => e.CountsTowardContribution).HasDefaultValue(true);

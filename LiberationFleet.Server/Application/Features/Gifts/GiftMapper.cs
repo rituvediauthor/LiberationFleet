@@ -103,10 +103,21 @@ public static class GiftMapper
 
         if (gift.Type == GiftType.Completed)
         {
-            return gift.VerificationStatus == GiftVerificationStatus.Verified ? "completed" : "pending";
+            return gift.VerificationStatus == GiftVerificationStatus.Verified ? "completed" : "unverified";
         }
 
-        return gift.VerificationStatus == GiftVerificationStatus.Verified ? "completed" : "pending";
+        if (gift.VerificationStatus == GiftVerificationStatus.Verified)
+        {
+            return "completed";
+        }
+
+        if (gift.VerificationStatus is GiftVerificationStatus.Pending
+            or GiftVerificationStatus.AwaitingRecipientVerification)
+        {
+            return "unverified";
+        }
+
+        return "pending";
     }
 
     private static bool IsCelebratory(GiftType type) =>
@@ -156,6 +167,12 @@ public static class GiftMapper
         if (displayFlag == GiftVerificationUiHelper.FlagCantComplete)
         {
             return $"{baseMessage} (Can't Complete)";
+        }
+
+        if (displayFlag == GiftVerificationUiHelper.FlagUnverified
+            || status == "unverified")
+        {
+            return $"{baseMessage} (Unverified)";
         }
 
         if (gift.Type == GiftType.Initiated && status == "completed")

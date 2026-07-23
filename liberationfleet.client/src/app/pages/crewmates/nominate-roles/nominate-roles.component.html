@@ -20,6 +20,36 @@
           <p class="role-description">{{ role.description }}</p>
         </button>
       </div>
+
+      <div class="term-dates" *ngIf="requiresRepresentativeTerm">
+        <h2 class="term-title">Representative term</h2>
+        <p class="term-hint">
+          Choose a future start date and an end date. The role applies only during that span,
+          and the representative receives mutual aid ahead of cycles (except survival thresholds).
+        </p>
+        <div class="term-grid">
+          <div class="form-group">
+            <label for="termStartDate">Start date</label>
+            <input
+              id="termStartDate"
+              type="date"
+              class="form-input"
+              [min]="minTermStartDate"
+              [(ngModel)]="termStartDate"
+              (ngModelChange)="onTermDatesChanged()">
+          </div>
+          <div class="form-group">
+            <label for="termEndDate">End date</label>
+            <input
+              id="termEndDate"
+              type="date"
+              class="form-input"
+              [min]="termStartDate || minTermStartDate"
+              [(ngModel)]="termEndDate"
+              (ngModelChange)="onTermDatesChanged()">
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </app-page-layout>

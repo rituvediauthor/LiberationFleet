@@ -9,7 +9,6 @@ public record GetCurrentFleetQuery : IRequest<FleetOperationResponse>;
 
 public class GetCurrentFleetQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository) : IRequestHandler<GetCurrentFleetQuery, FleetOperationResponse>
 {
     public async Task<FleetOperationResponse> Handle(GetCurrentFleetQuery request, CancellationToken cancellationToken)
@@ -19,16 +18,10 @@ public class GetCurrentFleetQueryHandler(
             return new FleetOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var membership = await membershipRepository.GetActiveMembershipAsync(currentUser.UserId.Value, cancellationToken);
-        if (membership is null)
-        {
-            return new FleetOperationResponse { Success = false, Message = "You are not in a crew." };
-        }
-
-        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForUserAsync(currentUser.UserId.Value, cancellationToken);
         if (fleet is null)
         {
-            return new FleetOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
+            return new FleetOperationResponse { Success = false, Message = "You are not in a fleet." };
         }
 
         var crewCount = (await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken)).Count;

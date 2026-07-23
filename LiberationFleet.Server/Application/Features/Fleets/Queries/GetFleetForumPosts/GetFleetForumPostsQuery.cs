@@ -12,7 +12,6 @@ public record GetFleetForumPostsQuery() : IRequest<ForumListResponse>;
 
 public class GetFleetForumPostsQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IUserRepository userRepository,
     IForumRepository forumRepository,
@@ -27,16 +26,10 @@ public class GetFleetForumPostsQueryHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
-        {
-            return new ForumListResponse { Success = false, Message = "You are not in a crew." };
-        }
-
-        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForUserAsync(userId, cancellationToken);
         if (fleet is null)
         {
-            return new ForumListResponse { Success = false, Message = "Your crew is not in a fleet." };
+            return new ForumListResponse { Success = false, Message = "You are not in a fleet." };
         }
 
         if (!await fleetRepository.IsUserInFleetAsync(userId, fleet.Id, cancellationToken))

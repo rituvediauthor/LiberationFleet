@@ -7,5 +7,6 @@ public enum CrewRole
     CeremonialOrganizer = 3,
     Moderator = 4,
     Intermediary = 5,
-    Organizer = 6
+    Organizer = 6,
+    Representative = 7
 }

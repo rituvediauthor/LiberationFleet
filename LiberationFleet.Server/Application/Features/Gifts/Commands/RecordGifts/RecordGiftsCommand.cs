@@ -103,6 +103,8 @@ public class RecordGiftsCommandHandler(
 
             var isSurvivalThreshold = !item.IsCustom
                 && string.Equals(item.EntryType, "survivalThreshold", StringComparison.OrdinalIgnoreCase);
+            var isRepresentativeGift = !item.IsCustom
+                && string.Equals(item.EntryType, "representative", StringComparison.OrdinalIgnoreCase);
             var isCatchUp = !item.IsCustom
                 && string.Equals(item.EntryType, "catchUp", StringComparison.OrdinalIgnoreCase);
             var countsTowardReception = !item.MiddlemanId.HasValue;
@@ -117,6 +119,7 @@ public class RecordGiftsCommandHandler(
                 Amount = item.Amount,
                 CrewPaymentPlatformId = item.PaymentPlatformId,
                 IsSurvivalThreshold = isSurvivalThreshold,
+                IsRepresentativeGift = isRepresentativeGift,
                 IsCustomGift = item.IsCustom,
                 CountsTowardReception = countsTowardReception,
                 CountsTowardContribution = true,

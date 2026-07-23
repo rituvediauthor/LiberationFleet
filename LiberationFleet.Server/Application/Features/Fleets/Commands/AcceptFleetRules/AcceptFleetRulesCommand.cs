@@ -11,7 +11,6 @@ public record AcceptFleetRulesCommand(IReadOnlyList<int> AcceptedRuleIds) : IReq
 
 public class AcceptFleetRulesCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IUserFleetRuleAcceptanceRepository acceptanceRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<AcceptFleetRulesCommand, FleetOperationResponse>
@@ -24,16 +23,10 @@ public class AcceptFleetRulesCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
-        {
-            return new FleetOperationResponse { Success = false, Message = "You must be in a crew." };
-        }
-
-        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForUserAsync(userId, cancellationToken);
         if (fleet is null)
         {
-            return new FleetOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
+            return new FleetOperationResponse { Success = false, Message = "You are not in a fleet." };
         }
 
         var publicRules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);

@@ -46,6 +46,7 @@ public class CreateFleetCommandHandler(
 
         if (!Enum.TryParse<CrewPrivacy>(request.Privacy, true, out var privacy)
             || !Enum.IsDefined(privacy)
+            || privacy == CrewPrivacy.FleetMembersOnly
             || !Enum.TryParse<CrewScope>(request.Scope, true, out var scope)
             || !Enum.IsDefined(scope))
         {

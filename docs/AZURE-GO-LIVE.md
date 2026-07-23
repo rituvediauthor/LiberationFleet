@@ -187,18 +187,54 @@ Creates App Service, ACR, SQL, Key Vault, App Insights, deep-freeze storage, etc
 
 ### 6.1 Review / edit `staging.tfvars`
 
-Open `infrastructure/terraform/environments/staging.tfvars`. Defaults are fine for a first deploy. Optionally uncomment `sql_firewall_rules` with your public IP so you can connect with SSMS later.
+Open `infrastructure/terraform/environments/staging.tfvars`. Prefer `location = "westus2"` on new subscriptions — `eastus` / `eastus2` often block SQL create. Optionally set `sql_firewall_rules` with your public IP for SSMS later.
 
 ### 6.2 Init + apply
 
 ```bash
 cd infrastructure/terraform
-terraform init -backend-config=environments/staging.backend.hcl
-terraform plan  -var-file=environments/staging.tfvars
-terraform apply -var-file=environments/staging.tfvars
+# Quote values in PowerShell so flags are not misparsed.
+terraform init -backend-config="environments/staging.backend.hcl"
+terraform plan  -var-file="environments/staging.tfvars"
+terraform apply -var-file="environments/staging.tfvars"
 ```
 
 Approve with `yes`. First apply can take 10–20+ minutes (SQL especially).
+
+#### If apply fails: SQL “ProvisioningDisabled” in this region
+
+New subscriptions are often blocked from creating SQL servers in popular regions (especially `eastus` / `eastus2`).
+
+1. Edit `staging.tfvars` → set `location` to another region (try `westus2`, `centralus`, or `northcentralus`).
+2. If a Key Vault name collides (`VaultAlreadyExists`), purge the soft-deleted vault first:
+   ```powershell
+   az keyvault list-deleted -o table
+   az keyvault purge --name lfleetstagingkv
+   ```
+3. Clean the partial stack, then re-apply:
+
+```powershell
+terraform destroy -var-file="environments/staging.tfvars"
+terraform apply -var-file="environments/staging.tfvars"
+```
+
+Or delete resource group `rg-lfleet-staging` in the portal, then `terraform apply` again.
+
+#### If apply fails: App Service “No available instances” (409)
+
+Transient regional capacity. Wait 15–30 minutes and re-run `terraform apply`, or switch `location` and rebuild as above.
+
+#### If apply fails: App Service “without additional quota” / Total VMs: 0
+
+Your subscription has **0** App Service plan quota in that region. Request an increase (usually to at least **1**):
+
+1. Portal → **Subscriptions** → your subscription → **Usage + quotas** (or search **Quotas**).
+2. Filter provider **App Service** / region matching `location` in tfvars.
+3. Request increase for App Service plans / compute (ask for at least **1**; **10** is fine).
+4. Or: **Help + support** → **Create a support request** → Issue type **Service and subscription limits (quotas)** → App Service → submit.
+5. After approval (often minutes–hours), re-run `terraform apply`.
+
+Providers `Microsoft.Web` and `Microsoft.Sql` must show **Registered** (`az provider show -n Microsoft.Web` / `Microsoft.Sql`).
 
 ### 6.3 Record outputs
 
@@ -373,9 +409,9 @@ Do this when you own a domain and want a branded URL (recommended before product
 
 ```bash
 cd infrastructure/terraform
-terraform init -reconfigure -backend-config=environments/production.backend.hcl
-terraform plan  -var-file=environments/production.tfvars
-terraform apply -var-file=environments/production.tfvars
+terraform init -reconfigure -backend-config="environments/production.backend.hcl"
+terraform plan  -var-file="environments/production.tfvars"
+terraform apply -var-file="environments/production.tfvars"
 ```
 
 Review `production.tfvars` for SKU / region. Prefer a stronger SQL SKU and backups for prod.

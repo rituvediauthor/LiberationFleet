@@ -139,13 +139,48 @@ public partial class MutualAidService(
 
         var entries = new List<ReceptionOrderEntryDto>();
 
+        var pendingCredits = await giftRepository.GetPendingReceptionCreditsAsync(crew.Id, cancellationToken);
+        var pendingByCycleId = new Dictionary<int, decimal>();
+        var pendingThresholdByUserId = new Dictionary<int, decimal>();
+        var pendingCycleByUserId = new Dictionary<int, decimal>();
+        var pendingRepresentativeByUserId = new Dictionary<int, decimal>();
+        foreach (var credit in pendingCredits)
+        {
+            if (credit.IsSurvivalThreshold)
+            {
+                pendingThresholdByUserId[credit.RecipientUserId] =
+                    pendingThresholdByUserId.GetValueOrDefault(credit.RecipientUserId) + credit.Amount;
+                continue;
+            }
+
+            if (credit.IsRepresentativeGift)
+            {
+                pendingRepresentativeByUserId[credit.RecipientUserId] =
+                    pendingRepresentativeByUserId.GetValueOrDefault(credit.RecipientUserId) + credit.Amount;
+                continue;
+            }
+
+            if (credit.SeasonCycleId.HasValue)
+            {
+                pendingByCycleId[credit.SeasonCycleId.Value] =
+                    pendingByCycleId.GetValueOrDefault(credit.SeasonCycleId.Value) + credit.Amount;
+            }
+            else
+            {
+                pendingCycleByUserId[credit.RecipientUserId] =
+                    pendingCycleByUserId.GetValueOrDefault(credit.RecipientUserId) + credit.Amount;
+            }
+        }
+
         if (AreSurvivalThresholdsEnabled(crew))
         {
             var thresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken);
             foreach (var threshold in thresholds)
             {
-                var need = threshold.ThresholdAmount - threshold.ReceivedAmount;
-                if (need <= 0)
+                var verifiedNeed = threshold.ThresholdAmount - threshold.ReceivedAmount;
+                var pending = pendingThresholdByUserId.GetValueOrDefault(threshold.UserId);
+                var need = Math.Max(0m, verifiedNeed - pending);
+                if (need <= 0 && pending <= 0)
                 {
                     continue;
                 }
@@ -160,8 +195,46 @@ public partial class MutualAidService(
                     null,
                     giverUserId,
                     giverPlatforms,
-                    middlemanPool));
+                    middlemanPool,
+                    pending,
+                    pending > 0));
             }
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var representativeTermsCleared = false;
+        foreach (var member in allMembers)
+        {
+            if (CrewRoleMapper.ClearExpiredRepresentativeTerm(member, utcNow))
+            {
+                representativeTermsCleared = true;
+            }
+
+            if (!CrewRoleMapper.IsRepresentativeTermActive(member, utcNow))
+            {
+                continue;
+            }
+
+            var pending = pendingRepresentativeByUserId.GetValueOrDefault(member.UserId);
+            entries.Add(BuildEntry(
+                member.UserId,
+                member.User.Username,
+                need: 0m,
+                entryType: "representative",
+                thresholdId: null,
+                cycleUserId: null,
+                seasonCycleId: null,
+                giverUserId,
+                giverPlatforms,
+                middlemanPool,
+                pending,
+                pending > 0,
+                isUnlimitedNeed: true));
+        }
+
+        if (representativeTermsCleared)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate!.Value, cancellationToken)).ToList();
@@ -230,9 +303,24 @@ public partial class MutualAidService(
         AddLockedUnit(leader);
         AddLockedUnit(runnerUp);
 
-        void AddCycleEntry(SeasonCycle cycle, string entryType, decimal need)
+        decimal PendingForCycle(SeasonCycle cycle)
         {
-            if (need <= 0)
+            var pending = pendingByCycleId.GetValueOrDefault(cycle.Id);
+            // Unscoped pending gifts apply once to the earliest incomplete cycle for that user.
+            var primaryIncomplete = incompleteCycles.FirstOrDefault(c => c.UserId == cycle.UserId);
+            if (primaryIncomplete is not null && primaryIncomplete.Id == cycle.Id)
+            {
+                pending += pendingCycleByUserId.GetValueOrDefault(cycle.UserId);
+            }
+
+            return pending;
+        }
+
+        void AddCycleEntry(SeasonCycle cycle, string entryType, decimal verifiedNeed)
+        {
+            var pending = PendingForCycle(cycle);
+            var need = Math.Max(0m, verifiedNeed - pending);
+            if (need <= 0 && pending <= 0)
             {
                 return;
             }
@@ -251,7 +339,9 @@ public partial class MutualAidService(
                 cycle.Id,
                 giverUserId,
                 giverPlatforms,
-                middlemanPool));
+                middlemanPool,
+                pending,
+                pending > 0));
         }
 
         foreach (var unit in lockedUnits)
@@ -269,7 +359,7 @@ public partial class MutualAidService(
                 .OrderBy(c => c.ReceptionOrderPosition))
             {
                 var catchUp = MutualAidCalculationService.GetCatchUpAmount(cycle, CapFor(cycle));
-                if (catchUp <= 0)
+                if (catchUp <= 0 && PendingForCycle(cycle) <= 0)
                 {
                     continue;
                 }
@@ -399,7 +489,9 @@ public partial class MutualAidService(
             IsCurrentUserRecipient = first.UserId == userId,
             PlatformDisplayKind = platformDisplay.Kind,
             PlatformName = platformDisplay.Name,
-            PlatformHandle = platformDisplay.Handle
+            PlatformHandle = platformDisplay.Handle,
+            HasUnverifiedPending = first.HasUnverifiedPending,
+            IsUnlimitedNeed = first.IsUnlimitedNeed
         };
     }
 
@@ -576,6 +668,21 @@ public partial class MutualAidService(
         var crew = await mutualAidRepository.GetCrewAsync(gift.CrewId, cancellationToken);
         if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
         {
+            return;
+        }
+
+        if (gift.IsRepresentativeGift)
+        {
+            var representativeMembership = await membershipRepository.GetMembershipAsync(
+                recipientUserId,
+                gift.CrewId,
+                cancellationToken);
+            if (representativeMembership is not null)
+            {
+                representativeMembership.RepresentativeReceivedAmount += gift.Amount;
+            }
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             return;
         }
 
@@ -914,7 +1021,10 @@ public partial class MutualAidService(
         int? seasonCycleId,
         int giverUserId,
         IReadOnlyList<int> giverPlatformIds,
-        IReadOnlyList<CrewMemberPlatforms> members)
+        IReadOnlyList<CrewMemberPlatforms> members,
+        decimal pendingUnverifiedAmount = 0m,
+        bool hasUnverifiedPending = false,
+        bool isUnlimitedNeed = false)
     {
         var recipientMember = members.FirstOrDefault(m => m.UserId == recipientUserId);
         var recipientPlatforms = recipientMember?.PlatformIds ?? Array.Empty<int>();
@@ -958,7 +1068,10 @@ public partial class MutualAidService(
             RecipientPreferredPlatformHandle = recipientMember?.PreferredPlatformHandle,
             RecipientPlatformAccounts = recipientMember?.PlatformAccounts
                 .Where(p => commonPlatformIds.Contains(p.PlatformId))
-                .ToList() ?? []
+                .ToList() ?? [],
+            HasUnverifiedPending = hasUnverifiedPending,
+            PendingUnverifiedAmount = Math.Round(pendingUnverifiedAmount, 2),
+            IsUnlimitedNeed = isUnlimitedNeed
         };
     }
 

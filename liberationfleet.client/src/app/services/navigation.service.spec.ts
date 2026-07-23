@@ -1,20 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { Location } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { NavigationService } from './navigation.service';
 
 describe('NavigationService', () => {
   let service: NavigationService;
-  let location: jasmine.SpyObj<Location>;
   let router: { url: string; events: Subject<unknown>; navigate: jasmine.Spy };
   let events$: Subject<unknown>;
 
   beforeEach(() => {
     events$ = new Subject();
-    location = jasmine.createSpyObj('Location', ['back']);
     router = {
-      url: '/app/crew/gift-log',
+      url: '/app/crew',
       events: events$,
       navigate: jasmine.createSpy('navigate').and.returnValue(Promise.resolve(true))
     };
@@ -22,7 +19,6 @@ describe('NavigationService', () => {
     TestBed.configureTestingModule({
       providers: [
         NavigationService,
-        { provide: Location, useValue: location },
         { provide: Router, useValue: router }
       ]
     });
@@ -30,44 +26,44 @@ describe('NavigationService', () => {
     service = TestBed.inject(NavigationService);
   });
 
-  afterEach(() => {
-    try {
-      jasmine.clock().uninstall();
-    } catch {
-      // clock may not be installed
-    }
+  function navigateTo(url: string) {
+    events$.next(new NavigationEnd(1, url, url));
+    router.url = url;
+  }
+
+  it('navigates to fallback when previous page was not notifications', () => {
+    navigateTo('/app/crew/gift-log');
+    service.back(['/app/crew']);
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
-  it('uses fallback when history back is a no-op', () => {
-    jasmine.clock().install();
+  it('navigates to notifications when previous page was the notifications list', () => {
+    navigateTo('/app/notifications');
+    navigateTo('/app/crew/gift-log');
     service.back(['/app/crew']);
-    expect(location.back).toHaveBeenCalled();
-
-    jasmine.clock().tick(50);
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew'], { replaceUrl: true });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/notifications']);
   });
 
-  it('uses fallback when back lands on a season redirect trap', () => {
+  it('uses fallback when notifications was earlier but not the immediate previous page', () => {
+    navigateTo('/app/notifications');
+    navigateTo('/app/crew/gift-log');
+    navigateTo('/app/crew/gift-log/record');
+    navigateTo('/app/crew/gift-log');
     service.back(['/app/crew']);
-    events$.next(new NavigationEnd(1, '/app/crew/season-setup', '/app/crew/season-setup'));
-
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew'], { replaceUrl: true });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
-  it('uses fallback when back lands on join-season redirect trap', () => {
+  it('does not treat notification settings as the notifications list', () => {
+    navigateTo('/app/profile/preferences/notifications');
+    navigateTo('/app/crew/gift-log');
     service.back(['/app/crew']);
-    events$.next(new NavigationEnd(1, '/app/crew/join-season', '/app/crew/join-season'));
-
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew'], { replaceUrl: true });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
-  it('does not force fallback when back reaches a stable non-trap page', () => {
-    jasmine.clock().install();
-    service.back(['/app/crew']);
-    events$.next(new NavigationEnd(1, '/app/crew', '/app/crew'));
-    router.url = '/app/crew';
-
-    jasmine.clock().tick(50);
-    expect(router.navigate).not.toHaveBeenCalled();
+  it('createBackButton wires onClick to back with the given fallback', () => {
+    navigateTo('/app/crew/gift-log');
+    const button = service.createBackButton(['/app/crew']);
+    button.onClick?.();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 });

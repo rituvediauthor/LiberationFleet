@@ -7,9 +7,9 @@ export type GiftLogType =
   | 'seasonstarted'
   | 'cyclestarted'
   | 'survivalthresholdsrefreshed';
-export type ReceptionEntryType = 'survivalThreshold' | 'cycle' | 'catchUp';
-export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete';
-export type GiftDisplayFlag = 'notComplete' | 'cantComplete';
+export type ReceptionEntryType = 'survivalThreshold' | 'cycle' | 'catchUp' | 'representative';
+export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete' | 'unverified';
+export type GiftDisplayFlag = 'notComplete' | 'cantComplete' | 'unverified';
 export type GiftVerificationAction =
   | 'confirmReceived'
   | 'confirmNotReceived'
@@ -110,6 +110,9 @@ export interface ReceptionOrderEntry {
   recipientPreferredPlatformName?: string;
   recipientPreferredPlatformHandle?: string;
   recipientPlatformAccounts: PlatformAccount[];
+  hasUnverifiedPending?: boolean;
+  pendingUnverifiedAmount?: number;
+  isUnlimitedNeed?: boolean;
   crewId?: number;
   crewName?: string;
 }
@@ -167,6 +170,8 @@ export interface NextAidInfo {
   platformDisplayKind?: 'none' | 'preferred' | 'common' | 'middlemanNeeded' | 'intermediaryNeeded' | 'unavailable';
   platformName?: string;
   platformHandle?: string;
+  hasUnverifiedPending?: boolean;
+  isUnlimitedNeed?: boolean;
 }
 
 export interface GiftHistoryRecipientSummary {

@@ -43,6 +43,13 @@ public interface IGiftRepository
         int fromUserId,
         int toUserId,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PendingReceptionCredit>> GetPendingReceptionCreditsAsync(
+        int crewId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Gift>> GetGiftsDueForAutoVerificationAsync(
+        DateTime createdBeforeUtc,
+        int limit = 100,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class GiftRecipientSummary
@@ -52,4 +59,13 @@ public sealed class GiftRecipientSummary
     public decimal TotalAmount { get; init; }
     public int GiftCount { get; init; }
     public DateTime LastGiftAt { get; init; }
+}
+
+public sealed class PendingReceptionCredit
+{
+    public int RecipientUserId { get; init; }
+    public int? SeasonCycleId { get; init; }
+    public bool IsSurvivalThreshold { get; init; }
+    public bool IsRepresentativeGift { get; init; }
+    public decimal Amount { get; init; }
 }

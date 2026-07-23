@@ -14,6 +14,7 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 | [NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md) | CSAM escalation process |
 | [MEDIA-DEEP-FREEZE.md](./MEDIA-DEEP-FREEZE.md) | Cold media storage |
 | [JURISDICTION-ASSUMPTIONS.md](./JURISDICTION-ASSUMPTIONS.md) | US-first / 18+ assumptions |
+| [NONPROFIT-ENTITY-SETUP.md](./NONPROFIT-ENTITY-SETUP.md) | Form a US nonprofit (categories, do’s/don’ts) |
 
 ---
 
@@ -35,7 +36,7 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 
 ## A. Legal & business (do first)
 
-- [ ] Form legal entity (LLC / nonprofit / etc.) and bank account  
+- [ ] Form legal entity (LLC / nonprofit / etc.) and bank account — nonprofit path: [NONPROFIT-ENTITY-SETUP.md](./NONPROFIT-ENTITY-SETUP.md)  
 - [ ] Confirm US-first + 18+ assumptions with counsel ([JURISDICTION-ASSUMPTIONS.md](./JURISDICTION-ASSUMPTIONS.md))  
 - [ ] Publish **Privacy Policy** URL (HTTPS) — draft: `liberationfleet.client/src/assets/privacy-policy.txt`  
 - [ ] Publish **Terms of Use** URL — `.../terms-of-use.txt`  

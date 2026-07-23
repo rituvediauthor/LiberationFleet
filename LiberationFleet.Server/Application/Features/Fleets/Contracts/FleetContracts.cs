@@ -57,6 +57,8 @@ public class FleetMembershipStatusDto
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool NeedsRuleAcceptance { get; set; }
     public string? ImageResourceId { get; set; }
+    /// <summary>True when the viewer is in the fleet without a crew (No-Crew).</summary>
+    public bool IsNoCrewMember { get; set; }
 }
 
 public class InviteCrewToFleetRequest
@@ -169,6 +171,8 @@ public class FleetCrewListItemDto
     public string CrewName { get; set; } = string.Empty;
     public int MemberCount { get; set; }
     public DateTime JoinedAt { get; set; }
+    public bool IsOwnCrew { get; set; }
+    public bool IsNoCrew { get; set; }
 }
 
 public class FleetCrewListResponse
@@ -198,6 +202,7 @@ public class FleetCrewDetailDto
     public int MemberCount { get; set; }
     public int? MaxSize { get; set; }
     public bool IsOwnCrew { get; set; }
+    public bool IsNoCrew { get; set; }
     public bool CanKick { get; set; }
     public bool CanJoin { get; set; }
     public IReadOnlyList<FleetCrewmateDto> Crewmates { get; set; } = Array.Empty<FleetCrewmateDto>();

@@ -66,6 +66,7 @@ public class GetFleetReceptionOrderQueryHandler(
         }
 
         var survivalEntries = new List<FleetReceptionOrderEntryDto>();
+        var representativeEntries = new List<FleetReceptionOrderEntryDto>();
         var cycleEntries = new List<FleetReceptionOrderEntryDto>();
 
         foreach (var fleetCrew in fleetCrews)
@@ -79,12 +80,16 @@ public class GetFleetReceptionOrderQueryHandler(
                 additionalMembersForMiddlemen: fleetMembers,
                 cancellationToken);
 
-            foreach (var entry in entries.Where(e => e.AmountNeeded > 0))
+            foreach (var entry in entries.Where(e => e.IsUnlimitedNeed || e.AmountNeeded > 0))
             {
                 var mapped = MapEntry(entry, fleetCrew.CrewId, crewName);
                 if (string.Equals(entry.EntryType, "survivalThreshold", StringComparison.OrdinalIgnoreCase))
                 {
                     survivalEntries.Add(mapped);
+                }
+                else if (string.Equals(entry.EntryType, "representative", StringComparison.OrdinalIgnoreCase))
+                {
+                    representativeEntries.Add(mapped);
                 }
                 else
                 {
@@ -94,7 +99,11 @@ public class GetFleetReceptionOrderQueryHandler(
         }
 
         var limit = request.Limit <= 0 ? 30 : request.Limit;
-        return survivalEntries.Concat(cycleEntries).Take(limit).ToList();
+        return survivalEntries
+            .Concat(representativeEntries)
+            .Concat(cycleEntries)
+            .Take(limit)
+            .ToList();
     }
 
     private static FleetReceptionOrderEntryDto MapEntry(
@@ -118,6 +127,9 @@ public class GetFleetReceptionOrderQueryHandler(
         RecipientPreferredPlatformName = entry.RecipientPreferredPlatformName,
         RecipientPreferredPlatformHandle = entry.RecipientPreferredPlatformHandle,
         RecipientPlatformAccounts = entry.RecipientPlatformAccounts,
+        HasUnverifiedPending = entry.HasUnverifiedPending,
+        PendingUnverifiedAmount = entry.PendingUnverifiedAmount,
+        IsUnlimitedNeed = entry.IsUnlimitedNeed,
         CrewId = crewId,
         CrewName = crewName
     };
