@@ -1,8 +1,6 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BRAND_LOGO_ASSETS, BrandLogoVariant } from '../../constants/brand-assets';
-import { ThemeService } from '../../services/theme.service';
-import { AppThemeId } from '../../models/theme.model';
 
 @Component({
   selector: 'app-brand-logo',
@@ -17,11 +15,13 @@ export class BrandLogoComponent {
   @Input() alt = '';
   /** When true, image is treated as decorative (empty alt) even if beside labeled text/button. */
   @Input() decorative = false;
+  /**
+   * Inactive / muted treatment (e.g. bottom nav when the tab is not selected).
+   * Uses the grey asset in every theme. When false, uses the blue hex brand asset.
+   */
   @Input() monochrome = false;
   /** Optional decrypted custom image (crew/fleet image). Falls back to brand assets when empty. */
   @Input() customSrc: string | null = null;
-
-  readonly themeService = inject(ThemeService);
 
   get hexSrc(): string {
     return BRAND_LOGO_ASSETS[this.variant].hex;
@@ -31,14 +31,11 @@ export class BrandLogoComponent {
     return BRAND_LOGO_ASSETS[this.variant].grey;
   }
 
-  resolveSrc(theme: AppThemeId | null | undefined): string {
+  get resolvedSrc(): string {
     if (this.customSrc) {
       return this.customSrc;
     }
-    if (this.monochrome) {
-      return this.greySrc;
-    }
-    return theme === 'light' ? this.greySrc : this.hexSrc;
+    return this.monochrome ? this.greySrc : this.hexSrc;
   }
 
   get resolvedAlt(): string {

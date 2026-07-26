@@ -6,7 +6,7 @@
   [class.has-custom]="!!customSrc">
   <img
     class="logo-image"
-    [src]="resolveSrc(themeService.theme$ | async)"
+    [src]="resolvedSrc"
     [alt]="resolvedAlt"
     decoding="async">
 </span>
