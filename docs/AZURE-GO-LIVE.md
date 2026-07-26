@@ -394,6 +394,7 @@ Confirm these already exist from earlier steps. If any are missing, fix them fir
 | Environments `staging` and `production` | ADO → **Pipelines** → **Environments** | If missing, redo [Step 4](#step-4--ado-environments-staging-and-production). Production should have an **Approvals** check. |
 | Variable group `liberationfleet-shared` | ADO → **Pipelines** → **Library** → **Variable groups** -> **liberationfleet-shared** | Has `TF_STATE_RG`, `TF_STATE_STORAGE`, `TF_STATE_CONTAINER` ([Step 5](#step-5--bootstrap-terraform-remote-state-one-time)). |
 | Variable group `liberationfleet-staging` | Same Library page | Has `ENVIRONMENT`, `AZURE_RESOURCE_GROUP`, `WEB_APP_NAME`, `ACR_NAME`, `ACR_LOGIN_SERVER` ([Step 6.4](#64-fill-ado-variable-group-liberationfleet-staging)). |
+| Variable group `liberationfleet-production` | Same Library page | **Must exist** even before production infra — the YAML references it at validate time. Create a stub now (same variable *names* as staging; placeholder values OK). Fill real values in Step 11. |
 | Staging ACR exists | Azure Portal → `rg-lfleet-staging` → Container registry (e.g. `lfleetstagingacr`) | Created by Terraform in Step 6. |
 
 Typical staging values (yours may match):
@@ -438,7 +439,14 @@ The YAML already references:
 2. Tab **Pipeline permissions** (or **…** → Pipeline permissions).
 3. **+** → select your LiberationFleet pipeline → allow.
 4. Repeat for `liberationfleet-shared`.
-5. You can skip `liberationfleet-production` until Step 11 — but then handle production approval as in A.4.
+5. **Also create / authorize `liberationfleet-production` now** (required for the pipeline to validate, even if you will Reject production deploys until Step 11):
+
+   1. Library → **+ Variable group** → Name: exactly `liberationfleet-production`.
+   2. Add the same five variables as staging (`ENVIRONMENT`, `AZURE_RESOURCE_GROUP`, `WEB_APP_NAME`, `ACR_NAME`, `ACR_LOGIN_SERVER`).
+   3. For now you can copy staging values or use placeholders (e.g. `ENVIRONMENT` = `production`, others = `pending`). Real production outputs come in Step 11.
+   4. **Save** → **Pipeline permissions** → allow your LiberationFleet pipeline (or authorize when the run prompts).
+
+   If you skip this group, the run fails immediately with: *Variable group liberationfleet-production could not be found*.
 
 #### A.3 Run a staging deploy
 
