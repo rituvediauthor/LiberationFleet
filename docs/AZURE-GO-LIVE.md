@@ -77,8 +77,11 @@ Lets pipelines run Terraform and deploy to App Service / ACR. Prefer **Workload 
 
 1. Azure Portal → **Subscriptions** → your subscription → **Access control (IAM)** → **Role assignments**.
 2. Find the identity created for the service connection (often an App registration / managed identity name matching the connection).
-3. It should have at least **Contributor**.  
-   If later Terraform fails creating role assignments, also grant **User Access Administrator** (or a custom role that can assign roles).
+3. Grant at least:
+   - **Contributor** on the subscription (or the `rg-lfleet-*` resource groups)
+   - **User Access Administrator** if Terraform must create/delete role assignments (App Service → Key Vault Secrets User, etc.)
+   - **Storage Blob Data Contributor** on the tfstate storage account
+   - **Key Vault Secrets Officer** on each environment Key Vault (`lfleetstagingkv`, later `lfleetproductionkv`) — required for plan/apply to read secrets; do **not** rely on Terraform to grant this to the pipeline identity (it flips between your user and the SP and breaks CI)
 
 ### 3.3 Sanity check
 
@@ -687,6 +690,8 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 | Pipeline cannot find service connection | Name must be exactly `azure-liberationfleet`; authorize pipeline |
 | Terraform: Authenticating using the Azure CLI is only supported as a User | Pipeline must use OIDC/`ARM_*` (see `.azure/pipelines/templates/terraform-apply.yml`). Re-run after that template is on `master`. |
 | Terraform backend 403 after OIDC fix | Grant the pipeline app **Storage Blob Data Contributor** on tfstate storage (`stlfeet51cwzy` / `rg-lfleet-tfstate`). Wait 1–2 min for RBAC, re-run. |
+| Terraform Key Vault secret read 403 | Grant pipeline app **Key Vault Secrets Officer** on that vault. Wait 1–2 min, re-run. |
+| Terraform roleAssignments delete/write 403 | Grant pipeline app **User Access Administrator** on the subscription (or RG). |
 | Terraform backend errors | Wrong `TF_STATE_*` variable group values; not logged in (`az login`); storage firewall |
 | Container pull fails | ACR permissions for App Service managed identity; image tag missing |
 | 502/503 after deploy | Check Log stream; confirm migrations / connection string |

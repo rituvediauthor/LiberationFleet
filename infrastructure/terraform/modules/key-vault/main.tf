@@ -17,12 +17,9 @@ resource "azurerm_key_vault" "this" {
   }
 }
 
-resource "azurerm_role_assignment" "terraform_secrets_officer" {
-  scope                = azurerm_key_vault.this.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
-
+# Deployer (you or the pipeline SP) must already have Key Vault Secrets Officer
+# on this vault. Do not manage that assignment here — principal_id flips between
+# interactive user and CI, which causes destroy/recreate and chicken-egg 403s on plan.
 resource "azurerm_role_assignment" "app_secrets_user" {
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets User"
@@ -43,24 +40,18 @@ resource "azurerm_key_vault_secret" "jwt_secret" {
   name         = "Jwt-SecretKey"
   value        = random_password.jwt_secret.result
   key_vault_id = azurerm_key_vault.this.id
-
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 }
 
 resource "azurerm_key_vault_secret" "sql_connection_string" {
   name         = "ConnectionStrings-DefaultConnection"
   value        = var.sql_connection_string
   key_vault_id = azurerm_key_vault.this.id
-
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 }
 
 resource "azurerm_key_vault_secret" "report_evidence_aes_key" {
   name         = "ReportEvidence-AesKeyBase64"
   value        = base64encode(random_password.report_evidence_aes_key.result)
   key_vault_id = azurerm_key_vault.this.id
-
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 }
 
 # Placeholders — set real values via pipeline or portal after first apply.
@@ -68,8 +59,6 @@ resource "azurerm_key_vault_secret" "stripe_secret_key" {
   name         = "Stripe-SecretKey"
   value        = var.stripe_secret_key
   key_vault_id = azurerm_key_vault.this.id
-
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 
   lifecycle {
     ignore_changes = [value]
@@ -81,8 +70,6 @@ resource "azurerm_key_vault_secret" "stripe_webhook_secret" {
   value        = var.stripe_webhook_secret
   key_vault_id = azurerm_key_vault.this.id
 
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
-
   lifecycle {
     ignore_changes = [value]
   }
@@ -92,8 +79,6 @@ resource "azurerm_key_vault_secret" "livekit_api_key" {
   name         = "LiveKit-ApiKey"
   value        = var.livekit_api_key
   key_vault_id = azurerm_key_vault.this.id
-
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 
   lifecycle {
     ignore_changes = [value]
@@ -105,8 +90,6 @@ resource "azurerm_key_vault_secret" "livekit_api_secret" {
   value        = var.livekit_api_secret
   key_vault_id = azurerm_key_vault.this.id
 
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
-
   lifecycle {
     ignore_changes = [value]
   }
@@ -116,8 +99,6 @@ resource "azurerm_key_vault_secret" "report_vendor_api_key" {
   name         = "ReportEvidence-VendorApiKey"
   value        = var.report_vendor_api_key
   key_vault_id = azurerm_key_vault.this.id
-
-  depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 
   lifecycle {
     ignore_changes = [value]
