@@ -18,12 +18,12 @@
 # 3. Environments: `staging`, `production` (add approval checks on production)
 # 4. Pipeline variables (secret): none required if using service connections + Key Vault
 #
-# Triggers on main for staging; production is manual or via environment approval on main.
+# Triggers on master for staging; production is manual or via environment approval on master.
 
 trigger:
   branches:
     include:
-      - main
+      - master
   paths:
     exclude:
       - docs/**
@@ -32,7 +32,7 @@ trigger:
 pr:
   branches:
     include:
-      - main
+      - master
 
 variables:
   - group: liberationfleet-shared
@@ -136,7 +136,7 @@ stages:
   - stage: DeployStaging
     displayName: Deploy staging
     dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     variables:
       - group: liberationfleet-shared
       - group: liberationfleet-staging
@@ -181,7 +181,7 @@ stages:
     dependsOn:
       - Build
       - DeployStaging
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     variables:
       - group: liberationfleet-shared
       - group: liberationfleet-production

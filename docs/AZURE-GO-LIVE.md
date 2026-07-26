@@ -9,7 +9,7 @@ Hosts the combined ASP.NET + Angular container used by **web** and by **native a
 | [`.azure/pipelines/README.md`](../.azure/pipelines/README.md) | Variable groups & pipeline wiring |
 | [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) | Master list (legal, stores, third parties) |
 
-**What you will have when finished (staging):** an HTTPS App Service URL serving the SPA + API, Azure SQL, Key Vault, ACR, Application Insights, and (optionally) a CI/CD pipeline on `main`.
+**What you will have when finished (staging):** an HTTPS App Service URL serving the SPA + API, Azure SQL, Key Vault, ACR, Application Insights, and (optionally) a CI/CD pipeline on `master`.
 
 ---
 
@@ -48,7 +48,7 @@ Pick a region (examples use `eastus`). Keep it consistent for bootstrap + stagin
 2. **New project** → name it (e.g. `LiberationFleet`) → Private → Create.
 3. Connect the repo (if code is still only on GitHub):
    - **Repos** → **Import repository**, **or**
-   - Add Azure Repos as a remote and push `main`, **or**
+   - Add Azure Repos as a remote and push `master`, **or**
    - In Pipelines, use a GitHub service connection later (pipeline YAML still works; service connection steps below stay the same).
 
 ---
@@ -105,7 +105,7 @@ The pipeline uses `environment: staging` and `environment: production`.
 5. **Create**.
 6. Leave **staging** with no approval checks.
 
-Optional later: **Branch control** on production → allow only `refs/heads/main`.
+Optional later: **Branch control** on production → allow only `refs/heads/master`.
 
 ---
 
@@ -417,7 +417,7 @@ Typical staging values (yours may match):
    - **Azure Repos Git** if the repo is in this ADO project, **or**
    - **GitHub** → authorize → pick `rituvediauthor/LiberationFleet` (or your fork).
 5. **Configure** → choose **Existing Azure Pipelines YAML file**.
-6. Branch: `main`. Path: `/azure-pipelines.yml` → **Continue**.
+6. Branch: `master`. Path: `/azure-pipelines.yml` → **Continue**.
 7. Review the YAML → **Save** (dropdown next to Run) → **Save** (do **not** Run yet if Step 8.0 failed any check).
 
 #### A.2 Let the pipeline use the service connection and variable groups
@@ -450,19 +450,19 @@ The YAML already references:
 
 #### A.3 Run a staging deploy
 
-**Automatic:** merge or push a commit to **`main`** (docs-only changes under `docs/` are excluded by the YAML and will **not** trigger).
+**Automatic:** merge or push a commit to **`master`** (docs-only changes under `docs/` are excluded by the YAML and will **not** trigger).
 
 **Manual (recommended for first deploy):**
 
 1. **Pipelines** → your pipeline → **Run pipeline**.
-2. Branch: `main` → **Run**.
+2. Branch: `master` → **Run**.
 3. Open the run. Watch stages in order: **Build and test** → **Deploy staging**.
 4. If **Deploy staging** asks to use environment `staging` or a resource, **Permit**.
 5. Wait until **Deploy staging** is green (often 10–20+ minutes the first time: build, Terraform, Docker push, App Service restart).
 
 #### A.4 Production stage on the same run (what to do)
 
-On `main`, after staging succeeds, **Deploy production** also starts and will **wait for approval** on environment `production`.
+On `master`, after staging succeeds, **Deploy production** also starts and will **wait for approval** on environment `production`.
 
 Until Step 11 is done (production Terraform + `liberationfleet-production` variable group):
 
@@ -638,7 +638,7 @@ Do **not** put live Stripe keys into the staging Key Vault.
 ### 11.4 Deploy production via the pipeline
 
 1. Confirm §11.2 variable group is linked to the pipeline.
-2. Push to `main` or **Run pipeline** on `main`.
+2. Push to `master` or **Run pipeline** on `master`.
 3. Wait for **Deploy staging** to succeed.
 4. When **Deploy production** shows **Waiting for approval**:
    - Open the run → open the approval → review → **Approve** (you configured approvers in Step 4).

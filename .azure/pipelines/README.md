@@ -7,10 +7,10 @@ End-to-end go-live (accounts → first URL): [`docs/AZURE-GO-LIVE.md`](../../doc
 
 | Stage | When | What |
 |-------|------|------|
-| **Build** | PRs + `main` | Restore, build, test, Docker build (no push on PR) |
+| **Build** | PRs + `master` | Restore, build, test, Docker build (no push on PR) |
 | **Terraform plan (PR)** | Pull requests | `terraform plan` against staging backend |
-| **Deploy staging** | `main` | Terraform apply staging + push image to ACR + update App Service |
-| **Deploy production** | `main` after staging | Same for production; waits on Environment approval |
+| **Deploy staging** | `master` | Terraform apply staging + push image to ACR + update App Service |
+| **Deploy production** | `master` after staging | Same for production; waits on Environment approval |
 
 ## One-time setup checklist
 
@@ -62,7 +62,7 @@ Same keys as staging; values from **production** terraform outputs. Set `ENVIRON
 1. **Pipelines → New pipeline** → select repo.
 2. **Existing Azure Pipelines YAML file** → `/azure-pipelines.yml`.
 3. Link variable groups if the UI asks.
-4. First run on `main`: approve any “authorize resource” prompts for the service connection and environments.
+4. First run on `master`: approve any “authorize resource” prompts for the service connection and environments.
 
 ## First-run order (infra before green deploy)
 
@@ -71,7 +71,7 @@ Same keys as staging; values from **production** terraform outputs. Set `ENVIRON
 3. Fill `liberationfleet-shared` + `liberationfleet-staging`.
 4. Create pipeline from `azure-pipelines.yml`.
 5. Set Stripe / LiveKit / report secrets in Key Vault.
-6. Run / push `main` for container deploy.
+6. Run / push `master` for container deploy.
 7. Production: apply prod Terraform, fill `liberationfleet-production`, approve Environment.
 
 ## Templates
