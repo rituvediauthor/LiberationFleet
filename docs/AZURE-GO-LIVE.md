@@ -686,7 +686,7 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 |---------|------------|
 | Pipeline cannot find service connection | Name must be exactly `azure-liberationfleet`; authorize pipeline |
 | Terraform: Authenticating using the Azure CLI is only supported as a User | Pipeline must use OIDC/`ARM_*` (see `.azure/pipelines/templates/terraform-apply.yml`). Re-run after that template is on `master`. |
-| Terraform backend 403 after OIDC fix | Grant the service connection’s app **Storage Blob Data Contributor** on the tfstate storage account |
+| Terraform backend 403 after OIDC fix | Grant the pipeline app **Storage Blob Data Contributor** on tfstate storage (`stlfeet51cwzy` / `rg-lfleet-tfstate`). Wait 1–2 min for RBAC, re-run. |
 | Terraform backend errors | Wrong `TF_STATE_*` variable group values; not logged in (`az login`); storage firewall |
 | Container pull fails | ACR permissions for App Service managed identity; image tag missing |
 | 502/503 after deploy | Check Log stream; confirm migrations / connection string |
