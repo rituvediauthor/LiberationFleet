@@ -196,11 +196,17 @@ public class CreateCrewCommandHandlerTests
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
 
+        var tenure = HandlerTestFixture.CreateContentTenureService(membershipRepository: membershipRepository);
+        var fleetMembership = new LiberationFleet.Server.Application.Features.Fleets.FleetMembershipService(
+            HandlerTestFixture.CreateFleetRepositoryMock().Object,
+            tenure);
+
         return new CreateCrewCommandHandler(
             crewRepository.Object,
             membershipRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
-            HandlerTestFixture.CreateContentTenureService(membershipRepository: membershipRepository),
+            tenure,
+            fleetMembership,
             unitOfWork.Object);
     }
 }

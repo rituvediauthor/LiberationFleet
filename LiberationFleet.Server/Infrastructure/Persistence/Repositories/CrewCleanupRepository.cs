@@ -30,98 +30,56 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             forumPostIds,
             cancellationToken);
 
-        await context.Notifications
-            .Where(n => n.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
+        // Load + RemoveRange (not ExecuteDelete) so InMemory EF used in tests works too.
+        await DeleteMatchingAsync(context.Notifications.Where(n => n.CrewId == crewId), cancellationToken);
 
-        await context.EncryptedContentEnvelopes
-            .Where(e => e.CrewId == crewId && e.ContentType != EncryptedContentType.GiftLogEntry)
-            .ExecuteDeleteAsync(cancellationToken);
+        await DeleteMatchingAsync(
+            context.EncryptedContentEnvelopes.Where(e =>
+                e.CrewId == crewId && e.ContentType != EncryptedContentType.GiftLogEntry),
+            cancellationToken);
 
-        await context.CrewKeyDistributions
-            .Where(d => d.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
+        await DeleteMatchingAsync(context.CrewKeyDistributions.Where(d => d.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.MonthlySurvivalThresholds.Where(t => t.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.SeasonCycles.Where(c => c.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.CrewRules.Where(r => r.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.ChatRoomMessages.Where(m => m.ChatRoom.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.ChatRooms.Where(r => r.CrewId == crewId), cancellationToken);
 
-        await context.MonthlySurvivalThresholds
-            .Where(t => t.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
+        await ClearParentThenDeleteAsync(
+            context.ProposalComments.Where(c => c.Proposal.CrewId == crewId),
+            c => c.ParentCommentId = null,
+            cancellationToken);
 
-        await context.SeasonCycles
-            .Where(c => c.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
+        await ClearParentThenDeleteAsync(
+            context.ForumComments.Where(c => c.ForumPost.CrewId == crewId),
+            c => c.ParentCommentId = null,
+            cancellationToken);
 
-        await context.CrewRules
-            .Where(r => r.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ChatRoomMessages
-            .Where(m => m.ChatRoom.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ChatRooms
-            .Where(r => r.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ProposalComments
-            .Where(c => c.Proposal.CrewId == crewId)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentCommentId, (int?)null), cancellationToken);
-        await context.ProposalComments
-            .Where(c => c.Proposal.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ForumComments
-            .Where(c => c.ForumPost.CrewId == crewId)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentCommentId, (int?)null), cancellationToken);
-        await context.ForumComments
-            .Where(c => c.ForumPost.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.ForumPosts
-            .Where(p => p.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.Proposals
-            .Where(p => p.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.LibraryRequestMessages
-            .Where(m => m.Request.Unit.Offering.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.LibraryRequests
-            .Where(r => r.Unit.Offering.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.LibraryMaintenanceRecords
-            .Where(m => m.Unit.Offering.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.LibraryUnits
-            .Where(u => u.Offering.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.LibraryOfferingCategories
-            .Where(c => c.Offering.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.LibraryOfferings
-            .Where(o => o.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.CrewMemberships
-            .Where(m => m.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
+        await DeleteMatchingAsync(context.ForumPosts.Where(p => p.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.Proposals.Where(p => p.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(
+            context.LibraryRequestMessages.Where(m => m.Request.Unit.Offering.CrewId == crewId),
+            cancellationToken);
+        await DeleteMatchingAsync(
+            context.LibraryRequests.Where(r => r.Unit.Offering.CrewId == crewId),
+            cancellationToken);
+        await DeleteMatchingAsync(
+            context.LibraryMaintenanceRecords.Where(m => m.Unit.Offering.CrewId == crewId),
+            cancellationToken);
+        await DeleteMatchingAsync(
+            context.LibraryUnits.Where(u => u.Offering.CrewId == crewId),
+            cancellationToken);
+        await DeleteMatchingAsync(
+            context.LibraryOfferingCategories.Where(c => c.Offering.CrewId == crewId),
+            cancellationToken);
+        await DeleteMatchingAsync(context.LibraryOfferings.Where(o => o.CrewId == crewId), cancellationToken);
+        await DeleteMatchingAsync(context.CrewMemberships.Where(m => m.CrewId == crewId), cancellationToken);
 
         var hasGifts = await context.Gifts.AnyAsync(g => g.CrewId == crewId, cancellationToken);
         if (!hasGifts)
         {
-            await context.CrewPaymentPlatforms
-                .Where(p => p.CrewId == crewId)
-                .ExecuteDeleteAsync(cancellationToken);
-
-            await context.Crews
-                .Where(c => c.Id == crewId)
-                .ExecuteDeleteAsync(cancellationToken);
+            await DeleteMatchingAsync(context.CrewPaymentPlatforms.Where(p => p.CrewId == crewId), cancellationToken);
+            await DeleteMatchingAsync(context.Crews.Where(c => c.Id == crewId), cancellationToken);
         }
     }
 
@@ -140,9 +98,7 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             room.LinkedCrewId = null;
         }
 
-        await context.FleetCrews
-            .Where(fc => fc.CrewId == crewId)
-            .ExecuteDeleteAsync(cancellationToken);
+        await DeleteMatchingAsync(context.FleetCrews.Where(fc => fc.CrewId == crewId), cancellationToken);
 
         if (linkedRooms.Count > 0)
         {
@@ -160,12 +116,47 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
             return;
         }
 
-        await context.UserMutedContents
-            .Where(m => m.ContentType == contentType && resourceIds.Contains(m.ResourceId))
-            .ExecuteDeleteAsync(cancellationToken);
+        await DeleteMatchingAsync(
+            context.UserMutedContents.Where(m => m.ContentType == contentType && resourceIds.Contains(m.ResourceId)),
+            cancellationToken);
 
-        await context.UserHiddenContents
-            .Where(h => h.ContentType == contentType && resourceIds.Contains(h.ResourceId))
-            .ExecuteDeleteAsync(cancellationToken);
+        await DeleteMatchingAsync(
+            context.UserHiddenContents.Where(h => h.ContentType == contentType && resourceIds.Contains(h.ResourceId)),
+            cancellationToken);
+    }
+
+    private async Task DeleteMatchingAsync<T>(IQueryable<T> query, CancellationToken cancellationToken)
+        where T : class
+    {
+        var items = await query.ToListAsync(cancellationToken);
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        context.RemoveRange(items);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ClearParentThenDeleteAsync<T>(
+        IQueryable<T> query,
+        Action<T> clearParent,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        var items = await query.ToListAsync(cancellationToken);
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            clearParent(item);
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        context.RemoveRange(items);
+        await context.SaveChangesAsync(cancellationToken);
     }
 }

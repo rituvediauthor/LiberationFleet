@@ -71,13 +71,14 @@ stages:
             inputs:
               command: restore
               projects: "**/*.csproj"
+              arguments: "/p:SkipSpaProjectReference=true"
 
           - task: DotNetCoreCLI@2
             displayName: Build
             inputs:
               command: build
               projects: "**/*.csproj"
-              arguments: "--configuration Release --no-restore"
+              arguments: "--configuration Release --no-restore /p:SkipSpaProjectReference=true"
 
           - task: DotNetCoreCLI@2
             displayName: Test

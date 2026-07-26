@@ -71,6 +71,8 @@ public static class HandlerTestFixture
         var mock = new Mock<IFleetRepository>(MockBehavior.Strict);
         mock.Setup(r => r.GetFleetForCrewAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Fleet?)null);
+        mock.Setup(r => r.GetFleetMembershipForUserAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FleetMembership?)null);
         return mock;
     }
 
