@@ -63,7 +63,8 @@ public class RecordGiftCommandHandlerIntegrationTests
             gifts.Should().ContainSingle();
             gifts[0].Type.Should().Be(GiftType.Direct);
             gifts[0].Amount.Should().Be(45);
-            gifts[0].CrewPaymentPlatform.Name.Should().Be("PayPal");
+            gifts[0].CrewPaymentPlatform.Should().NotBeNull();
+            gifts[0].CrewPaymentPlatform!.Name.Should().Be("PayPal");
             gifts[0].GiverUserId.Should().Be(giver.Id);
             gifts[0].RecipientUserId.Should().Be(recipient.Id);
         }
@@ -153,7 +154,8 @@ public class RecordGiftCommandHandlerIntegrationTests
 
             completed.InitiatedGiftId.Should().Be(initiated.Id);
             completed.Amount.Should().Be(30);
-            completed.CrewPaymentPlatform.Name.Should().Be("Cash App");
+            completed.CrewPaymentPlatform.Should().NotBeNull();
+            completed.CrewPaymentPlatform!.Name.Should().Be("Cash App");
             completed.MiddlemanUserId.Should().Be(middleman.Id);
         }
     }

@@ -461,7 +461,8 @@ public class MutualAidServiceTests
 
         result.Success.Should().BeTrue();
         result.SeasonStarted.Should().BeTrue();
-        result.Status.UserInSeason.Should().BeTrue();
+        result.Status.Should().NotBeNull();
+        result.Status!.UserInSeason.Should().BeTrue();
 
         var reloadedCrew = await context.Crews.SingleAsync(c => c.Id == crew.Id);
         reloadedCrew.SeasonStarted.Should().BeTrue();

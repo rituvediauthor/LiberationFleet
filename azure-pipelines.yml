@@ -153,6 +153,8 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  # Needed so System.AccessToken / OIDC refresh can be used by Terraform
+                  persistCredentials: true
 
                 - template: .azure/pipelines/templates/terraform-apply.yml
                   parameters:
@@ -198,6 +200,7 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  persistCredentials: true
 
                 - template: .azure/pipelines/templates/terraform-apply.yml
                   parameters:
