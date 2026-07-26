@@ -1,4 +1,8 @@
-<div class="carousel" [class.inline]="variant === 'inline'" *ngIf="images.length > 0">
+<div
+  class="carousel"
+  [class.inline]="variant === 'inline'"
+  [class.card]="variant === 'card'"
+  *ngIf="images.length > 0">
   <div class="carousel-viewport">
     <button
       type="button"

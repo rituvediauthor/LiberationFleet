@@ -202,10 +202,12 @@ export class ProposalCryptoService {
     }
 
     if (!item.hasEncryptedContent || !item.encryptedPayload) {
+      const preview = item.descriptionPreview ?? item.body ?? '';
       return {
         ...item,
         title: item.title ?? '',
-        descriptionPreview: item.descriptionPreview ?? item.body ?? ''
+        descriptionPreview: preview.slice(0, 200),
+        previewImageUrls: item.previewImageUrls ?? (item.thumbnailUrl ? [item.thumbnailUrl] : [])
       };
     }
 
@@ -215,13 +217,14 @@ export class ProposalCryptoService {
         item.encryptedPayload.nonce,
         item.encryptedPayload.ciphertext
       );
-      const thumbnailUrl = await this.resolveThumbnail(scopeKey, payload, scope);
+      const previewImageUrls = await this.resolvePreviewImageUrls(scopeKey, payload, scope);
       return {
         ...item,
         title: payload.title,
-        descriptionPreview: payload.description.slice(0, 100),
+        descriptionPreview: payload.description.slice(0, 200),
         authorUsername: this.resolveAuthorUsername(item, payload.authorDisplayName),
-        thumbnailUrl
+        thumbnailUrl: previewImageUrls[0] ?? null,
+        previewImageUrls
       };
     } catch {
       return {
@@ -397,40 +400,53 @@ export class ProposalCryptoService {
     }
   }
 
-  private async resolveThumbnail(
+  private async resolvePreviewImageUrls(
     scopeKey: CryptoKey,
     payload: ProposalEncryptedPayload,
     scope: ProposalCryptoScope
-  ): Promise<string | null> {
-    const thumbId = payload.thumbnailResourceId
-      ?? payload.attachments?.find(a => a.type === 'image')?.resourceId;
-    if (!thumbId) {
-      return null;
+  ): Promise<string[]> {
+    const imageIds: string[] = (payload.attachments ?? [])
+      .filter(attachment => attachment.type === 'image' && !!attachment.resourceId)
+      .map(attachment => attachment.resourceId)
+      .slice(0, 20);
+
+    if (imageIds.length === 0 && payload.thumbnailResourceId) {
+      imageIds.push(payload.thumbnailResourceId);
+    }
+
+    if (imageIds.length === 0) {
+      return [];
     }
 
     const envelopes = await firstValueFrom(
       this.cryptoApi.getEncryptedContents(
         'ImageAsset',
-        [thumbId],
+        imageIds,
         scope.crewId,
         scope.fleetId
       )
     );
-    const envelope = envelopes[0];
-    if (!envelope) {
-      return null;
-    }
+    const envelopeById = new Map(envelopes.map(envelope => [envelope.resourceId, envelope]));
 
-    try {
-      const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
-        scopeKey,
-        envelope.nonce,
-        envelope.ciphertext
-      );
-      return blobPayload.dataUrl;
-    } catch {
-      return null;
-    }
+    const urls = await Promise.all(imageIds.map(async resourceId => {
+      const envelope = envelopeById.get(resourceId);
+      if (!envelope) {
+        return null;
+      }
+
+      try {
+        const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+          scopeKey,
+          envelope.nonce,
+          envelope.ciphertext
+        );
+        return blobPayload.dataUrl || null;
+      } catch {
+        return null;
+      }
+    }));
+
+    return urls.filter((url): url is string => !!url);
   }
 
   private async uploadAttachments(scope: ProposalCryptoScope, attachments: PendingAttachment[]): Promise<ProposalAttachment[]> {

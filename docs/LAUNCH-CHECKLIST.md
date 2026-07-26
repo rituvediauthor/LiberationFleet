@@ -5,7 +5,7 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 | Guide | Use when |
 |-------|----------|
 | [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) | Azure subscription → Terraform → pipeline → staging/prod URL |
-| [DONATION-SETUP.md](./DONATION-SETUP.md) | Stripe account, keys, webhooks |
+| [DONATION-SETUP.md](./DONATION-SETUP.md) | Stripe: local → staging (test) → production (live) |
 | [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) | Local Docker voice or LiveKit Cloud |
 | [NATIVE-APPS.md](./NATIVE-APPS.md) | Capacitor build / sync / device run |
 | [STORE-SUBMISSION.md](./STORE-SUBMISSION.md) | Play Console & App Store Connect |
@@ -21,16 +21,17 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 ## Suggested order of operations
 
 1. **Legal** — entity, privacy/terms URLs, support emails (Section A)  
-2. **Azure staging** — [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) through first verify  
+2. **Azure staging** — [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) through first verify (Steps 1–9)  
 3. **Email sender** — password reset end-to-end (Section B.1; code still stubbed)  
-4. **Stripe test → live** — [DONATION-SETUP.md](./DONATION-SETUP.md)  
-5. **LiveKit Cloud** — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md)  
+4. **Stripe test on staging + local** — [DONATION-SETUP.md](./DONATION-SETUP.md) Parts A–C  
+5. **LiveKit on staging** — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B  
 6. **Report vendor + NCMEC ESP** — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md), [NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md)  
-7. **Production Azure** — AZURE-GO-LIVE Step 11  
-8. **Native `apiBaseUrl` + sync** — [NATIVE-APPS.md](./NATIVE-APPS.md)  
-9. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
-10. **Store screenshots + review notes + submit**  
-11. **Follow-up** — MFA, push, geocoding, Sign in with Apple  
+7. **Production Azure** — AZURE-GO-LIVE Step 11 (creates `lfleetproductionkv`, etc.)  
+8. **Stripe live + LiveKit production** — DONATION-SETUP Part D; LIVEKIT-SETUP Path C  
+9. **Native `apiBaseUrl` + sync** — [NATIVE-APPS.md](./NATIVE-APPS.md)  
+10. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
+11. **Store screenshots + review notes + submit**  
+12. **Follow-up** — MFA, push, geocoding, Sign in with Apple  
 
 ---
 
@@ -69,28 +70,30 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 
 ### B.3 Donations (Stripe)
 
-Follow **[DONATION-SETUP.md](./DONATION-SETUP.md)** end-to-end.
+Follow **[DONATION-SETUP.md](./DONATION-SETUP.md)**. Keep staging and production separate.
 
-- [ ] Stripe account + bank payouts  
-- [ ] Test keys in Key Vault / user secrets  
-- [ ] Webhook → `/api/donations/stripe/webhook`  
-- [ ] Live keys + live webhook before public launch  
+- [ ] Stripe account + org bank payouts (Part A)
+- [ ] **Local:** test keys in user-secrets (Part B)
+- [ ] **Staging:** test keys + test webhook in staging Key Vault (Part C) — after Azure staging exists
+- [ ] **Production:** live keys + live webhook in production Key Vault (Part D) — after AZURE-GO-LIVE Step 11
 
 ### B.4 Voice (LiveKit)
 
 Follow **[LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md)**.
 
-- [ ] LiveKit Cloud project (or self-host + TURN)  
-- [ ] `livekit_host` in Terraform tfvars + apply  
-- [ ] Key Vault `LiveKit-ApiKey` / `LiveKit-ApiSecret`  
+- [ ] Local Docker voice (Path A), optional
+- [ ] **Staging:** LiveKit Cloud + staging Key Vault (Path B)
+- [ ] **Production:** LiveKit Cloud + production Key Vault (Path C) — after AZURE-GO-LIVE Step 11
+- [ ] `livekit_host` in the matching `*.tfvars` + apply that environment only
+- [ ] Key Vault `LiveKit-ApiKey` / `LiveKit-ApiSecret` per environment
 
 ### B.5 Content moderation / report triage
 
 Follow **[REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md)**.
 
 - [ ] Choose internal ops and/or contractor  
-- [ ] Generate long `ReportEvidence-VendorApiKey` → Key Vault  
-- [ ] Optional `VendorNotifyUrl` HTTPS hook  
+- [ ] Generate long `ReportEvidence-VendorApiKey` → **staging** Key Vault first; repeat for **production** when ready  
+- [ ] Optional `VendorNotifyUrl` HTTPS hook (per App Service)  
 - [ ] Contractor can call `/api/reports/ops` with `X-Report-Vendor-Key`  
 
 ### B.6 NCMEC CyberTipline (CSAM)

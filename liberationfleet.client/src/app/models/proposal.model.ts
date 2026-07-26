@@ -47,6 +47,8 @@ export interface ProposalListItem {
   /** Legacy plaintext forum body when no encrypted envelope exists. */
   body?: string;
   thumbnailUrl?: string | null;
+  /** Decrypted image preview URLs for list cards (up to 20). */
+  previewImageUrls?: string[];
   settingField?: string | null;
   settingNewValue?: string | null;
 }

@@ -40,13 +40,28 @@ export class GiftLogCryptoService {
           entry.encryptedPayload.nonce,
           entry.encryptedPayload.ciphertext
         );
+        const giverName = payload.giverName;
+        const recipientName = payload.recipientName;
+        const middlemanName = payload.middlemanName ?? undefined;
+        const platform = payload.platform;
         return {
           ...entry,
-          giverName: payload.giverName,
-          recipientName: payload.recipientName,
-          middlemanName: payload.middlemanName ?? undefined,
-          platform: payload.platform,
-          message: payload.message
+          giverName,
+          recipientName,
+          middlemanName,
+          platform,
+          // Rebuild from current verification state so stale encrypted text
+          // (e.g. still saying Unverified) does not stick after confirm.
+          message: this.buildDisplayMessage(
+            entry.type,
+            giverName,
+            recipientName,
+            middlemanName,
+            entry.amount,
+            platform,
+            entry.status,
+            entry.displayFlag
+          )
         };
       } catch {
         return {
@@ -204,6 +219,9 @@ export class GiftLogCryptoService {
     }
     if (displayFlag === 'cantComplete') {
       return `${baseMessage} (Can't Complete)`;
+    }
+    if (displayFlag === 'unverified' || status === 'unverified') {
+      return `${baseMessage} (Unverified)`;
     }
     if (type === 'initiated' && status === 'completed') {
       return `${baseMessage} (Completed)`;

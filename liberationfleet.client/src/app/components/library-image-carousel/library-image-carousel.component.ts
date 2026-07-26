@@ -12,7 +12,7 @@ import { AccessibleDialogDirective } from '../../directives/accessible-dialog.di
 export class LibraryImageCarouselComponent {
   @Input() images: string[] = [];
   @Input() title = '';
-  @Input() variant: 'hero' | 'inline' = 'hero';
+  @Input() variant: 'hero' | 'inline' | 'card' = 'hero';
   @Output() imageClick = new EventEmitter<number>();
 
   activeIndex = 0;

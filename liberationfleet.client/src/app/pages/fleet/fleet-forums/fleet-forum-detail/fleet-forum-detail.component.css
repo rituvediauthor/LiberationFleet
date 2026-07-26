@@ -18,6 +18,13 @@
   padding-bottom: 88px;
 }
 
+.detail-hero {
+  position: relative;
+  width: 100vw;
+  max-width: 100vw;
+  margin: -20px calc(50% - 50vw) 16px;
+}
+
 .detail-body {
   width: 100%;
   max-width: 560px;
@@ -73,6 +80,7 @@ h1 {
   color: var(--lf-color-text-body);
 }
 
+.attachments-toggle,
 .link-btn,
 .danger-btn {
   border: none;
@@ -90,12 +98,6 @@ h1 {
 .comments-section h2 {
   font-size: 18px;
   margin: 0 0 12px;
-}
-
-.empty-comments {
-  margin: 0 0 12px;
-  font-size: 14px;
-  color: var(--lf-color-text-secondary);
 }
 
 .comments-list {
@@ -134,58 +136,20 @@ h1 {
   gap: 8px;
 }
 
-.menu-wrap {
-  position: relative;
-}
-
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
+.kept-attachments .kept-attachment {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
   color: var(--lf-color-text-secondary);
-  cursor: pointer;
-}
-
-.icon-btn:hover {
-  background: var(--lf-color-bg-hover);
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 10;
-  min-width: 100px;
-  padding: 6px;
-  border: 1px solid var(--lf-color-border);
-  border-radius: 10px;
-  background: var(--lf-color-bg-surface);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.dropdown-menu button {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  text-align: left;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.dropdown-menu button:hover {
-  background: var(--lf-color-accent-soft-bg-alt);
 }
 
 .comment-body {
   margin: 0 0 8px;
   font-size: 14px;
   line-height: 1.45;
-  white-space: pre-wrap;
 }
 
 .comment-actions {
@@ -222,7 +186,28 @@ h1 {
   border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
-  font-family: inherit;
+}
+
+.section-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lf-color-text-secondary);
+}
+
+.kept-attachments ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.kept-attachments li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--lf-color-border);
 }
 
 .edit-actions {
@@ -263,7 +248,6 @@ h1 {
 
 .comment-input {
   flex: 1;
-  width: 100%;
   min-height: 40px;
   max-height: 120px;
   resize: none;
@@ -271,8 +255,6 @@ h1 {
   border-radius: 20px;
   padding: 10px 14px;
   font-size: 14px;
-  font-family: inherit;
-  box-sizing: border-box;
 }
 
 .comment-input.expanded {

@@ -15,8 +15,7 @@ const FALLIBLE_DOC_URL =
 export class FallibleFooterComponent {
   private fallibleService = inject(FallibleService);
 
-  onImageClick(event: Event) {
-    event.preventDefault();
+  onImageClick() {
     this.fallibleService.recordClick().subscribe({ error: () => {} });
     window.open(FALLIBLE_DOC_URL, '_blank', 'noopener,noreferrer');
   }

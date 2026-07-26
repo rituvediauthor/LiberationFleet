@@ -1,31 +1,156 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
   <div class="discussion-list-page">
-    <h1 class="page-title">Fleet forums</h1>
+    <h1 class="page-title">Fleet Space</h1>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No posts yet.</p>
-    <p *ngIf="!loading && !errorMessage && items.length > 0 && visibleItems.length === 0" class="state-text">
-      No forum posts match your content settings.
+    <p *ngIf="!loading && !errorMessage && items.length > 0 && visibleItems.length === 0 && hiddenItemsList.length > 0" class="state-text">
+      All posts are hidden.
+    </p>
+    <p *ngIf="!loading && !errorMessage && items.length > 0 && visibleItems.length === 0 && hiddenItemsList.length === 0" class="state-text">
+      No posts match your content settings.
     </p>
 
     <div class="post-cards" *ngIf="!loading && visibleItems.length > 0">
-      <div class="post-card" *ngFor="let item of visibleItems">
-        <button type="button" class="post-open" (click)="openPost(item)">
-          <div class="card-top">
-            <div class="card-main">
-              <p class="card-meta">
-                <span class="author">{{ item.authorUsername }}</span>
-                <span class="dot">·</span>
-                <span>{{ formatActivity(item.lastActivityAt) }}</span>
-                <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
-              </p>
-              <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
-              <p class="card-preview">{{ previewBody(item) }}</p>
-            </div>
+      <article class="post-card" *ngFor="let item of visibleItems">
+        <div class="post-content">
+          <button type="button" class="post-open" (click)="openPost(item)">
+            <span class="entry-badge-anchor">
+              <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
+            </span>
+            <p class="card-meta">
+              <app-user-avatar
+                [resourceId]="item.authorAvatarResourceId"
+                [fleetId]="fleetId || null"
+                [fallbackInitial]="item.authorUsername"
+                size="sm"
+                [alt]="item.authorUsername + ' avatar'">
+              </app-user-avatar>
+              <span class="author">{{ item.authorUsername }}</span>
+              <span class="dot">·</span>
+              <span>{{ formatActivity(item.lastActivityAt) }}</span>
+              <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
+              <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
+            </p>
+            <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+          </button>
+
+          <div
+            class="card-slideshow"
+            *ngIf="previewImages(item).length > 0"
+            [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
+            (click)="$event.stopPropagation()">
+            <app-library-image-carousel
+              variant="card"
+              [images]="previewImages(item)"
+              [title]="item.title || 'Post'">
+            </app-library-image-carousel>
           </div>
-        </button>
-      </div>
+
+          <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
+            <p class="card-preview">{{ previewBody(item) }}</p>
+          </button>
+        </div>
+
+        <div class="post-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            aria-label="Post options"
+            [attr.aria-expanded]="openMenuItemId === item.id"
+            aria-haspopup="menu"
+            (click)="toggleMenu(item.id, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div
+            class="post-menu"
+            role="menu"
+            *ngIf="openMenuItemId === item.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="toggleMute(item, $event)">
+              {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
+            </button>
+            <button type="button" role="menuitem" (click)="hideItem(item, $event)">Hide</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <button
+      type="button"
+      class="hidden-toggle-btn"
+      *ngIf="!loading && hiddenItemsList.length > 0"
+      (click)="toggleShowHidden()">
+      {{ showHiddenExpanded ? 'Hide' : 'Show Hidden' }}
+    </button>
+
+    <div class="post-cards hidden-list" *ngIf="!loading && showHiddenExpanded && hiddenItemsList.length > 0">
+      <article class="post-card hidden-card" *ngFor="let item of hiddenItemsList">
+        <div class="post-content">
+          <button type="button" class="post-open" (click)="openPost(item)">
+            <span class="entry-badge-anchor">
+              <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
+            </span>
+            <p class="card-meta">
+              <app-user-avatar
+                [resourceId]="item.authorAvatarResourceId"
+                [fleetId]="fleetId || null"
+                [fallbackInitial]="item.authorUsername"
+                size="sm"
+                [alt]="item.authorUsername + ' avatar'">
+              </app-user-avatar>
+              <span class="author">{{ item.authorUsername }}</span>
+              <span class="dot">·</span>
+              <span>{{ formatActivity(item.lastActivityAt) }}</span>
+              <span class="muted-badge">Hidden</span>
+              <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
+              <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
+            </p>
+            <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+          </button>
+
+          <div
+            class="card-slideshow"
+            *ngIf="previewImages(item).length > 0"
+            [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
+            (click)="$event.stopPropagation()">
+            <app-library-image-carousel
+              variant="card"
+              [images]="previewImages(item)"
+              [title]="item.title || 'Post'">
+            </app-library-image-carousel>
+          </div>
+
+          <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
+            <p class="card-preview">{{ previewBody(item) }}</p>
+          </button>
+        </div>
+
+        <div class="post-actions">
+          <button
+            type="button"
+            class="kebab-btn"
+            aria-label="Hidden post options"
+            [attr.aria-expanded]="openMenuItemId === item.id"
+            aria-haspopup="menu"
+            (click)="toggleMenu(item.id, $event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+
+          <div
+            class="post-menu"
+            role="menu"
+            *ngIf="openMenuItemId === item.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" (click)="editItem(item, $event)">Edit</button>
+            <button type="button" role="menuitem" (click)="unhideItem(item, $event)">Unhide</button>
+          </div>
+        </div>
+      </article>
     </div>
   </div>
 </app-page-layout>

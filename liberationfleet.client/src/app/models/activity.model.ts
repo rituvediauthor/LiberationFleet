@@ -52,7 +52,7 @@ export interface UserActivityListResponse {
 export const ACTIVITY_FILTER_OPTIONS: { value: UserActivityFilterCategory; label: string }[] = [
   { value: 'All', label: 'All' },
   { value: 'Chats', label: 'Chats' },
-  { value: 'Forums', label: 'Forums' },
+  { value: 'Forums', label: 'Space' },
   { value: 'Library', label: 'Library of Things' },
   { value: 'Gifts', label: 'Gifts' },
   { value: 'Proposals', label: 'Proposals' }

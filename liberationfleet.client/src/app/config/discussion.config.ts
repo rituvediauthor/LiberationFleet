@@ -14,9 +14,9 @@ export interface DiscussionConfig {
 
 export const FORUM_DISCUSSION_CONFIG: DiscussionConfig = {
   kind: 'forums',
-  label: 'Forum',
-  labelPlural: 'Forums',
-  postLabel: 'forum post',
+  label: 'Post',
+  labelPlural: 'Crew Space',
+  postLabel: 'post',
   apiPath: '/api/forums',
   listRoute: '/app/crew/forums',
   createRoute: '/app/crew/forums/create',

@@ -4,6 +4,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
+import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { CrewDiscussionService } from '../../../services/crew-discussion.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -21,7 +23,14 @@ import { NavigationService } from '../../../services/navigation.service';
 @Component({
   selector: 'app-discussion-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent],
+  imports: [
+    CommonModule,
+    PageLayoutComponent,
+    AdultContentGateComponent,
+    ContentBadgeComponent,
+    LibraryImageCarouselComponent,
+    UserAvatarComponent
+  ],
   templateUrl: './discussion-list.component.html',
   styleUrl: './discussion-list.component.css'
 })
@@ -67,7 +76,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
     });
 
     this.createButton = {
-      label: `Create ${this.config.label}`,
+      label: 'Create Post',
       type: 'primary',
       onClick: () => this.router.navigate([this.config.createRoute])
     };
@@ -212,6 +221,21 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
       hour: 'numeric',
       minute: '2-digit'
     });
+  }
+
+  previewImages(item: DiscussionListItem): string[] {
+    if (item.previewImageUrls && item.previewImageUrls.length > 0) {
+      return item.previewImageUrls.slice(0, 20);
+    }
+    return item.thumbnailUrl ? [item.thumbnailUrl] : [];
+  }
+
+  previewBody(item: DiscussionListItem): string {
+    const text = (item.descriptionPreview ?? '').trim();
+    if (!text) {
+      return '';
+    }
+    return text.length > 200 ? `${text.slice(0, 200)}…` : text;
   }
 
   shouldBlurThumbnail(item: DiscussionListItem): boolean {

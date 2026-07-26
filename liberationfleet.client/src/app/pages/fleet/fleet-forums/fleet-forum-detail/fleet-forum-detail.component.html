@@ -22,13 +22,20 @@
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
   <div class="detail-scroll" #detailScroll>
     <div class="scroll-page-body">
+    <div class="detail-hero" *ngIf="carouselImages.length > 0 && !editing">
+      <app-library-image-carousel
+        [images]="carouselImages"
+        [title]="p.title || 'Post'">
+      </app-library-image-carousel>
+    </div>
+
     <div class="detail-body">
     <div class="post-content-card">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
           <app-user-avatar
             [resourceId]="p.authorAvatarResourceId"
-            [crewId]="crewId || null"
+            [fleetId]="fleetId || null"
             [fallbackInitial]="p.authorUsername"
             size="sm"
             [alt]="p.authorUsername + ' avatar'">
@@ -48,9 +55,31 @@
           <input type="text" [(ngModel)]="editTitle" maxlength="200" />
         </label>
         <label class="edit-field">
-          <span>Body</span>
-          <textarea [(ngModel)]="editBody" rows="8" maxlength="10000"></textarea>
+          <span>Description</span>
+          <textarea
+            [(ngModel)]="editDescription"
+            appMentionAutocomplete
+            [(mentionedUserIds)]="editMentionedUserIds"
+            rows="8"
+            maxlength="10000"></textarea>
         </label>
+
+        <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+          <p class="section-label">Current attachments</p>
+          <ul>
+            <li *ngFor="let attachment of keptEditAttachments; let i = index">
+              <span>{{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}</span>
+              <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
+            </li>
+          </ul>
+        </div>
+
+        <p class="section-label">Add attachments</p>
+        <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
+          [attachments]="newEditAttachments"
+          [maxAttachments]="20">
+        </app-proposal-attachment-picker>
 
         <div class="edit-actions">
           <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
@@ -59,8 +88,13 @@
       </div>
 
       <div class="post-body" *ngIf="!editing">
-        <p class="description">{{ p.description ?? p.body }}</p>
+        <p class="description"><app-mention-text [text]="p.description ?? p.body ?? ''" /></p>
       </div>
+
+      <app-proposal-attachment-display
+        *ngIf="!editing && nonImageAttachments.length > 0"
+        [attachments]="nonImageAttachments">
+      </app-proposal-attachment-display>
 
       <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete || !isOwnPost)">
         <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit post</button>
@@ -71,14 +105,13 @@
 
     <section class="comments-section">
       <h2>Comments</h2>
-      <p class="empty-comments" *ngIf="p.comments.length === 0">No comments yet.</p>
       <div class="comments-list">
         <article class="comment" *ngFor="let comment of p.comments">
           <div class="comment-header">
             <p class="comment-meta">
               <app-user-avatar
                 [resourceId]="comment.authorAvatarResourceId"
-                [crewId]="crewId || null"
+                [fleetId]="fleetId || null"
                 [fallbackInitial]="comment.authorUsername"
                 size="sm"
                 [alt]="comment.authorUsername + ' avatar'">
@@ -104,11 +137,15 @@
                 (click)="$event.stopPropagation()"
                 (keydown.escape)="closeMenus()">
                 <button type="button" role="menuitem" *ngIf="isOwnComment(comment)" (click)="startEditComment(comment, null, $event)">Edit</button>
-                <button type="button" role="menuitem" *ngIf="!isOwnComment(comment)" (click)="openReportComment(comment, $event)">Report</button>
+                <button type="button" role="menuitem" *ngIf="!isOwnComment(comment)" (click)="openReportComment(comment, null, $event)">Report</button>
               </div>
             </div>
           </div>
-          <p class="comment-body" *ngIf="comment.body">{{ comment.body }}</p>
+          <p class="comment-body" *ngIf="comment.body"><app-mention-text [text]="comment.body" /></p>
+          <app-proposal-attachment-display
+            [attachments]="comment.resolvedAttachments ?? []"
+            [compact]="true">
+          </app-proposal-attachment-display>
           <div class="comment-actions">
             <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
             <button
@@ -126,7 +163,7 @@
                 <p class="comment-meta">
                   <app-user-avatar
                     [resourceId]="reply.authorAvatarResourceId"
-                    [crewId]="crewId || null"
+                    [fleetId]="fleetId || null"
                     [fallbackInitial]="reply.authorUsername"
                     size="sm"
                     [alt]="reply.authorUsername + ' avatar'">
@@ -152,11 +189,15 @@
                     (click)="$event.stopPropagation()"
                     (keydown.escape)="closeMenus()">
                     <button type="button" role="menuitem" *ngIf="isOwnComment(reply)" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
-                    <button type="button" role="menuitem" *ngIf="!isOwnComment(reply)" (click)="openReportComment(reply, $event)">Report</button>
+                    <button type="button" role="menuitem" *ngIf="!isOwnComment(reply)" (click)="openReportComment(reply, comment.id, $event)">Report</button>
                   </div>
                 </div>
               </div>
-              <p class="comment-body" *ngIf="reply.body">{{ reply.body }}</p>
+              <p class="comment-body" *ngIf="reply.body"><app-mention-text [text]="reply.body" /></p>
+              <app-proposal-attachment-display
+                [attachments]="reply.resolvedAttachments ?? []"
+                [compact]="true">
+              </app-proposal-attachment-display>
               <div class="comment-actions">
                 <button type="button" class="link-btn" (click)="startReply(reply)">Reply</button>
               </div>
@@ -207,6 +248,21 @@
           </button>
         </div>
       </div>
+
+      <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
+          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
+        </div>
+      </div>
+
+      <app-proposal-attachment-picker
+        *ngIf="canAttachFiles"
+        class="comment-attachment-picker"
+        [class.collapsed]="!commentExpanded"
+        [attachments]="commentAttachments"
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+      </app-proposal-attachment-picker>
     </div>
   </div>
 </div>

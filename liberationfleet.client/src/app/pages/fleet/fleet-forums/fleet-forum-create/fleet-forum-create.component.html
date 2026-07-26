@@ -1,6 +1,6 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="createButton">
   <div class="discussion-create-page">
-    <h1 class="page-title">Create forum post</h1>
+    <h1 class="page-title">Create Post</h1>
 
     <form [formGroup]="form">
       <div class="form-group">
@@ -19,21 +19,27 @@
       </div>
 
       <div class="form-group">
-        <label for="body">Body</label>
+        <label for="description">Description</label>
         <textarea
-          id="body"
+          id="description"
           class="form-input textarea"
           rows="8"
-          formControlName="body"
+          formControlName="description"
           appMentionAutocomplete
           [(mentionedUserIds)]="mentionedUserIds"
           placeholder="Write your post"
-          [attr.aria-invalid]="isInvalid('body')"
-          [attr.aria-describedby]="isInvalid('body') ? 'body-error' : null"></textarea>
-        <span id="body-error" class="error-text" role="alert" *ngIf="isInvalid('body')">
-          Body is required
+          [attr.aria-invalid]="isInvalid('description')"
+          [attr.aria-describedby]="isInvalid('description') ? 'description-error' : null"></textarea>
+        <span id="description-error" class="error-text" role="alert" *ngIf="isInvalid('description')">
+          Description is required
         </span>
       </div>
+
+      <app-proposal-attachment-picker
+        *ngIf="canAttachFiles"
+        [attachments]="attachments"
+        [maxAttachments]="20">
+      </app-proposal-attachment-picker>
 
       <label class="checkbox-field">
         <input type="checkbox" formControlName="isAdultContent" />

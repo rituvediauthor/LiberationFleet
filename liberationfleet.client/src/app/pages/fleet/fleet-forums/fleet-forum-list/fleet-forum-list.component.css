@@ -32,30 +32,107 @@
 
 .post-card {
   display: flex;
-  align-items: stretch;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 4px;
   border: 1px solid var(--lf-color-border);
   border-radius: 12px;
   background: var(--lf-color-bg-surface);
 }
 
-.post-open {
-  position: relative;
+.post-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 14px;
+}
+
+.post-open {
+  position: relative;
+  width: 100%;
   text-align: left;
   border: none;
   background: transparent;
-  padding: 14px;
+  padding: 14px 14px 0;
   cursor: pointer;
 }
 
-.post-open:hover {
+.post-open-body {
+  padding: 10px 14px 0;
+}
+
+.post-open:hover,
+.post-open-body:hover {
   background: var(--lf-color-accent-soft-bg-alt);
 }
 
+.entry-badge-anchor {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 0;
+  height: 0;
+}
+
+.post-actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 8px 0 0;
+}
+
+.kebab-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  cursor: pointer;
+}
+
+.kebab-btn:hover {
+  background: var(--lf-color-bg-hover);
+}
+
+.post-menu {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 120px;
+  padding: 6px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.post-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.post-menu button:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.muted-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lf-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .adult-badge {
-  margin-left: 8px;
   font-size: 11px;
   font-weight: 700;
   color: var(--lf-color-danger-strong);
@@ -63,20 +140,18 @@
   letter-spacing: 0.03em;
 }
 
-.card-top {
-  display: flex;
-  gap: 12px;
-}
-
-.card-main {
-  flex: 1;
-  min-width: 0;
+.card-slideshow.adult-thumb-blur {
+  filter: blur(10px);
 }
 
 .card-meta {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-size: 12px;
   color: var(--lf-color-text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .author {
@@ -85,14 +160,19 @@
 }
 
 .dot {
-  margin: 0 4px;
+  margin: 0;
 }
 
 .card-title {
-  margin: 0 0 6px;
+  margin: 0 0 10px;
   font-size: 16px;
   font-weight: 700;
   color: var(--lf-color-text-primary);
+}
+
+.card-slideshow {
+  width: 100%;
+  padding: 0 14px;
 }
 
 .card-preview {
@@ -100,4 +180,32 @@
   font-size: 13px;
   color: var(--lf-color-text-secondary);
   line-height: 1.4;
+}
+
+.hidden-toggle-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-accent);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.hidden-toggle-btn:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
+}
+
+.hidden-list {
+  margin-top: 12px;
+}
+
+.hidden-card {
+  opacity: 0.92;
 }

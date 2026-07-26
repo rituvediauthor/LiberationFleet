@@ -103,6 +103,36 @@
   padding: 3px 8px;
 }
 
+.carousel.card {
+  width: 100%;
+}
+
+.carousel.card .carousel-viewport {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+}
+
+.carousel.card .carousel-nav {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+.carousel.card .carousel-nav.prev {
+  left: 10px;
+}
+
+.carousel.card .carousel-nav.next {
+  right: 10px;
+}
+
+.carousel.card .carousel-counter {
+  right: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
 .lightbox {
   position: fixed;
   inset: 0;

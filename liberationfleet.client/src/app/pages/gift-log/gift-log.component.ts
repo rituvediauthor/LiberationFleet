@@ -197,20 +197,95 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.giftService.verifyGift(entry.id, action, paymentPlatformId).subscribe({
       next: async result => {
         this.verifyingGiftId = null;
-        if (result.success) {
-          this.toastService.success(result.message || 'Gift updated');
-          delete this.completionPlatformSelections[entry.id];
-          if (result.entry && this.crewId > 0) {
-            await this.giftLogCrypto.encryptAndStoreEntry(result.entry, this.crewId);
-          }
-          this.loadGiftLog();
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to update gift');
           return;
         }
-        this.toastService.error(result.message || 'Failed to update gift');
+
+        this.toastService.success(result.message || 'Gift updated');
+        delete this.completionPlatformSelections[entry.id];
+
+        if (result.entry) {
+          this.applyUpdatedEntry(result.entry);
+          if (this.crewId > 0) {
+            try {
+              await this.giftLogCrypto.encryptAndStoreEntry(result.entry, this.crewId);
+            } catch {
+              // Encryption backfill is best-effort; UI already reflects the verified state.
+            }
+          }
+        } else {
+          this.clearVerificationUi(entry.id);
+        }
+
+        this.reloadGiftLogQuietly();
       },
       error: () => {
         this.verifyingGiftId = null;
         this.toastService.error('Failed to update gift');
+      }
+    });
+  }
+
+  private applyUpdatedEntry(updated: GiftLogEntry) {
+    const normalized: GiftLogEntry = {
+      ...updated,
+      timestamp: updated.timestamp instanceof Date ? updated.timestamp : new Date(updated.timestamp),
+      availableActions: updated.availableActions ?? [],
+      completionPlatformOptions: updated.completionPlatformOptions ?? [],
+      displayFlag: updated.displayFlag ?? null
+    };
+
+    const index = this.entries.findIndex(e => e.id === normalized.id);
+    if (index < 0) {
+      return;
+    }
+
+    const next = [...this.entries];
+    next[index] = {
+      ...next[index],
+      ...normalized
+    };
+    this.entries = next;
+    this.applyCompletionDefaults([next[index]]);
+  }
+
+  private clearVerificationUi(giftId: number) {
+    const index = this.entries.findIndex(e => e.id === giftId);
+    if (index < 0) {
+      return;
+    }
+
+    const next = [...this.entries];
+    next[index] = {
+      ...next[index],
+      availableActions: [],
+      completionPlatformOptions: [],
+      displayFlag: null,
+      status: next[index].status === 'unverified' ? 'completed' : next[index].status
+    };
+    this.entries = next;
+  }
+
+  private reloadGiftLogQuietly() {
+    this.giftService.getLogs({ limit: this.pageSize }).subscribe({
+      next: async page => {
+        try {
+          let items = page.items;
+          if (this.crewId > 0) {
+            items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
+            void this.giftLogCrypto.backfillUnencryptedEntries(items, this.crewId, this.activeUserId);
+          }
+          this.entries = items;
+          this.hasMore = page.hasMore;
+          this.applyCompletionDefaults(page.items);
+          setTimeout(() => this.observeLoadMoreSentinel(), 0);
+        } catch {
+          // Keep the optimistic local update if a background refresh fails.
+        }
+      },
+      error: () => {
+        // Keep the optimistic local update if a background refresh fails.
       }
     });
   }

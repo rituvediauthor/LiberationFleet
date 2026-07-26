@@ -1,6 +1,6 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="createButton">
   <div class="discussion-create-page">
-    <h1 class="page-title">Create {{ config.label }}</h1>
+    <h1 class="page-title">Create Post</h1>
 
     <form [formGroup]="form">
       <div class="form-group">
@@ -35,7 +35,11 @@
         </span>
       </div>
 
-      <app-proposal-attachment-picker *ngIf="canAttachFiles" [attachments]="attachments"></app-proposal-attachment-picker>
+      <app-proposal-attachment-picker
+        *ngIf="canAttachFiles"
+        [attachments]="attachments"
+        [maxAttachments]="20">
+      </app-proposal-attachment-picker>
 
       <label class="checkbox-field">
         <input type="checkbox" formControlName="isAdultContent" />

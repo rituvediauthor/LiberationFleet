@@ -4,19 +4,24 @@
 port: 7880
 rtc:
   tcp_port: 7881
-  port_range_start: 50000
-  port_range_end: 50100
+  port_range_start: 52000
+  port_range_end: 52100
+  # Advertise the host loopback so the browser can reach published Docker ports.
+  # Without this, LiveKit uses the container bridge IP (172.x) and ICE fails on Windows/macOS Docker.
   use_external_ip: false
-  # Coturn runs with network_mode: host in docker-compose.dev.yml
+  node_ip: 127.0.0.1
+  enable_loopback_candidate: true
+  # Host:port only — do not prefix with stun: (LiveKit 1.13+ parses these as addresses)
   stun_servers:
-    - stun:stun.l.google.com:19302
+    - stun.l.google.com:19302
+  # Advertised to the browser — use localhost (coturn uses host networking)
   turn_servers:
-    - host: host.docker.internal
+    - host: localhost
       port: 3478
       protocol: udp
       username: livekit
       credential: livekitturn
-    - host: host.docker.internal
+    - host: localhost
       port: 3478
       protocol: tcp
       username: livekit

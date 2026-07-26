@@ -68,36 +68,53 @@ public class CreateDonationCheckoutCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var sessionService = new SessionService();
-        var session = await sessionService.CreateAsync(new SessionCreateOptions
+        Session session;
+        try
         {
-            Mode = "payment",
-            SuccessUrl = $"{baseUrl}/app/donate?success=1&session_id={{CHECKOUT_SESSION_ID}}",
-            CancelUrl = $"{baseUrl}/app/donate?canceled=1",
-            ClientReferenceId = userId.ToString(),
-            Metadata = new Dictionary<string, string>
+            var sessionOptions = new SessionCreateOptions
             {
-                ["userId"] = userId.ToString(),
-                ["donationId"] = donation.Id.ToString(),
-                ["purpose"] = "liberation_fleet_app"
-            },
-            LineItems =
-            [
-                new SessionLineItemOptions
+                Mode = "payment",
+                SubmitType = "donate",
+                SuccessUrl = $"{baseUrl}/app/donate?success=1&session_id={{CHECKOUT_SESSION_ID}}",
+                CancelUrl = $"{baseUrl}/app/donate?canceled=1",
+                ClientReferenceId = userId.ToString(),
+                Metadata = new Dictionary<string, string>
                 {
-                    Quantity = 1,
-                    PriceData = new SessionLineItemPriceDataOptions
+                    ["userId"] = userId.ToString(),
+                    ["donationId"] = donation.Id.ToString(),
+                    ["purpose"] = "liberation_fleet_app"
+                },
+                LineItems =
+                [
+                    new SessionLineItemOptions
                     {
-                        Currency = "usd",
-                        UnitAmount = request.AmountCents,
-                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        Quantity = 1,
+                        PriceData = new SessionLineItemPriceDataOptions
                         {
-                            Name = "Liberation Fleet donation",
-                            Description = "Support development and hosting of the Liberation Fleet app. Not a mutual-aid gift to a crewmate."
+                            Currency = "usd",
+                            UnitAmount = request.AmountCents,
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = "Liberation Fleet donation",
+                                Description = "Support development and hosting of the Liberation Fleet app. Not a mutual-aid gift to a crewmate.",
+                                // Required when Stripe Managed Payments defaults on; also set ExtraParam below.
+                                TaxCode = "txcd_00000000"
+                            }
                         }
                     }
-                }
-            ]
-        }, cancellationToken: cancellationToken);
+                ]
+            };
+            // Standard Checkout for org donations — not Stripe Managed Payments (merchant-of-record).
+            sessionOptions.AddExtraParam("managed_payments[enabled]", false);
+
+            session = await sessionService.CreateAsync(sessionOptions, cancellationToken: cancellationToken);
+        }
+        catch (StripeException ex)
+        {
+            donation.Status = "failed";
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return Fail(ex.Message);
+        }
 
         donation.StripeCheckoutSessionId = session.Id;
         await unitOfWork.SaveChangesAsync(cancellationToken);

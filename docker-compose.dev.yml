@@ -30,7 +30,8 @@ services:
     ports:
       - "7880:7880"
       - "7881:7881"
-      - "50000-50100:50000-50100/udp"
+      # Avoid 50000–50100: Microsoft Teams often binds UDP ports in that range on Windows
+      - "52000-52100:52000-52100/udp"
     volumes:
       - ./infrastructure/livekit.yaml:/etc/livekit.yaml:ro
     extra_hosts:

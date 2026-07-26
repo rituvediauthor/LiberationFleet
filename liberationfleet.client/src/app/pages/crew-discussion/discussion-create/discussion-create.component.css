@@ -31,6 +31,12 @@ label {
   font-size: 14px;
 }
 
+.form-input.textarea {
+  resize: vertical;
+  min-height: 160px;
+  font-family: inherit;
+}
+
 .checkbox-field {
   display: flex;
   align-items: flex-start;

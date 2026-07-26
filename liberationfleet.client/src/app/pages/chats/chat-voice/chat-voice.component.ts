@@ -353,10 +353,14 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
           this.connecting = false;
           this.loading = false;
           this.connected = true;
-        } catch {
+        } catch (err) {
           this.connecting = false;
           this.loading = false;
-          this.errorMessage = 'Failed to connect microphone. Check browser permissions.';
+          console.error('Voice LiveKit connect failed', err);
+          const detail = err instanceof Error ? err.message : String(err ?? '');
+          this.errorMessage = detail.toLowerCase().includes('permission') || detail.toLowerCase().includes('notallowed')
+            ? 'Failed to connect microphone. Check browser permissions.'
+            : 'Failed to connect to voice (WebRTC). Check LiveKit is running and reachable at ws://localhost:7880.';
           this.toastService.error(this.errorMessage);
         }
       },

@@ -8,37 +8,49 @@ Related: [SAFETY-REPORTING.md](./SAFETY-REPORTING.md), [NCMEC-CSAM-runbook.md](.
 
 ## Step 1 — Generate a vendor API key
 
-1. Create a long random secret (32+ bytes), e.g.:
-   ```bash
-   openssl rand -base64 48
+1. Create a long random secret (32+ bytes). On Windows PowerShell (OpenSSL often not installed):
+
+   ```powershell
+   $bytes = New-Object byte[] 48
+   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+   [Convert]::ToBase64String($bytes)
    ```
+
+   Or with OpenSSL if available: `openssl rand -base64 48`
 2. Store it securely (password manager). You will share it only with the contractor over a secure channel.
 
 ---
 
-## Step 2 — Configure Azure (or local)
+## Step 2 — Configure per environment
 
-### Azure Key Vault
+Set the vendor key in **each** environment you use. Do not assume staging and production share one Key Vault.
 
-1. Portal → environment Key Vault → Secrets → `ReportEvidence-VendorApiKey`.
-2. **New version** → paste the secret → Create.
-3. Restart the Web App so it picks up the new version.
+### Local development
+
+```powershell
+dotnet user-secrets set "ReportEvidence:VendorApiKey" "<your-secret>"
+```
+
+(From `LiberationFleet.Server`, or `--project .\LiberationFleet.Server.csproj`.)
+
+### Azure staging
+
+1. Portal → **staging** Key Vault (e.g. `lfleetstagingkv`) → Secrets → `ReportEvidence-VendorApiKey`.
+2. **New version** → paste → Create → Restart **staging** Web App.
+
+### Azure production
+
+1. Only after [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Step 11.
+2. Portal → **production** Key Vault (e.g. `lfleetproductionkv`) → same secret name → New version → Restart **production** Web App.
 
 ### Optional notify URL
 
-If the contractor has an HTTPS webhook to receive “new report” pings:
+If the contractor has an HTTPS webhook to receive “new report” pings, set it on **that environment’s** App Service:
 
 1. App Service → Configuration → Application settings.
 2. Set `ReportEvidence__VendorNotifyUrl` = `https://your-contractor.example/hooks/liberation-fleet-report`.
 3. Optionally set `ReportEvidence__AutoEscalateNonCsamToVendor` = `true` when you are ready to auto-queue non-CSAM for vendor review.
 4. Save + Restart.
-
-### Local development
-
-```powershell
-dotnet user-secrets set "ReportEvidence:VendorApiKey" "<your-secret>" --project LiberationFleet.Server
-```
-
 ---
 
 ## Step 3 — Give the contractor access

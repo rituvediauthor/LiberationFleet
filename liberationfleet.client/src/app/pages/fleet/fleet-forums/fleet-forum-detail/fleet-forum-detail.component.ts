@@ -5,18 +5,27 @@ import { ActivatedRoute } from '@angular/router';
 import { FleetService } from '../../../../services/fleet.service';
 import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../../../../components/toast/toast.component';
+import { ProposalAttachmentDisplayComponent } from '../../../../components/proposal-attachment-display/proposal-attachment-display.component';
+import { ProposalAttachmentPickerComponent } from '../../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { LibraryImageCarouselComponent } from '../../../../components/library-image-carousel/library-image-carousel.component';
 import { AdultContentGateComponent } from '../../../../components/adult-content-gate/adult-content-gate.component';
-import { FleetForumComment, FleetForumPost } from '../../../../models/fleet-forum.model';
-import { ProposalComment, ProposalDetail } from '../../../../models/proposal.model';
+import {
+  FleetForumComment,
+  FleetForumPost,
+  PendingAttachment,
+  ProposalAttachment
+} from '../../../../models/fleet-forum.model';
+import { ProposalComment, ProposalDetail, ResolvedAttachment } from '../../../../models/proposal.model';
 import { AuthService } from '../../../../services/auth.service';
 import { getUserIdFromToken } from '../../../../utils/jwt.util';
 import { AdultContentService } from '../../../../services/adult-content.service';
 import { NavigationService } from '../../../../services/navigation.service';
+import { NotificationContentService } from '../../../../services/notification-content.service';
 import { ContentPreferenceService } from '../../../../services/content-preference.service';
 import { ProfileService } from '../../../../services/profile.service';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../../services/encryption-content.service';
-
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+import { MentionTextComponent } from '../../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../../components/report-content-dialog/report-content-dialog.component';
 import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
 import { ContentReportTargetType } from '../../../../models/content-report.model';
@@ -29,8 +38,12 @@ import { truncateNotificationPreview } from '../../../../utils/notification-prev
   imports: [
     CommonModule,
     FormsModule,
+    ProposalAttachmentDisplayComponent,
+    ProposalAttachmentPickerComponent,
+    LibraryImageCarouselComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,
+    MentionTextComponent,
     ReportContentDialogComponent,
     UserAvatarComponent
   ],
@@ -44,17 +57,23 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   loading = true;
   loadError = '';
   fleetId = 0;
-  crewId = 0;
+  canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
   mentionedUserIds: number[] = [];
   commentFocused = false;
+  pickingFile = false;
   replyParentId: number | null = null;
   posting = false;
   savingEdit = false;
   editing = false;
   editTitle = '';
-  editBody = '';
+  editDescription = '';
+  editMentionedUserIds: number[] = [];
+  keptEditAttachments: ProposalAttachment[] = [];
+  newEditAttachments: PendingAttachment[] = [];
+  commentAttachments: PendingAttachment[] = [];
+  keptCommentEditAttachments: ProposalAttachment[] = [];
   editingCommentId: number | null = null;
   editingCommentParentId: number | null = null;
   openCommentMenuId: number | null = null;
@@ -73,6 +92,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private fleetService = inject(FleetService);
   private forumCrypto = inject(ProposalCryptoService);
   private toastService = inject(ToastService);
@@ -85,6 +105,11 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
+    const postId = this.postId;
+    if (postId) {
+      this.notificationContent.markVisited(`/app/fleet/forums/${postId}`, postId);
+    }
+
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
 
@@ -98,7 +123,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
     this.crewService.getMembership().subscribe({
       next: membership => {
-        this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToFleetContent ?? false;
       }
     });
 
@@ -125,6 +150,16 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   get postId(): number {
     return Number(this.route.snapshot.paramMap.get('id'));
+  }
+
+  get carouselImages(): string[] {
+    return (this.post?.resolvedAttachments ?? [])
+      .filter(attachment => attachment.type === 'image' && attachment.dataUrl)
+      .map(attachment => attachment.dataUrl!);
+  }
+
+  get nonImageAttachments(): ResolvedAttachment[] {
+    return (this.post?.resolvedAttachments ?? []).filter(attachment => attachment.type !== 'image');
   }
 
   @HostListener('document:click')
@@ -154,15 +189,30 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   onCommentBlur() {
     setTimeout(() => {
-      if (!this.commentText.trim()) {
+      if (this.pickingFile) {
+        return;
+      }
+      if (!this.commentText.trim() && this.commentAttachments.length === 0) {
         this.commentFocused = false;
         this.replyParentId = null;
       }
     }, 150);
   }
 
+  onFileDialogOpenChange(open: boolean) {
+    this.pickingFile = open;
+    if (open) {
+      this.commentFocused = true;
+      return;
+    }
+    if (!this.commentText.trim() && this.commentAttachments.length === 0) {
+      this.commentFocused = false;
+      this.replyParentId = null;
+    }
+  }
+
   get commentExpanded(): boolean {
-    return this.commentFocused || this.editingCommentId != null;
+    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0 || this.editingCommentId != null;
   }
 
   isOwnComment(comment: FleetForumComment): boolean {
@@ -184,11 +234,11 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     this.reportEvidenceTitle = this.post.title ?? '';
     this.reportEvidenceText = this.post.description ?? this.post.body ?? '';
     this.reportEvidenceAuthorUsername = this.post.authorUsername ?? '';
-    this.reportMediaIds = [];
+    this.reportMediaIds = (this.post.resolvedAttachments ?? []).map(a => a.resourceId);
     this.showReportDialog = true;
   }
 
-  openReportComment(comment: FleetForumComment, event?: Event) {
+  openReportComment(comment: FleetForumComment, _parentCommentId: number | null = null, event?: Event) {
     event?.stopPropagation();
     this.openCommentMenuId = null;
     this.reportTargetType = 'ForumComment';
@@ -198,7 +248,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     this.reportEvidenceTitle = '';
     this.reportEvidenceText = comment.body ?? '';
     this.reportEvidenceAuthorUsername = comment.authorUsername ?? '';
-    this.reportMediaIds = [];
+    this.reportMediaIds = (comment.resolvedAttachments ?? []).map(a => a.resourceId);
     this.showReportDialog = true;
   }
 
@@ -222,6 +272,13 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     this.editingCommentParentId = parentCommentId;
     this.replyParentId = parentCommentId;
     this.commentText = comment.body ?? '';
+    this.keptCommentEditAttachments = (comment.resolvedAttachments ?? []).map(attachment => ({
+      resourceId: attachment.resourceId,
+      type: attachment.type,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType
+    }));
+    this.commentAttachments = [];
     this.mentionedUserIds = [];
     this.commentFocused = true;
   }
@@ -231,8 +288,14 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     this.editingCommentParentId = null;
     this.commentText = '';
     this.mentionedUserIds = [];
+    this.commentAttachments = [];
+    this.keptCommentEditAttachments = [];
     this.commentFocused = false;
     this.replyParentId = null;
+  }
+
+  removeKeptCommentAttachment(index: number) {
+    this.keptCommentEditAttachments.splice(index, 1);
   }
 
   formatCommentAuthor(comment: FleetForumComment, siblingReplies?: FleetForumComment[]): string {
@@ -258,13 +321,23 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
     this.editing = true;
     this.editTitle = this.post.title ?? '';
-    this.editBody = this.post.description ?? this.post.body ?? '';
+    this.editDescription = this.post.description ?? this.post.body ?? '';
+    this.editMentionedUserIds = [];
+    this.keptEditAttachments = [...(this.post.attachments ?? [])];
+    this.newEditAttachments = [];
   }
 
   cancelEdit() {
     this.editing = false;
     this.editTitle = '';
-    this.editBody = '';
+    this.editDescription = '';
+    this.editMentionedUserIds = [];
+    this.keptEditAttachments = [];
+    this.newEditAttachments = [];
+  }
+
+  removeKeptAttachment(index: number) {
+    this.keptEditAttachments.splice(index, 1);
   }
 
   async saveEdit() {
@@ -273,9 +346,9 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     }
 
     const title = this.editTitle.trim();
-    const body = this.editBody.trim();
-    if (!title || !body) {
-      this.toastService.error('Title and body are required');
+    const description = this.editDescription.trim();
+    if (!title || !description) {
+      this.toastService.error('Title and description are required');
       return;
     }
 
@@ -285,14 +358,16 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
         { fleetId: this.fleetId },
         {
           title,
-          description: body,
+          description,
           authorDisplayName: this.authorDisplayName
-        }
+        },
+        this.newEditAttachments,
+        this.keptEditAttachments
       );
 
       this.fleetService.updateForum(this.post.id, {
         ...encrypted,
-        mentionedUserIds: []
+        mentionedUserIds: this.editMentionedUserIds
       }).subscribe({
         next: result => {
           this.savingEdit = false;
@@ -316,11 +391,13 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   }
 
   async postComment() {
-    if (!this.post || !this.commentText.trim() || this.posting || this.fleetId <= 0) {
+    const hasContent = this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0;
+    if (!this.post || !hasContent || this.posting || this.fleetId <= 0) {
       return;
     }
 
     const body = this.commentText.trim();
+    const pendingAttachments = [...this.commentAttachments];
     const parentCommentId = this.replyParentId;
     const editingCommentId = this.editingCommentId;
 
@@ -331,7 +408,9 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
         {
           body,
           authorDisplayName: this.authorDisplayName
-        }
+        },
+        pendingAttachments,
+        this.keptCommentEditAttachments
       );
 
       const request$ = editingCommentId
@@ -351,12 +430,14 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
           this.posting = false;
           if (result.success) {
             if (!editingCommentId && result.commentId) {
-              this.insertPostedComment(result.commentId, body, parentCommentId);
+              this.insertPostedComment(result.commentId, body, pendingAttachments, parentCommentId);
             } else {
               this.refreshPostPreservingScroll();
             }
             this.commentText = '';
             this.mentionedUserIds = [];
+            this.commentAttachments = [];
+            this.keptCommentEditAttachments = [];
             this.commentFocused = false;
             this.replyParentId = null;
             this.editingCommentId = null;
@@ -429,7 +510,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   }
 
   canPostComment(): boolean {
-    return Boolean(this.commentText.trim());
+    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0);
   }
 
   retryLoad(): void {
@@ -439,6 +520,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   private insertPostedComment(
     commentId: number,
     body: string,
+    pendingAttachments: PendingAttachment[],
     parentCommentId: number | null
   ) {
     if (!this.post) {
@@ -464,8 +546,15 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       replyToUsername,
       createdAt: new Date().toISOString(),
       replyCount: 0,
+      hasEncryptedContent: true,
       body,
-      hasEncryptedContent: true
+      resolvedAttachments: pendingAttachments.map(attachment => ({
+        resourceId: attachment.resourceId,
+        type: attachment.type,
+        fileName: attachment.file?.name,
+        mimeType: attachment.file?.type,
+        dataUrl: attachment.previewUrl
+      }))
     };
 
     if (!parentCommentId) {

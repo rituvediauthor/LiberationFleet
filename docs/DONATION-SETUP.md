@@ -1,111 +1,162 @@
 # Donation campaign — founder setup (step-by-step)
 
-The app ships with donation UI and Stripe Checkout. **Card numbers never touch Liberation Fleet servers.** Complete these steps to make `/app/donate` accept money and record yearly totals.
+The app ships with donation UI and Stripe Checkout. **Card numbers never touch Liberation Fleet servers.**
 
 Related: [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) (Key Vault + public URL), [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md).
 
+### Which environment am I configuring?
+
+| Environment | Stripe mode | Where secrets live | When |
+|-------------|-------------|--------------------|------|
+| **Local** | **Test** (`sk_test_…`) | .NET user-secrets | Anytime while developing |
+| **Azure staging** | **Test** (`sk_test_…`) | Staging Key Vault (e.g. `lfleetstagingkv`) | After [AZURE-GO-LIVE](./AZURE-GO-LIVE.md) Steps 6–9 |
+| **Azure production** | **Live** (`sk_live_…`) | Production Key Vault (e.g. `lfleetproductionkv`) | After [AZURE-GO-LIVE](./AZURE-GO-LIVE.md) Step 11 |
+
+Liberation Fleet “sandbox” / Docker is **not** Stripe Test mode. You must use Stripe’s Test toggle and `sk_test_…` keys until production go-live.
+
+Do **not** put live keys in staging or user-secrets. Do **not** put test keys in production.
+
 ---
 
-## Step 1 — Create and activate Stripe
+## Part A — Stripe account (once)
 
 1. Open [https://dashboard.stripe.com/register](https://dashboard.stripe.com/register) and create an account.
 2. Complete **business / identity / tax** onboarding (required for payouts).
-3. **Settings → Bank accounts and scheduling** → add the account that should receive payouts.
-4. Decide entity type (individual vs nonprofit). This build uses standard Checkout; nonprofit has extra Stripe settings outside the app.
-5. Stay in **Test mode** (toggle in the Dashboard) until you have verified the webhook end-to-end.
+3. **Settings → Bank accounts and scheduling** → add the **nonprofit org** bank account that should receive payouts.
+4. Entity type: **nonprofit / company** with legal name + EIN (not individual), once the org exists.
+5. Keep the Dashboard **Test mode** toggle **on** until Part D (production).
+
+Optional polish (any time):
+
+- [ ] Customer emails / receipts in Stripe
+- [ ] Statement descriptor matching your brand
+- [ ] Refund note in Privacy Policy / Community Standards
+- [ ] Tax-deductibility claims: accountant / 501(c) counsel first — this app does **not** issue formal tax receipts
 
 ---
 
-## Step 2 — API keys
+## Part B — Local development (Test mode only)
 
-1. Dashboard → **Developers → API keys**.
-2. Copy the **Secret key**:
-   - Test: `sk_test_…`
-   - Live (later): `sk_live_…`
-3. Store it only in user secrets / Key Vault — **never commit**.
+Checkout is disabled until the API sees a real `sk_test_…` key (not `change-me`).
 
-### Local development
+**If you use Docker Compose** (`docker compose up`), put Stripe in the repo-root **`.env`** file — `dotnet user-secrets` only apply to `dotnet run`, not containers.
 
-```powershell
-dotnet user-secrets set "Stripe:SecretKey" "sk_test_..." --project LiberationFleet.Server
-dotnet user-secrets set "Stripe:PublicAppBaseUrl" "https://localhost:49236" --project LiberationFleet.Server
+```env
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PUBLIC_APP_BASE_URL=http://localhost:8080
 ```
 
-Use the HTTPS origin your Angular app actually opens (match SPA proxy / launch URL).
+Then recreate the API container:
 
-### Azure staging / production
+```powershell
+docker compose up -d --force-recreate api
+```
 
-1. Portal → your environment’s **Key Vault** → Secrets.
-2. Open `Stripe-SecretKey` → **New version** → paste `sk_test_…` or `sk_live_…` → Create.
-3. App Service → Configuration → set (or confirm):
-   - `Stripe__PublicAppBaseUrl` = `https://your-host` (**no trailing slash**)
-4. Restart the Web App.
+Webhook forward for Docker:
 
-Checkout stays disabled while `SecretKey` is missing or contains `change-me`.
+```powershell
+stripe listen --forward-to http://localhost:8080/api/donations/stripe/webhook
+```
+
+**If you use `dotnet run`** (not Docker), use user-secrets instead:
+
+```powershell
+dotnet user-secrets set "Stripe:SecretKey" "sk_test_..." --project ".\LiberationFleet.Server\LiberationFleet.Server.csproj"
+dotnet user-secrets set "Stripe:PublicAppBaseUrl" "https://localhost:49236" --project ".\LiberationFleet.Server\LiberationFleet.Server.csproj"
+dotnet user-secrets set "Stripe:WebhookSecret" "whsec_..." --project ".\LiberationFleet.Server\LiberationFleet.Server.csproj"
+```
+
+### B.1 Database (dotnet run only)
+
+```bash
+dotnet ef database update --project LiberationFleet.Server
+```
+
+(Docker runs EF migrations on startup.)
+
+### B.2 Verify locally
+
+1. Confirm the donate page no longer says “Donations are being set up…”
+2. Complete a test Checkout with card `4242 4242 4242 4242`.
+3. Confirm profile donation totals update (requires webhook + matching `WebhookSecret`).
 
 ---
 
-## Step 3 — Webhook (required for profile donation totals)
+## Part C — Azure staging (Test mode only)
 
-Without this, Stripe can charge successfully but **app donation totals stay $0**.
+Prerequisites: staging App Service + Key Vault exist ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Steps 6–7). Terraform creates Key Vault name `{project}{environment}kv` → typically **`lfleetstagingkv`**.
 
-### 3.1 Production / staging endpoint
+### C.1 Keys in staging Key Vault
 
-1. Dashboard → **Developers → Webhooks → Add endpoint**.
-2. **Endpoint URL:**
-   ```
-   https://YOUR_DOMAIN/api/donations/stripe/webhook
-   ```
-   Use the same host as `Stripe__PublicAppBaseUrl`.
-3. **Events to send** (select manually):
+1. Stripe Dashboard → **Test mode ON** → Developers → API keys → copy `sk_test_…`.
+2. Portal → **`lfleetstagingkv`** (or `terraform output key_vault_name` for staging) → Secrets.
+3. `Stripe-SecretKey` → **New version** → paste `sk_test_…` → Create.
+4. App Service (staging) → Configuration → confirm:
+   - `Stripe__PublicAppBaseUrl` = staging HTTPS URL (**no trailing slash**)  
+     (same host as `terraform output app_public_url`)
+5. Restart the staging Web App.
+
+### C.2 Staging webhook (Event destination)
+
+Stripe’s UI now says **Add destination** (formerly “Add endpoint”).
+
+1. Stripe Dashboard → **Test mode ON** → **Developers** → **Webhooks** (Event destinations) → **Add destination**.
+2. **Event destination scope:** choose **Your account** (not Connected accounts — this app does not use Stripe Connect).
+3. **API version:** leave the account default.
+4. **Events to send** (select manually):
    - `checkout.session.completed`
    - `checkout.session.async_payment_succeeded` (recommended)
-4. **Add endpoint**.
-5. Open the endpoint → **Signing secret** → Reveal → copy `whsec_…`.
-6. Store it:
-   - Local:  
-     `dotnet user-secrets set "Stripe:WebhookSecret" "whsec_..." --project LiberationFleet.Server`
-   - Azure: Key Vault secret `Stripe-WebhookSecret` → New version → paste → Restart Web App.
-
-### 3.2 Local forwarding (Stripe CLI)
-
-1. Install [Stripe CLI](https://stripe.com/docs/stripe-cli).
-2. `stripe login`
-3. Forward to your local API (adjust port):
-   ```bash
-   stripe listen --forward-to https://localhost:YOUR_API_PORT/api/donations/stripe/webhook
+5. **Continue**.
+6. Destination type: **Webhook endpoint** (or equivalent).
+7. **Endpoint URL** (must match `Stripe__PublicAppBaseUrl` + path; no trailing slash on the host):
    ```
-4. CLI prints a `whsec_…` — put that in local user secrets as `Stripe:WebhookSecret`.
+   https://app-lfleet-staging.azurewebsites.net/api/donations/stripe/webhook
+   ```
+   Or substitute your current staging host from `terraform output app_public_url`.
+8. Create the destination → open it → **Signing secret** → Reveal → copy `whsec_…`.
+9. Staging Key Vault → `Stripe-WebhookSecret` → New version → paste → Restart staging Web App.
 
-### 3.3 Test the webhook
+Use a **separate** destination for staging vs production. Do not reuse a production `whsec_…` on staging.
 
-1. Dashboard → Webhooks → your endpoint → **Send test webhook** → `checkout.session.completed`, **or** complete a real test Checkout with card `4242 4242 4242 4242`.
-2. Confirm the endpoint shows success (2xx) and the user’s profile donation total updates after a completed session.
+### C.3 Verify staging
 
----
-
-## Step 4 — Database
-
-Donations need migration `AddAppDonations`.
-
-- **Azure App Service:** EF migrations run on startup (default go-live path). Confirm the app starts cleanly after deploy.
-- **Local:**
-  ```bash
-  dotnet ef database update --project LiberationFleet.Server
-  ```
+1. Open staging `/app/donate` → test card `4242…`.
+2. Destination / webhook delivery shows 2xx; profile totals update.
+3. EF migrations run on App Service startup — confirm the app starts cleanly after deploy.
 
 ---
 
-## Step 5 — Optional Stripe polish
+## Part D — Azure production (Live mode only)
 
-- [ ] Enable customer emails / receipts in Stripe (Stripe sends them; you do not store cards).
-- [ ] Set a **statement descriptor** that matches your brand.
-- [ ] Add a short refund note to Privacy Policy / Community Standards.
-- [ ] Tax-deductibility claims: talk to an accountant / 501(c) counsel first — this app does **not** issue formal tax receipts.
+Prerequisites: production infra applied ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) **Step 11**). Key Vault is typically **`lfleetproductionkv`** (from `environment = "production"` in `production.tfvars` — **not** created during staging).
 
+### D.1 Production Key Vault keys
+
+1. Stripe Dashboard → turn **Test mode OFF** (Live).
+2. Developers → API keys → copy `sk_live_…`.
+3. Portal → **`lfleetproductionkv`** → Secrets → `Stripe-SecretKey` → New version → paste `sk_live_…`.
+4. Production App Service → `Stripe__PublicAppBaseUrl` = production HTTPS origin (custom domain if you have one).
+5. Restart production Web App.
+
+### D.2 Production webhook (new Event destination)
+
+1. Stripe Dashboard → **Live mode** → Developers → Webhooks → **Add destination** (do **not** edit the staging Test-mode destination).
+2. Same choices as staging C.2: scope **Your account**, default API version, same two `checkout.session.*` events.
+3. **Endpoint URL:**
+   ```
+   https://YOUR_PRODUCTION_HOST/api/donations/stripe/webhook
+   ```
+4. New live `whsec_…` → production Key Vault `Stripe-WebhookSecret` → Restart production.
+
+### D.3 Verify production
+
+1. One small real donation (to yourself if appropriate).
+2. Confirm webhook/destination delivery 2xx and profile totals.
+3. Confirm staging still uses **test** keys and its own destination.
 ---
 
-## Step 6 — Product behavior (already in code)
+## Product behavior (already in code)
 
 - Campaign widget sits **above** **Next aid** on crew home and fleet home.
 - Audience rules:
@@ -113,17 +164,7 @@ Donations need migration `AddAppDonations`.
   - Outside Dec 20–Jan 3 UTC: contributors only; every **30** days if not in need, every **60** if in need
   - Dec 20–Jan 3 UTC: everyone not in emergency (once per high-season window)
 - Donate page presets: $5 / $10 / $25 / $50 / $100 + custom whole dollars
-- Your user **profile** shows app donation totals for previous + current calendar year
-
----
-
-## Step 7 — Go-live switch to live keys
-
-1. Stripe Dashboard → turn **off** Test mode.
-2. Copy **live** Secret key → Key Vault `Stripe-SecretKey`.
-3. Create a **live** webhook endpoint to the production URL (Step 3) → new `whsec_…` → Key Vault `Stripe-WebhookSecret`.
-4. Confirm `Stripe__PublicAppBaseUrl` is the production HTTPS origin.
-5. Restart Web App → run one small real donation to yourself if appropriate → verify profile totals.
+- Profile shows app donation totals for previous + current calendar year
 
 ---
 

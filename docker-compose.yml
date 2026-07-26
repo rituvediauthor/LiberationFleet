@@ -36,6 +36,10 @@ services:
       Jwt__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in a .env file}
       Jwt__Issuer: LiberationFleet
       Jwt__Audience: LiberationFleetClient
+      # Stripe — set in .env (dotnet user-secrets do NOT apply inside Docker)
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-change-me-stripe-secret-key}
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+      Stripe__PublicAppBaseUrl: ${STRIPE_PUBLIC_APP_BASE_URL:-http://localhost:8080}
     ports:
       - "${API_HTTP_PORT:-8080}:8080"
     healthcheck:

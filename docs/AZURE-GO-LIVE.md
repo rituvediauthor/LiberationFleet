@@ -271,27 +271,36 @@ Write these down:
 
 ---
 
-## Step 7 — Secrets in Key Vault
+## Step 7 — Secrets in staging Key Vault
+
+This step is for **staging only** (after Step 6). Production Key Vault is created later in **Step 11** and filled in **Step 11.3**.
 
 Terraform creates placeholder secrets with `ignore_changes` for Stripe / LiveKit / report vendor. You must set real values (or leave placeholders until you wire those features).
 
-### 7.1 Open Key Vault
+| Environment | Typical Key Vault name | Stripe keys |
+|-------------|------------------------|-------------|
+| Staging (this step) | `lfleetstagingkv` | **Test** `sk_test_…` / test `whsec_…` |
+| Production (Step 11.3) | `lfleetproductionkv` | **Live** `sk_live_…` / live `whsec_…` |
 
-1. Azure Portal → search for `key_vault_name` from outputs.
+Exact name: `terraform output key_vault_name` for that environment.
+
+### 7.1 Open staging Key Vault
+
+1. Azure Portal → search for staging `key_vault_name` from outputs.
 2. If access is denied: **Access control (IAM)** → grant your user **Key Vault Secrets Officer** (RBAC), or configure Access policies if the vault still uses that model.
 3. **Secrets**.
 
-### 7.2 Set or update secrets
+### 7.2 Set or update staging secrets
 
 For each secret below: open it → **New version** → paste value → Create.
 
 | Secret name | When required | Where to get it |
 |-------------|---------------|-----------------|
-| `Stripe-SecretKey` | Before real donations | Stripe Dashboard → API keys (`sk_test_…` then `sk_live_…`) — [DONATION-SETUP.md](./DONATION-SETUP.md) |
-| `Stripe-WebhookSecret` | Before donation totals work | Stripe webhook signing secret (`whsec_…`) |
-| `LiveKit-ApiKey` | Before prod voice | LiveKit Cloud project — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) |
-| `LiveKit-ApiSecret` | Before prod voice | LiveKit Cloud |
-| `ReportEvidence-VendorApiKey` | Before vendor ops API | Generate a long random string; share with contractor — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) |
+| `Stripe-SecretKey` | Before staging donation Checkout | Stripe **Test** API key (`sk_test_…`) — [DONATION-SETUP.md](./DONATION-SETUP.md) Part C |
+| `Stripe-WebhookSecret` | Before staging donation totals work | Stripe **Test** webhook signing secret |
+| `LiveKit-ApiKey` | Before staging voice | LiveKit Cloud — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B |
+| `LiveKit-ApiSecret` | Before staging voice | LiveKit Cloud |
+| `ReportEvidence-VendorApiKey` | Before vendor ops API | Generate a long random string — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) |
 
 **Created automatically by Terraform (do not overwrite casually):**
 
@@ -300,153 +309,354 @@ For each secret below: open it → **New version** → paste value → Create.
 - `ReportEvidence-AesKeyBase64`
 - Deep-freeze storage connection (as configured in modules)
 
-### 7.3 App settings that are not Key Vault secrets
+### 7.3 App settings that are not Key Vault secrets (staging)
 
-Terraform already sets CORS for Capacitor origins and the default app URL. After you add a **custom domain**, add another CORS origin (App Service → Configuration → Application settings), e.g.:
+These live on the **Web App**, not in Key Vault. They are plain app settings (environment variables).
 
-- `Cors__AllowedOrigins__5` = `https://your.custom.domain`
+#### Where to look
 
-Also set when you know the public URL:
+1. Azure Portal → resource group **`rg-lfleet-staging`** → Web App **`app-lfleet-staging`**.
+2. Left menu → **Settings** → **Environment variables** (older UI: **Configuration** → **Application settings**).
+3. Find the name in the list (or use search).
 
-- `Stripe__PublicAppBaseUrl` = `https://your-host` (no trailing slash)
+#### What Terraform already set (usually just verify)
 
-Restart the Web App after changing app settings.
+After Step 6, these should already exist. Confirm they match your staging public URL from `terraform output app_public_url` (typically `https://app-lfleet-staging.azurewebsites.net`, **no trailing slash**):
+
+| Setting | Expected for default staging host |
+|---------|-----------------------------------|
+| `Stripe__PublicAppBaseUrl` | Same as `app_public_url` |
+| `Cors__AllowedOrigins__0` | Same as `app_public_url` |
+| `Cors__AllowedOrigins__1` … `__4` | Capacitor / localhost origins (leave as-is) |
+
+If `Stripe__PublicAppBaseUrl` is already correct for `*.azurewebsites.net`, **you do not need to change anything in this step** for donations on the default host.
+
+#### Only if you add a custom domain later (Step 10)
+
+1. In the same Environment variables list, **Add**:
+   - Name: `Cors__AllowedOrigins__5`
+   - Value: `https://your.custom.domain` (exact origin users will open in the browser)
+2. Edit `Stripe__PublicAppBaseUrl` to that same `https://your.custom.domain` (no trailing slash).
+3. Click **Apply** / **Save**, then **Restart** the Web App (Overview → Restart).
+
+Until you have a custom domain, skip this subsection.
 
 ### 7.4 LiveKit host (Terraform variable)
 
-If using LiveKit Cloud, set `livekit_host` in `staging.tfvars` / `production.tfvars`:
+Skip this subsection until you have a LiveKit Cloud project ([LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B). Local Docker voice does **not** use this.
 
-```hcl
-livekit_host = "wss://your-project.livekit.cloud"
-```
+Terraform copies `livekit_host` into the App Service setting **`LiveKit__Host`**. The API key/secret are **not** in tfvars — those go in Key Vault (table in §7.2).
 
-Then `terraform apply` again for that environment so the App Service setting updates.
+#### Staging (do this now when ready for staging voice)
+
+1. Open LiveKit Cloud → your project → **Settings → API Keys -> click key**.
+2. Copy the WebSocket URL. It must start with `wss://` (not `ws://`), e.g. `wss://your-project.livekit.cloud`.
+3. Edit `infrastructure/terraform/environments/staging.tfvars` and set (or **uncomment**) this line — if it stays commented, `LiveKit__Host` stays blank:
+
+   ```hcl
+   livekit_host = "wss://your-project.livekit.cloud"
+   ```
+
+4. From `infrastructure/terraform`, re-apply **staging** (quote the path in PowerShell):
+
+   ```powershell
+   terraform apply -var-file="environments/staging.tfvars"
+   ```
+
+   Enter `yes` when prompted.
+5. Portal → `app-lfleet-staging` → **Environment variables** → confirm **`LiveKit__Host`** equals that same `wss://` URL (not empty).
+6. Still required for voice: Key Vault secrets `LiveKit-ApiKey` and `LiveKit-ApiSecret` (§7.2), then **Restart** the Web App.
+
+#### Production (later — Step 11)
+
+Do **not** put production LiveKit values in `staging.tfvars`. When production infra exists:
+
+1. Prefer a **separate** LiveKit Cloud project from staging.
+2. Set `livekit_host` in `environments/production.tfvars`.
+3. `terraform apply -var-file="environments/production.tfvars"` (production backend).
+4. Set production Key Vault `LiveKit-ApiKey` / `LiveKit-ApiSecret`, then restart the production Web App.
 
 ---
 
 ## Step 8 — Deploy the container image
 
+Terraform created an empty App Service that expects image `liberationfleet:latest` in ACR. Until you push an image, the site shows **Application Error / 503**.
+
+Pick **Option A** (Azure DevOps pipeline) or **Option B** (manual Docker from your machine). You only need one.
+
+### 8.0 Prerequisites checklist (do this before Option A)
+
+Confirm these already exist from earlier steps. If any are missing, fix them first — the pipeline will fail otherwise.
+
+| Check | Where | How |
+|-------|--------|-----|
+| Service connection `azure-liberationfleet` | ADO → **Project settings** (bottom left) → **Pipelines** → **Service connections** | Exact name. If missing, redo [Step 3](#step-3--service-connection-azure-liberationfleet). |
+| Environments `staging` and `production` | ADO → **Pipelines** → **Environments** | If missing, redo [Step 4](#step-4--ado-environments-staging-and-production). Production should have an **Approvals** check. |
+| Variable group `liberationfleet-shared` | ADO → **Pipelines** → **Library** → **Variable groups** -> **liberationfleet-shared** | Has `TF_STATE_RG`, `TF_STATE_STORAGE`, `TF_STATE_CONTAINER` ([Step 5](#step-5--bootstrap-terraform-remote-state-one-time)). |
+| Variable group `liberationfleet-staging` | Same Library page | Has `ENVIRONMENT`, `AZURE_RESOURCE_GROUP`, `WEB_APP_NAME`, `ACR_NAME`, `ACR_LOGIN_SERVER` ([Step 6.4](#64-fill-ado-variable-group-liberationfleet-staging)). |
+| Staging ACR exists | Azure Portal → `rg-lfleet-staging` → Container registry (e.g. `lfleetstagingacr`) | Created by Terraform in Step 6. |
+
+Typical staging values (yours may match):
+
+| Variable | Example |
+|----------|---------|
+| `AZURE_RESOURCE_GROUP` | `rg-lfleet-staging` |
+| `WEB_APP_NAME` | `app-lfleet-staging` |
+| `ACR_NAME` | `lfleetstagingacr` |
+| `ACR_LOGIN_SERVER` | `lfleetstagingacr.azurecr.io` |
+
 ### Option A — Azure Pipeline (preferred)
 
-1. ADO → **Pipelines** → **New pipeline**.
-2. Select your repo → **Existing Azure Pipelines YAML file** → path `/azure-pipelines.yml`.
-3. **Save** (do not run yet if variable groups are incomplete).
-4. Ensure the pipeline can use:
-   - Service connection `azure-liberationfleet`
-   - Variable groups `liberationfleet-shared` and `liberationfleet-staging`
-5. Push or run on **`main`**. Staging stage runs after Build succeeds.
-6. Watch **Deploy staging**. Authorize any permission prompts the first time.
-7. When finished, open `app_public_url` from Terraform outputs.
+#### A.1 Create the pipeline (one time)
 
-**Note:** Production stage also runs on `main` after staging and will wait for **environment approval** on `production`. Until production Terraform + variable group exist, either:
+1. Open your Azure DevOps project in the browser (not Azure Portal).
+2. Left nav → **Pipelines** → **Pipelines**.
+3. **New pipeline** (or **Create Pipeline**).
+4. Where is your code?
+   - **Azure Repos Git** if the repo is in this ADO project, **or**
+   - **GitHub** → authorize → pick `rituvediauthor/LiberationFleet` (or your fork).
+5. **Configure** → choose **Existing Azure Pipelines YAML file**.
+6. Branch: `main`. Path: `/azure-pipelines.yml` → **Continue**.
+7. Review the YAML → **Save** (dropdown next to Run) → **Save** (do **not** Run yet if Step 8.0 failed any check).
 
-- Create production infra + `liberationfleet-production` first (Step 11), **or**
-- Temporarily comment out / skip the production stage (not ideal), **or**
-- Reject the production approval until ready.
+#### A.2 Let the pipeline use the service connection and variable groups
 
-### Option B — Manual Docker deploy
+The YAML already references:
 
-Replace placeholders from Terraform outputs:
+- Service connection name: `azure-liberationfleet`
+- Variable groups: `liberationfleet-shared`, `liberationfleet-staging`, and later `liberationfleet-production`
 
-```bash
-# From repo root
-az acr login --name <acr_name>
+**Authorize the service connection (first run or if builds fail with “service connection” errors):**
 
-docker build -t <acr_login_server>/liberationfleet:manual -f LiberationFleet.Server/Dockerfile .
+1. Open the failed (or waiting) run, **or** go to **Project settings** → **Service connections** → `azure-liberationfleet` → **…** → **Security**.
+2. Under **Pipeline permissions**, grant access to your pipeline (or enable “Grant access permission to all pipelines” on the connection).
+3. If a run shows **Waiting for permission** / **Authorize resource**, click **Permit** / **Authorize**.
 
-docker push <acr_login_server>/liberationfleet:manual
+**Link variable groups (if Library prompts you, or if the run says the group was not found):**
 
-az webapp config container set \
-  --name <web_app_name> \
-  --resource-group <resource_group_name> \
-  --docker-custom-image-name <acr_login_server>/liberationfleet:manual \
-  --docker-registry-server-url https://<acr_login_server>
+1. ADO → **Pipelines** → **Library** → open `liberationfleet-staging` (and `liberationfleet-shared`).
+2. Tab **Pipeline permissions** (or **…** → Pipeline permissions).
+3. **+** → select your LiberationFleet pipeline → allow.
+4. Repeat for `liberationfleet-shared`.
+5. You can skip `liberationfleet-production` until Step 11 — but then handle production approval as in A.4.
 
-az webapp restart \
-  --name <web_app_name> \
-  --resource-group <resource_group_name>
-```
+#### A.3 Run a staging deploy
 
-Wait 1–3 minutes, then open `https://<web_app_default_hostname>/`.
+**Automatic:** merge or push a commit to **`main`** (docs-only changes under `docs/` are excluded by the YAML and will **not** trigger).
+
+**Manual (recommended for first deploy):**
+
+1. **Pipelines** → your pipeline → **Run pipeline**.
+2. Branch: `main` → **Run**.
+3. Open the run. Watch stages in order: **Build and test** → **Deploy staging**.
+4. If **Deploy staging** asks to use environment `staging` or a resource, **Permit**.
+5. Wait until **Deploy staging** is green (often 10–20+ minutes the first time: build, Terraform, Docker push, App Service restart).
+
+#### A.4 Production stage on the same run (what to do)
+
+On `main`, after staging succeeds, **Deploy production** also starts and will **wait for approval** on environment `production`.
+
+Until Step 11 is done (production Terraform + `liberationfleet-production` variable group):
+
+1. Open the run → find **Deploy production** waiting.
+2. Click **Reject** (or let it sit — do **not** Approve yet).
+
+That is normal. Staging is still deployed. Come back to Approve only after Step 11.
+
+#### A.5 Confirm the image and site
+
+1. Azure Portal → `lfleetstagingacr` (or your ACR) → **Repositories** → `liberationfleet` should list tags (`latest` and a short git SHA).
+2. Browser → `https://app-lfleet-staging.azurewebsites.net/` (or `terraform output app_public_url`).
+3. You should get the SPA, not “Application Error”. If 503 persists a few minutes, check App Service → **Log stream** / **Deployment Center**.
+
+---
+
+### Option B — Manual Docker deploy (no pipeline)
+
+Use this if ADO is not ready. From a machine with Docker Desktop + Azure CLI (`az login`).
+
+1. Get names from Terraform (from `infrastructure/terraform` with staging backend selected):
+
+   ```powershell
+   terraform output
+   ```
+
+   You need `acr_name`, `acr_login_server`, `web_app_name`, `resource_group_name`.
+
+2. From the **repo root** (PowerShell):
+
+   ```powershell
+   az acr login --name lfleetstagingacr
+
+   docker build -t lfleetstagingacr.azurecr.io/liberationfleet:latest -f LiberationFleet.Server/Dockerfile .
+
+   docker push lfleetstagingacr.azurecr.io/liberationfleet:latest
+
+   az webapp config container set `
+     --name app-lfleet-staging `
+     --resource-group rg-lfleet-staging `
+     --docker-custom-image-name lfleetstagingacr.azurecr.io/liberationfleet:latest `
+     --docker-registry-server-url https://lfleetstagingacr.azurecr.io
+
+   az webapp restart --name app-lfleet-staging --resource-group rg-lfleet-staging
+   ```
+
+   Replace names if your `terraform output` differs.
+
+3. Wait 1–3 minutes → open `https://app-lfleet-staging.azurewebsites.net/`.
+
+App Service pulls from ACR using its managed identity (Terraform configured this). If pull fails, check ACR → **Access control** that the Web App’s identity can **AcrPull**.
 
 ---
 
 ## Step 9 — Verify staging
 
-Work through this list against `app_public_url`:
+1. Open the staging URL: `terraform output app_public_url`, or `https://app-lfleet-staging.azurewebsites.net/`.
+2. Work the checklist in the browser (and DevTools where noted):
 
-- [ ] Home / SPA loads (not a Docker or 503 error page)
-- [ ] Register a test user and log in
-- [ ] Notifications hub connects (browser DevTools → Network → WS; App Service has WebSockets enabled in Terraform)
-- [ ] Create or open a crew; open chat; send a message
-- [ ] EF migrations: app starts without DB errors (startup migrate). If login fails with SQL errors, check Key Vault connection string and SQL firewall
-- [ ] (When Stripe test keys set) Donation Checkout opens — [DONATION-SETUP.md](./DONATION-SETUP.md)
-- [ ] (When LiveKit set) Voice join mints a token — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md)
+| Check | How |
+|-------|-----|
+| SPA loads | Home page renders; not Azure “Application Error” / Docker default page |
+| Register + login | Create a test user; confirm you land in the app |
+| SignalR / notifications | DevTools → **Network** → filter **WS**; after login you should see a WebSocket to `/hubs/...` that stays connected |
+| Crew chat | Create/open a crew → open a chat → send a message |
+| Database | If login/SQL errors: Portal → Key Vault `ConnectionStrings-DefaultConnection`; SQL server firewall allows Azure services / your IP |
+| Donations (optional) | Only after Stripe test keys — [DONATION-SETUP.md](./DONATION-SETUP.md) Part C → `/app/donate` |
+| Voice (optional) | Only after LiveKit Cloud + Key Vault keys — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B |
 
-If the container fails to start: App Service → **Log stream** / **Deployment Center** / **Container settings** for pull/auth errors.
+**If the container will not start:** Portal → `app-lfleet-staging` → **Log stream** (or **Diagnose and solve problems**). Common causes: empty ACR (redo Step 8), bad Key Vault reference, SQL connection string.
 
 ---
 
 ## Step 10 — Custom domain + TLS
 
-Do this when you own a domain and want a branded URL (recommended before production Stripe + store listings).
+Do this when you own a domain (e.g. `liberationfleet.org`) and want a branded URL. Recommended before **production** Stripe live + store listings. Staging can stay on `*.azurewebsites.net`.
 
-1. Azure Portal → Web App → **Custom domains** → **Add custom domain**.
-2. Follow DNS instructions at your registrar (usually a CNAME to `*.azurewebsites.net`, or A + TXT as shown).
-3. After domain validates → **Add binding** → **App Service Managed Certificate** (free) → TLS.
-4. Update:
-   - `Stripe__PublicAppBaseUrl` = `https://your.domain`
-   - CORS: add `https://your.domain` as an allowed origin
-   - Stripe webhook URL to `https://your.domain/api/donations/stripe/webhook`
-5. Restart the Web App.
-6. Confirm `https://your.domain` loads with a valid certificate.
+### 10.1 Add the hostname on App Service
+
+1. Portal → the Web App that should own the domain (usually **production** after Step 11; or staging if you want `staging.yourdomain.org`).
+2. Left menu → **Settings** → **Custom domains** → **Add custom domain**.
+3. Domain provider: **All other domain services** (unless you bought the domain in Azure).
+4. Enter hostname, e.g. `liberationfleet.org` or `www.liberationfleet.org` or `app.liberationfleet.org`.
+5. Azure shows DNS records to create. Leave this tab open.
+
+### 10.2 Create DNS at your registrar
+
+At Cloudflare / Namecheap / etc., add exactly what Azure shows. Typical patterns:
+
+| You want | Common DNS |
+|----------|------------|
+| `www.liberationfleet.org` | **CNAME** `www` → `app-lfleet-production.azurewebsites.net` (use your real default hostname) |
+| Apex `liberationfleet.org` | Often **A** record to App Service IPs **plus** a **TXT** validation record Azure displays |
+
+Save DNS. Propagation can take minutes to hours. In Azure, click **Validate** until it succeeds → **Add**.
+
+### 10.3 Free TLS certificate
+
+1. Still under **Custom domains** → for the new domain → **Add binding** (or **Certificate**).
+2. Certificate type: **App Service Managed Certificate** (free) → create / validate.
+3. TLS/SSL binding: SNI SSL → save.
+4. Open `https://your.domain` and confirm the padlock (no cert warning).
+
+### 10.4 Point the app at the new origin
+
+App settings use the **full origin** including `https://`, no trailing slash — e.g. `https://liberationfleet.org` (not bare `liberationfleet.org`).
+
+1. Web App → **Environment variables**:
+   - Set `Stripe__PublicAppBaseUrl` = `https://your.domain`
+   - Add `Cors__AllowedOrigins__5` = `https://your.domain` (use `__6` if you also serve `www`)
+2. Optional Terraform: set `custom_domain_url = "https://your.domain"` in that env’s `.tfvars` and re-apply so outputs stay consistent.
+3. Stripe Dashboard → webhook / Event destination URL → `https://your.domain/api/donations/stripe/webhook` ([DONATION-SETUP.md](./DONATION-SETUP.md)).
+4. **Restart** the Web App.
+5. Confirm the site loads on the custom domain.
 
 ---
 
 ## Step 11 — Production
 
+Do this only when staging (Steps 6–9) is healthy and you are ready for a separate production environment.
+
 ### 11.1 Apply production Terraform
 
-```bash
-cd infrastructure/terraform
-terraform init -reconfigure -backend-config="environments/production.backend.hcl"
-terraform plan  -var-file="environments/production.tfvars"
-terraform apply -var-file="environments/production.tfvars"
-```
+1. Edit `infrastructure/terraform/environments/production.tfvars` (SKUs, region, optional `livekit_host` / `custom_domain_url`). Prefer stronger SQL + backups for prod.
+2. Ensure `environments/production.backend.hcl` exists (from Step 5).
+3. PowerShell:
 
-Review `production.tfvars` for SKU / region. Prefer a stronger SQL SKU and backups for prod.
+   ```powershell
+   cd infrastructure\terraform
+   terraform init -reconfigure -backend-config="environments/production.backend.hcl"
+   terraform plan -var-file="environments/production.tfvars"
+   terraform apply -var-file="environments/production.tfvars"
+   ```
+
+4. Capture outputs: `terraform output` → note `resource_group_name`, `web_app_name`, `acr_name`, `acr_login_server`, `key_vault_name`, `app_public_url`.
 
 ### 11.2 Variable group `liberationfleet-production`
 
-Same keys as staging, values from **production** `terraform output`.
+1. ADO → **Pipelines** → **Library** → **+ Variable group**.
+2. Name: exactly `liberationfleet-production`.
+3. Add the **same variable names** as staging (§6.4), with **production** output values:
 
-### 11.3 Secrets
+| Name | Value |
+|------|--------|
+| `ENVIRONMENT` | `production` |
+| `AZURE_RESOURCE_GROUP` | production `resource_group_name` |
+| `WEB_APP_NAME` | production `web_app_name` |
+| `ACR_NAME` | production `acr_name` |
+| `ACR_LOGIN_SERVER` | production `acr_login_server` |
 
-Repeat Step 7 for the **production** Key Vault (use **live** Stripe keys, production LiveKit project, etc.).
+4. **Save** → **Pipeline permissions** → allow your LiberationFleet pipeline.
 
-### 11.4 Deploy
+### 11.3 Secrets (production Key Vault only)
 
-1. Ensure production variable group is linked to the pipeline.
-2. Run / push `main`.
-3. When **Deploy production** waits on approval → open the run → **Approve**.
-4. Verify production URL (Step 9 checklist).
+Terraform created production Key Vault (typically **`lfleetproductionkv`**). This is **not** `lfleetstagingkv`.
+
+1. Portal → production Key Vault → **Secrets**.
+2. For each secret below: open → **New version** → paste → Create.
+
+| Secret | Production value |
+|--------|------------------|
+| `Stripe-SecretKey` | **Live** `sk_live_…` — [DONATION-SETUP.md](./DONATION-SETUP.md) **Part D** |
+| `Stripe-WebhookSecret` | **Live** `whsec_…` (new Event destination on the production URL) |
+| `LiveKit-ApiKey` / `LiveKit-ApiSecret` | Production LiveKit Cloud project — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path C |
+| `ReportEvidence-VendorApiKey` | Prod vendor key — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) |
+
+3. Production App Service → **Environment variables** → set `Stripe__PublicAppBaseUrl` to the production HTTPS origin (custom domain if you have one).
+4. If using LiveKit: set `livekit_host` in `production.tfvars`, re-apply, confirm `LiveKit__Host`.
+5. Restart the production Web App.
+
+Do **not** put live Stripe keys into the staging Key Vault.
+
+### 11.4 Deploy production via the pipeline
+
+1. Confirm §11.2 variable group is linked to the pipeline.
+2. Push to `main` or **Run pipeline** on `main`.
+3. Wait for **Deploy staging** to succeed.
+4. When **Deploy production** shows **Waiting for approval**:
+   - Open the run → open the approval → review → **Approve** (you configured approvers in Step 4).
+5. Wait for production deploy to finish.
+6. Open production `app_public_url` and repeat the Step 9 checklist.
 
 **Scale rule:** keep **one** App Service instance until Azure SignalR or a Redis backplane is added (in-process SignalR).
 
 ### 11.5 SQL backups
 
-Azure Portal → SQL database → **Backup** / configure PITR and long-term retention for production.
+1. Portal → production SQL database → **Settings** → **Backup** (wording varies) / retention.
+2. Confirm **Point-in-time restore** is available; configure long-term retention if required for the nonprofit.
 
 ---
 
 ## Step 12 — Point mobile apps at Azure
 
-1. Edit `liberationfleet.client/src/environments/environment.native.ts`:
+1. In the repo, open `liberationfleet.client/src/environments/environment.native.ts`.
+2. Set:
    ```ts
-   apiBaseUrl: 'https://your-production-host'  // no trailing slash
+   apiBaseUrl: 'https://your-production-host'  // no trailing slash; custom domain or *.azurewebsites.net
    ```
-2. Follow [NATIVE-APPS.md](./NATIVE-APPS.md) (`npm run cap:sync`, device smoke test).
-3. Submit stores via [STORE-SUBMISSION.md](./STORE-SUBMISSION.md).
+3. Follow [NATIVE-APPS.md](./NATIVE-APPS.md): `npm run cap:sync`, then smoke-test on a device/emulator against that API.
+4. Submit stores via [STORE-SUBMISSION.md](./STORE-SUBMISSION.md).
+
+Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost`, etc.) — Terraform sets those by default.
 
 ---
 
@@ -471,5 +681,5 @@ Azure Portal → SQL database → **Backup** / configure PITR and long-term rete
 | Container pull fails | ACR permissions for App Service managed identity; image tag missing |
 | 502/503 after deploy | Check Log stream; confirm migrations / connection string |
 | CORS errors from Capacitor | Keep Capacitor origins; add custom domain origin |
-| Stripe totals stay $0 | Webhook secret + endpoint URL wrong |
+| Stripe totals stay $0 | Webhook secret + destination URL wrong |
 | Voice join fails | `LiveKit__Host` must be `wss://…`; Key Vault API key/secret set |

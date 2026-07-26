@@ -1,4 +1,5 @@
 import { EncryptedPayload } from './crypto.model';
+import { PendingAttachment, ProposalAttachment, ResolvedAttachment } from './proposal.model';
 
 export interface FleetForumListItem {
   id: number;
@@ -9,6 +10,8 @@ export interface FleetForumListItem {
   title?: string | null;
   body?: string | null;
   descriptionPreview?: string | null;
+  thumbnailUrl?: string | null;
+  previewImageUrls?: string[];
   isAdultContent: boolean;
   hasEncryptedContent: boolean;
   encryptedPayload?: EncryptedPayload | null;
@@ -27,6 +30,8 @@ export interface FleetForumComment {
   body?: string | null;
   hasEncryptedContent?: boolean;
   encryptedPayload?: EncryptedPayload | null;
+  attachments?: ProposalAttachment[];
+  resolvedAttachments?: ResolvedAttachment[];
   replies?: FleetForumComment[];
   repliesExpanded?: boolean;
 }
@@ -36,6 +41,8 @@ export interface FleetForumPost extends FleetForumListItem {
   canEdit: boolean;
   canDelete: boolean;
   description?: string | null;
+  attachments?: ProposalAttachment[];
+  resolvedAttachments?: ResolvedAttachment[];
   comments: FleetForumComment[];
 }
 
@@ -89,3 +96,5 @@ export interface CreateFleetForumCommentRequest extends EncryptedFleetForumSend 
 export interface UpdateFleetForumCommentRequest extends EncryptedFleetForumSend {
   mentionedUserIds?: number[];
 }
+
+export type { PendingAttachment, ProposalAttachment, ResolvedAttachment };

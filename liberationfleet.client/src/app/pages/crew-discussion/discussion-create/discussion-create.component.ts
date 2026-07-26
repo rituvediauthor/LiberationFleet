@@ -106,16 +106,16 @@ export class DiscussionCreateComponent implements OnInit {
       }).subscribe({
         next: result => {
           if (result.success) {
-            this.toastService.success(result.message || `${this.config.label} post created`);
+            this.toastService.success(result.message || 'Post created');
             this.router.navigate([this.config.listRoute]);
             return;
           }
-          this.toastService.error(result.message || `Failed to create ${this.config.postLabel}`);
+          this.toastService.error(result.message || 'Failed to create post');
           this.isSubmitting = false;
           this.updateCreateButton();
         },
         error: err => {
-          this.toastService.error(err?.error?.message || `Failed to create ${this.config.postLabel}`);
+          this.toastService.error(err?.error?.message || 'Failed to create post');
           this.isSubmitting = false;
           this.updateCreateButton();
         }
