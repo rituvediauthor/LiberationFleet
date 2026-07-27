@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -14,6 +15,8 @@ public class CreateEmergencyRequestCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    IUserRepository userRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateEmergencyRequestCommand, EmergencyRequestOperationResponse>
 {
     public async Task<EmergencyRequestOperationResponse> Handle(
@@ -46,6 +49,9 @@ public class CreateEmergencyRequestCommandHandler(
             };
         }
 
+        var requester = await userRepository.GetByIdWithProfileAsync(currentUser.UserId.Value, cancellationToken);
+        var requesterName = requester?.Username ?? "A crewmate";
+
         var emergencyRequest = new EmergencyRequest
         {
             CrewId = membership.CrewId,
@@ -59,6 +65,17 @@ public class CreateEmergencyRequestCommandHandler(
 
         await emergencyRequestRepository.AddAsync(emergencyRequest, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var purposePreview = purpose.Length > 80 ? purpose[..77] + "..." : purpose;
+        await notificationService.NotifyCrewAsync(
+            membership.CrewId,
+            NotificationKind.NewEmergencyRequest,
+            "Emergency request",
+            $"{requesterName} needs ${request.AmountNeeded:0.##} for: {purposePreview}",
+            $"/app/crew/emergency-requests/{emergencyRequest.Id}",
+            relatedEntityId: emergencyRequest.Id,
+            excludeUserId: currentUser.UserId.Value,
+            cancellationToken: cancellationToken);
 
         return new EmergencyRequestOperationResponse
         {

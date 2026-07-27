@@ -41,8 +41,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: stretch;
-  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: var(--bottom-nav-height);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);

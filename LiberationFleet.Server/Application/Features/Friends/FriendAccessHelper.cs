@@ -72,7 +72,7 @@ public static class FriendAccessHelper
             return FriendAccessResult.Fail("Friend not found.");
         }
 
-        return FriendAccessResult.Ok(viewerId, membership.CrewId, friend.Username);
+        return FriendAccessResult.Ok(viewerId, membership.CrewId, friend.Username, friend.AvatarResourceId);
     }
 }
 
@@ -83,14 +83,20 @@ public sealed class FriendAccessResult
     public int ViewerId { get; init; }
     public int CrewId { get; init; }
     public string FriendUsername { get; init; } = string.Empty;
+    public string? FriendAvatarResourceId { get; init; }
 
-    public static FriendAccessResult Ok(int viewerId, int crewId, string friendUsername) =>
+    public static FriendAccessResult Ok(
+        int viewerId,
+        int crewId,
+        string friendUsername,
+        string? friendAvatarResourceId = null) =>
         new()
         {
             Success = true,
             ViewerId = viewerId,
             CrewId = crewId,
-            FriendUsername = friendUsername
+            FriendUsername = friendUsername,
+            FriendAvatarResourceId = friendAvatarResourceId
         };
 
     public static FriendAccessResult Fail(string message) =>

@@ -1,8 +1,12 @@
 <div class="chat-text-page">
+  <header class="conversation-header">
+    <div class="conversation-header-inner">
+      <h1 class="conversation-header-title">{{ pageTitle }}</h1>
+    </div>
+  </header>
+
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">
-      <h1 class="room-title">{{ pageTitle }}</h1>
-
       <p class="state-text" *ngIf="loading">Loading messages...</p>
       <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
       <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>

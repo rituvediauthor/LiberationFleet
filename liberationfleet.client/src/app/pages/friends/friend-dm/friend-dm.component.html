@@ -1,8 +1,19 @@
 <div class="chat-text-page">
+  <header class="conversation-header conversation-header-dm">
+    <div class="conversation-header-inner">
+      <app-user-avatar
+        [resourceId]="friendAvatarResourceId"
+        [crewId]="crewId || null"
+        [fallbackInitial]="friendUsername"
+        size="sm"
+        [alt]="friendUsername + ' avatar'">
+      </app-user-avatar>
+      <h1 class="conversation-header-title">{{ friendUsername }}</h1>
+    </div>
+  </header>
+
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">
-    <h1 class="room-title">{{ friendUsername }}</h1>
-
     <p class="state-text" *ngIf="loading">Loading messages...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
     <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>

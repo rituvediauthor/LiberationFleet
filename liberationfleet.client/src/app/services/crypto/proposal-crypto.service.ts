@@ -459,7 +459,7 @@ export class ProposalCryptoService {
 
     for (const attachment of attachments) {
       let file = attachment.file;
-      if (file && (attachment.type === 'image' || attachment.type === 'video')) {
+      if (file && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')) {
         file = await compressMediaFile(file, attachment.type);
       }
 
@@ -467,7 +467,14 @@ export class ProposalCryptoService {
       if (file) {
         dataUrl = await this.readFileAsDataUrl(file);
       } else if (attachment.blob) {
-        dataUrl = await this.readBlobAsDataUrl(attachment.blob);
+        const raw = new File([attachment.blob], `audio-${Date.now()}.webm`, {
+          type: attachment.blob.type || 'audio/webm',
+          lastModified: Date.now()
+        });
+        const compressed = attachment.type === 'audio'
+          ? await compressMediaFile(raw, 'audio')
+          : raw;
+        dataUrl = await this.readFileAsDataUrl(compressed);
       }
 
       const encrypted = await this.cryptoService.encryptJson(scopeKey, { dataUrl });

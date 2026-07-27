@@ -20,6 +20,7 @@ export function enterMediaDetailZoom(): void {
     meta.setAttribute('content', MEDIA_DETAIL_VIEWPORT);
   }
   document.documentElement.classList.add('lf-media-detail-open');
+  document.body.style.touchAction = 'pan-x pan-y pinch-zoom';
 }
 
 export function exitMediaDetailZoom(): void {
@@ -35,4 +36,5 @@ export function exitMediaDetailZoom(): void {
     meta.setAttribute('content', DEFAULT_VIEWPORT);
   }
   document.documentElement.classList.remove('lf-media-detail-open');
+  document.body.style.touchAction = '';
 }

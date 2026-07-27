@@ -98,6 +98,19 @@ public interface IProposalRepository
         int targetUserId,
         CrewmatePermissionGrantType grantType,
         CancellationToken cancellationToken = default);
+    Task AddCrewmateAidStatChangeAsync(
+        ProposalCrewmateAidStatChange change,
+        CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateAidStatChange?> GetCrewmateAidStatChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewmateAidStatChange>> GetCrewmateAidStatChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
+    Task<ProposalCrewmateAidStatChange?> GetPendingCrewmateAidStatChangeForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default);
     Task<ProposalCrewJoinRequest?> GetPendingJoinRequestForApplicantAndCrewAsync(
         int applicantUserId,
         int crewId,

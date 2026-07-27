@@ -103,6 +103,15 @@ public class MutualAidRepository : IMutualAidRepository
         DateTime? before = null,
         CancellationToken cancellationToken = default)
     {
+        var overrideAmount = await _context.CrewMemberships
+            .Where(m => m.CrewId == crewId && m.UserId == userId && !m.IsBanned)
+            .Select(m => m.LifetimeContributionOverride)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (overrideAmount.HasValue)
+        {
+            return overrideAmount.Value;
+        }
+
         var query = _context.Gifts.Where(g =>
             g.CrewId == crewId
             && g.GiverUserId == userId
@@ -132,7 +141,35 @@ public class MutualAidRepository : IMutualAidRepository
             query = query.Where(g => g.CreatedAt < before.Value);
         }
 
-        return await query.SumAsync(g => g.Amount, cancellationToken);
+        var giftTotal = await query.SumAsync(g => g.Amount, cancellationToken);
+        var overrides = await _context.CrewMemberships
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LifetimeContributionOverride != null)
+            .Select(m => new { m.UserId, Override = m.LifetimeContributionOverride!.Value })
+            .ToListAsync(cancellationToken);
+
+        if (overrides.Count == 0)
+        {
+            return giftTotal;
+        }
+
+        foreach (var entry in overrides)
+        {
+            var userGiftQuery = _context.Gifts.Where(g =>
+                g.CrewId == crewId
+                && g.GiverUserId == entry.UserId
+                && g.CountsTowardContribution
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated));
+
+            if (before.HasValue)
+            {
+                userGiftQuery = userGiftQuery.Where(g => g.CreatedAt < before.Value);
+            }
+
+            var userGiftTotal = await userGiftQuery.SumAsync(g => g.Amount, cancellationToken);
+            giftTotal = giftTotal - userGiftTotal + entry.Override;
+        }
+
+        return giftTotal;
     }
 
     public async Task<bool> HasContributedSinceAsync(int userId, int crewId, DateTime since, DateTime? until = null, CancellationToken cancellationToken = default)

@@ -12,6 +12,8 @@
 
 .inline-image-block {
   width: min(280px, 100%);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .attachment-item {
@@ -22,6 +24,8 @@
 .attachment-item video {
   display: block;
   max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 8px;
   border: 1px solid var(--lf-color-border);
 }

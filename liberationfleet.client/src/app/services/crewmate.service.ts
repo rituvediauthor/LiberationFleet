@@ -132,6 +132,15 @@ export class CrewmateService {
     return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/propose-proposal-permission`, {});
   }
 
+  proposeAidStatChange(
+    userId: number,
+    changes: Array<{ field: string; newValue: string }>
+  ): Observable<CrewRoleChangeResponse> {
+    return this.http.post<CrewRoleChangeResponse>(`${this.apiUrl}/${userId}/propose-aid-stat-change`, {
+      changes
+    });
+  }
+
   exportCrewmateStates(): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/export-states`, { responseType: 'blob' });
   }

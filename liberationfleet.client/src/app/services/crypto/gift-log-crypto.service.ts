@@ -44,6 +44,27 @@ export class GiftLogCryptoService {
         const recipientName = payload.recipientName;
         const middlemanName = payload.middlemanName ?? undefined;
         const platform = payload.platform;
+        const message = this.isCelebrationType(entry.type)
+          ? (payload.message || entry.message || this.buildDisplayMessage(
+              entry.type,
+              giverName || entry.giverName,
+              recipientName || entry.recipientName,
+              middlemanName ?? entry.middlemanName,
+              entry.amount,
+              platform || entry.platform,
+              entry.status,
+              entry.displayFlag
+            ))
+          : this.buildDisplayMessage(
+              entry.type,
+              giverName,
+              recipientName,
+              middlemanName,
+              entry.amount,
+              platform,
+              entry.status,
+              entry.displayFlag
+            );
         return {
           ...entry,
           giverName,
@@ -52,16 +73,8 @@ export class GiftLogCryptoService {
           platform,
           // Rebuild from current verification state so stale encrypted text
           // (e.g. still saying Unverified) does not stick after confirm.
-          message: this.buildDisplayMessage(
-            entry.type,
-            giverName,
-            recipientName,
-            middlemanName,
-            entry.amount,
-            platform,
-            entry.status,
-            entry.displayFlag
-          )
+          // Celebrations keep the stored plaintext message.
+          message
         };
       } catch {
         return {
@@ -210,8 +223,23 @@ export class GiftLogCryptoService {
       case 'completed':
         baseMessage = `${middlemanName ?? 'Middleman'} completed ${giverName}'s $${amountText} gift to ${recipientName} via ${platform.toUpperCase()}`;
         break;
+      case 'seasonstarted':
+        baseMessage = 'A new mutual aid season has begun!';
+        break;
+      case 'cyclestarted':
+        baseMessage = recipientName && recipientName !== '[Encrypted]' && recipientName !== 'Unknown'
+          ? `A new reception cycle has started for ${recipientName}!`
+          : 'A new reception cycle has started!';
+        break;
+      case 'survivalthresholdsrefreshed':
+        baseMessage = 'Survival thresholds have refreshed for the new month!';
+        break;
       default:
         baseMessage = '';
+    }
+
+    if (this.isCelebrationType(type)) {
+      return baseMessage;
     }
 
     if (displayFlag === 'notComplete') {
@@ -245,7 +273,10 @@ export class GiftLogCryptoService {
       return;
     }
 
-    const targets = entries.filter(entry => !entry.hasEncryptedContent && entry.giverId === activeUserId);
+    const targets = entries.filter(entry =>
+      !entry.hasEncryptedContent
+      && entry.giverId === activeUserId
+      && !this.isCelebrationType(entry.type));
     for (const entry of targets) {
       try {
         await this.encryptAndStoreEntry(entry, crewId);
@@ -255,9 +286,32 @@ export class GiftLogCryptoService {
     }
   }
 
+  isCelebrationType(type: GiftLogType | string | undefined | null): boolean {
+    const normalized = (type ?? '').toLowerCase();
+    return normalized === 'seasonstarted'
+      || normalized === 'cyclestarted'
+      || normalized === 'survivalthresholdsrefreshed';
+  }
+
   private maskEncryptedEntry(entry: GiftLogEntry): GiftLogEntry {
     if (!entry.hasEncryptedContent) {
       return entry;
+    }
+
+    if (this.isCelebrationType(entry.type)) {
+      return {
+        ...entry,
+        message: this.buildDisplayMessage(
+          entry.type,
+          entry.giverName,
+          entry.recipientName,
+          entry.middlemanName,
+          entry.amount,
+          entry.platform,
+          entry.status,
+          entry.displayFlag
+        )
+      };
     }
 
     return {

@@ -18,6 +18,8 @@ import {
   PlatformAccount,
   ReceptionOrderEntry
 } from '../../models/gift.model';
+import { EmergencyRequestListItem } from '../../models/emergency-request.model';
+import { EmergencyRequestService } from '../../services/emergency-request.service';
 
 interface PlatformInfoLabel {
   prefix: 'Preferred' | 'Selected';
@@ -44,6 +46,7 @@ export class RecordGiftComponent implements OnInit {
   recordButton!: ActionBarButton;
 
   receptionEntries: ReceptionOrderEntry[] = [];
+  emergencyRequests: EmergencyRequestListItem[] = [];
   crewMembers: CrewMember[] = [];
   platforms: PaymentPlatformOption[] = [];
   giverPlatformIds: number[] = [];
@@ -60,6 +63,7 @@ export class RecordGiftComponent implements OnInit {
   private crewService = inject(CrewService);
   private profileService = inject(ProfileService);
   private authService = inject(AuthService);
+  private emergencyRequestService = inject(EmergencyRequestService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -236,7 +240,12 @@ export class RecordGiftComponent implements OnInit {
     group.patchValue({ paymentPlatformId: options[0]?.id ?? '' }, { emitEvent: true });
   }
 
+  openEmergencyRequest(item: EmergencyRequestListItem) {
+    void this.router.navigate(['/app/crew/emergency-requests', item.id]);
+  }
+
   private loadReceptionOrder() {
+    this.loading = true;
     this.giftService.getReceptionOrder(30).subscribe({
       next: entries => {
         this.receptionEntries = this.activeUserId > 0
@@ -249,6 +258,15 @@ export class RecordGiftComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.toastService.error('Failed to load reception order');
+      }
+    });
+
+    this.emergencyRequestService.getList().subscribe({
+      next: response => {
+        this.emergencyRequests = response.success ? (response.items ?? []) : [];
+      },
+      error: () => {
+        this.emergencyRequests = [];
       }
     });
   }

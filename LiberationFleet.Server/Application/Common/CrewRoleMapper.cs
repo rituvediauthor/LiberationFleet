@@ -45,6 +45,11 @@ public static class CrewRoleMapper
             roles.Add("Representative");
         }
 
+        if (membership.IsAccountant)
+        {
+            roles.Add("Accountant");
+        }
+
         if (membership.IsHonoraryMember)
         {
             roles.Add("Honorary member");
@@ -113,6 +118,11 @@ public static class CrewRoleMapper
             roles.Add(CrewRole.Representative);
         }
 
+        if (membership.IsAccountant)
+        {
+            roles.Add(CrewRole.Accountant);
+        }
+
         return roles;
     }
 
@@ -124,6 +134,7 @@ public static class CrewRoleMapper
         || membership.IsModerator
         || membership.IsIntermediary
         || membership.IsRepresentative
+        || membership.IsAccountant
         || membership.IsHonoraryMember;
 
     public static bool HasRole(CrewMembership membership, CrewRole role) =>
@@ -136,6 +147,7 @@ public static class CrewRoleMapper
             CrewRole.Moderator => membership.IsModerator,
             CrewRole.Intermediary => membership.IsIntermediary,
             CrewRole.Representative => membership.IsRepresentative,
+            CrewRole.Accountant => membership.IsAccountant,
             _ => false
         };
 
@@ -149,6 +161,7 @@ public static class CrewRoleMapper
             CrewRole.Moderator => "Moderator",
             CrewRole.Intermediary => "Intermediary",
             CrewRole.Representative => "Representative",
+            CrewRole.Accountant => "Accountant",
             _ => role.ToString()
         };
 
@@ -169,6 +182,8 @@ public static class CrewRoleMapper
                 "Bridge gifts when giver and recipient do not share a payment platform. Automatically loses the role after failing to complete two gifts.",
             CrewRole.Representative =>
                 "Serve a fixed term receiving mutual aid (except survival thresholds) so they can take time off work to speak or vote for the crew at government functions. Nominations require a future start and end date.",
+            CrewRole.Accountant =>
+                "Propose adjustments to crewmate contribution and reception totals, monthly giving capacity, and whether a season cycle is already completed—useful when a crew joins mid-season with existing mutual-aid history.",
             _ => string.Empty
         };
 
@@ -253,6 +268,9 @@ public static class CrewRoleMapper
             case "representative":
                 role = CrewRole.Representative;
                 return true;
+            case "accountant":
+                role = CrewRole.Accountant;
+                return true;
             default:
                 role = default;
                 return Enum.TryParse(value, ignoreCase: true, out role);
@@ -325,6 +343,9 @@ public static class CrewRoleMapper
                     {
                         ClearRepresentative(membership);
                     }
+                    break;
+                case CrewRole.Accountant:
+                    membership.IsAccountant = assign;
                     break;
             }
         }

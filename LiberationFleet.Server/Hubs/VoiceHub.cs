@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Voice;
 using LiberationFleet.Server.Application.Features.Chats.Voice.Contracts;
 using LiberationFleet.Server.Hubs;
@@ -13,6 +14,7 @@ namespace LiberationFleet.Server.Hubs;
 public class VoiceHub(
     ICrewMembershipRepository membershipRepository,
     IChatRepository chatRepository,
+    IFleetRepository fleetRepository,
     IVoicePresenceRepository voicePresenceRepository,
     IVoicePresenceNotifier voicePresenceNotifier,
     IUnitOfWork unitOfWork) : Hub
@@ -42,7 +44,13 @@ public class VoiceHub(
             throw new HubException("You are not in a crew.");
         }
 
-        if (!await chatRepository.RoomBelongsToCrewAsync(roomId, membership.CrewId, Context.ConnectionAborted))
+        var room = await chatRepository.GetRoomByIdAsync(roomId, Context.ConnectionAborted);
+        if (room is null || room.IsDeleted
+            || !await ChatRoomAccess.CanAccessRoomAsync(
+                room,
+                membership,
+                fleetRepository,
+                Context.ConnectionAborted))
         {
             throw new HubException("Voice channel not found.");
         }

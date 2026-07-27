@@ -6,6 +6,7 @@ using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmat
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmateFromSeason;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.NominateCrewRoles;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.ProposeCrewmateAidStatChange;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ProposeCrewmatePermissionGrant;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ToggleCanAttachFiles;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
@@ -192,6 +193,14 @@ public class CrewmatesController : ControllerBase
         var result = await _mediator.Send(new ProposeCrewmatePermissionGrantCommand(
             userId,
             CrewmatePermissionGrantType.CreateProposals));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/propose-aid-stat-change")]
+    public async Task<IActionResult> ProposeAidStatChange(int userId, [FromBody] ProposeCrewmateAidStatChangeRequest body)
+    {
+        body ??= new ProposeCrewmateAidStatChangeRequest();
+        var result = await _mediator.Send(new ProposeCrewmateAidStatChangeCommand(userId, body.Changes));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

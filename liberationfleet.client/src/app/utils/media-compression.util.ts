@@ -4,10 +4,12 @@ const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
 /** Only skip re-encode for already-safe JPEG under size/dimension limits. */
 const SKIP_SAFE_JPEG_BYTES = 250 * 1024;
-const TARGET_VIDEO_BYTES = 8 * 1024 * 1024;
+const TARGET_VIDEO_BYTES = 2 * 1024 * 1024;
 const MAX_VIDEO_DIMENSION = 1280;
 const MAX_VIDEO_DURATION_SEC = 45;
 const VIDEO_BITRATE = 1_500_000;
+const SKIP_SAFE_AUDIO_BYTES = 200 * 1024;
+const AUDIO_BITRATE = 64_000;
 
 export async function compressMediaFile(
   file: File,
@@ -19,6 +21,10 @@ export async function compressMediaFile(
 
   if (type === 'video') {
     return compressVideo(file);
+  }
+
+  if (type === 'audio') {
+    return compressAudio(file);
   }
 
   return file;
@@ -69,7 +75,11 @@ async function compressVideo(file: File): Promise<File> {
     throw new Error('Videos must be 50 MB or smaller.');
   }
 
-  if (file.size <= TARGET_VIDEO_BYTES) {
+  const mime = (file.type || '').toLowerCase();
+  const alreadyWebFriendly =
+    file.size <= TARGET_VIDEO_BYTES
+    && (mime.includes('webm') || mime.includes('mp4'));
+  if (alreadyWebFriendly) {
     return file;
   }
 
@@ -77,6 +87,82 @@ async function compressVideo(file: File): Promise<File> {
     return await reencodeVideoByPlayback(file);
   } catch {
     return file;
+  }
+}
+
+async function compressAudio(file: File): Promise<File> {
+  const mime = (file.type || '').toLowerCase();
+  if (file.size <= SKIP_SAFE_AUDIO_BYTES && (mime.includes('webm') || mime.includes('ogg') || mime.includes('opus'))) {
+    return file;
+  }
+
+  try {
+    return await reencodeAudio(file);
+  } catch {
+    return file;
+  }
+}
+
+async function reencodeAudio(file: File): Promise<File> {
+  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  const audioContext = new AudioCtx();
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+    const destination = audioContext.createMediaStreamDestination();
+    const source = audioContext.createBufferSource();
+    source.buffer = decoded;
+    source.connect(destination);
+
+    const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : '';
+
+    if (!preferredMime) {
+      return file;
+    }
+
+    const recorder = new MediaRecorder(destination.stream, {
+      mimeType: preferredMime,
+      audioBitsPerSecond: AUDIO_BITRATE
+    });
+
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = event => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    const recordingDone = new Promise<Blob>((resolve, reject) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: preferredMime }));
+      recorder.onerror = () => reject(new Error('Audio compression failed'));
+    });
+
+    recorder.start(250);
+    source.start(0);
+    await new Promise<void>(resolve => {
+      source.onended = () => resolve();
+    });
+    recorder.stop();
+
+    const compressed = await recordingDone;
+    if (compressed.size === 0 || compressed.size >= file.size) {
+      return file;
+    }
+
+    const extension = preferredMime.includes('mp4') ? 'm4a' : 'webm';
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'audio';
+    return new File([compressed], `${baseName}.${extension}`, {
+      type: preferredMime,
+      lastModified: Date.now()
+    });
+  } finally {
+    await audioContext.close().catch(() => undefined);
   }
 }
 

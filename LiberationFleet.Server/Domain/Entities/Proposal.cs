@@ -31,6 +31,7 @@ public class Proposal
     public ProposalCrewRoleChange? CrewRoleChange { get; set; }
     public ProposalClaimPlaceholderIdentity? ClaimPlaceholderIdentity { get; set; }
     public ProposalCrewmatePermissionGrant? CrewmatePermissionGrant { get; set; }
+    public ProposalCrewmateAidStatChange? CrewmateAidStatChange { get; set; }
     public ProposalCrewApplyToFleet? CrewApplyToFleet { get; set; }
     public ProposalFleetJoinRequest? FleetJoinRequest { get; set; }
     public ProposalFleetSettingChange? FleetSettingChange { get; set; }

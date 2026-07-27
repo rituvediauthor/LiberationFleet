@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
@@ -102,6 +103,16 @@ public class GetCrewmateProfileQueryHandler(
             viewerMembership.CrewId,
             cancellationToken);
 
+        SeasonCycle? seasonCycle = null;
+        if (crew.CurrentSeasonStartDate is DateTime seasonStartDate)
+        {
+            seasonCycle = await mutualAidRepository.GetSeasonCycleAsync(
+                viewerMembership.CrewId,
+                request.UserId,
+                seasonStartDate,
+                cancellationToken);
+        }
+
         return new CrewmateProfileResponse
         {
             Success = true,
@@ -123,7 +134,8 @@ public class GetCrewmateProfileQueryHandler(
                     targetBlockedViewer),
                 viewerId == request.UserId,
                 tenureDays,
-                canClaimIdentity)
+                canClaimIdentity,
+                seasonCycle)
         };
     }
 }

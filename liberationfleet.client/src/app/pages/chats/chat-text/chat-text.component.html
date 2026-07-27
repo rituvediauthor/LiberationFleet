@@ -1,8 +1,12 @@
 <div class="chat-text-page">
+  <header class="conversation-header" *ngIf="contentRevealed || roomName">
+    <div class="conversation-header-inner">
+      <h1 class="conversation-header-title">{{ roomName || 'Chat' }}</h1>
+    </div>
+  </header>
+
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">
-    <h1 class="room-title">{{ roomName }}</h1>
-
     <p class="state-text" *ngIf="loading">Loading messages...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
     <p class="state-text" *ngIf="loadingOlder">Loading older messages...</p>
@@ -108,17 +112,6 @@
         <div class="composer-actions-col" *ngIf="composerExpanded">
           <button
             type="button"
-            class="anonymous-mode-btn"
-            [class.active]="composeAnonymously"
-            (mousedown)="$event.preventDefault()"
-            (click)="toggleComposeAnonymously()"
-            [attr.aria-pressed]="composeAnonymously"
-            [attr.aria-label]="composeAnonymously ? 'Disable anonymous posting' : 'Enable anonymous posting'"
-            [title]="composeAnonymously ? 'Anonymous posting on' : 'Post anonymously'">
-            <i class="fa-solid fa-user-secret" aria-hidden="true"></i>
-          </button>
-          <button
-            type="button"
             class="composer-send-btn"
             [disabled]="sending || !canSend()"
             (click)="sendMessage()"
@@ -143,15 +136,29 @@
         </div>
       </div>
 
-      <app-proposal-attachment-picker
-        class="message-attachment-picker"
-        *ngIf="canAttachFiles"
-        [class.collapsed]="!composerExpanded"
-        [attachments]="messageAttachments"
-        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
-      </app-proposal-attachment-picker>
+      <div class="composer-tools" *ngIf="composerExpanded">
+        <app-proposal-attachment-picker
+          class="message-attachment-picker"
+          *ngIf="canAttachFiles"
+          [attachments]="messageAttachments"
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+        </app-proposal-attachment-picker>
+        <span class="composer-tools-spacer" *ngIf="!canAttachFiles" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="anonymous-mode-btn"
+          [class.active]="composeAnonymously"
+          (mousedown)="$event.preventDefault()"
+          (click)="toggleComposeAnonymously()"
+          [attr.aria-pressed]="composeAnonymously"
+          [attr.aria-label]="composeAnonymously ? 'Disable anonymous posting' : 'Enable anonymous posting'"
+          [title]="composeAnonymously ? 'Anonymous posting on' : 'Post anonymously'">
+          <i class="fa-solid fa-user-secret" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
     </div>
+    <div class="lf-safe-bottom" aria-hidden="true"></div>
   </div>
 </div>
 

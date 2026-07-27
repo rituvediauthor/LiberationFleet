@@ -22,6 +22,7 @@ public static class ProposalMapper
         ProposalCrewRoleChange? crewRoleChange = null,
         ProposalClaimPlaceholderIdentity? claimPlaceholderIdentity = null,
         ProposalCrewmatePermissionGrant? crewmatePermissionGrant = null,
+        ProposalCrewmateAidStatChange? crewmateAidStatChange = null,
         string? currentUserVote = null,
         ProposalFleetRuleChange? fleetRuleChange = null,
         ProposalFleetSettingChange? fleetSettingChange = null,
@@ -70,6 +71,12 @@ public static class ProposalMapper
         if (crewmatePermissionGrant is not null)
         {
             ApplyPlaintext(dto, crewmatePermissionGrant.Title, crewmatePermissionGrant.Description);
+            return dto;
+        }
+
+        if (crewmateAidStatChange is not null)
+        {
+            ApplyPlaintext(dto, crewmateAidStatChange.Title, crewmateAidStatChange.Description);
             return dto;
         }
 
@@ -160,6 +167,7 @@ public static class ProposalMapper
         ProposalCrewRoleChange? crewRoleChange = null,
         ProposalClaimPlaceholderIdentity? claimPlaceholderIdentity = null,
         ProposalCrewmatePermissionGrant? crewmatePermissionGrant = null,
+        ProposalCrewmateAidStatChange? crewmateAidStatChange = null,
         string? currentUserVote = null,
         string? viewerAlias = null,
         int aliasRerollsRemaining = 0,
@@ -182,6 +190,7 @@ public static class ProposalMapper
             crewRoleChange,
             claimPlaceholderIdentity,
             crewmatePermissionGrant,
+            crewmateAidStatChange,
             currentUserVote,
             fleetRuleChange,
             fleetSettingChange,
@@ -195,6 +204,7 @@ public static class ProposalMapper
             ?? crewRoleChange?.Description
             ?? claimPlaceholderIdentity?.Description
             ?? crewmatePermissionGrant?.Description
+            ?? crewmateAidStatChange?.Description
             ?? crewmateRejoin?.Description
             ?? crewChatChange?.Description
             ?? crewRuleChange?.Description
@@ -294,6 +304,7 @@ public static class ProposalMapper
             or ProposalKind.CrewRoleChange
             or ProposalKind.ClaimPlaceholderIdentity
             or ProposalKind.CrewmatePermissionGrant
+            or ProposalKind.CrewmateAidStatChange
             or ProposalKind.CrewApplyToFleet
             or ProposalKind.FleetJoinRequest
             or ProposalKind.FleetSettingChange

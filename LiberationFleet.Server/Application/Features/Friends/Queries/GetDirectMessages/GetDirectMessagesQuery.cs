@@ -46,6 +46,7 @@ public class GetDirectMessagesQueryHandler(
                 Success = true,
                 Message = "Messages loaded.",
                 FriendUsername = access.FriendUsername,
+                FriendAvatarResourceId = access.FriendAvatarResourceId,
                 Items = Array.Empty<DirectMessageDto>(),
                 HasMore = false
             };
@@ -83,6 +84,7 @@ public class GetDirectMessagesQueryHandler(
             Success = true,
             Message = "Messages loaded.",
             FriendUsername = access.FriendUsername,
+            FriendAvatarResourceId = access.FriendAvatarResourceId,
             Items = items,
             HasMore = hasMore
         };

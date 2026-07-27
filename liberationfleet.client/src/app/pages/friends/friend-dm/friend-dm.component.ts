@@ -51,6 +51,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
 
   friendUserId = 0;
   friendUsername = 'Friend';
+  friendAvatarResourceId: string | null = null;
   messages: DirectMessage[] = [];
   crewId = 0;
   canAttachFiles = false;
@@ -320,6 +321,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
           this.friendUsername = response.friendUsername || 'Friend';
+          this.friendAvatarResourceId = response.friendAvatarResourceId ?? null;
           this.hasMore = response.hasMore;
           this.messages = this.crewId > 0
             ? await this.decryptMessages(response.items ?? [])

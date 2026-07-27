@@ -16,4 +16,7 @@ public static class CrewRoleAuthorizationService
 
     public static bool CanExportCrewData(CrewMembership membership) =>
         membership.IsOrganizer || membership.IsDecentralizer;
+
+    public static bool CanProposeCrewmateAidStatEdits(CrewMembership membership) =>
+        membership.IsOrganizer || membership.IsAccountant;
 }

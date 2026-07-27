@@ -89,6 +89,7 @@ public class DirectMessageListResponse
     public IReadOnlyList<DirectMessageDto> Items { get; set; } = Array.Empty<DirectMessageDto>();
     public bool HasMore { get; set; }
     public string FriendUsername { get; set; } = string.Empty;
+    public string? FriendAvatarResourceId { get; set; }
 }
 
 public class DirectMessageOperationResponse

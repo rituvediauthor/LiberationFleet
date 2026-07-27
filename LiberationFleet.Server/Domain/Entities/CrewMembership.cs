@@ -21,11 +21,16 @@ public class CrewMembership
     /// <summary>Exclusive UTC end of the Representative term.</summary>
     public DateTime? RepresentativeTermEndUtc { get; set; }
     public decimal RepresentativeReceivedAmount { get; set; }
+    public bool IsAccountant { get; set; }
     public int EmergencySacrificesThisSeason { get; set; }
     public bool IsPlaceholderMember { get; set; }
     public bool CanAttachFiles { get; set; }
     public bool CanCreateProposals { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
+    /// <summary>When set, replaces gift-derived lifetime contributions for display and eligibility.</summary>
+    public decimal? LifetimeContributionOverride { get; set; }
+    /// <summary>When set, replaces gift-derived reception this year for display.</summary>
+    public decimal? ReceptionThisYearOverride { get; set; }
     public bool IsSeasonReady { get; set; }
     public bool IsInSeason { get; set; }
     public decimal CurrentPriorityScore { get; set; }

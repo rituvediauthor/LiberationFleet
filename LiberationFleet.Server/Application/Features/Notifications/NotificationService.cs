@@ -162,6 +162,7 @@ public class NotificationService(
         NotificationKind.NewFleetChatMessage => "New fleet chat message",
         NotificationKind.NewFleetForumPost => "New fleet forum post",
         NotificationKind.NewFleetForumComment => "New fleet forum comment",
+        NotificationKind.NewEmergencyRequest => "Emergency request",
         _ => kind.ToString()
     };
 

@@ -182,7 +182,7 @@ export class JoinCrewComponent implements OnInit {
       : this.normalizeJoinCode(this.form.get('joinCode')?.value).length !== JOIN_CODE_LENGTH);
 
     this.primaryButton = {
-      label: 'Continue',
+      label: 'Select',
       type: 'primary',
       disabled,
       onClick: () => this.onContinueToRules()

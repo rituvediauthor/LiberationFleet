@@ -85,11 +85,18 @@ public class GetCrewGiftLogQueryHandler(
             {
                 entry.HasEncryptedContent = true;
                 entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
-                entry.GiverName = string.Empty;
-                entry.RecipientName = string.Empty;
-                entry.MiddlemanName = null;
-                entry.Platform = string.Empty;
-                entry.Message = string.Empty;
+                // System / celebratory messages are not sensitive; keep plaintext so they
+                // remain visible even when the encrypted gift envelope exists.
+                if (gift.Type is not GiftType.SeasonStarted
+                    and not GiftType.CycleStarted
+                    and not GiftType.SurvivalThresholdsRefreshed)
+                {
+                    entry.GiverName = string.Empty;
+                    entry.RecipientName = string.Empty;
+                    entry.MiddlemanName = null;
+                    entry.Platform = string.Empty;
+                    entry.Message = string.Empty;
+                }
             }
 
             return entry;

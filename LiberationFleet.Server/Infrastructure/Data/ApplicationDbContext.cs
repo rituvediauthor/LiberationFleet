@@ -50,6 +50,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalCrewRoleChange> ProposalCrewRoleChanges => Set<ProposalCrewRoleChange>();
     public DbSet<ProposalClaimPlaceholderIdentity> ProposalClaimPlaceholderIdentities => Set<ProposalClaimPlaceholderIdentity>();
     public DbSet<ProposalCrewmatePermissionGrant> ProposalCrewmatePermissionGrants => Set<ProposalCrewmatePermissionGrant>();
+    public DbSet<ProposalCrewmateAidStatChange> ProposalCrewmateAidStatChanges => Set<ProposalCrewmateAidStatChange>();
     public DbSet<ProposalCrewApplyToFleet> ProposalCrewApplyToFleets => Set<ProposalCrewApplyToFleet>();
     public DbSet<ProposalFleetJoinRequest> ProposalFleetJoinRequests => Set<ProposalFleetJoinRequest>();
     public DbSet<ProposalFleetSettingChange> ProposalFleetSettingChanges => Set<ProposalFleetSettingChange>();
@@ -333,11 +334,14 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IntermediaryFailedCompletions).HasDefaultValue(0);
             entity.Property(e => e.IsRepresentative).HasDefaultValue(false);
             entity.Property(e => e.RepresentativeReceivedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.IsAccountant).HasDefaultValue(false);
             entity.Property(e => e.EmergencySacrificesThisSeason).HasDefaultValue(0);
             entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
             entity.Property(e => e.CanAttachFiles).HasDefaultValue(false);
             entity.Property(e => e.CanCreateProposals).HasDefaultValue(false);
             entity.Property(e => e.EstimatedMonthlyContribution).HasPrecision(18, 2);
+            entity.Property(e => e.LifetimeContributionOverride).HasPrecision(18, 2);
+            entity.Property(e => e.ReceptionThisYearOverride).HasPrecision(18, 2);
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
             entity.Property(e => e.IsInSeason).HasDefaultValue(false);
             entity.Property(e => e.CurrentPriorityScore).HasPrecision(18, 2).HasDefaultValue(0m);
@@ -728,6 +732,19 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.CrewmatePermissionGrant)
                 .HasForeignKey<ProposalCrewmatePermissionGrant>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProposalCrewmateAidStatChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.ChangesJson).HasMaxLength(4000).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewmateAidStatChange)
+                .HasForeignKey<ProposalCrewmateAidStatChange>(e => e.ProposalId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

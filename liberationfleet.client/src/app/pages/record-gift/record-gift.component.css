@@ -145,6 +145,66 @@ label {
   color: var(--lf-color-text-secondary);
 }
 
+.emergency-section {
+  margin-bottom: 20px;
+}
+
+.emergency-section .entry-hint {
+  margin: 0 0 12px;
+}
+
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  cursor: pointer;
+}
+
+.request-row:hover {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.request-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.request-name {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.request-purpose {
+  margin: 0 0 4px;
+  color: var(--lf-color-text-secondary);
+  font-size: 13px;
+}
+
+.request-amount {
+  margin: 0;
+  color: var(--lf-color-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chevron {
+  color: var(--lf-color-text-subtle);
+}
+
 h2 {
   font-size: 16px;
   margin: 0 0 8px;

@@ -70,9 +70,10 @@ describe('JoinCrewComponent', () => {
     expect(component.hasSearched).toBeTrue();
   });
 
-  it('should enable continue button when crew is selected', () => {
+  it('should enable select button when crew is selected', () => {
     component.selectCrew({ id: 1, name: 'Alpha', maxSize: 10, memberCount: 3, privacy: 'Public', scope: 'Online', joinCode: 'ABC12345' });
     expect(component.primaryButton.disabled).toBeFalse();
+    expect(component.primaryButton.label).toBe('Select');
   });
 
   it('should load public rules when continuing in find mode', () => {

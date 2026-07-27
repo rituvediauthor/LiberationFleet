@@ -97,13 +97,18 @@ public class ExportCrewGiftLogQueryHandler(
                 var entry = GiftMapper.MapGift(gift, userId, completedChild, initiatedParent);
                 if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
                 {
-                    entry.HasEncryptedContent = true;
-                    entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
+                entry.HasEncryptedContent = true;
+                entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
+                if (gift.Type is not GiftType.SeasonStarted
+                    and not GiftType.CycleStarted
+                    and not GiftType.SurvivalThresholdsRefreshed)
+                {
                     entry.GiverName = string.Empty;
                     entry.RecipientName = string.Empty;
                     entry.MiddlemanName = null;
                     entry.Platform = string.Empty;
                     entry.Message = string.Empty;
+                }
                 }
 
                 allItems.Add(entry);

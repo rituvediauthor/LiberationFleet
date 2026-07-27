@@ -20,6 +20,12 @@
 </div>
 
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
+  <header class="conversation-header">
+    <div class="conversation-header-inner">
+      <h1 class="conversation-header-title">{{ p.title || 'Post' }}</h1>
+    </div>
+  </header>
+
   <div class="detail-scroll" #detailScroll>
     <div class="scroll-page-body">
     <div class="detail-hero" *ngIf="carouselImages.length > 0 && !editing">
@@ -45,7 +51,6 @@
           <span>{{ p.createdAt | date:'medium' }}</span>
           <span *ngIf="p.isAdultContent" class="adult-badge">18+</span>
         </p>
-        <h1>{{ p.title }}</h1>
       </div>
 
       <div class="edit-form" *ngIf="editing">

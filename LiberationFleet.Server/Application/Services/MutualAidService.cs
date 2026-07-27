@@ -961,6 +961,11 @@ public partial class MutualAidService(
             return true;
         }
 
+        if (membership.EstimatedMonthlyContribution is > 0m)
+        {
+            return true;
+        }
+
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
         if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
         {

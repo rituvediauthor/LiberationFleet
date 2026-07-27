@@ -35,5 +35,6 @@ public enum NotificationKind
     FleetSettingChanged = 33,
     NewFleetChatMessage = 34,
     NewFleetForumPost = 35,
-    NewFleetForumComment = 36
+    NewFleetForumComment = 36,
+    NewEmergencyRequest = 37
 }

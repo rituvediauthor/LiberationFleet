@@ -11,6 +11,25 @@
         <p class="add-non-member-hint">For people not on the app who still need aid recorded.</p>
       </div>
 
+      <section class="emergency-section" *ngIf="!loading && emergencyRequests.length > 0">
+        <h2>Open emergency requests</h2>
+        <p class="entry-hint">Satisfy an urgent request, then return here to record regular gifts.</p>
+        <div class="request-list">
+          <button
+            type="button"
+            class="request-row"
+            *ngFor="let item of emergencyRequests"
+            (click)="openEmergencyRequest(item)">
+            <div class="request-main">
+              <p class="request-name">{{ item.requesterUsername }}</p>
+              <p class="request-purpose">{{ item.purposePreview }}</p>
+              <p class="request-amount">${{ item.amountRemaining }} remaining of ${{ item.amountNeeded }}</p>
+            </div>
+            <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
       <form [formGroup]="form" *ngIf="!loading">
         <div class="gift-entry custom-entry">
           <h2>Custom gift</h2>

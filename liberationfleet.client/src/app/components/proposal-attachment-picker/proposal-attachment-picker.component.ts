@@ -113,9 +113,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       }
 
       try {
-        const compressed = result.kind === 'audio'
-          ? file
-          : await compressMediaFile(file, result.kind);
+        const compressed = await compressMediaFile(file, result.kind);
         this.attachments.push({
           file: compressed,
           type: result.kind,
@@ -208,13 +206,31 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       return;
     }
 
-    this.attachments.push({
-      blob,
-      type: 'audio',
-      resourceId: this.proposalCrypto.createResourceId(),
-      previewUrl: URL.createObjectURL(blob)
-    });
-    this.cdr.markForCheck();
-    this.attachmentsChange.emit();
+    void this.compressAndAddAudio(blob);
+  }
+
+  private async compressAndAddAudio(blob: Blob) {
+    try {
+      const raw = new File([blob], `recording-${Date.now()}.webm`, {
+        type: blob.type || 'audio/webm',
+        lastModified: Date.now()
+      });
+      const compressed = await compressMediaFile(raw, 'audio');
+      if (compressed.size > MAX_AUDIO_BYTES) {
+        this.toastService.error('Recording is too large.');
+        return;
+      }
+
+      this.attachments.push({
+        file: compressed,
+        type: 'audio',
+        resourceId: this.proposalCrypto.createResourceId(),
+        previewUrl: URL.createObjectURL(compressed)
+      });
+      this.cdr.markForCheck();
+      this.attachmentsChange.emit();
+    } catch {
+      this.toastService.error('Failed to process recording.');
+    }
   }
 }

@@ -27,6 +27,7 @@ public class GetCrewProposalsQueryHandler(
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
     CrewmatePermissionProposalService crewmatePermissionProposalService,
+    CrewmateAidStatProposalService crewmateAidStatProposalService,
     CrewApplyToFleetProposalService crewApplyToFleetProposalService,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     FleetKickCrewProposalService fleetKickCrewProposalService,
@@ -67,9 +68,10 @@ public class GetCrewProposalsQueryHandler(
                 crewmateRejoinProposalService,
                 crewJoinRequestProposalService,
                 crewRoleProposalService,
-                claimPlaceholderIdentityProposalService,
-                crewmatePermissionProposalService,
-                crewApplyToFleetProposalService,
+            claimPlaceholderIdentityProposalService,
+            crewmatePermissionProposalService,
+            crewmateAidStatProposalService,
+            crewApplyToFleetProposalService,
                 fleetJoinRequestProposalService,
                 fleetKickCrewProposalService,
                 fleetSettingsProposalService,
@@ -132,6 +134,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewmatePermissionGrant).Select(p => p.Id),
             cancellationToken);
 
+        var crewmateAidStatChanges = await proposalRepository.GetCrewmateAidStatChangesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewmateAidStatChange).Select(p => p.Id),
+            cancellationToken);
+
         var crewApplyToFleets = await proposalRepository.GetCrewApplyToFleetsByProposalIdsAsync(
             proposals.Where(p => p.Kind == ProposalKind.CrewApplyToFleet).Select(p => p.Id),
             cancellationToken);
@@ -154,6 +160,7 @@ public class GetCrewProposalsQueryHandler(
             crewRoleChanges.TryGetValue(proposal.Id, out var crewRoleChange);
             claimPlaceholderIdentities.TryGetValue(proposal.Id, out var claimPlaceholderIdentity);
             crewmatePermissionGrants.TryGetValue(proposal.Id, out var crewmatePermissionGrant);
+            crewmateAidStatChanges.TryGetValue(proposal.Id, out var crewmateAidStatChange);
             crewApplyToFleets.TryGetValue(proposal.Id, out var crewApplyToFleet);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
@@ -169,6 +176,7 @@ public class GetCrewProposalsQueryHandler(
                 crewRoleChange,
                 claimPlaceholderIdentity,
                 crewmatePermissionGrant,
+                crewmateAidStatChange,
                 currentUserVote,
                 crewApplyToFleet: crewApplyToFleet));
         }

@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
@@ -8,14 +9,14 @@ import { KickReasonDialogComponent } from '../../../components/kick-reason-dialo
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
-import { CrewmateProfile } from '../../../models/crewmate.model';
+import { CrewmateAidStatField, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
 import { CrewService } from '../../../services/crew.service';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent, ReportContentDialogComponent, UserAvatarComponent],
+  imports: [CommonModule, FormsModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent, ReportContentDialogComponent, UserAvatarComponent],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'
 })
@@ -33,6 +34,16 @@ export class CrewmateDetailComponent implements OnInit {
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
+
+  aidDraft = {
+    estimatedMonthlyContribution: '',
+    lifetimeContributions: '',
+    receptionThisYear: '',
+    totalReceptionAmount: '',
+    survivalThresholdReceived: '',
+    cycleReceived: '',
+    cycleCompleted: false
+  };
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -325,6 +336,141 @@ export class CrewmateDetailComponent implements OnInit {
     });
   }
 
+  onProposeAidStatChanges() {
+    if (!this.profile || this.actionLoading || !this.profile.canProposeAidStatEdits) {
+      return;
+    }
+
+    let changes: ProposeCrewmateAidStatChangeItem[];
+    try {
+      changes = this.buildAidStatChanges();
+    } catch (error) {
+      this.toastService.error(error instanceof Error ? error.message : 'Invalid aid statistic values.');
+      return;
+    }
+
+    if (changes.length === 0) {
+      this.toastService.error('Change at least one aid statistic before proposing.');
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.proposeAidStatChange(this.userId, changes).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to submit aid statistic proposal');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(response.message || 'Aid statistic change proposal submitted');
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to submit aid statistic proposal');
+      }
+    });
+  }
+
+    private buildAidStatChanges(): ProposeCrewmateAidStatChangeItem[] {
+    if (!this.profile) {
+      return [];
+    }
+
+    const changes: ProposeCrewmateAidStatChangeItem[] = [];
+    const pushIfChanged = (
+      field: CrewmateAidStatField,
+      draft: string,
+      current: number | null | undefined
+    ) => {
+      const trimmed = draft.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      const next = Number(trimmed);
+      if (!Number.isFinite(next) || next < 0) {
+        throw new Error(`Enter a valid non-negative amount for ${field}.`);
+      }
+
+      const currentValue = current ?? null;
+      if (currentValue !== null && Math.abs(currentValue - next) < 0.0001) {
+        return;
+      }
+
+      changes.push({ field, newValue: next.toFixed(2) });
+    };
+
+    pushIfChanged(
+      'EstimatedMonthlyContribution',
+      this.aidDraft.estimatedMonthlyContribution,
+      this.profile.estimatedMonthlyContribution
+    );
+    pushIfChanged(
+      'LifetimeContributions',
+      this.aidDraft.lifetimeContributions,
+      this.profile.lifetimeContributions
+    );
+    pushIfChanged(
+      'ReceptionThisYear',
+      this.aidDraft.receptionThisYear,
+      this.profile.receptionThisYear
+    );
+
+    if (this.profile.hasActiveSeasonCycle) {
+      pushIfChanged(
+        'TotalReceptionAmount',
+        this.aidDraft.totalReceptionAmount,
+        this.profile.totalReceptionAmount
+      );
+      pushIfChanged(
+        'SurvivalThresholdReceived',
+        this.aidDraft.survivalThresholdReceived,
+        this.profile.survivalThresholdReceived
+      );
+      pushIfChanged(
+        'CycleReceived',
+        this.aidDraft.cycleReceived,
+        this.profile.cycleReceived
+      );
+
+      const currentCycleCompleted = this.profile.cycleCompleted === true;
+      if (this.aidDraft.cycleCompleted !== currentCycleCompleted) {
+        changes.push({
+          field: 'CycleCompleted',
+          newValue: this.aidDraft.cycleCompleted ? 'true' : 'false'
+        });
+      }
+    }
+
+    return changes;
+  }
+
+  private syncAidDraftFromProfile() {
+    if (!this.profile) {
+      return;
+    }
+
+    const money = (value: number | null | undefined) =>
+      value == null ? '' : String(value);
+
+    this.aidDraft = {
+      estimatedMonthlyContribution: money(this.profile.estimatedMonthlyContribution),
+      lifetimeContributions: money(this.profile.lifetimeContributions),
+      receptionThisYear: money(this.profile.receptionThisYear),
+      totalReceptionAmount: money(this.profile.totalReceptionAmount),
+      survivalThresholdReceived: money(this.profile.survivalThresholdReceived),
+      cycleReceived: money(this.profile.cycleReceived),
+      cycleCompleted: this.profile.cycleCompleted === true
+    };
+  }
+
   onConfirmBlock() {
     this.showBlockDialog = false;
     this.runAction(() => this.crewmateService.blockCrewmate(this.userId));
@@ -346,6 +492,7 @@ export class CrewmateDetailComponent implements OnInit {
         } else {
           this.profile = response.profile;
           this.selectedRoles.clear();
+          this.syncAidDraftFromProfile();
           this.updateActionButtons();
         }
         this.loading = false;

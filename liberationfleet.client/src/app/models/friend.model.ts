@@ -76,6 +76,7 @@ export interface DirectMessageListResponse {
   items: DirectMessage[];
   hasMore: boolean;
   friendUsername: string;
+  friendAvatarResourceId?: string | null;
 }
 
 export interface DirectMessageOperationResponse {

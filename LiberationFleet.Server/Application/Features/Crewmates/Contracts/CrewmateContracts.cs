@@ -101,6 +101,24 @@ public class CrewmateProfileDto
     public bool IsPlaceholderMember { get; set; }
     public bool IsInSeason { get; set; }
     public bool CanClaimIdentity { get; set; }
+    public bool CanProposeAidStatEdits { get; set; }
+    public decimal? EstimatedMonthlyContribution { get; set; }
+    public decimal? TotalReceptionAmount { get; set; }
+    public decimal? SurvivalThresholdReceived { get; set; }
+    public decimal? CycleReceived { get; set; }
+    public bool? CycleCompleted { get; set; }
+    public bool HasActiveSeasonCycle { get; set; }
+}
+
+public class ProposeCrewmateAidStatChangeItemDto
+{
+    public string Field { get; set; } = string.Empty;
+    public string NewValue { get; set; } = string.Empty;
+}
+
+public class ProposeCrewmateAidStatChangeRequest
+{
+    public List<ProposeCrewmateAidStatChangeItemDto> Changes { get; set; } = [];
 }
 
 public class CrewmateElectedRoleDto

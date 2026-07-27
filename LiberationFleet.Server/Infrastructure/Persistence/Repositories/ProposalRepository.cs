@@ -525,6 +525,48 @@ public class ProposalRepository : IProposalRepository
                 && g.Proposal.Kind == ProposalKind.CrewmatePermissionGrant)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task AddCrewmateAidStatChangeAsync(
+        ProposalCrewmateAidStatChange change,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewmateAidStatChanges.AddAsync(change, cancellationToken);
+
+    public Task<ProposalCrewmateAidStatChange?> GetCrewmateAidStatChangeByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewmateAidStatChanges
+            .FirstOrDefaultAsync(c => c.ProposalId == proposalId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewmateAidStatChange>> GetCrewmateAidStatChangesByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewmateAidStatChange>();
+        }
+
+        var changes = await _context.ProposalCrewmateAidStatChanges
+            .Where(c => ids.Contains(c.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return changes.ToDictionary(c => c.ProposalId);
+    }
+
+    public Task<ProposalCrewmateAidStatChange?> GetPendingCrewmateAidStatChangeForTargetAsync(
+        int crewId,
+        int targetUserId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewmateAidStatChanges
+            .Include(c => c.Proposal)
+            .Where(c =>
+                c.TargetUserId == targetUserId
+                && c.Proposal.CrewId == crewId
+                && !c.Proposal.IsDeleted
+                && c.Proposal.Status == ProposalStatus.Pending
+                && c.Proposal.Kind == ProposalKind.CrewmateAidStatChange)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<ProposalCrewApplyToFleet?> GetCrewApplyToFleetByProposalIdAsync(
         int proposalId,
         CancellationToken cancellationToken = default) =>

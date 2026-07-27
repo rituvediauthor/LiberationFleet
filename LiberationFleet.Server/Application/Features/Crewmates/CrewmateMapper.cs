@@ -103,9 +103,11 @@ public static class CrewmateMapper
         CrewmateFriendshipStateDto friendshipState,
         bool isSelf,
         int tenureDays,
-        bool canClaimIdentity = false)
+        bool canClaimIdentity = false,
+        SeasonCycle? seasonCycle = null)
     {
-        var lifetimeContributions = giftStats.LifetimeContributions;
+        var lifetimeContributions = membership.LifetimeContributionOverride ?? giftStats.LifetimeContributions;
+        var receptionThisYear = membership.ReceptionThisYearOverride ?? giftStats.ReceptionThisYear;
         var canAttachFilesToCrewContent = CrewContentPermissionService.CanAttachFilesToCrewContent(
             crew,
             membership,
@@ -129,7 +131,7 @@ public static class CrewmateMapper
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = lifetimeContributions,
-            ReceptionThisYear = giftStats.ReceptionThisYear,
+            ReceptionThisYear = receptionThisYear,
             PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
             InNeedOfAid = crewmate.InNeedOfAid,
             EmergencyLevel = crewmate.EmergencyLevel,
@@ -152,7 +154,14 @@ public static class CrewmateMapper
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(viewerMembership),
             IsPlaceholderMember = membership.IsPlaceholderMember,
             IsInSeason = membership.IsInSeason,
-            CanClaimIdentity = canClaimIdentity
+            CanClaimIdentity = canClaimIdentity,
+            CanProposeAidStatEdits = CrewRoleAuthorizationService.CanProposeCrewmateAidStatEdits(viewerMembership),
+            EstimatedMonthlyContribution = membership.EstimatedMonthlyContribution,
+            TotalReceptionAmount = seasonCycle?.TotalReceptionAmount,
+            SurvivalThresholdReceived = seasonCycle?.SurvivalThresholdReceived,
+            CycleReceived = seasonCycle?.CycleReceived,
+            CycleCompleted = seasonCycle?.CycleCompleted,
+            HasActiveSeasonCycle = seasonCycle is not null || crew.CurrentSeasonStartDate.HasValue
         };
     }
 }

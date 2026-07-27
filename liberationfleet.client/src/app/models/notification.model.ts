@@ -32,7 +32,8 @@ export type NotificationKind =
   | 'FleetSettingChanged'
   | 'NewFleetChatMessage'
   | 'NewFleetForumPost'
-  | 'NewFleetForumComment';
+  | 'NewFleetForumComment'
+  | 'NewEmergencyRequest';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 

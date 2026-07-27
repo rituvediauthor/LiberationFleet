@@ -303,3 +303,49 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+.aid-stat-section .hint-text {
+  margin-bottom: 14px;
+}
+
+.aid-stat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.aid-stat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lf-color-text-secondary);
+}
+
+.aid-stat-field .form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-primary);
+  font-size: 16px;
+}
+
+.aid-stat-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+  margin-top: 4px;
+}
+
+.aid-stat-checkbox input {
+  width: 18px;
+  height: 18px;
+}

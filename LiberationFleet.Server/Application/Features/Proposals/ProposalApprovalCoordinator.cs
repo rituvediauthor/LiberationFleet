@@ -21,6 +21,7 @@ public static class ProposalApprovalCoordinator
         CrewRoleProposalService crewRoleProposalService,
         ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
         CrewmatePermissionProposalService crewmatePermissionProposalService,
+        CrewmateAidStatProposalService crewmateAidStatProposalService,
         CrewApplyToFleetProposalService crewApplyToFleetProposalService,
         FleetJoinRequestProposalService fleetJoinRequestProposalService,
         FleetKickCrewProposalService fleetKickCrewProposalService,
@@ -42,6 +43,7 @@ public static class ProposalApprovalCoordinator
         await crewRoleProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await claimPlaceholderIdentityProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await crewmatePermissionProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        await crewmateAidStatProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await crewApplyToFleetProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await fleetJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
         await fleetKickCrewProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);

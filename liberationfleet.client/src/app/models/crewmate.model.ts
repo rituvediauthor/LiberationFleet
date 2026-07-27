@@ -88,6 +88,27 @@ export interface CrewmateProfile {
   isPlaceholderMember: boolean;
   canClaimIdentity: boolean;
   isInSeason?: boolean;
+  canProposeAidStatEdits?: boolean;
+  estimatedMonthlyContribution?: number | null;
+  totalReceptionAmount?: number | null;
+  survivalThresholdReceived?: number | null;
+  cycleReceived?: number | null;
+  cycleCompleted?: boolean | null;
+  hasActiveSeasonCycle?: boolean;
+}
+
+export type CrewmateAidStatField =
+  | 'EstimatedMonthlyContribution'
+  | 'LifetimeContributions'
+  | 'ReceptionThisYear'
+  | 'TotalReceptionAmount'
+  | 'SurvivalThresholdReceived'
+  | 'CycleReceived'
+  | 'CycleCompleted';
+
+export interface ProposeCrewmateAidStatChangeItem {
+  field: CrewmateAidStatField;
+  newValue: string;
 }
 
 export interface CrewmateProfileResponse {

@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Chats;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
@@ -8,7 +9,8 @@ namespace LiberationFleet.Server.Hubs;
 [Authorize]
 public class ChatHub(
     ICrewMembershipRepository membershipRepository,
-    IChatRepository chatRepository) : Hub
+    IChatRepository chatRepository,
+    IFleetRepository fleetRepository) : Hub
 {
     public async Task JoinCrew(int crewId)
     {
@@ -36,7 +38,13 @@ public class ChatHub(
             throw new HubException("You are not in a crew.");
         }
 
-        if (!await chatRepository.RoomBelongsToCrewAsync(roomId, membership.CrewId, Context.ConnectionAborted))
+        var room = await chatRepository.GetRoomByIdAsync(roomId, Context.ConnectionAborted);
+        if (room is null || room.IsDeleted
+            || !await ChatRoomAccess.CanAccessRoomAsync(
+                room,
+                membership,
+                fleetRepository,
+                Context.ConnectionAborted))
         {
             throw new HubException("Chat room not found.");
         }

@@ -173,6 +173,8 @@
 .card-slideshow {
   width: 100%;
   padding: 0 14px;
+  display: flex;
+  justify-content: center;
 }
 
 .card-preview {

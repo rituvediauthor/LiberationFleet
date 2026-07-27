@@ -27,6 +27,7 @@ public class GetProposalDetailQueryHandler(
     CrewRoleProposalService crewRoleProposalService,
     ClaimPlaceholderIdentityProposalService claimPlaceholderIdentityProposalService,
     CrewmatePermissionProposalService crewmatePermissionProposalService,
+    CrewmateAidStatProposalService crewmateAidStatProposalService,
     CrewApplyToFleetProposalService crewApplyToFleetProposalService,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     FleetKickCrewProposalService fleetKickCrewProposalService,
@@ -83,6 +84,7 @@ public class GetProposalDetailQueryHandler(
             crewRoleProposalService,
             claimPlaceholderIdentityProposalService,
             crewmatePermissionProposalService,
+            crewmateAidStatProposalService,
             crewApplyToFleetProposalService,
             fleetJoinRequestProposalService,
             fleetKickCrewProposalService,
@@ -134,6 +136,10 @@ public class GetProposalDetailQueryHandler(
 
         var crewmatePermissionGrant = proposal.Kind == ProposalKind.CrewmatePermissionGrant
             ? await proposalRepository.GetCrewmatePermissionGrantByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewmateAidStatChange = proposal.Kind == ProposalKind.CrewmateAidStatChange
+            ? await proposalRepository.GetCrewmateAidStatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
         var fleetRuleChange = proposal.Kind == ProposalKind.FleetRuleChange
@@ -250,6 +256,7 @@ public class GetProposalDetailQueryHandler(
                 crewRoleChange,
                 claimPlaceholderIdentity,
                 crewmatePermissionGrant,
+                crewmateAidStatChange,
                 currentUserVote,
                 viewerAlias,
                 aliasRerollsRemaining,

@@ -37,7 +37,7 @@
     <p *ngIf="!loading && !errorMessage && friends.length === 0" class="state-text">No friends found.</p>
 
     <div class="friend-list" *ngIf="!loading && friends.length > 0">
-      <div class="friend-card" *ngFor="let friend of friends">
+      <div class="friend-card" *ngFor="let friend of friends" [class.menu-open]="openMenuUserId === friend.userId">
         <button type="button" class="friend-open" (click)="openFriend(friend)">
           <div class="friend-main">
             <p class="friend-name">

@@ -136,11 +136,17 @@
           <span class="readonly-label">Membership status</span>
           <span class="readonly-value">{{ profile.membershipStatus ? 'Active' : 'Inactive' }}</span>
         </div>
-        <div class="readonly-item">
+        <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
+          <span class="readonly-label">Monthly giving capacity</span>
+          <span class="readonly-value">
+            {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
+          </span>
+        </div>
+        <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
           <span class="readonly-label">Lifetime contributions</span>
           <span class="readonly-value">${{ profile.lifetimeContributions }}</span>
         </div>
-        <div class="readonly-item">
+        <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
           <span class="readonly-label">Reception this year</span>
           <span class="readonly-value">${{ profile.receptionThisYear }}</span>
         </div>
@@ -168,7 +174,85 @@
           <span class="readonly-label">Survival threshold recipient</span>
           <span class="readonly-value">{{ profile.isSurvivalThresholdRecipient ? 'Yes' : 'No' }}</span>
         </div>
+        <ng-container *ngIf="!profile.canProposeAidStatEdits">
+          <div class="readonly-item">
+            <span class="readonly-label">Total reception (season)</span>
+            <span class="readonly-value">
+              {{ profile.totalReceptionAmount != null ? ('$' + profile.totalReceptionAmount) : '—' }}
+            </span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Survival reception (season)</span>
+            <span class="readonly-value">
+              {{ profile.survivalThresholdReceived != null ? ('$' + profile.survivalThresholdReceived) : '—' }}
+            </span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Cycle reception (season)</span>
+            <span class="readonly-value">
+              {{ profile.cycleReceived != null ? ('$' + profile.cycleReceived) : '—' }}
+            </span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Cycle completed this season</span>
+            <span class="readonly-value">
+              {{ profile.cycleCompleted == null ? '—' : (profile.cycleCompleted ? 'Yes' : 'No') }}
+            </span>
+          </div>
+        </ng-container>
       </div>
+
+      <section class="section aid-stat-section" *ngIf="profile.canProposeAidStatEdits">
+        <h2>Aid history adjustments</h2>
+        <p class="hint-text">
+          Propose updates for crews joining mid-season with existing contribution and reception history.
+          Changes require crew approval.
+        </p>
+
+        <div class="aid-stat-form">
+          <label class="aid-stat-field">
+            <span>Monthly giving capacity ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.estimatedMonthlyContribution" class="form-input">
+          </label>
+          <label class="aid-stat-field">
+            <span>Lifetime contributions ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.lifetimeContributions" class="form-input">
+          </label>
+          <label class="aid-stat-field">
+            <span>Reception this year ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.receptionThisYear" class="form-input">
+          </label>
+          <ng-container *ngIf="profile.hasActiveSeasonCycle">
+            <label class="aid-stat-field">
+              <span>Total reception this season ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.totalReceptionAmount" class="form-input">
+            </label>
+            <label class="aid-stat-field">
+              <span>Survival reception this season ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.survivalThresholdReceived" class="form-input">
+            </label>
+            <label class="aid-stat-field">
+              <span>Cycle reception this season ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" class="form-input">
+            </label>
+            <label class="aid-stat-checkbox">
+              <input type="checkbox" [(ngModel)]="aidDraft.cycleCompleted">
+              <span>Cycle completed this season</span>
+            </label>
+          </ng-container>
+          <p class="hint-text" *ngIf="!profile.hasActiveSeasonCycle">
+            Season cycle reception fields become available after the crew starts a season.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="export-btn"
+          [disabled]="actionLoading"
+          (click)="onProposeAidStatChanges()">
+          Propose aid statistic changes
+        </button>
+      </section>
 
       <div class="moderation-actions" *ngIf="!profile.isSelf">
         <div class="block-section" *ngIf="!profile.isPlaceholderMember">

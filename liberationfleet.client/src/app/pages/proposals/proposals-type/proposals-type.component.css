@@ -1,3 +1,8 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
 .proposals-type-page {
   width: 100%;
   max-width: 480px;

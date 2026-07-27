@@ -1,4 +1,10 @@
 <div class="proposal-detail-page" *ngIf="!loading && proposal as p">
+  <header class="conversation-header">
+    <div class="conversation-header-inner">
+      <h1 class="conversation-header-title">{{ p.title || 'Proposal' }}</h1>
+    </div>
+  </header>
+
   <div class="detail-scroll">
     <div class="scroll-page-body">
     <div class="detail-hero" *ngIf="carouselImages.length > 0 && !editing">
@@ -26,7 +32,6 @@
             <span>·</span>
             <span>{{ p.createdAt | date:'medium' }}</span>
           </p>
-          <h1>{{ p.title }}</h1>
           <p class="vote-summary">
             <span class="approve">{{ p.approveCount }} approve</span>
             <span class="disapprove">{{ p.disapproveCount }} disapprove</span>
@@ -248,6 +253,7 @@
   </div>
 
   <div class="detail-action-bar" *ngIf="!editing">
+    <div class="detail-action-bar-surface">
     <div class="detail-action-bar-main">
       <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
         <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
@@ -324,6 +330,8 @@
         regenerate
       </button>
     </p>
+    </div>
+    <div class="lf-safe-bottom" aria-hidden="true"></div>
   </div>
 </div>
 
