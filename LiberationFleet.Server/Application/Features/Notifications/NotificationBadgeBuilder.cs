@@ -138,7 +138,9 @@ public static class NotificationBadgeBuilder
             or NotificationKind.NewReply
             or NotificationKind.Mention
             or NotificationKind.NewFleetForumPost
-            or NotificationKind.NewFleetForumComment;
+            or NotificationKind.NewFleetForumComment
+            or NotificationKind.ForumPostLiked
+            or NotificationKind.ForumCommentLiked;
 
     private static string? ResolveArea(Notification notification)
     {
@@ -204,7 +206,8 @@ public static class NotificationBadgeBuilder
         {
             NotificationKind.NewChatMessage or NotificationKind.NewFleetChatMessage => "chats",
             NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply
-                or NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment => "forums",
+                or NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment
+                or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked => "forums",
             NotificationKind.NewProposal or NotificationKind.NewFleetProposal
                 or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted => "proposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason

@@ -33,7 +33,9 @@ export type NotificationKind =
   | 'NewFleetChatMessage'
   | 'NewFleetForumPost'
   | 'NewFleetForumComment'
-  | 'NewEmergencyRequest';
+  | 'NewEmergencyRequest'
+  | 'ForumPostLiked'
+  | 'ForumCommentLiked';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 

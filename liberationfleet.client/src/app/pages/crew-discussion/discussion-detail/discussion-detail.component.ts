@@ -30,6 +30,8 @@ import { MentionAutocompleteDirective } from '../../../directives/mention-autoco
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { ForumEngagementBarComponent } from '../../../components/forum-engagement-bar/forum-engagement-bar.component';
+import { ForumCommentLikeComponent } from '../../../components/forum-comment-like/forum-comment-like.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
@@ -46,7 +48,9 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     MentionAutocompleteDirective,
     MentionTextComponent,
     ReportContentDialogComponent,
-    UserAvatarComponent
+    UserAvatarComponent,
+    ForumEngagementBarComponent,
+    ForumCommentLikeComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
@@ -70,6 +74,8 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   posting = false;
   savingEdit = false;
   editing = false;
+  likingPost = false;
+  likingCommentId: number | null = null;
   editTitle = '';
   editDescription = '';
   editMentionedUserIds: number[] = [];
@@ -461,6 +467,50 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
       this.posting = false;
       this.toastService.error('Failed to encrypt comment');
     }
+  }
+
+  togglePostLike() {
+    if (!this.post || this.likingPost) {
+      return;
+    }
+    this.likingPost = true;
+    this.discussionService.togglePostLike(this.config, this.post.id).subscribe({
+      next: response => {
+        this.likingPost = false;
+        if (!response.success || !this.post) {
+          this.toastService.error(response.message || 'Failed to update like');
+          return;
+        }
+        this.post.likedByCurrentUser = response.liked;
+        this.post.likeCount = response.likeCount;
+      },
+      error: () => {
+        this.likingPost = false;
+        this.toastService.error('Failed to update like');
+      }
+    });
+  }
+
+  toggleCommentLike(comment: DiscussionComment) {
+    if (!this.post || this.likingCommentId === comment.id) {
+      return;
+    }
+    this.likingCommentId = comment.id;
+    this.discussionService.toggleCommentLike(this.config, this.post.id, comment.id).subscribe({
+      next: response => {
+        this.likingCommentId = null;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update like');
+          return;
+        }
+        comment.likedByCurrentUser = response.liked;
+        comment.likeCount = response.likeCount;
+      },
+      error: () => {
+        this.likingCommentId = null;
+        this.toastService.error('Failed to update like');
+      }
+    });
   }
 
   toggleReplies(comment: DiscussionComment) {

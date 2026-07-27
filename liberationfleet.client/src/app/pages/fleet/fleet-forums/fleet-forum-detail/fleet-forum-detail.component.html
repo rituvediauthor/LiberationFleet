@@ -96,6 +96,16 @@
         <p class="description"><app-mention-text [text]="p.description ?? p.body ?? ''" /></p>
       </div>
 
+      <app-forum-engagement-bar
+        *ngIf="!editing"
+        [likeCount]="p.likeCount ?? 0"
+        [liked]="!!p.likedByCurrentUser"
+        [commentCount]="p.commentCount ?? 0"
+        [commentClickable]="false"
+        [likeBusy]="likingPost"
+        (likeClick)="togglePostLike()">
+      </app-forum-engagement-bar>
+
       <app-proposal-attachment-display
         *ngIf="!editing && nonImageAttachments.length > 0"
         [attachments]="nonImageAttachments">
@@ -125,7 +135,14 @@
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
             </p>
-            <div class="menu-wrap">
+            <div class="comment-header-actions">
+              <app-forum-comment-like
+                [likeCount]="comment.likeCount ?? 0"
+                [liked]="!!comment.likedByCurrentUser"
+                [busy]="likingCommentId === comment.id"
+                (likeClick)="toggleCommentLike(comment)">
+              </app-forum-comment-like>
+              <div class="menu-wrap">
               <button
                 type="button"
                 class="icon-btn"
@@ -143,6 +160,7 @@
                 (keydown.escape)="closeMenus()">
                 <button type="button" role="menuitem" *ngIf="isOwnComment(comment)" (click)="startEditComment(comment, null, $event)">Edit</button>
                 <button type="button" role="menuitem" *ngIf="!isOwnComment(comment)" (click)="openReportComment(comment, null, $event)">Report</button>
+              </div>
               </div>
             </div>
           </div>
@@ -177,7 +195,14 @@
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
                 </p>
-                <div class="menu-wrap">
+                <div class="comment-header-actions">
+                  <app-forum-comment-like
+                    [likeCount]="reply.likeCount ?? 0"
+                    [liked]="!!reply.likedByCurrentUser"
+                    [busy]="likingCommentId === reply.id"
+                    (likeClick)="toggleCommentLike(reply)">
+                  </app-forum-comment-like>
+                  <div class="menu-wrap">
                   <button
                     type="button"
                     class="icon-btn"
@@ -195,6 +220,7 @@
                     (keydown.escape)="closeMenus()">
                     <button type="button" role="menuitem" *ngIf="isOwnComment(reply)" (click)="startEditComment(reply, comment.id, $event)">Edit</button>
                     <button type="button" role="menuitem" *ngIf="!isOwnComment(reply)" (click)="openReportComment(reply, comment.id, $event)">Report</button>
+                  </div>
                   </div>
                 </div>
               </div>

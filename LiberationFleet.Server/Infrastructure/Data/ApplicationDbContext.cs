@@ -60,6 +60,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
     public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
     public DbSet<ForumComment> ForumComments => Set<ForumComment>();
+    public DbSet<ForumLike> ForumLikes => Set<ForumLike>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
     public DbSet<VoiceParticipantSession> VoiceParticipantSessions => Set<VoiceParticipantSession>();
@@ -969,6 +970,35 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany(c => c.Replies)
                 .HasForeignKey(e => e.ParentCommentId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ForumLike>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AuthorNotified).HasDefaultValue(false);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_ForumLikes_PostOrComment",
+                "([ForumPostId] IS NOT NULL AND [ForumCommentId] IS NULL) OR ([ForumPostId] IS NULL AND [ForumCommentId] IS NOT NULL)"));
+            entity.HasIndex(e => new { e.UserId, e.ForumPostId })
+                .IsUnique()
+                .HasFilter("[ForumPostId] IS NOT NULL");
+            entity.HasIndex(e => new { e.UserId, e.ForumCommentId })
+                .IsUnique()
+                .HasFilter("[ForumCommentId] IS NOT NULL");
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ForumPost)
+                .WithMany()
+                .HasForeignKey(e => e.ForumPostId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            entity.HasOne(e => e.ForumComment)
+                .WithMany()
+                .HasForeignKey(e => e.ForumCommentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<ChatRoom>(entity =>

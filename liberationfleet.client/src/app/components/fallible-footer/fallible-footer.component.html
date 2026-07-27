@@ -1,4 +1,7 @@
-<footer class="fallible-footer" aria-label="Fallible attribution">
+<footer
+  *ngIf="showAttribution$ | async"
+  class="fallible-footer"
+  aria-label="Fallible attribution">
   <button
     type="button"
     class="fallible-box-btn"

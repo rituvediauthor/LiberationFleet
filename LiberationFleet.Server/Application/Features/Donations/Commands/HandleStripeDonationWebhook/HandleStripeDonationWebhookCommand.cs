@@ -20,6 +20,7 @@ public class HandleStripeDonationWebhookResponse
 
 public class HandleStripeDonationWebhookCommandHandler(
     IAppDonationRepository donationRepository,
+    IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IOptions<StripeDonationOptions> stripeOptions) : IRequestHandler<HandleStripeDonationWebhookCommand, HandleStripeDonationWebhookResponse>
 {
@@ -98,6 +99,15 @@ public class HandleStripeDonationWebhookCommandHandler(
         if (session.AmountTotal is long amount && amount > 0)
         {
             donation.AmountCents = amount;
+        }
+
+        var user = await userRepository.GetByIdWithProfileAsync(donation.UserId, cancellationToken);
+        if (user is not null)
+        {
+            user.DonationCampaignUrgencyPhase = 0;
+            user.DonationCampaignPhaseShownCount = 0;
+            user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
+            await userRepository.UpdateAsync(user, cancellationToken);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

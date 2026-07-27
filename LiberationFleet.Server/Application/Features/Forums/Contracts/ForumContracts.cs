@@ -14,6 +14,9 @@ public class ForumListItemDto
     public string? Title { get; set; }
     public string? Body { get; set; }
     public bool IsAdultContent { get; set; }
+    public int LikeCount { get; set; }
+    public bool LikedByCurrentUser { get; set; }
+    public int CommentCount { get; set; }
 }
 
 public class ForumDetailDto : ForumListItemDto
@@ -38,6 +41,8 @@ public class ForumCommentDto
     public bool HasEncryptedContent { get; set; }
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
     public string? Body { get; set; }
+    public int LikeCount { get; set; }
+    public bool LikedByCurrentUser { get; set; }
 }
 
 public class ForumListResponse
@@ -139,4 +144,12 @@ public class ForumCommentRepliesResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public IReadOnlyList<ForumCommentDto> Items { get; set; } = Array.Empty<ForumCommentDto>();
+}
+
+public class ForumLikeToggleResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public bool Liked { get; set; }
+    public int LikeCount { get; set; }
 }

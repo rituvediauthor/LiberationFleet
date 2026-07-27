@@ -72,18 +72,38 @@ public class GetForumPostDetailQueryHandler(
             cancellationToken: cancellationToken);
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
+        var topLevelIds = topLevel.Select(c => c.Id).ToList();
+        var commentLikeCounts = await forumRepository.GetActiveLikeCountsForCommentsAsync(topLevelIds, cancellationToken);
+        var likedCommentIds = await forumRepository.GetActiveLikedCommentIdsByUserAsync(userId, topLevelIds, cancellationToken);
+        var postLikeCounts = await forumRepository.GetActiveLikeCountsForPostsAsync([post.Id], cancellationToken);
+        var likedPostIds = await forumRepository.GetActiveLikedPostIdsByUserAsync(userId, [post.Id], cancellationToken);
+        postLikeCounts.TryGetValue(post.Id, out var postLikeCount);
+
         var commentDtos = topLevel.Select(comment =>
         {
             commentEnvelopeById.TryGetValue(comment.Id.ToString(), out var envelope);
             var replyCount = visibleComments.Count(c => c.ParentCommentId == comment.Id);
-            return ForumMapper.MapComment(comment, envelope, replyCount);
+            commentLikeCounts.TryGetValue(comment.Id, out var likeCount);
+            return ForumMapper.MapComment(
+                comment,
+                envelope,
+                replyCount,
+                likeCount: likeCount,
+                likedByCurrentUser: likedCommentIds.Contains(comment.Id));
         }).ToList();
 
         return new ForumDetailResponse
         {
             Success = true,
             Message = "Forum post loaded.",
-            Post = ForumMapper.MapDetail(post, postEnvelope, commentDtos, userId)
+            Post = ForumMapper.MapDetail(
+                post,
+                postEnvelope,
+                commentDtos,
+                userId,
+                postLikeCount,
+                likedPostIds.Contains(post.Id),
+                visibleComments.Count)
         };
     }
 }

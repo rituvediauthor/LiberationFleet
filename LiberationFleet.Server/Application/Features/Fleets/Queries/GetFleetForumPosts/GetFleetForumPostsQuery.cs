@@ -54,10 +54,22 @@ public class GetFleetForumPostsQueryHandler(
             cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
+        var postIds = posts.Select(p => p.Id).ToList();
+        var likeCounts = await forumRepository.GetActiveLikeCountsForPostsAsync(postIds, cancellationToken);
+        var likedPostIds = await forumRepository.GetActiveLikedPostIdsByUserAsync(userId, postIds, cancellationToken);
+        var commentCounts = await forumRepository.GetCommentCountsForPostsAsync(postIds, cancellationToken);
+
         var items = posts.Select(post =>
         {
             envelopeById.TryGetValue(post.Id.ToString(), out var envelope);
-            return ForumMapper.MapListItem(post, envelope);
+            likeCounts.TryGetValue(post.Id, out var likeCount);
+            commentCounts.TryGetValue(post.Id, out var commentCount);
+            return ForumMapper.MapListItem(
+                post,
+                envelope,
+                likeCount,
+                likedPostIds.Contains(post.Id),
+                commentCount);
         }).ToList();
 
         return new ForumListResponse

@@ -1,8 +1,11 @@
+export type DonationCampaignUrgency = 'normal' | 'yellow' | 'red';
+
 export interface DonationCampaignPrompt {
   show: boolean;
   messageVariant: 'crew' | 'fleet' | string;
   message: string;
   donationsEnabled: boolean;
+  urgency?: DonationCampaignUrgency | string;
 }
 
 export interface DonationCheckoutResponse {

@@ -163,6 +163,8 @@ public class NotificationService(
         NotificationKind.NewFleetForumPost => "New fleet forum post",
         NotificationKind.NewFleetForumComment => "New fleet forum comment",
         NotificationKind.NewEmergencyRequest => "Emergency request",
+        NotificationKind.ForumPostLiked => "Forum post liked",
+        NotificationKind.ForumCommentLiked => "Forum comment liked",
         _ => kind.ToString()
     };
 

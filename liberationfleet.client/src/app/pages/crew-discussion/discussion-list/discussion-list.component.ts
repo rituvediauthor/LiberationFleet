@@ -6,6 +6,7 @@ import { ContentBadgeComponent } from '../../../components/content-badge/content
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { ForumEngagementBarComponent } from '../../../components/forum-engagement-bar/forum-engagement-bar.component';
 import { CrewDiscussionService } from '../../../services/crew-discussion.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -29,7 +30,8 @@ import { NavigationService } from '../../../services/navigation.service';
     AdultContentGateComponent,
     ContentBadgeComponent,
     LibraryImageCarouselComponent,
-    UserAvatarComponent
+    UserAvatarComponent,
+    ForumEngagementBarComponent
   ],
   templateUrl: './discussion-list.component.html',
   styleUrl: './discussion-list.component.css'
@@ -41,6 +43,7 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   crewId = 0;
   openMenuItemId: number | null = null;
+  likingPostId: number | null = null;
   mutedItems: MutedContentItem[] = [];
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
@@ -251,6 +254,28 @@ export class DiscussionListComponent implements OnInit, OnDestroy {
     }
 
     this.navigateToPost(item);
+  }
+
+  togglePostLike(item: DiscussionListItem) {
+    if (this.likingPostId === item.id) {
+      return;
+    }
+    this.likingPostId = item.id;
+    this.discussionService.togglePostLike(this.config, item.id).subscribe({
+      next: response => {
+        this.likingPostId = null;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update like');
+          return;
+        }
+        item.likedByCurrentUser = response.liked;
+        item.likeCount = response.likeCount;
+      },
+      error: () => {
+        this.likingPostId = null;
+        this.toastService.error('Failed to update like');
+      }
+    });
   }
 
   onAdultGateConfirmed() {

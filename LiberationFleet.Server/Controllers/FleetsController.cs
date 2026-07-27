@@ -16,6 +16,8 @@ using LiberationFleet.Server.Application.Features.Fleets.Commands.SubmitFleetJoi
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetForumComment;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetForumPost;
+using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumCommentLike;
+using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumPostLike;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetCurrentFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetChatRooms;
@@ -428,6 +430,20 @@ public class FleetsController : ControllerBase
             body.Ciphertext,
             body.KeyVersion,
             body.MentionedUserIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("current/forums/{id:int}/like")]
+    public async Task<IActionResult> ToggleForumPostLike(int id)
+    {
+        var result = await _mediator.Send(new ToggleForumPostLikeCommand(id));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("current/forums/{postId:int}/comments/{commentId:int}/like")]
+    public async Task<IActionResult> ToggleForumCommentLike(int postId, int commentId)
+    {
+        var result = await _mediator.Send(new ToggleForumCommentLikeCommand(postId, commentId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

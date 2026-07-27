@@ -43,6 +43,7 @@ import {
   CreateFleetForumRequest,
   FleetForumCommentRepliesResponse,
   FleetForumDetailResponse,
+  FleetForumLikeToggleResponse,
   FleetForumListResponse,
   FleetForumOperationResponse,
   UpdateFleetForumCommentRequest,
@@ -315,6 +316,17 @@ export class FleetService {
         keyVersion: body.keyVersion ?? 1,
         mentionedUserIds: body.mentionedUserIds ?? []
       }
+    );
+  }
+
+  toggleForumPostLike(postId: number): Observable<FleetForumLikeToggleResponse> {
+    return this.http.post<FleetForumLikeToggleResponse>(`${this.apiUrl}/current/forums/${postId}/like`, {});
+  }
+
+  toggleForumCommentLike(postId: number, commentId: number): Observable<FleetForumLikeToggleResponse> {
+    return this.http.post<FleetForumLikeToggleResponse>(
+      `${this.apiUrl}/current/forums/${postId}/comments/${commentId}/like`,
+      {}
     );
   }
 }

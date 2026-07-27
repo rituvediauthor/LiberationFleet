@@ -7,6 +7,32 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+.donation-widget.urgency-yellow {
+  background: #fff8e1;
+  border-color: #e6b800;
+}
+
+.donation-widget.urgency-yellow .donation-label {
+  color: #8a6d00;
+}
+
+.donation-widget.urgency-yellow .donate-cta {
+  background: #d4a017;
+}
+
+.donation-widget.urgency-red {
+  background: #fdecea;
+  border-color: #e57373;
+}
+
+.donation-widget.urgency-red .donation-label {
+  color: #b71c1c;
+}
+
+.donation-widget.urgency-red .donate-cta {
+  background: #c62828;
+}
+
 .dismiss-btn {
   position: absolute;
   top: 8px;

@@ -10,7 +10,8 @@ import {
   DiscussionListItem,
   DiscussionListResponse,
   DiscussionOperationResponse,
-  DiscussionCommentRepliesResponse
+  DiscussionCommentRepliesResponse,
+  ForumLikeToggleResponse
 } from '../models/crew-discussion.model';
 
 @Injectable({
@@ -115,6 +116,21 @@ export class CrewDiscussionService {
       keyVersion: payload.keyVersion ?? 1,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
+  }
+
+  togglePostLike(config: DiscussionConfig, postId: number): Observable<ForumLikeToggleResponse> {
+    return this.http.post<ForumLikeToggleResponse>(`${config.apiPath}/${postId}/like`, {});
+  }
+
+  toggleCommentLike(
+    config: DiscussionConfig,
+    postId: number,
+    commentId: number
+  ): Observable<ForumLikeToggleResponse> {
+    return this.http.post<ForumLikeToggleResponse>(
+      `${config.apiPath}/${postId}/comments/${commentId}/like`,
+      {}
+    );
   }
 
   private mapListItem(item: DiscussionListItem): DiscussionListItem {

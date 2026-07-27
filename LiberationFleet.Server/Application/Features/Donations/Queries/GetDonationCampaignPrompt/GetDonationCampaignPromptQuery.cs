@@ -14,6 +14,7 @@ public class DonationCampaignPromptResponse
     public string MessageVariant { get; set; } = "crew";
     public string Message { get; set; } = string.Empty;
     public bool DonationsEnabled { get; set; }
+    public string Urgency { get; set; } = "normal";
 }
 
 public class GetDonationCampaignPromptQueryHandler(
@@ -42,13 +43,13 @@ public class GetDonationCampaignPromptQueryHandler(
 
         if (!currentUser.UserId.HasValue)
         {
-            return Hidden(variant, message, donationsEnabled);
+            return Hidden(variant, message, donationsEnabled, "normal");
         }
 
         var user = await userRepository.GetByIdWithProfileAsync(currentUser.UserId.Value, cancellationToken);
         if (user is null || user.EmergencyLevel > 0)
         {
-            return Hidden(variant, message, donationsEnabled);
+            return Hidden(variant, message, donationsEnabled, user is null ? "normal" : MapUrgency(user.DonationCampaignUrgencyPhase));
         }
 
         var membership = await membershipRepository.GetActiveMembershipAsync(user.Id, cancellationToken);
@@ -73,6 +74,7 @@ public class GetDonationCampaignPromptQueryHandler(
 
         var contributes = isFinancialMember || avgContributions > 0m || estimatedMonthly > 0m;
         var utcNow = DateTime.UtcNow;
+        var urgency = MapUrgency(user.DonationCampaignUrgencyPhase);
         var inCharityHighSeason = IsCharityHighSeason(utcNow);
 
         if (inCharityHighSeason)
@@ -82,7 +84,7 @@ public class GetDonationCampaignPromptQueryHandler(
             if (user.LastDonationCampaignPromptAt.HasValue
                 && user.LastDonationCampaignPromptAt.Value >= seasonStart)
             {
-                return Hidden(variant, message, donationsEnabled);
+                return Hidden(variant, message, donationsEnabled, urgency);
             }
 
             return new DonationCampaignPromptResponse
@@ -90,20 +92,21 @@ public class GetDonationCampaignPromptQueryHandler(
                 Show = true,
                 MessageVariant = variant,
                 Message = message,
-                DonationsEnabled = donationsEnabled
+                DonationsEnabled = donationsEnabled,
+                Urgency = urgency
             };
         }
 
         if (!contributes)
         {
-            return Hidden(variant, message, donationsEnabled);
+            return Hidden(variant, message, donationsEnabled, urgency);
         }
 
         var intervalDays = user.InNeedOfAid ? 60 : 30;
         var lastShown = user.LastDonationCampaignPromptAt;
         if (lastShown.HasValue && lastShown.Value > utcNow.AddDays(-intervalDays))
         {
-            return Hidden(variant, message, donationsEnabled);
+            return Hidden(variant, message, donationsEnabled, urgency);
         }
 
         return new DonationCampaignPromptResponse
@@ -111,7 +114,8 @@ public class GetDonationCampaignPromptQueryHandler(
             Show = true,
             MessageVariant = variant,
             Message = message,
-            DonationsEnabled = donationsEnabled
+            DonationsEnabled = donationsEnabled,
+            Urgency = urgency
         };
     }
 
@@ -138,12 +142,24 @@ public class GetDonationCampaignPromptQueryHandler(
         return new DateTime(year, 12, 20, 0, 0, 0, DateTimeKind.Utc);
     }
 
-    private static DonationCampaignPromptResponse Hidden(string variant, string message, bool enabled) =>
+    private static string MapUrgency(int phase) => phase switch
+    {
+        1 => "yellow",
+        2 => "red",
+        _ => "normal"
+    };
+
+    private static DonationCampaignPromptResponse Hidden(
+        string variant,
+        string message,
+        bool enabled,
+        string urgency) =>
         new()
         {
             Show = false,
             MessageVariant = variant,
             Message = message,
-            DonationsEnabled = enabled
+            DonationsEnabled = enabled,
+            Urgency = urgency
         };
 }

@@ -9,12 +9,6 @@
   height: 100%;
 }
 
-/* Keep page-layout / nav-layout action bars pinned to the viewport bottom. */
-.app-main > *:not(router-outlet) {
-  display: block;
-  height: 100%;
-}
-
 .app-container.with-dev-toolbar {
   padding-top: 40px;
 }

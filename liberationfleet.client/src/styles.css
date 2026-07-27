@@ -57,6 +57,25 @@ app-root {
   color: var(--lf-color-text-primary);
 }
 
+/*
+ * Keep page-layout / nav-layout action bars pinned to the viewport bottom.
+ * Must live in global styles: app.component.css is encapsulated and does not
+ * match routed page hosts inserted beside router-outlet.
+ */
+.app-main > *:not(router-outlet) {
+  display: block;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.app-main > *:not(router-outlet) > app-page-layout,
+.app-main > *:not(router-outlet) > app-nav-layout {
+  display: block;
+  height: 100%;
+  max-height: 100%;
+}
+
 .scroll-page-body {
   min-height: 100%;
   display: flex;

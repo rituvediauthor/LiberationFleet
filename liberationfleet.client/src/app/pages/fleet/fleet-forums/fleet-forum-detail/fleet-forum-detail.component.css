@@ -136,6 +136,13 @@ h1 {
   gap: 8px;
 }
 
+.comment-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .kept-attachments .kept-attachment {
   display: flex;
   justify-content: space-between;

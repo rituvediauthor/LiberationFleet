@@ -61,6 +61,10 @@
   padding: 10px 14px 0;
 }
 
+.post-engagement-wrap {
+  padding: 0 14px 0;
+}
+
 .post-open:hover,
 .post-open-body:hover {
   background: var(--lf-color-accent-soft-bg-alt);

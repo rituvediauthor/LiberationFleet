@@ -1,5 +1,7 @@
+import { AsyncPipe, NgIf } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ClientConfigService } from '../../services/client-config.service';
 import { FallibleService } from '../../services/fallible.service';
 
 const FALLIBLE_DOC_URL =
@@ -8,12 +10,15 @@ const FALLIBLE_DOC_URL =
 @Component({
   selector: 'app-fallible-footer',
   standalone: true,
-  imports: [RouterLink],
+  imports: [AsyncPipe, NgIf, RouterLink],
   templateUrl: './fallible-footer.component.html',
   styleUrl: './fallible-footer.component.css'
 })
 export class FallibleFooterComponent {
   private fallibleService = inject(FallibleService);
+  private clientConfig = inject(ClientConfigService);
+
+  readonly showAttribution$ = this.clientConfig.showFallibleAttribution$;
 
   onImageClick() {
     this.fallibleService.recordClick().subscribe({ error: () => {} });

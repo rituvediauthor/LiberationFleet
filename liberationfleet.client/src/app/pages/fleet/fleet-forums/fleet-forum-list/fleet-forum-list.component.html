@@ -51,6 +51,17 @@
           <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
             <p class="card-preview">{{ previewBody(item) }}</p>
           </button>
+
+          <div class="post-engagement-wrap" (click)="$event.stopPropagation()">
+            <app-forum-engagement-bar
+              [likeCount]="item.likeCount ?? 0"
+              [liked]="!!item.likedByCurrentUser"
+              [commentCount]="item.commentCount ?? 0"
+              [likeBusy]="likingPostId === item.id"
+              (likeClick)="togglePostLike(item)"
+              (commentClick)="openPost(item)">
+            </app-forum-engagement-bar>
+          </div>
         </div>
 
         <div class="post-actions">
@@ -127,6 +138,17 @@
           <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
             <p class="card-preview">{{ previewBody(item) }}</p>
           </button>
+
+          <div class="post-engagement-wrap" (click)="$event.stopPropagation()">
+            <app-forum-engagement-bar
+              [likeCount]="item.likeCount ?? 0"
+              [liked]="!!item.likedByCurrentUser"
+              [commentCount]="item.commentCount ?? 0"
+              [likeBusy]="likingPostId === item.id"
+              (likeClick)="togglePostLike(item)"
+              (commentClick)="openPost(item)">
+            </app-forum-engagement-bar>
+          </div>
         </div>
 
         <div class="post-actions">

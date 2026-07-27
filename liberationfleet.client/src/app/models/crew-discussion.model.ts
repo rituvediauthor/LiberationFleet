@@ -28,6 +28,9 @@ export interface DiscussionListItem {
   thumbnailUrl?: string | null;
   previewImageUrls?: string[];
   isAdultContent?: boolean;
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
+  commentCount?: number;
 }
 
 export interface DiscussionComment {
@@ -47,6 +50,15 @@ export interface DiscussionComment {
   resolvedAttachments?: ResolvedAttachment[];
   replies?: DiscussionComment[];
   repliesExpanded?: boolean;
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
+}
+
+export interface ForumLikeToggleResponse {
+  success: boolean;
+  message: string;
+  liked: boolean;
+  likeCount: number;
 }
 
 export interface DiscussionDetail extends DiscussionListItem {

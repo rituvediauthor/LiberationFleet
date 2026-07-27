@@ -15,6 +15,9 @@ export interface FleetForumListItem {
   isAdultContent: boolean;
   hasEncryptedContent: boolean;
   encryptedPayload?: EncryptedPayload | null;
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
+  commentCount?: number;
 }
 
 export interface FleetForumComment {
@@ -34,6 +37,15 @@ export interface FleetForumComment {
   resolvedAttachments?: ResolvedAttachment[];
   replies?: FleetForumComment[];
   repliesExpanded?: boolean;
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
+}
+
+export interface FleetForumLikeToggleResponse {
+  success: boolean;
+  message: string;
+  liked: boolean;
+  likeCount: number;
 }
 
 export interface FleetForumPost extends FleetForumListItem {

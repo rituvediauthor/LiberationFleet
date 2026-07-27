@@ -6,7 +6,12 @@ namespace LiberationFleet.Server.Application.Features.Forums;
 
 public static class ForumMapper
 {
-    public static ForumListItemDto MapListItem(ForumPost post, EncryptedContentEnvelope? envelope) =>
+    public static ForumListItemDto MapListItem(
+        ForumPost post,
+        EncryptedContentEnvelope? envelope,
+        int likeCount = 0,
+        bool likedByCurrentUser = false,
+        int commentCount = 0) =>
         new()
         {
             Id = post.Id,
@@ -18,14 +23,20 @@ public static class ForumMapper
             EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
             Title = post.Title,
             Body = post.Body,
-            IsAdultContent = post.IsAdultContent
+            IsAdultContent = post.IsAdultContent,
+            LikeCount = likeCount,
+            LikedByCurrentUser = likedByCurrentUser,
+            CommentCount = commentCount
         };
 
     public static ForumDetailDto MapDetail(
         ForumPost post,
         EncryptedContentEnvelope? envelope,
         IReadOnlyList<ForumCommentDto> comments,
-        int viewerUserId) =>
+        int viewerUserId,
+        int likeCount = 0,
+        bool likedByCurrentUser = false,
+        int commentCount = 0) =>
         new()
         {
             Id = post.Id,
@@ -41,6 +52,9 @@ public static class ForumMapper
             CanEdit = post.AuthorUserId == viewerUserId,
             CanDelete = post.AuthorUserId == viewerUserId,
             IsAdultContent = post.IsAdultContent,
+            LikeCount = likeCount,
+            LikedByCurrentUser = likedByCurrentUser,
+            CommentCount = commentCount,
             Comments = comments
         };
 
@@ -48,7 +62,9 @@ public static class ForumMapper
         ForumComment comment,
         EncryptedContentEnvelope? envelope,
         int replyCount,
-        string? replyToUsername = null) =>
+        string? replyToUsername = null,
+        int likeCount = 0,
+        bool likedByCurrentUser = false) =>
         new()
         {
             Id = comment.Id,
@@ -62,6 +78,8 @@ public static class ForumMapper
             ReplyCount = replyCount,
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is not null ? CryptoMapper.MapPayload(envelope) : null,
-            Body = comment.Body
+            Body = comment.Body,
+            LikeCount = likeCount,
+            LikedByCurrentUser = likedByCurrentUser
         };
 }

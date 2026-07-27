@@ -68,11 +68,22 @@ public class GetFleetForumCommentRepliesQueryHandler(
             cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
+        var replyCommentIds = replies.Select(r => r.Id).ToList();
+        var commentLikeCounts = await forumRepository.GetActiveLikeCountsForCommentsAsync(replyCommentIds, cancellationToken);
+        var likedCommentIds = await forumRepository.GetActiveLikedCommentIdsByUserAsync(userId, replyCommentIds, cancellationToken);
+
         var items = replies.Select(reply =>
         {
             envelopeById.TryGetValue(reply.Id.ToString(), out var envelope);
             var replyToUsername = ResolveReplyToUsername(reply, commentById, envelopeById);
-            return ForumMapper.MapComment(reply, envelope, 0, replyToUsername);
+            commentLikeCounts.TryGetValue(reply.Id, out var likeCount);
+            return ForumMapper.MapComment(
+                reply,
+                envelope,
+                0,
+                replyToUsername,
+                likeCount,
+                likedCommentIds.Contains(reply.Id));
         }).ToList();
 
         return new ForumCommentRepliesResponse

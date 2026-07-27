@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, injec
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { DonationService } from '../../services/donation.service';
+import { DonationCampaignUrgency } from '../../models/donation.model';
 
 @Component({
   selector: 'app-donation-campaign-widget',
@@ -17,6 +18,7 @@ export class DonationCampaignWidgetComponent implements OnChanges {
 
   visible = false;
   message = '';
+  urgency: DonationCampaignUrgency = 'normal';
   private acknowledged = false;
 
   private donationService = inject(DonationService);
@@ -48,6 +50,7 @@ export class DonationCampaignWidgetComponent implements OnChanges {
     this.donationService.getCampaignPrompt(this.variant).subscribe({
       next: prompt => {
         this.message = prompt.message;
+        this.urgency = this.normalizeUrgency(prompt.urgency);
         this.setVisible(!!prompt.show);
         if (prompt.show) {
           this.acknowledgeOnce();
@@ -55,6 +58,13 @@ export class DonationCampaignWidgetComponent implements OnChanges {
       },
       error: () => this.setVisible(false)
     });
+  }
+
+  private normalizeUrgency(value: string | undefined): DonationCampaignUrgency {
+    if (value === 'yellow' || value === 'red') {
+      return value;
+    }
+    return 'normal';
   }
 
   private acknowledgeOnce() {

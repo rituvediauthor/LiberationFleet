@@ -6,6 +6,7 @@ import { ContentBadgeComponent } from '../../../../components/content-badge/cont
 import { AdultContentGateComponent } from '../../../../components/adult-content-gate/adult-content-gate.component';
 import { LibraryImageCarouselComponent } from '../../../../components/library-image-carousel/library-image-carousel.component';
 import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
+import { ForumEngagementBarComponent } from '../../../../components/forum-engagement-bar/forum-engagement-bar.component';
 import { FleetService } from '../../../../services/fleet.service';
 import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../../../../components/toast/toast.component';
@@ -27,7 +28,8 @@ import { NotificationService } from '../../../../services/notification.service';
     AdultContentGateComponent,
     ContentBadgeComponent,
     LibraryImageCarouselComponent,
-    UserAvatarComponent
+    UserAvatarComponent,
+    ForumEngagementBarComponent
   ],
   templateUrl: './fleet-forum-list.component.html',
   styleUrl: './fleet-forum-list.component.css'
@@ -38,6 +40,7 @@ export class FleetForumListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   fleetId = 0;
   openMenuItemId: number | null = null;
+  likingPostId: number | null = null;
   mutedItems: MutedContentItem[] = [];
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
@@ -251,6 +254,28 @@ export class FleetForumListComponent implements OnInit, OnDestroy {
     }
 
     this.navigateToPost(item);
+  }
+
+  togglePostLike(item: FleetForumListItem) {
+    if (this.likingPostId === item.id) {
+      return;
+    }
+    this.likingPostId = item.id;
+    this.fleetService.toggleForumPostLike(item.id).subscribe({
+      next: response => {
+        this.likingPostId = null;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update like');
+          return;
+        }
+        item.likedByCurrentUser = response.liked;
+        item.likeCount = response.likeCount;
+      },
+      error: () => {
+        this.likingPostId = null;
+        this.toastService.error('Failed to update like');
+      }
+    });
   }
 
   onAdultGateConfirmed() {

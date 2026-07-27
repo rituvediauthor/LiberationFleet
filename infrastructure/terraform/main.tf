@@ -101,6 +101,8 @@ module "app_service" {
     "MediaDeepFreeze__Provider"              = "azure"
     "MediaDeepFreeze__AzureContainerName"    = module.deep_freeze_storage.container_name
     "MediaDeepFreeze__AzureConnectionString" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.deep_freeze_connection.versionless_id})"
+    # Hide Fallible attribution on staging; show in production (and local/dev defaults).
+    "Client__ShowFallibleAttribution"        = var.environment == "staging" ? "false" : "true"
   }
   tags = local.common_tags
 }

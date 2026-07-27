@@ -33,6 +33,23 @@ public class AcknowledgeDonationCampaignPromptCommandHandler(
         }
 
         user.LastDonationCampaignPromptAt = DateTime.UtcNow;
+
+        if (user.DonationCampaignPhaseTarget == 0)
+        {
+            user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
+            user.DonationCampaignUrgencyPhase = 0;
+            user.DonationCampaignPhaseShownCount = 0;
+        }
+
+        user.DonationCampaignPhaseShownCount++;
+
+        if (user.DonationCampaignPhaseShownCount >= user.DonationCampaignPhaseTarget)
+        {
+            user.DonationCampaignPhaseShownCount = 0;
+            user.DonationCampaignUrgencyPhase = (user.DonationCampaignUrgencyPhase + 1) % 3;
+            user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
+        }
+
         await userRepository.UpdateAsync(user, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

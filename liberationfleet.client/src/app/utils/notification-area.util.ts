@@ -71,6 +71,8 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
       return 'chats';
     case 'NewForumPost':
     case 'NewForumComment':
+    case 'ForumPostLiked':
+    case 'ForumCommentLiked':
       return 'forums';
     case 'NewProposal':
     case 'NewFleetProposal':

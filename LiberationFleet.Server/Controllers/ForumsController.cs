@@ -1,6 +1,8 @@
 using LiberationFleet.Server.Application.Features.Forums.Commands.CreateForumComment;
 using LiberationFleet.Server.Application.Features.Forums.Commands.CreateForumPost;
 using LiberationFleet.Server.Application.Features.Forums.Commands.DeleteForumPost;
+using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumCommentLike;
+using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumPostLike;
 using LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumComment;
 using LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumPost;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
@@ -98,6 +100,20 @@ public class ForumsController : ControllerBase
             body.Ciphertext,
             body.KeyVersion,
             body.MentionedUserIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{id:int}/like")]
+    public async Task<IActionResult> TogglePostLike(int id)
+    {
+        var result = await _mediator.Send(new ToggleForumPostLikeCommand(id));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{postId:int}/comments/{commentId:int}/like")]
+    public async Task<IActionResult> ToggleCommentLike(int postId, int commentId)
+    {
+        var result = await _mediator.Send(new ToggleForumCommentLikeCommand(postId, commentId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }
