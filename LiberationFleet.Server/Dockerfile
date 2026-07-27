@@ -31,8 +31,9 @@ RUN dotnet publish "./LiberationFleet.Server.csproj" \
     /p:UseAppHost=false \
     /p:SkipSpaProjectReference=true
 
-RUN mkdir -p /app/publish/wwwroot
-COPY --from=client-build /src/liberationfleet.client/dist/liberationfleet.client/browser/. /app/publish/wwwroot/
+RUN rm -rf /app/publish/wwwroot \
+    && mkdir -p /app/publish/wwwroot
+COPY --from=client-build /src/liberationfleet.client/dist/liberationfleet.client/browser/ /app/publish/wwwroot/
 
 FROM base AS final
 WORKDIR /app

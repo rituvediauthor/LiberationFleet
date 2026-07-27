@@ -90,6 +90,7 @@ app.UseExceptionHandler();
 await ApplyMigrationsAsync(app);
 
 app.UseDefaultFiles();
+app.UseStaticFiles();
 app.MapStaticAssets();
 
 if (app.Environment.IsDevelopment())
