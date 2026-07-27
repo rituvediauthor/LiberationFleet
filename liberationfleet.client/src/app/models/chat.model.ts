@@ -31,6 +31,8 @@ export interface ChatMessage {
   encryptedPayload?: EncryptedPayload | null;
   body?: string;
   resolvedAttachments?: ResolvedAttachment[];
+  isAnonymous?: boolean;
+  canKick?: boolean;
 }
 
 export interface ChatRoomListResponse {

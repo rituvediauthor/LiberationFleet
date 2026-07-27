@@ -80,10 +80,11 @@ public class GetChatRoomMessagesQueryHandler(
             hasMore = older.Count > 0;
         }
 
+        var allowKick = room.CrewId.HasValue;
         var items = messages.Select(message =>
         {
             envelopeById.TryGetValue(message.Id.ToString(), out var envelope);
-            return ChatMapper.MapMessage(message, envelope);
+            return ChatMapper.MapMessage(message, envelope, userId, allowKick);
         }).ToList();
 
         return new ChatMessageListResponse

@@ -16,7 +16,8 @@ public record SendChatMessageCommand(
     string Ciphertext,
     int KeyVersion,
     string? Body,
-    IReadOnlyList<int> MentionedUserIds) : IRequest<ChatOperationResponse>;
+    IReadOnlyList<int> MentionedUserIds,
+    bool IsAnonymous) : IRequest<ChatOperationResponse>;
 
 public class SendChatMessageCommandHandler(
     ICurrentUserService currentUser,
@@ -74,6 +75,7 @@ public class SendChatMessageCommandHandler(
             ChatRoomId = room.Id,
             AuthorUserId = userId,
             CreatedAt = utcNow,
+            IsAnonymous = request.IsAnonymous,
             Body = isFleetRoom && !hasEncryptedPayload ? request.Body!.Trim() : null
         };
 
@@ -122,7 +124,7 @@ public class SendChatMessageCommandHandler(
         var savedMessage = await chatRepository.GetMessageByIdWithAuthorAsync(message.Id, cancellationToken);
         if (savedMessage is not null)
         {
-            var messageDto = ChatMapper.MapMessage(savedMessage, envelope);
+            var messageDto = ChatMapper.MapMessage(savedMessage, envelope, viewerUserId: null, allowKick: room.CrewId.HasValue);
             await chatRealtimeNotifier.NotifyMessageSentAsync(membership.CrewId, room.Id, messageDto, cancellationToken);
 
             if (isFleetRoom)

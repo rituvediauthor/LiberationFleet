@@ -65,15 +65,35 @@ public static class ChatMapper
         };
     }
 
-    public static ChatMessageDto MapMessage(ChatRoomMessage message, EncryptedContentEnvelope? envelope) => new()
+    public static ChatMessageDto MapMessage(
+        ChatRoomMessage message,
+        EncryptedContentEnvelope? envelope,
+        int? viewerUserId = null,
+        bool allowKick = false)
     {
-        Id = message.Id,
-        AuthorUserId = message.AuthorUserId,
-        AuthorUsername = envelope is null ? message.AuthorUser?.Username ?? string.Empty : string.Empty,
-        AuthorAvatarResourceId = message.AuthorUser?.AvatarResourceId,
-        CreatedAt = message.CreatedAt,
-        HasEncryptedContent = envelope is not null,
-        EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope),
-        Body = envelope is null ? message.Body : null
-    };
+        var isOwn = viewerUserId.HasValue && message.AuthorUserId == viewerUserId.Value;
+        var hideIdentity = message.IsAnonymous && !isOwn;
+
+        return new ChatMessageDto
+        {
+            Id = message.Id,
+            AuthorUserId = hideIdentity ? 0 : message.AuthorUserId,
+            AuthorUsername = hideIdentity
+                ? "Anonymous"
+                : message.IsAnonymous
+                    ? "Anonymous"
+                    : envelope is null
+                        ? message.AuthorUser?.Username ?? string.Empty
+                        : string.Empty,
+            AuthorAvatarResourceId = hideIdentity || message.IsAnonymous
+                ? null
+                : message.AuthorUser?.AvatarResourceId,
+            CreatedAt = message.CreatedAt,
+            HasEncryptedContent = envelope is not null,
+            EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope),
+            Body = envelope is null ? message.Body : null,
+            IsAnonymous = message.IsAnonymous,
+            CanKick = allowKick && message.IsAnonymous && !isOwn
+        };
+    }
 }

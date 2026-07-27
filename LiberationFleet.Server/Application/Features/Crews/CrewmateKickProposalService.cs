@@ -39,6 +39,27 @@ public class CrewmateKickProposalService(
             isAnonymousOrigin: true,
             sourceProposalId,
             sourceCommentId,
+            sourceChatMessageId: null,
+            reason,
+            ProposalKind.CrewmateKick,
+            cancellationToken);
+
+    public Task<CrewmateKickProposalResult> CreateFromAnonymousChatMessageAsync(
+        int crewId,
+        int authorUserId,
+        int targetUserId,
+        int sourceChatMessageId,
+        string reason,
+        CancellationToken cancellationToken) =>
+        CreateProposalAsync(
+            crewId,
+            authorUserId,
+            targetUserId,
+            "Anonymous",
+            isAnonymousOrigin: true,
+            sourceProposalId: null,
+            sourceCommentId: null,
+            sourceChatMessageId,
             reason,
             ProposalKind.CrewmateKick,
             cancellationToken);
@@ -58,6 +79,7 @@ public class CrewmateKickProposalService(
             isAnonymousOrigin: false,
             sourceProposalId: null,
             sourceCommentId: null,
+            sourceChatMessageId: null,
             reason,
             ProposalKind.CrewmateKick,
             cancellationToken);
@@ -77,6 +99,7 @@ public class CrewmateKickProposalService(
             isAnonymousOrigin: false,
             sourceProposalId: null,
             sourceCommentId: null,
+            sourceChatMessageId: null,
             reason,
             ProposalKind.CrewmateSeasonKick,
             cancellationToken);
@@ -89,6 +112,7 @@ public class CrewmateKickProposalService(
         bool isAnonymousOrigin,
         int? sourceProposalId,
         int? sourceCommentId,
+        int? sourceChatMessageId,
         string reason,
         ProposalKind kind,
         CancellationToken cancellationToken)
@@ -136,9 +160,11 @@ public class CrewmateKickProposalService(
         {
             title = $"Kick {displayName}";
             description = isAnonymousOrigin
-                ? sourceCommentId.HasValue
-                    ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion. Reason: {trimmedReason}"
-                    : $"Remove {displayName} from the crew following a malicious anonymous proposal. Reason: {trimmedReason}"
+                ? sourceChatMessageId.HasValue
+                    ? $"Remove Anonymous from the crew following reported abuse in chat. Reason: {trimmedReason}"
+                    : sourceCommentId.HasValue
+                        ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion. Reason: {trimmedReason}"
+                        : $"Remove {displayName} from the crew following a malicious anonymous proposal. Reason: {trimmedReason}"
                 : $"Remove {displayName} from the crew. Reason: {trimmedReason}";
             notifyBody = $"A proposal was submitted to kick {displayName} from the crew.";
             successMessage = "Kick proposal submitted.";
@@ -150,6 +176,7 @@ public class CrewmateKickProposalService(
             TargetUserId = targetUserId,
             SourceProposalId = sourceProposalId ?? 0,
             SourceCommentId = sourceCommentId,
+            SourceChatMessageId = sourceChatMessageId,
             AnonymousNickname = displayName,
             Title = title,
             Description = description
@@ -202,7 +229,7 @@ public class CrewmateKickProposalService(
         }
 
         var isSeasonKick = proposal.Kind == ProposalKind.CrewmateSeasonKick;
-        var isAnonymousOrigin = kick.SourceProposalId > 0;
+        var isAnonymousOrigin = kick.SourceProposalId > 0 || kick.SourceChatMessageId.HasValue;
         var targetUser = await userRepository.GetByIdWithProfileAsync(kick.TargetUserId, cancellationToken);
         if (targetUser is not null)
         {

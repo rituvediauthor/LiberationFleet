@@ -34,6 +34,8 @@ public class ChatMessageDto
     public EncryptedPayloadDto? EncryptedPayload { get; set; }
     public string? Body { get; set; }
     public int Id { get; set; }
+    public bool IsAnonymous { get; set; }
+    public bool CanKick { get; set; }
 }
 
 public class ChatRoomListResponse
@@ -107,6 +109,7 @@ public class SendChatMessageRequest
     public int KeyVersion { get; set; } = 1;
     public string? Body { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
+    public bool IsAnonymous { get; set; }
 }
 
 public class ToggleAnonymousModeRequest
@@ -121,4 +124,9 @@ public class UpdateChatMessageRequest
     public int KeyVersion { get; set; } = 1;
     public string? Body { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
+}
+
+public class KickFromChatMessageRequest
+{
+    public string Reason { get; set; } = string.Empty;
 }

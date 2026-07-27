@@ -990,6 +990,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.IsAnonymous).HasDefaultValue(false);
             entity.Property(e => e.Body).HasMaxLength(4000);
             entity.HasIndex(e => new { e.ChatRoomId, e.Id });
             entity.HasOne(e => e.ChatRoom)

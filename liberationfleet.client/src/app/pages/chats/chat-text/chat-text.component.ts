@@ -38,8 +38,12 @@ import { ContentPreferenceService } from '../../../services/content-preference.s
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { AppStorageService, StorageScope } from '../../../services/storage/app-storage.service';
+import { ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY } from '../../../services/storage/storage-keys';
 
 @Component({
   selector: 'app-chat-text',
@@ -53,7 +57,9 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     MentionAutocompleteDirective,
     MentionTextComponent,
     ReportContentDialogComponent,
-    UserAvatarComponent
+    KickReasonDialogComponent,
+    UserAvatarComponent,
+    AccessibleDialogDirective
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -64,8 +70,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   roomId = 0;
   roomName = 'Chat';
-  anonymousModeEnabled = false;
-  canToggleAnonymousMode = false;
+  composeAnonymously = false;
   canModerateAttachments = false;
   canAttachFiles = false;
   messages: ChatMessage[] = [];
@@ -81,6 +86,11 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   openMessageMenuId: number | null = null;
   showReportDialog = false;
   reportTarget: ChatMessage | null = null;
+  showKickReasonDialog = false;
+  pendingKickMessageId: number | null = null;
+  showAnonymousReminderDialog = false;
+  dontRemindAnonymousMode = false;
+  dismissAnonymousReminderBound = () => this.confirmAnonymousReminder();
   composerFocused = false;
   pickingFile = false;
   loading = true;
@@ -90,6 +100,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   loadError = '';
   showAdultGate = false;
   contentRevealed = true;
+
+  /** Own anonymous messages from this session (SignalR strips author id). */
+  private recentOwnMessageIds = new Set<number>();
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -108,6 +121,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private toastService = inject(ToastService);
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
+  private storage = inject(AppStorageService);
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
@@ -263,6 +277,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     event?.stopPropagation();
     this.openMessageMenuId = null;
     this.editingMessageId = message.id;
+    this.composeAnonymously = !!message.isAnonymous;
     this.messageText = message.body ?? '';
     this.keptEditAttachments = (message.resolvedAttachments ?? []).map(attachment => ({
       resourceId: attachment.resourceId,
@@ -324,7 +339,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       const encrypted = await this.chatCrypto.encryptMessagePayload(
         cryptoScope,
         text,
-        this.authorDisplayName,
+        this.composeAnonymously ? 'Anonymous' : this.authorDisplayName,
         this.messageAttachments,
         this.keptEditAttachments
       );
@@ -337,7 +352,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         : this.chatService.sendMessage(this.roomId, {
             ...encrypted,
             body: truncateNotificationPreview(text),
-            mentionedUserIds: this.mentionedUserIds
+            mentionedUserIds: this.mentionedUserIds,
+            isAnonymous: this.composeAnonymously
           });
 
       request$.subscribe({
@@ -346,6 +362,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           if (!response.success) {
             this.toastService.error(response.message || 'Failed to send message');
             return;
+          }
+          if (response.messageId && this.composeAnonymously) {
+            this.recentOwnMessageIds.add(response.messageId);
           }
           this.messageText = '';
           this.mentionedUserIds = [];
@@ -366,6 +385,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isOwnMessage(message: ChatMessage): boolean {
+    if (this.recentOwnMessageIds.has(message.id)) {
+      return true;
+    }
     return this.currentUserId != null && message.authorUserId === this.currentUserId;
   }
 
@@ -378,26 +400,71 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isAnonymousAuthor(message: ChatMessage): boolean {
-    return this.anonymousModeEnabled && !this.isOwnMessage(message);
+    return !!message.isAnonymous;
   }
 
-  toggleAnonymousMode() {
-    if (!this.canToggleAnonymousMode) {
+  canKickAnonymous(message: ChatMessage): boolean {
+    return !!message.canKick && !this.isOwnMessage(message);
+  }
+
+  toggleComposeAnonymously() {
+    const enabling = !this.composeAnonymously;
+    this.composeAnonymously = enabling;
+    if (enabling && !this.isAnonymousReminderDismissed()) {
+      this.dontRemindAnonymousMode = false;
+      this.showAnonymousReminderDialog = true;
+    }
+  }
+
+  confirmAnonymousReminder() {
+    if (this.dontRemindAnonymousMode) {
+      this.storage.set(StorageScope.Persistent, ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY, 'true');
+    }
+    this.showAnonymousReminderDialog = false;
+  }
+
+  onAnonymousReminderBackdrop(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('dialog-backdrop')) {
+      this.confirmAnonymousReminder();
+    }
+  }
+
+  private isAnonymousReminderDismissed(): boolean {
+    return this.storage.get(StorageScope.Persistent, ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY) === 'true';
+  }
+
+  openKickFromMessage(message: ChatMessage, event: Event) {
+    event.stopPropagation();
+    this.closeMenus();
+    this.pendingKickMessageId = message.id;
+    this.showKickReasonDialog = true;
+  }
+
+  onKickReasonCancelled() {
+    this.showKickReasonDialog = false;
+    this.pendingKickMessageId = null;
+  }
+
+  onKickReasonConfirmed(reason: string) {
+    const messageId = this.pendingKickMessageId;
+    this.showKickReasonDialog = false;
+    this.pendingKickMessageId = null;
+    if (messageId == null) {
       return;
     }
 
-    const nextValue = !this.anonymousModeEnabled;
-    this.chatService.toggleAnonymousMode(this.roomId, nextValue).subscribe({
+    this.chatService.kickFromMessage(this.roomId, messageId, reason).subscribe({
       next: response => {
         if (!response.success) {
-          this.toastService.error(response.message || 'Failed to toggle anonymous mode');
+          this.toastService.error(response.message || 'Failed to submit kick proposal');
           return;
         }
-
-        this.anonymousModeEnabled = nextValue;
-        this.toastService.success(response.message);
+        this.toastService.success(response.message || 'Kick proposal submitted.');
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        }
       },
-      error: () => this.toastService.error('Failed to toggle anonymous mode')
+      error: () => this.toastService.error('Failed to submit kick proposal')
     });
   }
 
@@ -453,9 +520,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           this.loading = false;
           return;
         }
-
-        this.anonymousModeEnabled = !!room.anonymousModeEnabled;
-        this.canToggleAnonymousMode = !!room.canToggleAnonymousMode;
 
         const decrypted = this.crewId > 0
           ? await this.chatCrypto.decryptRoom(room, this.getCryptoScope())

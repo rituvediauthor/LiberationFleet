@@ -4,3 +4,4 @@ export const DEVICE_ID_STORAGE_KEY = 'lf_device_id';
 export const REMEMBER_LOGIN_STORAGE_KEY = 'lf_remember_login';
 export const SAVE_DECRYPTION_KEY_STORAGE_KEY = 'lf_save_decryption_key';
 export const PERSISTENT_RECOVERY_PHRASES_STORAGE_KEY = 'lf_persistent_recovery_phrases';
+export const ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY = 'lf_anonymous_chat_reminder_dismissed';

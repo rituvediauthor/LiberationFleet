@@ -9,6 +9,7 @@
     <p class="dialog-note">
       Enter your 12-word recovery key to decrypt crew and fleet posts, proposals, and encrypted gift messages.
       This is separate from your login password.
+      Check Remember me to store the key on this device so you are not prompted every sign-in.
     </p>
 
     <label class="field">
@@ -23,7 +24,7 @@
 
     <label class="remember">
       <input type="checkbox" [(ngModel)]="rememberOnDevice" />
-      Remember on this device for this browser session
+      Remember me
     </label>
 
     <button type="button" class="unlock-btn" [disabled]="unlocking" (click)="onUnlock()">

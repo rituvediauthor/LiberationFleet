@@ -80,7 +80,7 @@ public class UpdateChatMessageCommandHandler(
             message.Body = request.Body!.Trim();
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var fleetMessageDto = ChatMapper.MapMessage(message, envelope: null);
+            var fleetMessageDto = ChatMapper.MapMessage(message, envelope: null, viewerUserId: null, allowKick: room.CrewId.HasValue);
             await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, fleetMessageDto, cancellationToken);
 
             await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
@@ -131,7 +131,7 @@ public class UpdateChatMessageCommandHandler(
             cancellationToken);
         if (envelope is not null)
         {
-            var messageDto = ChatMapper.MapMessage(message, envelope);
+            var messageDto = ChatMapper.MapMessage(message, envelope, viewerUserId: null, allowKick: room.CrewId.HasValue);
             await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, messageDto, cancellationToken);
         }
 

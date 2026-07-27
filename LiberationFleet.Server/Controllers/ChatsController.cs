@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Chats.Commands.CreateChatRoom;
+using LiberationFleet.Server.Application.Features.Chats.Commands.CreateKickFromChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.SendChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleAnonymousMode;
@@ -113,7 +114,8 @@ public class ChatsController : ControllerBase
             body.Ciphertext,
             body.KeyVersion,
             body.Body,
-            body.MentionedUserIds));
+            body.MentionedUserIds,
+            body.IsAnonymous));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -129,6 +131,14 @@ public class ChatsController : ControllerBase
             body.KeyVersion,
             body.Body,
             body.MentionedUserIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/messages/{messageId:int}/kick")]
+    public async Task<IActionResult> KickFromMessage(int roomId, int messageId, [FromBody] KickFromChatMessageRequest body)
+    {
+        body ??= new KickFromChatMessageRequest();
+        var result = await _mediator.Send(new CreateKickFromChatMessageCommand(roomId, messageId, body.Reason));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

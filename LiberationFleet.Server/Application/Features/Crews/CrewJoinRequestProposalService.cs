@@ -100,23 +100,8 @@ public class CrewJoinRequestProposalService(
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
-            proposalRepository,
-            proposal,
-            utcNow,
-            cancellationToken);
-        var statusBefore = proposal.Status;
-        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
-            proposal,
-            proposalRepository,
-            fleetRepository,
-            utcNow,
-            cancellationToken);
-        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
-        {
-            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        }
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        // Applicant is not a crewmate yet and must not cast the default author approve vote.
+        // Crewmates approve the request through normal voting / timer rules.
 
         await notificationService.NotifyCrewAsync(
             crewId,

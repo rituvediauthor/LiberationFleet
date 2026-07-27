@@ -11,6 +11,7 @@
 .composer-input-row .message-input {
   flex: 1;
   min-width: 0;
+  font-size: 16px;
 }
 
 .composer-actions-col {
@@ -74,4 +75,9 @@
 .message-attachment-picker.collapsed,
 .comment-attachment-picker.collapsed {
   display: none;
+}
+
+.composer-tools .message-attachment-picker,
+.composer-tools .comment-attachment-picker {
+  margin-top: 0;
 }

@@ -66,13 +66,17 @@ export class ChatService {
     return this.http.get<ChatMessageListResponse>(`${this.apiUrl}/rooms/${roomId}/messages`, { params });
   }
 
-  sendMessage(roomId: number, payload: EncryptedContentSendPayload & { body?: string }): Observable<ChatOperationResponse> {
+  sendMessage(
+    roomId: number,
+    payload: EncryptedContentSendPayload & { body?: string; isAnonymous?: boolean }
+  ): Observable<ChatOperationResponse> {
     return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages`, {
       nonce: payload.nonce ?? '',
       ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
       body: payload.body ?? payload.notificationPreview ?? null,
-      mentionedUserIds: payload.mentionedUserIds ?? []
+      mentionedUserIds: payload.mentionedUserIds ?? [],
+      isAnonymous: !!payload.isAnonymous
     });
   }
 
@@ -92,5 +96,11 @@ export class ChatService {
 
   toggleAnonymousMode(roomId: number, enabled: boolean): Observable<ChatOperationResponse> {
     return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/anonymous-mode`, { enabled });
+  }
+
+  kickFromMessage(roomId: number, messageId: number, reason: string): Observable<ChatOperationResponse> {
+    return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/kick`, {
+      reason
+    });
   }
 }

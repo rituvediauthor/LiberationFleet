@@ -15,6 +15,27 @@ html,
 body {
   height: 100%;
   margin: 0;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html {
+  --lf-safe-top: env(safe-area-inset-top, 0px);
+  --lf-safe-right: env(safe-area-inset-right, 0px);
+  --lf-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --lf-safe-left: env(safe-area-inset-left, 0px);
+}
+
+body {
+  box-sizing: border-box;
+  padding-top: var(--lf-safe-top);
+  padding-left: var(--lf-safe-left);
+  padding-right: var(--lf-safe-right);
+}
+
+html:not(.lf-media-detail-open) {
+  touch-action: manipulation;
 }
 
 app-root {

@@ -2,13 +2,6 @@
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">
     <h1 class="room-title">{{ roomName }}</h1>
-    <button
-      type="button"
-      class="anonymous-toggle"
-      *ngIf="canToggleAnonymousMode"
-      (click)="toggleAnonymousMode()">
-      {{ anonymousModeEnabled ? 'Disable anonymous mode' : 'Enable anonymous mode' }}
-    </button>
 
     <p class="state-text" *ngIf="loading">Loading messages...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
@@ -54,6 +47,14 @@
               (keydown.escape)="closeMenus()">
               <button type="button" role="menuitem" *ngIf="isOwnMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
               <button type="button" role="menuitem" *ngIf="!isOwnMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
+              <button
+                type="button"
+                role="menuitem"
+                class="danger-item"
+                *ngIf="canKickAnonymous(message)"
+                (click)="openKickFromMessage(message, $event)">
+                Kick from crew
+              </button>
             </div>
           </div>
         </div>
@@ -81,6 +82,7 @@
         <textarea
           class="message-input"
           [class.expanded]="composerExpanded"
+          [class.anonymous-active]="composeAnonymously"
           [(ngModel)]="messageText"
           appMentionAutocomplete
           [(mentionedUserIds)]="mentionedUserIds"
@@ -90,7 +92,31 @@
           [attr.aria-label]="editingMessageId ? 'Edit message' : 'Message'"
           rows="1"></textarea>
 
+        <button
+          type="button"
+          class="anonymous-mode-btn"
+          *ngIf="!composerExpanded"
+          [class.active]="composeAnonymously"
+          (mousedown)="$event.preventDefault()"
+          (click)="toggleComposeAnonymously()"
+          [attr.aria-pressed]="composeAnonymously"
+          [attr.aria-label]="composeAnonymously ? 'Disable anonymous posting' : 'Enable anonymous posting'"
+          [title]="composeAnonymously ? 'Anonymous posting on' : 'Post anonymously'">
+          <i class="fa-solid fa-user-secret" aria-hidden="true"></i>
+        </button>
+
         <div class="composer-actions-col" *ngIf="composerExpanded">
+          <button
+            type="button"
+            class="anonymous-mode-btn"
+            [class.active]="composeAnonymously"
+            (mousedown)="$event.preventDefault()"
+            (click)="toggleComposeAnonymously()"
+            [attr.aria-pressed]="composeAnonymously"
+            [attr.aria-label]="composeAnonymously ? 'Disable anonymous posting' : 'Enable anonymous posting'"
+            [title]="composeAnonymously ? 'Anonymous posting on' : 'Post anonymously'">
+            <i class="fa-solid fa-user-secret" aria-hidden="true"></i>
+          </button>
           <button
             type="button"
             class="composer-send-btn"
@@ -140,7 +166,7 @@
   targetType="ChatMessage"
   [targetResourceId]="reportTarget?.id ?? null"
   [targetParentId]="roomId"
-  [targetAuthorUserId]="reportTarget?.authorUserId ?? null"
+  [targetAuthorUserId]="reportTarget?.isAnonymous ? null : (reportTarget?.authorUserId ?? null)"
   [crewId]="fleetId > 0 ? null : crewId"
   [fleetId]="fleetId > 0 ? fleetId : null"
   [evidenceText]="reportTarget?.body || ''"
@@ -149,3 +175,32 @@
   (dismissed)="onReportDismissed()"
   (submitted)="onReportSubmitted()">
 </app-report-content-dialog>
+
+<app-kick-reason-dialog
+  [visible]="showKickReasonDialog"
+  title="Kick from crew"
+  confirmLabel="Submit kick proposal"
+  (cancelled)="onKickReasonCancelled()"
+  (confirmed)="onKickReasonConfirmed($event)">
+</app-kick-reason-dialog>
+
+<div class="dialog-backdrop" *ngIf="showAnonymousReminderDialog" (click)="onAnonymousReminderBackdrop($event)">
+  <div
+    class="dialog-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="anonymous-reminder-title"
+    [appAccessibleDialog]="showAnonymousReminderDialog"
+    [appAccessibleDialogEscape]="dismissAnonymousReminderBound"
+    (click)="$event.stopPropagation()">
+    <h2 id="anonymous-reminder-title" class="dialog-title">Anonymous posting</h2>
+    <p class="dialog-message">
+      Your messages will appear as Anonymous. Crewmates will not see your name, but they can still propose to kick you from the crew for what you post.
+    </p>
+    <label class="remember-toggle">
+      <input type="checkbox" [(ngModel)]="dontRemindAnonymousMode" />
+      Don’t remind me
+    </label>
+    <button type="button" class="dialog-button" (click)="confirmAnonymousReminder()">Okay</button>
+  </div>
+</div>

@@ -243,14 +243,15 @@ export class AuthService {
   private persistRecoveryPhrase(normalized: string, rememberOnDevice: boolean): void {
     if (rememberOnDevice) {
       this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, normalized);
-    } else {
-      this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+      const userId = this.getCurrentUserId();
+      if (userId) {
+        this.savedRecoveryPhrase.setSaveEnabled(true);
+        this.savedRecoveryPhrase.savePhrase(userId, normalized);
+      }
+      return;
     }
 
-    const userId = this.getCurrentUserId();
-    if (userId && this.savedRecoveryPhrase.isSaveEnabled()) {
-      this.savedRecoveryPhrase.savePhrase(userId, normalized);
-    }
+    this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
   }
 
   private getTokenStorageScope(): StorageScope {

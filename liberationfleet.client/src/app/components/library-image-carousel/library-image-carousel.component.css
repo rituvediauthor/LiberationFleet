@@ -142,20 +142,27 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.85);
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-right: calc(20px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(20px + env(safe-area-inset-left, 0px));
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 .lightbox-content {
   position: relative;
   max-width: min(100%, 900px);
   max-height: 100%;
+  touch-action: pinch-zoom;
 }
 
 .lightbox-image {
   display: block;
   max-width: 100%;
-  max-height: calc(100dvh - 80px);
+  max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   margin: 0 auto;
   border-radius: 8px;
+  touch-action: pinch-zoom;
 }
 
 .lightbox-close {

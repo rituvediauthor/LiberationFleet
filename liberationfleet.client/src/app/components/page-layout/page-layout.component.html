@@ -18,15 +18,6 @@
     </button>
 
     <button
-      *ngIf="brandNavButton && !backButton"
-      class="action-button brand-nav-button"
-      type="button"
-      aria-label="LiberationFleet home"
-      (click)="onBrandNavClick()">
-      <app-brand-logo variant="lf" size="sm" alt=""></app-brand-logo>
-    </button>
-
-    <button
       *ngIf="showCrewFallback"
       class="action-button crew-fallback-button"
       type="button"

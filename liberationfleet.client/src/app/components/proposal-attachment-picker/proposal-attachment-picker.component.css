@@ -7,6 +7,10 @@
   align-items: center;
 }
 
+:host-context(.composer-tools) .attachment-actions {
+  margin-bottom: 0;
+}
+
 .attach-btn {
   padding: 8px 12px;
   border: 1px solid var(--lf-color-accent-border);

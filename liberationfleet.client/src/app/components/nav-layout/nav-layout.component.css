@@ -9,8 +9,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 100dvh;
-  max-height: 100dvh;
+  min-height: 100%;
+  max-height: 100%;
   width: 100%;
   overflow: hidden;
   background: var(--lf-color-bg-page);
@@ -41,7 +41,8 @@
   flex-shrink: 0;
   display: flex;
   align-items: stretch;
-  height: var(--bottom-nav-height);
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);

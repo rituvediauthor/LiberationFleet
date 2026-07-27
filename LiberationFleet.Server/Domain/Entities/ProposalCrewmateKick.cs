@@ -7,6 +7,7 @@ public class ProposalCrewmateKick
     public int TargetUserId { get; set; }
     public int SourceProposalId { get; set; }
     public int? SourceCommentId { get; set; }
+    public int? SourceChatMessageId { get; set; }
     public string AnonymousNickname { get; set; } = string.Empty;
     public string? RevealedUsername { get; set; }
     public string Title { get; set; } = string.Empty;

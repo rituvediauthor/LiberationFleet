@@ -145,7 +145,10 @@ export class ChatCryptoService {
       return {
         ...message,
         body: payload.body,
-        authorUsername: payload.authorDisplayName ?? message.authorUsername,
+        authorUsername: message.isAnonymous
+          ? 'Anonymous'
+          : (payload.authorDisplayName ?? message.authorUsername),
+        authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
         resolvedAttachments
       };
     } catch {

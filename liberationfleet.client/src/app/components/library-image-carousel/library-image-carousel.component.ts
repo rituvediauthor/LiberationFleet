@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
+import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-viewport-zoom';
 
 @Component({
   selector: 'app-library-image-carousel',
@@ -9,7 +10,7 @@ import { AccessibleDialogDirective } from '../../directives/accessible-dialog.di
   templateUrl: './library-image-carousel.component.html',
   styleUrl: './library-image-carousel.component.css'
 })
-export class LibraryImageCarouselComponent {
+export class LibraryImageCarouselComponent implements OnDestroy {
   @Input() images: string[] = [];
   @Input() title = '';
   @Input() variant: 'hero' | 'inline' | 'card' = 'hero';
@@ -21,14 +22,23 @@ export class LibraryImageCarouselComponent {
 
   openFull(index: number) {
     this.selectedIndex = index;
+    enterMediaDetailZoom();
     this.imageClick.emit(index);
   }
 
   closeFull() {
     if (this.selectedIndex !== null) {
       this.activeIndex = this.selectedIndex;
+      exitMediaDetailZoom();
     }
     this.selectedIndex = null;
+  }
+
+  ngOnDestroy() {
+    if (this.selectedIndex !== null) {
+      exitMediaDetailZoom();
+      this.selectedIndex = null;
+    }
   }
 
   showPrevious(event?: Event) {

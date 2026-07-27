@@ -9,6 +9,12 @@ public class ChatRoomMessage
     public bool IsDeleted { get; set; }
 
     /// <summary>
+    /// When true, the message is shown as Anonymous to other crewmates. The real
+    /// author id is kept server-side for moderation (e.g. kick proposals).
+    /// </summary>
+    public bool IsAnonymous { get; set; }
+
+    /// <summary>
     /// Plaintext body used for fleet chat rooms, which span multiple crews and therefore
     /// cannot use a single crew's E2E encryption key. Crew room messages keep using
     /// encrypted envelopes and leave this null.
