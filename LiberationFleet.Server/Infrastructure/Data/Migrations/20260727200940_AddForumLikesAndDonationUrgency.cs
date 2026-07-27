@@ -1,13 +1,11 @@
-using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using LiberationFleet.Server.Infrastructure.Data;
 
 #nullable disable
 
 namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260727180000_AddForumLikesAndDonationUrgency")]
+    /// <inheritdoc />
     public partial class AddForumLikesAndDonationUrgency : Migration
     {
         /// <inheritdoc />
@@ -50,21 +48,19 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ForumLikes", x => x.Id);
-                    table.CheckConstraint(
-                        "CK_ForumLikes_PostOrComment",
-                        "([ForumPostId] IS NOT NULL AND [ForumCommentId] IS NULL) OR ([ForumPostId] IS NULL AND [ForumCommentId] IS NOT NULL)");
+                    table.CheckConstraint("CK_ForumLikes_PostOrComment", "([ForumPostId] IS NOT NULL AND [ForumCommentId] IS NULL) OR ([ForumPostId] IS NULL AND [ForumCommentId] IS NOT NULL)");
                     table.ForeignKey(
                         name: "FK_ForumLikes_ForumComments_ForumCommentId",
                         column: x => x.ForumCommentId,
                         principalTable: "ForumComments",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ForumLikes_ForumPosts_ForumPostId",
                         column: x => x.ForumPostId,
                         principalTable: "ForumPosts",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ForumLikes_Users_UserId",
                         column: x => x.UserId,

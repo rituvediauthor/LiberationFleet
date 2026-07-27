@@ -989,15 +989,17 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            // Restrict post/comment deletes to avoid SQL Server multiple-cascade-path errors
+            // (ForumComments already cascade from ForumPosts).
             entity.HasOne(e => e.ForumPost)
                 .WithMany()
                 .HasForeignKey(e => e.ForumPostId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
             entity.HasOne(e => e.ForumComment)
                 .WithMany()
                 .HasForeignKey(e => e.ForumCommentId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
         });
 
