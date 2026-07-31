@@ -28,7 +28,8 @@ public class PendingGiftOptimisticNeedTests
     public async Task ReceptionOrder_ReflectsPendingGiftWithoutCompletingCycle()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
-        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         bobCycle.CycleReceived = 0m;
         bobCycle.CycleCompleted = false;
         await fixture.Context.SaveChangesAsync();
@@ -79,7 +80,8 @@ public class PendingGiftOptimisticNeedTests
     public async Task Verify_AppliesReceptionAndCanCompleteCycle()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
-        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         // Leave a small remaining need so one gift can complete the cycle.
         bobCycle.CycleReceived = 70m;
         bobCycle.CycleCompleted = false;

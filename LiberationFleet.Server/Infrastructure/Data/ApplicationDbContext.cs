@@ -407,6 +407,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => new { e.CrewId, e.UserId, e.SeasonStartDate });
             entity.Property(e => e.CycleCapAtStart).HasPrecision(18, 2);
             entity.Property(e => e.CycleCapAtCompletion).HasPrecision(18, 2);
+            entity.Property(e => e.SplitReservedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.CapIsProvisional).HasDefaultValue(false);
             entity.Property(e => e.TotalReceptionAmount).HasPrecision(18, 2);
             entity.Property(e => e.SurvivalThresholdReceived).HasPrecision(18, 2);
             entity.Property(e => e.CycleReceived).HasPrecision(18, 2);

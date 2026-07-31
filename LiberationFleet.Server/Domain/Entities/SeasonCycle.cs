@@ -9,6 +9,14 @@ public class SeasonCycle
     public decimal CycleCapAtStart { get; set; }
     /// <summary>Effective cycle cap when this cycle last completed; used for catch-up when caps grow.</summary>
     public decimal CycleCapAtCompletion { get; set; }
+    /// <summary>
+    /// True for future-season primaries whose dollar cap is not frozen until that season starts.
+    /// </summary>
+    public bool CapIsProvisional { get; set; }
+    /// <summary>
+    /// Amount already carved from a provisional primary via emergency splits before the season locks.
+    /// </summary>
+    public decimal SplitReservedAmount { get; set; }
     public decimal TotalReceptionAmount { get; set; }
     public decimal SurvivalThresholdReceived { get; set; }
     public decimal CycleReceived { get; set; }

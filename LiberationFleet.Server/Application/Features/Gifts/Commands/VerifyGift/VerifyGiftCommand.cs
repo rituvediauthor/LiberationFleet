@@ -94,6 +94,11 @@ public class VerifyGiftCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (request.Action is GiftVerificationAction.ConfirmReceived or GiftVerificationAction.ConfirmNotReceived)
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+        }
+
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse
         {

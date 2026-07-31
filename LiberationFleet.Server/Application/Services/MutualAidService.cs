@@ -35,6 +35,12 @@ public partial class MutualAidService(
         membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken) ?? membership;
         crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken) ?? crew;
 
+        if (crew.SeasonStarted)
+        {
+            await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);
+            crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken) ?? crew;
+        }
+
         var readyMembers = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
 
         return new SeasonStatusDto
@@ -793,11 +799,283 @@ public partial class MutualAidService(
             userId,
             crew.Id,
             cancellationToken,
-            excludeActiveSeasonContributions: true);
+            excludeActiveSeasonContributions: false);
         membership.CurrentPriorityScore = newScore;
 
         await RepositionCrewmateInReceptionOrderAsync(crew, userId, newScore, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task OnCrewContributionsChangedAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
+        {
+            return;
+        }
+
+        await EnsureNextSeasonCyclesAsync(crewId, cancellationToken);
+        crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken) ?? crew;
+        if (!crew.CurrentSeasonStartDate.HasValue)
+        {
+            return;
+        }
+
+        var currentSeasonStart = crew.CurrentSeasonStartDate.Value;
+
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
+        foreach (var participant in participants)
+        {
+            participant.CurrentPriorityScore = await GetPriorityScoreForUserAsync(
+                participant.UserId,
+                crewId,
+                cancellationToken,
+                excludeActiveSeasonContributions: false);
+        }
+
+        await ReorderUnlockedUnitsForSeasonAsync(
+            crew,
+            currentSeasonStart,
+            lockLeaderSlots: true,
+            cancellationToken);
+
+        if (crew.NextSeasonStartDate.HasValue)
+        {
+            await ReorderUnlockedUnitsForSeasonAsync(
+                crew,
+                crew.NextSeasonStartDate.Value,
+                lockLeaderSlots: false,
+                cancellationToken);
+        }
+
+        if (crew.FollowingSeasonStartDate.HasValue)
+        {
+            await ReorderUnlockedUnitsForSeasonAsync(
+                crew,
+                crew.FollowingSeasonStartDate.Value,
+                lockLeaderSlots: false,
+                cancellationToken);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ReorderUnlockedUnitsForSeasonAsync(
+        Crew crew,
+        DateTime seasonStartDate,
+        bool lockLeaderSlots,
+        CancellationToken cancellationToken)
+    {
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            seasonStartDate,
+            cancellationToken)).ToList();
+        if (cycles.Count == 0)
+        {
+            return;
+        }
+
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+        foreach (var primary in cycles.Where(c => !c.CycleCompleted && IsPrimaryCycle(c)))
+        {
+            var score = participants.FirstOrDefault(p => p.UserId == primary.UserId)?.CurrentPriorityScore
+                ?? primary.PriorityScoreAtSeasonStart;
+            primary.PriorityScoreAtSeasonStart = score;
+        }
+
+        var incomplete = cycles
+            .Where(c => !c.CycleCompleted)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .ToList();
+        var units = BuildIncompleteUnits(incomplete);
+        if (units.Count <= 1)
+        {
+            return;
+        }
+
+        var lockedCount = 0;
+        if (lockLeaderSlots)
+        {
+            var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(cycles);
+            if (leader is not null)
+            {
+                lockedCount = 1;
+                if (runnerUp is not null)
+                {
+                    lockedCount = 2;
+                }
+            }
+        }
+
+        var locked = units.Take(lockedCount).ToList();
+        var unlocked = units.Skip(lockedCount)
+            .OrderByDescending(u =>
+            {
+                var primary = u.LastOrDefault(IsPrimaryCycle);
+                return primary?.PriorityScoreAtSeasonStart ?? u[0].PriorityScoreAtSeasonStart;
+            })
+            .ThenBy(u => u.Min(c => c.ReceptionOrderPosition))
+            .ToList();
+
+        var orderedUnits = locked.Concat(unlocked).ToList();
+        var position = incomplete.Min(c => c.ReceptionOrderPosition);
+        foreach (var unit in orderedUnits)
+        {
+            foreach (var cycle in unit.OrderBy(c => c.ReceptionOrderPosition))
+            {
+                cycle.ReceptionOrderPosition = position++;
+            }
+        }
+    }
+
+    public async Task EnsureNextSeasonCyclesAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
+        {
+            return;
+        }
+
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
+        if (participants.Count == 0)
+        {
+            return;
+        }
+
+        EnsureFutureSeasonPlaceholders(crew);
+
+        // Backfill provisional flags on future primaries created before CapIsProvisional existed.
+        await BackfillProvisionalFutureCyclesAsync(crew, cancellationToken);
+
+        foreach (var seasonStart in GetFutureSeasonStarts(crew))
+        {
+            await EnsureSeasonCyclesForParticipantsAsync(
+                crew,
+                participants,
+                seasonStart,
+                lockLeaderSlots: false,
+                provisional: true,
+                cancellationToken);
+        }
+
+        // Keep adding future seasons until every participant has ≥2 incomplete primaries.
+        const int minIncomplete = 2;
+        for (var guard = 0; guard < 5; guard++)
+        {
+            if (!await AnyParticipantBelowIncompletePrimaryFloorAsync(crew, participants, minIncomplete, cancellationToken))
+            {
+                break;
+            }
+
+            var knownDates = (await mutualAidRepository.GetSeasonStartDatesOnOrAfterAsync(
+                crew.Id,
+                crew.CurrentSeasonStartDate.Value,
+                cancellationToken)).ToList();
+            knownDates.AddRange(GetFutureSeasonStarts(crew));
+            var extraStart = knownDates.DefaultIfEmpty(crew.CurrentSeasonStartDate.Value).Max().AddTicks(1);
+
+            await EnsureSeasonCyclesForParticipantsAsync(
+                crew,
+                participants,
+                extraStart,
+                lockLeaderSlots: false,
+                provisional: true,
+                cancellationToken);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void EnsureFutureSeasonPlaceholders(Crew crew)
+    {
+        var current = crew.CurrentSeasonStartDate!.Value;
+        if (!crew.NextSeasonStartDate.HasValue || crew.NextSeasonStartDate.Value <= current)
+        {
+            crew.NextSeasonStartDate = current.AddTicks(1);
+        }
+
+        if (!crew.FollowingSeasonStartDate.HasValue
+            || crew.FollowingSeasonStartDate.Value <= crew.NextSeasonStartDate.Value)
+        {
+            crew.FollowingSeasonStartDate = crew.NextSeasonStartDate.Value.AddTicks(1);
+        }
+    }
+
+    private async Task BackfillProvisionalFutureCyclesAsync(Crew crew, CancellationToken cancellationToken)
+    {
+        var current = crew.CurrentSeasonStartDate!.Value;
+        var seasonDates = await mutualAidRepository.GetSeasonStartDatesOnOrAfterAsync(
+            crew.Id,
+            current.AddTicks(1),
+            cancellationToken);
+
+        foreach (var seasonStart in seasonDates)
+        {
+            if (seasonStart <= current)
+            {
+                continue;
+            }
+
+            var cycles = await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, seasonStart, cancellationToken);
+            foreach (var cycle in cycles.Where(c =>
+                IsPrimaryCycle(c)
+                && !c.CycleCompleted
+                && !c.UsesSegmentCap
+                && !c.CapIsProvisional))
+            {
+                // Unlock amounts until this future season starts; keep any prior split reservations at 0.
+                cycle.CapIsProvisional = true;
+                cycle.CycleCapAtStart = 0m;
+                cycle.SplitReservedAmount = Math.Max(0m, cycle.SplitReservedAmount);
+            }
+        }
+    }
+
+    private static IReadOnlyList<DateTime> GetFutureSeasonStarts(Crew crew)
+    {
+        var dates = new List<DateTime>();
+        if (crew.NextSeasonStartDate.HasValue)
+        {
+            dates.Add(crew.NextSeasonStartDate.Value);
+        }
+
+        if (crew.FollowingSeasonStartDate.HasValue)
+        {
+            dates.Add(crew.FollowingSeasonStartDate.Value);
+        }
+
+        return dates.Distinct().OrderBy(d => d).ToList();
+    }
+
+    private async Task<bool> AnyParticipantBelowIncompletePrimaryFloorAsync(
+        Crew crew,
+        IReadOnlyList<CrewMembership> participants,
+        int minIncomplete,
+        CancellationToken cancellationToken)
+    {
+        var seasonDates = (await mutualAidRepository.GetSeasonStartDatesOnOrAfterAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate!.Value,
+            cancellationToken)).ToList();
+        foreach (var future in GetFutureSeasonStarts(crew))
+        {
+            if (!seasonDates.Contains(future))
+            {
+                seasonDates.Add(future);
+            }
+        }
+
+        var incompleteByUser = new Dictionary<int, int>();
+        foreach (var seasonStart in seasonDates.Distinct())
+        {
+            var cycles = await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, seasonStart, cancellationToken);
+            foreach (var primary in cycles.Where(c => IsPrimaryCycle(c) && !c.CycleCompleted))
+            {
+                incompleteByUser[primary.UserId] = incompleteByUser.GetValueOrDefault(primary.UserId) + 1;
+            }
+        }
+
+        return participants.Any(p => incompleteByUser.GetValueOrDefault(p.UserId) < minIncomplete);
     }
 
     public async Task RecalculateCapsAfterMembershipChangeAsync(int crewId, CancellationToken cancellationToken = default)
@@ -848,14 +1126,28 @@ public partial class MutualAidService(
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
         if (crew?.SeasonStarted == true && crew.CurrentSeasonStartDate.HasValue)
         {
-            var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
-                crewId,
-                crew.CurrentSeasonStartDate.Value,
-                cancellationToken);
-            foreach (var cycle in cycles.Where(c => c.UserId == userId && !c.CycleCompleted))
+            var seasonDates = new List<DateTime> { crew.CurrentSeasonStartDate.Value };
+            if (crew.NextSeasonStartDate.HasValue)
             {
-                cycle.CycleCompleted = true;
-                cycle.CycleCompletedAt ??= DateTime.UtcNow;
+                seasonDates.Add(crew.NextSeasonStartDate.Value);
+            }
+
+            if (crew.FollowingSeasonStartDate.HasValue)
+            {
+                seasonDates.Add(crew.FollowingSeasonStartDate.Value);
+            }
+
+            foreach (var seasonStart in seasonDates.Distinct())
+            {
+                var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+                    crewId,
+                    seasonStart,
+                    cancellationToken);
+                foreach (var cycle in cycles.Where(c => c.UserId == userId && !c.CycleCompleted))
+                {
+                    cycle.CycleCompleted = true;
+                    cycle.CycleCompletedAt ??= DateTime.UtcNow;
+                }
             }
 
             await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
@@ -1159,6 +1451,8 @@ public partial class MutualAidService(
             ReceptionOrderPosition = insertPosition,
             HasCycleStarted = false
         }, cancellationToken);
+
+        await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);
     }
 
     public async Task EnsureMemberInActiveSeasonAsync(
@@ -1249,6 +1543,33 @@ public partial class MutualAidService(
                 ReceptionOrderPosition = position++,
                 HasCycleStarted = false
             }, cancellationToken);
+        }
+
+        crew.NextSeasonStartDate = crew.CurrentSeasonStartDate!.Value.AddTicks(1);
+        crew.FollowingSeasonStartDate = crew.NextSeasonStartDate.Value.AddTicks(1);
+
+        foreach (var futureStart in new[] { crew.NextSeasonStartDate.Value, crew.FollowingSeasonStartDate.Value })
+        {
+            position = 0;
+            foreach (var (member, score) in ordered)
+            {
+                await mutualAidRepository.AddSeasonCycleAsync(new SeasonCycle
+                {
+                    CrewId = crew.Id,
+                    UserId = member.UserId,
+                    SeasonStartDate = futureStart,
+                    CycleCapAtStart = 0m,
+                    CapIsProvisional = true,
+                    SplitReservedAmount = 0m,
+                    TotalReceptionAmount = 0m,
+                    SurvivalThresholdReceived = 0m,
+                    CycleReceived = 0m,
+                    CycleCompleted = false,
+                    PriorityScoreAtSeasonStart = score,
+                    ReceptionOrderPosition = position++,
+                    HasCycleStarted = false
+                }, cancellationToken);
+            }
         }
 
         await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
@@ -1511,8 +1832,113 @@ public partial class MutualAidService(
             return;
         }
 
-        crew.CurrentSeasonStartDate = DateTime.UtcNow;
-        await InitializeSeasonStateAsync(crew, participants, cancellationToken);
+        await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);
+        crew = await mutualAidRepository.GetCrewAsync(crew.Id, cancellationToken) ?? crew;
+        if (!crew.NextSeasonStartDate.HasValue)
+        {
+            return;
+        }
+
+        var promotedSeasonStart = crew.NextSeasonStartDate.Value;
+        var nextParticipants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+
+        foreach (var member in nextParticipants)
+        {
+            if (member.User is not null)
+            {
+                member.User.PercentBonus = MutualAidCalculationService.GetSacrificePercentBonus(
+                    member.EmergencySacrificesThisSeason);
+            }
+
+            member.EmergencySacrificesThisSeason = 0;
+        }
+
+        var capacityContextForNext = await BuildCapacityContextAsync(crew, cancellationToken);
+        crew.SeasonMemberCycleCap = capacityContextForNext.MemberCycleCap;
+        crew.SeasonNonMemberCycleCap = capacityContextForNext.NonMemberCycleCap;
+
+        var promotedCycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            promotedSeasonStart,
+            cancellationToken)).ToList();
+
+        var scored = new List<(CrewMembership Member, decimal Score)>();
+        foreach (var member in nextParticipants)
+        {
+            var score = await GetPriorityScoreForUserAsync(member.UserId, crew.Id, cancellationToken);
+            member.CurrentPriorityScore = score;
+            scored.Add((member, score));
+        }
+
+        scored = scored.OrderByDescending(x => x.Score).ToList();
+        var position = 0;
+        foreach (var (member, score) in scored)
+        {
+            var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
+            var cycleCap = isMember ? capacityContextForNext.MemberCycleCap : capacityContextForNext.NonMemberCycleCap;
+            var primary = promotedCycles.FirstOrDefault(c =>
+                c.UserId == member.UserId && IsPrimaryCycle(c) && !c.CycleCompleted)
+                ?? promotedCycles.FirstOrDefault(c => c.UserId == member.UserId && IsPrimaryCycle(c));
+
+            if (primary is null)
+            {
+                var created = new SeasonCycle
+                {
+                    CrewId = crew.Id,
+                    UserId = member.UserId,
+                    SeasonStartDate = promotedSeasonStart,
+                    CycleCapAtStart = cycleCap,
+                    CapIsProvisional = false,
+                    SplitReservedAmount = 0m,
+                    TotalReceptionAmount = 0m,
+                    SurvivalThresholdReceived = 0m,
+                    CycleReceived = 0m,
+                    CycleCompleted = false,
+                    PriorityScoreAtSeasonStart = score,
+                    ReceptionOrderPosition = position++,
+                    HasCycleStarted = false
+                };
+                await mutualAidRepository.AddSeasonCycleAsync(created, cancellationToken);
+                promotedCycles.Add(created);
+                continue;
+            }
+
+            LockPrimaryCapAtSeasonStart(primary, cycleCap);
+            primary.PriorityScoreAtSeasonStart = score;
+            primary.HasCycleStarted = false;
+            if (!primary.CycleCompleted)
+            {
+                primary.ReceptionOrderPosition = position++;
+            }
+        }
+
+        // Bound segments keep relative package order ahead of their primary.
+        RewriteUnitPositionsPreservingPackages(promotedCycles);
+
+        var previousFollowing = crew.FollowingSeasonStartDate;
+        crew.CurrentSeasonStartDate = promotedSeasonStart;
+        crew.NextSeasonStartDate = previousFollowing.HasValue && previousFollowing.Value > promotedSeasonStart
+            ? previousFollowing.Value
+            : promotedSeasonStart.AddTicks(1);
+        crew.FollowingSeasonStartDate = crew.NextSeasonStartDate.Value.AddTicks(1);
+
+        // Ensure next + following provisional queues exist after promotion.
+        await EnsureSeasonCyclesForParticipantsAsync(
+            crew,
+            nextParticipants,
+            crew.NextSeasonStartDate.Value,
+            lockLeaderSlots: false,
+            provisional: true,
+            cancellationToken);
+        await EnsureSeasonCyclesForParticipantsAsync(
+            crew,
+            nextParticipants,
+            crew.FollowingSeasonStartDate.Value,
+            lockLeaderSlots: false,
+            provisional: true,
+            cancellationToken);
+
+        await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
 
         await AddCelebratoryGiftLogEntryAsync(
             crew,
@@ -1529,28 +1955,197 @@ public partial class MutualAidService(
             cancellationToken: cancellationToken);
     }
 
+    private static void LockPrimaryCapAtSeasonStart(SeasonCycle primary, decimal frozenCap)
+    {
+        primary.CapIsProvisional = false;
+        if (primary.UsesSegmentCap)
+        {
+            // Already carved into a locked remaining segment under prior rules.
+            return;
+        }
+
+        primary.CycleCapAtStart = Math.Max(0m, frozenCap - primary.SplitReservedAmount);
+        if (primary.CycleCapAtStart <= primary.CycleReceived)
+        {
+            primary.CycleCompleted = true;
+            primary.CycleCompletedAt ??= DateTime.UtcNow;
+        }
+    }
+
+    private static void RewriteUnitPositionsPreservingPackages(IReadOnlyList<SeasonCycle> cycles)
+    {
+        var incomplete = cycles
+            .Where(c => !c.CycleCompleted)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .ToList();
+        if (incomplete.Count == 0)
+        {
+            return;
+        }
+
+        var units = BuildIncompleteUnits(incomplete);
+        units = units
+            .OrderByDescending(u =>
+            {
+                var primary = u.LastOrDefault(IsPrimaryCycle);
+                return primary?.PriorityScoreAtSeasonStart ?? u[0].PriorityScoreAtSeasonStart;
+            })
+            .ThenBy(u => u.Min(c => c.ReceptionOrderPosition))
+            .ToList();
+
+        var position = 0;
+        foreach (var unit in units)
+        {
+            foreach (var cycle in unit.OrderBy(c => c.ReceptionOrderPosition))
+            {
+                cycle.ReceptionOrderPosition = position++;
+            }
+        }
+    }
+
     private async Task RepositionCrewmateInReceptionOrderAsync(
         Crew crew,
         int userId,
         decimal newPriorityScore,
         CancellationToken cancellationToken)
     {
+        await RepositionCrewmateInSeasonAsync(
+            crew,
+            userId,
+            newPriorityScore,
+            crew.CurrentSeasonStartDate!.Value,
+            lockLeaderSlots: true,
+            cancellationToken);
+
+        if (crew.NextSeasonStartDate.HasValue)
+        {
+            await RepositionCrewmateInSeasonAsync(
+                crew,
+                userId,
+                newPriorityScore,
+                crew.NextSeasonStartDate.Value,
+                lockLeaderSlots: false,
+                cancellationToken);
+        }
+
+        if (crew.FollowingSeasonStartDate.HasValue)
+        {
+            await RepositionCrewmateInSeasonAsync(
+                crew,
+                userId,
+                newPriorityScore,
+                crew.FollowingSeasonStartDate.Value,
+                lockLeaderSlots: false,
+                cancellationToken);
+        }
+
+        await RepositionSurvivalThresholdsForUserAsync(crew.Id, userId, cancellationToken);
+    }
+
+    private async Task RepositionCrewmateInSeasonAsync(
+        Crew crew,
+        int userId,
+        decimal newPriorityScore,
+        DateTime seasonStartDate,
+        bool lockLeaderSlots,
+        CancellationToken cancellationToken)
+    {
         var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
             crew.Id,
-            crew.CurrentSeasonStartDate!.Value,
+            seasonStartDate,
             cancellationToken)).ToList();
 
         var affectedPrimary = cycles.FirstOrDefault(c =>
             c.UserId == userId && !c.CycleCompleted && IsPrimaryCycle(c));
-        if (affectedPrimary is not null)
+        if (affectedPrimary is null)
         {
-            affectedPrimary.PriorityScoreAtSeasonStart = newPriorityScore;
-
-            var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(cycles);
-            RepositionCycleUnit(cycles, affectedPrimary, newPriorityScore, leader, runnerUp);
+            return;
         }
 
-        await RepositionSurvivalThresholdsForUserAsync(crew.Id, userId, cancellationToken);
+        affectedPrimary.PriorityScoreAtSeasonStart = newPriorityScore;
+
+        SeasonCycle? leader = null;
+        SeasonCycle? runnerUp = null;
+        if (lockLeaderSlots)
+        {
+            (leader, runnerUp) = FindLockedLeaderAndRunnerUp(cycles);
+        }
+
+        RepositionCycleUnit(cycles, affectedPrimary, newPriorityScore, leader, runnerUp);
+    }
+
+    private async Task EnsureSeasonCyclesForParticipantsAsync(
+        Crew crew,
+        IReadOnlyList<CrewMembership> participants,
+        DateTime seasonStartDate,
+        bool lockLeaderSlots,
+        bool provisional,
+        CancellationToken cancellationToken)
+    {
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            seasonStartDate,
+            cancellationToken)).ToList();
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+
+        foreach (var member in participants)
+        {
+            var hasPrimary = cycles.Any(c =>
+                c.UserId == member.UserId
+                && IsPrimaryCycle(c)
+                && !c.CycleCompleted);
+            if (hasPrimary)
+            {
+                continue;
+            }
+
+            var score = member.CurrentPriorityScore;
+            if (score == 0m)
+            {
+                score = await GetPriorityScoreForUserAsync(member.UserId, crew.Id, cancellationToken);
+                member.CurrentPriorityScore = score;
+            }
+
+            var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
+            var cycleCap = provisional ? 0m : GetEffectiveCycleCap(isMember, crew, capacityContext);
+            var insertPosition = lockLeaderSlots
+                ? GetInsertPositionForNewCycle(cycles, score)
+                : (cycles.Count == 0 ? 0 : cycles.Max(c => c.ReceptionOrderPosition) + 1);
+
+            // For future-season inserts, place by priority among existing primaries.
+            if (!lockLeaderSlots)
+            {
+                var target = cycles
+                    .Where(c => IsPrimaryCycle(c) && !c.CycleCompleted && c.PriorityScoreAtSeasonStart < score)
+                    .OrderBy(c => c.ReceptionOrderPosition)
+                    .FirstOrDefault();
+                insertPosition = target?.ReceptionOrderPosition
+                    ?? (cycles.Count == 0 ? 0 : cycles.Max(c => c.ReceptionOrderPosition) + 1);
+                foreach (var cycle in cycles.Where(c => c.ReceptionOrderPosition >= insertPosition))
+                {
+                    cycle.ReceptionOrderPosition++;
+                }
+            }
+
+            var created = new SeasonCycle
+            {
+                CrewId = crew.Id,
+                UserId = member.UserId,
+                SeasonStartDate = seasonStartDate,
+                CycleCapAtStart = cycleCap,
+                CapIsProvisional = provisional,
+                SplitReservedAmount = 0m,
+                TotalReceptionAmount = 0m,
+                SurvivalThresholdReceived = 0m,
+                CycleReceived = 0m,
+                CycleCompleted = false,
+                PriorityScoreAtSeasonStart = score,
+                ReceptionOrderPosition = insertPosition,
+                HasCycleStarted = false
+            };
+            await mutualAidRepository.AddSeasonCycleAsync(created, cancellationToken);
+            cycles.Add(created);
+        }
     }
 
     private static void RepositionCycleUnit(

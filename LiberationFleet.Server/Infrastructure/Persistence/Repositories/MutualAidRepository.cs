@@ -58,6 +58,17 @@ public class MutualAidRepository : IMutualAidRepository
             .Where(c => c.CrewId == crewId && c.SeasonStartDate == seasonStartDate)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<DateTime>> GetSeasonStartDatesOnOrAfterAsync(
+        int crewId,
+        DateTime onOrAfter,
+        CancellationToken cancellationToken = default) =>
+        await _context.SeasonCycles
+            .Where(c => c.CrewId == crewId && c.SeasonStartDate >= onOrAfter)
+            .Select(c => c.SeasonStartDate)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToListAsync(cancellationToken);
+
     public async Task AddSeasonCycleAsync(SeasonCycle cycle, CancellationToken cancellationToken = default)
     {
         await _context.SeasonCycles.AddAsync(cycle, cancellationToken);

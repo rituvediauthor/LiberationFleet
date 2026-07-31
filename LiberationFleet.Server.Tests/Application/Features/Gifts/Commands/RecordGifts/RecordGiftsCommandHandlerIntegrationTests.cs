@@ -53,7 +53,8 @@ public class RecordGiftsCommandHandlerIntegrationTests
         gift.Type.Should().Be(GiftType.Direct);
         gift.VerificationStatus.Should().Be(GiftVerificationStatus.Pending);
 
-        var cycleBeforeVerify = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var cycleBeforeVerify = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         cycleBeforeVerify.CycleReceived.Should().Be(0m);
 
         var verifyHandler = new VerifyGiftCommandHandler(
@@ -70,7 +71,8 @@ public class RecordGiftsCommandHandlerIntegrationTests
 
         verifyResult.Success.Should().BeTrue();
 
-        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         cycle.CycleReceived.Should().Be(50m);
     }
 
@@ -105,7 +107,8 @@ public class RecordGiftsCommandHandlerIntegrationTests
         gift.MiddlemanUserId.Should().Be(fixture.Carol.Id);
         gift.CountsTowardReception.Should().BeFalse();
 
-        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         cycle.CycleReceived.Should().Be(0m);
     }
 

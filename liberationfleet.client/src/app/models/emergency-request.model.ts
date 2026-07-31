@@ -42,6 +42,9 @@ export interface EmergencyRequestDetail {
   commonPlatforms: EmergencyPlatform[];
   middlemanOptions: EmergencyMiddlemanOption[];
   isSelfRequest: boolean;
+  canViewerSplitCycle: boolean;
+  viewerSplitMaxAmount: number;
+  splitAvailabilityMessage: string;
 }
 
 export interface EmergencyRequestDetailResponse {

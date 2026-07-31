@@ -30,16 +30,20 @@
             <input type="radio" name="responseMode" [checked]="responseMode === 'recordGift'" (change)="setResponseMode('recordGift')">
             Record gift
           </label>
-          <label class="mode-option">
+          <label class="mode-option" *ngIf="request.canViewerSplitCycle">
             <input type="radio" name="responseMode" [checked]="responseMode === 'splitCycle'" (change)="setResponseMode('splitCycle')">
             Split cycle
           </label>
         </div>
+        <p class="split-hint" *ngIf="!request.canViewerSplitCycle && request.splitAvailabilityMessage">
+          {{ request.splitAvailabilityMessage }}
+        </p>
 
         <form [formGroup]="form" class="response-form">
           <div class="form-group">
             <label>Amount ($)</label>
-            <input type="number" formControlName="amount" class="form-input" min="0.01" step="0.01">
+            <input type="number" formControlName="amount" class="form-input" min="0.01" step="0.01"
+              [attr.max]="responseMode === 'splitCycle' ? request.viewerSplitMaxAmount : request.amountRemaining">
           </div>
 
           <ng-container *ngIf="responseMode === 'recordGift'">
@@ -66,6 +70,7 @@
 
           <p class="split-hint" *ngIf="responseMode === 'splitCycle'">
             This amount will go to {{ request.requesterUsername }} from your cycle cap now, and the same amount from their cycle will go to you when their turn arrives.
+            You can split up to ${{ request.viewerSplitMaxAmount }}.
           </p>
         </form>
       </section>

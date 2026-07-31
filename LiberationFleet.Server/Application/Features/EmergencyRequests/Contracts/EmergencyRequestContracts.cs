@@ -49,6 +49,9 @@ public class EmergencyRequestDetailDto
     public IReadOnlyList<EmergencyPlatformDto> CommonPlatforms { get; set; } = Array.Empty<EmergencyPlatformDto>();
     public IReadOnlyList<EmergencyMiddlemanOptionDto> MiddlemanOptions { get; set; } = Array.Empty<EmergencyMiddlemanOptionDto>();
     public bool IsSelfRequest { get; set; }
+    public bool CanViewerSplitCycle { get; set; }
+    public decimal ViewerSplitMaxAmount { get; set; }
+    public string SplitAvailabilityMessage { get; set; } = string.Empty;
 }
 
 public class EmergencyRequestDetailResponse

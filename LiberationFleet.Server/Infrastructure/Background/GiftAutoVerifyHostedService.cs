@@ -78,6 +78,13 @@ public sealed class GiftAutoVerifyHostedService(
         if (applied > 0)
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var crewIds = due.Select(g => g.CrewId).Distinct();
+            foreach (var crewId in crewIds)
+            {
+                await mutualAid.OnCrewContributionsChangedAsync(crewId, cancellationToken);
+            }
+
             logger.LogInformation("Auto-verified {Count} gift(s) older than {Hours} hours.", applied, AutoVerifyAfter.TotalHours);
         }
     }

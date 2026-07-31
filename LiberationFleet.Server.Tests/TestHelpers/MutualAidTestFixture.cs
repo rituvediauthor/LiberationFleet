@@ -61,6 +61,8 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             CreatedAt = DateTime.UtcNow,
             SeasonStarted = true,
             CurrentSeasonStartDate = DateTime.UtcNow.AddDays(-10),
+            NextSeasonStartDate = DateTime.UtcNow.AddDays(-10).AddTicks(1),
+            FollowingSeasonStartDate = DateTime.UtcNow.AddDays(-10).AddTicks(2),
             SeasonMemberCycleCap = cycleCap,
             SeasonNonMemberCycleCap = cycleCap
         };
@@ -69,6 +71,8 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
 
         var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
         var seasonStart = crew.CurrentSeasonStartDate!.Value;
+        var nextSeasonStart = crew.NextSeasonStartDate!.Value;
+        var followingSeasonStart = crew.FollowingSeasonStartDate!.Value;
 
         context.CrewMemberships.AddRange(
             CreateMembership(alice, crew, monthlyContribution),
@@ -86,7 +90,13 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
         context.SeasonCycles.AddRange(
             CreateCycle(crew, bob, seasonStart, cycleCap, receptionOrderPosition: 0, priorityScore: 300m),
             CreateCycle(crew, alice, seasonStart, cycleCap, receptionOrderPosition: 1, priorityScore: 200m),
-            CreateCycle(crew, carol, seasonStart, cycleCap, receptionOrderPosition: 2, priorityScore: 100m));
+            CreateCycle(crew, carol, seasonStart, cycleCap, receptionOrderPosition: 2, priorityScore: 100m),
+            CreateProvisionalCycle(crew, bob, nextSeasonStart, receptionOrderPosition: 0, priorityScore: 300m),
+            CreateProvisionalCycle(crew, alice, nextSeasonStart, receptionOrderPosition: 1, priorityScore: 200m),
+            CreateProvisionalCycle(crew, carol, nextSeasonStart, receptionOrderPosition: 2, priorityScore: 100m),
+            CreateProvisionalCycle(crew, bob, followingSeasonStart, receptionOrderPosition: 0, priorityScore: 300m),
+            CreateProvisionalCycle(crew, alice, followingSeasonStart, receptionOrderPosition: 1, priorityScore: 200m),
+            CreateProvisionalCycle(crew, carol, followingSeasonStart, receptionOrderPosition: 2, priorityScore: 100m));
         await context.SaveChangesAsync();
 
         var service = HandlerTestFixture.CreateMutualAidService(context);
@@ -184,6 +194,31 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             UserId = user.Id,
             SeasonStartDate = seasonStart,
             CycleCapAtStart = cycleCap,
+            CapIsProvisional = false,
+            SplitReservedAmount = 0m,
+            TotalReceptionAmount = 0m,
+            SurvivalThresholdReceived = 0m,
+            CycleReceived = 0m,
+            CycleCompleted = false,
+            PriorityScoreAtSeasonStart = priorityScore,
+            ReceptionOrderPosition = receptionOrderPosition,
+            HasCycleStarted = false
+        };
+
+    private static SeasonCycle CreateProvisionalCycle(
+        Crew crew,
+        User user,
+        DateTime seasonStart,
+        int receptionOrderPosition,
+        decimal priorityScore) =>
+        new()
+        {
+            CrewId = crew.Id,
+            UserId = user.Id,
+            SeasonStartDate = seasonStart,
+            CycleCapAtStart = 0m,
+            CapIsProvisional = true,
+            SplitReservedAmount = 0m,
             TotalReceptionAmount = 0m,
             SurvivalThresholdReceived = 0m,
             CycleReceived = 0m,

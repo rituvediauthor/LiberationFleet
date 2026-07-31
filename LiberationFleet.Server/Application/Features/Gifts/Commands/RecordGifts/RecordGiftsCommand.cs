@@ -162,6 +162,8 @@ public class RecordGiftsCommandHandler(
             }
         }
 
+        await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+
         return new GiftOperationResponse
         {
             Success = true,

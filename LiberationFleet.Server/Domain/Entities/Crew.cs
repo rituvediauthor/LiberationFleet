@@ -16,6 +16,10 @@ public class Crew
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool SeasonStarted { get; set; }
     public DateTime? CurrentSeasonStartDate { get; set; }
+    /// <summary>Placeholder start date for the pre-created next-season cycle queue.</summary>
+    public DateTime? NextSeasonStartDate { get; set; }
+    /// <summary>Placeholder start date for the season after next (keeps ≥2 incomplete cycles when current is done).</summary>
+    public DateTime? FollowingSeasonStartDate { get; set; }
     public decimal SeasonMemberCycleCap { get; set; }
     public decimal SeasonNonMemberCycleCap { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;

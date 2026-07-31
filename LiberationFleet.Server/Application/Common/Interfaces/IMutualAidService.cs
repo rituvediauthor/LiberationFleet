@@ -27,6 +27,14 @@ public interface IMutualAidService
     Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionForUserAsync(Gift gift, int recipientUserId, CancellationToken cancellationToken = default);
     Task OnCrewmatePriorityChangedAsync(int userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Recalculates priority scores including contributions and reorders unlocked cycle units.
+    /// </summary>
+    Task OnCrewContributionsChangedAsync(int crewId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Ensures current-season participants each have a next-season primary cycle.
+    /// </summary>
+    Task EnsureNextSeasonCyclesAsync(int crewId, CancellationToken cancellationToken = default);
     Task RecalculateCapsAfterMembershipChangeAsync(int crewId, CancellationToken cancellationToken = default);
     Task<decimal> GetPriorityScoreForUserAsync(
         int userId,

@@ -16,6 +16,8 @@ public class CreateEmergencyRequestCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
     IUserRepository userRepository,
+    EmergencySplitService emergencySplitService,
+    IMutualAidService mutualAidService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateEmergencyRequestCommand, EmergencyRequestOperationResponse>
 {
@@ -49,8 +51,15 @@ public class CreateEmergencyRequestCommandHandler(
             };
         }
 
+        await mutualAidService.EnsureNextSeasonCyclesAsync(membership.CrewId, cancellationToken);
+
         var requester = await userRepository.GetByIdWithProfileAsync(currentUser.UserId.Value, cancellationToken);
         var requesterName = requester?.Username ?? "A crewmate";
+
+        var eligibleOfferers = await emergencySplitService.CaptureEligibleOffererUserIdsAsync(
+            membership.CrewId,
+            currentUser.UserId.Value,
+            cancellationToken);
 
         var emergencyRequest = new EmergencyRequest
         {
@@ -60,7 +69,8 @@ public class CreateEmergencyRequestCommandHandler(
             AmountNeeded = request.AmountNeeded,
             AmountFulfilled = 0m,
             Status = EmergencyRequestStatus.Open,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(eligibleOfferers)
         };
 
         await emergencyRequestRepository.AddAsync(emergencyRequest, cancellationToken);

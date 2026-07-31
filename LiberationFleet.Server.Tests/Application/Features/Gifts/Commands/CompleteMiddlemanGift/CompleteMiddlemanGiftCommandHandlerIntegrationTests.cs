@@ -55,7 +55,8 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
         completed.CrewPaymentPlatformId.Should().Be(fixture.Platforms["Venmo"].Id);
         completed.VerificationStatus.Should().Be(GiftVerificationStatus.AwaitingRecipientVerification);
 
-        var cycleBeforeVerify = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var cycleBeforeVerify = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         cycleBeforeVerify.CycleReceived.Should().Be(0m);
 
         var verifyHandler = new VerifyGiftCommandHandler(
@@ -72,7 +73,8 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
 
         verifyResult.Success.Should().BeTrue();
 
-        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.UserId == fixture.Bob.Id);
+        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
         cycle.CycleReceived.Should().Be(40m);
     }
 

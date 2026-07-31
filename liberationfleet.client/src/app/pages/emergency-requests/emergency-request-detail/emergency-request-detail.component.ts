@@ -78,6 +78,9 @@ export class EmergencyRequestDetailComponent implements OnInit {
   }
 
   setResponseMode(mode: ResponseMode) {
+    if (mode === 'splitCycle' && this.request && !this.request.canViewerSplitCycle) {
+      return;
+    }
     this.responseMode = mode;
     this.updateSubmitButton();
   }
@@ -148,7 +151,10 @@ export class EmergencyRequestDetailComponent implements OnInit {
   private canSubmit(): boolean {
     const amount = Number(this.form.get('amount')?.value);
     if (amount <= 0) return false;
-    if (this.responseMode === 'splitCycle') return true;
+    if (this.responseMode === 'splitCycle') {
+      if (!this.request?.canViewerSplitCycle) return false;
+      return amount <= this.request.viewerSplitMaxAmount;
+    }
 
     if (this.needsMiddleman()) {
       return Number(this.form.get('middlemanId')?.value) > 0;

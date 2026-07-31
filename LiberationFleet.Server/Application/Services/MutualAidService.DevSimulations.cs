@@ -125,6 +125,8 @@ public partial class MutualAidService
 
         crew.SeasonStarted = false;
         crew.CurrentSeasonStartDate = null;
+        crew.NextSeasonStartDate = null;
+        crew.FollowingSeasonStartDate = null;
         crew.SeasonMemberCycleCap = 0m;
         crew.SeasonNonMemberCycleCap = 0m;
 

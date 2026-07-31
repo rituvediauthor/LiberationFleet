@@ -370,6 +370,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CurrentSeasonStartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("NextSeasonStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FollowingSeasonStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ImageResourceId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -917,6 +923,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<int>("RequesterUserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("SplitEligibleOffererUserIds")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -3215,6 +3224,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("CapIsProvisional")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("CycleCompleted")
                         .HasColumnType("bit");
 
@@ -3245,6 +3259,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("SeasonStartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("SplitReservedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("SurvivalThresholdReceived")
                         .HasPrecision(18, 2)

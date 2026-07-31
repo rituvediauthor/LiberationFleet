@@ -14,7 +14,8 @@ public class GetEmergencyRequestDetailQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
     IMutualAidRepository mutualAidRepository,
-    IMutualAidService mutualAidService) : IRequestHandler<GetEmergencyRequestDetailQuery, EmergencyRequestDetailResponse>
+    IMutualAidService mutualAidService,
+    EmergencySplitService emergencySplitService) : IRequestHandler<GetEmergencyRequestDetailQuery, EmergencyRequestDetailResponse>
 {
     public async Task<EmergencyRequestDetailResponse> Handle(
         GetEmergencyRequestDetailQuery request,
@@ -96,6 +97,11 @@ public class GetEmergencyRequestDetailQueryHandler(
             })
             .ToList();
 
+        var splitEligibility = await emergencySplitService.GetViewerSplitEligibilityAsync(
+            emergencyRequest,
+            viewerId,
+            cancellationToken);
+
         return new EmergencyRequestDetailResponse
         {
             Success = true,
@@ -113,7 +119,10 @@ public class GetEmergencyRequestDetailQueryHandler(
                 CreatedAt = emergencyRequest.CreatedAt,
                 CommonPlatforms = commonPlatforms,
                 MiddlemanOptions = middlemanOptions,
-                IsSelfRequest = emergencyRequest.RequesterUserId == viewerId
+                IsSelfRequest = emergencyRequest.RequesterUserId == viewerId,
+                CanViewerSplitCycle = splitEligibility.CanSplit,
+                ViewerSplitMaxAmount = splitEligibility.MaxSplitAmount,
+                SplitAvailabilityMessage = splitEligibility.Message
             }
         };
     }

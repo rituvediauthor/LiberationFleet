@@ -12,6 +12,11 @@ public class EmergencyRequest
     public decimal AmountFulfilled { get; set; }
     public EmergencyRequestStatus Status { get; set; } = EmergencyRequestStatus.Open;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+    /// Comma-separated user IDs who had an incomplete primary ahead of the requester when this request was created.
+    /// Empty/null means legacy: evaluate ahead-of-requester using live queue order at split time.
+    /// </summary>
+    public string? SplitEligibleOffererUserIds { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User RequesterUser { get; set; } = null!;
