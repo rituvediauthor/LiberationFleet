@@ -1,7 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, ProfileOperationResult, UpdateProfileRequest, UserProfile } from '../models/profile.model';
+import { Observable, of, shareReplay, tap } from 'rxjs';
+import {
+  CUSTOM_PLATFORM_OPTION_ID,
+  PaymentPlatformAccount,
+  ProfileOperationResult,
+  UpdateProfileRequest,
+  UserProfile
+} from '../models/profile.model';
 
 @Injectable({
   providedIn: 'root'
@@ -9,15 +15,49 @@ import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, ProfileOperationResu
 export class ProfileService {
   private readonly apiUrl = '/api/profile';
   private nextTempPlatformId = -1;
+  private profileRequest$: Observable<UserProfile> | null = null;
 
   constructor(private http: HttpClient) {}
 
-  getProfile(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(this.apiUrl);
+  /**
+   * Session-cached profile. Concurrent callers share one in-flight request.
+   * Pass forceRefresh after profile edits (or call clearProfileCache).
+   */
+  getProfile(forceRefresh = false): Observable<UserProfile> {
+    if (forceRefresh) {
+      this.clearProfileCache();
+    }
+    if (!this.profileRequest$) {
+      this.profileRequest$ = this.http.get<UserProfile>(this.apiUrl).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.profileRequest$;
+  }
+
+  clearProfileCache(): void {
+    this.profileRequest$ = null;
+  }
+
+  clearSessionCache(): void {
+    this.clearProfileCache();
+  }
+
+  /** Replace the session cache after a successful save (avoids an extra GET). */
+  setCachedProfile(profile: UserProfile): void {
+    this.profileRequest$ = of(profile).pipe(shareReplay({ bufferSize: 1, refCount: false }));
   }
 
   updateProfile(request: UpdateProfileRequest): Observable<ProfileOperationResult> {
-    return this.http.put<ProfileOperationResult>(this.apiUrl, request);
+    return this.http.put<ProfileOperationResult>(this.apiUrl, request).pipe(
+      tap(result => {
+        if (result.success && result.profile) {
+          this.setCachedProfile(result.profile);
+        } else if (result.success) {
+          this.clearProfileCache();
+        }
+      })
+    );
   }
 
   saveProfile(profile: UserProfile): Observable<ProfileOperationResult> {

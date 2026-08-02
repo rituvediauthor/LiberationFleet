@@ -34,6 +34,9 @@ export class NotificationService {
   readonly areaCounts$ = this.areaCountsSubject.asObservable();
   private resourceCountsSubject = new BehaviorSubject<Record<string, number>>({});
   readonly resourceCounts$ = this.resourceCountsSubject.asObservable();
+  private lastBadgeRefreshAt = 0;
+  private badgeInFlight = false;
+  private readonly badgeMinIntervalMs = 12_000;
 
   constructor(private http: HttpClient) {}
 
@@ -52,9 +55,21 @@ export class NotificationService {
     );
   }
 
-  refreshBadges(): void {
+  /**
+   * Refresh badge counts. Soft-throttled for routine nav remounts;
+   * pass force=true for hub pushes / mark-read / mute changes.
+   */
+  refreshBadges(force = false): void {
+    const now = Date.now();
+    if (!force && (this.badgeInFlight || now - this.lastBadgeRefreshAt < this.badgeMinIntervalMs)) {
+      return;
+    }
+
+    this.badgeInFlight = true;
     this.http.get<NotificationBadgeSummaryResponse>(`${this.apiUrl}/badges`).subscribe({
       next: response => {
+        this.badgeInFlight = false;
+        this.lastBadgeRefreshAt = Date.now();
         if (!response.success) {
           return;
         }
@@ -62,8 +77,19 @@ export class NotificationService {
         this.unreadCountSubject.next(response.unreadCount);
         this.areaCountsSubject.next(this.toAreaCounts(response.areaCounts));
         this.resourceCountsSubject.next(response.resourceCounts ?? {});
+      },
+      error: () => {
+        this.badgeInFlight = false;
       }
     });
+  }
+
+  clearSessionCache(): void {
+    this.lastBadgeRefreshAt = 0;
+    this.badgeInFlight = false;
+    this.unreadCountSubject.next(0);
+    this.areaCountsSubject.next(emptyAreaCounts());
+    this.resourceCountsSubject.next({});
   }
 
   /** @deprecated Use refreshBadges() */
@@ -92,7 +118,7 @@ export class NotificationService {
       tap(response => {
         if (response.success) {
           this.unreadCountSubject.next(response.unreadCount);
-          this.refreshBadges();
+          this.refreshBadges(true);
         }
       })
     );
@@ -103,7 +129,7 @@ export class NotificationService {
       tap(response => {
         if (response.success) {
           this.unreadCountSubject.next(response.unreadCount);
-          this.refreshBadges();
+          this.refreshBadges(true);
         }
       })
     );
@@ -128,7 +154,7 @@ export class NotificationService {
   handleIncoming(notification: NotificationItem) {
     this.unreadCountSubject.next(this.unreadCountSubject.value + (notification.isRead ? 0 : 1));
     if (!notification.isRead) {
-      this.refreshBadges();
+      this.refreshBadges(true);
     }
   }
 
@@ -148,7 +174,7 @@ export class NotificationService {
     }).pipe(
       tap(response => {
         if (response.success) {
-          this.refreshBadges();
+          this.refreshBadges(true);
         }
       })
     );
@@ -170,7 +196,7 @@ export class NotificationService {
     }).pipe(
       tap(response => {
         if (response.success) {
-          this.refreshBadges();
+          this.refreshBadges(true);
         }
       })
     );

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, shareReplay, tap } from 'rxjs';
 import {
   CreateFleetRequest,
   CrewLookupResponse,
@@ -55,15 +55,42 @@ import {
 })
 export class FleetService {
   private readonly apiUrl = '/api/fleets';
+  private statusRequest$: Observable<FleetStatus> | null = null;
 
   constructor(private http: HttpClient) {}
 
-  getStatus(): Observable<FleetStatus> {
-    return this.http.get<FleetStatus>(`${this.apiUrl}/status`);
+  /**
+   * Session-cached fleet status. Concurrent callers share one in-flight request.
+   * Pass forceRefresh after join/leave/settings changes.
+   */
+  getStatus(forceRefresh = false): Observable<FleetStatus> {
+    if (forceRefresh) {
+      this.clearStatusCache();
+    }
+    if (!this.statusRequest$) {
+      this.statusRequest$ = this.http.get<FleetStatus>(`${this.apiUrl}/status`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.statusRequest$;
+  }
+
+  clearStatusCache(): void {
+    this.statusRequest$ = null;
+  }
+
+  clearSessionCache(): void {
+    this.clearStatusCache();
   }
 
   acceptRules(acceptedRuleIds: number[]): Observable<FleetOperationResult> {
-    return this.http.post<FleetOperationResult>(`${this.apiUrl}/accept-rules`, { acceptedRuleIds });
+    return this.http.post<FleetOperationResult>(`${this.apiUrl}/accept-rules`, { acceptedRuleIds }).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearStatusCache();
+        }
+      })
+    );
   }
 
   lookupCrewByJoinCode(joinCode: string): Observable<CrewLookupResponse> {
@@ -75,11 +102,23 @@ export class FleetService {
   inviteCrew(joinCode: string): Observable<InviteCrewToFleetResponse> {
     return this.http.post<InviteCrewToFleetResponse>(`${this.apiUrl}/invite-crew`, {
       joinCode: joinCode.trim().toUpperCase()
-    });
+    }).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearStatusCache();
+        }
+      })
+    );
   }
 
   create(request: CreateFleetRequest): Observable<FleetOperationResult> {
-    return this.http.post<FleetOperationResult>(this.apiUrl, request);
+    return this.http.post<FleetOperationResult>(this.apiUrl, request).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearStatusCache();
+        }
+      })
+    );
   }
 
   search(request: SearchFleetsRequest): Observable<FleetSearchResult> {
@@ -109,11 +148,23 @@ export class FleetService {
   }
 
   updateCurrent(request: UpdateFleetRequest): Observable<FleetOperationResult> {
-    return this.http.put<FleetOperationResult>(`${this.apiUrl}/current`, request);
+    return this.http.put<FleetOperationResult>(`${this.apiUrl}/current`, request).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearStatusCache();
+        }
+      })
+    );
   }
 
   leaveFleet(): Observable<FleetOperationResult> {
-    return this.http.post<FleetOperationResult>(`${this.apiUrl}/leave`, {});
+    return this.http.post<FleetOperationResult>(`${this.apiUrl}/leave`, {}).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearStatusCache();
+        }
+      })
+    );
   }
 
   getCrews(): Observable<FleetCrewListResponse> {

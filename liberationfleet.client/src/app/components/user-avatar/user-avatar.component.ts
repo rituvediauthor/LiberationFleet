@@ -54,8 +54,8 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async load(): Promise<void> {
-    this.src = null;
     if (this.anonymous || !this.resourceId?.trim()) {
+      this.src = null;
       return;
     }
 
@@ -66,10 +66,12 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
           ? { fleetId: this.fleetId }
           : null;
     if (!scope) {
+      this.src = null;
       return;
     }
 
     const requested = this.resourceId.trim();
+    // Keep current picture visible while a cached/decrypt load resolves (avoids nav flicker).
     const dataUrl = await this.images.getDataUrl(scope, requested, this.contentType);
     if (this.resourceId?.trim() === requested) {
       this.src = dataUrl;

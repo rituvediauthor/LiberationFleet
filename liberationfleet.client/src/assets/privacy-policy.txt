@@ -1,6 +1,6 @@
 LIBERATION FLEET PRIVACY POLICY
 
-Last updated: July 16, 2026
+Last updated: August 2, 2026
 
 This Privacy Policy describes how Liberation Fleet ("we," "us," or "our") collects, uses, stores, and shares information when you use the Liberation Fleet application and related services (the "Service").
 
@@ -134,7 +134,19 @@ We automatically collect certain technical information needed to operate the Ser
 
 We do not currently use consumer product-analytics SDKs (such as Google Analytics) in the application.
 
-2.13 Account recovery communications
+2.13 Device-side session cache (on your browser or app)
+To reduce repeated network requests and improve responsiveness while you use the Service, the client may keep limited copies of information in the memory of your device or browser for the duration of your signed-in session. This may include:
+- Structural session data such as your profile summary, crew membership status, fleet status, notification badge counts, and similar UI state already returned by our APIs
+- Decrypted copies of end-to-end encrypted media you are allowed to view (for example profile avatars and crew/fleet images) after your device unlocks content with your recovery key
+
+These session caches:
+- Are used only to present the Service to you more quickly on the same device/session
+- Are not a separate upload of plaintext content to our servers
+- Are cleared when you sign out, and are generally discarded when you close the browser tab/app process (except where you have separately chosen features such as remembering a login token or recovery phrase on that device)
+
+Unlocking encrypted content still happens on your device. Caching decrypted media in memory does not give Liberation Fleet operators the ability to read that content on our servers in ordinary operation.
+
+2.14 Account recovery communications
 If you use password reset or other account recovery features, we process your email address and temporary reset tokens to complete those requests. Password reset changes your login credentials only. It does not restore access to encrypted content; you still need your recovery key for that.
 
 
@@ -206,6 +218,8 @@ No method of transmission or storage is completely secure. A security incident c
 
 We retain information for as long as your account is active or as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. Safety-report retention follows section 2.11. You may request account deletion by contacting us; some information may be retained where required by law or for legitimate security, fraud-prevention, donation, or safety purposes.
 
+Device-side session caches described in section 2.13 are temporary performance aids on your device. They are cleared on sign-out and are not intended as long-term storage of your content on our servers.
+
 
 8. YOUR CHOICES
 
@@ -213,6 +227,7 @@ We retain information for as long as your account is active or as needed to prov
 - You can leave a crew or fleet, unfriend or block users, mute or hide content, and stop using the Service.
 - Encrypted content is unlocked with your 12-word recovery key on each device (or for the browser session if you choose to remember it). Your login password does not decrypt content keys on new accounts.
 - If you lose your recovery key, we cannot restore access to encrypted content.
+- Signing out clears device-side session caches of profile/membership state and decrypted media held in memory for that session.
 - You may decline to accept this policy, but you will not be able to register for an account.
 
 
@@ -241,6 +256,7 @@ SUMMARY (NOT A SUBSTITUTE FOR THE FULL POLICY)
 - We store account, crew/fleet, gift-calculation, library preview, notification, donation metadata, and safety-report data on our servers.
 - Gift amounts and who gave to whom are stored in readable form so mutual-aid features work.
 - Much chat, forum, proposal, DM, and media content is end-to-end encrypted so we cannot read it in normal operation.
+- Your device may temporarily keep session UI data and decrypted media in memory to improve performance; that cache is cleared on sign-out and is not an extra server copy of plaintext.
 - App donations are processed by Stripe; we keep amount and Stripe ids, not your card number.
 - Voice media is handled by LiveKit; we may keep join/presence metadata.
 - Crew/fleet members and friends can see information required for shared features.

@@ -30,6 +30,7 @@ export class AppComponent implements OnInit {
   private notificationHub = inject(NotificationHubService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
+  private notificationsBootstrapped = false;
 
   ngOnInit() {
     void this.authService.getEncryptionReady().then(() => {
@@ -80,7 +81,16 @@ export class AppComponent implements OnInit {
 
   private syncUnlockDialog() {
     const inAuthenticatedApp = this.router.url.startsWith('/app');
-    this.showCryptoUnlock = inAuthenticatedApp && this.authService.needsEncryptionUnlock();
+    if (!inAuthenticatedApp || !this.authService.isAuthenticated()) {
+      this.showCryptoUnlock = false;
+      return;
+    }
+
+    // Wait until local session/device unlock has been tried before showing the dialog.
+    void this.authService.getEncryptionReady().then(() => {
+      this.showCryptoUnlock =
+        this.router.url.startsWith('/app') && this.authService.needsEncryptionUnlock();
+    });
   }
 
   private syncCrewCryptoIfInApp() {
@@ -99,13 +109,17 @@ export class AppComponent implements OnInit {
 
   private connectNotificationsIfInApp() {
     if (!this.router.url.startsWith('/app') || !this.authService.getToken()) {
+      this.notificationsBootstrapped = false;
       return;
     }
 
     void this.notificationHub.connect();
-    this.notificationService.refreshBadges();
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      void Notification.requestPermission();
+    if (!this.notificationsBootstrapped) {
+      this.notificationsBootstrapped = true;
+      this.notificationService.refreshBadges(true);
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        void Notification.requestPermission();
+      }
     }
   }
 }

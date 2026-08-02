@@ -11,7 +11,7 @@ import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
-import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
+import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { LibraryAccessService } from '../../services/library-access.service';
 import { NotificationService } from '../../services/notification.service';
 import { NotificationHubService } from '../../services/notification-hub.service';
@@ -52,7 +52,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private libraryAccess = inject(LibraryAccessService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private cryptoSession = inject(CryptoSessionService);
-  private proposalCrypto = inject(ProposalCryptoService);
+  private images = inject(EncryptedImageCacheService);
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
   private subscriptions = new Subscription();
@@ -102,7 +102,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     );
     this.subscriptions.add(
       this.notificationHub.notificationReceived$.subscribe(() => {
-        this.notificationService.refreshBadges();
+        this.notificationService.refreshBadges(true);
       })
     );
   }
@@ -119,7 +119,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.crewImageSrc = await this.proposalCrypto.decryptImageDataUrl(
+    this.crewImageSrc = await this.images.getDataUrl(
       { crewId },
       resourceId,
       'ImageAsset'

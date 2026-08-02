@@ -1,6 +1,6 @@
 LIBERATION FLEET TERMS OF USE
 
-Last updated: July 16, 2026
+Last updated: August 2, 2026
 
 These Terms of Use ("Terms") are a binding agreement between you and Liberation Fleet ("we," "us," or "our") governing your access to and use of the Liberation Fleet application and related services (the "Service").
 
@@ -66,6 +66,8 @@ We may investigate violations, remove or quarantine content identifiers, freeze 
 5.3 Reports. When you use Report, your device may send a one-time decrypted evidence snapshot for safety review and legal compliance. Reporting in bad faith (knowingly false reports intended to harm) is prohibited.
 
 5.4 Adult content. Some rooms or posts may be marked 18+. Your adult-content preference controls whether such content is blocked, gated, or shown. Adult content still must comply with law and Community Standards.
+
+5.5 Device-side performance cache. The app may temporarily keep limited session data and decrypted media in your device or browser memory to improve loading performance, as described in the Privacy Policy. That does not change our inability to read end-to-end encrypted content on our servers in ordinary operation. Sign out to clear that session cache.
 
 
 6. USER RESPONSIBILITY FOR GROUP GOVERNANCE

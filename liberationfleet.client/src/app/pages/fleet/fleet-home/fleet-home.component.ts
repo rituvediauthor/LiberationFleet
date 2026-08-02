@@ -11,7 +11,7 @@ import { FleetService } from '../../../services/fleet.service';
 import { NotificationService } from '../../../services/notification.service';
 import { NotificationHubService } from '../../../services/notification-hub.service';
 import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
-import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
+import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
 import { FleetStatus } from '../../../models/fleet.model';
 import { NextAidInfo } from '../../../models/gift.model';
 import {
@@ -46,7 +46,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
   private cryptoSession = inject(CryptoSessionService);
-  private proposalCrypto = inject(ProposalCryptoService);
+  private images = inject(EncryptedImageCacheService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
@@ -101,7 +101,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     );
     this.subscriptions.add(
       this.notificationHub.notificationReceived$.subscribe(() => {
-        this.notificationService.refreshBadges();
+        this.notificationService.refreshBadges(true);
       })
     );
   }
@@ -118,7 +118,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.fleetImageSrc = await this.proposalCrypto.decryptImageDataUrl(
+    this.fleetImageSrc = await this.images.getDataUrl(
       { fleetId },
       resourceId,
       'ImageAsset'

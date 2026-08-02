@@ -13,6 +13,7 @@ import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
+import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { PendingAttachment } from '../../models/proposal.model';
@@ -68,6 +69,7 @@ export class ProfileComponent implements OnInit {
   private crewService = inject(CrewService);
   private cryptoSession = inject(CryptoSessionService);
   private proposalCrypto = inject(ProposalCryptoService);
+  private images = inject(EncryptedImageCacheService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -239,6 +241,12 @@ export class ProfileComponent implements OnInit {
       this.profileService.updateProfile(payload).subscribe({
         next: (result) => {
           if (result.success && result.profile) {
+            if (avatarResourceId) {
+              this.images.invalidate(avatarResourceId, 'ProfileAvatar');
+            }
+            if (this.initialAvatarResourceId && this.initialAvatarResourceId !== avatarResourceId) {
+              this.images.invalidate(this.initialAvatarResourceId, 'ProfileAvatar');
+            }
             this.profile = result.profile;
             this.avatarResourceId = result.profile.avatarResourceId ?? null;
             this.loadPlatformOptions();
@@ -329,7 +337,7 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    this.avatarPreviewUrl = await this.proposalCrypto.decryptImageDataUrl(
+    this.avatarPreviewUrl = await this.images.getDataUrl(
       { crewId: this.crewId },
       this.avatarResourceId,
       'ProfileAvatar'

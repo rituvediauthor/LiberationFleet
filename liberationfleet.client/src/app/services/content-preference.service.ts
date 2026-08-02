@@ -59,4 +59,9 @@ export class ContentPreferenceService {
       })
     );
   }
+
+  clearSessionCache(): void {
+    this.loaded = false;
+    this.preferenceSubject.next('Block');
+  }
 }

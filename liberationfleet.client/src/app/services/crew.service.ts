@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay, tap } from 'rxjs';
 import {
   CreateCrewRequest,
   CrewInvitationDetailResponse,
@@ -24,11 +24,32 @@ import { PaymentPlatformOption } from '../models/gift.model';
 })
 export class CrewService {
   private readonly apiUrl = '/api/crews';
+  private membershipRequest$: Observable<CrewMembershipStatus> | null = null;
 
   constructor(private http: HttpClient) {}
 
-  getMembership(): Observable<CrewMembershipStatus> {
-    return this.http.get<CrewMembershipStatus>(`${this.apiUrl}/membership`);
+  /**
+   * Session-cached membership. Concurrent callers share one in-flight request.
+   * Pass forceRefresh after join/leave/create/settings changes.
+   */
+  getMembership(forceRefresh = false): Observable<CrewMembershipStatus> {
+    if (forceRefresh) {
+      this.clearMembershipCache();
+    }
+    if (!this.membershipRequest$) {
+      this.membershipRequest$ = this.http.get<CrewMembershipStatus>(`${this.apiUrl}/membership`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.membershipRequest$;
+  }
+
+  clearMembershipCache(): void {
+    this.membershipRequest$ = null;
+  }
+
+  clearSessionCache(): void {
+    this.clearMembershipCache();
   }
 
   getCurrentCrew(): Observable<CrewOperationResult> {
@@ -36,11 +57,23 @@ export class CrewService {
   }
 
   updateCrew(request: UpdateCrewRequest): Observable<CrewOperationResult> {
-    return this.http.put<CrewOperationResult>(`${this.apiUrl}/current`, request);
+    return this.http.put<CrewOperationResult>(`${this.apiUrl}/current`, request).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearMembershipCache();
+        }
+      })
+    );
   }
 
   leaveCrew(): Observable<CrewOperationResult> {
-    return this.http.post<CrewOperationResult>(`${this.apiUrl}/leave`, {});
+    return this.http.post<CrewOperationResult>(`${this.apiUrl}/leave`, {}).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearMembershipCache();
+        }
+      })
+    );
   }
 
   getPaymentPlatforms(otherCrewmatesOnly = false): Observable<PaymentPlatformOption[]> {
@@ -49,7 +82,13 @@ export class CrewService {
   }
 
   create(request: CreateCrewRequest): Observable<CrewOperationResult> {
-    return this.http.post<CrewOperationResult>(this.apiUrl, request);
+    return this.http.post<CrewOperationResult>(this.apiUrl, request).pipe(
+      tap(result => {
+        if (result.success) {
+          this.clearMembershipCache();
+        }
+      })
+    );
   }
 
   search(request: SearchCrewsRequest): Observable<CrewSearchResult> {

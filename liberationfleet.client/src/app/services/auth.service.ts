@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { AuthResult, User } from '../models/user.model';
@@ -17,7 +17,13 @@ import {
   REMEMBER_LOGIN_STORAGE_KEY,
   SESSION_RECOVERY_PHRASE_STORAGE_KEY
 } from './storage/storage-keys';
-import { isJwtExpired } from '../utils/jwt.util';
+import { isJwtExpired, getUserIdFromToken } from '../utils/jwt.util';
+import { CrewService } from './crew.service';
+import { FleetService } from './fleet.service';
+import { ProfileService } from './profile.service';
+import { EncryptedImageCacheService } from './encrypted-image-cache.service';
+import { ContentPreferenceService } from './content-preference.service';
+import { NotificationService } from './notification.service';
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -34,8 +40,17 @@ export class AuthService {
   private readonly apiUrl = '/api/auth';
   private readonly currentUserSubject = new BehaviorSubject<User | null>(null);
   private encryptionReadyPromise: Promise<void> | null = null;
+  /** False until local session/device unlock has been attempted (or is unnecessary). */
+  private encryptionBootstrapSettled = false;
 
   public currentUser$ = this.currentUserSubject.asObservable();
+
+  private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
+  private profileService = inject(ProfileService);
+  private imageCache = inject(EncryptedImageCacheService);
+  private contentPreferences = inject(ContentPreferenceService);
+  private notificationService = inject(NotificationService);
 
   constructor(
     private http: HttpClient,
@@ -58,7 +73,7 @@ export class AuthService {
       this.setToken(response.token);
       this.currentUserSubject.next(response.user ?? null);
       this.resetEncryptionReady();
-      void this.tryAutoUnlockFromPersistentStorage();
+      void this.getEncryptionReady();
     }
   }
 
@@ -68,6 +83,16 @@ export class AuthService {
     this.cryptoSession.clearSession();
     this.currentUserSubject.next(null);
     this.resetEncryptionReady();
+    this.clearSessionCaches();
+  }
+
+  private clearSessionCaches(): void {
+    this.crewService.clearSessionCache();
+    this.fleetService.clearSessionCache();
+    this.profileService.clearSessionCache();
+    this.imageCache.clear();
+    this.contentPreferences.clearSessionCache();
+    this.notificationService.clearSessionCache();
   }
 
   getToken(): string | null {
@@ -108,7 +133,12 @@ export class AuthService {
   }
 
   getCurrentUserId(): number | null {
-    return this.currentUserSubject.value?.id ?? null;
+    const fromUser = this.currentUserSubject.value?.id ?? null;
+    if (fromUser != null) {
+      return fromUser;
+    }
+    const token = this.getToken();
+    return token ? getUserIdFromToken(token) : null;
   }
 
   getSessionRecoveryPhrase(): string | null {
@@ -119,8 +149,14 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  /**
+   * True only after local unlock from session/device memory has been attempted and failed
+   * (or no remembered key exists). Avoids flashing the unlock dialog during auto-unlock.
+   */
   needsEncryptionUnlock(): boolean {
-    return this.isAuthenticated() && !this.cryptoSession.isUnlocked();
+    return this.isAuthenticated()
+      && this.encryptionBootstrapSettled
+      && !this.cryptoSession.isUnlocked();
   }
 
   getEncryptionReady(): Promise<void> {
@@ -198,23 +234,27 @@ export class AuthService {
   }
 
   private async ensureEncryptionReady(): Promise<void> {
-    if (!this.isAuthenticated() || this.cryptoSession.isUnlocked()) {
-      return;
-    }
-
-    const stored = this.storage.get(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
-    if (stored) {
-      try {
-        await this.cryptoSession.unlockFromRecoveryPhrase(stored);
+    try {
+      if (!this.isAuthenticated() || this.cryptoSession.isUnlocked()) {
         return;
-      } catch (error: unknown) {
-        if (this.shouldClearRememberedRecoveryPhrase(error)) {
-          this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+      }
+
+      const stored = this.storage.get(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+      if (stored) {
+        try {
+          await this.cryptoSession.unlockFromRecoveryPhrase(stored);
+          return;
+        } catch (error: unknown) {
+          if (this.shouldClearRememberedRecoveryPhrase(error)) {
+            this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+          }
         }
       }
-    }
 
-    await this.tryAutoUnlockFromPersistentStorage();
+      await this.tryAutoUnlockFromPersistentStorage();
+    } finally {
+      this.encryptionBootstrapSettled = true;
+    }
   }
 
   private async tryAutoUnlockFromPersistentStorage(): Promise<void> {
@@ -266,5 +306,6 @@ export class AuthService {
 
   private resetEncryptionReady(): void {
     this.encryptionReadyPromise = null;
+    this.encryptionBootstrapSettled = false;
   }
 }
