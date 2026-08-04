@@ -1,4 +1,5 @@
 <div class="gift-log-page">
+  <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo"></app-location-header>
   <div class="log-scroll" #logContainer>
     <div class="scroll-page-body log-channel-body">
       <h1 class="page-title">Gift Log</h1>

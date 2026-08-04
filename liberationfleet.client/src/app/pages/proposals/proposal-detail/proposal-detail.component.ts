@@ -33,6 +33,9 @@ import { AccessibleDialogDirective } from '../../../directives/accessible-dialog
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -48,12 +51,23 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     MentionTextComponent,
     ReportContentDialogComponent,
     AccessibleDialogDirective,
-    UserAvatarComponent
+    UserAvatarComponent,
+    LocationHeaderComponent
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
 })
 export class ProposalDetailComponent implements OnInit, OnDestroy {
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.proposal?.title?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
+
   proposal: ProposalDetail | null = null;
   loading = true;
   crewId = 0;

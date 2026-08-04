@@ -145,6 +145,10 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
     return mode === 'OnDemand' ? 'On demand' : 'On request';
   }
 
+  visibilityLabel(visibility: string | undefined): string {
+    return visibility === 'FleetWide' ? 'Fleet-wide' : 'Crew only';
+  }
+
   private setupLoadMoreObserver() {
     this.listObserver?.disconnect();
     const sentinel = this.loadMoreSentinel?.nativeElement;

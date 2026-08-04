@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 
@@ -85,6 +86,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         user.EmergencyLevel = request.EmergencyLevel;
         user.PeopleRepresentedCount = request.PeopleRepresentedCount;
         user.DisabilityLevel = request.DisabilityLevel;
+        user.IdentityGroups = IdentityGroupKeys.Serialize(request.IdentityGroups);
         user.NeedsSurvivalAid = request.NeedsSurvivalAid;
 
         var paymentPlatforms = request.PaymentPlatforms

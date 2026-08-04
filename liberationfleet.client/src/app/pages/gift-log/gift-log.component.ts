@@ -22,11 +22,14 @@ import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
 import { NavigationService } from '../../services/navigation.service';
 import { NotificationContentService } from '../../services/notification-content.service';
+import { LocationHeaderComponent } from '../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../utils/location-header.util';
 
 @Component({
   selector: 'app-gift-log',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LocationHeaderComponent],
   templateUrl: './gift-log.component.html',
   styleUrl: './gift-log.component.css'
 })
@@ -46,6 +49,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   userInSeason = false;
   seasonStarted = false;
   completionPlatformSelections: Record<number, number | ''> = {};
+  locationHeaderInfo: LocationHeaderInfo | null = injectLocationHeaderInfo();
 
   private readonly pageSize = 50;
   private intersectionObserver?: IntersectionObserver;

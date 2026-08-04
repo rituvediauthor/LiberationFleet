@@ -69,6 +69,7 @@ export class ProfileService {
       emergencyLevel: profile.emergencyLevel,
       peopleRepresentedCount: profile.peopleRepresentedCount,
       disabilityLevel: profile.disabilityLevel,
+      identityGroups: profile.identityGroups ?? [],
       needsSurvivalAid: profile.needsSurvivalAid,
       paymentPlatforms: profile.paymentPlatforms
         .filter(p => p.handle.trim() && (p.platformId > 0 || p.customPlatformName?.trim()))

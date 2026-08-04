@@ -58,6 +58,7 @@ describe('ProfileService', () => {
       emergencyLevel: 1,
       peopleRepresentedCount: 1,
       disabilityLevel: 0,
+      identityGroups: [],
       needsSurvivalAid: false
     };
 

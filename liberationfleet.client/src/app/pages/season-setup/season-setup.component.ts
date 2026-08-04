@@ -6,6 +6,7 @@ import { NavigationService } from '../../services/navigation.service';
 import { switchMap } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
+import { IdentityGroupsEditorComponent } from '../../components/identity-groups-editor/identity-groups-editor.component';
 import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
@@ -15,11 +16,19 @@ import { PaymentPlatformOption, SeasonReadyResult, SeasonSetupSaveResult } from 
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
 
 @Component({
   selector: 'app-season-setup',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, PaymentPlatformEditorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    PaymentPlatformEditorComponent,
+    IdentityGroupsEditorComponent
+  ],
   templateUrl: './season-setup.component.html',
   styleUrl: './season-setup.component.css'
 })
@@ -50,7 +59,11 @@ export class SeasonSetupComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]]
+      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]],
+      emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
+      peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
+      disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],
+      identityGroups: [[]]
     });
 
     this.backButton = this.navigation.createBackButton(['/app/crew']);
@@ -88,6 +101,12 @@ export class SeasonSetupComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.profile = profile;
+        this.form.patchValue({
+          emergencyLevel: profile.emergencyLevel ?? 0,
+          peopleRepresentedCount: profile.peopleRepresentedCount ?? 1,
+          disabilityLevel: profile.disabilityLevel ?? 0,
+          identityGroups: normalizeIdentityGroups(profile.identityGroups)
+        });
         this.syncPlatformOptions();
         this.isLoading = false;
         this.captureInitialState();
@@ -133,6 +152,11 @@ export class SeasonSetupComponent implements OnInit {
   }
 
   onPaymentPlatformChange() {
+    this.updateSaveButton();
+  }
+
+  onIdentityGroupsChange(groups: string[]) {
+    this.form.patchValue({ identityGroups: normalizeIdentityGroups(groups) });
     this.updateSaveButton();
   }
 
@@ -201,8 +225,17 @@ export class SeasonSetupComponent implements OnInit {
     this.isSubmitting = true;
     this.updateSaveButton();
 
-    const estimate = Number(this.form.get('estimatedMonthlyContribution')?.value);
+    const v = this.form.getRawValue();
+    const estimate = Number(v.estimatedMonthlyContribution);
     const wantReady = this.seasonReady;
+
+    this.profile = {
+      ...this.profile,
+      emergencyLevel: Number(v.emergencyLevel),
+      peopleRepresentedCount: Number(v.peopleRepresentedCount),
+      disabilityLevel: Number(v.disabilityLevel),
+      identityGroups: normalizeIdentityGroups(v.identityGroups)
+    };
 
     this.profileService.saveProfile(this.profile).pipe(
       switchMap(saveResult => {

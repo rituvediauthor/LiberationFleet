@@ -20,7 +20,7 @@ import { NavigationService } from '../../../../services/navigation.service';
 })
 export class FleetLibraryDetailComponent implements OnInit {
   backButton!: ActionBarButton;
-  requestButton: ActionBarButton | null = null;
+  primaryActionButton: ActionBarButton | null = null;
   detail: LibraryUnitDetail | null = null;
   loading = true;
   errorMessage = '';
@@ -95,7 +95,7 @@ export class FleetLibraryDetailComponent implements OnInit {
   private async applyDetail(item: LibraryUnitDetail) {
     this.detail = item;
     this.loading = false;
-    this.updateRequestButton();
+    this.updatePrimaryActionButton();
 
     try {
       await this.encryptionContent.whenReady();
@@ -105,22 +105,31 @@ export class FleetLibraryDetailComponent implements OnInit {
         return;
       }
       this.detail = await this.libraryCrypto.enrichUnitDetail(item, this.crewId || decryptCrewId);
-      this.updateRequestButton();
+      this.updatePrimaryActionButton();
     } catch {
       // Keep plaintext detail if enrichment fails.
     }
   }
 
-  private updateRequestButton() {
-    if (!this.detail?.viewer?.canRequest) {
-      this.requestButton = null;
+  private updatePrimaryActionButton() {
+    if (this.detail?.viewer?.canRecordAcquisition) {
+      this.primaryActionButton = {
+        label: 'Record acquisition',
+        type: 'primary',
+        onClick: () => this.openFullDetail()
+      };
       return;
     }
 
-    this.requestButton = {
-      label: 'Request',
-      type: 'primary',
-      onClick: () => this.openFullDetail()
-    };
+    if (this.detail?.viewer?.canRequest) {
+      this.primaryActionButton = {
+        label: 'Request',
+        type: 'primary',
+        onClick: () => this.openFullDetail()
+      };
+      return;
+    }
+
+    this.primaryActionButton = null;
   }
 }

@@ -33,6 +33,9 @@ import { ForumCommentLikeComponent } from '../../../../components/forum-comment-
 import { ContentReportTargetType } from '../../../../models/content-report.model';
 import { CrewService } from '../../../../services/crew.service';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
+import { LocationHeaderComponent } from '../../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../../utils/location-header.util';
 
 @Component({
   selector: 'app-fleet-forum-detail',
@@ -49,13 +52,24 @@ import { truncateNotificationPreview } from '../../../../utils/notification-prev
     ReportContentDialogComponent,
     UserAvatarComponent,
     ForumEngagementBarComponent,
-    ForumCommentLikeComponent
+    ForumCommentLikeComponent,
+    LocationHeaderComponent
   ],
   templateUrl: './fleet-forum-detail.component.html',
   styleUrl: './fleet-forum-detail.component.css'
 })
 export class FleetForumDetailComponent implements OnInit, OnDestroy {
   @ViewChild('detailScroll') detailScroll?: ElementRef<HTMLElement>;
+
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.post?.title?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
 
   post: FleetForumPost | null = null;
   loading = true;

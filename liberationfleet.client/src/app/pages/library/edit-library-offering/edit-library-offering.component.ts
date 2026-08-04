@@ -1,17 +1,18 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { LibraryService } from '../../../services/library.service';
 import { ToastService } from '../../../components/toast/toast.component';
-import { LibraryOfferingListItem } from '../../../models/library.model';
+import { LibraryOfferingListItem, LibraryOfferingVisibility } from '../../../models/library.model';
 
 @Component({
   selector: 'app-edit-library-offering',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, PageLayoutComponent, ConfirmDialogComponent],
   templateUrl: './edit-library-offering.component.html',
   styleUrl: './edit-library-offering.component.css'
 })
@@ -21,6 +22,9 @@ export class EditLibraryOfferingComponent implements OnInit {
   deleteButton!: ActionBarButton;
   offering: LibraryOfferingListItem | null = null;
   isOutOfStock = false;
+  visibility: LibraryOfferingVisibility = 'CrewOnly';
+  initialIsOutOfStock = false;
+  initialVisibility: LibraryOfferingVisibility = 'CrewOnly';
   loading = true;
   saving = false;
   deleting = false;
@@ -61,11 +65,25 @@ export class EditLibraryOfferingComponent implements OnInit {
     return this.isStockBased && !this.offering?.quantityNotApplicable;
   }
 
+  get hasChanges(): boolean {
+    if (!this.offering) {
+      return false;
+    }
+
+    const visibilityChanged = this.visibility !== this.initialVisibility;
+    const stockChanged = this.canToggleOutOfStock && this.isOutOfStock !== this.initialIsOutOfStock;
+    return visibilityChanged || stockChanged;
+  }
+
   toggleOutOfStock() {
     if (!this.canToggleOutOfStock) {
       return;
     }
     this.isOutOfStock = !this.isOutOfStock;
+    this.updateActionButtons();
+  }
+
+  onVisibilityChange() {
     this.updateActionButtons();
   }
 
@@ -103,6 +121,9 @@ export class EditLibraryOfferingComponent implements OnInit {
 
         this.offering = offering;
         this.isOutOfStock = !!offering.isOutOfStock;
+        this.initialIsOutOfStock = this.isOutOfStock;
+        this.visibility = offering.visibility === 'FleetWide' ? 'FleetWide' : 'CrewOnly';
+        this.initialVisibility = this.visibility;
         this.loading = false;
         this.updateActionButtons();
       },
@@ -114,14 +135,21 @@ export class EditLibraryOfferingComponent implements OnInit {
   }
 
   private save() {
-    if (!this.offering || this.saving || !this.canToggleOutOfStock) {
+    if (!this.offering || this.saving || !this.hasChanges) {
       return;
     }
 
     this.saving = true;
     this.updateActionButtons();
 
-    this.libraryService.updateOffering(this.offeringId, { isOutOfStock: this.isOutOfStock }).subscribe({
+    const payload: { isOutOfStock?: boolean; visibility?: string } = {
+      visibility: this.visibility
+    };
+    if (this.canToggleOutOfStock) {
+      payload.isOutOfStock = this.isOutOfStock;
+    }
+
+    this.libraryService.updateOffering(this.offeringId, payload).subscribe({
       next: response => {
         this.saving = false;
         if (!response.success) {
@@ -173,7 +201,7 @@ export class EditLibraryOfferingComponent implements OnInit {
     this.saveButton = {
       label: 'Save',
       type: 'primary',
-      disabled: this.saving || this.deleting || !this.canToggleOutOfStock,
+      disabled: this.saving || this.deleting || !this.hasChanges,
       onClick: () => this.save()
     };
 

@@ -1,0 +1,13 @@
+<section class="identity-groups-section" role="group" aria-labelledby="identity-groups-heading">
+  <h2 id="identity-groups-heading">Identity groups</h2>
+  <p class="section-hint" *ngIf="hint">{{ hint }}</p>
+  <div class="identity-groups-list">
+    <label class="checkbox-label" *ngFor="let opt of options">
+      <input
+        type="checkbox"
+        [checked]="isSelected(opt.key)"
+        (change)="onToggle(opt.key, $any($event.target).checked)">
+      {{ opt.label }}
+    </label>
+  </div>
+</section>

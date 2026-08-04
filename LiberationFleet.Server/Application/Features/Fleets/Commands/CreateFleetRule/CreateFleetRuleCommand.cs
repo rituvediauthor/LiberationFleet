@@ -1,7 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
-using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -54,8 +53,8 @@ public class CreateFleetRuleCommandHandler(
                 fleet.Id,
                 userId,
                 FleetRuleProposalAction.Create,
-                CrewRuleChangeDescriber.CreateTitle,
-                CrewRuleChangeDescriber.BuildCreateDescription(title, description),
+                title,
+                description,
                 ruleId: null,
                 title,
                 description,

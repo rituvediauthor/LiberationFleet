@@ -60,7 +60,13 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> AddPlaceholder([FromBody] AddPlaceholderCrewmateRequest body)
     {
         body ??= new AddPlaceholderCrewmateRequest();
-        var result = await _mediator.Send(new AddPlaceholderCrewmateCommand(body.Name, body.PaymentPlatforms));
+        var result = await _mediator.Send(new AddPlaceholderCrewmateCommand(
+            body.Name,
+            body.PaymentPlatforms,
+            body.EmergencyLevel,
+            body.PeopleRepresentedCount,
+            body.DisabilityLevel,
+            body.IdentityGroups));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

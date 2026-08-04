@@ -1,5 +1,28 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+:host(.variant-card),
+:host(.variant-inline) {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+:host(.variant-card) {
+  max-width: 420px;
+}
+
+:host(.variant-inline) {
+  max-width: 280px;
+}
+
 .carousel {
   width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .carousel-viewport {

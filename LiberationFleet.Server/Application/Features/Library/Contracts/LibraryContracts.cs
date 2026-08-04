@@ -26,6 +26,7 @@ public class LibraryUnitListItemDto
     public bool IsOutOfStock { get; set; }
     public string OfferingKind { get; set; } = string.Empty;
     public string FulfillmentMode { get; set; } = string.Empty;
+    public string Visibility { get; set; } = string.Empty;
 }
 
 public class LibraryCategoryListResponse
@@ -55,6 +56,7 @@ public class CreateLibraryOfferingRequest
     public string? ThumbnailResourceId { get; set; }
     public string Kind { get; set; } = "Durable";
     public string FulfillmentMode { get; set; } = "OnRequest";
+    public string Visibility { get; set; } = "CrewOnly";
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
@@ -107,6 +109,7 @@ public class LibraryUnitDetailDto
     public bool IsOutOfStock { get; set; }
     public string OfferingKind { get; set; } = string.Empty;
     public string FulfillmentMode { get; set; } = string.Empty;
+    public string Visibility { get; set; } = string.Empty;
     public bool BrokenPendingConfirmation { get; set; }
     public bool IsRetired { get; set; }
     public LibraryUnitViewerContextDto Viewer { get; set; } = new();
@@ -115,6 +118,7 @@ public class LibraryUnitDetailDto
 public class UpdateLibraryOfferingRequest
 {
     public bool? IsOutOfStock { get; set; }
+    public string? Visibility { get; set; }
 }
 
 public class LibraryUnitDetailResponse
@@ -268,6 +272,7 @@ public class LibraryOfferingListItemDto
     public bool HasEncryptedContent { get; set; }
     public string OfferingKind { get; set; } = string.Empty;
     public string FulfillmentMode { get; set; } = string.Empty;
+    public string Visibility { get; set; } = string.Empty;
     public int? RemainingStock { get; set; }
     public bool QuantityNotApplicable { get; set; }
     public bool IsOutOfStock { get; set; }

@@ -200,7 +200,8 @@ export class LibraryCryptoService {
       quantityNotApplicable: detail.quantityNotApplicable,
       isOutOfStock: detail.isOutOfStock,
       offeringKind: detail.offeringKind,
-      fulfillmentMode: detail.fulfillmentMode
+      fulfillmentMode: detail.fulfillmentMode,
+      visibility: detail.visibility
     };
   }
 

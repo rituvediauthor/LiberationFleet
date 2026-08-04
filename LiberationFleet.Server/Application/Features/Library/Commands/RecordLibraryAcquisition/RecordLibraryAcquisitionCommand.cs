@@ -20,6 +20,7 @@ public record RecordLibraryAcquisitionCommand(
 public class RecordLibraryAcquisitionCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     IUserRepository userRepository,
@@ -49,7 +50,15 @@ public class RecordLibraryAcquisitionCommandHandler(
             return new LibraryCompleteRequestResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var unit = await libraryRepository.GetUnitByIdForCrewAsync(request.UnitId, membership.CrewId, cancellationToken);
+        var crewIds = await LibraryScopeHelper.GetAccessibleCrewIdsAsync(
+            membership.CrewId,
+            fleetRepository,
+            cancellationToken);
+        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(
+            request.UnitId,
+            crewIds,
+            membership.CrewId,
+            cancellationToken);
         if (unit is null)
         {
             return new LibraryCompleteRequestResponse { Success = false, Message = "Item not found." };
@@ -78,6 +87,7 @@ public class RecordLibraryAcquisitionCommandHandler(
             return new LibraryCompleteRequestResponse { Success = false, Message = "Item not found." };
         }
 
+        var offeringCrewId = trackedUnit.Offering.CrewId;
         var utcNow = DateTime.UtcNow;
         var today = DateTime.UtcNow.Date;
         var libraryRequest = new LibraryRequest
@@ -101,7 +111,7 @@ public class RecordLibraryAcquisitionCommandHandler(
         {
             ContentType = EncryptedContentType.LibraryRequest,
             ResourceId = libraryRequest.Id.ToString(),
-            CrewId = membership.CrewId,
+            CrewId = offeringCrewId,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -120,7 +130,7 @@ public class RecordLibraryAcquisitionCommandHandler(
         var acquirer = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var acquirerUsername = acquirer?.Username ?? "Crewmate";
         var contributionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
-            membership.CrewId,
+            offeringCrewId,
             trackedUnit.Offering,
             quantity,
             userId,
@@ -128,7 +138,7 @@ public class RecordLibraryAcquisitionCommandHandler(
             cancellationToken);
 
         var receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
-            membership.CrewId,
+            offeringCrewId,
             trackedUnit.Offering,
             quantity,
             userId,

@@ -107,6 +107,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
             entity.Property(e => e.PeopleRepresentedCount).HasDefaultValue(1);
             entity.Property(e => e.DisabilityLevel).HasDefaultValue(0);
+            entity.Property(e => e.IdentityGroups).HasMaxLength(256);
             entity.Property(e => e.AdultContentPreference).HasDefaultValue(AdultContentPreference.Block);
             entity.Property(e => e.TwoFactorEnabled).HasDefaultValue(false);
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
@@ -1336,6 +1337,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.ThumbnailResourceId).HasMaxLength(64);
             entity.Property(e => e.ValuePerUnit).HasPrecision(18, 2);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.Visibility).HasDefaultValue(LibraryOfferingVisibility.CrewOnly);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)

@@ -8,7 +8,11 @@ import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-vie
   standalone: true,
   imports: [CommonModule, AccessibleDialogDirective],
   templateUrl: './library-image-carousel.component.html',
-  styleUrl: './library-image-carousel.component.css'
+  styleUrl: './library-image-carousel.component.css',
+  host: {
+    '[class.variant-card]': 'variant === "card"',
+    '[class.variant-inline]': 'variant === "inline"'
+  }
 })
 export class LibraryImageCarouselComponent implements OnDestroy {
   @Input() images: string[] = [];

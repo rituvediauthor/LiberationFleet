@@ -31,6 +31,7 @@ describe('ProfileComponent', () => {
     emergencyLevel: 0,
     peopleRepresentedCount: 1,
     disabilityLevel: 0,
+    identityGroups: [],
     needsSurvivalAid: false,
     isSurvivalThresholdRecipient: false,
     stats: {
@@ -111,10 +112,12 @@ describe('ProfileComponent', () => {
     expect(profileService.updateProfile).toHaveBeenCalledWith({
       username: 'JamesUpdated',
       email: 'james.updated@example.com',
+      avatarResourceId: null,
       inNeedOfAid: false,
       emergencyLevel: 2,
       peopleRepresentedCount: 1,
       disabilityLevel: 0,
+      identityGroups: [],
       needsSurvivalAid: true,
       paymentPlatforms: [{ id: 1, platformId: 1, platform: 'PayPal', handle: 'james@example.com' }]
     });

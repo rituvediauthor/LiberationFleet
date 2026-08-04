@@ -156,11 +156,21 @@ export class CrewmateService {
       customPlatformName?: string;
       handle: string;
       isPreferred: boolean;
-    }>
+    }>,
+    aidProfile?: {
+      emergencyLevel?: number;
+      peopleRepresentedCount?: number;
+      disabilityLevel?: number;
+      identityGroups?: string[];
+    }
   ): Observable<AddPlaceholderCrewmateResponse> {
     return this.http.post<AddPlaceholderCrewmateResponse>(`${this.apiUrl}/placeholders`, {
       name,
-      paymentPlatforms
+      paymentPlatforms,
+      emergencyLevel: aidProfile?.emergencyLevel ?? 0,
+      peopleRepresentedCount: aidProfile?.peopleRepresentedCount ?? 1,
+      disabilityLevel: aidProfile?.disabilityLevel ?? 0,
+      identityGroups: aidProfile?.identityGroups ?? []
     });
   }
 
@@ -192,6 +202,7 @@ export class CrewmateService {
       crewmateTenureDays: profile.crewmateTenureDays ?? 0,
       peopleRepresentedCount: profile.peopleRepresentedCount ?? 1,
       disabilityLevel: profile.disabilityLevel ?? 0,
+      identityGroups: profile.identityGroups ?? [],
       canToggleCanAttachFiles: !!profile.canToggleCanAttachFiles,
       canModerateAttachments: !!profile.canModerateAttachments,
       canExportCrewData: !!profile.canExportCrewData,

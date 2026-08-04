@@ -140,175 +140,196 @@ export const routes: Routes = [
   {
     path: 'app/fleet/create',
     component: CreateFleetComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Create Fleet' }
   },
   {
     path: 'app/fleet/join',
     component: JoinFleetComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Join Fleet' }
   },
   {
     path: 'app/fleet/accept-rules',
     component: AcceptFleetRulesComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Accept Rules' }
   },
   {
     path: 'app/fleet/join-requests',
     component: FleetJoinRequestsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Join Requests' }
   },
   {
     path: 'app/fleet/edit',
     component: EditFleetComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Fleet Settings' }
   },
   {
     path: 'app/fleet/gift-log',
     component: FleetGiftLogComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Gift Log' }
   },
   {
     path: 'app/fleet/gift-log/record',
     component: FleetRecordGiftComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Record Gift' }
   },
   {
     path: 'app/fleet/emergency-requests',
     component: FleetEmergencyListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Emergency Requests' }
   },
   {
     path: 'app/fleet/library',
     component: FleetLibraryHubComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Library of Things' }
   },
   {
     path: 'app/fleet/library/durable',
     component: FleetLibraryListComponent,
     canActivate: [authGuard],
-    data: { title: 'Durable Goods', kind: 'Durable' }
+    data: { title: 'Durable Goods', kind: 'Durable', parentTab: 'fleet', locationHeader: 'Durable Goods' }
   },
   {
     path: 'app/fleet/library/consumable',
     component: FleetLibraryListComponent,
     canActivate: [authGuard],
-    data: { title: 'Consumable Goods', kind: 'Consumable' }
+    data: { title: 'Consumable Goods', kind: 'Consumable', parentTab: 'fleet', locationHeader: 'Consumable Goods' }
   },
   {
     path: 'app/fleet/library/services',
     component: FleetLibraryListComponent,
     canActivate: [authGuard],
-    data: { title: 'Services', kind: 'Service' }
+    data: { title: 'Services', kind: 'Service', parentTab: 'fleet', locationHeader: 'Services' }
   },
   {
     path: 'app/fleet/library/units/:unitId',
     component: FleetLibraryDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Library Item' }
   },
   {
     path: 'app/fleet/chats',
     component: FleetChatListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Chats' }
   },
   {
     path: 'app/fleet/chats/create',
     component: ChatCreateComponent,
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Chat' }
   },
   {
     path: 'app/fleet/chats/:id/voice',
     component: ChatVoiceComponent,
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Voice Chat' }
   },
   {
     path: 'app/fleet/chats/:id',
     component: ChatTextComponent,
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Chat' }
   },
   {
     path: 'app/fleet/forums',
     component: FleetForumListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Fleet Space' }
   },
   {
     path: 'app/fleet/forums/create',
     component: FleetForumCreateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Create Post' }
   },
   {
     path: 'app/fleet/forums/:id',
     component: FleetForumDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Post' }
   },
   {
     path: 'app/fleet/proposals',
     component: ProposalsTypeComponent,
     pathMatch: 'full',
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposals' }
   },
   {
     path: 'app/fleet/proposals/list/:status',
     component: ProposalsListComponent,
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposals' }
   },
   {
     path: 'app/fleet/proposals/create',
     component: CreateProposalComponent,
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Proposal' }
   },
   {
     path: 'app/fleet/proposals/:id',
     component: ProposalDetailComponent,
     canActivate: [authGuard],
-    data: { scope: 'fleet' }
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposal' }
   },
   {
     path: 'app/fleet/rules',
     component: FleetRuleListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Rules' }
   },
   {
     path: 'app/fleet/rules/create',
     component: FleetRuleCreateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Create Rule' }
   },
   {
     path: 'app/fleet/rules/:id/edit',
     component: FleetRuleEditComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Edit Rule' }
   },
   {
     path: 'app/fleet/crews',
     component: FleetCrewsComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Crews' }
   },
   {
     path: 'app/fleet/crews/invite',
     component: InviteCrewComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Add Crew' }
   },
   {
     path: 'app/fleet/crews/:id',
     component: FleetCrewDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Crew' }
   },
   {
     path: 'app/fleet/crewmates/:userId',
     component: FleetCrewmateDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Crewmate' }
   },
   {
     path: 'app/friends',
@@ -319,22 +340,26 @@ export const routes: Routes = [
   {
     path: 'app/friends/requests',
     component: FriendRequestsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'friends', locationHeader: 'Requests' }
   },
   {
     path: 'app/friends/blocked',
     component: FriendBlockedComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'friends', locationHeader: 'Blocked' }
   },
   {
     path: 'app/friends/find',
     component: FindFriendComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'friends', locationHeader: 'Find Friend' }
   },
   {
     path: 'app/friends/messages/:userId',
     component: FriendDmComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'friends', locationHeader: 'Message' }
   },
   {
     path: 'app/notifications',
@@ -353,68 +378,83 @@ export const routes: Routes = [
     component: ProfileComponent,
     canActivate: [authGuard],
     title: 'Edit Profile'
+  ,
+    data: { parentTab: 'profile', locationHeader: 'Edit Profile' }
   },
   {
     path: 'app/donate',
     component: DonateComponent,
     canActivate: [authGuard],
     title: 'Donate'
+  ,
+    data: { parentTab: 'profile', locationHeader: 'Donate' }
   },
   {
     path: 'app/profile/gift-history',
     component: GiftHistoryListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Gift History' }
   },
   {
     path: 'app/profile/gift-history/:userId',
     component: GiftHistoryDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Gift History' }
   },
   {
     path: 'app/profile/activity',
     component: ActivityCenterComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Activity' }
   },
   {
     path: 'app/profile/preferences',
     component: ProfileSettingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Preferences' }
   },
   {
     path: 'app/profile/preferences/notifications',
     component: NotificationSettingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Notifications' }
   },
   {
     path: 'app/profile/preferences/content',
     component: ContentSettingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Content' }
   },
   {
     path: 'app/profile/preferences/voice',
     component: VoiceSettingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Voice' }
   },
   {
     path: 'app/profile/preferences/theme',
     component: ThemeSettingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Theme' }
   },
   {
     path: 'app/profile/preferences/security',
     component: SecuritySettingsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Security' }
   },
   {
     path: 'app/profile/preferences/security/alerts',
     component: SecurityAlertsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Security Alerts' }
   },
   {
     path: 'app/profile/preferences/security/password',
     component: PasswordUpdateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'profile', locationHeader: 'Password' }
   },
   {
     path: 'app/profile/settings',
@@ -429,250 +469,292 @@ export const routes: Routes = [
   {
     path: 'app/crew/create',
     component: CreateCrewComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Crew' }
   },
   {
     path: 'app/crew/join',
     component: JoinCrewComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Join Crew' }
   },
   {
     path: 'app/crew/join-requests',
     component: MyJoinRequestsComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Join Requests' }
   },
   {
     path: 'app/crew/edit',
     component: EditCrewComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Crew Settings' }
   },
   {
     path: 'app/crew/gift-log',
     component: GiftLogComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Gift Log' }
   },
   {
     path: 'app/crew/emergency-requests',
     component: EmergencyRequestsListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Emergency Requests' }
   },
   {
     path: 'app/crew/emergency-requests/create',
     component: EmergencyRequestCreateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Emergency Request' }
   },
   {
     path: 'app/crew/emergency-requests/:id',
     component: EmergencyRequestDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Emergency Request' }
   },
   {
     path: 'app/crew/season-setup',
     component: SeasonSetupComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Season Setup' }
   },
   {
     path: 'app/crew/join-season',
     component: JoinSeasonComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Join Season' }
   },
   {
     path: 'app/crew/gift-log/record/add-non-crewmate',
     component: AddNonCrewmateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Add Non-Member' }
   },
   {
     path: 'app/crew/gift-log/record',
     component: RecordGiftComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Record Gift' }
   },
   {
     path: 'app/crew/chats',
     component: ChatListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Chats' }
   },
   {
     path: 'app/crew/chats/create',
     component: ChatCreateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Chat' }
   },
   {
     path: 'app/crew/chats/:id/edit',
     component: ChatEditComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Edit Chat' }
   },
   {
     path: 'app/crew/chats/:id/voice',
     component: ChatVoiceComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Voice Chat' }
   },
   {
     path: 'app/crew/chats/:id',
     component: ChatTextComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Chat' }
   },
   {
     path: 'app/crew/proposals',
     component: ProposalsTypeComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Proposals' }
   },
   {
     path: 'app/crew/proposals/list/:status',
     component: ProposalsListComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Proposals' }
   },
   {
     path: 'app/crew/proposals/create',
     component: CreateProposalComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Proposal' }
   },
   {
     path: 'app/crew/proposals/:id',
     component: ProposalDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Proposal' }
   },
   {
     path: 'app/crew/forums',
     component: DiscussionListComponent,
     pathMatch: 'full',
     canActivate: [authGuard],
-    data: { discussionKind: 'forums' }
+    data: { discussionKind: 'forums', parentTab: 'crew', locationHeader: 'Crew Space' }
   },
   {
     path: 'app/crew/forums/create',
     component: DiscussionCreateComponent,
     canActivate: [authGuard],
-    data: { discussionKind: 'forums' }
+    data: { discussionKind: 'forums', parentTab: 'crew', locationHeader: 'Create Post' }
   },
   {
     path: 'app/crew/forums/:id',
     component: DiscussionDetailComponent,
     canActivate: [authGuard],
-    data: { discussionKind: 'forums' }
+    data: { discussionKind: 'forums', parentTab: 'crew', locationHeader: 'Post' }
   },
   {
     path: 'app/crew/crewmates',
     component: CrewmateListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Crewmates' }
   },
   {
     path: 'app/crew/crewmates/invite',
     component: InviteCrewmateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Add Crewmate' }
   },
   {
     path: 'app/crew/crewmates/kicked',
     component: KickedCrewmatesListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Kicked Crewmates' }
   },
   {
     path: 'app/crew/invitations/:id',
     component: CrewInvitationComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Invitation' }
   },
   {
     path: 'app/crew/crewmates/:id/nominate-roles',
     component: NominateRolesComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Nominate Roles' }
   },
   {
     path: 'app/crew/crewmates/:id',
     component: CrewmateDetailComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Crewmate' }
   },
   {
     path: 'app/crew/rules',
     component: RuleListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Rules' }
   },
   {
     path: 'app/crew/rules/create',
     component: RuleCreateComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Rule' }
   },
   {
     path: 'app/crew/rules/:id/edit',
     component: RuleEditComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Edit Rule' }
   },
   {
     path: 'app/crew/library-of-things/unlock',
     component: LibraryUnlockComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Unlock Library' }
   },
   {
     path: 'app/crew/library-of-things',
     component: LibraryHubComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Library of Things' }
   },
   {
     path: 'app/crew/library-of-things/durable',
     component: LibraryDurableListComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Durable Goods' }
   },
   {
     path: 'app/crew/library-of-things/requests/mine',
     component: LibraryMyRequestsComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'My Requests' }
   },
   {
     path: 'app/crew/library-of-things/requests/:id/chat',
     component: LibraryRequestChatComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Request Chat' }
   },
   {
     path: 'app/crew/library-of-things/requests/:id',
     component: LibraryRequestDetailComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Request' }
   },
   {
     path: 'app/crew/library-of-things/requests',
     component: LibraryIncomingRequestsComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Incoming Requests' }
   },
   {
     path: 'app/crew/library-of-things/units/:unitId/active-requests',
     component: LibraryUnitActiveRequestsComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Active Requests' }
   },
   {
     path: 'app/crew/library-of-things/consumable',
     component: LibraryStockListComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { title: 'Consumable Goods', stockKind: 'Consumable' }
+    data: { title: 'Consumable Goods', stockKind: 'Consumable', parentTab: 'crew', locationHeader: 'Consumable Goods' }
   },
   {
     path: 'app/crew/library-of-things/services',
     component: LibraryStockListComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { title: 'Services', stockKind: 'Service' }
+    data: { title: 'Services', stockKind: 'Service', parentTab: 'crew', locationHeader: 'Services' }
   },
   {
     path: 'app/crew/library-of-things/mine',
     component: LibraryMyOfferingsComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'My Offerings' }
   },
   {
     path: 'app/crew/library-of-things/offerings/create',
     component: CreateLibraryOfferingComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Offering' }
   },
   {
     path: 'app/crew/library-of-things/offerings/:id/edit',
     component: EditLibraryOfferingComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Edit Offering' }
   },
   {
     path: 'app/crew/library-of-things/units/:id',
     component: LibraryUnitDetailComponent,
-    canActivate: [authGuard, libraryAccessGuard]
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Library Item' }
   },
   {
     path: '**',

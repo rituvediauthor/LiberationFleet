@@ -1,16 +1,5 @@
 <div class="chat-text-page">
-  <header class="conversation-header conversation-header-dm">
-    <div class="conversation-header-inner">
-      <app-user-avatar
-        [resourceId]="friendAvatarResourceId"
-        [crewId]="crewId || null"
-        [fallbackInitial]="friendUsername"
-        size="sm"
-        [alt]="friendUsername + ' avatar'">
-      </app-user-avatar>
-      <h1 class="conversation-header-title">{{ friendUsername }}</h1>
-    </div>
-  </header>
+  <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">

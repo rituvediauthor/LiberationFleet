@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
+import { IdentityGroupsEditorComponent } from '../../components/identity-groups-editor/identity-groups-editor.component';
 import { GiftService } from '../../services/gift.service';
 import { ProfileService } from '../../services/profile.service';
 import { ToastService } from '../../components/toast/toast.component';
@@ -13,11 +14,20 @@ import { CrewService } from '../../services/crew.service';
 import { PaymentPlatformAccount, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
+import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
 
 @Component({
   selector: 'app-join-season',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, PaymentPlatformEditorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    PaymentPlatformEditorComponent,
+    IdentityGroupsEditorComponent
+  ],
   templateUrl: './join-season.component.html',
   styleUrl: './join-season.component.css'
 })
@@ -45,7 +55,11 @@ export class JoinSeasonComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]]
+      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]],
+      emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
+      peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
+      disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],
+      identityGroups: [[]]
     });
 
     this.backButton = this.navigation.createBackButton(['/app/crew']);
@@ -83,6 +97,12 @@ export class JoinSeasonComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.profile = profile;
+        this.form.patchValue({
+          emergencyLevel: profile.emergencyLevel ?? 0,
+          peopleRepresentedCount: profile.peopleRepresentedCount ?? 1,
+          disabilityLevel: profile.disabilityLevel ?? 0,
+          identityGroups: normalizeIdentityGroups(profile.identityGroups)
+        });
         this.syncPlatformOptions();
         this.loading = false;
         this.updateReadyButton();
@@ -101,6 +121,10 @@ export class JoinSeasonComponent implements OnInit {
     return this.profile?.paymentPlatforms ?? [];
   }
 
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
+  }
+
   addPaymentPlatform() {
     if (!this.profile) return;
     this.profileService.addPaymentPlatform(this.profile);
@@ -114,6 +138,11 @@ export class JoinSeasonComponent implements OnInit {
   }
 
   onPaymentPlatformChange() {
+    this.updateReadyButton();
+  }
+
+  onIdentityGroupsChange(groups: string[]) {
+    this.form.patchValue({ identityGroups: normalizeIdentityGroups(groups) });
     this.updateReadyButton();
   }
 
@@ -154,7 +183,16 @@ export class JoinSeasonComponent implements OnInit {
 
     this.isSubmitting = true;
     this.updateReadyButton();
-    const estimate = Number(this.form.get('estimatedMonthlyContribution')?.value);
+    const v = this.form.getRawValue();
+    const estimate = Number(v.estimatedMonthlyContribution);
+
+    this.profile = {
+      ...this.profile,
+      emergencyLevel: Number(v.emergencyLevel),
+      peopleRepresentedCount: Number(v.peopleRepresentedCount),
+      disabilityLevel: Number(v.disabilityLevel),
+      identityGroups: normalizeIdentityGroups(v.identityGroups)
+    };
 
     this.profileService.saveProfile(this.profile).subscribe({
       next: saveResult => {

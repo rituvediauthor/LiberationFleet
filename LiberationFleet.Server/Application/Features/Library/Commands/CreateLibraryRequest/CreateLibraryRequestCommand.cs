@@ -61,7 +61,11 @@ public class CreateLibraryRequestCommandHandler(
             fleetRepository,
             cancellationToken);
 
-        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(request.UnitId, crewIds, cancellationToken);
+        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(
+            request.UnitId,
+            crewIds,
+            membership.CrewId,
+            cancellationToken);
         if (unit is null)
         {
             return new LibraryRequestOperationResponse { Success = false, Message = "Item not found." };

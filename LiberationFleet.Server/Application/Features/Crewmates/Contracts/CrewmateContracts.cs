@@ -85,6 +85,7 @@ public class CrewmateProfileDto
     public int EmergencyLevel { get; set; }
     public int PeopleRepresentedCount { get; set; }
     public int DisabilityLevel { get; set; }
+    public IReadOnlyList<string> IdentityGroups { get; set; } = Array.Empty<string>();
     public bool IsSurvivalThresholdRecipient { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
     public bool IsSelf { get; set; }
@@ -176,6 +177,7 @@ public class CrewmateStateExportItemDto
     public int EmergencyLevel { get; set; }
     public int PeopleRepresentedCount { get; set; }
     public int DisabilityLevel { get; set; }
+    public IReadOnlyList<string> IdentityGroups { get; set; } = Array.Empty<string>();
     public int SacrificeCountLastSeason { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
@@ -233,6 +235,10 @@ public class KickCrewmateRequest
 public class AddPlaceholderCrewmateRequest
 {
     public string Name { get; set; } = string.Empty;
+    public int EmergencyLevel { get; set; }
+    public int PeopleRepresentedCount { get; set; } = 1;
+    public int DisabilityLevel { get; set; }
+    public List<string> IdentityGroups { get; set; } = [];
     public List<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = [];
 }
 

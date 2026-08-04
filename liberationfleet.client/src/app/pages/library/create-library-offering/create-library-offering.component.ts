@@ -14,7 +14,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { PendingAttachment } from '../../../models/proposal.model';
-import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind } from '../../../models/library.model';
+import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind, LibraryOfferingVisibility } from '../../../models/library.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 
 @Component({
@@ -58,6 +58,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({
       offeringKind: [initialKind, Validators.required],
       fulfillmentMode: [{ value: initialFulfillment, disabled: initialKind === 'Durable' }, Validators.required],
+      visibility: ['CrewOnly' as LibraryOfferingVisibility, Validators.required],
       title: ['', [Validators.required, Validators.maxLength(200)]],
       description: ['', [Validators.required, Validators.maxLength(10000)]],
       valuePerUnit: [null, [Validators.required, Validators.min(0.01)]],
@@ -188,6 +189,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
           thumbnailResourceId: encrypted.thumbnailResourceId,
           kind: offeringKind,
           fulfillmentMode: raw.fulfillmentMode as LibraryFulfillmentMode,
+          visibility: raw.visibility as LibraryOfferingVisibility,
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
         }).subscribe({

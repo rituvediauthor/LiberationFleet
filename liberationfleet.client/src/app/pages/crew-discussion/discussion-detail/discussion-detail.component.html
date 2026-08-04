@@ -20,11 +20,7 @@
 </div>
 
 <div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
-  <header class="conversation-header">
-    <div class="conversation-header-inner">
-      <h1 class="conversation-header-title">{{ p.title || 'Post' }}</h1>
-    </div>
-  </header>
+  <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
   <div class="detail-scroll" #detailScroll>
     <div class="scroll-page-body">

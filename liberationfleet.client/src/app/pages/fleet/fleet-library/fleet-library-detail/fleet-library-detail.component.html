@@ -1,4 +1,4 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="requestButton">
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryActionButton">
   <div class="unit-detail-page">
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
@@ -23,8 +23,12 @@
         </div>
 
         <p class="detail-description">{{ detail.descriptionPreview }}</p>
-        <p class="detail-meta" *ngIf="!detail.isOutOfStock && detail.remainingStock != null">
+        <p class="detail-meta" *ngIf="detail.quantityNotApplicable">Stock: N/A (varies)</p>
+        <p class="detail-meta" *ngIf="!detail.quantityNotApplicable && !detail.isOutOfStock && detail.remainingStock != null">
           {{ detail.remainingStock }} available
+        </p>
+        <p class="detail-meta" *ngIf="detail.visibility">
+          Visibility: {{ detail.visibility === 'FleetWide' ? 'Fleet-wide' : 'Crew only' }}
         </p>
 
         <button type="button" class="secondary-link" (click)="openFullDetail()">

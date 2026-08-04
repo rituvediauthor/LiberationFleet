@@ -44,6 +44,9 @@ import { AccessibleDialogDirective } from '../../../directives/accessible-dialog
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { AppStorageService, StorageScope } from '../../../services/storage/app-storage.service';
 import { ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY } from '../../../services/storage/storage-keys';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-chat-text',
@@ -59,7 +62,8 @@ import { ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY } from '../../../services/storage
     ReportContentDialogComponent,
     KickReasonDialogComponent,
     UserAvatarComponent,
-    AccessibleDialogDirective
+    AccessibleDialogDirective,
+    LocationHeaderComponent
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -70,6 +74,15 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   roomId = 0;
   roomName = 'Chat';
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.roomName?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
   composeAnonymously = false;
   canModerateAttachments = false;
   canAttachFiles = false;

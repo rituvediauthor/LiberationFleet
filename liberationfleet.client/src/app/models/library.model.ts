@@ -23,6 +23,7 @@ export interface LibraryUnitListItem {
   isOutOfStock?: boolean;
   offeringKind?: string;
   fulfillmentMode?: string;
+  visibility?: string;
 }
 
 export interface LibraryCategoryListResponse {
@@ -54,6 +55,7 @@ export interface CreateLibraryOfferingRequest {
   thumbnailResourceId?: string | null;
   kind?: string;
   fulfillmentMode?: string;
+  visibility?: string;
   nonce: string;
   ciphertext: string;
   keyVersion?: number;
@@ -104,6 +106,7 @@ export interface LibraryUnitDetail {
   isOutOfStock?: boolean;
   offeringKind?: string;
   fulfillmentMode?: string;
+  visibility?: string;
   brokenPendingConfirmation?: boolean;
   isRetired?: boolean;
   imageUrls?: string[];
@@ -255,6 +258,7 @@ export interface LibraryOfferingListItem {
   hasEncryptedContent?: boolean;
   offeringKind: string;
   fulfillmentMode: string;
+  visibility?: string;
   remainingStock?: number | null;
   quantityNotApplicable?: boolean;
   isOutOfStock?: boolean;
@@ -277,10 +281,12 @@ export interface LibraryOfferingListPage {
 
 export interface UpdateLibraryOfferingRequest {
   isOutOfStock?: boolean | null;
+  visibility?: string | null;
 }
 
 export type LibraryOfferingKind = 'Durable' | 'Consumable' | 'Service';
 export type LibraryFulfillmentMode = 'OnRequest' | 'OnDemand';
+export type LibraryOfferingVisibility = 'CrewOnly' | 'FleetWide';
 
 export interface ReportLibraryUnitBrokenPayload {
   explanationPreview: string;

@@ -34,6 +34,9 @@ import { ForumEngagementBarComponent } from '../../../components/forum-engagemen
 import { ForumCommentLikeComponent } from '../../../components/forum-comment-like/forum-comment-like.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -50,13 +53,24 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     ReportContentDialogComponent,
     UserAvatarComponent,
     ForumEngagementBarComponent,
-    ForumCommentLikeComponent
+    ForumCommentLikeComponent,
+    LocationHeaderComponent
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
 })
 export class DiscussionDetailComponent implements OnInit, OnDestroy {
   @ViewChild('detailScroll') detailScroll?: ElementRef<HTMLElement>;
+
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.post?.title?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
 
   config!: DiscussionConfig;
   post: DiscussionDetail | null = null;

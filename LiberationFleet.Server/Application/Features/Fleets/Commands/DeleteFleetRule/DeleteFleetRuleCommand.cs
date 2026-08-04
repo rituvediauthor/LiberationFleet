@@ -1,7 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
-using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -48,10 +47,8 @@ public class DeleteFleetRuleCommandHandler(
                 fleet.Id,
                 userId,
                 FleetRuleProposalAction.Delete,
-                CrewRuleChangeDescriber.DeleteTitle,
-                CrewRuleChangeDescriber.BuildDeleteDescription(
-                    rule.Title ?? string.Empty,
-                    rule.Description ?? string.Empty),
+                rule.Title ?? string.Empty,
+                rule.Description ?? string.Empty,
                 rule.Id,
                 rule.Title ?? string.Empty,
                 rule.Description ?? string.Empty,

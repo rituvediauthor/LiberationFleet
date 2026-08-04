@@ -29,6 +29,9 @@ import { NotificationContentService } from '../../../services/notification-conte
 import { LibraryRequestMessage } from '../../../models/library.model';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-library-request-chat',
@@ -39,7 +42,8 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
     MentionAutocompleteDirective,
     MentionTextComponent,
     ProposalAttachmentDisplayComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    LocationHeaderComponent
   ],
   templateUrl: './library-request-chat.component.html',
   styleUrl: './library-request-chat.component.css'
@@ -49,6 +53,16 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   @ViewChildren('messageItem') messageItems?: QueryList<ElementRef<HTMLElement>>;
 
   pageTitle = 'Request messages';
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.pageTitle?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
+
   requestId = 0;
   crewId = 0;
   currentUserId: number | null = null;

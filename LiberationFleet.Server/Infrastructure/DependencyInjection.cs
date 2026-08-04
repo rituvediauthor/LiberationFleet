@@ -1,7 +1,9 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Infrastructure.Realtime;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Infrastructure.Data;
+using LiberationFleet.Server.Infrastructure.Email;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Infrastructure.Geocoding;
 using LiberationFleet.Server.Infrastructure.Security;
@@ -87,6 +89,17 @@ public static class DependencyInjection
         services.AddSingleton<IZipCodeDistanceService, ZipCodeDistanceService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        var smtpHost = configuration.GetSection(EmailOptions.SectionName)["SmtpHost"];
+        if (string.IsNullOrWhiteSpace(smtpHost))
+        {
+            services.AddSingleton<IEmailSender, LogEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
 
         return services;
     }

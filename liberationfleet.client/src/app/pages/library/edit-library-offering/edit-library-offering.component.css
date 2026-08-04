@@ -8,6 +8,46 @@
   color: var(--lf-color-text-body);
 }
 
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.radio-option:has(input:checked) {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg);
+}
+
+.radio-option input {
+  margin: 0;
+}
+
 .delete-section {
   margin-top: 24px;
   padding-top: 20px;

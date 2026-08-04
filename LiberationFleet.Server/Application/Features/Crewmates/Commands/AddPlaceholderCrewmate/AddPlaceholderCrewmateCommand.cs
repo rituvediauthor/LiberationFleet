@@ -9,7 +9,11 @@ namespace LiberationFleet.Server.Application.Features.Crewmates.Commands.AddPlac
 
 public record AddPlaceholderCrewmateCommand(
     string Name,
-    IReadOnlyList<PaymentPlatformAccountDto> PaymentPlatforms) : IRequest<AddPlaceholderCrewmateResponse>;
+    IReadOnlyList<PaymentPlatformAccountDto> PaymentPlatforms,
+    int EmergencyLevel = 0,
+    int PeopleRepresentedCount = 1,
+    int DisabilityLevel = 0,
+    IReadOnlyList<string>? IdentityGroups = null) : IRequest<AddPlaceholderCrewmateResponse>;
 
 public class AddPlaceholderCrewmateCommandHandler(
     ICurrentUserService currentUser,
@@ -47,6 +51,10 @@ public class AddPlaceholderCrewmateCommandHandler(
             userId,
             request.Name,
             request.PaymentPlatforms,
+            request.EmergencyLevel,
+            request.PeopleRepresentedCount,
+            request.DisabilityLevel,
+            request.IdentityGroups,
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -40,7 +40,8 @@ public static class LibraryMapper
             QuantityNotApplicable = unit.Offering.QuantityNotApplicable,
             IsOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering),
             OfferingKind = unit.Offering.Kind.ToString(),
-            FulfillmentMode = unit.Offering.FulfillmentMode.ToString()
+            FulfillmentMode = unit.Offering.FulfillmentMode.ToString(),
+            Visibility = unit.Offering.Visibility.ToString()
         };
     }
 
@@ -59,6 +60,7 @@ public static class LibraryMapper
             HasEncryptedContent = offering.HasEncryptedContent,
             OfferingKind = offering.Kind.ToString(),
             FulfillmentMode = offering.FulfillmentMode.ToString(),
+            Visibility = offering.Visibility.ToString(),
             RemainingStock = offering.RemainingStock,
             QuantityNotApplicable = offering.QuantityNotApplicable,
             IsOutOfStock = LibraryOfferingRules.IsOutOfStock(offering),
@@ -96,6 +98,7 @@ public static class LibraryMapper
             IsOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering),
             OfferingKind = unit.Offering.Kind.ToString(),
             FulfillmentMode = unit.Offering.FulfillmentMode.ToString(),
+            Visibility = unit.Offering.Visibility.ToString(),
             BrokenPendingConfirmation = unit.BrokenPendingConfirmation,
             IsRetired = unit.IsRetired,
             Viewer = viewer
