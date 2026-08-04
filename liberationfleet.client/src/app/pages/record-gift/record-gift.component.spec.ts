@@ -58,6 +58,7 @@ describe('RecordGiftComponent', () => {
       emergencyLevel: 0,
       peopleRepresentedCount: 1,
       disabilityLevel: 0,
+      identityGroups: [],
       needsSurvivalAid: false,
       isSurvivalThresholdRecipient: false,
       stats: {

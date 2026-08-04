@@ -26,6 +26,7 @@ import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
@@ -33,6 +34,13 @@ import { AccessibleDialogDirective } from '../../../directives/accessible-dialog
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../utils/notification-deep-link.util';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -48,12 +56,24 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     MentionTextComponent,
     ReportContentDialogComponent,
     AccessibleDialogDirective,
-    UserAvatarComponent
+    UserAvatarComponent,
+    LocationHeaderComponent,
+    NotificationTargetDirective
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
 })
 export class ProposalDetailComponent implements OnInit, OnDestroy {
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.proposal?.title?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
+
   proposal: ProposalDetail | null = null;
   loading = true;
   crewId = 0;
@@ -97,6 +117,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   reportMediaIds: string[] = [];
   currentUserId: number | null = null;
   proposedImageSrc: string | null = null;
+  highlightId: number | null = null;
+  notifyPrefix = '';
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -118,12 +140,15 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
       || this.router.url.startsWith('/app/fleet/proposals');
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
     const proposalId = this.proposalId;
     if (proposalId) {
       const prefix = this.isFleetScope ? '/app/fleet/proposals' : '/app/crew/proposals';
-      this.notificationContent.markVisited(`${prefix}/${proposalId}`, proposalId);
+      this.notifyPrefix = `${prefix}/${proposalId}`;
+      this.notificationContent.markVisited(this.notifyPrefix, proposalId);
     }
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadProposal());
 
@@ -634,6 +659,12 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  deleteProposalFromMenu(event: Event) {
+    event.stopPropagation();
+    this.closeMenus();
+    this.deleteProposal();
+  }
+
   deleteProposal() {
     if (!this.proposal?.canDelete) {
       return;
@@ -789,6 +820,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
           this.proposal = proposal;
         }
         await this.refreshProposedImage();
+        this.expandHighlightedReply();
         this.loading = false;
       },
       error: err => {
@@ -796,6 +828,54 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
         this.toastService.error(err?.message ?? 'Failed to load proposal');
       }
     });
+  }
+
+  private expandHighlightedReply() {
+    if (!this.proposal || !this.highlightId) {
+      return;
+    }
+
+    if (this.proposal.comments.some(comment => comment.id === this.highlightId)) {
+      return;
+    }
+
+    for (const comment of this.proposal.comments) {
+      if (comment.replies?.some(reply => reply.id === this.highlightId)) {
+        comment.repliesExpanded = true;
+        return;
+      }
+    }
+
+    const candidates = this.proposal.comments.filter(comment => comment.replyCount > 0);
+    const tryNext = (index: number) => {
+      if (index >= candidates.length || !this.proposal) {
+        return;
+      }
+      const comment = candidates[index];
+      if (comment.replies?.length) {
+        if (comment.replies.some(reply => reply.id === this.highlightId)) {
+          comment.repliesExpanded = true;
+        } else {
+          tryNext(index + 1);
+        }
+        return;
+      }
+      this.proposalService.getCommentReplies(this.proposalId, comment.id).subscribe({
+        next: async replies => {
+          const scope = this.cryptoScope;
+          comment.replies = scope
+            ? await this.proposalCrypto.decryptComments(replies, scope, this.proposal?.usesAnonymousComments ?? true)
+            : replies;
+          if (comment.replies.some(reply => reply.id === this.highlightId)) {
+            comment.repliesExpanded = true;
+            return;
+          }
+          tryNext(index + 1);
+        },
+        error: () => tryNext(index + 1)
+      });
+    };
+    tryNext(0);
   }
 
   isAnonymousAuthor(userId: number | null | undefined): boolean {

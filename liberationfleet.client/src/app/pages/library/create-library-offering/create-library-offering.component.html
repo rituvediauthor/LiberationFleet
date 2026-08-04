@@ -39,6 +39,23 @@
       </div>
 
       <div class="form-group">
+        <span class="group-label">Visibility</span>
+        <div class="radio-group" role="radiogroup" aria-label="Offering visibility">
+          <label class="radio-option">
+            <input type="radio" formControlName="visibility" value="CrewOnly" />
+            <span>Crew only</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" formControlName="visibility" value="FleetWide" />
+            <span>Fleet-wide</span>
+          </label>
+        </div>
+        <p class="field-hint">
+          Crew only is visible to your crew. Fleet-wide is also listed for other crews in your fleet library.
+        </p>
+      </div>
+
+      <div class="form-group">
         <label for="title">Name</label>
         <input
           id="title"

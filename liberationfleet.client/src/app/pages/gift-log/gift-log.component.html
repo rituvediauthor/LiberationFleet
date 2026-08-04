@@ -1,4 +1,5 @@
 <div class="gift-log-page">
+  <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo"></app-location-header>
   <div class="log-scroll" #logContainer>
     <div class="scroll-page-body log-channel-body">
       <h1 class="page-title">Gift Log</h1>
@@ -14,6 +15,9 @@
         <article
           *ngFor="let entry of entries; let i = index"
           class="log-entry"
+          [lfNotificationTarget]="entry.id"
+          [lfNotificationPrefix]="notifyPrefix"
+          [lfHighlightId]="highlightId"
           [class.highlighted]="isHighlighted(entry)"
           [class.flagged-not-complete]="entry.displayFlag === 'notComplete'"
           [class.flagged-cant-complete]="entry.displayFlag === 'cantComplete'"

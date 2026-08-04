@@ -51,6 +51,7 @@
             <div class="offering-meta">
               <span class="meta-chip">{{ kindLabel(row.offering.offeringKind) }}</span>
               <span class="meta-chip">{{ fulfillmentLabel(row.offering.fulfillmentMode) }}</span>
+              <span class="meta-chip">{{ visibilityLabel(row.offering.visibility) }}</span>
               <span class="meta-chip out-of-stock" *ngIf="row.offering.isOutOfStock">Out of stock</span>
               <span class="meta-chip" *ngIf="!row.offering.isOutOfStock && row.offering.remainingStock != null">
                 {{ row.offering.remainingStock }} left

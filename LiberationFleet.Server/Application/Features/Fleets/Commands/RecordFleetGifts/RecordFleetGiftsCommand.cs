@@ -174,7 +174,7 @@ public class RecordFleetGiftsCommandHandler(
                         Kind = NotificationKind.NewFleetGifts,
                         Title = "New fleet gift(s)",
                         Body = "You received a new gift in your fleet.",
-                        ActionUrl = "/app/fleet/gift-log",
+                        ActionUrl = $"/app/fleet/gift-log?highlightId={gift.Id}",
                         RelatedEntityId = gift.Id
                     }, cancellationToken);
                 }

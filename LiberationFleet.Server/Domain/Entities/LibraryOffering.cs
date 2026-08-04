@@ -9,6 +9,7 @@ public class LibraryOffering
     public int CreatorUserId { get; set; }
     public LibraryOfferingKind Kind { get; set; }
     public LibraryFulfillmentMode FulfillmentMode { get; set; }
+    public LibraryOfferingVisibility Visibility { get; set; } = LibraryOfferingVisibility.CrewOnly;
     public string Title { get; set; } = string.Empty;
     public string TitleNormalized { get; set; } = string.Empty;
     public string DescriptionPreview { get; set; } = string.Empty;

@@ -1,4 +1,5 @@
 using FluentValidation;
+using LiberationFleet.Server.Domain;
 
 namespace LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 
@@ -19,11 +20,15 @@ public class UpdateProfileCommandValidator : AbstractValidator<UpdateProfileComm
             .InclusiveBetween(0, 3).WithMessage("Emergency level must be between 0 and 3");
 
         RuleFor(x => x.PeopleRepresentedCount)
-            .GreaterThanOrEqualTo(0).WithMessage("Number of people represented cannot be negative")
+            .GreaterThanOrEqualTo(1).WithMessage("Number of people represented must be at least 1")
             .LessThanOrEqualTo(99).WithMessage("Number of people represented must be 99 or fewer");
 
         RuleFor(x => x.DisabilityLevel)
             .InclusiveBetween(0, 3).WithMessage("Disability level must be between 0 and 3");
+
+        RuleFor(x => x.IdentityGroups)
+            .Must(IdentityGroupKeys.AreValid)
+            .WithMessage("Identity groups contain an unrecognized value");
 
         RuleFor(x => x.AvatarResourceId)
             .MaximumLength(64)

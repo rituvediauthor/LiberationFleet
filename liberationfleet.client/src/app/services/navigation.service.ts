@@ -32,12 +32,20 @@ export class NavigationService {
   }
 
   /**
+   * True when the user navigated here directly from the in-app notifications list.
+   * Used for one-shot post highlighting when ActionUrl has no commentId query.
+   */
+  cameFromNotifications(): boolean {
+    return this.isNotificationsList(this.previousUrl);
+  }
+
+  /**
    * UI back: go to the page's canonical parent (`fallback`), unless the user
    * arrived here directly from the notifications list — then return there.
    * Does not use browser history (avoids bouncing through create/submit stacks).
    */
   back(fallback: string | string[] = '/app/crew'): void {
-    if (this.isNotificationsList(this.previousUrl)) {
+    if (this.cameFromNotifications()) {
       void this.router.navigate([NOTIFICATIONS_ROUTE]);
       return;
     }

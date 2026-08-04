@@ -38,5 +38,14 @@ public enum NotificationKind
     NewFleetForumComment = 36,
     NewEmergencyRequest = 37,
     ForumPostLiked = 38,
-    ForumCommentLiked = 39
+    ForumCommentLiked = 39,
+    NewFleetRule = 40,
+    FleetRuleDeleted = 41,
+    FleetRuleEdited = 42,
+    FleetProposalAccepted = 43,
+    FleetProposalRejected = 44,
+    NewFleetReply = 45,
+    FleetMention = 46,
+    FleetForumPostLiked = 47,
+    FleetForumCommentLiked = 48
 }

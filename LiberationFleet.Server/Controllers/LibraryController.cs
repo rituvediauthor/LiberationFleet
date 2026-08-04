@@ -110,7 +110,22 @@ public class LibraryController(IMediator mediator) : ControllerBase
     [HttpPut("offerings/{id:int}")]
     public async Task<IActionResult> UpdateOffering(int id, [FromBody] UpdateLibraryOfferingRequest body)
     {
-        var result = await mediator.Send(new UpdateLibraryOfferingCommand(id, body.IsOutOfStock));
+        LibraryOfferingVisibility? visibility = null;
+        if (!string.IsNullOrWhiteSpace(body.Visibility))
+        {
+            if (!LibraryEnumParser.TryParseVisibility(body.Visibility, out var parsedVisibility))
+            {
+                return BadRequest(new LibraryOfferingOperationResponse
+                {
+                    Success = false,
+                    Message = "Invalid visibility."
+                });
+            }
+
+            visibility = parsedVisibility;
+        }
+
+        var result = await mediator.Send(new UpdateLibraryOfferingCommand(id, body.IsOutOfStock, visibility));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -314,6 +329,15 @@ public class LibraryController(IMediator mediator) : ControllerBase
             });
         }
 
+        if (!LibraryEnumParser.TryParseVisibility(body.Visibility, out var visibility))
+        {
+            return BadRequest(new LibraryOfferingOperationResponse
+            {
+                Success = false,
+                Message = "Invalid visibility."
+            });
+        }
+
         var result = await mediator.Send(new CreateLibraryOfferingCommand(
             body.Title,
             body.DescriptionPreview,
@@ -325,6 +349,7 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.ThumbnailResourceId,
             kind,
             fulfillmentMode,
+            visibility,
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));

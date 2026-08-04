@@ -11,6 +11,9 @@
         type="button"
         class="proposal-card"
         *ngFor="let item of items"
+        [lfNotificationTarget]="item.id"
+        [lfNotificationPrefix]="notifyPrefix"
+        [lfHighlightId]="highlightId"
         (click)="openProposal(item)">
         <span class="entry-badge-anchor">
           <app-content-badge [count]="proposalBadgeCount(item.id)"></app-content-badge>

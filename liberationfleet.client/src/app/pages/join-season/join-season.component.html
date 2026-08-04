@@ -31,6 +31,51 @@
           <label for="estimate">Estimated monthly contribution ($)</label>
           <input id="estimate" type="number" formControlName="estimatedMonthlyContribution" class="form-input" min="0.01" step="0.01">
         </div>
+
+        <div class="form-group">
+          <label for="emergencyLevel">Emergency level (0–3)</label>
+          <input
+            id="emergencyLevel"
+            type="number"
+            formControlName="emergencyLevel"
+            class="form-input"
+            min="0"
+            max="3"
+            step="1"
+            [attr.aria-invalid]="isInvalid('emergencyLevel')">
+        </div>
+
+        <div class="form-group">
+          <label for="peopleRepresentedCount">Number of people represented</label>
+          <input
+            id="peopleRepresentedCount"
+            type="number"
+            formControlName="peopleRepresentedCount"
+            class="form-input"
+            min="1"
+            max="99"
+            step="1"
+            [attr.aria-invalid]="isInvalid('peopleRepresentedCount')">
+          <span class="hint-text">Including yourself and anyone you provide for. Affects priority score.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="disabilityLevel">Level of disability (0–3)</label>
+          <input
+            id="disabilityLevel"
+            type="number"
+            formControlName="disabilityLevel"
+            class="form-input"
+            min="0"
+            max="3"
+            step="1"
+            [attr.aria-invalid]="isInvalid('disabilityLevel')">
+        </div>
+
+        <app-identity-groups-editor
+          [selected]="form.get('identityGroups')?.value || []"
+          (selectedChange)="onIdentityGroupsChange($event)">
+        </app-identity-groups-editor>
       </form>
     </div>
   </div>

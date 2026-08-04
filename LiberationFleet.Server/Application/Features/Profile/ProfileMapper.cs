@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 
 namespace LiberationFleet.Server.Application.Features.Profile;
@@ -42,6 +43,7 @@ public static class ProfileMapper
             EmergencyLevel = user.EmergencyLevel,
             PeopleRepresentedCount = user.PeopleRepresentedCount,
             DisabilityLevel = user.DisabilityLevel,
+            IdentityGroups = IdentityGroupKeys.Parse(user.IdentityGroups),
             NeedsSurvivalAid = user.NeedsSurvivalAid,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             Stats = BuildStats(

@@ -1,6 +1,6 @@
 <app-page-layout [showFallibleFooter]="false"
   [backButton]="backButton"
-  [primaryButton]="canToggleOutOfStock ? saveButton : null"
+  [primaryButton]="saveButton"
   [secondaryButton]="isStockBased ? deleteButton : null">
   <div class="edit-offering-page">
     <h1 class="page-title">Edit Offering</h1>
@@ -18,6 +18,33 @@
       <p class="notice" *ngIf="showTrackedStockNotice">
         Stock is tracked automatically. When quantity reaches zero, the offering is marked out of stock.
       </p>
+
+      <div class="form-group">
+        <span class="group-label">Visibility</span>
+        <div class="radio-group" role="radiogroup" aria-label="Offering visibility">
+          <label class="radio-option">
+            <input
+              type="radio"
+              name="visibility"
+              [(ngModel)]="visibility"
+              value="CrewOnly"
+              (ngModelChange)="onVisibilityChange()" />
+            <span>Crew only</span>
+          </label>
+          <label class="radio-option">
+            <input
+              type="radio"
+              name="visibility"
+              [(ngModel)]="visibility"
+              value="FleetWide"
+              (ngModelChange)="onVisibilityChange()" />
+            <span>Fleet-wide</span>
+          </label>
+        </div>
+        <p class="toggle-note">
+          Crew only is visible to your crew. Fleet-wide is also listed for other crews in your fleet library.
+        </p>
+      </div>
 
       <div class="toggle-row" *ngIf="canToggleOutOfStock">
         <div>

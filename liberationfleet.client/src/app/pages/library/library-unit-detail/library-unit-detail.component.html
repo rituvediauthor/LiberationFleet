@@ -27,9 +27,13 @@
       <p class="detail-description" *ngIf="detail.fullDescription">{{ detail.fullDescription }}</p>
       <p class="detail-meta">Status: {{ detail.unitStatus }}</p>
       <p class="detail-meta" *ngIf="detail.unitLabel">Unit: {{ detail.unitLabel }}</p>
-      <p class="detail-meta" *ngIf="!detail.isOutOfStock && detail.remainingStock != null">{{ detail.remainingStock }} available</p>
+      <p class="detail-meta" *ngIf="detail.quantityNotApplicable">Stock: N/A (varies)</p>
+      <p class="detail-meta" *ngIf="!detail.quantityNotApplicable && !detail.isOutOfStock && detail.remainingStock != null">{{ detail.remainingStock }} available</p>
       <p class="detail-meta" *ngIf="detail.fulfillmentMode">
         Fulfillment: {{ detail.fulfillmentMode === 'OnDemand' ? 'On demand' : 'On request' }}
+      </p>
+      <p class="detail-meta" *ngIf="detail.visibility">
+        Visibility: {{ detail.visibility === 'FleetWide' ? 'Fleet-wide' : 'Crew only' }}
       </p>
       <p class="notice warning" *ngIf="detail.brokenPendingConfirmation && !detail.isRetired">
         This item is reported broken and awaiting crew confirmation.

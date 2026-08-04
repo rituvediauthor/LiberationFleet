@@ -30,6 +30,7 @@ export interface UserProfile {
   emergencyLevel: number;
   peopleRepresentedCount: number;
   disabilityLevel: number;
+  identityGroups: string[];
   needsSurvivalAid: boolean;
   isSurvivalThresholdRecipient: boolean;
   stats: UserProfileStats;
@@ -58,6 +59,7 @@ export interface UpdateProfileRequest {
   emergencyLevel: number;
   peopleRepresentedCount: number;
   disabilityLevel: number;
+  identityGroups: string[];
   needsSurvivalAid: boolean;
 }
 

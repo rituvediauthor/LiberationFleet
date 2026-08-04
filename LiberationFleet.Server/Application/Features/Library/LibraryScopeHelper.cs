@@ -1,10 +1,12 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Library;
 
 /// <summary>
 /// When a crew is in a fleet with Library of Things enabled, browse/request
 /// scopes to every crew currently in that fleet. Otherwise, only the caller's crew.
+/// Cross-crew visibility is limited to FleetWide offerings; own-crew offerings are always visible.
 /// </summary>
 public static class LibraryScopeHelper
 {
@@ -33,4 +35,13 @@ public static class LibraryScopeHelper
 
         return ids;
     }
+
+    /// <summary>
+    /// Own crew: all offerings. Other crews in scope: FleetWide only.
+    /// </summary>
+    public static bool IsVisibleToViewerCrew(
+        int offeringCrewId,
+        LibraryOfferingVisibility visibility,
+        int viewerCrewId) =>
+        offeringCrewId == viewerCrewId || visibility == LibraryOfferingVisibility.FleetWide;
 }

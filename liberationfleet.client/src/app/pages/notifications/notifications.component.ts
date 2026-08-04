@@ -130,15 +130,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   }
 
   private buildNavigationUrl(item: NotificationItem): string {
-    if (item.actionUrl.includes('?')) {
-      const [path, query] = item.actionUrl.split('?');
-      const params = new URLSearchParams(query);
-      const commentId = params.get('commentId');
-      if (commentId) {
-        return `${path}?commentId=${commentId}`;
-      }
-    }
-
+    // Preserve full ActionUrl (highlightId / messageId / commentId) for deep-link scroll+highlight.
     return item.actionUrl;
   }
 }

@@ -125,6 +125,27 @@ public interface IProposalRepository
         int applicantUserId,
         int exceptProposalId,
         CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Soft-deletes pending Update proposals for the same crew rule when a Delete is approved.
+    /// </summary>
+    Task CancelPendingCrewRuleUpdateProposalsForRuleAsync(
+        int ruleId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Soft-deletes pending Update proposals for the same fleet rule when a Delete is approved.
+    /// </summary>
+    Task CancelPendingFleetRuleUpdateProposalsForRuleAsync(
+        int ruleId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Soft-deletes pending Update proposals for the same chat room when a Delete is approved.
+    /// </summary>
+    Task CancelPendingChatUpdateProposalsForRoomAsync(
+        int roomId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default);
     Task<ProposalCrewApplyToFleet?> GetCrewApplyToFleetByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
     Task AddCrewApplyToFleetAsync(ProposalCrewApplyToFleet apply, CancellationToken cancellationToken = default);
     Task<ProposalCrewApplyToFleet?> GetPendingCrewApplyToFleetAsync(

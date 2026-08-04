@@ -100,7 +100,10 @@ public static class ProposalMapper
 
         if (fleetRuleChange is not null)
         {
-            ApplyPlaintext(dto, fleetRuleChange.Title, fleetRuleChange.Description);
+            ApplyPlaintext(
+                dto,
+                string.IsNullOrWhiteSpace(fleetRuleChange.RuleTitle) ? fleetRuleChange.Title : fleetRuleChange.RuleTitle,
+                string.IsNullOrWhiteSpace(fleetRuleChange.RuleDescription) ? fleetRuleChange.Description : fleetRuleChange.RuleDescription);
             return dto;
         }
 
@@ -208,7 +211,9 @@ public static class ProposalMapper
             ?? crewmateRejoin?.Description
             ?? crewChatChange?.Description
             ?? crewRuleChange?.Description
-            ?? fleetRuleChange?.Description
+            ?? (string.IsNullOrWhiteSpace(fleetRuleChange?.RuleDescription)
+                ? fleetRuleChange?.Description
+                : fleetRuleChange.RuleDescription)
             ?? fleetSettingChange?.Description
             ?? fleetJoinRequest?.Description
             ?? fleetKickCrew?.Description
@@ -244,7 +249,7 @@ public static class ProposalMapper
             CreatedAt = proposal.CreatedAt,
             Description = plaintextDescription,
             CanEdit = !isSystemProposal && proposal.AuthorUserId == viewerUserId && !proposal.FleetId.HasValue,
-            CanDelete = !isSystemProposal && proposal.AuthorUserId == viewerUserId,
+            CanDelete = proposal.AuthorUserId == viewerUserId && proposal.Status == ProposalStatus.Pending,
             UsesAnonymousComments = usesAnonymousComments,
             CanKickAuthor = canKickAuthor,
             ViewerAlias = viewerAlias,

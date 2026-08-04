@@ -5,17 +5,26 @@ import { Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { PaymentPlatformEditorComponent } from '../../../components/payment-platform-editor/payment-platform-editor.component';
+import { IdentityGroupsEditorComponent } from '../../../components/identity-groups-editor/identity-groups-editor.component';
 import { CrewService } from '../../../services/crew.service';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount } from '../../../models/profile.model';
 import { PaymentPlatformOption } from '../../../models/gift.model';
+import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
 
 @Component({
   selector: 'app-add-non-crewmate',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, PaymentPlatformEditorComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    PaymentPlatformEditorComponent,
+    IdentityGroupsEditorComponent
+  ],
   templateUrl: './add-non-crewmate.component.html',
   styleUrl: './add-non-crewmate.component.css'
 })
@@ -38,7 +47,11 @@ export class AddNonCrewmateComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(256)]]
+      name: ['', [Validators.required, Validators.maxLength(256)]],
+      emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
+      peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
+      disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],
+      identityGroups: [[]]
     });
 
     this.backButton = this.navigation.createBackButton(['/app/crew/gift-log/record']);
@@ -54,6 +67,10 @@ export class AddNonCrewmateComponent implements OnInit {
     });
 
     this.form.valueChanges.subscribe(() => this.updateSaveButton());
+  }
+
+  isInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.form.get(controlName));
   }
 
   addPaymentPlatform() {
@@ -78,6 +95,11 @@ export class AddNonCrewmateComponent implements OnInit {
     this.updateSaveButton();
   }
 
+  onIdentityGroupsChange(groups: string[]) {
+    this.form.patchValue({ identityGroups: normalizeIdentityGroups(groups) });
+    this.updateSaveButton();
+  }
+
   private updateSaveButton() {
     const disabled = this.saving || !this.canSave();
     this.saveButton = {
@@ -89,6 +111,10 @@ export class AddNonCrewmateComponent implements OnInit {
   }
 
   private canSave(): boolean {
+    if (this.form.invalid) {
+      return false;
+    }
+
     const name = String(this.form.get('name')?.value ?? '').trim();
     if (!name) {
       return false;
@@ -106,7 +132,8 @@ export class AddNonCrewmateComponent implements OnInit {
       return;
     }
 
-    const name = String(this.form.get('name')?.value ?? '').trim();
+    const v = this.form.getRawValue();
+    const name = String(v.name ?? '').trim();
     const platforms = this.paymentPlatforms
       .filter(
         account =>
@@ -130,7 +157,12 @@ export class AddNonCrewmateComponent implements OnInit {
     this.saving = true;
     this.updateSaveButton();
 
-    this.crewmateService.addPlaceholderCrewmate(name, platforms).subscribe({
+    this.crewmateService.addPlaceholderCrewmate(name, platforms, {
+      emergencyLevel: Number(v.emergencyLevel),
+      peopleRepresentedCount: Number(v.peopleRepresentedCount),
+      disabilityLevel: Number(v.disabilityLevel),
+      identityGroups: normalizeIdentityGroups(v.identityGroups)
+    }).subscribe({
       next: result => {
         if (result.success) {
           this.toastService.success(result.message || 'Non-member added');

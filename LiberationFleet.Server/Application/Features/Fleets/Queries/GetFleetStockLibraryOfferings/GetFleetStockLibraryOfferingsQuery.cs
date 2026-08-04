@@ -63,6 +63,7 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
 
         var page = await libraryRepository.GetStockUnitsForCrewIdsAsync(
             crewIds,
+            membership.CrewId,
             request.Kind,
             request.Search,
             request.CategoryIds,

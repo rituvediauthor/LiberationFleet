@@ -14,6 +14,7 @@ public interface ILibraryRepository
 
     Task<IReadOnlyList<LibraryCategory>> GetCategoriesInUseForCrewIdsAsync(
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         LibraryOfferingKind? kind,
         CancellationToken cancellationToken = default);
 
@@ -27,6 +28,7 @@ public interface ILibraryRepository
 
     Task<LibraryUnitListPage> GetDurableUnitsForCrewIdsAsync(
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         string? search,
         IReadOnlyCollection<int> categoryIds,
         int limit,
@@ -44,6 +46,7 @@ public interface ILibraryRepository
 
     Task<LibraryUnitListPage> GetStockUnitsForCrewIdsAsync(
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         LibraryOfferingKind kind,
         string? search,
         IReadOnlyCollection<int> categoryIds,
@@ -80,6 +83,7 @@ public interface ILibraryRepository
     Task<LibraryUnit?> GetUnitByIdForCrewIdsAsync(
         int unitId,
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         CancellationToken cancellationToken = default);
 
     Task<LibraryUnit?> GetTrackedUnitByIdAsync(

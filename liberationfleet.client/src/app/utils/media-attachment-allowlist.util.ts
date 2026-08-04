@@ -53,7 +53,10 @@ const BLOCKED_MIME = new Set([
 const DANGEROUS_NAME = /\.(svg|html?|xhtml|js|mjs|cjs|exe|dll|msi|bat|cmd|ps1|vbs|wsf|scr|com|jar|apk|sh|php|asp|aspx|cgi)(\.|$)/i;
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+/** Post-compress / upload cap for videos. */
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+/** Allow larger raw camera/phone videos so they can be compressed down. */
+export const MAX_VIDEO_INPUT_BYTES = 500 * 1024 * 1024;
 export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 
 /** Max ciphertext characters accepted for a single media asset. */
@@ -152,7 +155,7 @@ export function maxBytesForKind(kind: AttachmentMediaKind): number {
     return MAX_IMAGE_BYTES;
   }
   if (kind === 'video') {
-    return MAX_VIDEO_BYTES;
+    return MAX_VIDEO_INPUT_BYTES;
   }
   return MAX_AUDIO_BYTES;
 }
@@ -160,6 +163,10 @@ export function maxBytesForKind(kind: AttachmentMediaKind): number {
 export function isSafeMediaDataUrl(dataUrl: string | null | undefined): boolean {
   if (!dataUrl) {
     return false;
+  }
+  // Optimistic comment/post inserts use blob: object URLs until reload decrypts data: URLs.
+  if (dataUrl.startsWith('blob:')) {
+    return true;
   }
   const lower = dataUrl.slice(0, 64).toLowerCase();
   return SAFE_DATA_URL_PREFIXES.some(prefix => lower.startsWith(prefix));

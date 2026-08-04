@@ -251,3 +251,12 @@ textarea.mention-composer-input {
 .mention-dropdown-item:hover {
   background: var(--lf-color-bg-hover, rgba(59, 130, 246, 0.2));
 }
+
+/* One-shot highlight when navigating from a notification deep link */
+.lf-notification-highlight {
+  outline: 2px solid var(--lf-color-accent-border, #3b82f6);
+  outline-offset: 2px;
+  background: var(--lf-color-accent-soft-bg, rgba(59, 130, 246, 0.12)) !important;
+  border-color: var(--lf-color-accent-border, #3b82f6) !important;
+  transition: background-color 0.3s ease, outline-color 0.3s ease;
+}

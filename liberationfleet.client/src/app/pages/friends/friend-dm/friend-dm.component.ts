@@ -30,6 +30,9 @@ import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-friend-dm',
@@ -40,7 +43,8 @@ import { ReportContentDialogComponent } from '../../../components/report-content
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
     ReportContentDialogComponent,
-    UserAvatarComponent
+    UserAvatarComponent,
+    LocationHeaderComponent
   ],
   templateUrl: './friend-dm.component.html',
   styleUrl: './friend-dm.component.css'
@@ -52,6 +56,15 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   friendUserId = 0;
   friendUsername = 'Friend';
   friendAvatarResourceId: string | null = null;
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.friendUsername?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
   messages: DirectMessage[] = [];
   crewId = 0;
   canAttachFiles = false;

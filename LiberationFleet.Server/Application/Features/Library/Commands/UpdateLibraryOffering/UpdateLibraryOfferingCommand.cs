@@ -2,11 +2,15 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Library.Commands.UpdateLibraryOffering;
 
-public record UpdateLibraryOfferingCommand(int OfferingId, bool? IsOutOfStock)
+public record UpdateLibraryOfferingCommand(
+    int OfferingId,
+    bool? IsOutOfStock,
+    LibraryOfferingVisibility? Visibility)
     : IRequest<LibraryOfferingOperationResponse>;
 
 public class UpdateLibraryOfferingCommandHandler(
@@ -42,6 +46,8 @@ public class UpdateLibraryOfferingCommandHandler(
             return new LibraryOfferingOperationResponse { Success = false, Message = "You cannot edit this offering." };
         }
 
+        var changed = false;
+
         if (request.IsOutOfStock.HasValue)
         {
             if (!offering.QuantityNotApplicable)
@@ -54,6 +60,17 @@ public class UpdateLibraryOfferingCommandHandler(
             }
 
             offering.IsOutOfStock = request.IsOutOfStock.Value;
+            changed = true;
+        }
+
+        if (request.Visibility.HasValue)
+        {
+            offering.Visibility = request.Visibility.Value;
+            changed = true;
+        }
+
+        if (changed)
+        {
             offering.UpdatedAt = DateTime.UtcNow;
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }

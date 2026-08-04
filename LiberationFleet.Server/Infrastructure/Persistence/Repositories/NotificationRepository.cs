@@ -66,7 +66,11 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         {
             var prefix = actionUrlPrefix!.Trim();
             var entityId = relatedEntityId.Value;
-            query = query.Where(n => n.ActionUrl.StartsWith(prefix) || n.RelatedEntityId == entityId);
+            // Match either RelatedEntityId or SecondaryEntityId so comment/message
+            // targets clear the right notification when they scroll into view.
+            query = query.Where(n =>
+                n.ActionUrl.StartsWith(prefix)
+                && (n.RelatedEntityId == entityId || n.SecondaryEntityId == entityId));
         }
         else if (hasPrefix)
         {

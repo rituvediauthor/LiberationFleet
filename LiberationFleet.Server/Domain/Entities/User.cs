@@ -17,6 +17,10 @@ public class User
     public int EmergencyLevel { get; set; }
     public int PeopleRepresentedCount { get; set; } = 1;
     public int DisabilityLevel { get; set; }
+    /// <summary>
+    /// Comma-separated <see cref="IdentityGroupKeys"/> values (e.g. NonWhite,Woman).
+    /// </summary>
+    public string? IdentityGroups { get; set; }
     public bool NeedsSurvivalAid { get; set; }
     public int PercentBonus { get; set; }
     public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;

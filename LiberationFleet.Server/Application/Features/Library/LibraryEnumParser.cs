@@ -25,4 +25,15 @@ public static class LibraryEnumParser
 
         return Enum.TryParse(value.Trim(), ignoreCase: true, out mode);
     }
+
+    public static bool TryParseVisibility(string? value, out LibraryOfferingVisibility visibility)
+    {
+        visibility = LibraryOfferingVisibility.CrewOnly;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        return Enum.TryParse(value.Trim(), ignoreCase: true, out visibility);
+    }
 }

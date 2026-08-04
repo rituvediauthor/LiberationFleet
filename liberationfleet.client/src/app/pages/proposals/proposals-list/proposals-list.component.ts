@@ -5,6 +5,8 @@ import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { NotificationService } from '../../../services/notification.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
+import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
 import { ProposalService } from '../../../services/proposal.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -12,11 +14,15 @@ import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalListItem, ProposalStatus } from '../../../models/proposal.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../utils/notification-deep-link.util';
 
 @Component({
   selector: 'app-proposals-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ContentBadgeComponent],
+  imports: [CommonModule, PageLayoutComponent, ContentBadgeComponent, NotificationTargetDirective],
   templateUrl: './proposals-list.component.html',
   styleUrl: './proposals-list.component.css'
 })
@@ -28,6 +34,8 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   crewId = 0;
   fleetId = 0;
   isFleetScope = false;
+  highlightId: number | null = null;
+  notifyPrefix = '';
   backButton!: ActionBarButton;
   resourceCounts: Record<string, number> = {};
   countdownTick = 0;
@@ -42,12 +50,15 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   private fleetService = inject(FleetService);
   private toastService = inject(ToastService);
   private notificationService = inject(NotificationService);
+  private notificationContent = inject(NotificationContentService);
   private encryptionContent = inject(EncryptionContentService);
   private countdownIntervalId?: ReturnType<typeof setInterval>;
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
     this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet';
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadProposals());
 
     this.countdownIntervalId = setInterval(() => {
@@ -56,6 +67,11 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
 
     const statusParam = (this.route.snapshot.paramMap.get('status') ?? 'pending').toLowerCase();
     this.status = this.parseStatus(statusParam);
+    const statusSegment = statusParam === 'approved' || statusParam === 'rejected' ? statusParam : 'pending';
+    this.notifyPrefix = this.isFleetScope
+      ? `/app/fleet/proposals/list/${statusSegment}`
+      : `/app/crew/proposals/list/${statusSegment}`;
+    this.notificationContent.markVisited(this.notifyPrefix);
 
     this.backButton = this.navigation.createBackButton(
       this.isFleetScope ? ['/app/fleet/proposals'] : ['/app/crew/proposals']

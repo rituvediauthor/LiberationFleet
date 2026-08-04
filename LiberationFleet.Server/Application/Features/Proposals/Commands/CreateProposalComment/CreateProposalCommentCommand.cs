@@ -126,7 +126,7 @@ public class CreateProposalCommentCommandHandler(
             {
                 UserId = notifyUserId,
                 CrewId = notifyCrewId,
-                Kind = NotificationKind.NewReply,
+                Kind = isFleetProposal ? NotificationKind.NewFleetReply : NotificationKind.NewReply,
                 Title = "New reply",
                 Body = NotificationPreview.BodyOrFallback(
                     request.Body,

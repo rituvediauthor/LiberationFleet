@@ -162,7 +162,7 @@ public class CrewmateAidStatProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             $"A proposal was submitted to update aid statistics for {targetUser.Username}.",
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);

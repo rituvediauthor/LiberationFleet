@@ -140,7 +140,10 @@ export class LibraryUnitDetailComponent implements OnInit {
   }
 
   get showQuantityField(): boolean {
-    return !this.isService && (this.showRequestForm || this.showAcquisitionForm);
+    if (this.isService || this.detail?.quantityNotApplicable) {
+      return false;
+    }
+    return this.showRequestForm || this.showAcquisitionForm;
   }
 
   get holderLabel(): string {
@@ -395,11 +398,16 @@ export class LibraryUnitDetailComponent implements OnInit {
 
     const maxQty = this.detail.viewer.maxRequestQuantity ?? this.detail.remainingStock ?? 1;
     const quantityControl = this.form.get('quantity');
-    quantityControl?.setValidators([
-      Validators.required,
-      Validators.min(1),
-      Validators.max(Math.max(1, maxQty))
-    ]);
+    if (this.detail.quantityNotApplicable || this.isService) {
+      quantityControl?.clearValidators();
+      quantityControl?.setValue(1, { emitEvent: false });
+    } else {
+      quantityControl?.setValidators([
+        Validators.required,
+        Validators.min(1),
+        Validators.max(Math.max(1, maxQty))
+      ]);
+    }
     quantityControl?.updateValueAndValidity({ emitEvent: false });
 
     if (this.isService) {

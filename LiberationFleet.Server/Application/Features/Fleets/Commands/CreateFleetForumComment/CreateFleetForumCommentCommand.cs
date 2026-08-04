@@ -119,9 +119,9 @@ public class CreateFleetForumCommentCommandHandler(
             {
                 UserId = parentComment.AuthorUserId,
                 CrewId = membership.CrewId,
-                Kind = NotificationKind.NewReply,
-                Title = "New reply",
-                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone replied to your forum comment."),
+                Kind = NotificationKind.NewFleetReply,
+                Title = "New fleet reply",
+                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone replied to your fleet forum comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,

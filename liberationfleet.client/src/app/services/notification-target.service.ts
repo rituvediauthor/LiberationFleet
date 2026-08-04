@@ -13,8 +13,13 @@ const STATIC_ROUTES = new Set([
   '/app/crew/gift-log',
   '/app/crew/join-season',
   '/app/crew/rules',
+  '/app/crew/edit',
   '/app/crew/library-of-things/mine',
-  '/app/crew/library-of-things/requests/mine'
+  '/app/crew/library-of-things/requests/mine',
+  '/app/fleet',
+  '/app/fleet/gift-log',
+  '/app/fleet/rules',
+  '/app/fleet/edit'
 ]);
 
 @Injectable({
@@ -31,11 +36,15 @@ export class NotificationTargetService {
   isTargetAvailable(actionUrl: string): Observable<boolean> {
     const path = actionUrl.split('?')[0];
 
-    if (STATIC_ROUTES.has(path) || path.startsWith('/app/crew/proposals/list')) {
+    if (
+      STATIC_ROUTES.has(path)
+      || path.startsWith('/app/crew/proposals/list')
+      || path.startsWith('/app/fleet/proposals/list')
+    ) {
       return of(true);
     }
 
-    const chatMatch = path.match(/^\/app\/crew\/chats\/(\d+)/);
+    const chatMatch = path.match(/^\/app\/(?:crew|fleet)\/chats\/(\d+)/);
     if (chatMatch) {
       return this.exists(this.chatService.getRoom(Number(chatMatch[1])));
     }
@@ -47,7 +56,12 @@ export class NotificationTargetService {
       );
     }
 
-    const proposalMatch = path.match(/^\/app\/crew\/proposals\/(\d+)/);
+    // Fleet forums: treat as available (fleet forum fetch is scoped differently).
+    if (/^\/app\/fleet\/forums\/\d+/.test(path)) {
+      return of(true);
+    }
+
+    const proposalMatch = path.match(/^\/app\/(?:crew|fleet)\/proposals\/(\d+)/);
     if (proposalMatch) {
       return this.exists(this.proposalService.getProposal(Number(proposalMatch[1])));
     }
@@ -57,9 +71,13 @@ export class NotificationTargetService {
       return this.exists(this.libraryService.getRequestDetail(Number(libraryRequestMatch[1])));
     }
 
-    const ruleMatch = path.match(/^\/app\/crew\/rules\/(\d+)\/edit$/);
-    if (ruleMatch) {
-      return this.exists(this.ruleService.getRule(Number(ruleMatch[1])));
+    const crewRuleMatch = path.match(/^\/app\/crew\/rules\/(\d+)\/edit$/);
+    if (crewRuleMatch) {
+      return this.exists(this.ruleService.getRule(Number(crewRuleMatch[1])));
+    }
+
+    if (/^\/app\/fleet\/rules\/\d+\/edit$/.test(path)) {
+      return of(true);
     }
 
     const crewmateMatch = path.match(/^\/app\/crew\/crewmates\/(\d+)/);

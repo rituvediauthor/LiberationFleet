@@ -194,7 +194,7 @@ public class CrewRoleProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             $"A proposal was submitted to change roles for {targetUser.Username}.",
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
@@ -249,7 +249,7 @@ public class CrewRoleProposalService(
                 NotificationKind.NewProposal,
                 "Role change approved",
                 body,
-                $"/app/crew/proposals/{proposal.Id}",
+                ProposalRouting.ApprovedListUrl(proposal),
                 relatedEntityId: roleChange.TargetUserId,
                 cancellationToken: cancellationToken);
         }

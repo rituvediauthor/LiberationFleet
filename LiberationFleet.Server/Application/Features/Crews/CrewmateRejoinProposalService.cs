@@ -98,7 +98,7 @@ public class CrewmateRejoinProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             $"A proposal was submitted to allow {username} to rejoin the crew.",
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
@@ -138,7 +138,7 @@ public class CrewmateRejoinProposalService(
             NotificationKind.CrewmateRejoinAllowed,
             "Crewmate may rejoin",
             $"{rejoin.Username} may now search for and join the crew again.",
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.ApprovedListUrl(proposal),
             relatedEntityId: rejoin.TargetUserId,
             cancellationToken: cancellationToken);
     }

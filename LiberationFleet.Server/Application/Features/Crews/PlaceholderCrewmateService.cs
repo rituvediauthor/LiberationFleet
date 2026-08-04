@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 
 namespace LiberationFleet.Server.Application.Features.Crews;
@@ -33,6 +34,10 @@ public class PlaceholderCrewmateService(
         int authorUserId,
         string displayName,
         IReadOnlyList<PaymentPlatformAccountDto> paymentPlatforms,
+        int emergencyLevel,
+        int peopleRepresentedCount,
+        int disabilityLevel,
+        IReadOnlyList<string>? identityGroups,
         CancellationToken cancellationToken)
     {
         var trimmedName = displayName.Trim();
@@ -44,6 +49,26 @@ public class PlaceholderCrewmateService(
         if (paymentPlatforms.Count == 0)
         {
             return PlaceholderCrewmateResult.Failed("Register at least one payment platform.");
+        }
+
+        if (emergencyLevel is < 0 or > 3)
+        {
+            return PlaceholderCrewmateResult.Failed("Emergency level must be between 0 and 3.");
+        }
+
+        if (peopleRepresentedCount is < 1 or > 99)
+        {
+            return PlaceholderCrewmateResult.Failed("Number of people represented must be between 1 and 99.");
+        }
+
+        if (disabilityLevel is < 0 or > 3)
+        {
+            return PlaceholderCrewmateResult.Failed("Disability level must be between 0 and 3.");
+        }
+
+        if (!IdentityGroupKeys.AreValid(identityGroups))
+        {
+            return PlaceholderCrewmateResult.Failed("Identity groups contain an unrecognized value.");
         }
 
         if (await userRepository.IsUsernameTakenByOtherUserAsync(trimmedName, 0, cancellationToken))
@@ -65,7 +90,11 @@ public class PlaceholderCrewmateService(
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
             IsUnclaimedPlaceholder = true,
-            InNeedOfAid = true
+            InNeedOfAid = true,
+            EmergencyLevel = emergencyLevel,
+            PeopleRepresentedCount = peopleRepresentedCount,
+            DisabilityLevel = disabilityLevel,
+            IdentityGroups = IdentityGroupKeys.Serialize(identityGroups)
         };
 
         var preferredAssigned = false;

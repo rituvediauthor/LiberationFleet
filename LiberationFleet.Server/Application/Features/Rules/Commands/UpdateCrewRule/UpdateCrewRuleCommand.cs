@@ -71,12 +71,8 @@ public class UpdateCrewRuleCommandHandler(
                 crew.Id,
                 userId,
                 CrewRuleProposalAction.Update,
-                CrewRuleChangeDescriber.UpdateTitle,
-                CrewRuleChangeDescriber.BuildUpdateDescription(
-                    request.PlaintextOldTitle,
-                    request.PlaintextOldDescription,
-                    request.PlaintextTitle,
-                    request.PlaintextDescription),
+                request.PlaintextTitle.Trim(),
+                request.PlaintextDescription.Trim(),
                 rule.Id,
                 request.IsPublic ? null : request.Nonce.Trim(),
                 request.IsPublic ? null : request.Ciphertext.Trim(),
@@ -124,7 +120,7 @@ public class UpdateCrewRuleCommandHandler(
             NotificationKind.RuleEdited,
             "Rule edited",
             "A crew rule was updated.",
-            $"/app/crew/rules/{rule.Id}/edit",
+            $"/app/crew/rules?highlightId={rule.Id}",
             relatedEntityId: rule.Id,
             excludeUserId: userId,
             cancellationToken: cancellationToken);

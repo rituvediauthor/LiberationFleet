@@ -76,7 +76,7 @@ public class UpdateFleetForumPostCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.ForumPost,
             ResourceId = post.Id,
-            ActionUrl = $"/app/fleet/forums/{post.Id}",
+            ActionUrl = $"/app/fleet/forums/{post.Id}?highlightId={post.Id}",
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             IsUpdate = true
         }, cancellationToken);

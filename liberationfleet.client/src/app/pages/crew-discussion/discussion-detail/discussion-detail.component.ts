@@ -27,6 +27,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
@@ -34,6 +35,13 @@ import { ForumEngagementBarComponent } from '../../../components/forum-engagemen
 import { ForumCommentLikeComponent } from '../../../components/forum-comment-like/forum-comment-like.component';
 import { ContentReportTargetType } from '../../../models/content-report.model';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../utils/notification-deep-link.util';
+import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../../utils/location-header.util';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -50,13 +58,25 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     ReportContentDialogComponent,
     UserAvatarComponent,
     ForumEngagementBarComponent,
-    ForumCommentLikeComponent
+    ForumCommentLikeComponent,
+    LocationHeaderComponent,
+    NotificationTargetDirective
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
 })
 export class DiscussionDetailComponent implements OnInit, OnDestroy {
   @ViewChild('detailScroll') detailScroll?: ElementRef<HTMLElement>;
+
+  private readonly baseLocationHeader = injectLocationHeaderInfo();
+
+  get locationHeaderView(): LocationHeaderInfo | null {
+    if (!this.baseLocationHeader) {
+      return null;
+    }
+    const pageLabel = this.post?.title?.trim() || this.baseLocationHeader.pageLabel;
+    return { ...this.baseLocationHeader, pageLabel };
+  }
 
   config!: DiscussionConfig;
   post: DiscussionDetail | null = null;
@@ -98,6 +118,8 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
   reportEvidenceText = '';
   reportEvidenceAuthorUsername = '';
   reportMediaIds: string[] = [];
+  highlightId: number | null = null;
+  notifyPrefix = '';
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -118,8 +140,15 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     const kind = this.route.snapshot.data['discussionKind'] as DiscussionKind;
     this.config = getDiscussionConfig(kind);
     const postId = this.postId;
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
+    // Post-only notification ActionUrls have no commentId — highlight the post once.
+    if (this.highlightId == null && postId && this.navigation.cameFromNotifications()) {
+      this.highlightId = postId;
+    }
+    this.notifyPrefix = `/app/crew/forums/${postId}`;
     if (postId) {
-      this.notificationContent.markVisited(`/app/crew/forums/${postId}`, postId);
+      this.notificationContent.markVisited(this.notifyPrefix, postId);
     }
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
@@ -678,6 +707,56 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  private expandHighlightedReply() {
+    if (!this.post || !this.highlightId || this.highlightId === this.post.id) {
+      return;
+    }
+
+    if (this.post.comments.some(comment => comment.id === this.highlightId)) {
+      return;
+    }
+
+    for (const comment of this.post.comments) {
+      if (comment.replies?.some(reply => reply.id === this.highlightId)) {
+        comment.repliesExpanded = true;
+        return;
+      }
+    }
+
+    const candidates = this.post.comments.filter(comment => comment.replyCount > 0);
+    const tryNext = (index: number) => {
+      if (index >= candidates.length || !this.post) {
+        return;
+      }
+      const comment = candidates[index];
+      if (comment.replies?.length) {
+        if (comment.replies.some(reply => reply.id === this.highlightId)) {
+          comment.repliesExpanded = true;
+        } else {
+          tryNext(index + 1);
+        }
+        return;
+      }
+      this.discussionService.getCommentReplies(this.config, this.postId, comment.id).subscribe({
+        next: async replies => {
+          comment.replies = this.crewId > 0
+            ? await this.discussionCrypto.decryptComments(
+              replies as ProposalComment[],
+              this.crewId
+            ) as DiscussionComment[]
+            : replies;
+          if (comment.replies.some(reply => reply.id === this.highlightId)) {
+            comment.repliesExpanded = true;
+            return;
+          }
+          tryNext(index + 1);
+        },
+        error: () => tryNext(index + 1)
+      });
+    };
+    tryNext(0);
+  }
+
   private loadPost(options?: { silent?: boolean; onLoaded?: () => void }) {
     if (!options?.silent) {
       this.loading = true;
@@ -704,6 +783,7 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
             this.contentRevealed = true;
           }
 
+          this.expandHighlightedReply();
           options?.onLoaded?.();
         } catch (error: unknown) {
           if (!options?.silent) {

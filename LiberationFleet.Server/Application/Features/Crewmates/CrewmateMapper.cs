@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -137,6 +138,7 @@ public static class CrewmateMapper
             EmergencyLevel = crewmate.EmergencyLevel,
             PeopleRepresentedCount = crewmate.PeopleRepresentedCount,
             DisabilityLevel = crewmate.DisabilityLevel,
+            IdentityGroups = IdentityGroupKeys.Parse(crewmate.IdentityGroups),
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             FriendshipState = friendshipState,
             IsSelf = isSelf,

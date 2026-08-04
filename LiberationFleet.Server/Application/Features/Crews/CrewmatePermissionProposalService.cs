@@ -141,7 +141,7 @@ public class CrewmatePermissionProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             $"A proposal was submitted to grant permissions to {targetUser.Username}.",
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
@@ -194,7 +194,7 @@ public class CrewmatePermissionProposalService(
                 NotificationKind.NewProposal,
                 "Permission grant approved",
                 body,
-                $"/app/crew/proposals/{proposal.Id}",
+                ProposalRouting.ApprovedListUrl(proposal),
                 relatedEntityId: grant.TargetUserId,
                 cancellationToken: cancellationToken);
         }

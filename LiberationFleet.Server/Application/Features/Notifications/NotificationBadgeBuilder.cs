@@ -109,17 +109,13 @@ public static class NotificationBadgeBuilder
 
         if ((notification.Kind == NotificationKind.NewChatMessage
                 || notification.Kind == NotificationKind.NewFleetChatMessage)
-            && notification.RelatedEntityId.HasValue
-            && (mutedChatRoomIds.Contains(notification.RelatedEntityId.Value)
-                || hiddenChatRoomIds.Contains(notification.RelatedEntityId.Value)))
+            && IsMutedOrHiddenChatRoom(notification, mutedChatRoomIds, hiddenChatRoomIds))
         {
             return true;
         }
 
         if (IsForumKind(notification.Kind)
-            && notification.RelatedEntityId.HasValue
-            && (mutedForumIds.Contains(notification.RelatedEntityId.Value)
-                || hiddenForumIds.Contains(notification.RelatedEntityId.Value)))
+            && IsMutedOrHiddenForum(notification, mutedForumIds, hiddenForumIds))
         {
             return true;
         }
@@ -132,6 +128,56 @@ public static class NotificationBadgeBuilder
         return false;
     }
 
+    private static bool IsMutedOrHiddenChatRoom(
+        Notification notification,
+        HashSet<int> mutedChatRoomIds,
+        HashSet<int> hiddenChatRoomIds)
+    {
+        var path = notification.ActionUrl.Split('?')[0];
+        if ((TryExtractPathId(path, "/app/crew/chats/", out var roomId)
+                || TryExtractPathId(path, "/app/fleet/chats/", out roomId))
+            && (mutedChatRoomIds.Contains(roomId) || hiddenChatRoomIds.Contains(roomId)))
+        {
+            return true;
+        }
+
+        if (notification.SecondaryEntityId.HasValue
+            && (mutedChatRoomIds.Contains(notification.SecondaryEntityId.Value)
+                || hiddenChatRoomIds.Contains(notification.SecondaryEntityId.Value)))
+        {
+            return true;
+        }
+
+        return notification.RelatedEntityId.HasValue
+            && (mutedChatRoomIds.Contains(notification.RelatedEntityId.Value)
+                || hiddenChatRoomIds.Contains(notification.RelatedEntityId.Value));
+    }
+
+    private static bool IsMutedOrHiddenForum(
+        Notification notification,
+        HashSet<int> mutedForumIds,
+        HashSet<int> hiddenForumIds)
+    {
+        var path = notification.ActionUrl.Split('?')[0];
+        if ((TryExtractPathId(path, "/app/crew/forums/", out var forumId)
+                || TryExtractPathId(path, "/app/fleet/forums/", out forumId))
+            && (mutedForumIds.Contains(forumId) || hiddenForumIds.Contains(forumId)))
+        {
+            return true;
+        }
+
+        if (notification.SecondaryEntityId.HasValue
+            && (mutedForumIds.Contains(notification.SecondaryEntityId.Value)
+                || hiddenForumIds.Contains(notification.SecondaryEntityId.Value)))
+        {
+            return true;
+        }
+
+        return notification.RelatedEntityId.HasValue
+            && (mutedForumIds.Contains(notification.RelatedEntityId.Value)
+                || hiddenForumIds.Contains(notification.RelatedEntityId.Value));
+    }
+
     private static bool IsForumKind(NotificationKind kind) =>
         kind is NotificationKind.NewForumPost
             or NotificationKind.NewForumComment
@@ -139,8 +185,12 @@ public static class NotificationBadgeBuilder
             or NotificationKind.Mention
             or NotificationKind.NewFleetForumPost
             or NotificationKind.NewFleetForumComment
+            or NotificationKind.NewFleetReply
+            or NotificationKind.FleetMention
             or NotificationKind.ForumPostLiked
-            or NotificationKind.ForumCommentLiked;
+            or NotificationKind.ForumCommentLiked
+            or NotificationKind.FleetForumPostLiked
+            or NotificationKind.FleetForumCommentLiked;
 
     private static string? ResolveArea(Notification notification)
     {
@@ -207,12 +257,17 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewChatMessage or NotificationKind.NewFleetChatMessage => "chats",
             NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply
                 or NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment
-                or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked => "forums",
+                or NotificationKind.NewFleetReply or NotificationKind.FleetMention
+                or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked
+                or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked => "forums",
             NotificationKind.NewProposal or NotificationKind.NewFleetProposal
-                or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted => "proposals",
+                or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
+                or NotificationKind.FleetProposalAccepted or NotificationKind.FleetProposalRejected => "proposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
                 or NotificationKind.SurvivalThresholdsRefreshed => "giftLog",
-            NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "rules",
+            NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited
+                or NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted
+                or NotificationKind.FleetRuleEdited => "rules",
             NotificationKind.CrewSettingChanged or NotificationKind.FleetSettingChanged => "settings",
             NotificationKind.NewCrewmate or NotificationKind.CrewmateKicked or NotificationKind.CrewmateRejoinAllowed
                 or NotificationKind.JoinRequestFromPerson or NotificationKind.JoinRequestFromCrew => "crewmates",
@@ -272,8 +327,8 @@ public static class NotificationBadgeBuilder
             var statusKey = notification.Kind switch
             {
                 NotificationKind.NewProposal or NotificationKind.NewFleetProposal => "pending",
-                NotificationKind.ProposalAccepted => "approved",
-                NotificationKind.ProposalRejected => "rejected",
+                NotificationKind.ProposalAccepted or NotificationKind.FleetProposalAccepted => "approved",
+                NotificationKind.ProposalRejected or NotificationKind.FleetProposalRejected => "rejected",
                 _ => null
             };
             if (statusKey is not null)
@@ -322,7 +377,10 @@ public static class NotificationBadgeBuilder
             or NotificationKind.NewFleetProposal
             or NotificationKind.ProposalRejected
             or NotificationKind.ProposalAccepted
-            or NotificationKind.NewReply;
+            or NotificationKind.FleetProposalAccepted
+            or NotificationKind.FleetProposalRejected
+            or NotificationKind.NewReply
+            or NotificationKind.NewFleetReply;
 
     private static bool TryExtractPathId(string path, string prefix, out int id)
     {

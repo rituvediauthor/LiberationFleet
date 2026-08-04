@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { GiftService } from '../../services/gift.service';
 import { CrewService } from '../../services/crew.service';
 import { CrewmateService } from '../../services/crewmate.service';
@@ -22,11 +22,19 @@ import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
 import { NavigationService } from '../../services/navigation.service';
 import { NotificationContentService } from '../../services/notification-content.service';
+import { NotificationTargetDirective } from '../../directives/notification-target.directive';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../utils/notification-deep-link.util';
+import { LocationHeaderComponent } from '../../components/location-header/location-header.component';
+import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
+import { LocationHeaderInfo } from '../../utils/location-header.util';
 
 @Component({
   selector: 'app-gift-log',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LocationHeaderComponent, NotificationTargetDirective],
   templateUrl: './gift-log.component.html',
   styleUrl: './gift-log.component.css'
 })
@@ -46,13 +54,19 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   userInSeason = false;
   seasonStarted = false;
   completionPlatformSelections: Record<number, number | ''> = {};
+  locationHeaderInfo: LocationHeaderInfo | null = injectLocationHeaderInfo();
+  highlightId: number | null = null;
+  readonly notifyPrefix = '/app/crew/gift-log';
 
   private readonly pageSize = 50;
   private intersectionObserver?: IntersectionObserver;
   private sentinelChangesSubscription?: { unsubscribe(): void };
   private scrollToBottomOnNextRender = false;
+  private highlightSeekPagesLeft = 0;
+  private highlightSeekActive = false;
 
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private navigation = inject(NavigationService);
   private notificationContent = inject(NotificationContentService);
   private giftService = inject(GiftService);
@@ -65,7 +79,13 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private encryptionReload?: EncryptionReloadHandle;
 
   ngOnInit() {
-    this.notificationContent.markVisited('/app/crew/gift-log');
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
+    if (this.highlightId) {
+      this.highlightSeekPagesLeft = 5;
+      this.highlightSeekActive = true;
+    }
+    this.notificationContent.markVisited(this.notifyPrefix);
     this.encryptionReload = this.encryptionContent.watchForUnlockAfterInitialLoad(() => this.loadGiftLog());
 
     this.authService.currentUser$.subscribe(user => {
@@ -306,10 +326,13 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           this.entries = items;
           this.hasMore = page.hasMore;
           this.applyCompletionDefaults(page.items);
-          this.scrollToBottomOnNextRender = true;
+          this.scrollToBottomOnNextRender = !this.highlightSeekActive;
           setTimeout(() => {
             this.observeLoadMoreSentinel();
-            this.scrollToBottom();
+            if (!this.highlightSeekActive) {
+              this.scrollToBottom();
+            }
+            this.continueHighlightSeek();
           }, 0);
         } catch {
           this.errorMessage = 'Failed to decrypt gift log';
@@ -324,7 +347,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private loadOlderEntries() {
+  private loadOlderEntries(options?: { forHighlightSeek?: boolean }) {
     if (this.loading || this.loadingMore || !this.hasMore || this.entries.length === 0) {
       return;
     }
@@ -350,18 +373,43 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.hasMore = page.hasMore;
         this.loadingMore = false;
 
-        if (container) {
+        if (container && !options?.forHighlightSeek) {
           requestAnimationFrame(() => {
             container.scrollTop = previousScrollTop + (container.scrollHeight - previousScrollHeight);
             this.observeLoadMoreSentinel();
           });
+        } else if (options?.forHighlightSeek) {
+          this.observeLoadMoreSentinel();
+          this.continueHighlightSeek();
         }
       },
       error: () => {
         this.loadingMore = false;
-        this.toastService.error('Failed to load older gifts');
+        if (!options?.forHighlightSeek) {
+          this.toastService.error('Failed to load older gifts');
+        }
+        this.highlightSeekActive = false;
       }
     });
+  }
+
+  private continueHighlightSeek() {
+    if (!this.highlightSeekActive || !this.highlightId) {
+      return;
+    }
+
+    if (this.entries.some(entry => entry.id === this.highlightId)) {
+      this.highlightSeekActive = false;
+      return;
+    }
+
+    if (this.highlightSeekPagesLeft <= 0 || !this.hasMore) {
+      this.highlightSeekActive = false;
+      return;
+    }
+
+    this.highlightSeekPagesLeft -= 1;
+    this.loadOlderEntries({ forHighlightSeek: true });
   }
 
   private applyCompletionDefaults(entries: GiftLogEntry[]) {

@@ -1,6 +1,6 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { AfterViewChecked, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { RuleService } from '../../../services/rule.service';
@@ -8,35 +8,47 @@ import { RuleCryptoService } from '../../../services/crypto/rule-crypto.service'
 import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { NotificationContentService } from '../../../services/notification-content.service';
+import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
 import { RuleListItem } from '../../../models/rule.model';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../utils/notification-deep-link.util';
 
 @Component({
   selector: 'app-rule-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, NotificationTargetDirective],
   templateUrl: './rule-list.component.html',
   styleUrl: './rule-list.component.css'
 })
-export class RuleListComponent implements OnInit, OnDestroy {
+export class RuleListComponent implements OnInit, OnDestroy, AfterViewChecked {
   rules: RuleListItem[] = [];
   loading = true;
   errorMessage = '';
   crewId = 0;
+  highlightId: number | null = null;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
 
+  private readonly notificationPrefix = '/app/crew/rules';
   private router = inject(Router);
-
-
+  private route = inject(ActivatedRoute);
   private navigation = inject(NavigationService);
   private ruleService = inject(RuleService);
   private ruleCrypto = inject(RuleCryptoService);
   private crewService = inject(CrewService);
   private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
   private encryptionReload?: ReturnType<EncryptionContentService['watchForUnlockAfterInitialLoad']>;
+  private markedListVisit = false;
 
   ngOnInit() {
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
+
     this.backButton = this.navigation.createBackButton(['/app/crew']);
 
     this.createButton = {
@@ -61,8 +73,19 @@ export class RuleListComponent implements OnInit, OnDestroy {
     });
   }
 
+  ngAfterViewChecked() {
+    if (!this.markedListVisit && !this.loading && this.rules.length >= 0) {
+      this.markedListVisit = true;
+      this.notificationContent.markVisited(this.notificationPrefix);
+    }
+  }
+
   ngOnDestroy() {
     this.encryptionReload?.subscription.unsubscribe();
+  }
+
+  get notifyPrefix(): string {
+    return this.notificationPrefix;
   }
 
   editRule(rule: RuleListItem) {

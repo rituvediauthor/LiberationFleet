@@ -1,9 +1,5 @@
 <div class="chat-text-page">
-  <header class="conversation-header" *ngIf="contentRevealed || roomName">
-    <div class="conversation-header-inner">
-      <h1 class="conversation-header-title">{{ roomName || 'Chat' }}</h1>
-    </div>
-  </header>
+  <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">
@@ -16,6 +12,9 @@
         #messageItem
         class="message-bubble"
         *ngFor="let message of messages"
+        [lfNotificationTarget]="message.id"
+        [lfNotificationPrefix]="notifyPrefix"
+        [lfHighlightId]="highlightId"
         [class.own]="isOwnMessage(message)"
         [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">

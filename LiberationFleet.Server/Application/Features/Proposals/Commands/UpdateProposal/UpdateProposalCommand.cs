@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Mentions;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -70,7 +71,7 @@ public class UpdateProposalCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
-            ActionUrl = $"/app/crew/proposals/{proposal.Id}",
+            ActionUrl = ProposalRouting.DetailUrl(proposal),
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             IsUpdate = true
         }, cancellationToken);

@@ -165,6 +165,15 @@ public class NotificationService(
         NotificationKind.NewEmergencyRequest => "Emergency request",
         NotificationKind.ForumPostLiked => "Forum post liked",
         NotificationKind.ForumCommentLiked => "Forum comment liked",
+        NotificationKind.NewFleetRule => "New fleet rule",
+        NotificationKind.FleetRuleDeleted => "Fleet rule deleted",
+        NotificationKind.FleetRuleEdited => "Fleet rule edited",
+        NotificationKind.FleetProposalAccepted => "Fleet proposal accepted",
+        NotificationKind.FleetProposalRejected => "Fleet proposal rejected",
+        NotificationKind.NewFleetReply => "New fleet reply",
+        NotificationKind.FleetMention => "Fleet mention",
+        NotificationKind.FleetForumPostLiked => "Fleet forum post liked",
+        NotificationKind.FleetForumCommentLiked => "Fleet forum comment liked",
         _ => kind.ToString()
     };
 
@@ -176,7 +185,16 @@ public class NotificationService(
             or NotificationKind.FleetSettingChanged
             or NotificationKind.NewFleetChatMessage
             or NotificationKind.NewFleetForumPost
-            or NotificationKind.NewFleetForumComment => "Fleet",
+            or NotificationKind.NewFleetForumComment
+            or NotificationKind.NewFleetRule
+            or NotificationKind.FleetRuleDeleted
+            or NotificationKind.FleetRuleEdited
+            or NotificationKind.FleetProposalAccepted
+            or NotificationKind.FleetProposalRejected
+            or NotificationKind.NewFleetReply
+            or NotificationKind.FleetMention
+            or NotificationKind.FleetForumPostLiked
+            or NotificationKind.FleetForumCommentLiked => "Fleet",
         _ => "Crew"
     };
 

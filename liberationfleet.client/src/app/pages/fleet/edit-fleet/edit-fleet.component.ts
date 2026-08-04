@@ -11,6 +11,7 @@ import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { FleetPrivacy, FleetScope, UpdateFleetRequest } from '../../../models/fleet.model';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { formValuesChanged } from '../../../utils/save-button.util';
@@ -56,8 +57,10 @@ export class EditFleetComponent implements OnInit {
   private toastService = inject(ToastService);
   private proposalCrypto = inject(ProposalCryptoService);
   private cryptoSession = inject(CryptoSessionService);
+  private notificationContent = inject(NotificationContentService);
 
   ngOnInit() {
+    this.notificationContent.markVisited('/app/fleet/edit');
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
       privacy: ['Public' as FleetPrivacy, Validators.required],

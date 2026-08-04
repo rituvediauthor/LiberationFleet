@@ -46,7 +46,7 @@ public class ToggleForumPostLikeCommandHandler(
             }
 
             crewId = post.CrewId.Value;
-            actionUrl = $"/app/crew/forums/{post.Id}";
+            actionUrl = $"/app/crew/forums/{post.Id}?highlightId={post.Id}";
         }
         else if (post.FleetId.HasValue)
         {
@@ -57,7 +57,7 @@ public class ToggleForumPostLikeCommandHandler(
 
             var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
             crewId = membership?.CrewId;
-            actionUrl = $"/app/fleet/forums/{post.Id}";
+            actionUrl = $"/app/fleet/forums/{post.Id}?highlightId={post.Id}";
         }
         else
         {
@@ -79,13 +79,16 @@ public class ToggleForumPostLikeCommandHandler(
 
             if (post.AuthorUserId != userId && !like.AuthorNotified)
             {
+                var isFleet = post.FleetId.HasValue;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = post.AuthorUserId,
                     CrewId = crewId,
-                    Kind = NotificationKind.ForumPostLiked,
-                    Title = "Forum post liked",
-                    Body = "Someone liked your forum post.",
+                    Kind = isFleet ? NotificationKind.FleetForumPostLiked : NotificationKind.ForumPostLiked,
+                    Title = isFleet ? "Fleet forum post liked" : "Forum post liked",
+                    Body = isFleet
+                        ? "Someone liked your fleet forum post."
+                        : "Someone liked your forum post.",
                     ActionUrl = actionUrl,
                     RelatedEntityId = post.Id,
                     ActorUserId = userId

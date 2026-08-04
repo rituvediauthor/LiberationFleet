@@ -8,9 +8,17 @@ export class NotificationContentService {
   private notificationService = inject(NotificationService);
 
   markVisited(actionUrlPrefix: string, relatedEntityId?: number): void {
+    const prefix = actionUrlPrefix?.trim() || null;
+    if (!prefix && relatedEntityId == null) {
+      return;
+    }
+
     this.notificationService.markReadForContent({
-      actionUrlPrefix,
+      actionUrlPrefix: prefix,
       relatedEntityId: relatedEntityId ?? null
-    }).subscribe();
+    }).subscribe({
+      next: () => this.notificationService.refreshBadges(true),
+      error: () => undefined
+    });
   }
 }

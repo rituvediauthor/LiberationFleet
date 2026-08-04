@@ -1,4 +1,4 @@
-import { MAX_VIDEO_BYTES } from './media-attachment-allowlist.util';
+import { MAX_VIDEO_BYTES, MAX_VIDEO_INPUT_BYTES } from './media-attachment-allowlist.util';
 
 const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
@@ -71,8 +71,8 @@ async function compressImage(file: File): Promise<File> {
 }
 
 async function compressVideo(file: File): Promise<File> {
-  if (file.size > MAX_VIDEO_BYTES) {
-    throw new Error('Videos must be 50 MB or smaller.');
+  if (file.size > MAX_VIDEO_INPUT_BYTES) {
+    throw new Error('Videos must be 500 MB or smaller before compression.');
   }
 
   const mime = (file.type || '').toLowerCase();
@@ -83,11 +83,21 @@ async function compressVideo(file: File): Promise<File> {
     return file;
   }
 
+  let compressed: File;
   try {
-    return await reencodeVideoByPlayback(file);
-  } catch {
-    return file;
+    compressed = await reencodeVideoByPlayback(file);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to compress video.';
+    throw new Error(message);
   }
+
+  if (compressed.size > MAX_VIDEO_BYTES) {
+    throw new Error(
+      `Video is still ${Math.ceil(compressed.size / (1024 * 1024))} MB after compression. Please use a shorter or lower-resolution clip (max ${Math.floor(MAX_VIDEO_BYTES / (1024 * 1024))} MB).`
+    );
+  }
+
+  return compressed;
 }
 
 async function compressAudio(file: File): Promise<File> {
@@ -176,8 +186,11 @@ async function reencodeVideoByPlayback(file: File): Promise<File> {
 
   try {
     await waitForVideoMetadata(video);
-    if (!Number.isFinite(video.duration) || video.duration > MAX_VIDEO_DURATION_SEC) {
-      return file;
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      throw new Error('Unable to read video duration.');
+    }
+    if (video.duration > MAX_VIDEO_DURATION_SEC) {
+      throw new Error(`Videos must be ${MAX_VIDEO_DURATION_SEC} seconds or shorter.`);
     }
 
     const scale = Math.min(1, MAX_VIDEO_DIMENSION / Math.max(video.videoWidth, video.videoHeight));

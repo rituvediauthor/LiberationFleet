@@ -1,14 +1,25 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
+import { IdentityGroupsEditorComponent } from '../../components/identity-groups-editor/identity-groups-editor.component';
 import { ProposalAttachmentPickerComponent } from '../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
+import { SecurityService } from '../../services/security.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
@@ -21,6 +32,38 @@ import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util'
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
+
+function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
+  const value = control.value;
+  if (!value) {
+    return null;
+  }
+
+  const hasUpperCase = /[A-Z]/.test(value);
+  const hasLowerCase = /[a-z]/.test(value);
+  const hasNumeric = /[0-9]/.test(value);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value);
+  const isLengthValid = value.length >= 8;
+  const passwordValid = hasUpperCase && hasLowerCase && hasNumeric && hasSpecialChar && isLengthValid;
+  return passwordValid ? null : { passwordStrength: true };
+}
+
+function optionalPasswordChangeValidator(control: AbstractControl): ValidationErrors | null {
+  const current = String(control.get('currentPassword')?.value ?? '');
+  const next = String(control.get('newPassword')?.value ?? '');
+  const confirm = String(control.get('confirmPassword')?.value ?? '');
+
+  if (!current && !next && !confirm) {
+    return null;
+  }
+
+  if (!current || !next || !confirm) {
+    return { passwordIncomplete: true };
+  }
+
+  return next === confirm ? null : { passwordMismatch: true };
+}
 
 @Component({
   selector: 'app-profile',
@@ -33,6 +76,7 @@ import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
     PageLayoutComponent,
     RecoveryKeyDisplayComponent,
     PaymentPlatformEditorComponent,
+    IdentityGroupsEditorComponent,
     ProposalAttachmentPickerComponent
   ],
   templateUrl: './profile.component.html',
@@ -40,6 +84,7 @@ import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 })
 export class ProfileComponent implements OnInit {
   form!: FormGroup;
+  passwordForm!: FormGroup;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];
   readonly currentYear = new Date().getFullYear();
@@ -66,6 +111,7 @@ export class ProfileComponent implements OnInit {
   private navigation = inject(NavigationService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
+  private securityService = inject(SecurityService);
   private crewService = inject(CrewService);
   private cryptoSession = inject(CryptoSessionService);
   private proposalCrypto = inject(ProposalCryptoService);
@@ -74,6 +120,7 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit() {
     this.loadPlatformOptions();
+    this.buildPasswordForm();
 
     this.backButton = this.navigation.createBackButton(['/app/profile']);
 
@@ -168,6 +215,32 @@ export class ProfileComponent implements OnInit {
     return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
+  isPasswordInvalid(controlName: string): boolean {
+    return isControlInvalidForA11y(this.passwordForm?.get(controlName));
+  }
+
+  hasPasswordRequirement(requirement: string): boolean {
+    const password = this.passwordForm?.get('newPassword')?.value;
+    if (!password) {
+      return false;
+    }
+
+    switch (requirement) {
+      case 'uppercase':
+        return /[A-Z]/.test(password);
+      case 'lowercase':
+        return /[a-z]/.test(password);
+      case 'number':
+        return /[0-9]/.test(password);
+      case 'special':
+        return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+      case 'length':
+        return password.length >= 8;
+      default:
+        return false;
+    }
+  }
+
   addPaymentPlatform() {
     if (!this.profile) {
       return;
@@ -194,6 +267,17 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
+    const changingPassword = this.hasPasswordChanges();
+    if (changingPassword && this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      this.toastService.error('Fix the password fields before saving.');
+      return;
+    }
+
+    if (!this.hasProfileChanges() && !changingPassword) {
+      return;
+    }
+
     const paymentPlatformError = this.getPaymentPlatformValidationError();
     if (paymentPlatformError) {
       this.toastService.error(paymentPlatformError);
@@ -213,6 +297,33 @@ export class ProfileComponent implements OnInit {
     this.updateSaveButton();
 
     try {
+      if (changingPassword) {
+        const passwordValues = this.passwordForm.getRawValue();
+        const passwordResult = await firstValueFrom(
+          this.securityService.changePassword({
+            currentPassword: String(passwordValues.currentPassword ?? ''),
+            newPassword: String(passwordValues.newPassword ?? ''),
+            confirmPassword: String(passwordValues.confirmPassword ?? '')
+          })
+        );
+
+        if (!passwordResult.success) {
+          this.toastService.error(passwordResult.message || 'Failed to update password');
+          return;
+        }
+
+        this.passwordForm.reset({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        this.toastService.success(passwordResult.message || 'Password updated');
+      }
+
+      if (!this.hasProfileChanges()) {
+        return;
+      }
+
       let avatarResourceId = this.avatarResourceId;
       if (this.avatarAttachments.length > 0) {
         avatarResourceId = await this.proposalCrypto.uploadImageAttachment(
@@ -234,60 +345,59 @@ export class ProfileComponent implements OnInit {
         emergencyLevel: Number(v.emergencyLevel),
         peopleRepresentedCount: Number(v.peopleRepresentedCount),
         disabilityLevel: Number(v.disabilityLevel),
+        identityGroups: normalizeIdentityGroups(v.identityGroups),
         needsSurvivalAid: !!v.needsSurvivalAid,
         paymentPlatforms: this.getPaymentPlatformsForSave()
       };
 
-      this.profileService.updateProfile(payload).subscribe({
-        next: (result) => {
-          if (result.success && result.profile) {
-            if (avatarResourceId) {
-              this.images.invalidate(avatarResourceId, 'ProfileAvatar');
-            }
-            if (this.initialAvatarResourceId && this.initialAvatarResourceId !== avatarResourceId) {
-              this.images.invalidate(this.initialAvatarResourceId, 'ProfileAvatar');
-            }
-            this.profile = result.profile;
-            this.avatarResourceId = result.profile.avatarResourceId ?? null;
-            this.loadPlatformOptions();
-            this.form.patchValue({
-              username: result.profile.username,
-              email: result.profile.email,
-              inNeedOfAid: result.profile.inNeedOfAid,
-              emergencyLevel: result.profile.emergencyLevel,
-              peopleRepresentedCount: result.profile.peopleRepresentedCount,
-              disabilityLevel: result.profile.disabilityLevel,
-              needsSurvivalAid: result.profile.needsSurvivalAid
-            });
-            this.captureInitialState();
-            void this.refreshAvatarPreview();
-            this.authService.updateCurrentUser({
-              id: result.profile.id,
-              username: result.profile.username,
-              email: result.profile.email
-            });
-            this.toastService.success(result.message);
-          } else {
-            this.toastService.error(result.message || 'Failed to save profile');
-          }
-          this.isSaving = false;
-          this.updateSaveButton();
-        },
-        error: (error) => {
-          this.toastService.error(this.extractErrorMessage(error));
-          this.isSaving = false;
-          this.updateSaveButton();
+      const result = await firstValueFrom(this.profileService.updateProfile(payload));
+      if (result.success && result.profile) {
+        if (avatarResourceId) {
+          this.images.invalidate(avatarResourceId, 'ProfileAvatar');
         }
-      });
+        if (this.initialAvatarResourceId && this.initialAvatarResourceId !== avatarResourceId) {
+          this.images.invalidate(this.initialAvatarResourceId, 'ProfileAvatar');
+        }
+        this.profile = result.profile;
+        this.avatarResourceId = result.profile.avatarResourceId ?? null;
+        this.loadPlatformOptions();
+        this.form.patchValue({
+          username: result.profile.username,
+          email: result.profile.email,
+          inNeedOfAid: result.profile.inNeedOfAid,
+          emergencyLevel: result.profile.emergencyLevel,
+          peopleRepresentedCount: result.profile.peopleRepresentedCount,
+          disabilityLevel: result.profile.disabilityLevel,
+          identityGroups: normalizeIdentityGroups(result.profile.identityGroups),
+          needsSurvivalAid: result.profile.needsSurvivalAid
+        });
+        this.captureInitialState();
+        void this.refreshAvatarPreview();
+        this.authService.updateCurrentUser({
+          id: result.profile.id,
+          username: result.profile.username,
+          email: result.profile.email
+        });
+        this.toastService.success(result.message);
+      } else {
+        this.toastService.error(result.message || 'Failed to save profile');
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to upload avatar';
-      this.toastService.error(message);
+      this.toastService.error(
+        this.extractErrorMessage(error as { error?: { message?: string; errors?: Record<string, string[]> } })
+      );
+    } finally {
       this.isSaving = false;
       this.updateSaveButton();
     }
   }
 
   onPaymentPlatformChange() {
+    this.updateSaveButton();
+  }
+
+  onIdentityGroupsChange(groups: string[]) {
+    this.form.patchValue({ identityGroups: normalizeIdentityGroups(groups) });
     this.updateSaveButton();
   }
 
@@ -363,8 +473,9 @@ export class ProfileComponent implements OnInit {
       email: [profile.email, [Validators.required, Validators.email]],
       inNeedOfAid: [profile.inNeedOfAid],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
-      peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(0), Validators.max(99)]],
+      peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [profile.disabilityLevel ?? 0, [Validators.min(0), Validators.max(3)]],
+      identityGroups: [normalizeIdentityGroups(profile.identityGroups)],
       needsSurvivalAid: [profile.needsSurvivalAid]
     });
 
@@ -372,14 +483,32 @@ export class ProfileComponent implements OnInit {
     this.updateSaveButton();
   }
 
+  private buildPasswordForm() {
+    this.passwordForm = this.fb.group(
+      {
+        currentPassword: [''],
+        newPassword: ['', passwordStrengthValidator],
+        confirmPassword: ['']
+      },
+      { validators: optionalPasswordChangeValidator }
+    );
+
+    this.passwordForm.statusChanges.subscribe(() => this.updateSaveButton());
+    this.passwordForm.valueChanges.subscribe(() => this.updateSaveButton());
+  }
+
   private updateSaveButton() {
     const paymentPlatformError = this.getPaymentPlatformValidationError();
+    const changingPassword = this.hasPasswordChanges();
+    const passwordReady = !changingPassword || this.passwordForm?.valid;
     const disabled = !this.form
+      || !this.passwordForm
       || this.isLoading
       || this.isSaving
       || this.form.invalid
+      || !passwordReady
       || !!paymentPlatformError
-      || !this.hasProfileChanges();
+      || (!this.hasProfileChanges() && !changingPassword);
 
     this.saveButton = {
       label: 'Save',
@@ -387,6 +516,19 @@ export class ProfileComponent implements OnInit {
       disabled,
       onClick: () => void this.onSave()
     };
+  }
+
+  private hasPasswordChanges(): boolean {
+    if (!this.passwordForm) {
+      return false;
+    }
+
+    const values = this.passwordForm.getRawValue();
+    return !!(
+      String(values.currentPassword ?? '').length
+      || String(values.newPassword ?? '').length
+      || String(values.confirmPassword ?? '').length
+    );
   }
 
   private captureInitialState() {

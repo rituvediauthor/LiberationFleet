@@ -1,9 +1,5 @@
 <div class="chat-text-page">
-  <header class="conversation-header">
-    <div class="conversation-header-inner">
-      <h1 class="conversation-header-title">{{ pageTitle }}</h1>
-    </div>
-  </header>
+  <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
   <div class="message-scroll" #messageScroll>
     <div class="scroll-page-body chat-channel-body">

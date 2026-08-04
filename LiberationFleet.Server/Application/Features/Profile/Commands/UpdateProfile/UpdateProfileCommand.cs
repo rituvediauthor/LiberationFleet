@@ -12,6 +12,7 @@ public class UpdateProfileCommand : IRequest<ProfileOperationResponse>
     public int EmergencyLevel { get; set; }
     public int PeopleRepresentedCount { get; set; } = 1;
     public int DisabilityLevel { get; set; }
+    public List<string> IdentityGroups { get; set; } = [];
     public bool NeedsSurvivalAid { get; set; }
     public List<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = [];
 }

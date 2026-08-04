@@ -419,6 +419,71 @@ public class ProposalRepository : IProposalRepository
         }
     }
 
+    public Task CancelPendingCrewRuleUpdateProposalsForRuleAsync(
+        int ruleId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default) =>
+        CancelPendingRuleOrChatUpdatesAsync(
+            _context.ProposalCrewRuleChanges
+                .Include(c => c.Proposal)
+                .Where(c =>
+                    c.RuleId == ruleId
+                    && c.ProposalId != exceptProposalId
+                    && c.Action == CrewRuleProposalAction.Update
+                    && !c.Proposal.IsDeleted
+                    && c.Proposal.Status == ProposalStatus.Pending
+                    && c.Proposal.Kind == ProposalKind.CrewRuleChange)
+                .Select(c => c.Proposal),
+            cancellationToken);
+
+    public Task CancelPendingFleetRuleUpdateProposalsForRuleAsync(
+        int ruleId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default) =>
+        CancelPendingRuleOrChatUpdatesAsync(
+            _context.ProposalFleetRuleChanges
+                .Include(c => c.Proposal)
+                .Where(c =>
+                    c.RuleId == ruleId
+                    && c.ProposalId != exceptProposalId
+                    && c.Action == FleetRuleProposalAction.Update
+                    && !c.Proposal.IsDeleted
+                    && c.Proposal.Status == ProposalStatus.Pending
+                    && c.Proposal.Kind == ProposalKind.FleetRuleChange)
+                .Select(c => c.Proposal),
+            cancellationToken);
+
+    public Task CancelPendingChatUpdateProposalsForRoomAsync(
+        int roomId,
+        int exceptProposalId,
+        CancellationToken cancellationToken = default) =>
+        CancelPendingRuleOrChatUpdatesAsync(
+            _context.ProposalCrewChatChanges
+                .Include(c => c.Proposal)
+                .Where(c =>
+                    c.RoomId == roomId
+                    && c.ProposalId != exceptProposalId
+                    && c.Action == CrewChatProposalAction.Update
+                    && !c.Proposal.IsDeleted
+                    && c.Proposal.Status == ProposalStatus.Pending
+                    && (c.Proposal.Kind == ProposalKind.CrewChatChange
+                        || c.Proposal.Kind == ProposalKind.FleetChatChange))
+                .Select(c => c.Proposal),
+            cancellationToken);
+
+    private static async Task CancelPendingRuleOrChatUpdatesAsync(
+        IQueryable<Proposal> query,
+        CancellationToken cancellationToken)
+    {
+        var pending = await query.ToListAsync(cancellationToken);
+        var utcNow = DateTime.UtcNow;
+        foreach (var proposal in pending)
+        {
+            proposal.IsDeleted = true;
+            proposal.LastActivityAt = utcNow;
+        }
+    }
+
     public async Task<ProposalAnonymousAlias?> GetAnonymousAliasAsync(
         int proposalId,
         int userId,

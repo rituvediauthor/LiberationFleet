@@ -155,7 +155,7 @@ public class RecordGiftsCommandHandler(
                         Kind = NotificationKind.NewGifts,
                         Title = "New gift(s)",
                         Body = "You received a new gift in your crew.",
-                        ActionUrl = "/app/crew/gift-log",
+                        ActionUrl = $"/app/crew/gift-log?highlightId={gift.Id}",
                         RelatedEntityId = gift.Id
                     }, cancellationToken);
                 }

@@ -45,7 +45,11 @@ public class GetFleetLibraryUnitDetailQueryHandler(
             .Select(fc => fc.CrewId)
             .ToList();
 
-        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(request.UnitId, crewIds, cancellationToken);
+        var unit = await libraryRepository.GetUnitByIdForCrewIdsAsync(
+            request.UnitId,
+            crewIds,
+            membership.CrewId,
+            cancellationToken);
         if (unit is null)
         {
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };

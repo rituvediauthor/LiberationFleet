@@ -37,6 +37,7 @@ public class UserProfileDto
     public int EmergencyLevel { get; set; }
     public int PeopleRepresentedCount { get; set; } = 1;
     public int DisabilityLevel { get; set; }
+    public IReadOnlyList<string> IdentityGroups { get; set; } = Array.Empty<string>();
     public bool NeedsSurvivalAid { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public UserProfileStatsDto Stats { get; set; } = new();

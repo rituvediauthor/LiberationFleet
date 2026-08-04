@@ -18,6 +18,7 @@ public record CreateLibraryOfferingCommand(
     string? ThumbnailResourceId,
     LibraryOfferingKind Kind,
     LibraryFulfillmentMode FulfillmentMode,
+    LibraryOfferingVisibility Visibility,
     string Nonce,
     string Ciphertext,
     int KeyVersion) : IRequest<LibraryOfferingOperationResponse>;
@@ -121,6 +122,7 @@ public class CreateLibraryOfferingCommandHandler(
             CreatorUserId = userId,
             Kind = request.Kind,
             FulfillmentMode = request.FulfillmentMode,
+            Visibility = request.Visibility,
             Title = title,
             TitleNormalized = title.ToLowerInvariant(),
             DescriptionPreview = descriptionPreview,

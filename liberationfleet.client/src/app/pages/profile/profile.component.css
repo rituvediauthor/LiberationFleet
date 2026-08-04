@@ -181,6 +181,22 @@ label {
   cursor: pointer;
 }
 
+.password-section {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+
+.password-requirements {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  color: var(--lf-color-text-secondary);
+  font-size: 13px;
+}
+
+.password-requirements li.met {
+  color: var(--lf-color-success, #228b22);
+}
+
 .logout-btn:hover {
   background: var(--lf-color-danger-soft-bg);
 }

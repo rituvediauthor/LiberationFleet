@@ -168,28 +168,30 @@ public class VoteProposalCommandHandler(
 
             if (proposal.Status == ProposalStatus.Approved)
             {
+                var isFleet = proposal.FleetId.HasValue;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = proposal.AuthorUserId,
                     CrewId = notifyCrewId,
-                    Kind = NotificationKind.ProposalAccepted,
+                    Kind = isFleet ? NotificationKind.FleetProposalAccepted : NotificationKind.ProposalAccepted,
                     Title = "Proposal accepted",
-                    Body = proposal.FleetId.HasValue
+                    Body = isFleet
                         ? "Your fleet proposal was approved."
                         : "Your crew proposal was approved.",
-                    ActionUrl = ProposalRouting.DetailUrl(proposal),
+                    ActionUrl = ProposalRouting.ApprovedListUrl(proposal),
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
             }
             else if (proposal.Status == ProposalStatus.Rejected)
             {
+                var isFleet = proposal.FleetId.HasValue;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = proposal.AuthorUserId,
                     CrewId = notifyCrewId,
-                    Kind = NotificationKind.ProposalRejected,
+                    Kind = isFleet ? NotificationKind.FleetProposalRejected : NotificationKind.ProposalRejected,
                     Title = "Proposal rejected",
-                    Body = proposal.FleetId.HasValue
+                    Body = isFleet
                         ? "Your fleet proposal was rejected."
                         : "Your crew proposal was rejected.",
                     ActionUrl = ProposalRouting.RejectedListUrl(proposal),

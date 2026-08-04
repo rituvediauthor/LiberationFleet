@@ -108,7 +108,7 @@ public class CrewJoinRequestProposalService(
             NotificationKind.JoinRequestFromPerson,
             "Join request",
             $"{applicant.Username} requested to join the crew.",
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: applicantUserId,
             cancellationToken: cancellationToken);

@@ -52,6 +52,7 @@ public class GetFleetDurableLibraryUnitsQueryHandler(
 
         var page = await libraryRepository.GetDurableUnitsForCrewIdsAsync(
             crewIds,
+            membership.CrewId,
             request.Search,
             request.CategoryIds,
             Math.Clamp(request.Limit, 1, 100),

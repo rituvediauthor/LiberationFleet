@@ -48,6 +48,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
 
     public async Task<IReadOnlyList<LibraryCategory>> GetCategoriesInUseForCrewIdsAsync(
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         LibraryOfferingKind? kind,
         CancellationToken cancellationToken = default)
     {
@@ -58,7 +59,9 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
 
         var offeringQuery = context.LibraryOfferings
             .AsNoTracking()
-            .Where(o => crewIds.Contains(o.CrewId) && !o.IsDeleted);
+            .Where(o => crewIds.Contains(o.CrewId)
+                && !o.IsDeleted
+                && (o.CrewId == viewerCrewId || o.Visibility == LibraryOfferingVisibility.FleetWide));
 
         if (kind.HasValue)
         {
@@ -120,6 +123,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
 
     public async Task<LibraryUnitListPage> GetDurableUnitsForCrewIdsAsync(
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         string? search,
         IReadOnlyCollection<int> categoryIds,
         int limit,
@@ -140,6 +144,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(o => o.Crew)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => crewIds.Contains(u.Offering.CrewId)
+                && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
                 && !u.Offering.IsDeleted
                 && u.Offering.Kind == LibraryOfferingKind.Durable
                 && !u.IsRetired
@@ -202,6 +207,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
 
     public async Task<LibraryUnitListPage> GetStockUnitsForCrewIdsAsync(
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         LibraryOfferingKind kind,
         string? search,
         IReadOnlyCollection<int> categoryIds,
@@ -225,6 +231,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(o => o.Crew)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => crewIds.Contains(u.Offering.CrewId)
+                && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
                 && !u.Offering.IsDeleted
                 && u.Offering.Kind == kind
                 && !u.IsRetired
@@ -367,6 +374,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
     public async Task<LibraryUnit?> GetUnitByIdForCrewIdsAsync(
         int unitId,
         IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
         CancellationToken cancellationToken = default)
     {
         if (crewIds.Count == 0)
@@ -387,6 +395,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .FirstOrDefaultAsync(
                 u => u.Id == unitId
                     && crewIds.Contains(u.Offering.CrewId)
+                    && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
                     && !u.Offering.IsDeleted,
                 cancellationToken);
     }

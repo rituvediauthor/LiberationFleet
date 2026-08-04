@@ -85,13 +85,16 @@ public class ToggleForumCommentLikeCommandHandler(
 
             if (comment.AuthorUserId != userId && !like.AuthorNotified)
             {
+                var isFleet = post.FleetId.HasValue;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = comment.AuthorUserId,
                     CrewId = crewId,
-                    Kind = NotificationKind.ForumCommentLiked,
-                    Title = "Forum comment liked",
-                    Body = "Someone liked your forum comment.",
+                    Kind = isFleet ? NotificationKind.FleetForumCommentLiked : NotificationKind.ForumCommentLiked,
+                    Title = isFleet ? "Fleet forum comment liked" : "Forum comment liked",
+                    Body = isFleet
+                        ? "Someone liked your fleet forum comment."
+                        : "Someone liked your forum comment.",
                     ActionUrl = actionUrl,
                     RelatedEntityId = post.Id,
                     SecondaryEntityId = comment.Id,

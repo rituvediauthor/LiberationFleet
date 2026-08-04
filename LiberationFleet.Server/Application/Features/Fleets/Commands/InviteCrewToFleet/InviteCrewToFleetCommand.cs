@@ -91,7 +91,7 @@ public class InviteCrewToFleetCommandHandler(
             NotificationKind.NewProposal,
             "Fleet invitation",
             $"{fleet.Name} invited your crew to join their fleet.",
-            $"/app/crew/proposals/{proposalId}",
+            $"/app/crew/proposals/list/pending?highlightId={proposalId}",
             relatedEntityId: proposalId,
             excludeUserId: null,
             cancellationToken: cancellationToken);
