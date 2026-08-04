@@ -111,6 +111,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   dontRemindAnonymousMode = false;
   dismissAnonymousReminderBound = () => this.confirmAnonymousReminder();
   composerFocused = false;
+  composerUiMinimized = false;
   pickingFile = false;
   loading = true;
   loadingOlder = false;
@@ -265,6 +266,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onComposerFocus() {
+    this.composerUiMinimized = false;
     this.composerFocused = true;
   }
 
@@ -282,6 +284,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   onFileDialogOpenChange(open: boolean) {
     this.pickingFile = open;
     if (open) {
+      this.composerUiMinimized = false;
       this.composerFocused = true;
       return;
     }
@@ -291,7 +294,25 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get composerExpanded(): boolean {
+    if (this.composerUiMinimized) {
+      return false;
+    }
     return this.composerFocused || this.pickingFile || this.messageAttachments.length > 0 || this.editingMessageId != null;
+  }
+
+  minimizeComposer() {
+    this.composerUiMinimized = true;
+    this.composerFocused = false;
+    const active = document.activeElement as HTMLElement | null;
+    active?.blur?.();
+  }
+
+  onBackAction() {
+    if (this.composerExpanded) {
+      this.minimizeComposer();
+      return;
+    }
+    this.goBack();
   }
 
   canSend(): boolean {
@@ -316,6 +337,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       mimeType: attachment.mimeType
     }));
     this.messageAttachments = [];
+    this.composerUiMinimized = false;
     this.composerFocused = true;
   }
 

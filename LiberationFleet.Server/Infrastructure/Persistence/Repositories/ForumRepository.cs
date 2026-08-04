@@ -27,6 +27,7 @@ public class ForumRepository : IForumRepository
             .Include(p => p.AuthorUser)
             .Where(p => p.CrewId == crewId && !p.IsDeleted)
             .OrderByDescending(p => p.LastActivityAt)
+            .ThenByDescending(p => p.Id)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<ForumPost>> GetByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default) =>
@@ -34,7 +35,78 @@ public class ForumRepository : IForumRepository
             .Include(p => p.AuthorUser)
             .Where(p => p.FleetId == fleetId && !p.IsDeleted)
             .OrderByDescending(p => p.LastActivityAt)
+            .ThenByDescending(p => p.Id)
             .ToListAsync(cancellationToken);
+
+    public async Task<ForumPostPage> GetByCrewIdPageAsync(
+        int crewId,
+        int offset,
+        int limit,
+        bool excludeAdultContent,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ForumPosts
+            .Include(p => p.AuthorUser)
+            .Where(p => p.CrewId == crewId && !p.IsDeleted);
+
+        if (excludeAdultContent)
+        {
+            query = query.Where(p => !p.IsAdultContent);
+        }
+
+        var fetched = await query
+            .OrderByDescending(p => p.LastActivityAt)
+            .ThenByDescending(p => p.Id)
+            .Skip(Math.Max(0, offset))
+            .Take(Math.Max(1, limit) + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = fetched.Count > limit;
+        if (hasMore)
+        {
+            fetched.RemoveAt(fetched.Count - 1);
+        }
+
+        return new ForumPostPage(fetched, hasMore);
+    }
+
+    public async Task<ForumPostPage> GetByFleetIdPageAsync(
+        int fleetId,
+        int offset,
+        int limit,
+        bool excludeAdultContent,
+        IReadOnlyCollection<int>? excludeAuthorUserIds,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ForumPosts
+            .Include(p => p.AuthorUser)
+            .Where(p => p.FleetId == fleetId && !p.IsDeleted);
+
+        if (excludeAdultContent)
+        {
+            query = query.Where(p => !p.IsAdultContent);
+        }
+
+        if (excludeAuthorUserIds is { Count: > 0 })
+        {
+            query = query.Where(p => !excludeAuthorUserIds.Contains(p.AuthorUserId));
+        }
+
+        var fetched = await query
+            .OrderByDescending(p => p.LastActivityAt)
+            .ThenByDescending(p => p.Id)
+            .Skip(Math.Max(0, offset))
+            .Take(Math.Max(1, limit) + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = fetched.Count > limit;
+        if (hasMore)
+        {
+            fetched.RemoveAt(fetched.Count - 1);
+        }
+
+        return new ForumPostPage(fetched, hasMore);
+    }
 
     public async Task<IReadOnlyList<ForumComment>> GetCommentsByPostIdAsync(
         int postId,

@@ -2,6 +2,16 @@
   <div class="discussion-list-page">
     <h1 class="page-title">{{ config.labelPlural }}</h1>
 
+    <div
+      class="pull-refresh"
+      [class.active]="pullDistance > 8 || refreshing"
+      [style.height.px]="refreshing ? 36 : pullDistance"
+      aria-live="polite">
+      <span *ngIf="refreshing">Refreshing…</span>
+      <span *ngIf="!refreshing && pullDistance >= 56">Release to refresh</span>
+      <span *ngIf="!refreshing && pullDistance > 8 && pullDistance < 56">Pull to refresh</span>
+    </div>
+
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No posts yet.</p>
@@ -86,6 +96,9 @@
         </div>
       </article>
     </div>
+
+    <div *ngIf="hasMore" class="load-more-sentinel" #loadMoreSentinel aria-hidden="true"></div>
+    <p *ngIf="loadingMore" class="state-text load-more-text">Loading more…</p>
 
     <button
       type="button"

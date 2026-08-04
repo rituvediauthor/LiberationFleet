@@ -6,16 +6,30 @@
       <div class="fleet-dashboard">
         <h1 class="sr-only">{{ status?.fleetName || 'Fleet' }}</h1>
 
-        <div class="aid-widget-slot">          <app-donation-campaign-widget
+        <div class="aid-widget-slot">
+          <app-donation-campaign-widget
             variant="fleet"
             [enabled]="!!status?.hasFleet">
           </app-donation-campaign-widget>
 
-          <div class="info-widget" *ngIf="status?.hasFleet">
+          <button
+            type="button"
+            class="info-widget info-widget-button"
+            *ngIf="showNextAidWidget"
+            [attr.aria-busy]="!nextAidLoaded"
+            [disabled]="!nextAidLoaded"
+            (click)="goToNextAidAction()"
+            aria-label="Open next aid action">
             <span class="info-label">Next aid</span>
-            <p class="info-text">{{ nextAidHeadline }}</p>
-            <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
-          </div>
+            <ng-container *ngIf="nextAidLoaded; else nextAidSkeleton">
+              <p class="info-text">{{ nextAidHeadline }}</p>
+              <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
+            </ng-container>
+            <ng-template #nextAidSkeleton>
+              <p class="info-text info-skeleton" aria-hidden="true">&nbsp;</p>
+              <p class="info-platform info-skeleton" aria-hidden="true">&nbsp;</p>
+            </ng-template>
+          </button>
         </div>
 
         <nav class="fleet-menu" aria-label="Fleet actions">
@@ -51,7 +65,7 @@
               <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
               <app-content-badge [count]="areaCounts.giftLog"></app-content-badge>
             </span>
-            <span class="menu-label">Gift Log</span>
+            <span class="menu-label">Giving Season</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 

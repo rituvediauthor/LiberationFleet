@@ -8,7 +8,7 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetForumPosts;
 
-public record GetFleetForumPostsQuery() : IRequest<ForumListResponse>;
+public record GetFleetForumPostsQuery(int Offset = 0, int Limit = 20) : IRequest<ForumListResponse>;
 
 public class GetFleetForumPostsQueryHandler(
     ICurrentUserService currentUser,
@@ -18,6 +18,8 @@ public class GetFleetForumPostsQueryHandler(
     ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetFleetForumPostsQuery, ForumListResponse>
 {
+    private const int MaxLimit = 50;
+
     public async Task<ForumListResponse> Handle(GetFleetForumPostsQuery request, CancellationToken cancellationToken)
     {
         if (!currentUser.UserId.HasValue)
@@ -37,14 +39,21 @@ public class GetFleetForumPostsQueryHandler(
             return new ForumListResponse { Success = false, Message = "You are not in this fleet." };
         }
 
-        var posts = await forumRepository.GetByFleetIdAsync(fleet.Id, cancellationToken);
         var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
+        var excludeAdult = preference == AdultContentPreference.Block;
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
-        posts = posts
-            .Where(post => !AdultContentAccess.IsBlocked(preference, post.IsAdultContent)
-                && !hiddenUserIds.Contains(post.AuthorUserId))
-            .ToList();
+        var limit = Math.Clamp(request.Limit, 1, MaxLimit);
+        var offset = Math.Max(0, request.Offset);
+
+        var page = await forumRepository.GetByFleetIdPageAsync(
+            fleet.Id,
+            offset,
+            limit,
+            excludeAdult,
+            hiddenUserIds,
+            cancellationToken);
+        var posts = page.Items;
 
         var resourceIds = posts.Select(p => p.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
@@ -76,7 +85,8 @@ public class GetFleetForumPostsQueryHandler(
         {
             Success = true,
             Message = "Forum posts loaded.",
-            Items = items
+            Items = items,
+            HasMore = page.HasMore
         };
     }
 }

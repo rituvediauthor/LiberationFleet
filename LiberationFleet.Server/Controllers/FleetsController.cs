@@ -353,9 +353,9 @@ public class FleetsController : ControllerBase
     }
 
     [HttpGet("current/forums")]
-    public async Task<IActionResult> GetForums()
+    public async Task<IActionResult> GetForums([FromQuery] int offset = 0, [FromQuery] int limit = 20)
     {
-        var result = await _mediator.Send(new GetFleetForumPostsQuery());
+        var result = await _mediator.Send(new GetFleetForumPostsQuery(offset, limit));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

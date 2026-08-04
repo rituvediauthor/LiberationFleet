@@ -71,7 +71,8 @@ describe('CrewHomeComponent', () => {
       hasCrew: true,
       crewId: 1,
       crewName: 'Alpha Fleet',
-      joinCode: 'ALPHA123'
+      joinCode: 'ALPHA123',
+      seasonStarted: true
     }));
     component.ngOnInit();
     fixture.detectChanges();
@@ -102,7 +103,8 @@ describe('CrewHomeComponent', () => {
       hasCrew: true,
       crewId: 1,
       crewName: 'Alpha Fleet',
-      joinCode: 'ALPHA123'
+      joinCode: 'ALPHA123',
+      seasonStarted: true
     }));
 
     const navigateByUrlSpy = spyOn(router, 'navigateByUrl').and.returnValue(Promise.resolve(true));

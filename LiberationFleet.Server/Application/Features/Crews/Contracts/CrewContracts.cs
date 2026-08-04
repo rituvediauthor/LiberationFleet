@@ -66,6 +66,7 @@ public class CrewMembershipStatusDto
     public string? CrewName { get; set; }
     public string? JoinCode { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
+    public bool SeasonStarted { get; set; }
     public bool IsOrganizer { get; set; }
     public string? ImageResourceId { get; set; }
     public bool CanAttachFilesToCrewContent { get; set; }

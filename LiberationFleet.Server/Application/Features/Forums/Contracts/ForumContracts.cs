@@ -50,6 +50,7 @@ public class ForumListResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public IReadOnlyList<ForumListItemDto> Items { get; set; } = Array.Empty<ForumListItemDto>();
+    public bool HasMore { get; set; }
 }
 
 public class ForumDetailResponse

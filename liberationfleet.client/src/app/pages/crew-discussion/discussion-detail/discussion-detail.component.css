@@ -162,6 +162,7 @@ h1 {
 .comment-actions {
   display: flex;
   gap: 12px;
+  padding-top: 8px;
 }
 
 .author-actions {

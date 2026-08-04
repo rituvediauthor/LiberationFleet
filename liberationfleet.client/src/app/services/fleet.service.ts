@@ -305,8 +305,15 @@ export class FleetService {
     return this.http.delete<FleetRuleOperationResponse>(`${this.apiUrl}/current/rules/${id}`);
   }
 
-  getForums(): Observable<FleetForumListResponse> {
-    return this.http.get<FleetForumListResponse>(`${this.apiUrl}/current/forums`);
+  getForums(options?: { offset?: number; limit?: number }): Observable<FleetForumListResponse> {
+    const params: Record<string, string> = {};
+    if (options?.offset != null) {
+      params['offset'] = String(options.offset);
+    }
+    if (options?.limit != null) {
+      params['limit'] = String(options.limit);
+    }
+    return this.http.get<FleetForumListResponse>(`${this.apiUrl}/current/forums`, { params });
   }
 
   getForum(id: number): Observable<FleetForumDetailResponse> {

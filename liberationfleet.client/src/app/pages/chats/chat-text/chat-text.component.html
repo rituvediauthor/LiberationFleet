@@ -76,8 +76,16 @@
 
   <div class="chat-action-bar" *ngIf="contentRevealed">
     <div class="chat-action-bar-inner">
-    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+    <button
+      type="button"
+      class="back-btn"
+      (click)="onBackAction()"
+      [attr.aria-label]="composerExpanded ? 'Minimize writing area' : 'Go back'">
+      <i
+        class="fa-solid"
+        [class.fa-angle-down]="composerExpanded"
+        [class.fa-angle-left]="!composerExpanded"
+        aria-hidden="true"></i>
     </button>
 
     <div class="composer" [class.expanded]="composerExpanded">

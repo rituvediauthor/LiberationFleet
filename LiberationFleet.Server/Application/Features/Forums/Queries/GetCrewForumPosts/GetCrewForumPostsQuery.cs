@@ -8,7 +8,7 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Forums.Queries.GetCrewForumPosts;
 
-public record GetCrewForumPostsQuery() : IRequest<ForumListResponse>;
+public record GetCrewForumPostsQuery(int Offset = 0, int Limit = 20) : IRequest<ForumListResponse>;
 
 public class GetCrewForumPostsQueryHandler(
     ICurrentUserService currentUser,
@@ -17,6 +17,8 @@ public class GetCrewForumPostsQueryHandler(
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewForumPostsQuery, ForumListResponse>
 {
+    private const int MaxLimit = 50;
+
     public async Task<ForumListResponse> Handle(GetCrewForumPostsQuery request, CancellationToken cancellationToken)
     {
         if (!currentUser.UserId.HasValue)
@@ -31,12 +33,19 @@ public class GetCrewForumPostsQueryHandler(
             return new ForumListResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var posts = await forumRepository.GetByCrewIdAsync(membership.CrewId, cancellationToken);
         var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
-        posts = posts
-            .Where(post => !AdultContentAccess.IsBlocked(preference, post.IsAdultContent))
-            .ToList();
+        var excludeAdult = preference == AdultContentPreference.Block;
+        var limit = Math.Clamp(request.Limit, 1, MaxLimit);
+        var offset = Math.Max(0, request.Offset);
+
+        var page = await forumRepository.GetByCrewIdPageAsync(
+            membership.CrewId,
+            offset,
+            limit,
+            excludeAdult,
+            cancellationToken);
+        var posts = page.Items;
 
         var resourceIds = posts.Select(p => p.Id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
@@ -68,7 +77,8 @@ public class GetCrewForumPostsQueryHandler(
         {
             Success = true,
             Message = "Forum posts loaded.",
-            Items = items
+            Items = items,
+            HasMore = page.HasMore
         };
     }
 }

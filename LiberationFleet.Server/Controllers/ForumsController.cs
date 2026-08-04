@@ -28,9 +28,9 @@ public class ForumsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetList()
+    public async Task<IActionResult> GetList([FromQuery] int offset = 0, [FromQuery] int limit = 20)
     {
-        var result = await _mediator.Send(new GetCrewForumPostsQuery());
+        var result = await _mediator.Send(new GetCrewForumPostsQuery(offset, limit));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

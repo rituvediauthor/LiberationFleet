@@ -263,8 +263,16 @@
   <div class="detail-action-bar" *ngIf="!editing">
     <div class="detail-action-bar-surface">
     <div class="detail-action-bar-main">
-      <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
-        <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+      <button
+        type="button"
+        class="back-btn"
+        (click)="onBackAction()"
+        [attr.aria-label]="commentExpanded ? 'Minimize writing area' : 'Go back'">
+        <i
+          class="fa-solid"
+          [class.fa-angle-down]="commentExpanded"
+          [class.fa-angle-left]="!commentExpanded"
+          aria-hidden="true"></i>
       </button>
 
       <div class="comment-composer" [class.expanded]="commentExpanded">

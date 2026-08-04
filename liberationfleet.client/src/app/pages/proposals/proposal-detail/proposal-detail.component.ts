@@ -83,6 +83,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   commentText = '';
   mentionedUserIds: number[] = [];
   commentFocused = false;
+  commentUiMinimized = false;
   pickingFile = false;
   replyParentId: number | null = null;
   showVoteDialog = false;
@@ -408,6 +409,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   onCommentFocus() {
+    this.commentUiMinimized = false;
     this.commentFocused = true;
   }
 
@@ -426,6 +428,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   onFileDialogOpenChange(open: boolean) {
     this.pickingFile = open;
     if (open) {
+      this.commentUiMinimized = false;
       this.commentFocused = true;
       return;
     }
@@ -436,7 +439,25 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   get commentExpanded(): boolean {
+    if (this.commentUiMinimized) {
+      return false;
+    }
     return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0 || this.editingCommentId != null;
+  }
+
+  minimizeCommentComposer() {
+    this.commentUiMinimized = true;
+    this.commentFocused = false;
+    const active = document.activeElement as HTMLElement | null;
+    active?.blur?.();
+  }
+
+  onBackAction() {
+    if (this.commentExpanded) {
+      this.minimizeCommentComposer();
+      return;
+    }
+    this.goBack();
   }
 
   startEditComment(comment: ProposalComment, parentCommentId: number | null = null, event?: Event) {
@@ -454,6 +475,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     }));
     this.commentAttachments = [];
     this.mentionedUserIds = [];
+    this.commentUiMinimized = false;
     this.commentFocused = true;
   }
 
@@ -485,6 +507,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
   startReply(comment: ProposalComment) {
     this.replyParentId = comment.id;
+    this.commentUiMinimized = false;
     this.commentFocused = true;
   }
 

@@ -20,13 +20,26 @@ import {
 export class CrewDiscussionService {
   constructor(private http: HttpClient) {}
 
-  getPosts(config: DiscussionConfig): Observable<DiscussionListItem[]> {
-    return this.http.get<DiscussionListResponse>(config.apiPath).pipe(
+  getPosts(
+    config: DiscussionConfig,
+    options?: { offset?: number; limit?: number }
+  ): Observable<{ items: DiscussionListItem[]; hasMore: boolean }> {
+    const params: Record<string, string> = {};
+    if (options?.offset != null) {
+      params['offset'] = String(options.offset);
+    }
+    if (options?.limit != null) {
+      params['limit'] = String(options.limit);
+    }
+    return this.http.get<DiscussionListResponse>(config.apiPath, { params }).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.message || `Failed to load ${config.labelPlural.toLowerCase()}`);
         }
-        return response.items.map(item => this.mapListItem(item));
+        return {
+          items: response.items.map(item => this.mapListItem(item)),
+          hasMore: !!response.hasMore
+        };
       })
     );
   }

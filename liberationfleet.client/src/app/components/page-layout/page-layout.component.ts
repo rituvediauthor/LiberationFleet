@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
@@ -30,6 +30,7 @@ export interface ActionBarButton {
   styleUrl: './page-layout.component.css'
 })
 export class PageLayoutComponent implements OnInit, OnChanges {
+  @ViewChild('pageContent') pageContent?: ElementRef<HTMLElement>;
   @Input() backButton: ActionBarButton | null = null;
   @Input() primaryButton: ActionBarButton | null = null;
   @Input() secondaryButton: ActionBarButton | null = null;
@@ -48,6 +49,10 @@ export class PageLayoutComponent implements OnInit, OnChanges {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
+
+  get scrollElement(): HTMLElement | null {
+    return this.pageContent?.nativeElement ?? null;
+  }
 
   ngOnInit() {
     this.refreshLocationHeader();

@@ -62,6 +62,7 @@ export interface FleetForumListResponse {
   success: boolean;
   message: string;
   items: FleetForumListItem[];
+  hasMore?: boolean;
 }
 
 export interface FleetForumDetailResponse {

@@ -8,6 +8,31 @@
   margin: 0 auto;
 }
 
+.pull-refresh {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--lf-color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: height 0.12s ease;
+}
+
+.pull-refresh.active {
+  padding-bottom: 6px;
+}
+
+.load-more-sentinel {
+  height: 1px;
+  width: 100%;
+}
+
+.load-more-text {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
 .page-title {
   font-size: 24px;
   font-weight: 700;

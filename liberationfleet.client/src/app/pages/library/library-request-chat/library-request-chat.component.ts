@@ -73,6 +73,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   messageAttachments: PendingAttachment[] = [];
   canAttachFiles = false;
   composerFocused = false;
+  composerUiMinimized = false;
   pickingFile = false;
   loading = true;
   loadingOlder = false;
@@ -151,6 +152,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   }
 
   onComposerFocus() {
+    this.composerUiMinimized = false;
     this.composerFocused = true;
   }
 
@@ -168,6 +170,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   onFileDialogOpenChange(open: boolean) {
     this.pickingFile = open;
     if (open) {
+      this.composerUiMinimized = false;
       this.composerFocused = true;
       return;
     }
@@ -177,9 +180,27 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   }
 
   get composerExpanded(): boolean {
+    if (this.composerUiMinimized) {
+      return false;
+    }
     return this.composerFocused
       || Boolean(this.messageText.trim())
       || this.messageAttachments.length > 0;
+  }
+
+  minimizeComposer() {
+    this.composerUiMinimized = true;
+    this.composerFocused = false;
+    const active = document.activeElement as HTMLElement | null;
+    active?.blur?.();
+  }
+
+  onBackAction() {
+    if (this.composerExpanded) {
+      this.minimizeComposer();
+      return;
+    }
+    this.goBack();
   }
 
   canSend(): boolean {

@@ -74,7 +74,8 @@ export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {
     'isUserRelated',
     'recordGift',
     'recordGifts',
-    'navigateToGiftLogEntry'
+    'navigateToGiftLogEntry',
+    'navigateToNextAidAction'
   ]);
   mock.getCrewMembers.and.returnValue(of([]));
   mock.getReceptionOrder.and.returnValue(of([]));

@@ -75,6 +75,7 @@ export interface DiscussionListResponse {
   success: boolean;
   message: string;
   items: DiscussionListItem[];
+  hasMore?: boolean;
 }
 
 export interface DiscussionDetailResponse {

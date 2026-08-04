@@ -2,12 +2,27 @@ using LiberationFleet.Server.Domain.Entities;
 
 namespace LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 
+public record ForumPostPage(IReadOnlyList<ForumPost> Items, bool HasMore);
+
 public interface IForumRepository
 {
     Task<ForumPost?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ForumPost?> GetByIdWithAuthorAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ForumPost>> GetByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ForumPost>> GetByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default);
+    Task<ForumPostPage> GetByCrewIdPageAsync(
+        int crewId,
+        int offset,
+        int limit,
+        bool excludeAdultContent,
+        CancellationToken cancellationToken = default);
+    Task<ForumPostPage> GetByFleetIdPageAsync(
+        int fleetId,
+        int offset,
+        int limit,
+        bool excludeAdultContent,
+        IReadOnlyCollection<int>? excludeAuthorUserIds,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ForumComment>> GetCommentsByPostIdAsync(int postId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ForumComment>> GetRepliesByParentCommentIdAsync(
         int postId,

@@ -8,6 +8,7 @@ import { DonationCampaignWidgetComponent } from '../../../components/donation-ca
 import { BrandLogoComponent } from '../../../components/brand-logo/brand-logo.component';
 import { HubLoadingComponent } from '../../../components/hub-loading/hub-loading.component';
 import { FleetService } from '../../../services/fleet.service';
+import { GiftService } from '../../../services/gift.service';
 import { NotificationService } from '../../../services/notification.service';
 import { NotificationHubService } from '../../../services/notification-hub.service';
 import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
@@ -36,6 +37,8 @@ import {
 export class FleetHomeComponent implements OnInit, OnDestroy {
   status: FleetStatus | null = null;
   nextAid: NextAidInfo | null = null;
+  showNextAidWidget = false;
+  nextAidLoaded = false;
   libraryOfThingsEnabled = true;
   loading = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
@@ -43,6 +46,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
 
   private router = inject(Router);
   private fleetService = inject(FleetService);
+  private giftService = inject(GiftService);
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
   private cryptoSession = inject(CryptoSessionService);
@@ -63,15 +67,21 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
 
         this.status = status;
         this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+        this.showNextAidWidget = !!status.hasFleet;
+        this.nextAid = null;
+        this.nextAidLoaded = !this.showNextAidWidget;
         this.loading = false;
         void this.refreshFleetImage();
 
-        if (status.hasFleet) {
+        if (this.showNextAidWidget) {
           this.fleetService.getNextAid().subscribe({
             next: result => {
-              if (result.success && result.nextAid) {
-                this.nextAid = result.nextAid;
-              }
+              this.nextAid = result.success ? (result.nextAid ?? null) : null;
+              this.nextAidLoaded = true;
+            },
+            error: () => {
+              this.nextAid = null;
+              this.nextAidLoaded = true;
             }
           });
         }
@@ -89,6 +99,8 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
       error: () => {
         this.loading = false;
         this.status = { hasFleet: false };
+        this.showNextAidWidget = false;
+        this.nextAidLoaded = true;
         this.fleetImageSrc = null;
       }
     });
@@ -188,6 +200,10 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
 
   goToGiftLog() {
     this.router.navigate(['/app/fleet/gift-log']);
+  }
+
+  goToNextAidAction() {
+    this.giftService.navigateToNextAidAction(this.router, 'fleet');
   }
 
   goToEmergencyRequests() {

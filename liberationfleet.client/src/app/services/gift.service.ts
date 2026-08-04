@@ -64,6 +64,22 @@ export class GiftService {
     });
   }
 
+  /** From the Next Aid widget: record gift if in season, otherwise join season. */
+  navigateToNextAidAction(router: Router, scope: 'crew' | 'fleet' = 'crew'): void {
+    this.getSeasonStatus().subscribe({
+      next: status => {
+        if (!status.seasonStarted || !status.userInSeason) {
+          router.navigate(['/app/crew/join-season']);
+          return;
+        }
+        router.navigate([
+          scope === 'fleet' ? '/app/fleet/gift-log/record' : '/app/crew/gift-log/record'
+        ]);
+      },
+      error: () => router.navigate(['/app/crew/join-season'])
+    });
+  }
+
   getReceptionOrder(limit = 30): Observable<ReceptionOrderEntry[]> {
     return this.http.get<ReceptionOrderEntry[]>(`${this.apiUrl}/reception-order`, { params: { limit } });
   }

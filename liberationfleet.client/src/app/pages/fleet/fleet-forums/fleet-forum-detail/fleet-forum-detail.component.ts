@@ -86,6 +86,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   commentText = '';
   mentionedUserIds: number[] = [];
   commentFocused = false;
+  commentUiMinimized = false;
   pickingFile = false;
   replyParentId: number | null = null;
   posting = false;
@@ -219,6 +220,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   }
 
   onCommentFocus() {
+    this.commentUiMinimized = false;
     this.commentFocused = true;
   }
 
@@ -237,6 +239,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   onFileDialogOpenChange(open: boolean) {
     this.pickingFile = open;
     if (open) {
+      this.commentUiMinimized = false;
       this.commentFocused = true;
       return;
     }
@@ -247,7 +250,25 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   }
 
   get commentExpanded(): boolean {
+    if (this.commentUiMinimized) {
+      return false;
+    }
     return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0 || this.editingCommentId != null;
+  }
+
+  minimizeCommentComposer() {
+    this.commentUiMinimized = true;
+    this.commentFocused = false;
+    const active = document.activeElement as HTMLElement | null;
+    active?.blur?.();
+  }
+
+  onBackAction() {
+    if (this.commentExpanded) {
+      this.minimizeCommentComposer();
+      return;
+    }
+    this.goBack();
   }
 
   isOwnComment(comment: FleetForumComment): boolean {
@@ -315,6 +336,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     }));
     this.commentAttachments = [];
     this.mentionedUserIds = [];
+    this.commentUiMinimized = false;
     this.commentFocused = true;
   }
 
@@ -346,6 +368,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   startReply(comment: FleetForumComment) {
     this.replyParentId = comment.id;
+    this.commentUiMinimized = false;
     this.commentFocused = true;
   }
 

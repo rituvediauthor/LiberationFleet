@@ -9,7 +9,6 @@
 }
 
 :host(.variant-inline) {
-  width: min(280px, 100%);
   margin-inline: auto;
 }
 

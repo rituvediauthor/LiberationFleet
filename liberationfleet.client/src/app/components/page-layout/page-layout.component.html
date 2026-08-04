@@ -1,7 +1,7 @@
 <div class="page-layout">
   <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo"></app-location-header>
 
-  <div class="page-content" [class.page-content-fill]="fillHeight">
+  <div class="page-content" #pageContent [class.page-content-fill]="fillHeight">
     <div class="page-content-inner" [class.page-content-inner-fill]="fillHeight">
       <ng-content></ng-content>
       <app-fallible-footer *ngIf="showFallibleFooter"></app-fallible-footer>

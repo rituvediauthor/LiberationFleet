@@ -41,7 +41,9 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   membership: CrewMembershipStatus | null = null;
   loading = true;
   nextAid: NextAidInfo | null = null;
-  seasonStarted = false;
+  /** True only when season has started — known from membership before the menu paints. */
+  showNextAidWidget = false;
+  nextAidLoaded = false;
   libraryOfThingsEnabled = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
   crewImageSrc: string | null = null;
@@ -72,23 +74,28 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       next: status => {
         this.membership = status;
         this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+        this.showNextAidWidget = !!status.hasCrew && !!status.seasonStarted;
+        this.nextAid = null;
+        this.nextAidLoaded = !this.showNextAidWidget;
         this.loading = false;
         void this.refreshCrewImage();
-        if (status.hasCrew) {
-          this.giftService.getSeasonStatus().subscribe({
-            next: seasonStatus => {
-              this.seasonStarted = seasonStatus.seasonStarted;
-              if (seasonStatus.seasonStarted) {
-                this.giftService.getNextAidInfo().subscribe({
-                  next: info => this.nextAid = info
-                });
-              }
+        if (this.showNextAidWidget) {
+          this.giftService.getNextAidInfo().subscribe({
+            next: info => {
+              this.nextAid = info;
+              this.nextAidLoaded = true;
+            },
+            error: () => {
+              this.nextAid = null;
+              this.nextAidLoaded = true;
             }
           });
         }
       },
       error: () => {
         this.membership = { hasCrew: false };
+        this.showNextAidWidget = false;
+        this.nextAidLoaded = true;
         this.crewImageSrc = null;
         this.loading = false;
       }
@@ -186,6 +193,10 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
 
   goToGiftLog() {
     this.giftService.navigateToGiftLogEntry(this.router);
+  }
+
+  goToNextAidAction() {
+    this.giftService.navigateToNextAidAction(this.router, 'crew');
   }
 
   goToEmergencyRequests() {
