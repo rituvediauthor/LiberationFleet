@@ -11,7 +11,7 @@
 
     <div class="post-cards" *ngIf="!loading && visibleItems.length > 0">
       <article class="post-card" *ngFor="let item of visibleItems">
-        <div class="post-content">
+        <div class="post-header">
           <button type="button" class="post-open" (click)="openPost(item)">
             <span class="entry-badge-anchor">
               <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
@@ -33,56 +33,56 @@
             <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
           </button>
 
-          <div
-            class="card-slideshow"
-            *ngIf="previewImages(item).length > 0"
-            [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
-            (click)="$event.stopPropagation()">
-            <app-library-image-carousel
-              variant="card"
-              [images]="previewImages(item)"
-              [title]="item.title || 'Post'">
-            </app-library-image-carousel>
-          </div>
+          <div class="post-actions">
+            <button
+              type="button"
+              class="kebab-btn"
+              [attr.aria-label]="config.label + ' options'"
+              [attr.aria-expanded]="openMenuItemId === item.id"
+              aria-haspopup="menu"
+              (click)="toggleMenu(item.id, $event)">
+              <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+            </button>
 
-          <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
-            <p class="card-preview">{{ previewBody(item) }}</p>
-          </button>
-
-          <div class="post-engagement-wrap" (click)="$event.stopPropagation()">
-            <app-forum-engagement-bar
-              [likeCount]="item.likeCount ?? 0"
-              [liked]="!!item.likedByCurrentUser"
-              [commentCount]="item.commentCount ?? 0"
-              [likeBusy]="likingPostId === item.id"
-              (likeClick)="togglePostLike(item)"
-              (commentClick)="openPost(item)">
-            </app-forum-engagement-bar>
+            <div
+              class="post-menu"
+              role="menu"
+              *ngIf="openMenuItemId === item.id"
+              (click)="$event.stopPropagation()"
+              (keydown.escape)="closeMenus()">
+              <button type="button" role="menuitem" (click)="toggleMute(item, $event)">
+                {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
+              </button>
+              <button type="button" role="menuitem" (click)="hideItem(item, $event)">Hide</button>
+            </div>
           </div>
         </div>
 
-        <div class="post-actions">
-          <button
-            type="button"
-            class="kebab-btn"
-            [attr.aria-label]="config.label + ' options'"
-            [attr.aria-expanded]="openMenuItemId === item.id"
-            aria-haspopup="menu"
-            (click)="toggleMenu(item.id, $event)">
-            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
-          </button>
+        <div
+          class="card-slideshow"
+          *ngIf="previewImages(item).length > 0"
+          [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
+          (click)="$event.stopPropagation()">
+          <app-library-image-carousel
+            variant="card"
+            [images]="previewImages(item)"
+            [title]="item.title || 'Post'">
+          </app-library-image-carousel>
+        </div>
 
-          <div
-            class="post-menu"
-            role="menu"
-            *ngIf="openMenuItemId === item.id"
-            (click)="$event.stopPropagation()"
-            (keydown.escape)="closeMenus()">
-            <button type="button" role="menuitem" (click)="toggleMute(item, $event)">
-              {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
-            </button>
-            <button type="button" role="menuitem" (click)="hideItem(item, $event)">Hide</button>
-          </div>
+        <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
+          <p class="card-preview">{{ previewBody(item) }}</p>
+        </button>
+
+        <div class="post-engagement-wrap" (click)="$event.stopPropagation()">
+          <app-forum-engagement-bar
+            [likeCount]="item.likeCount ?? 0"
+            [liked]="!!item.likedByCurrentUser"
+            [commentCount]="item.commentCount ?? 0"
+            [likeBusy]="likingPostId === item.id"
+            (likeClick)="togglePostLike(item)"
+            (commentClick)="openPost(item)">
+          </app-forum-engagement-bar>
         </div>
       </article>
     </div>
@@ -97,7 +97,7 @@
 
     <div class="post-cards hidden-list" *ngIf="!loading && showHiddenExpanded && hiddenItemsList.length > 0">
       <article class="post-card hidden-card" *ngFor="let item of hiddenItemsList">
-        <div class="post-content">
+        <div class="post-header">
           <button type="button" class="post-open" (click)="openPost(item)">
             <span class="entry-badge-anchor">
               <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
@@ -120,54 +120,54 @@
             <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
           </button>
 
-          <div
-            class="card-slideshow"
-            *ngIf="previewImages(item).length > 0"
-            [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
-            (click)="$event.stopPropagation()">
-            <app-library-image-carousel
-              variant="card"
-              [images]="previewImages(item)"
-              [title]="item.title || 'Post'">
-            </app-library-image-carousel>
-          </div>
+          <div class="post-actions">
+            <button
+              type="button"
+              class="kebab-btn"
+              [attr.aria-label]="'Hidden ' + config.label + ' options'"
+              [attr.aria-expanded]="openMenuItemId === item.id"
+              aria-haspopup="menu"
+              (click)="toggleMenu(item.id, $event)">
+              <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+            </button>
 
-          <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
-            <p class="card-preview">{{ previewBody(item) }}</p>
-          </button>
-
-          <div class="post-engagement-wrap" (click)="$event.stopPropagation()">
-            <app-forum-engagement-bar
-              [likeCount]="item.likeCount ?? 0"
-              [liked]="!!item.likedByCurrentUser"
-              [commentCount]="item.commentCount ?? 0"
-              [likeBusy]="likingPostId === item.id"
-              (likeClick)="togglePostLike(item)"
-              (commentClick)="openPost(item)">
-            </app-forum-engagement-bar>
+            <div
+              class="post-menu"
+              role="menu"
+              *ngIf="openMenuItemId === item.id"
+              (click)="$event.stopPropagation()"
+              (keydown.escape)="closeMenus()">
+              <button type="button" role="menuitem" (click)="editItem(item, $event)">Edit</button>
+              <button type="button" role="menuitem" (click)="unhideItem(item, $event)">Unhide</button>
+            </div>
           </div>
         </div>
 
-        <div class="post-actions">
-          <button
-            type="button"
-            class="kebab-btn"
-            [attr.aria-label]="'Hidden ' + config.label + ' options'"
-            [attr.aria-expanded]="openMenuItemId === item.id"
-            aria-haspopup="menu"
-            (click)="toggleMenu(item.id, $event)">
-            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
-          </button>
+        <div
+          class="card-slideshow"
+          *ngIf="previewImages(item).length > 0"
+          [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
+          (click)="$event.stopPropagation()">
+          <app-library-image-carousel
+            variant="card"
+            [images]="previewImages(item)"
+            [title]="item.title || 'Post'">
+          </app-library-image-carousel>
+        </div>
 
-          <div
-            class="post-menu"
-            role="menu"
-            *ngIf="openMenuItemId === item.id"
-            (click)="$event.stopPropagation()"
-            (keydown.escape)="closeMenus()">
-            <button type="button" role="menuitem" (click)="editItem(item, $event)">Edit</button>
-            <button type="button" role="menuitem" (click)="unhideItem(item, $event)">Unhide</button>
-          </div>
+        <button type="button" class="post-open post-open-body" (click)="openPost(item)" *ngIf="previewBody(item)">
+          <p class="card-preview">{{ previewBody(item) }}</p>
+        </button>
+
+        <div class="post-engagement-wrap" (click)="$event.stopPropagation()">
+          <app-forum-engagement-bar
+            [likeCount]="item.likeCount ?? 0"
+            [liked]="!!item.likedByCurrentUser"
+            [commentCount]="item.commentCount ?? 0"
+            [likeBusy]="likingPostId === item.id"
+            (likeClick)="togglePostLike(item)"
+            (commentClick)="openPost(item)">
+          </app-forum-engagement-bar>
         </div>
       </article>
     </div>

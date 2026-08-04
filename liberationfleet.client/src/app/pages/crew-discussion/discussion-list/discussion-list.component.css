@@ -32,32 +32,32 @@
 
 .post-card {
   display: flex;
-  align-items: flex-start;
-  gap: 4px;
+  flex-direction: column;
   border: 1px solid var(--lf-color-border);
   border-radius: 12px;
   background: var(--lf-color-bg-surface);
+  padding-bottom: 14px;
 }
 
-.post-content {
-  flex: 1;
-  min-width: 0;
+.post-header {
   display: flex;
-  flex-direction: column;
-  padding-bottom: 14px;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .post-open {
   position: relative;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   border: none;
   background: transparent;
-  padding: 14px 14px 0;
+  padding: 14px 8px 0 14px;
   cursor: pointer;
 }
 
 .post-open-body {
+  width: 100%;
   padding: 10px 14px 0;
 }
 
@@ -73,13 +73,14 @@
 .entry-badge-anchor {
   position: absolute;
   top: 12px;
-  right: 12px;
+  right: 4px;
   width: 0;
   height: 0;
 }
 
 .post-actions {
   position: relative;
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   padding: 8px 8px 0 0;
