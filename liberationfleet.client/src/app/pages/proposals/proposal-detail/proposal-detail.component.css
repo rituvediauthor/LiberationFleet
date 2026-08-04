@@ -136,6 +136,10 @@ h1 {
   margin-top: 12px;
 }
 
+.dropdown-menu button.danger-item {
+  color: var(--lf-color-danger);
+}
+
 .comments-section h2 {
   font-size: 18px;
   margin: 0 0 12px;

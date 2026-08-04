@@ -37,7 +37,7 @@
             You cannot vote on a proposal to remove you from the crew.
           </p>
         </div>
-        <div class="menu-wrap" *ngIf="p.canKickAuthor || !isOwnProposal">
+        <div class="menu-wrap" *ngIf="p.canDelete || p.canKickAuthor || !isOwnProposal">
           <button
             type="button"
             class="icon-btn"
@@ -58,6 +58,9 @@
             </button>
             <button type="button" role="menuitem" *ngIf="p.canKickAuthor" (click)="kickFromProposalAuthor($event)">
               Kick from crew
+            </button>
+            <button type="button" role="menuitem" class="danger-item" *ngIf="p.canDelete" (click)="deleteProposalFromMenu($event)">
+              Delete proposal
             </button>
           </div>
         </div>
@@ -111,9 +114,8 @@
         [attachments]="nonImageAttachments">
       </app-proposal-attachment-display>
 
-      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete)">
-        <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit proposal</button>
-        <button type="button" class="danger-btn" *ngIf="p.canDelete" (click)="deleteProposal()">Delete proposal</button>
+      <div class="author-actions" *ngIf="!editing && p.canEdit">
+        <button type="button" class="link-btn" (click)="startEdit()">Edit proposal</button>
       </div>
     </div>
 

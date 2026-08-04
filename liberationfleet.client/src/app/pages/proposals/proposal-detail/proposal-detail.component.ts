@@ -648,6 +648,12 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  deleteProposalFromMenu(event: Event) {
+    event.stopPropagation();
+    this.closeMenus();
+    this.deleteProposal();
+  }
+
   deleteProposal() {
     if (!this.proposal?.canDelete) {
       return;

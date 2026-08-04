@@ -194,6 +194,13 @@ public class CrewChatsProposalService(
                     break;
                 case CrewChatProposalAction.Delete:
                     await ApplyDeleteAsync(change, utcNow, cancellationToken);
+                    if (change.RoomId.HasValue)
+                    {
+                        await proposalRepository.CancelPendingChatUpdateProposalsForRoomAsync(
+                            change.RoomId.Value,
+                            proposal.Id,
+                            cancellationToken);
+                    }
                     break;
             }
 
@@ -211,6 +218,13 @@ public class CrewChatsProposalService(
                 break;
             case CrewChatProposalAction.Delete:
                 await ApplyDeleteAsync(change, utcNow, cancellationToken);
+                if (change.RoomId.HasValue)
+                {
+                    await proposalRepository.CancelPendingChatUpdateProposalsForRoomAsync(
+                        change.RoomId.Value,
+                        proposal.Id,
+                        cancellationToken);
+                }
                 break;
         }
 

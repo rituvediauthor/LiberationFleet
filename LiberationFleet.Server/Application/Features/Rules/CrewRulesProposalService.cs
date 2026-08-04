@@ -138,8 +138,12 @@ public class CrewRulesProposalService(
                         "Rule deleted",
                         "A crew rule was deleted via approved proposal.",
                         cancellationToken);
+                    await ApplyDeleteAsync(change, utcNow, cancellationToken);
+                    await proposalRepository.CancelPendingCrewRuleUpdateProposalsForRuleAsync(
+                        change.RuleId.Value,
+                        proposal.Id,
+                        cancellationToken);
                 }
-                await ApplyDeleteAsync(change, utcNow, cancellationToken);
                 break;
         }
 

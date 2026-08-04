@@ -119,6 +119,13 @@ public class FleetRulesProposalService(
                 break;
             case FleetRuleProposalAction.Delete:
                 await ApplyDeleteAsync(change, utcNow, cancellationToken);
+                if (change.RuleId.HasValue)
+                {
+                    await proposalRepository.CancelPendingFleetRuleUpdateProposalsForRuleAsync(
+                        change.RuleId.Value,
+                        proposal.Id,
+                        cancellationToken);
+                }
                 break;
         }
 

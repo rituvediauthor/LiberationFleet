@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Proposals.Commands.DeleteProposal;
@@ -29,6 +30,11 @@ public class DeleteProposalCommandHandler(
         if (proposal.AuthorUserId != userId)
         {
             return new ProposalOperationResponse { Success = false, Message = "Only the author can delete this proposal." };
+        }
+
+        if (proposal.Status != ProposalStatus.Pending)
+        {
+            return new ProposalOperationResponse { Success = false, Message = "Only pending proposals can be deleted." };
         }
 
         proposal.IsDeleted = true;
