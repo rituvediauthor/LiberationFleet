@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FleetService } from '../../../../services/fleet.service';
 import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../../../../components/toast/toast.component';
@@ -25,6 +25,7 @@ import { ContentPreferenceService } from '../../../../services/content-preferenc
 import { ProfileService } from '../../../../services/profile.service';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../../services/encryption-content.service';
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+import { NotificationTargetDirective } from '../../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../../components/report-content-dialog/report-content-dialog.component';
 import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
@@ -33,6 +34,10 @@ import { ForumCommentLikeComponent } from '../../../../components/forum-comment-
 import { ContentReportTargetType } from '../../../../models/content-report.model';
 import { CrewService } from '../../../../services/crew.service';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../../utils/notification-deep-link.util';
 import { LocationHeaderComponent } from '../../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../../utils/location-header.util';
@@ -53,7 +58,8 @@ import { LocationHeaderInfo } from '../../../../utils/location-header.util';
     UserAvatarComponent,
     ForumEngagementBarComponent,
     ForumCommentLikeComponent,
-    LocationHeaderComponent
+    LocationHeaderComponent,
+    NotificationTargetDirective
   ],
   templateUrl: './fleet-forum-detail.component.html',
   styleUrl: './fleet-forum-detail.component.css'
@@ -109,8 +115,11 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   reportEvidenceText = '';
   reportEvidenceAuthorUsername = '';
   reportMediaIds: string[] = [];
+  highlightId: number | null = null;
+  notifyPrefix = '';
 
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private navigation = inject(NavigationService);
   private notificationContent = inject(NotificationContentService);
   private fleetService = inject(FleetService);
@@ -126,8 +135,14 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const postId = this.postId;
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
+    if (this.highlightId == null && postId && this.navigation.cameFromNotifications()) {
+      this.highlightId = postId;
+    }
+    this.notifyPrefix = `/app/fleet/forums/${postId}`;
     if (postId) {
-      this.notificationContent.markVisited(`/app/fleet/forums/${postId}`, postId);
+      this.notificationContent.markVisited(this.notifyPrefix, postId);
     }
 
     const token = this.authService.getToken();
@@ -737,6 +752,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
             this.contentRevealed = true;
           }
 
+          this.expandHighlightedReply();
           options?.onLoaded?.();
         } catch (error: unknown) {
           if (!options?.silent) {
@@ -760,5 +776,60 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
         this.toastService.error(this.loadError);
       }
     });
+  }
+
+  private expandHighlightedReply() {
+    if (!this.post || !this.highlightId || this.highlightId === this.post.id) {
+      return;
+    }
+
+    if (this.post.comments.some(comment => comment.id === this.highlightId)) {
+      return;
+    }
+
+    for (const comment of this.post.comments) {
+      if (comment.replies?.some(reply => reply.id === this.highlightId)) {
+        comment.repliesExpanded = true;
+        return;
+      }
+    }
+
+    const candidates = this.post.comments.filter(comment => comment.replyCount > 0);
+    const tryNext = (index: number) => {
+      if (index >= candidates.length || !this.post) {
+        return;
+      }
+      const comment = candidates[index];
+      if (comment.replies?.length) {
+        if (comment.replies.some(reply => reply.id === this.highlightId)) {
+          comment.repliesExpanded = true;
+        } else {
+          tryNext(index + 1);
+        }
+        return;
+      }
+      this.fleetService.getForumCommentReplies(this.postId, comment.id).subscribe({
+        next: async response => {
+          if (!response.success) {
+            tryNext(index + 1);
+            return;
+          }
+          const replies = response.items ?? [];
+          comment.replies = this.fleetId > 0
+            ? await this.forumCrypto.decryptComments(
+              replies as unknown as ProposalComment[],
+              { fleetId: this.fleetId }
+            ) as unknown as FleetForumComment[]
+            : replies;
+          if (comment.replies.some(reply => reply.id === this.highlightId)) {
+            comment.repliesExpanded = true;
+            return;
+          }
+          tryNext(index + 1);
+        },
+        error: () => tryNext(index + 1)
+      });
+    };
+    tryNext(0);
   }
 }

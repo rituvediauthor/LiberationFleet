@@ -8,7 +8,12 @@
     <p *ngIf="!loading && !errorMessage && entries.length === 0" class="state-text">No gifts recorded yet.</p>
 
     <div class="entry-list" *ngIf="!loading && entries.length > 0">
-      <article class="entry-card" *ngFor="let entry of entries">
+      <article
+        class="entry-card"
+        *ngFor="let entry of entries"
+        [lfNotificationTarget]="entry.id"
+        [lfNotificationPrefix]="notifyPrefix"
+        [lfHighlightId]="highlightId">
         <p class="entry-title">
           {{ entry.giverName }} → {{ entry.recipientName }}
           <span *ngIf="entry.middlemanName"> via {{ entry.middlemanName }}</span>

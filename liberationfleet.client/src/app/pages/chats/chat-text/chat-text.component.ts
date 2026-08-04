@@ -36,12 +36,17 @@ import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../utils/notification-deep-link.util';
 import { AppStorageService, StorageScope } from '../../../services/storage/app-storage.service';
 import { ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY } from '../../../services/storage/storage-keys';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
@@ -63,7 +68,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     KickReasonDialogComponent,
     UserAvatarComponent,
     AccessibleDialogDirective,
-    LocationHeaderComponent
+    LocationHeaderComponent,
+    NotificationTargetDirective
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -113,9 +119,13 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   loadError = '';
   showAdultGate = false;
   contentRevealed = true;
+  highlightId: number | null = null;
+  notifyPrefix = '';
 
   /** Own anonymous messages from this session (SignalR strips author id). */
   private recentOwnMessageIds = new Set<number>();
+  private highlightSeekPagesLeft = 0;
+  private highlightSeekActive = false;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -146,11 +156,18 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.roomId = Number(this.route.snapshot.paramMap.get('id'));
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
     const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
       || this.router.url.startsWith('/app/fleet/chats');
+    const prefix = isFleetScope ? '/app/fleet/chats' : '/app/crew/chats';
+    this.notifyPrefix = `${prefix}/${this.roomId}`;
     if (this.roomId) {
-      const prefix = isFleetScope ? '/app/fleet/chats' : '/app/crew/chats';
-      this.notificationContent.markVisited(`${prefix}/${this.roomId}`, this.roomId);
+      this.notificationContent.markVisited(this.notifyPrefix, this.roomId);
+    }
+    if (this.highlightId) {
+      this.highlightSeekPagesLeft = 5;
+      this.highlightSeekActive = true;
     }
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
@@ -590,9 +607,10 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           this.messages = this.crewId > 0
             ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
-          if (scrollToBottom) {
+          if (scrollToBottom && !this.highlightSeekActive) {
             setTimeout(() => this.scrollToBottom(), 0);
           }
+          this.continueHighlightSeek();
         } catch (error: unknown) {
           this.loadError = error instanceof Error ? error.message : 'Failed to decrypt messages';
         } finally {
@@ -606,7 +624,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private loadOlderMessages() {
+  private loadOlderMessages(options?: { preserveScroll?: boolean; forHighlightSeek?: boolean }) {
     if (this.loadingOlder || !this.hasMore || this.messages.length === 0) {
       return;
     }
@@ -614,13 +632,17 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     const oldestId = this.messages[0].id;
     const scrollEl = this.messageScroll?.nativeElement;
     const previousHeight = scrollEl?.scrollHeight ?? 0;
+    const preserveScroll = options?.preserveScroll !== false;
 
     this.loadingOlder = true;
     this.chatService.getMessages(this.roomId, 50, oldestId).subscribe({
       next: async response => {
         try {
           if (!response.success) {
-            this.toastService.error(response.message || 'Failed to load older messages');
+            if (!options?.forHighlightSeek) {
+              this.toastService.error(response.message || 'Failed to load older messages');
+            }
+            this.highlightSeekActive = false;
             return;
           }
           this.hasMore = response.hasMore;
@@ -628,20 +650,47 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
             ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
           this.messages = [...older, ...this.messages];
-          setTimeout(() => {
-            if (scrollEl) {
-              scrollEl.scrollTop = scrollEl.scrollHeight - previousHeight;
-            }
-          }, 0);
+          if (preserveScroll && !options?.forHighlightSeek) {
+            setTimeout(() => {
+              if (scrollEl) {
+                scrollEl.scrollTop = scrollEl.scrollHeight - previousHeight;
+              }
+            }, 0);
+          }
+          if (options?.forHighlightSeek) {
+            this.continueHighlightSeek();
+          }
         } finally {
           this.loadingOlder = false;
         }
       },
       error: () => {
         this.loadingOlder = false;
-        this.toastService.error('Failed to load older messages');
+        if (!options?.forHighlightSeek) {
+          this.toastService.error('Failed to load older messages');
+        }
+        this.highlightSeekActive = false;
       }
     });
+  }
+
+  private continueHighlightSeek() {
+    if (!this.highlightSeekActive || !this.highlightId) {
+      return;
+    }
+
+    if (this.messages.some(message => message.id === this.highlightId)) {
+      this.highlightSeekActive = false;
+      return;
+    }
+
+    if (this.highlightSeekPagesLeft <= 0 || !this.hasMore) {
+      this.highlightSeekActive = false;
+      return;
+    }
+
+    this.highlightSeekPagesLeft -= 1;
+    this.loadOlderMessages({ preserveScroll: false, forHighlightSeek: true });
   }
 
   private setupLazyLoadObserver() {

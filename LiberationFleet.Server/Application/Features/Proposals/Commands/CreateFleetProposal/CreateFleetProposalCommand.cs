@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Mentions;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -138,7 +139,7 @@ public class CreateFleetProposalCommandHandler(
                 NotificationKind.NewFleetProposal,
                 "New fleet proposal",
                 NotificationPreview.BodyOrFallback(request.Description, "A new fleet proposal was submitted."),
-                $"/app/fleet/proposals/{proposal.Id}",
+                ProposalRouting.PendingListUrl(proposal),
                 relatedEntityId: proposal.Id,
                 excludeUserId: userId,
                 cancellationToken: cancellationToken);
@@ -151,7 +152,7 @@ public class CreateFleetProposalCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
-            ActionUrl = $"/app/fleet/proposals/{proposal.Id}",
+            ActionUrl = ProposalRouting.DetailUrl(proposal),
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             Preview = request.Description
         }, cancellationToken);

@@ -80,7 +80,7 @@ public class CreateForumPostCommandHandler(
             post.Id,
             "New forum post",
             NotificationPreview.BodyOrFallback(request.Preview, "A new forum post was published."),
-            $"/app/crew/forums/{post.Id}",
+            $"/app/crew/forums/{post.Id}?highlightId={post.Id}",
             relatedEntityId: post.Id,
             excludeUserId: userId,
             cancellationToken: cancellationToken);
@@ -91,7 +91,7 @@ public class CreateForumPostCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.ForumPost,
             ResourceId = post.Id,
-            ActionUrl = $"/app/crew/forums/{post.Id}",
+            ActionUrl = $"/app/crew/forums/{post.Id}?highlightId={post.Id}",
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             Preview = request.Preview
         }, cancellationToken);

@@ -77,7 +77,7 @@ public class CrewRulesProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             NotificationPreview.BodyOrFallback(proposalDescription, "A crew rule change was proposed."),
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
@@ -162,7 +162,7 @@ public class CrewRulesProposalService(
             kind,
             title,
             body,
-            kind == NotificationKind.RuleDeleted ? "/app/crew/rules" : $"/app/crew/rules/{ruleId}/edit",
+            kind == NotificationKind.RuleDeleted ? "/app/crew/rules" : $"/app/crew/rules?highlightId={ruleId}",
             relatedEntityId: ruleId,
             cancellationToken: cancellationToken);
 

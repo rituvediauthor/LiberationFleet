@@ -120,7 +120,7 @@ public class UpdateCrewRuleCommandHandler(
             NotificationKind.RuleEdited,
             "Rule edited",
             "A crew rule was updated.",
-            $"/app/crew/rules/{rule.Id}/edit",
+            $"/app/crew/rules?highlightId={rule.Id}",
             relatedEntityId: rule.Id,
             excludeUserId: userId,
             cancellationToken: cancellationToken);

@@ -86,7 +86,7 @@ public class CreateFleetForumPostCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var actionUrl = $"/app/fleet/forums/{post.Id}";
+        var actionUrl = $"/app/fleet/forums/{post.Id}?highlightId={post.Id}";
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
         foreach (var fleetCrew in fleetCrews)
         {

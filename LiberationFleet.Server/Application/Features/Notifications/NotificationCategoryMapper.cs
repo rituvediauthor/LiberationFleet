@@ -8,11 +8,15 @@ public static class NotificationCategoryMapper
     {
         NotificationKind.NewReply or NotificationKind.NewForumComment
             or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked
+            or NotificationKind.NewFleetForumComment or NotificationKind.NewFleetReply
+            or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked
             => NotificationFilterCategory.Comments,
-        NotificationKind.Mention => NotificationFilterCategory.Mentions,
+        NotificationKind.Mention or NotificationKind.FleetMention => NotificationFilterCategory.Mentions,
         NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
+            or NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted or NotificationKind.FleetProposalRejected
             => NotificationFilterCategory.Proposals,
         NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited
+            or NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted or NotificationKind.FleetRuleEdited
             => NotificationFilterCategory.Rules,
         _ => null
     };
@@ -27,20 +31,34 @@ public static class NotificationCategoryMapper
             NotificationKind.NewReply,
             NotificationKind.NewForumComment,
             NotificationKind.ForumPostLiked,
-            NotificationKind.ForumCommentLiked
+            NotificationKind.ForumCommentLiked,
+            NotificationKind.NewFleetForumComment,
+            NotificationKind.NewFleetReply,
+            NotificationKind.FleetForumPostLiked,
+            NotificationKind.FleetForumCommentLiked
         ],
-        NotificationFilterCategory.Mentions => [NotificationKind.Mention],
+        NotificationFilterCategory.Mentions =>
+        [
+            NotificationKind.Mention,
+            NotificationKind.FleetMention
+        ],
         NotificationFilterCategory.Proposals =>
         [
             NotificationKind.NewProposal,
             NotificationKind.ProposalRejected,
-            NotificationKind.ProposalAccepted
+            NotificationKind.ProposalAccepted,
+            NotificationKind.NewFleetProposal,
+            NotificationKind.FleetProposalAccepted,
+            NotificationKind.FleetProposalRejected
         ],
         NotificationFilterCategory.Rules =>
         [
             NotificationKind.NewRule,
             NotificationKind.RuleDeleted,
-            NotificationKind.RuleEdited
+            NotificationKind.RuleEdited,
+            NotificationKind.NewFleetRule,
+            NotificationKind.FleetRuleDeleted,
+            NotificationKind.FleetRuleEdited
         ],
         _ => Array.Empty<NotificationKind>()
     };

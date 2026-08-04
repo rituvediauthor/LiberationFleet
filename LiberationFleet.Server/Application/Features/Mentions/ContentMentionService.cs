@@ -120,12 +120,12 @@ public class ContentMentionService(
             {
                 UserId = userId,
                 CrewId = context.CrewId,
-                Kind = NotificationKind.Mention,
+                Kind = context.FleetId.HasValue ? NotificationKind.FleetMention : NotificationKind.Mention,
                 Title = $"{authorName} mentioned you",
                 Body = mentionBody,
                 ActionUrl = context.ActionUrl,
-                RelatedEntityId = context.ParentResourceId ?? context.ResourceId,
-                SecondaryEntityId = context.ResourceId,
+                RelatedEntityId = context.ResourceId,
+                SecondaryEntityId = context.ParentResourceId,
                 ActorUserId = context.AuthorUserId
             }),
             cancellationToken);

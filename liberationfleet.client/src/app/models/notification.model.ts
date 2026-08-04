@@ -35,7 +35,16 @@ export type NotificationKind =
   | 'NewFleetForumComment'
   | 'NewEmergencyRequest'
   | 'ForumPostLiked'
-  | 'ForumCommentLiked';
+  | 'ForumCommentLiked'
+  | 'NewFleetRule'
+  | 'FleetRuleDeleted'
+  | 'FleetRuleEdited'
+  | 'FleetProposalAccepted'
+  | 'FleetProposalRejected'
+  | 'NewFleetReply'
+  | 'FleetMention'
+  | 'FleetForumPostLiked'
+  | 'FleetForumCommentLiked';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 

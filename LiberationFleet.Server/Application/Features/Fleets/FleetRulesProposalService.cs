@@ -75,7 +75,7 @@ public class FleetRulesProposalService(
                 NotificationKind.NewFleetProposal,
                 "New fleet proposal",
                 NotificationPreview.BodyOrFallback(proposalDescription, "A fleet rule change was proposed."),
-                $"/app/fleet/proposals/{proposal.Id}",
+                ProposalRouting.PendingListUrl(proposal),
                 relatedEntityId: proposal.Id,
                 excludeUserId: authorUserId,
                 cancellationToken: cancellationToken);
@@ -98,13 +98,14 @@ public class FleetRulesProposalService(
         }
 
         var utcNow = DateTime.UtcNow;
+        var fleetId = proposal.FleetId.Value;
 
         switch (change.Action)
         {
             case FleetRuleProposalAction.Create:
                 var rule = new FleetRule
                 {
-                    FleetId = proposal.FleetId.Value,
+                    FleetId = fleetId,
                     CreatedByUserId = proposal.AuthorUserId,
                     CreatedAt = utcNow,
                     UpdatedAt = utcNow,
@@ -113,11 +114,40 @@ public class FleetRulesProposalService(
                     Description = change.RuleDescription
                 };
                 await fleetRepository.AddRuleAsync(rule, cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                change.RuleId = rule.Id;
+                await NotifyRuleChangeAsync(
+                    fleetId,
+                    NotificationKind.NewFleetRule,
+                    rule.Id,
+                    "New fleet rule",
+                    "A new fleet rule was added via approved proposal.",
+                    cancellationToken);
                 break;
             case FleetRuleProposalAction.Update:
                 await ApplyUpdateAsync(change, utcNow, cancellationToken);
+                if (change.RuleId.HasValue)
+                {
+                    await NotifyRuleChangeAsync(
+                        fleetId,
+                        NotificationKind.FleetRuleEdited,
+                        change.RuleId.Value,
+                        "Fleet rule edited",
+                        "A fleet rule was updated via approved proposal.",
+                        cancellationToken);
+                }
                 break;
             case FleetRuleProposalAction.Delete:
+                if (change.RuleId.HasValue)
+                {
+                    await NotifyRuleChangeAsync(
+                        fleetId,
+                        NotificationKind.FleetRuleDeleted,
+                        change.RuleId.Value,
+                        "Fleet rule deleted",
+                        "A fleet rule was deleted via approved proposal.",
+                        cancellationToken);
+                }
                 await ApplyDeleteAsync(change, utcNow, cancellationToken);
                 if (change.RuleId.HasValue)
                 {
@@ -130,6 +160,32 @@ public class FleetRulesProposalService(
         }
 
         change.IsApplied = true;
+    }
+
+    private async Task NotifyRuleChangeAsync(
+        int fleetId,
+        NotificationKind kind,
+        int ruleId,
+        string title,
+        string body,
+        CancellationToken cancellationToken)
+    {
+        var actionUrl = kind == NotificationKind.FleetRuleDeleted
+            ? "/app/fleet/rules"
+            : $"/app/fleet/rules?highlightId={ruleId}";
+
+        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
+        foreach (var fleetCrew in fleetCrews)
+        {
+            await notificationService.NotifyCrewAsync(
+                fleetCrew.CrewId,
+                kind,
+                title,
+                body,
+                actionUrl,
+                relatedEntityId: ruleId,
+                cancellationToken: cancellationToken);
+        }
     }
 
     private async Task ApplyUpdateAsync(

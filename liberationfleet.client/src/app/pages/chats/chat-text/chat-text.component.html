@@ -12,6 +12,9 @@
         #messageItem
         class="message-bubble"
         *ngFor="let message of messages"
+        [lfNotificationTarget]="message.id"
+        [lfNotificationPrefix]="notifyPrefix"
+        [lfHighlightId]="highlightId"
         [class.own]="isOwnMessage(message)"
         [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">

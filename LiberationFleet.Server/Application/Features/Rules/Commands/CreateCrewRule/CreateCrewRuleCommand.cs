@@ -120,7 +120,7 @@ public class CreateCrewRuleCommandHandler(
             NotificationKind.NewRule,
             "New rule",
             request.IsPublic ? "A new public crew rule was added." : "A new crew rule was added.",
-            $"/app/crew/rules/{rule.Id}/edit",
+            $"/app/crew/rules?highlightId={rule.Id}",
             relatedEntityId: rule.Id,
             excludeUserId: userId,
             cancellationToken: cancellationToken);

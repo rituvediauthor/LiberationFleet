@@ -1410,7 +1410,7 @@ public partial class MutualAidService(
 
         await InitializeSeasonStateAsync(crew, readyMembers, cancellationToken);
 
-        await AddCelebratoryGiftLogEntryAsync(
+        var seasonGift = await AddCelebratoryGiftLogEntryAndSaveAsync(
             crew,
             GiftType.SeasonStarted,
             actorUserId: crew.CreatedByUserId,
@@ -1421,7 +1421,8 @@ public partial class MutualAidService(
             NotificationKind.NewSeason,
             "New season",
             "A new mutual aid season has started.",
-            "/app/crew/gift-log",
+            GiftLogActionUrl(seasonGift.Id),
+            relatedEntityId: seasonGift.Id,
             cancellationToken: cancellationToken);
     }
 
@@ -1639,7 +1640,7 @@ public partial class MutualAidService(
 
         if (created)
         {
-            await AddCelebratoryGiftLogEntryAsync(
+            var refreshedGift = await AddCelebratoryGiftLogEntryAndSaveAsync(
                 crew,
                 GiftType.SurvivalThresholdsRefreshed,
                 actorUserId: crew.CreatedByUserId,
@@ -1650,10 +1651,9 @@ public partial class MutualAidService(
                 NotificationKind.SurvivalThresholdsRefreshed,
                 "Survival thresholds refreshed",
                 "Survival thresholds have been refreshed for the new month.",
-                "/app/crew/gift-log",
+                GiftLogActionUrl(refreshedGift.Id),
+                relatedEntityId: refreshedGift.Id,
                 cancellationToken: cancellationToken);
-
-            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -1940,7 +1940,7 @@ public partial class MutualAidService(
 
         await TryCreateFirstOfMonthThresholdsAsync(crew, cancellationToken);
 
-        await AddCelebratoryGiftLogEntryAsync(
+        var seasonGift = await AddCelebratoryGiftLogEntryAndSaveAsync(
             crew,
             GiftType.SeasonStarted,
             actorUserId: crew.CreatedByUserId,
@@ -1951,7 +1951,8 @@ public partial class MutualAidService(
             NotificationKind.NewSeason,
             "New season",
             "A new mutual aid season has started.",
-            "/app/crew/gift-log",
+            GiftLogActionUrl(seasonGift.Id),
+            relatedEntityId: seasonGift.Id,
             cancellationToken: cancellationToken);
     }
 
@@ -2405,7 +2406,7 @@ public partial class MutualAidService(
 
             if (newlyStarted)
             {
-                await AddCelebratoryGiftLogEntryAsync(
+                var cycleGift = await AddCelebratoryGiftLogEntryAndSaveAsync(
                     crew,
                     GiftType.CycleStarted,
                     actorUserId: cycle.UserId,
@@ -2416,8 +2417,8 @@ public partial class MutualAidService(
                     NotificationKind.NewCycle,
                     "New cycle",
                     "A crewmate's reception cycle has started.",
-                    "/app/crew/gift-log",
-                    relatedEntityId: cycle.UserId,
+                    GiftLogActionUrl(cycleGift.Id),
+                    relatedEntityId: cycleGift.Id,
                     cancellationToken: cancellationToken);
             }
         }
@@ -2558,13 +2559,13 @@ public partial class MutualAidService(
 
     private static bool AreSurvivalThresholdsEnabled(Crew crew) => crew.AllowSurvivalThresholds;
 
-    private async Task AddCelebratoryGiftLogEntryAsync(
+    private async Task<Gift> AddCelebratoryGiftLogEntryAndSaveAsync(
         Crew crew,
         GiftType type,
         int actorUserId,
         CancellationToken cancellationToken)
     {
-        await giftRepository.AddAsync(new Gift
+        var gift = new Gift
         {
             CrewId = crew.Id,
             GiverUserId = actorUserId,
@@ -2578,8 +2579,16 @@ public partial class MutualAidService(
             CountsTowardContribution = false,
             ReceptionApplied = true,
             VerificationStatus = GiftVerificationStatus.Verified
-        }, cancellationToken);
+        };
+        await giftRepository.AddAsync(gift, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return gift;
     }
+
+    private static string GiftLogActionUrl(int? highlightId) =>
+        highlightId is > 0
+            ? $"/app/crew/gift-log?highlightId={highlightId.Value}"
+            : "/app/crew/gift-log";
 
     private sealed class CapacityContext
     {

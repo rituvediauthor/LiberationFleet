@@ -15,6 +15,9 @@
         <article
           *ngFor="let entry of entries; let i = index"
           class="log-entry"
+          [lfNotificationTarget]="entry.id"
+          [lfNotificationPrefix]="notifyPrefix"
+          [lfHighlightId]="highlightId"
           [class.highlighted]="isHighlighted(entry)"
           [class.flagged-not-complete]="entry.displayFlag === 'notComplete'"
           [class.flagged-cant-complete]="entry.displayFlag === 'cantComplete'"

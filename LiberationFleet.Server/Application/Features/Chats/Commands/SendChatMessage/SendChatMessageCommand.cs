@@ -141,7 +141,8 @@ public class SendChatMessageCommandHandler(
                         "New chat message",
                         NotificationPreview.BodyOrFallback(request.Body, "You have a new message in a fleet chat."),
                         $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
-                        relatedEntityId: room.Id,
+                        relatedEntityId: message.Id,
+                        secondaryEntityId: room.Id,
                         excludeUserId: userId,
                         cancellationToken: cancellationToken);
                 }
@@ -170,8 +171,9 @@ public class SendChatMessageCommandHandler(
                     room.Id,
                     "New chat message",
                     NotificationPreview.BodyOrFallback(request.Body, "You have a new message in a crew chat."),
-                    $"/app/crew/chats/{room.Id}",
-                    relatedEntityId: room.Id,
+                    $"/app/crew/chats/{room.Id}?messageId={message.Id}",
+                    relatedEntityId: message.Id,
+                    secondaryEntityId: room.Id,
                     excludeUserId: userId,
                     cancellationToken: cancellationToken);
 

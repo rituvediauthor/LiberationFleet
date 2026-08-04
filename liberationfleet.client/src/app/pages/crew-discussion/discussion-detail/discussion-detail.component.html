@@ -32,7 +32,10 @@
     </div>
 
     <div class="detail-body">
-    <div class="post-content-card">
+    <div class="post-content-card"
+      [lfNotificationTarget]="p.id"
+      [lfNotificationPrefix]="notifyPrefix"
+      [lfHighlightId]="highlightId">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
           <app-user-avatar
@@ -117,7 +120,12 @@
     <section class="comments-section">
       <h2>Comments</h2>
       <div class="comments-list">
-        <article class="comment" *ngFor="let comment of p.comments">
+        <article
+          class="comment"
+          *ngFor="let comment of p.comments"
+          [lfNotificationTarget]="comment.id"
+          [lfNotificationPrefix]="notifyPrefix"
+          [lfHighlightId]="highlightId">
           <div class="comment-header">
             <p class="comment-meta">
               <app-user-avatar
@@ -177,7 +185,12 @@
           </div>
 
           <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
-            <article class="comment reply" *ngFor="let reply of comment.replies">
+            <article
+              class="comment reply"
+              *ngFor="let reply of comment.replies"
+              [lfNotificationTarget]="reply.id"
+              [lfNotificationPrefix]="notifyPrefix"
+              [lfHighlightId]="highlightId">
               <div class="comment-header">
                 <p class="comment-meta">
                   <app-user-avatar

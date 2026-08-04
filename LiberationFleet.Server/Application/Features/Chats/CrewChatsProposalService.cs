@@ -83,7 +83,7 @@ public class CrewChatsProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             NotificationPreview.BodyOrFallback(proposalDescription, "A crew chat change was proposed."),
-            $"/app/crew/proposals/{proposal.Id}",
+            ProposalRouting.PendingListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
@@ -157,7 +157,7 @@ public class CrewChatsProposalService(
                 NotificationKind.NewFleetProposal,
                 "New fleet proposal",
                 NotificationPreview.BodyOrFallback(proposalDescription, "A fleet chat change was proposed."),
-                $"/app/fleet/proposals/{proposal.Id}",
+                ProposalRouting.PendingListUrl(proposal),
                 relatedEntityId: proposal.Id,
                 excludeUserId: authorUserId,
                 cancellationToken: cancellationToken);

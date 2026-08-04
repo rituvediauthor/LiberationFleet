@@ -76,7 +76,7 @@ public class UpdateForumPostCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.ForumPost,
             ResourceId = post.Id,
-            ActionUrl = $"/app/crew/forums/{post.Id}",
+            ActionUrl = $"/app/crew/forums/{post.Id}?highlightId={post.Id}",
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             IsUpdate = true
         }, cancellationToken);

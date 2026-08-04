@@ -70,10 +70,10 @@ public class CrewSettingsProposalService(
                 NotificationKind.NewProposal,
                 "New proposal",
                 NotificationPreview.BodyOrFallback(description, "A crew setting change was proposed."),
-                $"/app/crew/proposals/{proposal.Id}",
-                relatedEntityId: proposal.Id,
-                excludeUserId: authorUserId,
-                cancellationToken: cancellationToken);
+            ProposalRouting.PendingListUrl(proposal),
+            relatedEntityId: proposal.Id,
+            excludeUserId: authorUserId,
+            cancellationToken: cancellationToken);
             created++;
         }
 
