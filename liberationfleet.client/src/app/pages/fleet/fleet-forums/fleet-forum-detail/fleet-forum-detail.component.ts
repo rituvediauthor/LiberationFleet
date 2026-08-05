@@ -34,6 +34,7 @@ import { ForumCommentLikeComponent } from '../../../../components/forum-comment-
 import { ContentReportTargetType } from '../../../../models/content-report.model';
 import { CrewService } from '../../../../services/crew.service';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
+import { pendingAttachmentsAllowSubmit } from '../../../../utils/pending-attachment.util';
 import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
@@ -402,6 +403,10 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     if (!this.post?.canEdit || this.savingEdit || this.fleetId <= 0) {
       return;
     }
+    if (!pendingAttachmentsAllowSubmit(this.newEditAttachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
+      return;
+    }
 
     const title = this.editTitle.trim();
     const description = this.editDescription.trim();
@@ -451,6 +456,10 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   async postComment() {
     const hasContent = this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0;
     if (!this.post || !hasContent || this.posting || this.fleetId <= 0) {
+      return;
+    }
+    if (!pendingAttachmentsAllowSubmit(this.commentAttachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
       return;
     }
 
@@ -612,7 +621,18 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   }
 
   canPostComment(): boolean {
-    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0);
+    const hasContent = Boolean(
+      this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0
+    );
+    return hasContent && pendingAttachmentsAllowSubmit(this.commentAttachments);
+  }
+
+  attachmentsReadyForEdit(): boolean {
+    return pendingAttachmentsAllowSubmit(this.newEditAttachments);
+  }
+
+  onAttachmentsChange() {
+    // Triggers change detection so post/save button gating updates during compress.
   }
 
   retryLoad(): void {

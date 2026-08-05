@@ -30,6 +30,7 @@ import { CrewmateService } from '../../../services/crewmate.service';
 import { CryptoApiService } from '../../../services/crypto/crypto-api.service';
 import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { NavigationService } from '../../../services/navigation.service';
@@ -316,7 +317,14 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   canSend(): boolean {
-    return Boolean(this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0);
+    const hasContent = Boolean(
+      this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0
+    );
+    return hasContent && pendingAttachmentsAllowSubmit(this.messageAttachments);
+  }
+
+  onAttachmentsChange() {
+    // Triggers change detection so send button gating updates during compress.
   }
 
   toggleMessageMenu(messageId: number, event: Event) {

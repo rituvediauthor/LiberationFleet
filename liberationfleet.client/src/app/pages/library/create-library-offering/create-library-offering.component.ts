@@ -16,6 +16,7 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { PendingAttachment } from '../../../models/proposal.model';
 import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind, LibraryOfferingVisibility } from '../../../models/library.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
 @Component({
   selector: 'app-create-library-offering',
@@ -153,6 +154,10 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     if (this.form.invalid || this.isSubmitting || this.crewId <= 0 || this.selectedCategoryIds.length === 0) {
       return;
     }
+    if (!pendingAttachmentsAllowSubmit(this.attachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
+      return;
+    }
 
     this.isSubmitting = true;
     this.updateCreateButton();
@@ -269,6 +274,10 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     }
   }
 
+  onAttachmentsChange() {
+    this.updateCreateButton();
+  }
+
   private parseKind(value: string | null): LibraryOfferingKind {
     if (value === 'Consumable' || value === 'Service') {
       return value;
@@ -284,7 +293,10 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     this.createButton = {
       label: 'Create',
       type: 'primary',
-      disabled: this.isSubmitting || this.form.invalid || this.selectedCategoryIds.length === 0,
+      disabled: this.isSubmitting
+        || this.form.invalid
+        || this.selectedCategoryIds.length === 0
+        || !pendingAttachmentsAllowSubmit(this.attachments),
       onClick: () => this.onSubmit()
     };
   }

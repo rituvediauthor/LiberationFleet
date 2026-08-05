@@ -14,6 +14,8 @@ import { PendingAttachment } from '../../../../models/fleet-forum.model';
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../../utils/a11y-form.util';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
+import { pendingAttachmentsAllowSubmit } from '../../../../utils/pending-attachment.util';
+import { ForumListPrefetchService } from '../../../../services/forum-list-prefetch.service';
 
 @Component({
   selector: 'app-fleet-forum-create',
@@ -47,6 +49,7 @@ export class FleetForumCreateComponent implements OnInit {
   private crewService = inject(CrewService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
+  private forumPrefetch = inject(ForumListPrefetchService);
 
   ngOnInit() {
     this.form = this.fb.group({
@@ -84,8 +87,16 @@ export class FleetForumCreateComponent implements OnInit {
     return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
+  onAttachmentsChange() {
+    this.updateCreateButton();
+  }
+
   onSubmit() {
     if (this.form.invalid || this.isSubmitting || this.fleetId <= 0) {
+      return;
+    }
+    if (!pendingAttachmentsAllowSubmit(this.attachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
       return;
     }
 
@@ -110,6 +121,7 @@ export class FleetForumCreateComponent implements OnInit {
       }).subscribe({
         next: result => {
           if (result.success) {
+            this.forumPrefetch.invalidate();
             this.toastService.success(result.message || 'Post created');
             this.router.navigate(['/app/fleet/forums']);
             return;
@@ -124,8 +136,8 @@ export class FleetForumCreateComponent implements OnInit {
           this.updateCreateButton();
         }
       });
-    }).catch(() => {
-      this.toastService.error('Failed to encrypt post content.');
+    }).catch(error => {
+      this.toastService.error(error instanceof Error ? error.message : 'Failed to encrypt post content.');
       this.isSubmitting = false;
       this.updateCreateButton();
     });
@@ -135,7 +147,7 @@ export class FleetForumCreateComponent implements OnInit {
     this.createButton = {
       label: 'Create',
       type: 'primary',
-      disabled: this.isSubmitting || this.form.invalid,
+      disabled: this.isSubmitting || this.form.invalid || !pendingAttachmentsAllowSubmit(this.attachments),
       onClick: () => this.onSubmit()
     };
   }

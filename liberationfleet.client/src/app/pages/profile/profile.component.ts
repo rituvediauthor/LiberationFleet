@@ -33,6 +33,7 @@ import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
+import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -508,6 +509,7 @@ export class ProfileComponent implements OnInit {
       || this.form.invalid
       || !passwordReady
       || !!paymentPlatformError
+      || !pendingAttachmentsAllowSubmit(this.avatarAttachments)
       || (!this.hasProfileChanges() && !changingPassword);
 
     this.saveButton = {

@@ -15,6 +15,7 @@ import { PendingAttachment } from '../../../models/proposal.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
 @Component({
   selector: 'app-create-proposal',
@@ -108,11 +109,19 @@ export class CreateProposalComponent implements OnInit {
     return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
+  onAttachmentsChange() {
+    this.updateCreateButton();
+  }
+
   onSubmit() {
     if (this.form.invalid || this.isSubmitting || !this.canCreateProposals) {
       if (!this.canCreateProposals) {
         this.toastService.error('You do not meet the requirements to create proposals.');
       }
+      return;
+    }
+    if (!pendingAttachmentsAllowSubmit(this.attachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
       return;
     }
 
@@ -230,7 +239,8 @@ export class CreateProposalComponent implements OnInit {
       disabled: this.isSubmitting
         || this.form.invalid
         || !this.canCreateProposals
-        || (this.isFleetScope ? this.fleetId <= 0 : this.crewId <= 0),
+        || (this.isFleetScope ? this.fleetId <= 0 : this.crewId <= 0)
+        || !pendingAttachmentsAllowSubmit(this.attachments),
       onClick: () => this.onSubmit()
     };
   }

@@ -21,6 +21,7 @@ import {
   CrewNotificationAreaCounts,
   emptyAreaCounts
 } from '../../utils/notification-area.util';
+import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
 
 @Component({
   selector: 'app-crew-home',
@@ -57,6 +58,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private images = inject(EncryptedImageCacheService);
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
+  private forumPrefetch = inject(ForumListPrefetchService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
@@ -65,6 +67,10 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       this.cryptoSession.unlocked$.subscribe(unlocked => {
         if (unlocked) {
           void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+          const crewId = this.membership?.crewId;
+          if (crewId) {
+            this.forumPrefetch.prefetchCrewSpace(crewId);
+          }
         }
         void this.refreshCrewImage();
       })
@@ -79,6 +85,9 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         this.nextAidLoaded = !this.showNextAidWidget;
         this.loading = false;
         void this.refreshCrewImage();
+        if (status.hasCrew && status.crewId) {
+          this.forumPrefetch.prefetchCrewSpace(status.crewId);
+        }
         if (this.showNextAidWidget) {
           this.giftService.getNextAidInfo().subscribe({
             next: info => {

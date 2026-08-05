@@ -28,6 +28,7 @@ import { AuthService } from '../../../services/auth.service';
 import { NavigationService } from '../../../services/navigation.service';
 import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
@@ -212,7 +213,14 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   canSend(): boolean {
-    return Boolean(this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0);
+    const hasContent = Boolean(
+      this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0
+    );
+    return hasContent && pendingAttachmentsAllowSubmit(this.messageAttachments);
+  }
+
+  onAttachmentsChange() {
+    // Triggers change detection so send button gating updates during compress.
   }
 
   toggleMessageMenu(messageId: number, event: Event) {

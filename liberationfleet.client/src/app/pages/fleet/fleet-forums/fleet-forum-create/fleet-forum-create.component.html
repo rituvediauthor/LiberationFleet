@@ -38,7 +38,8 @@
       <app-proposal-attachment-picker
         *ngIf="canAttachFiles"
         [attachments]="attachments"
-        [maxAttachments]="20">
+        [maxAttachments]="20"
+        (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
 
       <label class="checkbox-field">

@@ -9,7 +9,12 @@
       class="carousel-slide"
       (click)="openFull(activeIndex)"
       [attr.aria-label]="'View image ' + (activeIndex + 1) + ' of ' + images.length">
-      <img [src]="images[activeIndex]" [alt]="title + ' image ' + (activeIndex + 1)" />
+      <img
+        [src]="images[activeIndex]"
+        [alt]="title + ' image ' + (activeIndex + 1)"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high" />
     </button>
 
     <button

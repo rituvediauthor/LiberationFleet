@@ -148,7 +148,8 @@
           class="message-attachment-picker"
           *ngIf="canAttachFiles"
           [attachments]="messageAttachments"
-          (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+          (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
         <span class="composer-tools-spacer" *ngIf="!canAttachFiles" aria-hidden="true"></span>
         <button

@@ -34,6 +34,7 @@ import { AccessibleDialogDirective } from '../../../directives/accessible-dialog
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
@@ -541,6 +542,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     if (!this.proposal?.canEdit || this.savingEdit || this.crewId <= 0) {
       return;
     }
+    if (!pendingAttachmentsAllowSubmit(this.newEditAttachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
+      return;
+    }
 
     const title = this.editTitle.trim();
     const description = this.editDescription.trim();
@@ -591,6 +596,10 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     const hasContent = this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0;
     const cryptoScope = this.cryptoScope;
     if (!this.proposal || !hasContent || this.posting || !cryptoScope) {
+      return;
+    }
+    if (!pendingAttachmentsAllowSubmit(this.commentAttachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
       return;
     }
 
@@ -725,7 +734,18 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   canPostComment(): boolean {
-    return Boolean(this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0);
+    const hasContent = Boolean(
+      this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0
+    );
+    return hasContent && pendingAttachmentsAllowSubmit(this.commentAttachments);
+  }
+
+  attachmentsReadyForEdit(): boolean {
+    return pendingAttachmentsAllowSubmit(this.newEditAttachments);
+  }
+
+  onAttachmentsChange() {
+    // Triggers change detection so post/save button gating updates during compress.
   }
 
   private insertPostedComment(

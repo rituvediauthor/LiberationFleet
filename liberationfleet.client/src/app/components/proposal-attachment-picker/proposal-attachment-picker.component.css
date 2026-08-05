@@ -65,12 +65,81 @@
   font-size: 13px;
 }
 
+.attachment-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.attachment-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
 .attachment-preview {
   width: 40px;
   height: 40px;
   object-fit: cover;
   border-radius: 6px;
   flex-shrink: 0;
+  background: var(--lf-color-bg-hover);
+}
+
+.attachment-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
+  flex-shrink: 0;
+}
+
+.progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--lf-color-bg-hover);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--lf-color-accent);
+  transition: width 0.15s ease;
+}
+
+.progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lf-color-text-muted);
+}
+
+.progress-label.error {
+  color: var(--lf-color-danger);
 }
 
 .remove-btn {
@@ -79,4 +148,5 @@
   color: var(--lf-color-danger);
   cursor: pointer;
   font-weight: 600;
+  flex-shrink: 0;
 }

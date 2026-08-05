@@ -34,16 +34,49 @@
   </div>
 
   <ul class="attachment-list" *ngIf="attachments.length > 0">
-    <li *ngFor="let attachment of attachments; let i = index">
-      <img
-        *ngIf="attachment.type === 'image' && attachment.previewUrl"
-        class="attachment-preview"
-        [src]="attachment.previewUrl"
-        alt="">
-      <span>{{ attachmentLabel(attachment) }}</span>
+    <li *ngFor="let attachment of attachments; let i = index" [class.is-processing]="attachment.status === 'processing'" [class.is-error]="attachment.status === 'error'">
+      <div class="attachment-main">
+        <img
+          *ngIf="attachment.type === 'image' && attachment.previewUrl"
+          class="attachment-preview"
+          [src]="attachment.previewUrl"
+          alt="">
+        <video
+          *ngIf="attachment.type === 'video' && attachment.previewUrl"
+          class="attachment-preview"
+          [src]="attachment.previewUrl"
+          muted
+          playsinline
+          preload="metadata"></video>
+        <span class="attachment-icon" *ngIf="attachment.type === 'audio'" aria-hidden="true">
+          <i class="fa-solid fa-microphone"></i>
+        </span>
+
+        <div class="attachment-meta">
+          <span class="attachment-name">{{ attachmentLabel(attachment) }}</span>
+          <div class="progress-block" *ngIf="attachment.status === 'processing'">
+            <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progressPercent(attachment)" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-fill" [style.width.%]="progressPercent(attachment)"></div>
+            </div>
+            <span class="progress-label">{{ attachment.progressLabel || 'Processing…' }} {{ progressPercent(attachment) }}%</span>
+          </div>
+          <span class="progress-label error" *ngIf="attachment.status === 'error'">
+            {{ attachment.progressLabel || 'Failed' }} — remove and try again
+          </span>
+        </div>
+      </div>
+
       <button
         type="button"
         class="remove-btn"
+        *ngIf="attachment.status === 'processing'"
+        [attr.aria-label]="'Cancel ' + attachmentLabel(attachment)"
+        (mousedown)="$event.preventDefault()"
+        (click)="cancelAttachment(i)">Cancel</button>
+      <button
+        type="button"
+        class="remove-btn"
+        *ngIf="attachment.status !== 'processing'"
         [attr.aria-label]="'Remove ' + attachmentLabel(attachment)"
         (mousedown)="$event.preventDefault()"
         (click)="removeAttachment(i)">Remove</button>

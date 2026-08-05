@@ -11,6 +11,7 @@ import {
   MAX_AUDIO_BYTES,
   validateAttachmentFile
 } from '../../utils/media-attachment-allowlist.util';
+import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 
 @Component({
   selector: 'app-proposal-attachment-picker',
@@ -30,6 +31,8 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() acceptTypes?: string;
   @Output() fileDialogOpenChange = new EventEmitter<boolean>();
   @Output() attachmentsChange = new EventEmitter<void>();
+  /** Emits whenever busy/ready state changes (for submit gating). */
+  @Output() readinessChange = new EventEmitter<boolean>();
 
   audioRecorder = new AudioRecorderController();
 
@@ -38,6 +41,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private fileDialogOpen = false;
   private windowFocusListener?: () => void;
+  private abortControllers = new Map<string, AbortController>();
 
   constructor() {
     this.audioRecorder.onStateChange = () => this.cdr.markForCheck();
@@ -60,9 +64,17 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     return this.maxAttachments <= 0 || this.attachments.length < this.maxAttachments;
   }
 
+  get attachmentsReady(): boolean {
+    return pendingAttachmentsAllowSubmit(this.attachments);
+  }
+
   ngOnDestroy() {
     this.audioRecorder.cancel();
     this.clearWindowFocusListener();
+    for (const controller of this.abortControllers.values()) {
+      controller.abort();
+    }
+    this.abortControllers.clear();
   }
 
   onFileInputClick() {
@@ -112,22 +124,66 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         continue;
       }
 
+      const resourceId = this.proposalCrypto.createResourceId();
+      const controller = new AbortController();
+      this.abortControllers.set(resourceId, controller);
+
+      const pending: PendingAttachment = {
+        type: result.kind,
+        resourceId,
+        fileName: file.name,
+        status: 'processing',
+        progress: 1,
+        progressLabel: result.kind === 'video' ? 'Preparing video…' : 'Processing…',
+        previewUrl: result.kind === 'video' || result.kind === 'image'
+          ? URL.createObjectURL(file)
+          : undefined,
+        abort: () => controller.abort()
+      };
+      this.attachments.push(pending);
+      this.emitChange();
+
       try {
-        const compressed = await compressMediaFile(file, result.kind);
-        this.attachments.push({
-          file: compressed,
-          type: result.kind,
-          resourceId: this.proposalCrypto.createResourceId(),
-          previewUrl: URL.createObjectURL(compressed)
+        const compressed = await compressMediaFile(file, result.kind, {
+          signal: controller.signal,
+          onProgress: (percent, label) => {
+            pending.progress = percent;
+            pending.progressLabel = label;
+            this.cdr.markForCheck();
+          }
         });
+
+        if (controller.signal.aborted) {
+          this.removeByResourceId(resourceId);
+          continue;
+        }
+
+        if (pending.previewUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(pending.previewUrl);
+        }
+        pending.file = compressed;
+        pending.previewUrl = URL.createObjectURL(compressed);
+        pending.status = 'ready';
+        pending.progress = 100;
+        pending.progressLabel = 'Ready';
+        pending.abort = undefined;
+        this.abortControllers.delete(resourceId);
       } catch (error) {
+        this.abortControllers.delete(resourceId);
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          this.removeByResourceId(resourceId);
+          continue;
+        }
+        pending.status = 'error';
+        pending.progress = 0;
+        pending.progressLabel = 'Failed';
+        pending.abort = undefined;
         const message = error instanceof Error ? error.message : 'Failed to process attachment';
         this.toastService.error(message);
       }
-    }
 
-    this.cdr.markForCheck();
-    this.attachmentsChange.emit();
+      this.emitChange();
+    }
   }
 
   onFileInputCancel() {
@@ -153,21 +209,65 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     this.audioRecorder.cancel();
   }
 
+  cancelAttachment(index: number) {
+    const attachment = this.attachments[index];
+    if (!attachment) {
+      return;
+    }
+    attachment.abort?.();
+    const controller = this.abortControllers.get(attachment.resourceId);
+    controller?.abort();
+    this.abortControllers.delete(attachment.resourceId);
+    this.removeAttachment(index);
+  }
+
   removeAttachment(index: number) {
     const attachment = this.attachments[index];
+    if (!attachment) {
+      return;
+    }
+    if (attachment.status === 'processing') {
+      attachment.abort?.();
+      this.abortControllers.get(attachment.resourceId)?.abort();
+      this.abortControllers.delete(attachment.resourceId);
+    }
     if (attachment.previewUrl?.startsWith('blob:')) {
       URL.revokeObjectURL(attachment.previewUrl);
     }
     this.attachments.splice(index, 1);
-    this.cdr.markForCheck();
-    this.attachmentsChange.emit();
+    this.emitChange();
   }
 
   attachmentLabel(attachment: PendingAttachment): string {
+    if (attachment.fileName) {
+      return attachment.fileName;
+    }
     if (attachment.file?.name) {
       return attachment.file.name;
     }
     return `${attachment.type} attachment`;
+  }
+
+  progressPercent(attachment: PendingAttachment): number {
+    return Math.max(0, Math.min(100, attachment.progress ?? 0));
+  }
+
+  private removeByResourceId(resourceId: string) {
+    const index = this.attachments.findIndex(item => item.resourceId === resourceId);
+    if (index >= 0) {
+      const attachment = this.attachments[index];
+      if (attachment.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+      this.attachments.splice(index, 1);
+      this.emitChange();
+    }
+  }
+
+  private emitChange() {
+    this.cdr.markForCheck();
+    this.attachmentsChange.emit();
+    this.readinessChange.emit(this.attachmentsReady);
   }
 
   private setFileDialogOpen(open: boolean) {
@@ -210,27 +310,58 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   }
 
   private async compressAndAddAudio(blob: Blob) {
+    const resourceId = this.proposalCrypto.createResourceId();
+    const controller = new AbortController();
+    this.abortControllers.set(resourceId, controller);
+    const pending: PendingAttachment = {
+      type: 'audio',
+      resourceId,
+      fileName: `recording-${Date.now()}.webm`,
+      status: 'processing',
+      progress: 5,
+      progressLabel: 'Processing audio…',
+      abort: () => controller.abort()
+    };
+    this.attachments.push(pending);
+    this.emitChange();
+
     try {
-      const raw = new File([blob], `recording-${Date.now()}.webm`, {
+      const raw = new File([blob], pending.fileName!, {
         type: blob.type || 'audio/webm',
         lastModified: Date.now()
       });
-      const compressed = await compressMediaFile(raw, 'audio');
+      const compressed = await compressMediaFile(raw, 'audio', {
+        signal: controller.signal,
+        onProgress: (percent, label) => {
+          pending.progress = percent;
+          pending.progressLabel = label;
+          this.cdr.markForCheck();
+        }
+      });
       if (compressed.size > MAX_AUDIO_BYTES) {
         this.toastService.error('Recording is too large.');
+        this.removeByResourceId(resourceId);
         return;
       }
 
-      this.attachments.push({
-        file: compressed,
-        type: 'audio',
-        resourceId: this.proposalCrypto.createResourceId(),
-        previewUrl: URL.createObjectURL(compressed)
-      });
-      this.cdr.markForCheck();
-      this.attachmentsChange.emit();
-    } catch {
+      pending.file = compressed;
+      pending.previewUrl = URL.createObjectURL(compressed);
+      pending.status = 'ready';
+      pending.progress = 100;
+      pending.progressLabel = 'Ready';
+      pending.abort = undefined;
+      this.abortControllers.delete(resourceId);
+      this.emitChange();
+    } catch (error) {
+      this.abortControllers.delete(resourceId);
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        this.removeByResourceId(resourceId);
+        return;
+      }
+      pending.status = 'error';
+      pending.progressLabel = 'Failed';
       this.toastService.error('Failed to process recording.');
+      this.emitChange();
     }
   }
 }

@@ -11,23 +11,75 @@ const VIDEO_BITRATE = 1_500_000;
 const SKIP_SAFE_AUDIO_BYTES = 200 * 1024;
 const AUDIO_BITRATE = 64_000;
 
+export type MediaCompressProgress = (percent: number, label: string) => void;
+
 export async function compressMediaFile(
   file: File,
-  type: 'image' | 'video' | 'audio'
+  type: 'image' | 'video' | 'audio',
+  options?: { onProgress?: MediaCompressProgress; signal?: AbortSignal }
 ): Promise<File> {
+  throwIfAborted(options?.signal);
+
   if (type === 'image') {
-    return compressImage(file);
+    options?.onProgress?.(10, 'Processing image…');
+    const result = await compressImage(file);
+    throwIfAborted(options?.signal);
+    options?.onProgress?.(100, 'Ready');
+    return result;
   }
 
   if (type === 'video') {
-    return compressVideo(file);
+    return compressVideo(file, options);
   }
 
   if (type === 'audio') {
-    return compressAudio(file);
+    options?.onProgress?.(10, 'Processing audio…');
+    const result = await compressAudio(file);
+    throwIfAborted(options?.signal);
+    options?.onProgress?.(100, 'Ready');
+    return result;
   }
 
   return file;
+}
+
+/** Capture a JPEG poster frame from a video file/blob for list thumbnails. */
+export async function extractVideoPosterFrame(source: File | Blob): Promise<File> {
+  const objectUrl = URL.createObjectURL(source);
+  const video = document.createElement('video');
+  video.src = objectUrl;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+
+  try {
+    await waitForVideoMetadata(video);
+    const seekTo = Number.isFinite(video.duration) && video.duration > 0.2
+      ? Math.min(0.15, video.duration * 0.05)
+      : 0;
+    await seekVideo(video, seekTo);
+
+    const scale = Math.min(1, MAX_VIDEO_DIMENSION / Math.max(video.videoWidth || 1, video.videoHeight || 1));
+    const width = Math.max(2, Math.round((video.videoWidth || 640) * scale));
+    const height = Math.max(2, Math.round((video.videoHeight || 360) * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Unable to capture video preview.');
+    }
+    context.drawImage(video, 0, 0, width, height);
+    const blob = await canvasToBlob(canvas, 'image/jpeg', JPEG_QUALITY);
+    return new File([blob], `video-poster-${Date.now()}.jpg`, {
+      type: 'image/jpeg',
+      lastModified: Date.now()
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+    video.removeAttribute('src');
+    video.load();
+  }
 }
 
 async function compressImage(file: File): Promise<File> {
@@ -70,7 +122,11 @@ async function compressImage(file: File): Promise<File> {
   }
 }
 
-async function compressVideo(file: File): Promise<File> {
+async function compressVideo(
+  file: File,
+  options?: { onProgress?: MediaCompressProgress; signal?: AbortSignal }
+): Promise<File> {
+  throwIfAborted(options?.signal);
   if (file.size > MAX_VIDEO_INPUT_BYTES) {
     throw new Error('Videos must be 500 MB or smaller before compression.');
   }
@@ -80,23 +136,30 @@ async function compressVideo(file: File): Promise<File> {
     file.size <= TARGET_VIDEO_BYTES
     && (mime.includes('webm') || mime.includes('mp4'));
   if (alreadyWebFriendly) {
+    options?.onProgress?.(100, 'Ready');
     return file;
   }
 
+  options?.onProgress?.(5, 'Preparing video…');
   let compressed: File;
   try {
-    compressed = await reencodeVideoByPlayback(file);
+    compressed = await reencodeVideoByPlayback(file, options);
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     const message = error instanceof Error ? error.message : 'Failed to compress video.';
     throw new Error(message);
   }
 
+  throwIfAborted(options?.signal);
   if (compressed.size > MAX_VIDEO_BYTES) {
     throw new Error(
       `Video is still ${Math.ceil(compressed.size / (1024 * 1024))} MB after compression. Please use a shorter or lower-resolution clip (max ${Math.floor(MAX_VIDEO_BYTES / (1024 * 1024))} MB).`
     );
   }
 
+  options?.onProgress?.(100, 'Ready');
   return compressed;
 }
 
@@ -176,7 +239,10 @@ async function reencodeAudio(file: File): Promise<File> {
   }
 }
 
-async function reencodeVideoByPlayback(file: File): Promise<File> {
+async function reencodeVideoByPlayback(
+  file: File,
+  options?: { onProgress?: MediaCompressProgress; signal?: AbortSignal }
+): Promise<File> {
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.src = objectUrl;
@@ -186,6 +252,7 @@ async function reencodeVideoByPlayback(file: File): Promise<File> {
 
   try {
     await waitForVideoMetadata(video);
+    throwIfAborted(options?.signal);
     if (!Number.isFinite(video.duration) || video.duration <= 0) {
       throw new Error('Unable to read video duration.');
     }
@@ -230,11 +297,33 @@ async function reencodeVideoByPlayback(file: File): Promise<File> {
     });
 
     recorder.start(250);
+    options?.onProgress?.(8, 'Compressing video…');
 
     await new Promise<void>((resolve, reject) => {
       let rafId = 0;
+      let lastReported = 8;
       const drawFrame = () => {
+        if (options?.signal?.aborted) {
+          cancelAnimationFrame(rafId);
+          try {
+            if (recorder.state !== 'inactive') {
+              recorder.stop();
+            }
+          } catch {
+            // ignore
+          }
+          reject(abortError());
+          return;
+        }
+
         context.drawImage(video, 0, 0, width, height);
+        if (video.duration > 0) {
+          const pct = Math.min(95, Math.max(8, Math.round((video.currentTime / video.duration) * 90) + 8));
+          if (pct >= lastReported + 2) {
+            lastReported = pct;
+            options?.onProgress?.(pct, 'Compressing video…');
+          }
+        }
         if (video.ended) {
           resolve();
           return;
@@ -256,6 +345,7 @@ async function reencodeVideoByPlayback(file: File): Promise<File> {
       }).catch(reject);
     });
 
+    throwIfAborted(options?.signal);
     recorder.stop();
     const compressed = await recordingDone;
     if (compressed.size >= file.size) {
@@ -284,6 +374,36 @@ function waitForVideoMetadata(video: HTMLVideoElement): Promise<void> {
     video.onloadedmetadata = () => resolve();
     video.onerror = () => reject(new Error('Unable to read video metadata'));
   });
+}
+
+function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onSeeked = () => {
+      video.removeEventListener('seeked', onSeeked);
+      resolve();
+    };
+    video.addEventListener('seeked', onSeeked);
+    try {
+      video.currentTime = time;
+    } catch (error) {
+      video.removeEventListener('seeked', onSeeked);
+      reject(error);
+    }
+  });
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw abortError();
+  }
+}
+
+function abortError(): DOMException {
+  return new DOMException('Attachment processing cancelled.', 'AbortError');
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
 }
 
 function canvasToBlob(

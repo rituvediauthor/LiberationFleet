@@ -123,4 +123,12 @@ export interface PendingAttachment {
   resourceId: string;
   previewUrl?: string;
   blob?: Blob;
+  /** Preparing/compressing media. Undefined treated as ready for legacy callers. */
+  status?: 'processing' | 'ready' | 'error';
+  /** 0–100 while processing. */
+  progress?: number;
+  progressLabel?: string;
+  fileName?: string;
+  /** Cancel in-flight compression/processing. */
+  abort?: () => void;
 }

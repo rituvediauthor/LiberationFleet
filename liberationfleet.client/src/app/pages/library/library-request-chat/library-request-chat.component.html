@@ -75,7 +75,8 @@
           class="message-attachment-picker"
           [class.collapsed]="!composerExpanded"
           [attachments]="messageAttachments"
-          (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+          (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
       </div>
     </div>

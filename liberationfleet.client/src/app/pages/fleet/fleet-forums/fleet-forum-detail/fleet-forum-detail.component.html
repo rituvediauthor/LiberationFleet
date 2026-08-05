@@ -82,12 +82,19 @@
         <app-proposal-attachment-picker
           *ngIf="canAttachFiles"
           [attachments]="newEditAttachments"
-          [maxAttachments]="20">
+          [maxAttachments]="20"
+          (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
 
         <div class="edit-actions">
           <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
-          <button type="button" class="action-btn primary" (click)="saveEdit()" [disabled]="savingEdit">Save</button>
+          <button
+            type="button"
+            class="action-btn primary"
+            (click)="saveEdit()"
+            [disabled]="savingEdit || !attachmentsReadyForEdit()">
+            Save
+          </button>
         </div>
       </div>
 
@@ -309,7 +316,8 @@
         class="comment-attachment-picker"
         [class.collapsed]="!commentExpanded"
         [attachments]="commentAttachments"
-        (fileDialogOpenChange)="onFileDialogOpenChange($event)">
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+        (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
     </div>
   </div>

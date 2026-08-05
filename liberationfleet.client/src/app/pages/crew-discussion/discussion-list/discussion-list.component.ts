@@ -34,6 +34,7 @@ import {
   readForumListScrollState,
   saveForumListScrollState
 } from '../../../utils/forum-list-scroll.util';
+import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
 
 @Component({
   selector: 'app-discussion-list',
@@ -87,6 +88,7 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
   private encryptionContent = inject(EncryptionContentService);
+  private forumPrefetch = inject(ForumListPrefetchService);
   private encryptionReload?: EncryptionReloadHandle;
   private listObserver?: IntersectionObserver;
   private scrollEl: HTMLElement | null = null;
@@ -372,6 +374,19 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
 
   private loadPosts(reset: boolean) {
     if (reset) {
+      const prefetched = this.forumPrefetch.takeCrewSpacePage();
+      if (prefetched && !this.refreshing && !this.pendingRestoreCount) {
+        this.items = prefetched.items;
+        this.hasMore = prefetched.hasMore;
+        this.loading = false;
+        this.errorMessage = '';
+        setTimeout(() => {
+          this.bindScrollContainer();
+          this.setupLoadMoreObserver();
+        }, 0);
+        return;
+      }
+
       if (!this.refreshing) {
         this.loading = true;
       }

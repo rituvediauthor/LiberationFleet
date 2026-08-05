@@ -15,7 +15,8 @@ import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
 import { CryptoSessionService } from './crypto-session.service';
 import { bytesToBase64 } from './crypto-encoding.util';
-import { compressMediaFile } from '../../utils/media-compression.util';
+import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
+import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 
 export interface ProposalCryptoScope {
   crewId?: number;
@@ -145,14 +146,22 @@ export class ProposalCryptoService {
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
+    if (!pendingAttachmentsAllowSubmit(newAttachments)) {
+      throw new Error('Attachments are still processing. Wait until they finish or cancel them.');
+    }
+
     const normalizedScope = this.normalizeScope(scope);
     const scopeKey = await this.resolveScopeKey(normalizedScope);
     const uploadedAttachments = await this.uploadAttachments(normalizedScope, newAttachments);
     const allAttachments = [...existingAttachments, ...uploadedAttachments];
+    let thumbnailResourceId = allAttachments.find(a => a.type === 'image')?.resourceId ?? null;
+    if (!thumbnailResourceId) {
+      thumbnailResourceId = await this.uploadVideoPosterThumbnail(normalizedScope, newAttachments);
+    }
     const fullPayload: ProposalEncryptedPayload = {
       ...payload,
       attachments: allAttachments,
-      thumbnailResourceId: allAttachments.find(a => a.type === 'image')?.resourceId ?? null
+      thumbnailResourceId
     };
     return this.cryptoService.encryptJson(scopeKey, fullPayload);
   }
@@ -163,6 +172,10 @@ export class ProposalCryptoService {
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
+    if (!pendingAttachmentsAllowSubmit(newAttachments)) {
+      throw new Error('Attachments are still processing. Wait until they finish or cancel them.');
+    }
+
     const normalizedScope = this.normalizeScope(scope);
     const scopeKey = await this.resolveScopeKey(normalizedScope);
     const storedAttachments = await this.uploadAttachments(normalizedScope, newAttachments);
@@ -459,7 +472,12 @@ export class ProposalCryptoService {
 
     for (const attachment of attachments) {
       let file = attachment.file;
-      if (file && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')) {
+      const alreadyPrepared = attachment.status === 'ready' && !!file;
+      if (
+        file
+        && !alreadyPrepared
+        && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')
+      ) {
         file = await compressMediaFile(file, attachment.type);
       }
 
@@ -471,7 +489,7 @@ export class ProposalCryptoService {
           type: attachment.blob.type || 'audio/webm',
           lastModified: Date.now()
         });
-        const compressed = attachment.type === 'audio'
+        const compressed = attachment.type === 'audio' && attachment.status !== 'ready'
           ? await compressMediaFile(raw, 'audio')
           : raw;
         dataUrl = await this.readFileAsDataUrl(compressed);
@@ -497,12 +515,39 @@ export class ProposalCryptoService {
       results.push({
         resourceId: attachment.resourceId,
         type: attachment.type,
-        fileName: file?.name ?? attachment.file?.name,
+        fileName: file?.name ?? attachment.fileName ?? attachment.file?.name,
         mimeType: file?.type ?? attachment.file?.type
       });
     }
 
     return results;
+  }
+
+  /** Upload a JPEG poster for the first video so list cards can show a preview. */
+  private async uploadVideoPosterThumbnail(
+    scope: ProposalCryptoScope,
+    attachments: PendingAttachment[]
+  ): Promise<string | null> {
+    const video = attachments.find(attachment => attachment.type === 'video' && (attachment.file || attachment.blob));
+    if (!video) {
+      return null;
+    }
+
+    try {
+      const source = video.file ?? video.blob!;
+      const poster = await extractVideoPosterFrame(source);
+      const resourceId = this.createResourceId();
+      await this.uploadImageAttachment(scope, {
+        type: 'image',
+        resourceId,
+        file: poster,
+        status: 'ready',
+        fileName: poster.name
+      });
+      return resourceId;
+    } catch {
+      return null;
+    }
   }
 
   private normalizeScope(scope: ProposalCryptoScope | number): ProposalCryptoScope {
@@ -553,7 +598,7 @@ export class ProposalCryptoService {
     const scopeKey = await this.resolveScopeKey(normalizedScope);
 
     let file = attachment.file;
-    if (file && attachment.type === 'image') {
+    if (file && attachment.type === 'image' && attachment.status !== 'ready') {
       file = await compressMediaFile(file, 'image');
     }
 

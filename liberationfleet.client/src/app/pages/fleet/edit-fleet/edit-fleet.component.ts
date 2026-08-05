@@ -16,6 +16,7 @@ import { FleetPrivacy, FleetScope, UpdateFleetRequest } from '../../../models/fl
 import { PendingAttachment } from '../../../models/proposal.model';
 import { formValuesChanged } from '../../../utils/save-button.util';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
 @Component({
   selector: 'app-edit-fleet',
@@ -234,6 +235,9 @@ export class EditFleetComponent implements OnInit {
 
   private get isSaveDisabled(): boolean {
     if (!this.form || this.loading || this.isSaving || this.form.invalid) {
+      return true;
+    }
+    if (!pendingAttachmentsAllowSubmit(this.imageAttachments)) {
       return true;
     }
 

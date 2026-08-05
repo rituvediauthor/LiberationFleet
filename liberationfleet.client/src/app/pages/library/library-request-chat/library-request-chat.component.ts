@@ -28,6 +28,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { LibraryRequestMessage } from '../../../models/library.model';
 import { PendingAttachment } from '../../../models/proposal.model';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
@@ -204,7 +205,12 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   }
 
   canSend(): boolean {
-    return Boolean(this.messageText.trim()) || this.messageAttachments.length > 0;
+    const hasContent = Boolean(this.messageText.trim()) || this.messageAttachments.length > 0;
+    return hasContent && pendingAttachmentsAllowSubmit(this.messageAttachments);
+  }
+
+  onAttachmentsChange() {
+    // Triggers change detection so send button gating updates during compress.
   }
 
   isOwnMessage(message: LibraryRequestMessage): boolean {

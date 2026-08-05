@@ -32,6 +32,7 @@ import {
   readForumListScrollState,
   saveForumListScrollState
 } from '../../../../utils/forum-list-scroll.util';
+import { ForumListPrefetchService } from '../../../../services/forum-list-prefetch.service';
 
 @Component({
   selector: 'app-fleet-forum-list',
@@ -82,6 +83,7 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
   private contentPreferenceService = inject(ContentPreferenceService);
   private encryptionContent = inject(EncryptionContentService);
   private notificationService = inject(NotificationService);
+  private forumPrefetch = inject(ForumListPrefetchService);
   private encryptionReload?: EncryptionReloadHandle;
   private listObserver?: IntersectionObserver;
   private scrollEl: HTMLElement | null = null;
@@ -372,6 +374,19 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
 
   private loadPosts(reset: boolean) {
     if (reset) {
+      const prefetched = this.forumPrefetch.takeFleetSpacePage();
+      if (prefetched && !this.refreshing && !this.pendingRestoreCount) {
+        this.items = prefetched.items;
+        this.hasMore = prefetched.hasMore;
+        this.loading = false;
+        this.errorMessage = '';
+        setTimeout(() => {
+          this.bindScrollContainer();
+          this.setupLoadMoreObserver();
+        }, 0);
+        return;
+      }
+
       if (!this.refreshing) {
         this.loading = true;
       }

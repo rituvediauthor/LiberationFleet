@@ -19,6 +19,7 @@ import {
   CrewNotificationAreaCounts,
   emptyAreaCounts
 } from '../../../utils/notification-area.util';
+import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
 
 @Component({
   selector: 'app-fleet-home',
@@ -51,11 +52,17 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private notificationHub = inject(NotificationHubService);
   private cryptoSession = inject(CryptoSessionService);
   private images = inject(EncryptedImageCacheService);
+  private forumPrefetch = inject(ForumListPrefetchService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
     this.subscriptions.add(
-      this.cryptoSession.unlocked$.subscribe(() => void this.refreshFleetImage())
+      this.cryptoSession.unlocked$.subscribe(unlocked => {
+        if (unlocked && this.status?.fleetId) {
+          this.forumPrefetch.prefetchFleetSpace(this.status.fleetId);
+        }
+        void this.refreshFleetImage();
+      })
     );
 
     this.fleetService.getStatus().subscribe({
@@ -72,6 +79,10 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
         this.nextAidLoaded = !this.showNextAidWidget;
         this.loading = false;
         void this.refreshFleetImage();
+
+        if (status.hasFleet && status.fleetId) {
+          this.forumPrefetch.prefetchFleetSpace(status.fleetId);
+        }
 
         if (this.showNextAidWidget) {
           this.fleetService.getNextAid().subscribe({
