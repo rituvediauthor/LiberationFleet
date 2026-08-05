@@ -83,6 +83,7 @@
           *ngIf="canAttachFiles"
           [attachments]="newEditAttachments"
           [maxAttachments]="20"
+          [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : null"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
 
@@ -316,6 +317,7 @@
         class="comment-attachment-picker"
         [class.collapsed]="!commentExpanded"
         [attachments]="commentAttachments"
+        [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : null"
         (fileDialogOpenChange)="onFileDialogOpenChange($event)"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>

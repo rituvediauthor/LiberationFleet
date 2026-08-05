@@ -223,6 +223,75 @@ export class CryptoService {
     return JSON.parse(bytesToUtf8(new Uint8Array(decrypted))) as T;
   }
 
+  /**
+   * Encrypt raw media bytes (TikTok-style size: no nested data-URL base64).
+   * Layout: [version=1][mimeLen u16 LE][mime utf8][file bytes]
+   */
+  async encryptMediaBytes(
+    crewAesKey: CryptoKey,
+    fileBytes: Uint8Array,
+    mimeType: string
+  ): Promise<{ nonce: string; ciphertext: string }> {
+    const mimeBytes = utf8ToBytes(mimeType || 'application/octet-stream');
+    if (mimeBytes.length > 0xffff) {
+      throw new Error('Media MIME type is too long.');
+    }
+
+    const plaintext = new Uint8Array(1 + 2 + mimeBytes.length + fileBytes.length);
+    plaintext[0] = 1;
+    plaintext[1] = mimeBytes.length & 0xff;
+    plaintext[2] = (mimeBytes.length >> 8) & 0xff;
+    plaintext.set(mimeBytes, 3);
+    plaintext.set(fileBytes, 3 + mimeBytes.length);
+
+    const nonce = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: AES_ALGORITHM, iv: nonce },
+      crewAesKey,
+      plaintext
+    );
+
+    return {
+      nonce: bytesToBase64(nonce),
+      ciphertext: bytesToBase64(new Uint8Array(encrypted))
+    };
+  }
+
+  /** Decrypt media ciphertext to a blob: object URL (supports v1 binary + legacy {dataUrl} JSON). */
+  async decryptMediaToObjectUrl(
+    crewAesKey: CryptoKey,
+    nonce: string,
+    ciphertext: string
+  ): Promise<string> {
+    const decrypted = new Uint8Array(
+      await crypto.subtle.decrypt(
+        { name: AES_ALGORITHM, iv: base64ToBytes(nonce) },
+        crewAesKey,
+        base64ToBytes(ciphertext)
+      )
+    );
+
+    if (decrypted.length > 3 && decrypted[0] === 1) {
+      const mimeLen = decrypted[1] | (decrypted[2] << 8);
+      const mimeStart = 3;
+      const dataStart = mimeStart + mimeLen;
+      if (dataStart > decrypted.length) {
+        throw new Error('Invalid media payload.');
+      }
+      const mime = bytesToUtf8(decrypted.subarray(mimeStart, dataStart)) || 'application/octet-stream';
+      const fileBytes = decrypted.subarray(dataStart);
+      const blob = new Blob([fileBytes], { type: mime });
+      return URL.createObjectURL(blob);
+    }
+
+    // Legacy JSON { dataUrl: "data:..." }
+    const payload = JSON.parse(bytesToUtf8(decrypted)) as { dataUrl?: string };
+    if (!payload?.dataUrl) {
+      throw new Error('Unrecognized media payload.');
+    }
+    return payload.dataUrl;
+  }
+
   private async deriveSecretKey(secret: string, salt: Uint8Array, wrapVersion: number): Promise<CryptoKey> {
     const info = wrapVersion === BACKUP_WRAP_RECOVERY_KEY
       ? utf8ToBytes('lf-recovery-key-wrap-v2')

@@ -75,6 +75,7 @@
           class="message-attachment-picker"
           [class.collapsed]="!composerExpanded"
           [attachments]="messageAttachments"
+          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
           (fileDialogOpenChange)="onFileDialogOpenChange($event)"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>

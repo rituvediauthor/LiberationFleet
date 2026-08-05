@@ -3,6 +3,7 @@
 <app-dev-toolbar (visibilityChange)="showDevToolbar = $event"></app-dev-toolbar>
 
 <div class="app-container" [class.with-dev-toolbar]="showDevToolbar">
+  <app-media-upload-progress></app-media-upload-progress>
   <main id="main-content" class="app-main" tabindex="-1">
     <router-outlet></router-outlet>
   </main>

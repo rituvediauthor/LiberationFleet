@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   CrewKeyState,
@@ -88,6 +88,43 @@ export class CryptoApiService {
     ciphertext: string;
   }): Observable<CryptoOperationResponse> {
     return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/content`, payload);
+  }
+
+  /** Same as upsertEncryptedContent but reports upload progress (0–100). */
+  upsertEncryptedContentWithProgress(
+    payload: {
+      contentType: EncryptedContentType;
+      resourceId: string;
+      crewId?: number | null;
+      fleetId?: number | null;
+      keyVersion: number;
+      nonce: string;
+      ciphertext: string;
+    },
+    onProgress?: (percent: number) => void
+  ): Observable<CryptoOperationResponse> {
+    return new Observable<CryptoOperationResponse>(subscriber => {
+      const sub = this.http.put<CryptoOperationResponse>(`${this.apiUrl}/content`, payload, {
+        reportProgress: true,
+        observe: 'events'
+      }).subscribe({
+        next: event => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            onProgress?.(Math.round((event.loaded / event.total) * 100));
+          } else if (event.type === HttpEventType.Response) {
+            if (event.body) {
+              subscriber.next(event.body);
+              subscriber.complete();
+            } else {
+              subscriber.error(new Error('Empty upload response.'));
+            }
+          }
+        },
+        error: err => subscriber.error(err),
+        complete: () => subscriber.complete()
+      });
+      return () => sub.unsubscribe();
+    });
   }
 
   getEncryptedContents(

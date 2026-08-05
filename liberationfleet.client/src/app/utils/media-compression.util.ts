@@ -4,10 +4,16 @@ const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
 /** Only skip re-encode for already-safe JPEG under size/dimension limits. */
 const SKIP_SAFE_JPEG_BYTES = 250 * 1024;
-const TARGET_VIDEO_BYTES = 2 * 1024 * 1024;
-const MAX_VIDEO_DIMENSION = 1280;
-const MAX_VIDEO_DURATION_SEC = 45;
-const VIDEO_BITRATE = 1_500_000;
+/** Skip re-encode when already small enough for a snappy upload. */
+const TARGET_VIDEO_BYTES = 12 * 1024 * 1024;
+/** 720p — TikTok-style mobile encode for longer clips. */
+const MAX_VIDEO_DIMENSION = 720;
+/** Allow up to 3 minutes. */
+const MAX_VIDEO_DURATION_SEC = 180;
+/** Soft ceiling; actual bitrate is adapted to hit TARGET_VIDEO_BYTES. */
+const MAX_VIDEO_BITRATE = 1_200_000;
+const MIN_VIDEO_BITRATE = 400_000;
+const VIDEO_FPS = 24;
 const SKIP_SAFE_AUDIO_BYTES = 200 * 1024;
 const AUDIO_BITRATE = 64_000;
 
@@ -261,8 +267,12 @@ async function reencodeVideoByPlayback(
     }
 
     const scale = Math.min(1, MAX_VIDEO_DIMENSION / Math.max(video.videoWidth, video.videoHeight));
-    const width = Math.max(2, Math.round(video.videoWidth * scale));
-    const height = Math.max(2, Math.round(video.videoHeight * scale));
+    const width = Math.max(2, Math.round(video.videoWidth * scale / 2) * 2);
+    const height = Math.max(2, Math.round(video.videoHeight * scale / 2) * 2);
+
+    // Adaptive bitrate: aim for TARGET_VIDEO_BYTES over the clip length (TikTok-style).
+    const adaptiveBitrate = Math.floor((TARGET_VIDEO_BYTES * 8) / Math.max(1, video.duration));
+    const videoBitrate = Math.max(MIN_VIDEO_BITRATE, Math.min(MAX_VIDEO_BITRATE, adaptiveBitrate));
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -272,16 +282,39 @@ async function reencodeVideoByPlayback(
       return file;
     }
 
-    const stream = canvas.captureStream(24);
-    const preferredMime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
-        ? 'video/webm;codecs=vp8'
-        : 'video/webm';
+    const stream = canvas.captureStream(VIDEO_FPS);
+    // Keep audio when the browser allows capturing it from the element.
+    try {
+      const capture = (
+        video as HTMLVideoElement & {
+          captureStream?: () => MediaStream;
+          mozCaptureStream?: () => MediaStream;
+        }
+      );
+      const sourceStream = capture.captureStream?.() ?? capture.mozCaptureStream?.();
+      if (sourceStream) {
+        for (const track of sourceStream.getAudioTracks()) {
+          stream.addTrack(track);
+        }
+      }
+    } catch {
+      // Audio optional — video-only still uploads.
+    }
+
+    const preferredMime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      ? 'video/webm;codecs=vp9,opus'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+        ? 'video/webm;codecs=vp8,opus'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
+            ? 'video/webm;codecs=vp8'
+            : 'video/webm';
 
     const recorder = new MediaRecorder(stream, {
       mimeType: preferredMime,
-      videoBitsPerSecond: VIDEO_BITRATE
+      videoBitsPerSecond: videoBitrate,
+      audioBitsPerSecond: AUDIO_BITRATE
     });
 
     const chunks: Blob[] = [];

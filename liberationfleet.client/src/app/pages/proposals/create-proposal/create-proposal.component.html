@@ -42,6 +42,9 @@
       <app-proposal-attachment-picker
         *ngIf="canAttachFiles"
         [attachments]="attachments"
+        [cryptoScope]="isFleetScope
+          ? (fleetId > 0 ? { fleetId: fleetId } : null)
+          : (crewId > 0 ? { crewId: crewId } : null)"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
     </form>

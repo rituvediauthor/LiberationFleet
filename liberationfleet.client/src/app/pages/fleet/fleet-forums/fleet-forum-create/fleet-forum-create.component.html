@@ -39,6 +39,7 @@
         *ngIf="canAttachFiles"
         [attachments]="attachments"
         [maxAttachments]="20"
+        [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : null"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
 

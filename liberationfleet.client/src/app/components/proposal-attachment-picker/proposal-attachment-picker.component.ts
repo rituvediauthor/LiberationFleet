@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PendingAttachment } from '../../models/proposal.model';
-import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
+import { ProposalCryptoScope, ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
 import { compressMediaFile } from '../../utils/media-compression.util';
@@ -27,6 +27,8 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() allowedKinds: AttachmentMediaKind[] = ['image', 'video', 'audio'];
   /** Max number of attachments; omit or set 0 for unlimited. */
   @Input() maxAttachments = 0;
+  /** When set, compressed files upload in the background immediately. */
+  @Input() cryptoScope: ProposalCryptoScope | null = null;
   /** @deprecated Prefer allowedKinds; still honored if set for the file dialog hint. */
   @Input() acceptTypes?: string;
   @Output() fileDialogOpenChange = new EventEmitter<boolean>();
@@ -163,11 +165,33 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         }
         pending.file = compressed;
         pending.previewUrl = URL.createObjectURL(compressed);
-        pending.status = 'ready';
-        pending.progress = 100;
-        pending.progressLabel = 'Ready';
         pending.abort = undefined;
         this.abortControllers.delete(resourceId);
+
+        if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId)) {
+          pending.status = 'uploading';
+          pending.progress = 0;
+          pending.progressLabel = 'Uploading…';
+          this.emitChange();
+          try {
+            await this.proposalCrypto.uploadAttachmentInBackground(
+              this.cryptoScope,
+              pending,
+              (percent, label) => {
+                pending.progress = percent;
+                pending.progressLabel = label;
+                this.cdr.markForCheck();
+              }
+            );
+          } catch (uploadError) {
+            const message = uploadError instanceof Error ? uploadError.message : 'Upload failed';
+            this.toastService.error(message);
+          }
+        } else {
+          pending.status = 'ready';
+          pending.progress = 100;
+          pending.progressLabel = 'Ready';
+        }
       } catch (error) {
         this.abortControllers.delete(resourceId);
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -346,11 +370,32 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
       pending.file = compressed;
       pending.previewUrl = URL.createObjectURL(compressed);
-      pending.status = 'ready';
-      pending.progress = 100;
-      pending.progressLabel = 'Ready';
       pending.abort = undefined;
       this.abortControllers.delete(resourceId);
+
+      if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId)) {
+        pending.status = 'uploading';
+        pending.progress = 0;
+        pending.progressLabel = 'Uploading…';
+        this.emitChange();
+        try {
+          await this.proposalCrypto.uploadAttachmentInBackground(
+            this.cryptoScope,
+            pending,
+            (percent, label) => {
+              pending.progress = percent;
+              pending.progressLabel = label;
+              this.cdr.markForCheck();
+            }
+          );
+        } catch {
+          this.toastService.error('Upload failed.');
+        }
+      } else {
+        pending.status = 'ready';
+        pending.progress = 100;
+        pending.progressLabel = 'Ready';
+      }
       this.emitChange();
     } catch (error) {
       this.abortControllers.delete(resourceId);

@@ -307,12 +307,12 @@ export class LibraryCryptoService {
       );
       for (const envelope of envelopes) {
         try {
-          const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+          const url = await this.cryptoService.decryptMediaToObjectUrl(
             crewKey,
             envelope.nonce,
             envelope.ciphertext
           );
-          results.set(envelope.resourceId, blobPayload.dataUrl);
+          results.set(envelope.resourceId, url);
         } catch {
           // Skip unreadable thumbnails.
         }
@@ -375,12 +375,12 @@ export class LibraryCryptoService {
         return null;
       }
 
-      const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+      const url = await this.cryptoService.decryptMediaToObjectUrl(
         crewKey,
         envelope.nonce,
         envelope.ciphertext
       );
-      return blobPayload.dataUrl;
+      return url;
     } catch {
       return null;
     }

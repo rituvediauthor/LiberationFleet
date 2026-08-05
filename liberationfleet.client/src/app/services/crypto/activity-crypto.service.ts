@@ -114,12 +114,12 @@ export class ActivityCryptoService {
         }
 
         try {
-          const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+          const url = await this.cryptoService.decryptMediaToObjectUrl(
             crewKey,
             envelope.nonce,
             envelope.ciphertext
           );
-          item.thumbnailUrl = blobPayload.dataUrl;
+          item.thumbnailUrl = url;
         } catch {
           // Thumbnail preview is best-effort.
         }

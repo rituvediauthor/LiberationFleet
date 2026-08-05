@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   ProposalComment,
@@ -17,6 +17,7 @@ import { CryptoSessionService } from './crypto-session.service';
 import { bytesToBase64 } from './crypto-encoding.util';
 import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
+import { MediaUploadQueueService } from '../media-upload-queue.service';
 
 export interface ProposalCryptoScope {
   crewId?: number;
@@ -27,11 +28,10 @@ export interface ProposalCryptoScope {
   providedIn: 'root'
 })
 export class ProposalCryptoService {
-  constructor(
-    private cryptoService: CryptoService,
-    private cryptoApi: CryptoApiService,
-    private cryptoSession: CryptoSessionService
-  ) {}
+  private cryptoService = inject(CryptoService);
+  private cryptoApi = inject(CryptoApiService);
+  private cryptoSession = inject(CryptoSessionService);
+  private uploadQueue = inject(MediaUploadQueueService);
 
   async decryptListItems(items: ProposalListItem[], scope: ProposalCryptoScope | number): Promise<ProposalListItem[]> {
     const normalizedScope = this.normalizeScope(scope);
@@ -356,12 +356,12 @@ export class ProposalCryptoService {
         );
         for (const envelope of envelopes) {
           try {
-            const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+            const url = await this.cryptoService.decryptMediaToObjectUrl(
               scopeKey,
               envelope.nonce,
               envelope.ciphertext
             );
-            dataUrlByResourceId.set(envelope.resourceId, blobPayload.dataUrl);
+            dataUrlByResourceId.set(envelope.resourceId, url);
           } catch {
             // Skip unreadable attachments.
           }
@@ -402,12 +402,12 @@ export class ProposalCryptoService {
         return { ...attachment };
       }
 
-      const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+      const url = await this.cryptoService.decryptMediaToObjectUrl(
         scopeKey,
         envelope.nonce,
         envelope.ciphertext
       );
-      return { ...attachment, dataUrl: blobPayload.dataUrl };
+      return { ...attachment, dataUrl: url };
     } catch {
       return { ...attachment };
     }
@@ -448,12 +448,11 @@ export class ProposalCryptoService {
       }
 
       try {
-        const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+        return await this.cryptoService.decryptMediaToObjectUrl(
           scopeKey,
           envelope.nonce,
           envelope.ciphertext
         );
-        return blobPayload.dataUrl || null;
       } catch {
         return null;
       }
@@ -462,65 +461,162 @@ export class ProposalCryptoService {
     return urls.filter((url): url is string => !!url);
   }
 
+  /**
+   * Start encrypt+upload as soon as a file is compressed (background).
+   * Create/send can proceed once `uploaded` is true.
+   */
+  async uploadAttachmentInBackground(
+    scope: ProposalCryptoScope | number,
+    attachment: PendingAttachment,
+    onLocalProgress?: (percent: number, label: string) => void
+  ): Promise<void> {
+    if (attachment.uploaded) {
+      return;
+    }
+    const normalizedScope = this.normalizeScope(scope);
+    const label = attachment.fileName || attachment.file?.name || `${attachment.type} attachment`;
+    const jobId = this.uploadQueue.createJob(label);
+    attachment.status = 'uploading';
+    attachment.progress = 0;
+    attachment.progressLabel = 'Encrypting…';
+    onLocalProgress?.(0, 'Encrypting…');
+
+    try {
+      await this.encryptAndUpsertAttachment(normalizedScope, attachment, jobId, percent => {
+        attachment.progress = percent;
+        attachment.progressLabel = percent < 40 ? 'Encrypting…' : 'Uploading…';
+        onLocalProgress?.(percent, attachment.progressLabel);
+      });
+      attachment.uploaded = true;
+      attachment.status = 'ready';
+      attachment.progress = 100;
+      attachment.progressLabel = 'Ready';
+      onLocalProgress?.(100, 'Ready');
+      this.uploadQueue.updateJob(jobId, { phase: 'done', progress: 100 });
+    } catch (error) {
+      attachment.status = 'error';
+      attachment.progress = 0;
+      attachment.progressLabel = 'Upload failed';
+      attachment.uploaded = false;
+      const message = error instanceof Error ? error.message : 'Upload failed';
+      this.uploadQueue.updateJob(jobId, { phase: 'error', progress: 0, error: message });
+      throw error;
+    }
+  }
+
   private async uploadAttachments(scope: ProposalCryptoScope, attachments: PendingAttachment[]): Promise<ProposalAttachment[]> {
     if (!attachments.length) {
       return [];
     }
 
-    const scopeKey = await this.resolveScopeKey(scope);
     const results: ProposalAttachment[] = [];
 
     for (const attachment of attachments) {
-      let file = attachment.file;
-      const alreadyPrepared = attachment.status === 'ready' && !!file;
-      if (
-        file
-        && !alreadyPrepared
-        && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')
-      ) {
-        file = await compressMediaFile(file, attachment.type);
+      if (!attachment.uploaded) {
+        const label = attachment.fileName || attachment.file?.name || `${attachment.type} attachment`;
+        const jobId = this.uploadQueue.createJob(label);
+        try {
+          await this.encryptAndUpsertAttachment(scope, attachment, jobId);
+          attachment.uploaded = true;
+          this.uploadQueue.updateJob(jobId, { phase: 'done', progress: 100 });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Upload failed';
+          this.uploadQueue.updateJob(jobId, { phase: 'error', progress: 0, error: message });
+          throw error;
+        }
       }
-
-      let dataUrl = attachment.previewUrl ?? '';
-      if (file) {
-        dataUrl = await this.readFileAsDataUrl(file);
-      } else if (attachment.blob) {
-        const raw = new File([attachment.blob], `audio-${Date.now()}.webm`, {
-          type: attachment.blob.type || 'audio/webm',
-          lastModified: Date.now()
-        });
-        const compressed = attachment.type === 'audio' && attachment.status !== 'ready'
-          ? await compressMediaFile(raw, 'audio')
-          : raw;
-        dataUrl = await this.readFileAsDataUrl(compressed);
-      }
-
-      const encrypted = await this.cryptoService.encryptJson(scopeKey, { dataUrl });
-      const contentType = attachment.type === 'image'
-        ? 'ImageAsset'
-        : attachment.type === 'video'
-          ? 'VideoAsset'
-          : 'AudioAsset';
-
-      await firstValueFrom(this.cryptoApi.upsertEncryptedContent({
-        contentType,
-        resourceId: attachment.resourceId,
-        crewId: scope.crewId,
-        fleetId: scope.fleetId,
-        keyVersion: 1,
-        nonce: encrypted.nonce,
-        ciphertext: encrypted.ciphertext
-      }));
 
       results.push({
         resourceId: attachment.resourceId,
         type: attachment.type,
-        fileName: file?.name ?? attachment.fileName ?? attachment.file?.name,
-        mimeType: file?.type ?? attachment.file?.type
+        fileName: attachment.fileName ?? attachment.file?.name,
+        mimeType: attachment.file?.type
       });
     }
 
     return results;
+  }
+
+  private async encryptAndUpsertAttachment(
+    scope: ProposalCryptoScope,
+    attachment: PendingAttachment,
+    jobId: string,
+    onProgress?: (percent: number) => void
+  ): Promise<void> {
+    this.uploadQueue.updateJob(jobId, { phase: 'encrypting', progress: 5 });
+    onProgress?.(5);
+
+    let file = attachment.file;
+    const alreadyPrepared = (attachment.status === 'ready' || attachment.status === 'uploading') && !!file;
+    if (
+      file
+      && !alreadyPrepared
+      && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')
+    ) {
+      file = await compressMediaFile(file, attachment.type);
+      attachment.file = file;
+    }
+
+    if (!file && attachment.blob) {
+      const raw = new File([attachment.blob], attachment.fileName || `audio-${Date.now()}.webm`, {
+        type: attachment.blob.type || 'audio/webm',
+        lastModified: Date.now()
+      });
+      file = attachment.type === 'audio' && attachment.status !== 'ready' && attachment.status !== 'uploading'
+        ? await compressMediaFile(raw, 'audio')
+        : raw;
+      attachment.file = file;
+    }
+
+    if (!file) {
+      throw new Error('Attachment file is missing.');
+    }
+
+    const scopeKey = await this.resolveScopeKey(scope);
+    this.uploadQueue.updateJob(jobId, { phase: 'encrypting', progress: 15 });
+    onProgress?.(15);
+
+    const fileBytes = new Uint8Array(await file.arrayBuffer());
+    const encrypted = await this.cryptoService.encryptMediaBytes(
+      scopeKey,
+      fileBytes,
+      file.type || 'application/octet-stream'
+    );
+
+    this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: 35 });
+    onProgress?.(35);
+
+    const contentType = attachment.type === 'image'
+      ? 'ImageAsset'
+      : attachment.type === 'video'
+        ? 'VideoAsset'
+        : 'AudioAsset';
+
+    const result = await firstValueFrom(
+      this.cryptoApi.upsertEncryptedContentWithProgress(
+        {
+          contentType,
+          resourceId: attachment.resourceId,
+          crewId: scope.crewId,
+          fleetId: scope.fleetId,
+          keyVersion: 1,
+          nonce: encrypted.nonce,
+          ciphertext: encrypted.ciphertext
+        },
+        uploadPercent => {
+          const mapped = 35 + Math.round(uploadPercent * 0.6);
+          this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
+          onProgress?.(mapped);
+        }
+      )
+    );
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to upload attachment.');
+    }
+
+    this.uploadQueue.updateJob(jobId, { phase: 'finalizing', progress: 98 });
+    onProgress?.(98);
   }
 
   /** Upload a JPEG poster for the first video so list cards can show a preview. */
@@ -566,24 +662,6 @@ export class ProposalCryptoService {
     throw new Error('Encryption scope is required.');
   }
 
-  private readFileAsDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  private readBlobAsDataUrl(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-  }
-
   createResourceId(): string {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
     return bytesToBase64(bytes).replace(/[/+=]/g, '').slice(0, 22);
@@ -598,18 +676,27 @@ export class ProposalCryptoService {
     const scopeKey = await this.resolveScopeKey(normalizedScope);
 
     let file = attachment.file;
-    if (file && attachment.type === 'image' && attachment.status !== 'ready') {
+    if (file && attachment.type === 'image' && attachment.status !== 'ready' && attachment.status !== 'uploading') {
       file = await compressMediaFile(file, 'image');
     }
 
-    let dataUrl = attachment.previewUrl ?? '';
-    if (file) {
-      dataUrl = await this.readFileAsDataUrl(file);
-    } else if (attachment.blob) {
-      dataUrl = await this.readBlobAsDataUrl(attachment.blob);
+    if (!file && attachment.blob) {
+      file = new File([attachment.blob], attachment.fileName || `image-${Date.now()}.jpg`, {
+        type: attachment.blob.type || 'image/jpeg',
+        lastModified: Date.now()
+      });
     }
 
-    const encrypted = await this.cryptoService.encryptJson(scopeKey, { dataUrl });
+    if (!file) {
+      throw new Error('Image file is missing.');
+    }
+
+    const fileBytes = new Uint8Array(await file.arrayBuffer());
+    const encrypted = await this.cryptoService.encryptMediaBytes(
+      scopeKey,
+      fileBytes,
+      file.type || 'image/jpeg'
+    );
     const result = await firstValueFrom(this.cryptoApi.upsertEncryptedContent({
       contentType,
       resourceId: attachment.resourceId,
@@ -652,12 +739,11 @@ export class ProposalCryptoService {
     }
 
     try {
-      const blobPayload = await this.cryptoService.decryptJson<{ dataUrl: string }>(
+      return await this.cryptoService.decryptMediaToObjectUrl(
         scopeKey,
         envelope.nonce,
         envelope.ciphertext
       );
-      return blobPayload.dataUrl;
     } catch {
       return null;
     }

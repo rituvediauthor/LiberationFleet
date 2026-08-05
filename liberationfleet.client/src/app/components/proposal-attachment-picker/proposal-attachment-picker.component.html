@@ -34,7 +34,7 @@
   </div>
 
   <ul class="attachment-list" *ngIf="attachments.length > 0">
-    <li *ngFor="let attachment of attachments; let i = index" [class.is-processing]="attachment.status === 'processing'" [class.is-error]="attachment.status === 'error'">
+    <li *ngFor="let attachment of attachments; let i = index" [class.is-processing]="attachment.status === 'processing' || attachment.status === 'uploading'" [class.is-error]="attachment.status === 'error'">
       <div class="attachment-main">
         <img
           *ngIf="attachment.type === 'image' && attachment.previewUrl"
@@ -54,7 +54,7 @@
 
         <div class="attachment-meta">
           <span class="attachment-name">{{ attachmentLabel(attachment) }}</span>
-          <div class="progress-block" *ngIf="attachment.status === 'processing'">
+          <div class="progress-block" *ngIf="attachment.status === 'processing' || attachment.status === 'uploading'">
             <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progressPercent(attachment)" aria-valuemin="0" aria-valuemax="100">
               <div class="progress-fill" [style.width.%]="progressPercent(attachment)"></div>
             </div>
@@ -69,14 +69,14 @@
       <button
         type="button"
         class="remove-btn"
-        *ngIf="attachment.status === 'processing'"
+        *ngIf="attachment.status === 'processing' || attachment.status === 'uploading'"
         [attr.aria-label]="'Cancel ' + attachmentLabel(attachment)"
         (mousedown)="$event.preventDefault()"
         (click)="cancelAttachment(i)">Cancel</button>
       <button
         type="button"
         class="remove-btn"
-        *ngIf="attachment.status !== 'processing'"
+        *ngIf="attachment.status !== 'processing' && attachment.status !== 'uploading'"
         [attr.aria-label]="'Remove ' + attachmentLabel(attachment)"
         (mousedown)="$event.preventDefault()"
         (click)="removeAttachment(i)">Remove</button>

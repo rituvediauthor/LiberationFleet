@@ -50,7 +50,7 @@ public class UpsertEncryptedContentCommandHandler(
     /// Caps media ciphertext length (characters). Opaque E2E payloads cannot be MIME-sniffed;
     /// size limits still blunt storage / request abuse.
     /// </summary>
-    private const int MaxMediaCiphertextChars = 20 * 1024 * 1024;
+    private const int MaxMediaCiphertextChars = 40 * 1024 * 1024;
     private const int MaxGiftLogCiphertextChars = 512 * 1024;
     private const int MaxProfileAvatarCiphertextChars = 5 * 1024 * 1024;
 

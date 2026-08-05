@@ -1,7 +1,7 @@
 import { PendingAttachment } from '../models/proposal.model';
 
 export function isPendingAttachmentBusy(attachment: PendingAttachment): boolean {
-  return attachment.status === 'processing';
+  return attachment.status === 'processing' || attachment.status === 'uploading';
 }
 
 export function isPendingAttachmentReady(attachment: PendingAttachment): boolean {

@@ -1,0 +1,23 @@
+<div class="upload-progress-bar" *ngIf="hasActive$ | async" role="status" aria-live="polite">
+  <div class="upload-progress-inner">
+    <div class="upload-progress-meta">
+      <ng-container *ngIf="(activeJobs$ | async) as jobs">
+        <span class="upload-progress-title" *ngIf="jobs.length === 1">
+          {{ phaseLabel(jobs[0].phase) }} {{ jobs[0].label }}
+        </span>
+        <span class="upload-progress-title" *ngIf="jobs.length > 1">
+          Uploading {{ jobs.length }} files…
+        </span>
+      </ng-container>
+      <span class="upload-progress-pct">{{ aggregateProgress$ | async }}%</span>
+    </div>
+    <div
+      class="upload-progress-track"
+      role="progressbar"
+      [attr.aria-valuenow]="aggregateProgress$ | async"
+      aria-valuemin="0"
+      aria-valuemax="100">
+      <div class="upload-progress-fill" [style.width.%]="aggregateProgress$ | async"></div>
+    </div>
+  </div>
+</div>

@@ -123,12 +123,14 @@ export interface PendingAttachment {
   resourceId: string;
   previewUrl?: string;
   blob?: Blob;
-  /** Preparing/compressing media. Undefined treated as ready for legacy callers. */
-  status?: 'processing' | 'ready' | 'error';
-  /** 0–100 while processing. */
+  /** Preparing/compressing/uploading media. Undefined treated as ready for legacy callers. */
+  status?: 'processing' | 'uploading' | 'ready' | 'error';
+  /** 0–100 while processing/uploading. */
   progress?: number;
   progressLabel?: string;
   fileName?: string;
+  /** True once the encrypted asset is stored on the server. */
+  uploaded?: boolean;
   /** Cancel in-flight compression/processing. */
   abort?: () => void;
 }

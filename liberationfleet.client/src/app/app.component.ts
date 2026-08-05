@@ -5,6 +5,7 @@ import { filter } from 'rxjs/operators';
 import { ToastContainerComponent } from './components/toast/toast.component';
 import { DevToolbarComponent } from './components/dev-toolbar/dev-toolbar.component';
 import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/crypto-unlock-dialog.component';
+import { MediaUploadProgressComponent } from './components/media-upload-progress/media-upload-progress.component';
 import { AuthService } from './services/auth.service';
 import { CryptoSessionService } from './services/crypto/crypto-session.service';
 import { CrewCryptoSyncService } from './services/crew-crypto-sync.service';
@@ -15,7 +16,14 @@ import { NotificationService } from './services/notification.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, ToastContainerComponent, DevToolbarComponent, CryptoUnlockDialogComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    ToastContainerComponent,
+    DevToolbarComponent,
+    CryptoUnlockDialogComponent,
+    MediaUploadProgressComponent
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })

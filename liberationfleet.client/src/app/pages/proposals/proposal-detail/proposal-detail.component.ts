@@ -844,7 +844,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     return updated;
   }
 
-  private get cryptoScope(): { crewId: number } | { fleetId: number } | null {
+  get cryptoScope(): { crewId: number } | { fleetId: number } | null {
     if (this.isFleetScope) {
       return this.fleetId > 0 ? { fleetId: this.fleetId } : null;
     }

@@ -96,6 +96,7 @@
         <app-proposal-attachment-picker
           *ngIf="canAttachFiles"
           [attachments]="newEditAttachments"
+          [cryptoScope]="cryptoScope"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
 
@@ -331,6 +332,7 @@
           class="comment-attachment-picker"
           [class.collapsed]="!commentExpanded"
           [attachments]="commentAttachments"
+          [cryptoScope]="cryptoScope"
           (fileDialogOpenChange)="onFileDialogOpenChange($event)"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
