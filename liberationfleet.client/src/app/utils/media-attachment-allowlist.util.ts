@@ -57,6 +57,8 @@ export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 export const MAX_VIDEO_BYTES = 18 * 1024 * 1024;
 /** Allow larger raw camera/phone videos so they can be compressed down. */
 export const MAX_VIDEO_INPUT_BYTES = 500 * 1024 * 1024;
+/** Max video length allowed across the app (3 minutes). */
+export const MAX_VIDEO_DURATION_SEC = 3 * 60;
 export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 
 /** Max ciphertext characters accepted for a single media asset (must match server). */
