@@ -257,21 +257,31 @@ export class CryptoService {
     };
   }
 
+  /** Decrypt media ciphertext to a Blob (supports v1 binary + legacy {dataUrl} JSON). */
+  async decryptMediaToBlob(
+    crewAesKey: CryptoKey,
+    nonce: string,
+    ciphertext: string
+  ): Promise<Blob> {
+    return this.decryptMediaBytesToBlob(crewAesKey, nonce, base64ToBytes(ciphertext));
+  }
+
   /** Decrypt media ciphertext to a blob: object URL (supports v1 binary + legacy {dataUrl} JSON). */
   async decryptMediaToObjectUrl(
     crewAesKey: CryptoKey,
     nonce: string,
     ciphertext: string
   ): Promise<string> {
-    return this.decryptMediaBytesToObjectUrl(crewAesKey, nonce, base64ToBytes(ciphertext));
+    const blob = await this.decryptMediaToBlob(crewAesKey, nonce, ciphertext);
+    return URL.createObjectURL(blob);
   }
 
-  /** Same as decryptMediaToObjectUrl but accepts raw ciphertext bytes (binary download path). */
-  async decryptMediaBytesToObjectUrl(
+  /** Same as decryptMediaToBlob but accepts raw ciphertext bytes (binary download path). */
+  async decryptMediaBytesToBlob(
     crewAesKey: CryptoKey,
     nonce: string,
     ciphertextBytes: Uint8Array | ArrayBuffer
-  ): Promise<string> {
+  ): Promise<Blob> {
     const ciphertext = ciphertextBytes instanceof Uint8Array
       ? ciphertextBytes
       : new Uint8Array(ciphertextBytes);
@@ -292,8 +302,7 @@ export class CryptoService {
       }
       const mime = bytesToUtf8(decrypted.subarray(mimeStart, dataStart)) || 'application/octet-stream';
       const fileBytes = decrypted.subarray(dataStart);
-      const blob = new Blob([fileBytes], { type: mime });
-      return URL.createObjectURL(blob);
+      return new Blob([fileBytes], { type: mime });
     }
 
     // Legacy JSON { dataUrl: "data:..." }
@@ -301,7 +310,18 @@ export class CryptoService {
     if (!payload?.dataUrl) {
       throw new Error('Unrecognized media payload.');
     }
-    return payload.dataUrl;
+    const response = await fetch(payload.dataUrl);
+    return await response.blob();
+  }
+
+  /** Same as decryptMediaToObjectUrl but accepts raw ciphertext bytes (binary download path). */
+  async decryptMediaBytesToObjectUrl(
+    crewAesKey: CryptoKey,
+    nonce: string,
+    ciphertextBytes: Uint8Array | ArrayBuffer
+  ): Promise<string> {
+    const blob = await this.decryptMediaBytesToBlob(crewAesKey, nonce, ciphertextBytes);
+    return URL.createObjectURL(blob);
   }
 
   private async deriveSecretKey(secret: string, salt: Uint8Array, wrapVersion: number): Promise<CryptoKey> {

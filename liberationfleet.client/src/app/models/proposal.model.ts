@@ -49,6 +49,8 @@ export interface ProposalListItem {
   thumbnailUrl?: string | null;
   /** Decrypted image preview URLs for list cards (up to 20). */
   previewImageUrls?: string[];
+  /** True when the encrypted payload includes a video attachment. */
+  hasVideoAttachment?: boolean;
   settingField?: string | null;
   settingNewValue?: string | null;
 }

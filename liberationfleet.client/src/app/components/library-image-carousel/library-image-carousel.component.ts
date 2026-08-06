@@ -1,4 +1,12 @@
-import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+  ViewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-viewport-zoom';
@@ -19,6 +27,17 @@ export class LibraryImageCarouselComponent implements OnDestroy {
   @Input() title = '';
   @Input() variant: 'hero' | 'inline' | 'card' = 'hero';
   @Output() imageClick = new EventEmitter<number>();
+
+  @ViewChild('lightbox') set lightboxRef(ref: ElementRef<HTMLElement> | undefined) {
+    const el = ref?.nativeElement;
+    if (!el) {
+      return;
+    }
+    // Mount on body so position:fixed is not trapped by .page-content overflow on mobile.
+    if (el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+  }
 
   activeIndex = 0;
   selectedIndex: number | null = null;

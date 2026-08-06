@@ -4,6 +4,7 @@ import { ResolvedAttachment } from '../../models/proposal.model';
 import { EncryptedContentType } from '../../models/crypto.model';
 import { LibraryImageCarouselComponent } from '../library-image-carousel/library-image-carousel.component';
 import { isSafeMediaDataUrl } from '../../utils/media-attachment-allowlist.util';
+import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-viewport-zoom';
 
 @Component({
   selector: 'app-proposal-attachment-display',
@@ -20,6 +21,9 @@ export class ProposalAttachmentDisplayComponent {
   @Output() attachmentDeleted = new EventEmitter<string>();
 
   @ViewChild('imageCarousel') imageCarousel?: LibraryImageCarouselComponent;
+
+  /** Tracks native fullscreen so chrome hide/show stays balanced. */
+  private videoFullscreenActive = false;
 
   get imageAttachments(): ResolvedAttachment[] {
     return this.attachments.filter(attachment => attachment.type === 'image');
@@ -70,5 +74,36 @@ export class ProposalAttachmentDisplayComponent {
     }
 
     return 'ImageAsset';
+  }
+
+  onVideoFullscreenEnter(): void {
+    if (this.videoFullscreenActive) {
+      return;
+    }
+    this.videoFullscreenActive = true;
+    enterMediaDetailZoom();
+  }
+
+  onVideoFullscreenExit(): void {
+    if (!this.videoFullscreenActive) {
+      return;
+    }
+    this.videoFullscreenActive = false;
+    exitMediaDetailZoom();
+  }
+
+  onVideoFullscreenChange(event: Event): void {
+    const video = event.target as HTMLVideoElement | null;
+    if (!video) {
+      return;
+    }
+    const active =
+      document.fullscreenElement === video ||
+      (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement === video;
+    if (active) {
+      this.onVideoFullscreenEnter();
+    } else {
+      this.onVideoFullscreenExit();
+    }
   }
 }

@@ -13,6 +13,7 @@ import {
   BACKUP_WRAP_RECOVERY_KEY,
   recoveryPhraseToSecret
 } from './recovery-key.util';
+import { MediaBlobCacheService } from './media-blob-cache.service';
 
 interface CrewKeyMaterial {
   key: CryptoKey;
@@ -45,7 +46,8 @@ export class CryptoSessionService {
   constructor(
     private cryptoService: CryptoService,
     private cryptoApi: CryptoApiService,
-    private storage: AppStorageService
+    private storage: AppStorageService,
+    private mediaBlobCache: MediaBlobCacheService
   ) {}
 
   isUnlocked(): boolean {
@@ -56,6 +58,16 @@ export class CryptoSessionService {
     return this.backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD;
   }
 
+  /** Current crew AES key version after ensureCrewKeyReady (null if not cached). */
+  getCrewKeyVersion(crewId: number): number | null {
+    return this.crewKeyMaterial.get(crewId)?.keyVersion ?? null;
+  }
+
+  /** Current fleet AES key version after ensureFleetKeyReady (null if not cached). */
+  getFleetKeyVersion(fleetId: number): number | null {
+    return this.fleetKeyMaterial.get(fleetId)?.keyVersion ?? null;
+  }
+
   clearSession(): void {
     this.identityPrivateKey = null;
     this.identityPublicKeySpki = null;
@@ -63,6 +75,7 @@ export class CryptoSessionService {
     this.crewKeyMaterial.clear();
     this.fleetKeyMaterial.clear();
     this.unlockedSubject.next(false);
+    void this.mediaBlobCache.clear();
   }
 
   async provisionIdentityKeysWithRecoveryPhrase(recoveryPhrase: string): Promise<void> {

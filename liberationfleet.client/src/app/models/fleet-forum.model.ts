@@ -12,6 +12,8 @@ export interface FleetForumListItem {
   descriptionPreview?: string | null;
   thumbnailUrl?: string | null;
   previewImageUrls?: string[];
+  /** True when the encrypted payload includes a video attachment. */
+  hasVideoAttachment?: boolean;
   isAdultContent: boolean;
   hasEncryptedContent: boolean;
   encryptedPayload?: EncryptedPayload | null;

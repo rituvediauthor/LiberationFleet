@@ -214,6 +214,51 @@
   margin-right: auto;
 }
 
+.video-card-open {
+  position: relative;
+  display: block;
+  width: min(100%, 420px);
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--lf-color-bg-hover);
+  cursor: pointer;
+  aspect-ratio: 16 / 9;
+}
+
+.video-card-poster,
+.video-card-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-card-fallback {
+  background: linear-gradient(145deg, var(--lf-color-bg-hover), var(--lf-color-bg-muted));
+}
+
+.video-play-badge {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.video-play-badge i {
+  margin-left: 3px;
+}
+
 .card-preview {
   margin: 0;
   font-size: 13px;

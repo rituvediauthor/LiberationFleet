@@ -27,6 +27,8 @@ export interface DiscussionListItem {
   descriptionPreview?: string;
   thumbnailUrl?: string | null;
   previewImageUrls?: string[];
+  /** True when the encrypted payload includes a video attachment. */
+  hasVideoAttachment?: boolean;
   isAdultContent?: boolean;
   likeCount?: number;
   likedByCurrentUser?: boolean;

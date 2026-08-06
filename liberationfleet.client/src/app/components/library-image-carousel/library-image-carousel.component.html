@@ -41,7 +41,7 @@
   </div>
 </div>
 
-<div class="lightbox" *ngIf="selectedIndex !== null" (click)="closeFull()">
+<div class="lightbox" #lightbox *ngIf="selectedIndex !== null" (click)="closeFull()">
   <div
     class="lightbox-content"
     role="dialog"

@@ -26,7 +26,10 @@
         [src]="videoUrl"
         [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
-        preload="metadata"></video>
+        preload="metadata"
+        (webkitbeginfullscreen)="onVideoFullscreenEnter()"
+        (webkitendfullscreen)="onVideoFullscreenExit()"
+        (fullscreenchange)="onVideoFullscreenChange($event)"></video>
       <audio
         *ngIf="attachment.type === 'audio' && safeDataUrl(attachment) as audioUrl"
         [src]="audioUrl"
@@ -58,7 +61,10 @@
         [src]="videoUrl"
         [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
-        preload="metadata"></video>
+        preload="metadata"
+        (webkitbeginfullscreen)="onVideoFullscreenEnter()"
+        (webkitendfullscreen)="onVideoFullscreenExit()"
+        (fullscreenchange)="onVideoFullscreenChange($event)"></video>
       <audio
         *ngIf="attachment.type === 'audio' && safeDataUrl(attachment) as audioUrl"
         [src]="audioUrl"

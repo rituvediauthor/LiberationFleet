@@ -25,6 +25,15 @@ html.lf-media-detail-open body {
   touch-action: pan-x pan-y pinch-zoom;
 }
 
+/* Hide app chrome while media lightbox / native fullscreen is open. */
+html.lf-media-detail-open .action-bar,
+html.lf-media-detail-open .bottom-nav,
+html.lf-media-detail-open .location-header,
+html.lf-media-detail-open .conversation-header {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 html {
   --lf-safe-top: env(safe-area-inset-top, 0px);
   --lf-safe-right: env(safe-area-inset-right, 0px);

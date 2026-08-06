@@ -73,10 +73,27 @@
 
         <div
           class="card-slideshow"
-          *ngIf="previewImages(item).length > 0"
+          *ngIf="previewImages(item).length > 0 || item.hasVideoAttachment"
           [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
           (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="video-card-open"
+            *ngIf="item.hasVideoAttachment"
+            [attr.aria-label]="'Open video post: ' + (item.title || 'Untitled post')"
+            (click)="openPost(item)">
+            <img
+              *ngIf="previewImages(item)[0] as poster"
+              class="video-card-poster"
+              [src]="poster"
+              alt="">
+            <span class="video-card-fallback" *ngIf="!previewImages(item)[0]" aria-hidden="true"></span>
+            <span class="video-play-badge" aria-hidden="true">
+              <i class="fa-solid fa-play"></i>
+            </span>
+          </button>
           <app-library-image-carousel
+            *ngIf="!item.hasVideoAttachment"
             variant="card"
             [images]="previewImages(item)"
             [title]="item.title || 'Post'">
@@ -161,10 +178,27 @@
 
         <div
           class="card-slideshow"
-          *ngIf="previewImages(item).length > 0"
+          *ngIf="previewImages(item).length > 0 || item.hasVideoAttachment"
           [class.adult-thumb-blur]="shouldBlurThumbnail(item)"
           (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="video-card-open"
+            *ngIf="item.hasVideoAttachment"
+            [attr.aria-label]="'Open video post: ' + (item.title || 'Untitled post')"
+            (click)="openPost(item)">
+            <img
+              *ngIf="previewImages(item)[0] as poster"
+              class="video-card-poster"
+              [src]="poster"
+              alt="">
+            <span class="video-card-fallback" *ngIf="!previewImages(item)[0]" aria-hidden="true"></span>
+            <span class="video-play-badge" aria-hidden="true">
+              <i class="fa-solid fa-play"></i>
+            </span>
+          </button>
           <app-library-image-carousel
+            *ngIf="!item.hasVideoAttachment"
             variant="card"
             [images]="previewImages(item)"
             [title]="item.title || 'Post'">
