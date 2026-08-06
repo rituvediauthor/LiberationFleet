@@ -9,12 +9,12 @@ const JPEG_QUALITY = 0.82;
 /** Only skip re-encode for already-safe JPEG under size/dimension limits. */
 const SKIP_SAFE_JPEG_BYTES = 250 * 1024;
 /** Skip re-encode when already small enough for a snappy upload. */
-const TARGET_VIDEO_BYTES = 12 * 1024 * 1024;
-/** 720p — TikTok-style mobile encode for longer clips. */
+const TARGET_VIDEO_BYTES = 5 * 1024 * 1024;
+/** 720p — keep bitrate low so ~3 min clips stay under gateway-friendly sizes. */
 const MAX_VIDEO_DIMENSION = 720;
 /** Soft ceiling; actual bitrate is adapted to hit TARGET_VIDEO_BYTES. */
-const MAX_VIDEO_BITRATE = 1_200_000;
-const MIN_VIDEO_BITRATE = 400_000;
+const MAX_VIDEO_BITRATE = 700_000;
+const MIN_VIDEO_BITRATE = 250_000;
 const VIDEO_FPS = 24;
 const SKIP_SAFE_AUDIO_BYTES = 200 * 1024;
 const AUDIO_BITRATE = 64_000;

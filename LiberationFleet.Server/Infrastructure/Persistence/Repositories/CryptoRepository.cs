@@ -208,11 +208,12 @@ public class CryptoRepository : ICryptoRepository
         existing.Nonce = envelope.Nonce;
         existing.Ciphertext = envelope.Ciphertext;
         existing.UpdatedAt = envelope.UpdatedAt;
-        // Re-upload brings content back to hot SQL storage.
-        existing.StorageTier = EncryptedContentStorageTier.Hot;
-        existing.ColdBlobPath = null;
-        existing.FrozenAt = null;
-        existing.CiphertextCharLength = envelope.Ciphertext?.Length ?? 0;
+        existing.StorageTier = envelope.StorageTier;
+        existing.ColdBlobPath = envelope.ColdBlobPath;
+        existing.FrozenAt = envelope.FrozenAt;
+        existing.CiphertextCharLength = envelope.CiphertextCharLength > 0
+            ? envelope.CiphertextCharLength
+            : envelope.Ciphertext?.Length ?? 0;
     }
 
     public async Task DeleteEnvelopesAsync(

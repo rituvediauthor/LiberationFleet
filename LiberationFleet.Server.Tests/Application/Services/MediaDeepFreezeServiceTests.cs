@@ -29,7 +29,16 @@ public class MediaDeepFreezeServiceTests
 
         var crypto = new Mock<ICryptoRepository>();
         crypto.Setup(r => r.GetDeepFreezeCandidatesAsync(
-                It.IsAny<IReadOnlyList<EncryptedContentType>>(),
+                It.Is<IReadOnlyList<EncryptedContentType>>(types =>
+                    types.Contains(EncryptedContentType.VideoAsset)),
+                It.IsAny<DateTime>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
+        crypto.Setup(r => r.GetDeepFreezeCandidatesAsync(
+                It.Is<IReadOnlyList<EncryptedContentType>>(types =>
+                    types.Count == 1 && types[0] == EncryptedContentType.ImageAsset),
                 It.IsAny<DateTime>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
@@ -86,6 +95,83 @@ public class MediaDeepFreezeServiceTests
         envelope.Ciphertext.Should().Be("cold-cipher");
         envelope.StorageTier.Should().Be(EncryptedContentStorageTier.DeepFreeze);
         uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task FreezeBatchAsync_FreezesVideoImmediatelyRegardlessOfAge()
+    {
+        var envelope = new EncryptedContentEnvelope
+        {
+            Id = 2,
+            ContentType = EncryptedContentType.VideoAsset,
+            ResourceId = "vid-fresh",
+            CrewId = 9,
+            AuthorUserId = 3,
+            Ciphertext = new string('B', 5000),
+            StorageTier = EncryptedContentStorageTier.Hot,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var crypto = new Mock<ICryptoRepository>();
+        crypto.Setup(r => r.GetDeepFreezeCandidatesAsync(
+                It.Is<IReadOnlyList<EncryptedContentType>>(types =>
+                    types.Contains(EncryptedContentType.VideoAsset)),
+                It.IsAny<DateTime>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([envelope]);
+        crypto.Setup(r => r.GetDeepFreezeCandidatesAsync(
+                It.Is<IReadOnlyList<EncryptedContentType>>(types =>
+                    types.Count == 1 && types[0] == EncryptedContentType.ImageAsset),
+                It.IsAny<DateTime>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
+
+        var blob = new Mock<IDeepFreezeBlobStore>();
+        blob.SetupGet(b => b.IsEnabled).Returns(true);
+        blob.Setup(b => b.UploadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var uow = new Mock<IUnitOfWork>();
+        uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = CreateService(crypto.Object, blob.Object, uow.Object, enabled: true);
+        var frozen = await service.FreezeBatchAsync();
+
+        frozen.Should().Be(1);
+        envelope.StorageTier.Should().Be(EncryptedContentStorageTier.DeepFreeze);
+        envelope.Ciphertext.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task OffloadEnvelopeAsync_MovesCiphertextToBlob()
+    {
+        var envelope = new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.VideoAsset,
+            ResourceId = "vid-1",
+            CrewId = 2,
+            Ciphertext = new string('C', 5000),
+            StorageTier = EncryptedContentStorageTier.Hot
+        };
+
+        var uploaded = new Dictionary<string, string>();
+        var blob = new Mock<IDeepFreezeBlobStore>();
+        blob.SetupGet(b => b.IsEnabled).Returns(true);
+        blob.Setup(b => b.UploadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((path, cipher, _) => uploaded[path] = cipher)
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService(Mock.Of<ICryptoRepository>(), blob.Object, Mock.Of<IUnitOfWork>(), enabled: true);
+        await service.OffloadEnvelopeAsync(envelope);
+
+        envelope.StorageTier.Should().Be(EncryptedContentStorageTier.DeepFreeze);
+        envelope.Ciphertext.Should().BeEmpty();
+        envelope.CiphertextCharLength.Should().Be(5000);
+        uploaded.Should().ContainKey(envelope.ColdBlobPath!);
     }
 
     [Fact]

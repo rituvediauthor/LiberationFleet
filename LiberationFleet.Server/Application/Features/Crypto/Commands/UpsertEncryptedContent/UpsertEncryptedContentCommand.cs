@@ -218,7 +218,7 @@ public class UpsertEncryptedContentCommandHandler(
             }
         }
 
-        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        var envelope = new EncryptedContentEnvelope
         {
             ContentType = domainType,
             ResourceId = request.ResourceId.Trim(),
@@ -232,8 +232,15 @@ public class UpsertEncryptedContentCommandHandler(
             StorageTier = EncryptedContentStorageTier.Hot,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
-        }, cancellationToken);
+        };
 
+        // Video/audio ciphertext is too large for reliable SQL LOB + gateway round-trips.
+        if (domainType == EncryptedContentType.VideoAsset || domainType == EncryptedContentType.AudioAsset)
+        {
+            await deepFreezeService.OffloadEnvelopeAsync(envelope, cancellationToken);
+        }
+
+        await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new CryptoOperationResponse { Success = true, Message = "Encrypted content saved." };
     }

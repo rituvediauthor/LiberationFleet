@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace LiberationFleet.Server.Infrastructure.Storage;
 
 /// <summary>
-/// Azure Blob cold store (Cool access tier) for deep-frozen media ciphertext.
+/// Azure Blob store (Hot access tier) for media ciphertext offloaded from SQL.
 /// </summary>
 public sealed class AzureDeepFreezeBlobStore : IDeepFreezeBlobStore
 {
@@ -41,7 +41,7 @@ public sealed class AzureDeepFreezeBlobStore : IDeepFreezeBlobStore
             new BlobUploadOptions
             {
                 HttpHeaders = new BlobHttpHeaders { ContentType = "application/octet-stream" },
-                AccessTier = AccessTier.Cool
+                AccessTier = AccessTier.Hot
             },
             cancellationToken);
     }

@@ -4,21 +4,22 @@ using Microsoft.Extensions.Options;
 namespace LiberationFleet.Server.Infrastructure.Background;
 
 /// <summary>
-/// Moves Image/Video/Audio ciphertext older than MediaDeepFreeze:AgeDays (default 60) from SQL to cold storage.
-/// Chat/forum message envelopes stay hot; only attachment asset envelopes are frozen.
+/// Moves Image/Video/Audio ciphertext from SQL to cold storage.
+/// Video/audio are frozen immediately; images use MediaDeepFreeze:AgeDays (default 60).
 /// </summary>
 public sealed class MediaDeepFreezeHostedService(
     IServiceScopeFactory scopeFactory,
     IOptions<MediaDeepFreezeOptions> options,
     ILogger<MediaDeepFreezeHostedService> logger) : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
+    private static readonly TimeSpan StartupDelay = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+            await Task.Delay(StartupDelay, stoppingToken);
         }
         catch (OperationCanceledException)
         {

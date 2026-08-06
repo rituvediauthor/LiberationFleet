@@ -7,6 +7,12 @@ public interface IMediaDeepFreezeService
     /// <summary>Move eligible hot media ciphertext to cold storage. Returns envelopes frozen.</summary>
     Task<int> FreezeBatchAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Immediately upload ciphertext to blob and clear it on the in-memory envelope.
+    /// No-ops when blob store is disabled or the payload is too small.
+    /// </summary>
+    Task OffloadEnvelopeAsync(EncryptedContentEnvelope envelope, CancellationToken cancellationToken = default);
+
     /// <summary>Fill Ciphertext on deep-frozen envelopes from cold storage (in-memory only).</summary>
     Task HydrateAsync(IReadOnlyList<EncryptedContentEnvelope> envelopes, CancellationToken cancellationToken = default);
 

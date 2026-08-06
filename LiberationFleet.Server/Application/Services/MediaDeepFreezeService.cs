@@ -21,6 +21,13 @@ public sealed class MediaDeepFreezeService(
         EncryptedContentType.AudioAsset
     ];
 
+    /// <summary>Video/audio are offloaded immediately (gateway timeouts on multi‑MB SQL LOBs).</summary>
+    private static readonly EncryptedContentType[] ImmediateOffloadTypes =
+    [
+        EncryptedContentType.VideoAsset,
+        EncryptedContentType.AudioAsset
+    ];
+
     public async Task<int> FreezeBatchAsync(CancellationToken cancellationToken = default)
     {
         var opts = options.Value;
@@ -29,14 +36,31 @@ public sealed class MediaDeepFreezeService(
             return 0;
         }
 
-        var cutoff = DateTime.UtcNow.AddDays(-Math.Max(1, opts.AgeDays));
-        var candidates = await cryptoRepository.GetDeepFreezeCandidatesAsync(
-            FreezableTypes,
-            cutoff,
-            Math.Clamp(opts.BatchSize, 1, 500),
-            Math.Max(0, opts.MinimumCiphertextChars),
+        var batchSize = Math.Clamp(opts.BatchSize, 1, 500);
+        var minChars = Math.Max(0, opts.MinimumCiphertextChars);
+        var imageCutoff = DateTime.UtcNow.AddDays(-Math.Max(1, opts.AgeDays));
+
+        // Video/audio: freeze as soon as they exist (AgeDays does not apply).
+        var immediate = await cryptoRepository.GetDeepFreezeCandidatesAsync(
+            ImmediateOffloadTypes,
+            DateTime.UtcNow.AddMinutes(1),
+            batchSize,
+            minChars,
             cancellationToken);
 
+        var remaining = Math.Max(0, batchSize - immediate.Count);
+        IReadOnlyList<EncryptedContentEnvelope> images = Array.Empty<EncryptedContentEnvelope>();
+        if (remaining > 0)
+        {
+            images = await cryptoRepository.GetDeepFreezeCandidatesAsync(
+                [EncryptedContentType.ImageAsset],
+                imageCutoff,
+                remaining,
+                minChars,
+                cancellationToken);
+        }
+
+        var candidates = immediate.Concat(images).ToList();
         var frozen = 0;
         foreach (var envelope in candidates)
         {
@@ -45,17 +69,13 @@ public sealed class MediaDeepFreezeService(
                 continue;
             }
 
-            var path = BuildBlobPath(envelope);
             try
             {
-                await blobStore.UploadAsync(path, envelope.Ciphertext, cancellationToken);
-                envelope.CiphertextCharLength = envelope.Ciphertext.Length;
-                envelope.Ciphertext = string.Empty;
-                envelope.ColdBlobPath = path;
-                envelope.StorageTier = EncryptedContentStorageTier.DeepFreeze;
-                envelope.FrozenAt = DateTime.UtcNow;
-                envelope.UpdatedAt = DateTime.UtcNow;
-                frozen++;
+                await OffloadEnvelopeAsync(envelope, cancellationToken);
+                if (envelope.StorageTier == EncryptedContentStorageTier.DeepFreeze)
+                {
+                    frozen++;
+                }
             }
             catch (Exception ex)
             {
@@ -70,10 +90,44 @@ public sealed class MediaDeepFreezeService(
         if (frozen > 0)
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Deep-froze {Count} media envelopes older than {Days} days.", frozen, opts.AgeDays);
+            logger.LogInformation(
+                "Deep-froze {Count} media envelopes (video/audio immediate; images older than {Days} days).",
+                frozen,
+                opts.AgeDays);
         }
 
         return frozen;
+    }
+
+    public async Task OffloadEnvelopeAsync(
+        EncryptedContentEnvelope envelope,
+        CancellationToken cancellationToken = default)
+    {
+        var opts = options.Value;
+        if (!opts.Enabled || !blobStore.IsEnabled)
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(envelope.Ciphertext))
+        {
+            return;
+        }
+
+        if (envelope.Ciphertext.Length < Math.Max(0, opts.MinimumCiphertextChars))
+        {
+            return;
+        }
+
+        // Images stay hot until aged unless already in a freeze batch; upsert only auto-offloads video/audio.
+        var path = BuildBlobPath(envelope);
+        await blobStore.UploadAsync(path, envelope.Ciphertext, cancellationToken);
+        envelope.CiphertextCharLength = envelope.Ciphertext.Length;
+        envelope.Ciphertext = string.Empty;
+        envelope.ColdBlobPath = path;
+        envelope.StorageTier = EncryptedContentStorageTier.DeepFreeze;
+        envelope.FrozenAt = DateTime.UtcNow;
+        envelope.UpdatedAt = DateTime.UtcNow;
     }
 
     public async Task HydrateAsync(

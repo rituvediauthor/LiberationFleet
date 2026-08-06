@@ -25,6 +25,6 @@ public class MediaDeepFreezeOptions
     /// <summary>Azure Storage connection string when Provider=azure.</summary>
     public string? AzureConnectionString { get; set; }
 
-    /// <summary>Blob container name (Cool access tier recommended).</summary>
+    /// <summary>Blob container name.</summary>
     public string AzureContainerName { get; set; } = "media-deep-freeze";
 }
