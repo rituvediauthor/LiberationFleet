@@ -74,7 +74,8 @@ if (corsOrigins.Length > 0)
             policy.WithOrigins(corsOrigins)
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowCredentials();
+                .AllowCredentials()
+                .WithExposedHeaders("X-LF-Nonce", "X-LF-KeyVersion", "X-LF-ResourceId");
         });
     });
 }

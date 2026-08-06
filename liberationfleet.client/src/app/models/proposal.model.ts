@@ -122,6 +122,8 @@ export interface PendingAttachment {
   type: 'image' | 'video' | 'audio';
   resourceId: string;
   previewUrl?: string;
+  /** JPEG poster for video chips in the picker (previewUrl stays the video blob). */
+  thumbnailUrl?: string;
   blob?: Blob;
   /** Preparing/compressing/uploading media. Undefined treated as ready for legacy callers. */
   status?: 'processing' | 'uploading' | 'ready' | 'error';

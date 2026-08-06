@@ -345,6 +345,32 @@ export class ProposalCryptoService {
     const dataUrlByResourceId = new Map<string, string>();
     for (const [contentType, bucket] of grouped.entries()) {
       const resourceIds = bucket.map(attachment => attachment.resourceId);
+      const useBinaryDownload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
+
+      if (useBinaryDownload) {
+        await Promise.all(resourceIds.map(async resourceId => {
+          try {
+            const payload = await firstValueFrom(
+              this.cryptoApi.getEncryptedContentBytes(
+                contentType as EncryptedContentType,
+                resourceId,
+                normalizedScope.crewId,
+                normalizedScope.fleetId
+              )
+            );
+            const url = await this.cryptoService.decryptMediaBytesToObjectUrl(
+              scopeKey,
+              payload.nonce,
+              payload.ciphertext
+            );
+            dataUrlByResourceId.set(payload.resourceId || resourceId, url);
+          } catch {
+            // Skip unreadable attachments.
+          }
+        }));
+        continue;
+      }
+
       try {
         const envelopes = await firstValueFrom(
           this.cryptoApi.getEncryptedContents(
@@ -389,6 +415,23 @@ export class ProposalCryptoService {
         : 'AudioAsset';
 
     try {
+      if (contentType === 'VideoAsset' || contentType === 'AudioAsset') {
+        const payload = await firstValueFrom(
+          this.cryptoApi.getEncryptedContentBytes(
+            contentType,
+            attachment.resourceId,
+            scope.crewId,
+            scope.fleetId
+          )
+        );
+        const url = await this.cryptoService.decryptMediaBytesToObjectUrl(
+          scopeKey,
+          payload.nonce,
+          payload.ciphertext
+        );
+        return { ...attachment, dataUrl: url };
+      }
+
       const envelopes = await firstValueFrom(
         this.cryptoApi.getEncryptedContents(
           contentType,

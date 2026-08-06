@@ -4,7 +4,7 @@ import { PendingAttachment } from '../../models/proposal.model';
 import { ProposalCryptoScope, ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
-import { compressMediaFile } from '../../utils/media-compression.util';
+import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
 import {
   AttachmentMediaKind,
   defaultAcceptAttribute,
@@ -137,13 +137,15 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         status: 'processing',
         progress: 1,
         progressLabel: result.kind === 'video' ? 'Preparing video…' : 'Processing…',
-        previewUrl: result.kind === 'video' || result.kind === 'image'
-          ? URL.createObjectURL(file)
-          : undefined,
+        previewUrl: result.kind === 'image' ? URL.createObjectURL(file) : undefined,
         abort: () => controller.abort()
       };
       this.attachments.push(pending);
       this.emitChange();
+
+      if (result.kind === 'video') {
+        void this.refreshVideoThumbnail(pending, file, controller.signal);
+      }
 
       try {
         const compressed = await compressMediaFile(file, result.kind, {
@@ -164,9 +166,15 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
           URL.revokeObjectURL(pending.previewUrl);
         }
         pending.file = compressed;
-        pending.previewUrl = URL.createObjectURL(compressed);
+        pending.previewUrl = result.kind === 'image' || result.kind === 'video'
+          ? URL.createObjectURL(compressed)
+          : undefined;
         pending.abort = undefined;
         this.abortControllers.delete(resourceId);
+
+        if (result.kind === 'video') {
+          void this.refreshVideoThumbnail(pending, compressed, controller.signal);
+        }
 
         if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId)) {
           pending.status = 'uploading';
@@ -255,11 +263,20 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       this.abortControllers.get(attachment.resourceId)?.abort();
       this.abortControllers.delete(attachment.resourceId);
     }
-    if (attachment.previewUrl?.startsWith('blob:')) {
-      URL.revokeObjectURL(attachment.previewUrl);
-    }
+    this.revokePreviewUrls(attachment);
     this.attachments.splice(index, 1);
     this.emitChange();
+  }
+
+  /** Image uses previewUrl; video chips use a JPEG poster thumbnail. */
+  chipPreviewUrl(attachment: PendingAttachment): string | undefined {
+    if (attachment.type === 'video') {
+      return attachment.thumbnailUrl;
+    }
+    if (attachment.type === 'image') {
+      return attachment.previewUrl;
+    }
+    return undefined;
   }
 
   attachmentLabel(attachment: PendingAttachment): string {
@@ -279,12 +296,40 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   private removeByResourceId(resourceId: string) {
     const index = this.attachments.findIndex(item => item.resourceId === resourceId);
     if (index >= 0) {
-      const attachment = this.attachments[index];
-      if (attachment.previewUrl?.startsWith('blob:')) {
-        URL.revokeObjectURL(attachment.previewUrl);
-      }
+      this.revokePreviewUrls(this.attachments[index]);
       this.attachments.splice(index, 1);
       this.emitChange();
+    }
+  }
+
+  private revokePreviewUrls(attachment: PendingAttachment) {
+    if (attachment.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(attachment.previewUrl);
+    }
+    if (attachment.thumbnailUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(attachment.thumbnailUrl);
+    }
+    attachment.previewUrl = undefined;
+    attachment.thumbnailUrl = undefined;
+  }
+
+  private async refreshVideoThumbnail(
+    pending: PendingAttachment,
+    source: File | Blob,
+    signal?: AbortSignal
+  ) {
+    try {
+      const poster = await extractVideoPosterFrame(source);
+      if (signal?.aborted || !this.attachments.includes(pending)) {
+        return;
+      }
+      if (pending.thumbnailUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(pending.thumbnailUrl);
+      }
+      pending.thumbnailUrl = URL.createObjectURL(poster);
+      this.cdr.markForCheck();
+    } catch {
+      // Keep film icon placeholder if the browser cannot decode a frame yet.
     }
   }
 

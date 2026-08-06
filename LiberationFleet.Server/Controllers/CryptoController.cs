@@ -7,6 +7,7 @@ using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertPublicKe
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewPublicKeys;
+using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContentBytes;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContents;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetPublicKeys;
@@ -141,6 +142,29 @@ public class CryptoController : ControllerBase
 
         var result = await _mediator.Send(new GetEncryptedContentsQuery(contentType, ids, crewId, fleetId));
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Raw AES-GCM ciphertext bytes for a single media resource (avoids multi‑MB JSON base64).
+    /// Metadata is returned in X-LF-* response headers.
+    /// </summary>
+    [HttpGet("content/bytes")]
+    public async Task<IActionResult> GetEncryptedContentBytes(
+        [FromQuery] EncryptedContentTypeDto contentType,
+        [FromQuery] string resourceId,
+        [FromQuery] int? crewId = null,
+        [FromQuery] int? fleetId = null)
+    {
+        var result = await _mediator.Send(new GetEncryptedContentBytesQuery(contentType, resourceId, crewId, fleetId));
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        Response.Headers["X-LF-Nonce"] = result.Nonce;
+        Response.Headers["X-LF-KeyVersion"] = result.KeyVersion.ToString();
+        Response.Headers["X-LF-ResourceId"] = result.ResourceId;
+        return File(result.CiphertextBytes, "application/octet-stream");
     }
 
     [HttpDelete("content")]

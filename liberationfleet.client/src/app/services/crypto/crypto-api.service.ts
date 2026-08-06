@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpEventType, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import {
   CrewKeyState,
   CryptoOperationResponse,
@@ -146,6 +146,55 @@ export class CryptoApiService {
     }
 
     return this.http.get<EncryptedContentEnvelope[]>(`${this.apiUrl}/content`, { params });
+  }
+
+  /**
+   * Raw AES-GCM ciphertext bytes for one media resource (avoids multi‑MB JSON base64).
+   * Nonce / keyVersion / resourceId come from X-LF-* response headers.
+   */
+  getEncryptedContentBytes(
+    contentType: EncryptedContentType,
+    resourceId: string,
+    crewId?: number | null,
+    fleetId?: number | null
+  ): Observable<{
+    resourceId: string;
+    keyVersion: number;
+    nonce: string;
+    ciphertext: ArrayBuffer;
+  }> {
+    let params = new HttpParams()
+      .set('contentType', contentType)
+      .set('resourceId', resourceId);
+
+    if (crewId != null) {
+      params = params.set('crewId', crewId.toString());
+    }
+
+    if (fleetId != null) {
+      params = params.set('fleetId', fleetId.toString());
+    }
+
+    return this.http.get(`${this.apiUrl}/content/bytes`, {
+      params,
+      observe: 'response',
+      responseType: 'arraybuffer'
+    }).pipe(
+      map(response => {
+        const nonce = response.headers.get('X-LF-Nonce');
+        const keyVersionHeader = response.headers.get('X-LF-KeyVersion');
+        const resolvedResourceId = response.headers.get('X-LF-ResourceId') || resourceId;
+        if (!nonce || !response.body) {
+          throw new Error('Encrypted content bytes response was incomplete.');
+        }
+        return {
+          resourceId: resolvedResourceId,
+          keyVersion: Number(keyVersionHeader) || 1,
+          nonce,
+          ciphertext: response.body
+        };
+      })
+    );
   }
 
   deleteAttachment(contentType: EncryptedContentType, resourceId: string, crewId: number): Observable<CryptoOperationResponse> {

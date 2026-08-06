@@ -263,11 +263,23 @@ export class CryptoService {
     nonce: string,
     ciphertext: string
   ): Promise<string> {
+    return this.decryptMediaBytesToObjectUrl(crewAesKey, nonce, base64ToBytes(ciphertext));
+  }
+
+  /** Same as decryptMediaToObjectUrl but accepts raw ciphertext bytes (binary download path). */
+  async decryptMediaBytesToObjectUrl(
+    crewAesKey: CryptoKey,
+    nonce: string,
+    ciphertextBytes: Uint8Array | ArrayBuffer
+  ): Promise<string> {
+    const ciphertext = ciphertextBytes instanceof Uint8Array
+      ? ciphertextBytes
+      : new Uint8Array(ciphertextBytes);
     const decrypted = new Uint8Array(
       await crypto.subtle.decrypt(
         { name: AES_ALGORITHM, iv: base64ToBytes(nonce) },
         crewAesKey,
-        base64ToBytes(ciphertext)
+        ciphertext
       )
     );
 

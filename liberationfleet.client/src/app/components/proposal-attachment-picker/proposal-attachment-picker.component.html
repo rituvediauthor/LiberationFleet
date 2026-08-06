@@ -37,17 +37,13 @@
     <li *ngFor="let attachment of attachments; let i = index" [class.is-processing]="attachment.status === 'processing' || attachment.status === 'uploading'" [class.is-error]="attachment.status === 'error'">
       <div class="attachment-main">
         <img
-          *ngIf="attachment.type === 'image' && attachment.previewUrl"
+          *ngIf="chipPreviewUrl(attachment) as preview"
           class="attachment-preview"
-          [src]="attachment.previewUrl"
+          [src]="preview"
           alt="">
-        <video
-          *ngIf="attachment.type === 'video' && attachment.previewUrl"
-          class="attachment-preview"
-          [src]="attachment.previewUrl"
-          muted
-          playsinline
-          preload="metadata"></video>
+        <span class="attachment-icon" *ngIf="attachment.type === 'video' && !chipPreviewUrl(attachment)" aria-hidden="true">
+          <i class="fa-solid fa-film"></i>
+        </span>
         <span class="attachment-icon" *ngIf="attachment.type === 'audio'" aria-hidden="true">
           <i class="fa-solid fa-microphone"></i>
         </span>
