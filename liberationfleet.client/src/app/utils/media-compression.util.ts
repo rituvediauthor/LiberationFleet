@@ -9,7 +9,7 @@ const TARGET_VIDEO_BYTES = 12 * 1024 * 1024;
 /** 720p — TikTok-style mobile encode for longer clips. */
 const MAX_VIDEO_DIMENSION = 720;
 /** Allow up to 3 minutes. */
-const MAX_VIDEO_DURATION_SEC = 180;
+export const MAX_VIDEO_DURATION_SEC = 180;
 /** Soft ceiling; actual bitrate is adapted to hit TARGET_VIDEO_BYTES. */
 const MAX_VIDEO_BITRATE = 1_200_000;
 const MIN_VIDEO_BITRATE = 400_000;
@@ -263,7 +263,10 @@ async function reencodeVideoByPlayback(
       throw new Error('Unable to read video duration.');
     }
     if (video.duration > MAX_VIDEO_DURATION_SEC) {
-      throw new Error(`Videos must be ${MAX_VIDEO_DURATION_SEC} seconds or shorter.`);
+      const minutes = Math.floor(MAX_VIDEO_DURATION_SEC / 60);
+      throw new Error(
+        `Videos must be ${minutes} minutes (${MAX_VIDEO_DURATION_SEC} seconds) or shorter.`
+      );
     }
 
     const scale = Math.min(1, MAX_VIDEO_DIMENSION / Math.max(video.videoWidth, video.videoHeight));
