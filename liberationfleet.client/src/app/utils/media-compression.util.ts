@@ -1,4 +1,8 @@
-import { MAX_VIDEO_BYTES, MAX_VIDEO_INPUT_BYTES } from './media-attachment-allowlist.util';
+import {
+  MAX_VIDEO_BYTES,
+  MAX_VIDEO_DURATION_SEC,
+  MAX_VIDEO_INPUT_BYTES
+} from './media-attachment-allowlist.util';
 
 const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
@@ -8,8 +12,6 @@ const SKIP_SAFE_JPEG_BYTES = 250 * 1024;
 const TARGET_VIDEO_BYTES = 12 * 1024 * 1024;
 /** 720p — TikTok-style mobile encode for longer clips. */
 const MAX_VIDEO_DIMENSION = 720;
-/** Allow up to 3 minutes. */
-export const MAX_VIDEO_DURATION_SEC = 180;
 /** Soft ceiling; actual bitrate is adapted to hit TARGET_VIDEO_BYTES. */
 const MAX_VIDEO_BITRATE = 1_200_000;
 const MIN_VIDEO_BITRATE = 400_000;
@@ -264,9 +266,7 @@ async function reencodeVideoByPlayback(
     }
     if (video.duration > MAX_VIDEO_DURATION_SEC) {
       const minutes = Math.floor(MAX_VIDEO_DURATION_SEC / 60);
-      throw new Error(
-        `Videos must be ${minutes} minutes (${MAX_VIDEO_DURATION_SEC} seconds) or shorter.`
-      );
+      throw new Error(`Videos must be ${minutes} minutes or shorter.`);
     }
 
     const scale = Math.min(1, MAX_VIDEO_DIMENSION / Math.max(video.videoWidth, video.videoHeight));
