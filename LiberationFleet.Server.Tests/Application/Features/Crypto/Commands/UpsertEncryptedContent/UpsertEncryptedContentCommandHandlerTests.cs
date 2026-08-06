@@ -45,7 +45,7 @@ public class UpsertEncryptedContentCommandHandlerTests
     public async Task Handle_WhenMediaCiphertextTooLarge_ReturnsFailure()
     {
         var handler = CreateHandler(userId: 1);
-        var tooLarge = new string('x', (20 * 1024 * 1024) + 1);
+        var tooLarge = new string('x', (40 * 1024 * 1024) + 1);
 
         var result = await handler.Handle(new UpsertEncryptedContentCommand(
             EncryptedContentTypeDto.ImageAsset,
