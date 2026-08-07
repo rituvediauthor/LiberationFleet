@@ -53,8 +53,12 @@ const BLOCKED_MIME = new Set([
 const DANGEROUS_NAME = /\.(svg|html?|xhtml|js|mjs|cjs|exe|dll|msi|bat|cmd|ps1|vbs|wsf|scr|com|jar|apk|sh|php|asp|aspx|cgi)(\.|$)/i;
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
-/** Post-compress / upload cap for videos (~5 MB target encode). */
-export const MAX_VIDEO_BYTES = 8 * 1024 * 1024;
+/**
+ * Max upload size for a video file (original or compressed).
+ * Kept under server ciphertext budget (~40MB base64 ≈ ~30MB binary).
+ * Prefer uploading originals in this range so audio is never re-encoded away.
+ */
+export const MAX_VIDEO_BYTES = 28 * 1024 * 1024;
 /** Allow larger raw camera/phone videos so they can be compressed down. */
 export const MAX_VIDEO_INPUT_BYTES = 500 * 1024 * 1024;
 /** Max video length allowed across the app (3 minutes). */

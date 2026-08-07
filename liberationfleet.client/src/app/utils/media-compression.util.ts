@@ -8,13 +8,13 @@ const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
 /** Only skip re-encode for already-safe JPEG under size/dimension limits. */
 const SKIP_SAFE_JPEG_BYTES = 250 * 1024;
-/** Skip re-encode when already small enough for a snappy upload. */
-const TARGET_VIDEO_BYTES = 5 * 1024 * 1024;
-/** 720p — keep bitrate low so ~3 min clips stay under gateway-friendly sizes. */
+/** Skip re-encode target size when forced to canvas-compress oversized clips. */
+const TARGET_VIDEO_BYTES = 12 * 1024 * 1024;
+/** 720p — keep bitrate low so longer clips stay under MAX_VIDEO_BYTES. */
 const MAX_VIDEO_DIMENSION = 720;
 /** Soft ceiling; actual bitrate is adapted to hit TARGET_VIDEO_BYTES. */
-const MAX_VIDEO_BITRATE = 700_000;
-const MIN_VIDEO_BITRATE = 250_000;
+const MAX_VIDEO_BITRATE = 1_200_000;
+const MIN_VIDEO_BITRATE = 400_000;
 const VIDEO_FPS = 24;
 const SKIP_SAFE_AUDIO_BYTES = 200 * 1024;
 const AUDIO_BITRATE = 64_000;
@@ -221,19 +221,27 @@ async function compressVideo(
     throw new Error('Videos must be 500 MB or smaller before compression.');
   }
 
-  const mime = (file.type || '').toLowerCase();
-  const alreadyWebFriendly =
-    file.size <= TARGET_VIDEO_BYTES
-    && (mime.includes('webm') || mime.includes('mp4'));
-  if (alreadyWebFriendly) {
+  const maxMb = Math.floor(MAX_VIDEO_BYTES / (1024 * 1024));
+
+  // Prefer the original file whenever it fits. That is how audio stayed intact before:
+  // canvas re-encode on iPhone often cannot keep sound because opening Photos suspends
+  // AudioContext, and muted captureStream drops audio tracks.
+  if (file.size <= MAX_VIDEO_BYTES && isPassthroughVideoFile(file)) {
+    options?.onProgress?.(15, 'Checking video…');
+    await assertVideoDuration(file, options?.signal);
     options?.onProgress?.(100, 'Ready');
     return file;
   }
 
-  // Ensure AudioContext is running before the heavy work (warmed on Attach tap).
-  await getRunningAudioContext();
+  options?.onProgress?.(5, 'Compressing video…');
+  try {
+    await getRunningAudioContext();
+  } catch {
+    throw new Error(
+      `This video is over ${maxMb} MB and needs compression, but the browser blocked audio unlock after the file picker (common on iPhone). Trim it in Photos to under ${maxMb} MB and attach again — that uploads with sound intact.`
+    );
+  }
 
-  options?.onProgress?.(5, 'Preparing video…');
   let compressed: File;
   try {
     compressed = await reencodeVideoByPlayback(file, options);
@@ -242,18 +250,60 @@ async function compressVideo(
       throw error;
     }
     const message = error instanceof Error ? error.message : 'Failed to compress video.';
-    throw new Error(message);
+    throw new Error(
+      `${message} Or trim the clip to under ${maxMb} MB in Photos and attach again.`
+    );
   }
 
   throwIfAborted(options?.signal);
   if (compressed.size > MAX_VIDEO_BYTES) {
     throw new Error(
-      `Video is still ${Math.ceil(compressed.size / (1024 * 1024))} MB after compression. Please use a shorter or lower-resolution clip (max ${Math.floor(MAX_VIDEO_BYTES / (1024 * 1024))} MB).`
+      `Video is still ${Math.ceil(compressed.size / (1024 * 1024))} MB after compression. Please use a shorter or lower-resolution clip (max ${maxMb} MB).`
     );
   }
 
   options?.onProgress?.(100, 'Ready');
   return compressed;
+}
+
+function isPassthroughVideoFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  if (mime.includes('mp4') || mime.includes('webm') || mime.includes('quicktime')) {
+    return true;
+  }
+  return name.endsWith('.mp4')
+    || name.endsWith('.m4v')
+    || name.endsWith('.webm')
+    || name.endsWith('.mov');
+}
+
+async function assertVideoDuration(
+  file: File,
+  signal?: AbortSignal
+): Promise<void> {
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.src = objectUrl;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'metadata';
+
+  try {
+    await waitForVideoMetadata(video);
+    throwIfAborted(signal);
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      throw new Error('Unable to read video duration.');
+    }
+    if (video.duration > MAX_VIDEO_DURATION_SEC) {
+      const minutes = Math.floor(MAX_VIDEO_DURATION_SEC / 60);
+      throw new Error(`Videos must be ${minutes} minutes or shorter.`);
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+    video.removeAttribute('src');
+    video.load();
+  }
 }
 
 async function compressAudio(file: File): Promise<File> {
