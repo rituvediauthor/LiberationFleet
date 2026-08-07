@@ -882,6 +882,59 @@ export class ProposalCryptoService {
     this.uploadQueue.updateJob(jobId, { phase: 'encrypting', progress: 15 });
     onProgress?.(15);
 
+    const contentType = attachment.type === 'image'
+      ? 'ImageAsset'
+      : attachment.type === 'video'
+        ? 'VideoAsset'
+        : 'AudioAsset';
+
+    const useBinaryUpload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
+
+    // Video/audio: chunked encrypt → Blob PUT (Signal-style). Never load the whole file
+    // + base64 into RAM — that reloads the iOS PWA tab.
+    if (useBinaryUpload) {
+      const encrypted = await this.cryptoService.encryptMediaBlob(
+        scopeKey,
+        file,
+        file.type || 'application/octet-stream',
+        (percent) => {
+          const mapped = 15 + Math.round(percent * 0.2);
+          this.uploadQueue.updateJob(jobId, { phase: 'encrypting', progress: mapped });
+          onProgress?.(mapped);
+        }
+      );
+
+      this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: 35 });
+      onProgress?.(35);
+
+      const result = await firstValueFrom(
+        this.cryptoApi.upsertEncryptedContentBytesWithProgress(
+          {
+            contentType,
+            resourceId: attachment.resourceId,
+            crewId: scope.crewId,
+            fleetId: scope.fleetId,
+            keyVersion: 1,
+            nonce: encrypted.nonce,
+            ciphertext: encrypted.ciphertext
+          },
+          uploadPercent => {
+            const mapped = 35 + Math.round(uploadPercent * 0.6);
+            this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
+            onProgress?.(mapped);
+          }
+        )
+      );
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to upload attachment.');
+      }
+
+      this.uploadQueue.updateJob(jobId, { phase: 'finalizing', progress: 98 });
+      onProgress?.(98);
+      return;
+    }
+
     const fileBytes = new Uint8Array(await file.arrayBuffer());
     const encrypted = await this.cryptoService.encryptMediaBytes(
       scopeKey,
@@ -892,48 +945,23 @@ export class ProposalCryptoService {
     this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: 35 });
     onProgress?.(35);
 
-    const contentType = attachment.type === 'image'
-      ? 'ImageAsset'
-      : attachment.type === 'video'
-        ? 'VideoAsset'
-        : 'AudioAsset';
-
-    const useBinaryUpload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
-
     const result = await firstValueFrom(
-      useBinaryUpload
-        ? this.cryptoApi.upsertEncryptedContentBytesWithProgress(
-            {
-              contentType,
-              resourceId: attachment.resourceId,
-              crewId: scope.crewId,
-              fleetId: scope.fleetId,
-              keyVersion: 1,
-              nonce: encrypted.nonce,
-              ciphertext: encrypted.ciphertextBytes
-            },
-            uploadPercent => {
-              const mapped = 35 + Math.round(uploadPercent * 0.6);
-              this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
-              onProgress?.(mapped);
-            }
-          )
-        : this.cryptoApi.upsertEncryptedContentWithProgress(
-            {
-              contentType,
-              resourceId: attachment.resourceId,
-              crewId: scope.crewId,
-              fleetId: scope.fleetId,
-              keyVersion: 1,
-              nonce: encrypted.nonce,
-              ciphertext: encrypted.ciphertext
-            },
-            uploadPercent => {
-              const mapped = 35 + Math.round(uploadPercent * 0.6);
-              this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
-              onProgress?.(mapped);
-            }
-          )
+      this.cryptoApi.upsertEncryptedContentWithProgress(
+        {
+          contentType,
+          resourceId: attachment.resourceId,
+          crewId: scope.crewId,
+          fleetId: scope.fleetId,
+          keyVersion: 1,
+          nonce: encrypted.nonce,
+          ciphertext: encrypted.ciphertext
+        },
+        uploadPercent => {
+          const mapped = 35 + Math.round(uploadPercent * 0.6);
+          this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
+          onProgress?.(mapped);
+        }
+      )
     );
 
     if (!result.success) {

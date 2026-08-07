@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from './crypto-encoding.util';
 import { BACKUP_WRAP_LEGACY_PASSWORD, BACKUP_WRAP_RECOVERY_KEY } from './recovery-key.util';
+import {
+  decryptMediaCiphertextToBlob,
+  encryptMediaBlobChunked,
+  type MediaEncryptProgress
+} from '../../utils/media-chunk-crypto.util';
 
 const IDENTITY_ALGORITHM: EcKeyGenParams = { name: 'ECDH', namedCurve: 'P-256' };
 const AES_ALGORITHM = 'AES-GCM';
@@ -224,14 +229,15 @@ export class CryptoService {
   }
 
   /**
-   * Encrypt raw media bytes (TikTok-style size: no nested data-URL base64).
-   * Layout: [version=1][mimeLen u16 LE][mime utf8][file bytes]
+   * Encrypt raw media bytes (small payloads / images).
+   * Layout: [version=1][mimeLen u16 LE][mime utf8][file bytes] under one AES-GCM.
+   * Prefer {@link encryptMediaBlob} for video/audio to avoid multi‑hundred‑MB RAM spikes.
    */
   async encryptMediaBytes(
     crewAesKey: CryptoKey,
     fileBytes: Uint8Array,
     mimeType: string
-  ): Promise<{ nonce: string; ciphertext: string; ciphertextBytes: Uint8Array }> {
+  ): Promise<{ nonce: string; ciphertext: string }> {
     const mimeBytes = utf8ToBytes(mimeType || 'application/octet-stream');
     if (mimeBytes.length > 0xffff) {
       throw new Error('Media MIME type is too long.');
@@ -251,15 +257,26 @@ export class CryptoService {
       plaintext
     );
 
-    const ciphertextBytes = new Uint8Array(encrypted);
     return {
       nonce: bytesToBase64(nonce),
-      ciphertext: bytesToBase64(ciphertextBytes),
-      ciphertextBytes
+      ciphertext: bytesToBase64(new Uint8Array(encrypted))
     };
   }
 
-  /** Decrypt media ciphertext to a Blob (supports v1 binary + legacy {dataUrl} JSON). */
+  /**
+   * Signal-style chunked encrypt for large media: AES-GCM in ~512 KiB pages into a Blob.
+   * Does not base64 the ciphertext (that alone can OOM iOS on a 50+ MB clip).
+   */
+  async encryptMediaBlob(
+    crewAesKey: CryptoKey,
+    source: Blob,
+    mimeType: string,
+    onProgress?: MediaEncryptProgress
+  ): Promise<{ nonce: string; ciphertext: Blob }> {
+    return encryptMediaBlobChunked(crewAesKey, source, mimeType, { onProgress });
+  }
+
+  /** Decrypt media ciphertext to a Blob (supports v2 chunked, v1 binary + legacy {dataUrl} JSON). */
   async decryptMediaToBlob(
     crewAesKey: CryptoKey,
     nonce: string,
@@ -284,36 +301,7 @@ export class CryptoService {
     nonce: string,
     ciphertextBytes: Uint8Array | ArrayBuffer
   ): Promise<Blob> {
-    const ciphertext = ciphertextBytes instanceof Uint8Array
-      ? ciphertextBytes
-      : new Uint8Array(ciphertextBytes);
-    const decrypted = new Uint8Array(
-      await crypto.subtle.decrypt(
-        { name: AES_ALGORITHM, iv: base64ToBytes(nonce) },
-        crewAesKey,
-        ciphertext
-      )
-    );
-
-    if (decrypted.length > 3 && decrypted[0] === 1) {
-      const mimeLen = decrypted[1] | (decrypted[2] << 8);
-      const mimeStart = 3;
-      const dataStart = mimeStart + mimeLen;
-      if (dataStart > decrypted.length) {
-        throw new Error('Invalid media payload.');
-      }
-      const mime = bytesToUtf8(decrypted.subarray(mimeStart, dataStart)) || 'application/octet-stream';
-      const fileBytes = decrypted.subarray(dataStart);
-      return new Blob([fileBytes], { type: mime });
-    }
-
-    // Legacy JSON { dataUrl: "data:..." }
-    const payload = JSON.parse(bytesToUtf8(decrypted)) as { dataUrl?: string };
-    if (!payload?.dataUrl) {
-      throw new Error('Unrecognized media payload.');
-    }
-    const response = await fetch(payload.dataUrl);
-    return await response.blob();
+    return decryptMediaCiphertextToBlob(crewAesKey, nonce, ciphertextBytes);
   }
 
   /** Same as decryptMediaToObjectUrl but accepts raw ciphertext bytes (binary download path). */

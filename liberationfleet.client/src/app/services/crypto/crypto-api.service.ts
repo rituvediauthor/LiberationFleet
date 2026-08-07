@@ -129,6 +129,7 @@ export class CryptoApiService {
 
   /**
    * Binary AES-GCM ciphertext PUT for video/audio (no base64 JSON).
+   * Prefer Blob body — avoids copying a multi‑MB ArrayBuffer (iOS OOM).
    * Nonce goes in X-LF-Nonce; other metadata as query params.
    */
   upsertEncryptedContentBytesWithProgress(
@@ -139,7 +140,7 @@ export class CryptoApiService {
       fleetId?: number | null;
       keyVersion: number;
       nonce: string;
-      ciphertext: Uint8Array | ArrayBuffer;
+      ciphertext: Blob | Uint8Array | ArrayBuffer;
     },
     onProgress?: (percent: number) => void
   ): Observable<CryptoOperationResponse> {
@@ -155,12 +156,10 @@ export class CryptoApiService {
       params = params.set('fleetId', payload.fleetId.toString());
     }
 
-    const body = payload.ciphertext instanceof Uint8Array
-      ? payload.ciphertext.buffer.slice(
-          payload.ciphertext.byteOffset,
-          payload.ciphertext.byteOffset + payload.ciphertext.byteLength
-        )
-      : payload.ciphertext;
+    // Never ArrayBuffer.slice a huge typed array — that doubles peak RAM.
+    const body: Blob = payload.ciphertext instanceof Blob
+      ? payload.ciphertext
+      : new Blob([payload.ciphertext as BlobPart], { type: 'application/octet-stream' });
 
     return new Observable<CryptoOperationResponse>(subscriber => {
       const sub = this.http.put<CryptoOperationResponse>(`${this.apiUrl}/content/bytes`, body, {

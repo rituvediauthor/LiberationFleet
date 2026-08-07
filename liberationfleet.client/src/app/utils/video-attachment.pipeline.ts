@@ -1,26 +1,35 @@
+import { isConstrainedMobileRuntime } from './app-platform.util';
+import { MAX_VIDEO_DURATION_SEC } from './media-attachment-allowlist.util';
 import {
-  MAX_VIDEO_BYTES,
-  MAX_VIDEO_DURATION_SEC,
-  MAX_VIDEO_INPUT_BYTES
-} from './media-attachment-allowlist.util';
+  canCompressVideoForUploadAsync,
+  compressVideoForUpload,
+  isAlreadyChatSizedVideo
+} from './video-compress.util';
+import {
+  MAX_VIDEO_PASSTHROUGH_BYTES,
+  MAX_VIDEO_PICK_WITH_COMPRESS_BYTES,
+  MAX_VIDEO_UPLOAD_BYTES,
+  videoCompressFailedMessage,
+  videoOverPickerLimitMessage,
+  videoStillTooLargeAfterPrepMessage
+} from './video-platform.policy';
 
 export type VideoPrepProgress = (percent: number, label: string) => void;
 
 export interface PreparedVideoAttachment {
-  /** Original file bytes — never browser-re-encoded (keeps audio intact). */
+  /** File ready for encrypt/upload (compressed when the browser / native plugin supports it). */
   file: File;
   durationSec: number;
 }
 
 /**
- * E2EE-friendly video attachment preparation.
+ * E2EE-friendly video attachment preparation (Signal-like when compress is available).
  *
- * Browser canvas/MediaRecorder re-encode is intentionally not used: on iPhone it
- * routinely drops audio or hangs after the Photos picker. Instead we:
- *  1. Validate type / size / duration
- *  2. Hand back the original file for client-side AES encrypt + upload
+ * Limits adapt by runtime (Capacitor iOS / Android / web) via video-platform.policy:
+ *  - With native AVFoundation/MediaCodec or WebCodecs A/V: pick up to 600 MB, compress to ~720p
+ *  - Without: phone-safe passthrough (~64 MB); desktop can still upload larger originals
  *
- * The server only ever receives ciphertext (existing crypto upload path).
+ * Never uses canvas/MediaRecorder re-encode (that path dropped audio on iPhone).
  */
 export async function prepareVideoAttachment(
   file: File,
@@ -33,19 +42,17 @@ export async function prepareVideoAttachment(
     throw new Error('Unsupported video type. Use MP4, MOV, or WebM.');
   }
 
-  if (file.size > MAX_VIDEO_INPUT_BYTES) {
-    const maxMb = Math.floor(MAX_VIDEO_INPUT_BYTES / (1024 * 1024));
-    throw new Error(`Videos must be ${maxMb} MB or smaller.`);
+  const canCompress = await canCompressVideoForUploadAsync();
+  const pickMaxBytes = canCompress
+    ? MAX_VIDEO_PICK_WITH_COMPRESS_BYTES
+    : (isConstrainedMobileRuntime() ? MAX_VIDEO_PASSTHROUGH_BYTES : MAX_VIDEO_UPLOAD_BYTES);
+  const uploadMaxBytes = canCompress ? MAX_VIDEO_UPLOAD_BYTES : pickMaxBytes;
+
+  if (file.size > pickMaxBytes) {
+    throw new Error(videoOverPickerLimitMessage(undefined, { canCompress }));
   }
 
-  const maxMb = Math.floor(MAX_VIDEO_BYTES / (1024 * 1024));
-  if (file.size > MAX_VIDEO_BYTES) {
-    throw new Error(
-      `Video is ${formatMb(file.size)} MB. Trim it in Photos to under ${maxMb} MB so it can upload with sound intact.`
-    );
-  }
-
-  options?.onProgress?.(40, 'Reading video…');
+  options?.onProgress?.(15, 'Reading video…');
   const durationSec = await readVideoDurationSec(file, options?.signal);
   throwIfAborted(options?.signal);
 
@@ -58,9 +65,36 @@ export async function prepareVideoAttachment(
     throw new Error(`Videos must be ${maxMinutes} minutes or shorter.`);
   }
 
+  let out = normalizeVideoFile(file);
+
+  if (canCompress && !(await isAlreadyChatSizedVideo(out))) {
+    throwIfAborted(options?.signal);
+    try {
+      out = await compressVideoForUpload(out, {
+        signal: options?.signal,
+        onProgress: (percent, label) => {
+          const mapped = 20 + Math.round(percent * 0.7);
+          options?.onProgress?.(mapped, label);
+        }
+      });
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      if (file.size > uploadMaxBytes) {
+        throw new Error(videoCompressFailedMessage({ uploadMaxBytes }));
+      }
+      out = normalizeVideoFile(file);
+    }
+  }
+
+  if (out.size > uploadMaxBytes) {
+    throw new Error(videoStillTooLargeAfterPrepMessage(out.size));
+  }
+
   options?.onProgress?.(100, 'Ready');
   return {
-    file: normalizeVideoFile(file),
+    file: out,
     durationSec
   };
 }
@@ -146,10 +180,6 @@ function readVideoDurationSec(file: File, signal?: AbortSignal): Promise<number>
   });
 }
 
-function formatMb(bytes: number): string {
-  return String(Math.ceil(bytes / (1024 * 1024)));
-}
-
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
     throw abortError();
@@ -158,4 +188,9 @@ function throwIfAborted(signal?: AbortSignal): void {
 
 function abortError(): DOMException {
   return new DOMException('Attachment processing cancelled.', 'AbortError');
+}
+
+function isAbortError(error: unknown): boolean {
+  return (error instanceof DOMException && error.name === 'AbortError')
+    || (error instanceof Error && (error.name === 'AbortError' || error.name === 'ConversionCanceledError'));
 }

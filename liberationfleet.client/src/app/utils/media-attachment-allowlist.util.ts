@@ -1,5 +1,13 @@
 /** Strict media allowlist for attachments (MIME ∩ extension). Blocks SVG and exotic types. */
 
+import {
+  MAX_VIDEO_PASSTHROUGH_BYTES,
+  MAX_VIDEO_PICK_WITH_COMPRESS_BYTES,
+  MAX_VIDEO_UPLOAD_BYTES,
+  maxVideoPickerBytes,
+  maxVideoUploadBytes
+} from './video-platform.policy';
+
 export type AttachmentMediaKind = 'image' | 'video' | 'audio';
 
 export type AttachmentValidationResult =
@@ -53,13 +61,13 @@ const BLOCKED_MIME = new Set([
 const DANGEROUS_NAME = /\.(svg|html?|xhtml|js|mjs|cjs|exe|dll|msi|bat|cmd|ps1|vbs|wsf|scr|com|jar|apk|sh|php|asp|aspx|cgi)(\.|$)/i;
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
-/**
- * Max upload size for a video file (original; no browser re-encode).
- * Binary ciphertext PUT supports ~300 MB plaintext.
- */
-export const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
-/** Soft ceiling before attach UI rejects (same as upload cap — no client compress path). */
-export const MAX_VIDEO_INPUT_BYTES = 300 * 1024 * 1024;
+
+/** @deprecated Prefer MAX_VIDEO_UPLOAD_BYTES from video-platform.policy */
+export const MAX_VIDEO_BYTES = MAX_VIDEO_UPLOAD_BYTES;
+/** @deprecated Prefer MAX_VIDEO_PASSTHROUGH_BYTES from video-platform.policy */
+export const MAX_VIDEO_BYTES_IOS = MAX_VIDEO_PASSTHROUGH_BYTES;
+/** @deprecated Prefer MAX_VIDEO_PICK_WITH_COMPRESS_BYTES from video-platform.policy */
+export const MAX_VIDEO_INPUT_BYTES = MAX_VIDEO_PICK_WITH_COMPRESS_BYTES;
 /** Max video length allowed across the app (3 minutes). */
 export const MAX_VIDEO_DURATION_SEC = 3 * 60;
 export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
@@ -68,6 +76,11 @@ export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 export const MAX_MEDIA_CIPHERTEXT_CHARS = 40 * 1024 * 1024;
 /** Max raw ciphertext bytes for binary video/audio upsert (must match server). */
 export const MAX_MEDIA_CIPHERTEXT_BYTES = 320 * 1024 * 1024;
+
+/** @deprecated Use maxVideoUploadBytes from video-platform.policy */
+export function effectiveMaxVideoBytes(): number {
+  return maxVideoUploadBytes();
+}
 
 export const SAFE_DATA_URL_PREFIXES = [
   'data:image/jpeg;',
@@ -162,7 +175,8 @@ export function maxBytesForKind(kind: AttachmentMediaKind): number {
     return MAX_IMAGE_BYTES;
   }
   if (kind === 'video') {
-    return MAX_VIDEO_INPUT_BYTES;
+    // Platform-aware: large picks when compress works; phone passthrough otherwise.
+    return maxVideoPickerBytes();
   }
   return MAX_AUDIO_BYTES;
 }

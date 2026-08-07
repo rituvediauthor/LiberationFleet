@@ -13,7 +13,8 @@ export type MediaCompressProgress = (percent: number, label: string) => void;
 
 /**
  * Image / audio compression, plus video prep via {@link prepareVideoAttachment}.
- * Video is never canvas-re-encoded here (that path broke audio on iPhone).
+ * Video uses Mediabunny (WebCodecs) when available — never canvas/MediaRecorder
+ * (that path broke audio on iPhone).
  */
 export async function compressMediaFile(
   file: File,

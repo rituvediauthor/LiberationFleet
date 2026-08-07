@@ -1,0 +1,298 @@
+import { canCompressVideoWithAudio } from './webcodecs-capability.util';
+import {
+  compressVideoNativeForUpload,
+  isNativeVideoCompressorAvailable
+} from './native-video-compress.util';
+import { hasNativeVideoCompressPlugin } from './video-platform.policy';
+import {
+  ALL_FORMATS,
+  BlobSource,
+  BufferTarget,
+  Conversion,
+  Input,
+  Mp4OutputFormat,
+  Output,
+  Quality,
+  WebMOutputFormat,
+  canEncodeAudio,
+  canEncodeVideo,
+  type DiscardedTrack
+} from 'mediabunny';
+
+export { canCompressVideoWithAudio } from './webcodecs-capability.util';
+export { canCompressVideoForUpload, hasNativeVideoCompressPlugin } from './video-platform.policy';
+
+export type VideoCompressProgress = (percent: number, label: string) => void;
+
+/** Already small enough that Signal-style re-encode is unnecessary. */
+export const SKIP_COMPRESS_BYTES = 8 * 1024 * 1024;
+const SKIP_COMPRESS_MAX_EDGE = 720;
+const TARGET_WIDTH = 1280;
+const TARGET_HEIGHT = 720;
+const TARGET_FPS = 24;
+const AUDIO_BITRATE = 64_000;
+
+/**
+ * Sync probe is {@link canCompressVideoWithAudio}; this adds encode-config support checks.
+ * Also returns true when a native Capacitor compress plugin is present.
+ */
+export async function canCompressVideoWithAudioAsync(): Promise<boolean> {
+  if (hasNativeVideoCompressPlugin()) {
+    return true;
+  }
+  if (!canCompressVideoWithAudio()) {
+    return false;
+  }
+
+  try {
+    const [avc, aac, vp9, opus] = await Promise.all([
+      canEncodeVideo('avc', { width: TARGET_WIDTH, height: TARGET_HEIGHT, quality: new Quality('medium') }),
+      canEncodeAudio('aac', { numberOfChannels: 2, sampleRate: 48_000, quality: new Quality({ bitrate: AUDIO_BITRATE }) }),
+      canEncodeVideo('vp9', { width: TARGET_WIDTH, height: TARGET_HEIGHT, quality: new Quality('medium') }),
+      canEncodeAudio('opus', { numberOfChannels: 2, sampleRate: 48_000, quality: new Quality({ bitrate: AUDIO_BITRATE }) })
+    ]);
+    return (avc && aac) || (vp9 && opus);
+  } catch {
+    return false;
+  }
+}
+
+/** Alias used by the attachment pipeline (WebCodecs and/or native plugin). */
+export async function canCompressVideoForUploadAsync(): Promise<boolean> {
+  return canCompressVideoWithAudioAsync();
+}
+
+/**
+ * Skip compress when the file is already chat-sized (≤8 MB and ≤720p long edge).
+ */
+export async function isAlreadyChatSizedVideo(file: File): Promise<boolean> {
+  if (file.size > SKIP_COMPRESS_BYTES) {
+    return false;
+  }
+
+  try {
+    const edge = await readVideoMaxEdge(file);
+    return edge > 0 && edge <= SKIP_COMPRESS_MAX_EDGE;
+  } catch {
+    // Unknown dimensions but small — treat as already fine.
+    return true;
+  }
+}
+
+/**
+ * Signal-like standard quality: 720p box, medium video, ~64 kbps audio, prefer MP4.
+ * Never strips audio: if the source has audio and conversion would discard it, throws.
+ * Returns the original file when the compressed result is not smaller.
+ */
+export async function compressVideoForUpload(
+  file: File,
+  options?: { onProgress?: VideoCompressProgress; signal?: AbortSignal }
+): Promise<File> {
+  throwIfAborted(options?.signal);
+
+  // Native shells: AVFoundation / MediaCodec on real file URIs first.
+  if (isNativeVideoCompressorAvailable()) {
+    try {
+      return await compressVideoNativeForUpload(file, options);
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      // Fall through to Mediabunny when WebCodecs A/V encode is available (e.g. Cap Android).
+      if (!canCompressVideoWithAudio()) {
+        throw error instanceof Error ? error : new Error('Native video compression failed.');
+      }
+    }
+  }
+
+  if (!(await canCompressVideoWithAudioAsync())) {
+    throw new Error('This browser cannot compress video with audio.');
+  }
+
+  options?.onProgress?.(5, 'Compressing video…');
+
+  const preferMp4 = (await canEncodeVideo('avc', {
+    width: TARGET_WIDTH,
+    height: TARGET_HEIGHT,
+    quality: new Quality('medium')
+  })) && (await canEncodeAudio('aac', {
+    numberOfChannels: 2,
+    sampleRate: 48_000,
+    quality: new Quality({ bitrate: AUDIO_BITRATE })
+  }));
+
+  const attempts: Array<'mp4' | 'webm'> = preferMp4 ? ['mp4', 'webm'] : ['webm', 'mp4'];
+  let lastError: unknown;
+
+  for (const format of attempts) {
+    throwIfAborted(options?.signal);
+    try {
+      const compressed = await convertOnce(file, format, options);
+      if (compressed.size >= file.size) {
+        options?.onProgress?.(100, 'Ready');
+        return file;
+      }
+      options?.onProgress?.(100, 'Ready');
+      return compressed;
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      lastError = error;
+    }
+  }
+
+  const message = lastError instanceof Error ? lastError.message : 'Video compression failed.';
+  throw new Error(message);
+}
+
+async function convertOnce(
+  file: File,
+  format: 'mp4' | 'webm',
+  options?: { onProgress?: VideoCompressProgress; signal?: AbortSignal }
+): Promise<File> {
+  const input = new Input({
+    source: new BlobSource(file),
+    formats: ALL_FORMATS
+  });
+
+  let conversion: Conversion | null = null;
+  const onAbort = () => {
+    void conversion?.cancel();
+  };
+
+  try {
+    if (options?.signal?.aborted) {
+      throw abortError();
+    }
+    options?.signal?.addEventListener('abort', onAbort, { once: true });
+
+    const audioTrack = await input.getPrimaryAudioTrack();
+    const hadAudio = audioTrack != null;
+
+    const target = new BufferTarget();
+    const output = new Output({
+      format: format === 'mp4' ? new Mp4OutputFormat() : new WebMOutputFormat(),
+      target
+    });
+
+    conversion = await Conversion.init({
+      input,
+      output,
+      tracks: 'primary',
+      showWarnings: false,
+      video: {
+        width: TARGET_WIDTH,
+        height: TARGET_HEIGHT,
+        fit: 'contain',
+        frameRate: TARGET_FPS,
+        ...(format === 'mp4' ? { codec: 'avc' as const } : { codec: 'vp9' as const }),
+        quality: new Quality('medium'),
+        hardwareAcceleration: 'prefer-hardware'
+      },
+      audio: hadAudio
+        ? {
+            ...(format === 'mp4' ? { codec: 'aac' as const } : { codec: 'opus' as const }),
+            quality: new Quality({ bitrate: AUDIO_BITRATE })
+          }
+        : { discard: true }
+    });
+
+    if (!conversion.isValid) {
+      throw new Error(describeDiscardReasons(conversion.discardedTracks) || 'Unable to compress this video.');
+    }
+
+    if (hadAudio && conversion.discardedTracks.some(d => isAudioDiscard(d))) {
+      throw new Error('Could not keep audio while compressing this video.');
+    }
+
+    conversion.onProgress = (progress) => {
+      const pct = 5 + Math.round(Math.min(1, Math.max(0, progress)) * 90);
+      options?.onProgress?.(pct, 'Compressing video…');
+    };
+
+    await conversion.execute();
+    throwIfAborted(options?.signal);
+
+    const buffer = target.buffer;
+    if (!buffer || buffer.byteLength === 0) {
+      throw new Error('Compression produced an empty file.');
+    }
+
+    const mime = format === 'mp4' ? 'video/mp4' : 'video/webm';
+    const ext = format === 'mp4' ? 'mp4' : 'webm';
+    const baseName = (file.name || 'video').replace(/\.[^.]+$/, '') || 'video';
+    return new File([buffer], `${baseName}.${ext}`, {
+      type: mime,
+      lastModified: Date.now()
+    });
+  } finally {
+    options?.signal?.removeEventListener('abort', onAbort);
+    try {
+      input.dispose();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function isAudioDiscard(discarded: DiscardedTrack): boolean {
+  return discarded.track.type === 'audio';
+}
+
+function describeDiscardReasons(discarded: DiscardedTrack[]): string {
+  if (discarded.length === 0) {
+    return '';
+  }
+  return discarded.map(d => `${d.track.type}: ${d.reason}`).join('; ');
+}
+
+function readVideoMaxEdge(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = objectUrl;
+
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('Timed out reading video dimensions.'));
+    }, 15_000);
+
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      URL.revokeObjectURL(objectUrl);
+      video.removeAttribute('src');
+      video.load();
+    };
+
+    video.onloadedmetadata = () => {
+      const edge = Math.max(video.videoWidth || 0, video.videoHeight || 0);
+      cleanup();
+      resolve(edge);
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error('Unable to read video dimensions.'));
+    };
+  });
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw abortError();
+  }
+}
+
+function abortError(): DOMException {
+  return new DOMException('Attachment processing cancelled.', 'AbortError');
+}
+
+function isAbortError(error: unknown): boolean {
+  return (error instanceof DOMException && error.name === 'AbortError')
+    || (error instanceof Error && error.name === 'ConversionCanceledError');
+}

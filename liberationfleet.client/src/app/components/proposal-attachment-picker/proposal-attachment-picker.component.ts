@@ -12,6 +12,7 @@ import {
   MAX_AUDIO_BYTES,
   validateAttachmentFile
 } from '../../utils/media-attachment-allowlist.util';
+import { videoOverPickerLimitMessage } from '../../utils/video-platform.policy';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 
 @Component({
@@ -143,7 +144,13 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       const result = validateAttachmentFile(file, this.allowedKinds);
       if (!result.ok) {
         if (result.reason === 'too-large') {
-          this.toastService.error(`${file.name} is too large for this attachment type.`);
+          const isVideo = /\.(mp4|m4v|webm|mov)$/i.test(file.name)
+            || (file.type || '').toLowerCase().startsWith('video/');
+          this.toastService.error(
+            isVideo
+              ? videoOverPickerLimitMessage(file.name)
+              : `${file.name} is too large for this attachment type.`
+          );
         } else if (result.reason === 'blocked') {
           this.toastService.error(`${file.name} is not an allowed file type.`);
         } else {
