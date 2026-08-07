@@ -33,7 +33,7 @@
         </div>
 
         <nav class="fleet-menu" aria-label="Fleet actions">
-          <button type="button" class="menu-link fleet-name-link" (click)="goToEditFleet()">
+          <button type="button" class="menu-link fleet-name-link" (click)="goToForums()">
             <span class="menu-icon-wrap">
               <app-brand-logo
                 class="menu-brand-logo"
@@ -42,7 +42,7 @@
                 alt=""
                 [customSrc]="fleetImageSrc">
               </app-brand-logo>
-              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
+              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
             </span>
             <span class="menu-label">{{ status?.fleetName }}</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -98,15 +98,6 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link" (click)="goToForums()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-rectangle-list menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
-            </span>
-            <span class="menu-label">Fleet Space</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
-
           <button type="button" class="menu-link" (click)="goToProposals()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
@@ -122,6 +113,15 @@
               <app-content-badge [count]="areaCounts.crewmates"></app-content-badge>
             </span>
             <span class="menu-label">Crews</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToEditFleet()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
+              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
+            </span>
+            <span class="menu-label">Fleet Settings</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
         </nav>

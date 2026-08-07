@@ -39,7 +39,7 @@
 
         <nav class="crew-menu" aria-label="Crew actions">
 
-          <button type="button" class="menu-link crew-name-link" (click)="goToEditCrew()">
+          <button type="button" class="menu-link crew-name-link" (click)="goToForums()">
 
             <span class="menu-icon-wrap">
 
@@ -50,7 +50,7 @@
                 alt=""
                 [customSrc]="crewImageSrc">
               </app-brand-logo>
-              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
+              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
 
             </span>
 
@@ -147,24 +147,6 @@
 
 
 
-          <button type="button" class="menu-link" (click)="goToForums()">
-
-            <span class="menu-icon-wrap">
-
-              <i class="fa-solid fa-rectangle-list menu-icon" aria-hidden="true"></i>
-
-              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
-
-            </span>
-
-            <span class="menu-label">Crew Space</span>
-
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-
-          </button>
-
-
-
           <button type="button" class="menu-link" (click)="goToProposals()">
 
             <span class="menu-icon-wrap">
@@ -194,6 +176,24 @@
             </span>
 
             <span class="menu-label">Crewmates</span>
+
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+
+          </button>
+
+
+
+          <button type="button" class="menu-link" (click)="goToEditCrew()">
+
+            <span class="menu-icon-wrap">
+
+              <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
+
+              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
+
+            </span>
+
+            <span class="menu-label">Crew Settings</span>
 
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
 
