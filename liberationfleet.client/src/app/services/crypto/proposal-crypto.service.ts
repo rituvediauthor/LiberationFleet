@@ -25,6 +25,9 @@ export interface ProposalCryptoScope {
   fleetId?: number;
 }
 
+/** Cap eager video downloads after a list decrypt (crew/fleet feed). */
+const MAX_VIDEO_PREFETCH_PER_LIST = 4;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -34,6 +37,7 @@ export class ProposalCryptoService {
   private cryptoSession = inject(CryptoSessionService);
   private mediaBlobCache = inject(MediaBlobCacheService);
   private uploadQueue = inject(MediaUploadQueueService);
+  private readonly videoPrefetchInFlight = new Set<string>();
 
   async decryptListItems(items: ProposalListItem[], scope: ProposalCryptoScope | number): Promise<ProposalListItem[]> {
     const normalizedScope = this.normalizeScope(scope);
@@ -60,7 +64,17 @@ export class ProposalCryptoService {
     }
 
     const scopeKey = await this.resolveScopeKey(normalizedScope);
-    return Promise.all(items.map(async item => this.decryptListItem(item, scopeKey, normalizedScope)));
+    const decryptedRows = await Promise.all(
+      items.map(async (item, index) => {
+        const localVideos: ProposalAttachment[] = [];
+        const decrypted = await this.decryptListItem(item, scopeKey, normalizedScope, localVideos);
+        return { index, decrypted, localVideos };
+      })
+    );
+    decryptedRows.sort((a, b) => a.index - b.index);
+    const videoPrefetchQueue = decryptedRows.flatMap(row => row.localVideos);
+    this.scheduleVideoPrefetch(normalizedScope, videoPrefetchQueue);
+    return decryptedRows.map(row => row.decrypted);
   }
 
   async decryptDetail(proposal: ProposalDetail, scope: ProposalCryptoScope | number): Promise<ProposalDetail> {
@@ -205,7 +219,8 @@ export class ProposalCryptoService {
   private async decryptListItem(
     item: ProposalListItem,
     scopeKey: CryptoKey,
-    scope: ProposalCryptoScope
+    scope: ProposalCryptoScope,
+    videoPrefetchQueue?: ProposalAttachment[]
   ): Promise<ProposalListItem> {
     if (item.hasPlaintextContent) {
       return {
@@ -232,6 +247,14 @@ export class ProposalCryptoService {
         item.encryptedPayload.nonce,
         item.encryptedPayload.ciphertext
       );
+      const attachments = payload.attachments ?? [];
+      if (videoPrefetchQueue) {
+        for (const attachment of attachments) {
+          if (attachment.type === 'video' && attachment.resourceId) {
+            videoPrefetchQueue.push(attachment);
+          }
+        }
+      }
       const previewImageUrls = await this.resolvePreviewImageUrls(scopeKey, payload, scope);
       return {
         ...item,
@@ -240,7 +263,7 @@ export class ProposalCryptoService {
         authorUsername: this.resolveAuthorUsername(item, payload.authorDisplayName),
         thumbnailUrl: previewImageUrls[0] ?? null,
         previewImageUrls,
-        hasVideoAttachment: (payload.attachments ?? []).some(attachment => attachment.type === 'video')
+        hasVideoAttachment: attachments.some(attachment => attachment.type === 'video')
       };
     } catch {
       return {
@@ -248,6 +271,124 @@ export class ProposalCryptoService {
         title: '[Unable to decrypt]',
         descriptionPreview: '[Unable to decrypt]'
       };
+    }
+  }
+
+  /**
+   * After list decrypt, warm the decrypted-media cache for the first few videos
+   * (newest-first feed order). Best-effort; never blocks list rendering.
+   */
+  private scheduleVideoPrefetch(
+    scope: ProposalCryptoScope,
+    attachments: ProposalAttachment[]
+  ): void {
+    if (!attachments.length || !this.shouldPrefetchVideos()) {
+      return;
+    }
+
+    const seen = new Set<string>();
+    const unique: ProposalAttachment[] = [];
+    for (const attachment of attachments) {
+      if (!attachment.resourceId || seen.has(attachment.resourceId)) {
+        continue;
+      }
+      seen.add(attachment.resourceId);
+      unique.push(attachment);
+      if (unique.length >= MAX_VIDEO_PREFETCH_PER_LIST) {
+        break;
+      }
+    }
+
+    if (unique.length === 0) {
+      return;
+    }
+
+    // Yield so posters/titles paint first.
+    const run = () => void this.prefetchVideosIntoCache(scope, unique);
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(() => run(), { timeout: 2500 });
+    } else {
+      setTimeout(run, 0);
+    }
+  }
+
+  private shouldPrefetchVideos(): boolean {
+    if (typeof navigator === 'undefined') {
+      return true;
+    }
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    if (connection?.saveData) {
+      return false;
+    }
+    const effective = connection?.effectiveType;
+    if (effective === 'slow-2g' || effective === '2g') {
+      return false;
+    }
+    return true;
+  }
+
+  /** Download + decrypt videos into IndexedDB only (no object URLs). Serial for iOS. */
+  private async prefetchVideosIntoCache(
+    scope: ProposalCryptoScope,
+    attachments: ProposalAttachment[]
+  ): Promise<void> {
+    if (!this.cryptoSession.isUnlocked()) {
+      return;
+    }
+
+    let scopeKey: CryptoKey;
+    try {
+      scopeKey = await this.resolveScopeKey(scope);
+    } catch {
+      return;
+    }
+
+    const keyVersion = this.resolveScopeKeyVersion(scope);
+
+    for (const attachment of attachments) {
+      const cacheKey = buildMediaCacheKey(scope, attachment.resourceId, keyVersion);
+      if (this.videoPrefetchInFlight.has(cacheKey)) {
+        continue;
+      }
+      try {
+        if (await this.mediaBlobCache.has(cacheKey)) {
+          continue;
+        }
+      } catch {
+        continue;
+      }
+
+      this.videoPrefetchInFlight.add(cacheKey);
+      try {
+        const payload = await firstValueFrom(
+          this.cryptoApi.getEncryptedContentBytes(
+            'VideoAsset',
+            attachment.resourceId,
+            scope.crewId,
+            scope.fleetId
+          )
+        );
+        const putKey = buildMediaCacheKey(
+          scope,
+          payload.resourceId || attachment.resourceId,
+          payload.keyVersion
+        );
+        if (await this.mediaBlobCache.has(putKey)) {
+          continue;
+        }
+        const blob = await this.cryptoService.decryptMediaBytesToBlob(
+          scopeKey,
+          payload.nonce,
+          payload.ciphertext
+        );
+        await this.mediaBlobCache.put(putKey, blob);
+      } catch {
+        // Prefetch is best-effort.
+      } finally {
+        this.videoPrefetchInFlight.delete(cacheKey);
+      }
     }
   }
 

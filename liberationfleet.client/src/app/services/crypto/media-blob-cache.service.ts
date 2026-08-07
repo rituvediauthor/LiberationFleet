@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 
 const DB_NAME = 'lf-decrypted-media-cache';
-const DB_VERSION = 1;
+/** v2: store ArrayBuffer instead of Blob (iOS Safari PWA Blobs go stale after relaunch). */
+const DB_VERSION = 2;
 const STORE_NAME = 'blobs';
 
 /** Soft caps — LRU eviction when either is exceeded. */
@@ -10,10 +11,21 @@ const MAX_TOTAL_BYTES = 250 * 1024 * 1024;
 
 interface MediaCacheRecord {
   key: string;
-  blob: Blob;
+  /** Raw bytes — do not store Blob; iOS home-screen Safari returns empty Blobs after relaunch. */
+  data: ArrayBuffer;
   mime: string;
   size: number;
   lastAccessed: number;
+}
+
+/** Legacy v1 shape (Blob in IDB) — treat as miss and delete. */
+interface LegacyMediaCacheRecord {
+  key: string;
+  blob?: Blob;
+  data?: ArrayBuffer;
+  mime?: string;
+  size?: number;
+  lastAccessed?: number;
 }
 
 export interface MediaCacheScope {
@@ -33,7 +45,7 @@ export function buildMediaCacheKey(
 }
 
 /**
- * Client-side cache of decrypted media Blobs (IndexedDB).
+ * Client-side cache of decrypted media (IndexedDB).
  * Server still only stores ciphertext; plaintext never leaves the device after decrypt.
  */
 @Injectable({
@@ -42,19 +54,51 @@ export function buildMediaCacheKey(
 export class MediaBlobCacheService {
   private dbPromise: Promise<IDBDatabase> | null = null;
 
+  /** True when a usable ArrayBuffer entry exists (does not load bytes into a Blob). */
+  async has(key: string): Promise<boolean> {
+    try {
+      const db = await this.openDb();
+      const record = await this.idbRequest<LegacyMediaCacheRecord | undefined>(
+        db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key)
+      );
+      return !!(record?.data instanceof ArrayBuffer && record.data.byteLength > 0);
+    } catch {
+      return false;
+    }
+  }
+
   async get(key: string): Promise<Blob | null> {
     try {
       const db = await this.openDb();
-      const record = await this.idbRequest<MediaCacheRecord | undefined>(
+      const record = await this.idbRequest<LegacyMediaCacheRecord | undefined>(
         db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key)
       );
-      if (!record?.blob) {
+      if (!record) {
         return null;
       }
 
-      // Touch LRU without blocking the caller on write failure.
-      void this.touch(key, record);
-      return record.blob;
+      // Drop legacy Blob records and empty/corrupt entries so decrypt can re-run.
+      const data = record.data;
+      if (!(data instanceof ArrayBuffer) || data.byteLength === 0) {
+        void this.deleteKey(key);
+        return null;
+      }
+
+      const mime = record.mime || 'application/octet-stream';
+      const blob = new Blob([data], { type: mime });
+      if (blob.size === 0) {
+        void this.deleteKey(key);
+        return null;
+      }
+
+      void this.touch(key, {
+        key,
+        data,
+        mime,
+        size: record.size || data.byteLength,
+        lastAccessed: Date.now()
+      });
+      return blob;
     } catch {
       return null;
     }
@@ -62,12 +106,21 @@ export class MediaBlobCacheService {
 
   async put(key: string, blob: Blob, mime?: string): Promise<void> {
     try {
+      if (!blob || blob.size === 0) {
+        return;
+      }
+
+      const data = await blob.arrayBuffer();
+      if (data.byteLength === 0) {
+        return;
+      }
+
       const db = await this.openDb();
       const record: MediaCacheRecord = {
         key,
-        blob,
+        data,
         mime: mime || blob.type || 'application/octet-stream',
-        size: blob.size,
+        size: data.byteLength,
         lastAccessed: Date.now()
       };
 
@@ -88,6 +141,17 @@ export class MediaBlobCacheService {
       );
     } catch {
       // Ignore clear failures (private mode, etc.).
+    }
+  }
+
+  private async deleteKey(key: string): Promise<void> {
+    try {
+      const db = await this.openDb();
+      await this.idbRequest(
+        db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(key)
+      );
+    } catch {
+      // Ignore.
     }
   }
 
@@ -153,9 +217,11 @@ export class MediaBlobCacheService {
       request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+        // Wipe on upgrade so legacy Blob entries cannot poison cache hits on iOS.
+        if (db.objectStoreNames.contains(STORE_NAME)) {
+          db.deleteObjectStore(STORE_NAME);
         }
+        db.createObjectStore(STORE_NAME, { keyPath: 'key' });
       };
       request.onsuccess = () => resolve(request.result);
     });
