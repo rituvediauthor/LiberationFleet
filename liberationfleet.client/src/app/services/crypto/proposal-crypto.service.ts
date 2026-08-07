@@ -17,7 +17,6 @@ import { CryptoSessionService } from './crypto-session.service';
 import { bytesToBase64 } from './crypto-encoding.util';
 import { buildMediaCacheKey, MediaBlobCacheService } from './media-blob-cache.service';
 import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
-import { prepareVideoAttachment } from '../../utils/video-attachment.pipeline';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 import { MediaUploadQueueService } from '../media-upload-queue.service';
 
@@ -855,11 +854,7 @@ export class ProposalCryptoService {
       && !alreadyPrepared
       && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')
     ) {
-      if (attachment.type === 'video') {
-        file = (await prepareVideoAttachment(file)).file;
-      } else {
-        file = await compressMediaFile(file, attachment.type);
-      }
+      file = await compressMediaFile(file, attachment.type);
       attachment.file = file;
     }
 

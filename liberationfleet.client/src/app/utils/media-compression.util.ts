@@ -1,5 +1,3 @@
-import { prepareVideoAttachment } from './video-attachment.pipeline';
-
 const MAX_IMAGE_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
 /** Only skip re-encode for already-safe JPEG under size/dimension limits. */
@@ -32,6 +30,8 @@ export async function compressMediaFile(
   }
 
   if (type === 'video') {
+    // Lazy: keeps Mediabunny / native compress out of the initial production bundle.
+    const { prepareVideoAttachment } = await import('./video-attachment.pipeline');
     const prepared = await prepareVideoAttachment(file, options);
     return prepared.file;
   }

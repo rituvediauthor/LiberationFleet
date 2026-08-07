@@ -1,23 +1,5 @@
 import { canCompressVideoWithAudio } from './webcodecs-capability.util';
-import {
-  compressVideoNativeForUpload,
-  isNativeVideoCompressorAvailable
-} from './native-video-compress.util';
 import { hasNativeVideoCompressPlugin } from './video-platform.policy';
-import {
-  ALL_FORMATS,
-  BlobSource,
-  BufferTarget,
-  Conversion,
-  Input,
-  Mp4OutputFormat,
-  Output,
-  Quality,
-  WebMOutputFormat,
-  canEncodeAudio,
-  canEncodeVideo,
-  type DiscardedTrack
-} from 'mediabunny';
 
 export { canCompressVideoWithAudio } from './webcodecs-capability.util';
 export { canCompressVideoForUpload, hasNativeVideoCompressPlugin } from './video-platform.policy';
@@ -32,6 +14,8 @@ const TARGET_HEIGHT = 720;
 const TARGET_FPS = 24;
 const AUDIO_BITRATE = 64_000;
 
+type MediabunnyModule = typeof import('mediabunny');
+
 /**
  * Sync probe is {@link canCompressVideoWithAudio}; this adds encode-config support checks.
  * Also returns true when a native Capacitor compress plugin is present.
@@ -45,11 +29,14 @@ export async function canCompressVideoWithAudioAsync(): Promise<boolean> {
   }
 
   try {
+    const mb = await loadMediabunny();
+    const qualityMedium = new mb.Quality('medium');
+    const audioQuality = new mb.Quality({ bitrate: AUDIO_BITRATE });
     const [avc, aac, vp9, opus] = await Promise.all([
-      canEncodeVideo('avc', { width: TARGET_WIDTH, height: TARGET_HEIGHT, quality: new Quality('medium') }),
-      canEncodeAudio('aac', { numberOfChannels: 2, sampleRate: 48_000, quality: new Quality({ bitrate: AUDIO_BITRATE }) }),
-      canEncodeVideo('vp9', { width: TARGET_WIDTH, height: TARGET_HEIGHT, quality: new Quality('medium') }),
-      canEncodeAudio('opus', { numberOfChannels: 2, sampleRate: 48_000, quality: new Quality({ bitrate: AUDIO_BITRATE }) })
+      mb.canEncodeVideo('avc', { width: TARGET_WIDTH, height: TARGET_HEIGHT, quality: qualityMedium }),
+      mb.canEncodeAudio('aac', { numberOfChannels: 2, sampleRate: 48_000, quality: audioQuality }),
+      mb.canEncodeVideo('vp9', { width: TARGET_WIDTH, height: TARGET_HEIGHT, quality: qualityMedium }),
+      mb.canEncodeAudio('opus', { numberOfChannels: 2, sampleRate: 48_000, quality: audioQuality })
     ]);
     return (avc && aac) || (vp9 && opus);
   } catch {
@@ -83,6 +70,8 @@ export async function isAlreadyChatSizedVideo(file: File): Promise<boolean> {
  * Signal-like standard quality: 720p box, medium video, ~64 kbps audio, prefer MP4.
  * Never strips audio: if the source has audio and conversion would discard it, throws.
  * Returns the original file when the compressed result is not smaller.
+ *
+ * Mediabunny / native compressor are loaded on demand so they stay out of the initial bundle.
  */
 export async function compressVideoForUpload(
   file: File,
@@ -91,8 +80,9 @@ export async function compressVideoForUpload(
   throwIfAborted(options?.signal);
 
   // Native shells: AVFoundation / MediaCodec on real file URIs first.
-  if (isNativeVideoCompressorAvailable()) {
+  if (hasNativeVideoCompressPlugin()) {
     try {
+      const { compressVideoNativeForUpload } = await import('./native-video-compress.util');
       return await compressVideoNativeForUpload(file, options);
     } catch (error) {
       if (isAbortError(error)) {
@@ -109,16 +99,19 @@ export async function compressVideoForUpload(
     throw new Error('This browser cannot compress video with audio.');
   }
 
+  const mb = await loadMediabunny();
   options?.onProgress?.(5, 'Compressing video…');
 
-  const preferMp4 = (await canEncodeVideo('avc', {
+  const qualityMedium = new mb.Quality('medium');
+  const audioQuality = new mb.Quality({ bitrate: AUDIO_BITRATE });
+  const preferMp4 = (await mb.canEncodeVideo('avc', {
     width: TARGET_WIDTH,
     height: TARGET_HEIGHT,
-    quality: new Quality('medium')
-  })) && (await canEncodeAudio('aac', {
+    quality: qualityMedium
+  })) && (await mb.canEncodeAudio('aac', {
     numberOfChannels: 2,
     sampleRate: 48_000,
-    quality: new Quality({ bitrate: AUDIO_BITRATE })
+    quality: audioQuality
   }));
 
   const attempts: Array<'mp4' | 'webm'> = preferMp4 ? ['mp4', 'webm'] : ['webm', 'mp4'];
@@ -127,7 +120,7 @@ export async function compressVideoForUpload(
   for (const format of attempts) {
     throwIfAborted(options?.signal);
     try {
-      const compressed = await convertOnce(file, format, options);
+      const compressed = await convertOnce(mb, file, format, options);
       if (compressed.size >= file.size) {
         options?.onProgress?.(100, 'Ready');
         return file;
@@ -147,16 +140,17 @@ export async function compressVideoForUpload(
 }
 
 async function convertOnce(
+  mb: MediabunnyModule,
   file: File,
   format: 'mp4' | 'webm',
   options?: { onProgress?: VideoCompressProgress; signal?: AbortSignal }
 ): Promise<File> {
-  const input = new Input({
-    source: new BlobSource(file),
-    formats: ALL_FORMATS
+  const input = new mb.Input({
+    source: new mb.BlobSource(file),
+    formats: mb.ALL_FORMATS
   });
 
-  let conversion: Conversion | null = null;
+  let conversion: Awaited<ReturnType<MediabunnyModule['Conversion']['init']>> | null = null;
   const onAbort = () => {
     void conversion?.cancel();
   };
@@ -170,13 +164,13 @@ async function convertOnce(
     const audioTrack = await input.getPrimaryAudioTrack();
     const hadAudio = audioTrack != null;
 
-    const target = new BufferTarget();
-    const output = new Output({
-      format: format === 'mp4' ? new Mp4OutputFormat() : new WebMOutputFormat(),
+    const target = new mb.BufferTarget();
+    const output = new mb.Output({
+      format: format === 'mp4' ? new mb.Mp4OutputFormat() : new mb.WebMOutputFormat(),
       target
     });
 
-    conversion = await Conversion.init({
+    conversion = await mb.Conversion.init({
       input,
       output,
       tracks: 'primary',
@@ -187,13 +181,13 @@ async function convertOnce(
         fit: 'contain',
         frameRate: TARGET_FPS,
         ...(format === 'mp4' ? { codec: 'avc' as const } : { codec: 'vp9' as const }),
-        quality: new Quality('medium'),
+        quality: new mb.Quality('medium'),
         hardwareAcceleration: 'prefer-hardware'
       },
       audio: hadAudio
         ? {
             ...(format === 'mp4' ? { codec: 'aac' as const } : { codec: 'opus' as const }),
-            quality: new Quality({ bitrate: AUDIO_BITRATE })
+            quality: new mb.Quality({ bitrate: AUDIO_BITRATE })
           }
         : { discard: true }
     });
@@ -202,11 +196,11 @@ async function convertOnce(
       throw new Error(describeDiscardReasons(conversion.discardedTracks) || 'Unable to compress this video.');
     }
 
-    if (hadAudio && conversion.discardedTracks.some(d => isAudioDiscard(d))) {
+    if (hadAudio && conversion.discardedTracks.some((d: { track: { type: string } }) => d.track.type === 'audio')) {
       throw new Error('Could not keep audio while compressing this video.');
     }
 
-    conversion.onProgress = (progress) => {
+    conversion.onProgress = (progress: number) => {
       const pct = 5 + Math.round(Math.min(1, Math.max(0, progress)) * 90);
       options?.onProgress?.(pct, 'Compressing video…');
     };
@@ -236,15 +230,22 @@ async function convertOnce(
   }
 }
 
-function isAudioDiscard(discarded: DiscardedTrack): boolean {
-  return discarded.track.type === 'audio';
-}
-
-function describeDiscardReasons(discarded: DiscardedTrack[]): string {
+function describeDiscardReasons(
+  discarded: Array<{ track: { type: string }; reason: string }>
+): string {
   if (discarded.length === 0) {
     return '';
   }
   return discarded.map(d => `${d.track.type}: ${d.reason}`).join('; ');
+}
+
+let mediabunnyPromise: Promise<MediabunnyModule> | null = null;
+
+function loadMediabunny(): Promise<MediabunnyModule> {
+  if (!mediabunnyPromise) {
+    mediabunnyPromise = import('mediabunny');
+  }
+  return mediabunnyPromise;
 }
 
 function readVideoMaxEdge(file: File): Promise<number> {

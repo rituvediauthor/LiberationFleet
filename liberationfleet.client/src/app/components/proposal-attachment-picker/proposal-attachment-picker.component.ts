@@ -5,7 +5,6 @@ import { ProposalCryptoScope, ProposalCryptoService } from '../../services/crypt
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
 import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
-import { prepareVideoAttachment } from '../../utils/video-attachment.pipeline';
 import {
   AttachmentMediaKind,
   defaultAcceptAttribute,
@@ -181,23 +180,14 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       }
 
       try {
-        const prepared = result.kind === 'video'
-          ? (await prepareVideoAttachment(file, {
-              signal: controller.signal,
-              onProgress: (percent, label) => {
-                pending.progress = percent;
-                pending.progressLabel = label;
-                this.cdr.markForCheck();
-              }
-            })).file
-          : await compressMediaFile(file, result.kind, {
-              signal: controller.signal,
-              onProgress: (percent, label) => {
-                pending.progress = percent;
-                pending.progressLabel = label;
-                this.cdr.markForCheck();
-              }
-            });
+        const prepared = await compressMediaFile(file, result.kind, {
+          signal: controller.signal,
+          onProgress: (percent, label) => {
+            pending.progress = percent;
+            pending.progressLabel = label;
+            this.cdr.markForCheck();
+          }
+        });
 
         if (controller.signal.aborted) {
           this.removeByResourceId(resourceId);
