@@ -4,7 +4,7 @@
       class="attach-btn attach-icon-btn"
       aria-label="Attach file"
       title="Attach file"
-      (mousedown)="$event.preventDefault()">
+      (mousedown)="onAttachPointerDown($event)">
       <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
       <input
         type="file"

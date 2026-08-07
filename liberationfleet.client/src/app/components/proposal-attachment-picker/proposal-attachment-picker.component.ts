@@ -4,7 +4,7 @@ import { PendingAttachment } from '../../models/proposal.model';
 import { ProposalCryptoScope, ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
-import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
+import { compressMediaFile, extractVideoPosterFrame, warmMediaAudioContext } from '../../utils/media-compression.util';
 import {
   AttachmentMediaKind,
   defaultAcceptAttribute,
@@ -79,7 +79,15 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     this.abortControllers.clear();
   }
 
+  onAttachPointerDown(event: Event) {
+    // Keep focus behavior, but unlock audio as early as possible in the gesture.
+    event.preventDefault();
+    void warmMediaAudioContext();
+  }
+
   onFileInputClick() {
+    // Unlock AudioContext in this user gesture so video+audio compression can run later.
+    void warmMediaAudioContext();
     this.setFileDialogOpen(true);
     this.clearWindowFocusListener();
     this.windowFocusListener = () => {
