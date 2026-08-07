@@ -87,10 +87,8 @@ public class GetEncryptedContentBytesQueryHandlerTests
 
         var deepFreeze = new Mock<IMediaDeepFreezeService>(MockBehavior.Strict);
         deepFreeze
-            .Setup(s => s.HydrateAsync(
-                It.Is<IReadOnlyList<EncryptedContentEnvelope>>(list => list.Count == 1),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Setup(s => s.LoadCiphertextBytesAsync(envelope, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(plaintextBytes);
 
         var handler = CreateHandler(
             userId: 1,
@@ -111,7 +109,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenCiphertextInvalidBase64_ReturnsNull()
+    public async Task Handle_WhenCiphertextCannotBeLoaded_ReturnsNull()
     {
         var membership = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         membership
@@ -126,7 +124,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
             AuthorUserId = 1,
             KeyVersion = 1,
             Nonce = "test-nonce",
-            Ciphertext = "%%%not-base64%%%"
+            Ciphertext = string.Empty
         };
 
         var cryptoRepository = new Mock<ICryptoRepository>(MockBehavior.Strict);
@@ -139,7 +137,10 @@ public class GetEncryptedContentBytesQueryHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
-        var deepFreeze = new Mock<IMediaDeepFreezeService>(MockBehavior.Loose);
+        var deepFreeze = new Mock<IMediaDeepFreezeService>(MockBehavior.Strict);
+        deepFreeze
+            .Setup(s => s.LoadCiphertextBytesAsync(envelope, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         var handler = CreateHandler(
             userId: 1,
@@ -152,6 +153,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
             CancellationToken.None);
 
         result.Should().BeNull();
+        deepFreeze.VerifyAll();
     }
 
     private static GetEncryptedContentBytesQueryHandler CreateHandler(

@@ -16,12 +16,7 @@ public sealed class LocalDeepFreezeBlobStore(IOptions<MediaDeepFreezeOptions> op
     public async Task UploadAsync(string blobPath, string ciphertext, CancellationToken cancellationToken = default)
     {
         var fullPath = ResolvePath(blobPath);
-        var directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
+        EnsureDirectory(fullPath);
         await File.WriteAllTextAsync(fullPath, ciphertext, cancellationToken);
     }
 
@@ -36,6 +31,24 @@ public sealed class LocalDeepFreezeBlobStore(IOptions<MediaDeepFreezeOptions> op
         return await File.ReadAllTextAsync(fullPath, cancellationToken);
     }
 
+    public async Task UploadBytesAsync(string blobPath, byte[] ciphertext, CancellationToken cancellationToken = default)
+    {
+        var fullPath = ResolvePath(blobPath);
+        EnsureDirectory(fullPath);
+        await File.WriteAllBytesAsync(fullPath, ciphertext, cancellationToken);
+    }
+
+    public async Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var fullPath = ResolvePath(blobPath);
+        if (!File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        return await File.ReadAllBytesAsync(fullPath, cancellationToken);
+    }
+
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default)
     {
         var fullPath = ResolvePath(blobPath);
@@ -45,6 +58,15 @@ public sealed class LocalDeepFreezeBlobStore(IOptions<MediaDeepFreezeOptions> op
         }
 
         return Task.CompletedTask;
+    }
+
+    private static void EnsureDirectory(string fullPath)
+    {
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
     }
 
     private string ResolvePath(string blobPath)

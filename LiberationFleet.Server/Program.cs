@@ -11,14 +11,19 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Allow large encrypted media uploads (ciphertext can be ~1.33× the compressed file).
+// Allow large encrypted media uploads (binary ciphertext up to ~320 MB for 300 MB video).
+const long maxMediaBodyBytes = 320L * 1024 * 1024;
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 48 * 1024 * 1024;
+    options.Limits.MaxRequestBodySize = maxMediaBodyBytes;
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 48 * 1024 * 1024;
+    options.MultipartBodyLengthLimit = maxMediaBodyBytes;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = maxMediaBodyBytes;
 });
 
 builder.Services.AddApplication();

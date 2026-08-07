@@ -130,6 +130,31 @@ public sealed class MediaDeepFreezeService(
         envelope.UpdatedAt = DateTime.UtcNow;
     }
 
+    public async Task OffloadEnvelopeBytesAsync(
+        EncryptedContentEnvelope envelope,
+        byte[] ciphertextBytes,
+        CancellationToken cancellationToken = default)
+    {
+        if (!blobStore.IsEnabled)
+        {
+            throw new InvalidOperationException("Media cold storage is not configured.");
+        }
+
+        if (ciphertextBytes.Length == 0)
+        {
+            throw new InvalidOperationException("Ciphertext bytes are required.");
+        }
+
+        var path = BuildBinaryBlobPath(envelope);
+        await blobStore.UploadBytesAsync(path, ciphertextBytes, cancellationToken);
+        envelope.CiphertextCharLength = ciphertextBytes.Length;
+        envelope.Ciphertext = string.Empty;
+        envelope.ColdBlobPath = path;
+        envelope.StorageTier = EncryptedContentStorageTier.DeepFreeze;
+        envelope.FrozenAt = DateTime.UtcNow;
+        envelope.UpdatedAt = DateTime.UtcNow;
+    }
+
     public async Task HydrateAsync(
         IReadOnlyList<EncryptedContentEnvelope> envelopes,
         CancellationToken cancellationToken = default)
@@ -160,6 +185,12 @@ public sealed class MediaDeepFreezeService(
                 continue;
             }
 
+            // Binary cold blobs cannot be represented as the legacy base64 string field.
+            if (IsBinaryBlobPath(envelope.ColdBlobPath))
+            {
+                continue;
+            }
+
             var ciphertext = await blobStore.DownloadAsync(envelope.ColdBlobPath, cancellationToken);
             if (ciphertext is null)
             {
@@ -173,6 +204,50 @@ public sealed class MediaDeepFreezeService(
 
             // In-memory only — do not write back to SQL (keeps SQL slim).
             envelope.Ciphertext = ciphertext;
+        }
+    }
+
+    public async Task<byte[]?> LoadCiphertextBytesAsync(
+        EncryptedContentEnvelope envelope,
+        CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrWhiteSpace(envelope.Ciphertext))
+        {
+            try
+            {
+                return Convert.FromBase64String(envelope.Ciphertext.Trim());
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        if (envelope.StorageTier != EncryptedContentStorageTier.DeepFreeze
+            || string.IsNullOrWhiteSpace(envelope.ColdBlobPath)
+            || !blobStore.IsEnabled)
+        {
+            return null;
+        }
+
+        if (IsBinaryBlobPath(envelope.ColdBlobPath))
+        {
+            return await blobStore.DownloadBytesAsync(envelope.ColdBlobPath, cancellationToken);
+        }
+
+        var legacy = await blobStore.DownloadAsync(envelope.ColdBlobPath, cancellationToken);
+        if (string.IsNullOrWhiteSpace(legacy))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Convert.FromBase64String(legacy.Trim());
+        }
+        catch (FormatException)
+        {
+            return null;
         }
     }
 
@@ -209,4 +284,18 @@ public sealed class MediaDeepFreezeService(
                 : "unscoped";
         return $"{scope}/{(int)envelope.ContentType}/{envelope.ResourceId}.cipher";
     }
+
+    public static string BuildBinaryBlobPath(EncryptedContentEnvelope envelope)
+    {
+        var scope = envelope.CrewId.HasValue
+            ? $"crew-{envelope.CrewId.Value}"
+            : envelope.FleetId.HasValue
+                ? $"fleet-{envelope.FleetId.Value}"
+                : "unscoped";
+        return $"{scope}/{(int)envelope.ContentType}/{envelope.ResourceId}.cipher.bin";
+    }
+
+    public static bool IsBinaryBlobPath(string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && path.EndsWith(".cipher.bin", StringComparison.OrdinalIgnoreCase);
 }

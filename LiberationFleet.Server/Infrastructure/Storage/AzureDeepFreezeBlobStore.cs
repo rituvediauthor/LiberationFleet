@@ -59,6 +59,35 @@ public sealed class AzureDeepFreezeBlobStore : IDeepFreezeBlobStore
         return response.Value.Content.ToString();
     }
 
+    public async Task UploadBytesAsync(string blobPath, byte[] ciphertext, CancellationToken cancellationToken = default)
+    {
+        var container = EnsureContainer();
+        await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+        var blob = container.GetBlobClient(blobPath);
+        await using var stream = new MemoryStream(ciphertext, writable: false);
+        await blob.UploadAsync(
+            stream,
+            new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = "application/octet-stream" },
+                AccessTier = AccessTier.Hot
+            },
+            cancellationToken);
+    }
+
+    public async Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var container = EnsureContainer();
+        var blob = container.GetBlobClient(blobPath);
+        if (!await blob.ExistsAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        var response = await blob.DownloadContentAsync(cancellationToken);
+        return response.Value.Content.ToArray();
+    }
+
     public async Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default)
     {
         var container = EnsureContainer();

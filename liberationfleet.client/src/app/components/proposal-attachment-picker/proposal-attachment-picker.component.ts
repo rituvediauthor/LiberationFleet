@@ -4,7 +4,8 @@ import { PendingAttachment } from '../../models/proposal.model';
 import { ProposalCryptoScope, ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../toast/toast.component';
 import { AudioRecorderController } from '../../utils/audio-recorder.util';
-import { compressMediaFile, extractVideoPosterFrame, warmMediaAudioContext } from '../../utils/media-compression.util';
+import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
+import { prepareVideoAttachment } from '../../utils/video-attachment.pipeline';
 import {
   AttachmentMediaKind,
   defaultAcceptAttribute,
@@ -80,14 +81,11 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   }
 
   onAttachPointerDown(event: Event) {
-    // Keep focus behavior, but unlock audio as early as possible in the gesture.
+    // Keep focus on the composer while opening the system file picker.
     event.preventDefault();
-    void warmMediaAudioContext();
   }
 
   onFileInputClick() {
-    // Unlock AudioContext in this user gesture so video+audio compression can run later.
-    void warmMediaAudioContext();
     this.setFileDialogOpen(true);
     this.clearWindowFocusListener();
     // iOS often fires window focus BEFORE the file input `change` event. Closing the
@@ -176,14 +174,23 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       }
 
       try {
-        const compressed = await compressMediaFile(file, result.kind, {
-          signal: controller.signal,
-          onProgress: (percent, label) => {
-            pending.progress = percent;
-            pending.progressLabel = label;
-            this.cdr.markForCheck();
-          }
-        });
+        const prepared = result.kind === 'video'
+          ? (await prepareVideoAttachment(file, {
+              signal: controller.signal,
+              onProgress: (percent, label) => {
+                pending.progress = percent;
+                pending.progressLabel = label;
+                this.cdr.markForCheck();
+              }
+            })).file
+          : await compressMediaFile(file, result.kind, {
+              signal: controller.signal,
+              onProgress: (percent, label) => {
+                pending.progress = percent;
+                pending.progressLabel = label;
+                this.cdr.markForCheck();
+              }
+            });
 
         if (controller.signal.aborted) {
           this.removeByResourceId(resourceId);
@@ -193,15 +200,15 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         if (pending.previewUrl?.startsWith('blob:')) {
           URL.revokeObjectURL(pending.previewUrl);
         }
-        pending.file = compressed;
+        pending.file = prepared;
         pending.previewUrl = result.kind === 'image' || result.kind === 'video'
-          ? URL.createObjectURL(compressed)
+          ? URL.createObjectURL(prepared)
           : undefined;
         pending.abort = undefined;
         this.abortControllers.delete(resourceId);
 
         if (result.kind === 'video') {
-          void this.refreshVideoThumbnail(pending, compressed, controller.signal);
+          void this.refreshVideoThumbnail(pending, prepared, controller.signal);
         }
 
         if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId)) {

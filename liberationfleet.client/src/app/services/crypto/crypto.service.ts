@@ -231,7 +231,7 @@ export class CryptoService {
     crewAesKey: CryptoKey,
     fileBytes: Uint8Array,
     mimeType: string
-  ): Promise<{ nonce: string; ciphertext: string }> {
+  ): Promise<{ nonce: string; ciphertext: string; ciphertextBytes: Uint8Array }> {
     const mimeBytes = utf8ToBytes(mimeType || 'application/octet-stream');
     if (mimeBytes.length > 0xffff) {
       throw new Error('Media MIME type is too long.');
@@ -251,9 +251,11 @@ export class CryptoService {
       plaintext
     );
 
+    const ciphertextBytes = new Uint8Array(encrypted);
     return {
       nonce: bytesToBase64(nonce),
-      ciphertext: bytesToBase64(new Uint8Array(encrypted))
+      ciphertext: bytesToBase64(ciphertextBytes),
+      ciphertextBytes
     };
   }
 

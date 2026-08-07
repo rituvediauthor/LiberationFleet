@@ -70,20 +70,14 @@ public class GetEncryptedContentBytesQueryHandler(
             return null;
         }
 
-        await deepFreezeService.HydrateAsync(envelopes, cancellationToken);
-
         var envelope = envelopes[0];
-        if (string.IsNullOrWhiteSpace(envelope.Ciphertext) || string.IsNullOrWhiteSpace(envelope.Nonce))
+        if (string.IsNullOrWhiteSpace(envelope.Nonce))
         {
             return null;
         }
 
-        byte[] ciphertextBytes;
-        try
-        {
-            ciphertextBytes = Convert.FromBase64String(envelope.Ciphertext.Trim());
-        }
-        catch (FormatException)
+        var ciphertextBytes = await deepFreezeService.LoadCiphertextBytesAsync(envelope, cancellationToken);
+        if (ciphertextBytes is null || ciphertextBytes.Length == 0)
         {
             return null;
         }

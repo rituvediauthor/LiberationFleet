@@ -17,6 +17,7 @@ import { CryptoSessionService } from './crypto-session.service';
 import { bytesToBase64 } from './crypto-encoding.util';
 import { buildMediaCacheKey, MediaBlobCacheService } from './media-blob-cache.service';
 import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
+import { prepareVideoAttachment } from '../../utils/video-attachment.pipeline';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 import { MediaUploadQueueService } from '../media-upload-queue.service';
 
@@ -26,7 +27,7 @@ export interface ProposalCryptoScope {
 }
 
 /** Cap eager video downloads after a list decrypt (crew/fleet feed). */
-const MAX_VIDEO_PREFETCH_PER_LIST = 4;
+const MAX_VIDEO_PREFETCH_PER_LIST = 0;
 
 @Injectable({
   providedIn: 'root'
@@ -854,7 +855,11 @@ export class ProposalCryptoService {
       && !alreadyPrepared
       && (attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio')
     ) {
-      file = await compressMediaFile(file, attachment.type);
+      if (attachment.type === 'video') {
+        file = (await prepareVideoAttachment(file)).file;
+      } else {
+        file = await compressMediaFile(file, attachment.type);
+      }
       attachment.file = file;
     }
 
@@ -893,23 +898,42 @@ export class ProposalCryptoService {
         ? 'VideoAsset'
         : 'AudioAsset';
 
+    const useBinaryUpload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
+
     const result = await firstValueFrom(
-      this.cryptoApi.upsertEncryptedContentWithProgress(
-        {
-          contentType,
-          resourceId: attachment.resourceId,
-          crewId: scope.crewId,
-          fleetId: scope.fleetId,
-          keyVersion: 1,
-          nonce: encrypted.nonce,
-          ciphertext: encrypted.ciphertext
-        },
-        uploadPercent => {
-          const mapped = 35 + Math.round(uploadPercent * 0.6);
-          this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
-          onProgress?.(mapped);
-        }
-      )
+      useBinaryUpload
+        ? this.cryptoApi.upsertEncryptedContentBytesWithProgress(
+            {
+              contentType,
+              resourceId: attachment.resourceId,
+              crewId: scope.crewId,
+              fleetId: scope.fleetId,
+              keyVersion: 1,
+              nonce: encrypted.nonce,
+              ciphertext: encrypted.ciphertextBytes
+            },
+            uploadPercent => {
+              const mapped = 35 + Math.round(uploadPercent * 0.6);
+              this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
+              onProgress?.(mapped);
+            }
+          )
+        : this.cryptoApi.upsertEncryptedContentWithProgress(
+            {
+              contentType,
+              resourceId: attachment.resourceId,
+              crewId: scope.crewId,
+              fleetId: scope.fleetId,
+              keyVersion: 1,
+              nonce: encrypted.nonce,
+              ciphertext: encrypted.ciphertext
+            },
+            uploadPercent => {
+              const mapped = 35 + Math.round(uploadPercent * 0.6);
+              this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
+              onProgress?.(mapped);
+            }
+          )
     );
 
     if (!result.success) {

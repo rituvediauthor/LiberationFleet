@@ -14,6 +14,12 @@ public sealed class NullDeepFreezeBlobStore : IDeepFreezeBlobStore
     public Task<string?> DownloadAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Task.FromResult<string?>(null);
 
+    public Task UploadBytesAsync(string blobPath, byte[] ciphertext, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult<byte[]?>(null);
+
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 }
@@ -33,6 +39,12 @@ public sealed class DeepFreezeBlobStoreRouter(
 
     public Task<string?> DownloadAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Active.DownloadAsync(blobPath, cancellationToken);
+
+    public Task UploadBytesAsync(string blobPath, byte[] ciphertext, CancellationToken cancellationToken = default) =>
+        Active.UploadBytesAsync(blobPath, ciphertext, cancellationToken);
+
+    public Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default) =>
+        Active.DownloadBytesAsync(blobPath, cancellationToken);
 
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Active.DeleteAsync(blobPath, cancellationToken);

@@ -54,19 +54,20 @@ const DANGEROUS_NAME = /\.(svg|html?|xhtml|js|mjs|cjs|exe|dll|msi|bat|cmd|ps1|vb
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 /**
- * Max upload size for a video file (original or compressed).
- * Kept under server ciphertext budget (~40MB base64 ≈ ~30MB binary).
- * Prefer uploading originals in this range so audio is never re-encoded away.
+ * Max upload size for a video file (original; no browser re-encode).
+ * Binary ciphertext PUT supports ~300 MB plaintext.
  */
-export const MAX_VIDEO_BYTES = 28 * 1024 * 1024;
-/** Allow larger raw camera/phone videos so they can be compressed down. */
-export const MAX_VIDEO_INPUT_BYTES = 500 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
+/** Soft ceiling before attach UI rejects (same as upload cap — no client compress path). */
+export const MAX_VIDEO_INPUT_BYTES = 300 * 1024 * 1024;
 /** Max video length allowed across the app (3 minutes). */
 export const MAX_VIDEO_DURATION_SEC = 3 * 60;
 export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 
-/** Max ciphertext characters accepted for a single media asset (must match server). */
+/** Max ciphertext characters for JSON media upsert (images / small payloads; must match server). */
 export const MAX_MEDIA_CIPHERTEXT_CHARS = 40 * 1024 * 1024;
+/** Max raw ciphertext bytes for binary video/audio upsert (must match server). */
+export const MAX_MEDIA_CIPHERTEXT_BYTES = 320 * 1024 * 1024;
 
 export const SAFE_DATA_URL_PREFIXES = [
   'data:image/jpeg;',

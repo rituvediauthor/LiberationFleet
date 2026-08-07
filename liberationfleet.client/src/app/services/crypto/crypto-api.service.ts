@@ -127,6 +127,70 @@ export class CryptoApiService {
     });
   }
 
+  /**
+   * Binary AES-GCM ciphertext PUT for video/audio (no base64 JSON).
+   * Nonce goes in X-LF-Nonce; other metadata as query params.
+   */
+  upsertEncryptedContentBytesWithProgress(
+    payload: {
+      contentType: EncryptedContentType;
+      resourceId: string;
+      crewId?: number | null;
+      fleetId?: number | null;
+      keyVersion: number;
+      nonce: string;
+      ciphertext: Uint8Array | ArrayBuffer;
+    },
+    onProgress?: (percent: number) => void
+  ): Observable<CryptoOperationResponse> {
+    let params = new HttpParams()
+      .set('contentType', payload.contentType)
+      .set('resourceId', payload.resourceId)
+      .set('keyVersion', String(payload.keyVersion));
+
+    if (payload.crewId != null) {
+      params = params.set('crewId', payload.crewId.toString());
+    }
+    if (payload.fleetId != null) {
+      params = params.set('fleetId', payload.fleetId.toString());
+    }
+
+    const body = payload.ciphertext instanceof Uint8Array
+      ? payload.ciphertext.buffer.slice(
+          payload.ciphertext.byteOffset,
+          payload.ciphertext.byteOffset + payload.ciphertext.byteLength
+        )
+      : payload.ciphertext;
+
+    return new Observable<CryptoOperationResponse>(subscriber => {
+      const sub = this.http.put<CryptoOperationResponse>(`${this.apiUrl}/content/bytes`, body, {
+        params,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-LF-Nonce': payload.nonce
+        },
+        reportProgress: true,
+        observe: 'events'
+      }).subscribe({
+        next: event => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            onProgress?.(Math.round((event.loaded / event.total) * 100));
+          } else if (event.type === HttpEventType.Response) {
+            if (event.body) {
+              subscriber.next(event.body);
+              subscriber.complete();
+            } else {
+              subscriber.error(new Error('Empty upload response.'));
+            }
+          }
+        },
+        error: err => subscriber.error(err),
+        complete: () => subscriber.complete()
+      });
+      return () => sub.unsubscribe();
+    });
+  }
+
   getEncryptedContents(
     contentType: EncryptedContentType,
     resourceIds: string[],

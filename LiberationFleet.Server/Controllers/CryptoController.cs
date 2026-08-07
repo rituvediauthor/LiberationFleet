@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Features.Crypto.Commands.DeleteCrewAtta
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertCrewKeyDistribution;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertFleetKeyDistribution;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertEncryptedContent;
+using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertEncryptedContentBytes;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertPrivateKeyBackup;
 using LiberationFleet.Server.Application.Features.Crypto.Commands.UpsertPublicKey;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
@@ -126,6 +127,45 @@ public class CryptoController : ControllerBase
             body.KeyVersion,
             body.Nonce,
             body.Ciphertext));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Raw AES-GCM ciphertext body for video/audio (avoids multi‑hundred‑MB base64 JSON).
+    /// Metadata via query string + X-LF-Nonce header.
+    /// </summary>
+    [HttpPut("content/bytes")]
+    [RequestSizeLimit(320L * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 320L * 1024 * 1024)]
+    public async Task<IActionResult> UpsertEncryptedContentBytes(
+        [FromQuery] EncryptedContentTypeDto contentType,
+        [FromQuery] string resourceId,
+        [FromQuery] int? crewId,
+        [FromQuery] int? fleetId,
+        [FromQuery] int keyVersion,
+        [FromHeader(Name = "X-LF-Nonce")] string? nonce)
+    {
+        if (string.IsNullOrWhiteSpace(nonce))
+        {
+            return BadRequest(new CryptoOperationResponse
+            {
+                Success = false,
+                Message = "X-LF-Nonce header is required."
+            });
+        }
+
+        await using var buffer = new MemoryStream();
+        await Request.Body.CopyToAsync(buffer);
+        var ciphertextBytes = buffer.ToArray();
+
+        var result = await _mediator.Send(new UpsertEncryptedContentBytesCommand(
+            contentType,
+            resourceId,
+            crewId,
+            fleetId,
+            keyVersion,
+            nonce,
+            ciphertextBytes));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -13,8 +13,23 @@ public interface IMediaDeepFreezeService
     /// </summary>
     Task OffloadEnvelopeAsync(EncryptedContentEnvelope envelope, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Upload raw AES-GCM bytes to cold storage (`.cipher.bin`). Requires blob store enabled.
+    /// </summary>
+    Task OffloadEnvelopeBytesAsync(
+        EncryptedContentEnvelope envelope,
+        byte[] ciphertextBytes,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Fill Ciphertext on deep-frozen envelopes from cold storage (in-memory only).</summary>
     Task HydrateAsync(IReadOnlyList<EncryptedContentEnvelope> envelopes, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Load raw ciphertext bytes for playback/download (supports legacy base64 blobs and `.cipher.bin`).
+    /// </summary>
+    Task<byte[]?> LoadCiphertextBytesAsync(
+        EncryptedContentEnvelope envelope,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Delete cold blob if present (call before/with SQL delete).</summary>
     Task DeleteColdBlobIfPresentAsync(EncryptedContentEnvelope envelope, CancellationToken cancellationToken = default);
