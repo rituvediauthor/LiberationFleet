@@ -433,10 +433,18 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       this.commentFocused = true;
       return;
     }
-    if (!this.commentText.trim() && this.commentAttachments.length === 0) {
+    setTimeout(() => {
+      if (this.pickingFile) {
+        return;
+      }
+      if (this.commentAttachments.length > 0 || this.commentText.trim() || this.editingCommentId != null || this.replyParentId != null) {
+        this.commentUiMinimized = false;
+        this.commentFocused = true;
+        return;
+      }
       this.commentFocused = false;
       this.replyParentId = null;
-    }
+    }, 0);
   }
 
   get commentExpanded(): boolean {

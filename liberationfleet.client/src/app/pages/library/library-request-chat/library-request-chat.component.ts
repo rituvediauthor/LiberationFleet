@@ -175,9 +175,17 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
       this.composerFocused = true;
       return;
     }
-    if (!this.messageText.trim() && this.messageAttachments.length === 0) {
+    setTimeout(() => {
+      if (this.pickingFile) {
+        return;
+      }
+      if (this.messageAttachments.length > 0 || this.messageText.trim()) {
+        this.composerUiMinimized = false;
+        this.composerFocused = true;
+        return;
+      }
       this.composerFocused = false;
-    }
+    }, 0);
   }
 
   get composerExpanded(): boolean {

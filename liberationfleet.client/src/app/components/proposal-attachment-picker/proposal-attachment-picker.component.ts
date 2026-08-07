@@ -90,25 +90,45 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     void warmMediaAudioContext();
     this.setFileDialogOpen(true);
     this.clearWindowFocusListener();
+    // iOS often fires window focus BEFORE the file input `change` event. Closing the
+    // dialog immediately lets parent chat composers collapse and destroy this picker
+    // before files are applied. Delay the focus fallback; change/cancel close sooner.
     this.windowFocusListener = () => {
       this.clearWindowFocusListener();
-      setTimeout(() => this.setFileDialogOpen(false), 0);
+      window.setTimeout(() => {
+        if (this.fileDialogOpen) {
+          this.setFileDialogOpen(false);
+        }
+      }, 1500);
     };
     window.addEventListener('focus', this.windowFocusListener);
   }
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    const files = input.files;
+    const files = input.files ? Array.from(input.files) : [];
+    input.value = '';
+    this.clearWindowFocusListener();
 
-    try {
-      if (files) {
-        void this.addSelectedFiles(Array.from(files));
-      }
-    } finally {
-      input.value = '';
+    if (files.length === 0) {
       this.setFileDialogOpen(false);
+      return;
     }
+
+    // Keep fileDialogOpen=true until the first attachment is queued so parents
+    // do not collapse/destroy this picker. Close as soon as processing starts.
+    void (async () => {
+      try {
+        await this.addSelectedFiles(files);
+      } finally {
+        this.setFileDialogOpen(false);
+      }
+    })();
+  }
+
+  onFileInputCancel() {
+    this.clearWindowFocusListener();
+    this.setFileDialogOpen(false);
   }
 
   private async addSelectedFiles(files: File[]) {
@@ -224,10 +244,6 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
 
       this.emitChange();
     }
-  }
-
-  onFileInputCancel() {
-    this.setFileDialogOpen(false);
   }
 
   async startRecording() {

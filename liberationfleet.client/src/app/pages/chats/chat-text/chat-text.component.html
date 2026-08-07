@@ -143,15 +143,18 @@
         </div>
       </div>
 
+      <!-- Keep picker mounted while collapsed so iOS file-dialog focus cannot destroy it mid-select. -->
+      <app-proposal-attachment-picker
+        class="message-attachment-picker"
+        *ngIf="canAttachFiles"
+        [class.collapsed]="!composerExpanded"
+        [attachments]="messageAttachments"
+        [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : (crewId > 0 ? { crewId: crewId } : null)"
+        (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+        (attachmentsChange)="onAttachmentsChange()">
+      </app-proposal-attachment-picker>
+
       <div class="composer-tools" *ngIf="composerExpanded">
-        <app-proposal-attachment-picker
-          class="message-attachment-picker"
-          *ngIf="canAttachFiles"
-          [attachments]="messageAttachments"
-          [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : (crewId > 0 ? { crewId: crewId } : null)"
-          (fileDialogOpenChange)="onFileDialogOpenChange($event)"
-          (attachmentsChange)="onAttachmentsChange()">
-        </app-proposal-attachment-picker>
         <span class="composer-tools-spacer" *ngIf="!canAttachFiles" aria-hidden="true"></span>
         <button
           type="button"

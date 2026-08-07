@@ -289,9 +289,18 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       this.composerFocused = true;
       return;
     }
-    if (!this.messageText.trim() && this.messageAttachments.length === 0) {
+    // Defer collapse: iOS can close the dialog flag before attachments are pushed.
+    setTimeout(() => {
+      if (this.pickingFile) {
+        return;
+      }
+      if (this.messageAttachments.length > 0 || this.messageText.trim() || this.editingMessageId != null) {
+        this.composerUiMinimized = false;
+        this.composerFocused = true;
+        return;
+      }
       this.composerFocused = false;
-    }
+    }, 0);
   }
 
   get composerExpanded(): boolean {
