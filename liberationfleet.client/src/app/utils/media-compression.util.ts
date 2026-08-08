@@ -51,18 +51,26 @@ export async function compressMediaFile(
 export async function extractVideoPosterFrame(source: File | Blob): Promise<File> {
   const objectUrl = URL.createObjectURL(source);
   const video = document.createElement('video');
-  video.src = objectUrl;
+  // iOS Safari: decode frames for canvas only after muted inline play.
   video.muted = true;
+  video.defaultMuted = true;
   video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
   video.preload = 'auto';
-  video.crossOrigin = 'anonymous';
+  // Do not set crossOrigin on blob: URLs — it can prevent canvas reads on WebKit.
+  video.disableRemotePlayback = true;
+  video.style.cssText = 'position:fixed;left:-99999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none;';
+  video.src = objectUrl;
+  document.body.appendChild(video);
 
   try {
     await waitForVideoMetadata(video);
+    await kickVideoDecoder(video);
     await waitForVideoDimensions(video);
 
     const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
-    const candidates = [0, 1 / 24, 2 / 24, 0.12, 0.35, 0.75, 1.25]
+    const candidates = [0.05, 0.12, 0.25, 0.5, 0.75, 1.0, 1.25, 0]
       .map(t => (duration > 0 ? Math.min(t, Math.max(0, duration - 0.05)) : t))
       .filter((t, i, arr) => arr.indexOf(t) === i);
 
@@ -82,7 +90,7 @@ export async function extractVideoPosterFrame(source: File | Blob): Promise<File
 
     for (const seekTo of candidates) {
       await seekVideo(video, seekTo);
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await waitForPaintedFrame(video);
       context.drawImage(video, 0, 0, width, height);
       const score = frameVisibilityScore(context, width, height);
       if (score > bestScore) {
@@ -94,7 +102,8 @@ export async function extractVideoPosterFrame(source: File | Blob): Promise<File
       }
     }
 
-    if (!bestBlob) {
+    // Black / empty frames are common on iOS without a decoded frame — don't ship them.
+    if (!bestBlob || bestScore < 3) {
       throw new Error('Unable to capture video preview.');
     }
 
@@ -103,9 +112,15 @@ export async function extractVideoPosterFrame(source: File | Blob): Promise<File
       lastModified: Date.now()
     });
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    try {
+      video.pause();
+    } catch {
+      // ignore
+    }
     video.removeAttribute('src');
     video.load();
+    video.remove();
+    URL.revokeObjectURL(objectUrl);
   }
 }
 
@@ -319,6 +334,45 @@ function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
       cleanup();
       reject(error);
     }
+  });
+}
+
+/** Force WebKit to decode at least one frame (seek alone often yields black canvases). */
+async function kickVideoDecoder(video: HTMLVideoElement): Promise<void> {
+  try {
+    const playResult = video.play();
+    if (playResult && typeof (playResult as Promise<void>).then === 'function') {
+      await playResult;
+    }
+    await waitForPaintedFrame(video);
+  } catch {
+    // Autoplay may still fail; seek/capture loop is the fallback.
+  } finally {
+    try {
+      video.pause();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function waitForPaintedFrame(video: HTMLVideoElement): Promise<void> {
+  const anyVideo = video as HTMLVideoElement & {
+    requestVideoFrameCallback?: (cb: (now: number) => void) => number;
+  };
+
+  if (typeof anyVideo.requestVideoFrameCallback === 'function') {
+    return new Promise(resolve => {
+      const timeout = window.setTimeout(() => resolve(), 1200);
+      anyVideo.requestVideoFrameCallback!(() => {
+        window.clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }
+
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 }
 

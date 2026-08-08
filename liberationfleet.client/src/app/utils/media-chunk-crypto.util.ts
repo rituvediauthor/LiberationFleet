@@ -1,4 +1,5 @@
 import { bytesToBase64, base64ToBytes, bytesToUtf8, utf8ToBytes } from '../services/crypto/crypto-encoding.util';
+import { resolveBlobMime } from './media-mime.util';
 
 const AES_ALGORITHM = 'AES-GCM';
 
@@ -113,7 +114,10 @@ export async function decryptMediaCiphertextToBlob(
     if (dataStart > decrypted.length) {
       throw new Error('Invalid media payload.');
     }
-    const mime = bytesToUtf8(decrypted.subarray(mimeStart, dataStart)) || 'application/octet-stream';
+    const mime = resolveBlobMime(
+      bytesToUtf8(decrypted.subarray(mimeStart, dataStart)),
+      decrypted.subarray(dataStart)
+    );
     const fileBytes = decrypted.subarray(dataStart);
     return new Blob([fileBytes], { type: mime });
   }
@@ -123,7 +127,9 @@ export async function decryptMediaCiphertextToBlob(
     throw new Error('Unrecognized media payload.');
   }
   const response = await fetch(payload.dataUrl);
-  return await response.blob();
+  const legacyBlob = await response.blob();
+  const legacyBytes = new Uint8Array(await legacyBlob.arrayBuffer());
+  return new Blob([legacyBytes], { type: resolveBlobMime(legacyBlob.type, legacyBytes) });
 }
 
 async function decryptMediaV2(
@@ -180,7 +186,9 @@ async function decryptMediaV2(
     }
   }
 
-  return new Blob(parts, { type: mime });
+  const firstPart = parts[0];
+  const sniffBytes = firstPart instanceof Uint8Array ? firstPart : null;
+  return new Blob(parts, { type: resolveBlobMime(mime, sniffBytes) });
 }
 
 function chunkIv(baseNonce: Uint8Array, chunkIndex: number): Uint8Array {

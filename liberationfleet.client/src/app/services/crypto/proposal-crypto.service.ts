@@ -979,15 +979,29 @@ export class ProposalCryptoService {
 
     try {
       let poster: File;
-      if (video.thumbnailUrl?.startsWith('blob:')) {
+      const source = video.file ?? video.blob;
+      if (source) {
+        // Prefer a fresh frame from the prepared file (iOS chips can be black).
+        try {
+          poster = await extractVideoPosterFrame(source);
+        } catch {
+          if (!video.thumbnailUrl?.startsWith('blob:')) {
+            return null;
+          }
+          const blob = await fetch(video.thumbnailUrl).then(response => response.blob());
+          poster = new File([blob], `video-poster-${Date.now()}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+        }
+      } else if (video.thumbnailUrl?.startsWith('blob:')) {
         const blob = await fetch(video.thumbnailUrl).then(response => response.blob());
         poster = new File([blob], `video-poster-${Date.now()}.jpg`, {
-          type: blob.type || 'image/jpeg',
+          type: 'image/jpeg',
           lastModified: Date.now()
         });
       } else {
-        const source = video.file ?? video.blob!;
-        poster = await extractVideoPosterFrame(source);
+        return null;
       }
 
       const resourceId = this.createResourceId();

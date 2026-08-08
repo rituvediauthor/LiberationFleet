@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { resolveBlobMime } from '../../utils/media-mime.util';
 
 const DB_NAME = 'lf-decrypted-media-cache';
 /** v2: store ArrayBuffer instead of Blob (iOS Safari PWA Blobs go stale after relaunch). */
@@ -84,7 +85,7 @@ export class MediaBlobCacheService {
         return null;
       }
 
-      const mime = record.mime || 'application/octet-stream';
+      const mime = resolveBlobMime(record.mime, data);
       const blob = new Blob([data], { type: mime });
       if (blob.size === 0) {
         void this.deleteKey(key);
@@ -119,7 +120,7 @@ export class MediaBlobCacheService {
       const record: MediaCacheRecord = {
         key,
         data,
-        mime: mime || blob.type || 'application/octet-stream',
+        mime: resolveBlobMime(mime || blob.type, data),
         size: data.byteLength,
         lastAccessed: Date.now()
       };
