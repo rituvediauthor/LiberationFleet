@@ -3,7 +3,8 @@
   [class.size-sm]="size === 'sm'"
   [class.size-md]="size === 'md'"
   [class.size-lg]="size === 'lg'"
-  [class.has-custom]="!!customSrc">
+  [class.has-custom]="!!customSrc"
+  [class.monochrome]="useGreyscale">
   <img
     class="logo-image"
     [src]="resolvedSrc"

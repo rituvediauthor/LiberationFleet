@@ -17,25 +17,22 @@ export class BrandLogoComponent {
   @Input() decorative = false;
   /**
    * Inactive / muted treatment (e.g. bottom nav when the tab is not selected).
-   * Uses the grey asset in every theme. When false, uses the blue hex brand asset.
+   * Applies a CSS greyscale filter to the brand asset. Custom images are left in color
+   * (nav uses opacity for those).
    */
   @Input() monochrome = false;
   /** Optional decrypted custom image (crew/fleet image). Falls back to brand assets when empty. */
   @Input() customSrc: string | null = null;
 
-  get hexSrc(): string {
-    return BRAND_LOGO_ASSETS[this.variant].hex;
-  }
-
-  get greySrc(): string {
-    return BRAND_LOGO_ASSETS[this.variant].grey;
-  }
-
   get resolvedSrc(): string {
     if (this.customSrc) {
       return this.customSrc;
     }
-    return this.monochrome ? this.greySrc : this.hexSrc;
+    return BRAND_LOGO_ASSETS[this.variant];
+  }
+
+  get useGreyscale(): boolean {
+    return this.monochrome && !this.customSrc;
   }
 
   get resolvedAlt(): string {
@@ -48,6 +45,9 @@ export class BrandLogoComponent {
 
     if (this.variant === 'crew') {
       return 'Crew logo';
+    }
+    if (this.variant === 'fleet') {
+      return 'Fleet logo';
     }
     return 'LiberationFleet logo';
   }
