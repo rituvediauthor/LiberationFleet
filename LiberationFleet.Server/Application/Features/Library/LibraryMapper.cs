@@ -41,7 +41,9 @@ public static class LibraryMapper
             IsOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering),
             OfferingKind = unit.Offering.Kind.ToString(),
             FulfillmentMode = unit.Offering.FulfillmentMode.ToString(),
-            Visibility = unit.Offering.Visibility.ToString()
+            Visibility = unit.Offering.Visibility.ToString(),
+            OfferingUnitCount = unit.Offering.Units
+                .Count(u => !u.IsRetired && u.Status != LibraryUnitStatus.Broken)
         };
     }
 
@@ -126,6 +128,7 @@ public static class LibraryMapper
             HasEncryptedContent = request.Unit.Offering.HasEncryptedContent,
             HasEncryptedPurpose = request.HasEncryptedContent,
             Status = request.Status.ToString(),
+            OfferingKind = request.Unit.Offering.Kind.ToString(),
             Quantity = request.Quantity,
             NeededByStart = request.NeededByStart,
             NeededByEnd = request.NeededByEnd,
@@ -156,6 +159,7 @@ public static class LibraryMapper
             HasEncryptedContent = request.Unit.Offering.HasEncryptedContent,
             HasEncryptedPurpose = request.HasEncryptedContent,
             Status = request.Status.ToString(),
+            OfferingKind = request.Unit.Offering.Kind.ToString(),
             Quantity = request.Quantity,
             NeededByStart = request.NeededByStart,
             NeededByEnd = request.NeededByEnd,

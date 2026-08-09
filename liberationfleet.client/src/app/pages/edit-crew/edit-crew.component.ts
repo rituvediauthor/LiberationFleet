@@ -6,6 +6,7 @@ import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { ProposalAttachmentPickerComponent } from '../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
@@ -25,13 +26,15 @@ import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.ut
     ReactiveFormsModule,
     PageLayoutComponent,
     ConfirmDialogComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    CharCounterComponent
   ],
   templateUrl: './edit-crew.component.html',
   styleUrl: './edit-crew.component.css'
 })
 export class EditCrewComponent implements OnInit {
   form!: FormGroup;
+  readonly nameMaxLength = 100;
   joinCode = '';
   memberCount = 0;
   requireApprovalForEdits = true;
@@ -63,7 +66,7 @@ export class EditCrewComponent implements OnInit {
   ngOnInit() {
     this.notificationContent.markVisited('/app/crew/edit');
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
       maxSize: [30, [Validators.required, Validators.min(2), Validators.max(50)]],
       privacy: ['Public' as CrewPrivacy, Validators.required],
       scope: ['Online' as CrewScope, Validators.required],

@@ -24,10 +24,14 @@
             autocapitalize="off"
             spellcheck="false"
             placeholder="Choose a username"
+            [maxlength]="usernameMaxLength"
             [attr.aria-invalid]="isInvalid('username')"
             [attr.aria-describedby]="isInvalid('username') ? 'username-error' : null">
-          <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username') && form.get('username')?.hasError('required')">
-            Username is required
+          <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username')">
+            <ng-container *ngIf="form.get('username')?.hasError('required')">Username is required</ng-container>
+            <ng-container *ngIf="form.get('username')?.hasError('minlength')">Username must be at least 3 characters</ng-container>
+            <ng-container *ngIf="form.get('username')?.hasError('pattern')">Username may contain letters and numbers only</ng-container>
+            <ng-container *ngIf="form.get('username')?.hasError('usernameReserved')">That username is not allowed</ng-container>
           </span>
         </div>
 

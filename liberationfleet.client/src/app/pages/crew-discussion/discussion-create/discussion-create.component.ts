@@ -4,6 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { CrewDiscussionService } from '../../../services/crew-discussion.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -21,7 +23,7 @@ import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.
 @Component({
   selector: 'app-discussion-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, MentionAutocompleteDirective],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, AttachPermissionNoteComponent, MentionAutocompleteDirective, CharCounterComponent],
   templateUrl: './discussion-create.component.html',
   styleUrl: './discussion-create.component.css'
 })
@@ -36,6 +38,8 @@ export class DiscussionCreateComponent implements OnInit {
   canAttachFiles = false;
   mentionedUserIds: number[] = [];
   authorDisplayName = '';
+  readonly titleMaxLength = 200;
+  readonly descriptionMaxLength = 10000;
 
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
@@ -53,8 +57,8 @@ export class DiscussionCreateComponent implements OnInit {
     this.config = getDiscussionConfig(kind);
 
     this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]],
+      title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
+      description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]],
       isAdultContent: [false]
     });
 

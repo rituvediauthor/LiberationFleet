@@ -32,6 +32,7 @@ import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util'
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { usernameValidators, USERNAME_MAX_LENGTH } from '../../utils/username.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 
@@ -86,6 +87,7 @@ function optionalPasswordChangeValidator(control: AbstractControl): ValidationEr
 export class ProfileComponent implements OnInit {
   form!: FormGroup;
   passwordForm!: FormGroup;
+  readonly usernameMaxLength = USERNAME_MAX_LENGTH;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];
   readonly currentYear = new Date().getFullYear();
@@ -470,7 +472,7 @@ export class ProfileComponent implements OnInit {
 
   private buildForm(profile: UserProfile) {
     this.form = this.fb.group({
-      username: [profile.username, [Validators.required, Validators.maxLength(256)]],
+      username: [profile.username, usernameValidators()],
       email: [profile.email, [Validators.required, Validators.email]],
       inNeedOfAid: [profile.inNeedOfAid],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],

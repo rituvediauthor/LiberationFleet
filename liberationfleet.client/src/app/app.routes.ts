@@ -61,6 +61,7 @@ import { NominateRolesComponent } from './pages/crewmates/nominate-roles/nominat
 import { LibraryHubComponent } from './pages/library/library-hub/library-hub.component';
 import { LibraryUnlockComponent } from './pages/library/library-unlock/library-unlock.component';
 import { LibraryDurableListComponent } from './pages/library/library-durable-list/library-durable-list.component';
+import { LibraryOfferingUnitsComponent } from './pages/library/library-offering-units/library-offering-units.component';
 import { CreateLibraryOfferingComponent } from './pages/library/create-library-offering/create-library-offering.component';
 import { EditLibraryOfferingComponent } from './pages/library/edit-library-offering/edit-library-offering.component';
 import { LibraryUnitDetailComponent } from './pages/library/library-unit-detail/library-unit-detail.component';
@@ -687,6 +688,12 @@ export const routes: Routes = [
   {
     path: 'app/crew/library-of-things/durable',
     component: LibraryDurableListComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Durable Goods' }
+  },
+  {
+    path: 'app/crew/library-of-things/offerings/:offeringId/units',
+    component: LibraryOfferingUnitsComponent,
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Durable Goods' }
   },

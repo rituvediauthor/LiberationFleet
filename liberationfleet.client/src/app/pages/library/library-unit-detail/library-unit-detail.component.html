@@ -62,7 +62,7 @@
             class="form-input"
             type="number"
             min="1"
-            [max]="detail.viewer.maxRequestQuantity ?? detail.remainingStock ?? 1"
+            [attr.max]="quantityMax"
             formControlName="quantity" />
         </div>
 
@@ -73,10 +73,12 @@
             class="form-input textarea"
             rows="5"
             formControlName="purpose"
+            maxlength="5000"
             [placeholder]="showAcquisitionForm ? 'Optional note about this acquisition' : 'Why do you need this item?'"></textarea>
+          <app-char-counter [current]="form.get('purpose')?.value?.length || 0" [max]="5000"></app-char-counter>
         </div>
 
-        <div class="form-row" *ngIf="showRequestForm">
+        <div class="form-row" *ngIf="showDateFields">
           <div class="form-group">
             <label for="neededByStart">Needed from</label>
             <input id="neededByStart" class="form-input" type="date" formControlName="neededByStart" />
@@ -98,7 +100,8 @@
           </div>
           <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea id="notes" class="form-input textarea" rows="4" formControlName="notes" placeholder="What maintenance was performed?"></textarea>
+            <textarea id="notes" class="form-input textarea" rows="4" formControlName="notes" maxlength="5000" placeholder="What maintenance was performed?"></textarea>
+            <app-char-counter [current]="maintenanceForm.get('notes')?.value?.length || 0" [max]="5000"></app-char-counter>
           </div>
           <button type="button" class="action-btn" [disabled]="isSubmitting || maintenanceForm.invalid" (click)="submitMaintenance()">
             Record maintenance
@@ -111,7 +114,8 @@
         <form [formGroup]="brokenForm">
           <div class="form-group">
             <label for="explanation">What happened?</label>
-            <textarea id="explanation" class="form-input textarea" rows="4" formControlName="explanation" placeholder="Describe the damage or issue"></textarea>
+            <textarea id="explanation" class="form-input textarea" rows="4" formControlName="explanation" maxlength="5000" placeholder="Describe the damage or issue"></textarea>
+            <app-char-counter [current]="brokenForm.get('explanation')?.value?.length || 0" [max]="5000"></app-char-counter>
           </div>
           <button type="button" class="action-btn danger" [disabled]="isSubmitting || brokenForm.invalid" (click)="submitReportBroken()">
             Report broken

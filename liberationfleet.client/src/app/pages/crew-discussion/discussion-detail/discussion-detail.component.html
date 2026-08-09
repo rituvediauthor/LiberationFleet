@@ -57,6 +57,7 @@
         <label class="edit-field">
           <span>Title</span>
           <input type="text" [(ngModel)]="editTitle" maxlength="200" />
+          <app-char-counter [current]="editTitle.length || 0" [max]="200"></app-char-counter>
         </label>
         <label class="edit-field">
           <span>Description</span>
@@ -66,6 +67,7 @@
             [(mentionedUserIds)]="editMentionedUserIds"
             rows="8"
             maxlength="10000"></textarea>
+          <app-char-counter [current]="editDescription.length || 0" [max]="10000"></app-char-counter>
         </label>
 
         <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
@@ -86,6 +88,7 @@
           [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
+        <app-attach-permission-note *ngIf="!canAttachFiles" scope="crew"></app-attach-permission-note>
 
         <div class="edit-actions">
           <button type="button" class="action-btn secondary" (click)="cancelEdit()" [disabled]="savingEdit">Cancel</button>
@@ -321,6 +324,7 @@
         (fileDialogOpenChange)="onFileDialogOpenChange($event)"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
+      <app-attach-permission-note *ngIf="!canAttachFiles" scope="crew"></app-attach-permission-note>
     </div>
   </div>
 </div>

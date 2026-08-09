@@ -14,6 +14,7 @@ import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount } from '../../../mode
 import { PaymentPlatformOption } from '../../../models/gift.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-add-non-crewmate',
@@ -23,7 +24,8 @@ import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
     ReactiveFormsModule,
     PageLayoutComponent,
     PaymentPlatformEditorComponent,
-    IdentityGroupsEditorComponent
+    IdentityGroupsEditorComponent,
+    CharCounterComponent
   ],
   templateUrl: './add-non-crewmate.component.html',
   styleUrl: './add-non-crewmate.component.css'

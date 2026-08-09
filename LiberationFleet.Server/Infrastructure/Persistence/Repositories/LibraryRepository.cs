@@ -98,6 +98,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Units)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => u.Offering.CrewId == crewId
                 && !u.Offering.IsDeleted
@@ -142,6 +144,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(c => c.Category)
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Crew)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Units)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => crewIds.Contains(u.Offering.CrewId)
                 && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
@@ -164,6 +168,36 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         }
 
         return await ToUnitListPageAsync(query, limit, offset, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<LibraryUnit>> GetUnitsForOfferingAsync(
+        int offeringId,
+        IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return Array.Empty<LibraryUnit>();
+        }
+
+        return await context.LibraryUnits
+            .AsNoTracking()
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Categories)
+                .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Crew)
+            .Include(u => u.CurrentPossessorUser)
+            .Include(u => u.Requests)
+            .Where(u => u.OfferingId == offeringId
+                && crewIds.Contains(u.Offering.CrewId)
+                && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
+                && !u.Offering.IsDeleted
+                && u.Offering.Kind == LibraryOfferingKind.Durable
+                && !u.IsRetired
+                && u.Status != LibraryUnitStatus.Broken)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<LibraryUnitListPage> GetStockUnitsForCrewAsync(

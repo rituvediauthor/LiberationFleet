@@ -9,6 +9,8 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../config/discussion.config';
@@ -53,6 +55,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
+    AttachPermissionNoteComponent,
+    CharCounterComponent,
     LibraryImageCarouselComponent,
     AdultContentGateComponent,
     MentionAutocompleteDirective,

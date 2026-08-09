@@ -5,6 +5,7 @@ import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { GiftLogCryptoService } from '../../../services/crypto/gift-log-crypto.service';
@@ -14,11 +15,12 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { LibraryRequestDetail } from '../../../models/library.model';
 import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
+import { extractHttpErrorMessage } from '../../../utils/http-error.util';
 
 @Component({
   selector: 'app-library-request-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LibraryItemCardComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LibraryItemCardComponent, CharCounterComponent],
   templateUrl: './library-request-detail.component.html',
   styleUrl: './library-request-detail.component.css'
 })
@@ -33,6 +35,7 @@ export class LibraryRequestDetailComponent implements OnInit {
   isSubmitting = false;
   crewId = 0;
   requestId = 0;
+  private originalFormValue: { purpose: string; neededByStart: string; neededByEnd: string } | null = null;
 
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
@@ -82,6 +85,20 @@ export class LibraryRequestDetailComponent implements OnInit {
 
   isInvalid(controlName: string): boolean {
     return isControlInvalidForA11y(this.form.get(controlName));
+  }
+
+  get isConsumable(): boolean {
+    return this.detail?.offeringKind === 'Consumable';
+  }
+
+  private isDirty(): boolean {
+    if (!this.originalFormValue) {
+      return false;
+    }
+    const current = this.form.getRawValue();
+    return current.purpose !== this.originalFormValue.purpose
+      || current.neededByStart !== this.originalFormValue.neededByStart
+      || current.neededByEnd !== this.originalFormValue.neededByEnd;
   }
 
   get cardItem() {
@@ -148,11 +165,26 @@ export class LibraryRequestDetailComponent implements OnInit {
         : '/app/crew/library-of-things/requests/mine'
     ]);
 
+    // Consumables have no borrowing window, so their date fields are hidden and
+    // must not block editing/saving of the purpose.
+    if (this.isConsumable) {
+      this.form.get('neededByStart')?.clearValidators();
+      this.form.get('neededByEnd')?.clearValidators();
+      this.form.get('neededByStart')?.updateValueAndValidity({ emitEvent: false });
+      this.form.get('neededByEnd')?.updateValueAndValidity({ emitEvent: false });
+    }
+
     this.form.patchValue({
       purpose: enriched.fullPurpose ?? enriched.purposePreview,
       neededByStart: this.toInputDate(enriched.neededByStart),
       neededByEnd: this.toInputDate(enriched.neededByEnd)
     });
+
+    this.originalFormValue = {
+      purpose: this.form.getRawValue().purpose,
+      neededByStart: this.form.getRawValue().neededByStart,
+      neededByEnd: this.form.getRawValue().neededByEnd
+    };
 
     if (!enriched.canEdit) {
       this.form.disable();
@@ -180,7 +212,7 @@ export class LibraryRequestDetailComponent implements OnInit {
       this.primaryButton = {
         label: 'Save',
         type: 'primary',
-        disabled: this.isSubmitting || this.form.invalid,
+        disabled: this.isSubmitting || this.form.invalid || !this.isDirty(),
         onClick: () => this.saveRequest()
       };
     } else {
@@ -241,7 +273,7 @@ export class LibraryRequestDetailComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting = false;
-        this.toastService.error(err?.message ?? 'Failed to deny request');
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to deny request'));
         this.updateButtons();
       }
     });
@@ -269,7 +301,7 @@ export class LibraryRequestDetailComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting = false;
-        this.toastService.error(err?.message ?? 'Failed to restore request');
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to restore request'));
         this.updateButtons();
       }
     });
@@ -307,14 +339,14 @@ export class LibraryRequestDetailComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting = false;
-        this.toastService.error(err?.message ?? 'Failed to complete request');
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to complete request'));
         this.updateButtons();
       }
     });
   }
 
   private saveRequest() {
-    if (!this.detail?.canEdit || this.isSubmitting || this.form.invalid) {
+    if (!this.detail?.canEdit || this.isSubmitting || this.form.invalid || !this.isDirty()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -348,7 +380,7 @@ export class LibraryRequestDetailComponent implements OnInit {
           },
           error: err => {
             this.isSubmitting = false;
-            this.toastService.error(err?.message ?? 'Failed to update request');
+            this.toastService.error(extractHttpErrorMessage(err, 'Failed to update request'));
             this.updateButtons();
           }
         });
@@ -382,7 +414,7 @@ export class LibraryRequestDetailComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting = false;
-        this.toastService.error(err?.message ?? 'Failed to cancel request');
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to cancel request'));
         this.updateButtons();
       }
     });

@@ -10,6 +10,7 @@
         <div class="form-group">
           <label for="name">Name</label>
           <input id="name" type="text" formControlName="name" class="form-input" maxlength="256">
+          <app-char-counter [current]="form.get('name')?.value?.length || 0" [max]="256"></app-char-counter>
           <span class="hint-text">How this person should appear in your crew</span>
         </div>
 

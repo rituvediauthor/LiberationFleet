@@ -9,11 +9,12 @@ import { NavigationService } from '../../../services/navigation.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetPrivacy, FleetScope } from '../../../models/fleet.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-create-fleet',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, HubLoadingComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, HubLoadingComponent, CharCounterComponent],
   templateUrl: './create-fleet.component.html',
   styleUrl: './create-fleet.component.css'
 })
@@ -22,6 +23,7 @@ export class CreateFleetComponent {
   backButton: ActionBarButton;
   createButton: ActionBarButton;
   isLoading = false;
+  readonly nameMaxLength = 100;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -31,7 +33,7 @@ export class CreateFleetComponent {
 
   constructor() {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
       privacy: ['Public' as FleetPrivacy, Validators.required],
       scope: ['Online' as FleetScope, Validators.required],
       zipCode: [''],

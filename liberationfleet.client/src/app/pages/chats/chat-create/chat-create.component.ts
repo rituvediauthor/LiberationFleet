@@ -12,11 +12,12 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomType } from '../../../models/chat.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-chat-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, CharCounterComponent],
   templateUrl: './chat-create.component.html',
   styleUrl: './chat-create.component.css'
 })

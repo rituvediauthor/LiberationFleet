@@ -63,8 +63,10 @@
           type="text"
           formControlName="title"
           placeholder="Item or service name"
+          [maxlength]="titleMaxLength"
           [attr.aria-invalid]="isInvalid('title')"
           [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
+        <app-char-counter [current]="form.get('title')?.value?.length || 0" [max]="titleMaxLength"></app-char-counter>
         <span id="title-error" class="error-text" role="alert" *ngIf="isInvalid('title')">Name is required</span>
       </div>
 
@@ -85,8 +87,10 @@
           rows="8"
           formControlName="description"
           placeholder="Describe the offering"
+          [maxlength]="descriptionMaxLength"
           [attr.aria-invalid]="isInvalid('description')"
           [attr.aria-describedby]="isInvalid('description') ? 'description-error' : null"></textarea>
+        <app-char-counter [current]="form.get('description')?.value?.length || 0" [max]="descriptionMaxLength"></app-char-counter>
         <span id="description-error" class="error-text" role="alert" *ngIf="isInvalid('description')">Description is required</span>
       </div>
 
@@ -134,7 +138,8 @@
 
       <div class="form-group">
         <label for="unitLabel">Unit (optional)</label>
-        <input id="unitLabel" class="form-input" type="text" formControlName="unitLabel" placeholder="e.g. chair, hour, dozen eggs" />
+        <input id="unitLabel" class="form-input" type="text" formControlName="unitLabel" placeholder="e.g. chair, hour, dozen eggs" [maxlength]="unitLabelMaxLength" />
+        <app-char-counter [current]="form.get('unitLabel')?.value?.length || 0" [max]="unitLabelMaxLength"></app-char-counter>
       </div>
 
       <div class="form-group">

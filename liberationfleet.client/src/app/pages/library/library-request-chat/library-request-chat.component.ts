@@ -16,6 +16,7 @@ import { MentionAutocompleteDirective } from '../../../directives/mention-autoco
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
@@ -44,6 +45,7 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     MentionTextComponent,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
+    AttachPermissionNoteComponent,
     LocationHeaderComponent
   ],
   templateUrl: './library-request-chat.component.html',
@@ -124,7 +126,10 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
-        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
+        // A library request chat is a private 1:1 conversation between the requester
+        // and the item holder (like a DM), so attachments aren't gated by the
+        // crew-content moderation permission.
+        this.canAttachFiles = true;
         await this.encryptionContent.whenReady();
         this.loadRequestTitle();
         this.loadLatestMessages(true);

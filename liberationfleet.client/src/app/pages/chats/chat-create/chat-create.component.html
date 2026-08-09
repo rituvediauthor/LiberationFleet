@@ -20,6 +20,7 @@
           placeholder="General, Planning, Hangout..."
           [attr.aria-invalid]="isInvalid('name')"
           [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null" />
+        <app-char-counter [current]="form.get('name')?.value?.length || 0" [max]="120"></app-char-counter>
       </label>
       <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
         Name is required
@@ -35,6 +36,7 @@
           placeholder="Describe what this channel is for"
           [attr.aria-invalid]="isInvalid('purpose')"
           [attr.aria-describedby]="isInvalid('purpose') ? 'purpose-error' : null"></textarea>
+        <app-char-counter [current]="form.get('purpose')?.value?.length || 0" [max]="2000"></app-char-counter>
       </label>
       <span id="purpose-error" class="error-text" role="alert" *ngIf="isInvalid('purpose')">
         Purpose is required

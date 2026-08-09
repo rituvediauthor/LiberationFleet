@@ -61,10 +61,22 @@ export async function isAlreadyChatSizedVideo(file: File): Promise<boolean> {
     const edge = await readVideoMaxEdge(file);
     return edge > 0 && edge <= SKIP_COMPRESS_MAX_EDGE;
   } catch {
-    // Unknown dimensions but small — treat as already fine.
-    return true;
+    // Unknown dimensions — do NOT assume it's fine (a hidden 1080p clip must still downscale).
+    return false;
   }
 }
+
+/** Long-edge (max of width/height) in pixels, or 0 when dimensions can't be read. */
+export async function readVideoMaxEdgeSafe(file: File): Promise<number> {
+  try {
+    return await readVideoMaxEdge(file);
+  } catch {
+    return 0;
+  }
+}
+
+/** 720p long-edge cap enforced for uploads. */
+export const VIDEO_MAX_EDGE = SKIP_COMPRESS_MAX_EDGE;
 
 /**
  * Signal-like standard quality: 720p box, medium video, ~64 kbps audio, prefer MP4.

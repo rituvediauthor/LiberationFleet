@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { GiftLogCryptoService } from '../../../services/crypto/gift-log-crypto.service';
@@ -16,13 +17,14 @@ import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../../../services/profile.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { NavigationService } from '../../../services/navigation.service';
+import { extractHttpErrorMessage } from '../../../utils/http-error.util';
 
 type ConfirmAction = 'confirmBroken' | 'reportFixed' | 'reportLost' | null;
 
 @Component({
   selector: 'app-library-unit-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LibraryImageCarouselComponent, ConfirmDialogComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LibraryImageCarouselComponent, ConfirmDialogComponent, CharCounterComponent],
   templateUrl: './library-unit-detail.component.html',
   styleUrl: './library-unit-detail.component.css'
 })
@@ -139,11 +141,35 @@ export class LibraryUnitDetailComponent implements OnInit {
     return this.detail?.offeringKind === 'Durable';
   }
 
+  get isConsumable(): boolean {
+    return this.detail?.offeringKind === 'Consumable';
+  }
+
+  /** Needed-by dates only make sense for durable borrowing windows. */
+  get showDateFields(): boolean {
+    return this.showRequestForm && !this.isConsumable;
+  }
+
   get showQuantityField(): boolean {
-    if (this.isService || this.detail?.quantityNotApplicable) {
+    if (!this.showRequestForm && !this.showAcquisitionForm) {
       return false;
     }
-    return this.showRequestForm || this.showAcquisitionForm;
+    if (this.isService) {
+      return false;
+    }
+    // Consumables always take a quantity, even when stock is "N/A" (e.g. 6 eggs).
+    if (this.isConsumable) {
+      return true;
+    }
+    return !this.detail?.quantityNotApplicable;
+  }
+
+  /** Upper bound for the quantity input; null means unbounded (N/A stock). */
+  get quantityMax(): number | null {
+    if (this.detail?.quantityNotApplicable) {
+      return null;
+    }
+    return this.detail?.viewer.maxRequestQuantity ?? this.detail?.remainingStock ?? 1;
   }
 
   get holderLabel(): string {
@@ -398,9 +424,12 @@ export class LibraryUnitDetailComponent implements OnInit {
 
     const maxQty = this.detail.viewer.maxRequestQuantity ?? this.detail.remainingStock ?? 1;
     const quantityControl = this.form.get('quantity');
-    if (this.detail.quantityNotApplicable || this.isService) {
+    if (this.isService) {
       quantityControl?.clearValidators();
       quantityControl?.setValue(1, { emitEvent: false });
+    } else if (this.detail.quantityNotApplicable) {
+      // Unbounded quantity (e.g. how many eggs you grabbed from the coop).
+      quantityControl?.setValidators([Validators.required, Validators.min(1)]);
     } else {
       quantityControl?.setValidators([
         Validators.required,
@@ -414,10 +443,31 @@ export class LibraryUnitDetailComponent implements OnInit {
       quantityControl?.setValue(1, { emitEvent: false });
     }
 
-    if (this.showAcquisitionForm) {
+    // A note is required to explain a request, but optional when simply recording
+    // an on-demand acquisition (e.g. "I grabbed 6 eggs" only needs a quantity).
+    const purposeControl = this.form.get('purpose');
+    purposeControl?.setValidators(
+      this.showAcquisitionForm
+        ? [Validators.maxLength(5000)]
+        : [Validators.required, Validators.maxLength(5000)]
+    );
+    purposeControl?.updateValueAndValidity({ emitEvent: false });
+
+    // Consumables and acquisitions carry no borrowing window; default the dates to
+    // today and drop their required validators so the form can submit without them.
+    const startControl = this.form.get('neededByStart');
+    const endControl = this.form.get('neededByEnd');
+    if (this.showDateFields) {
+      startControl?.setValidators([Validators.required]);
+      endControl?.setValidators([Validators.required]);
+    } else {
+      startControl?.clearValidators();
+      endControl?.clearValidators();
       const today = new Date().toISOString().slice(0, 10);
       this.form.patchValue({ neededByStart: today, neededByEnd: today }, { emitEvent: false });
     }
+    startControl?.updateValueAndValidity({ emitEvent: false });
+    endControl?.updateValueAndValidity({ emitEvent: false });
 
     this.updateActionButtons();
     this.loading = false;
@@ -505,7 +555,7 @@ export class LibraryUnitDetailComponent implements OnInit {
           },
           error: err => {
             this.isSubmitting = false;
-            this.toastService.error(err?.message ?? 'Failed to submit request');
+            this.toastService.error(extractHttpErrorMessage(err, 'Failed to submit request'));
             this.updateActionButtons();
           }
         });
@@ -528,9 +578,11 @@ export class LibraryUnitDetailComponent implements OnInit {
 
     void this.encryptionContent.whenReady().then(async () => {
       try {
-        const purpose = this.form.value.purpose as string;
-        const encrypted = await this.libraryCrypto.encryptRequestPurpose(this.crewId, purpose);
+        const purpose = ((this.form.value.purpose as string) ?? '').trim();
         const quantity = this.isService ? 1 : Number(this.form.value.quantity);
+        const encrypted = purpose
+          ? await this.libraryCrypto.encryptRequestPurpose(this.crewId, purpose)
+          : { purposePreview: '', nonce: '', ciphertext: '' };
         const payload = {
           quantity,
           purposePreview: encrypted.purposePreview,
@@ -559,7 +611,7 @@ export class LibraryUnitDetailComponent implements OnInit {
           },
           error: err => {
             this.isSubmitting = false;
-            this.toastService.error(err?.message ?? 'Failed to record acquisition');
+            this.toastService.error(extractHttpErrorMessage(err, 'Failed to record acquisition'));
             this.updateActionButtons();
           }
         });

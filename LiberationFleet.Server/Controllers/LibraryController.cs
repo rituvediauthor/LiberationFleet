@@ -21,6 +21,7 @@ using LiberationFleet.Server.Application.Features.Library.Queries.GetIncomingLib
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryCategories;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryRequestDetail;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryRequestMessages;
+using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryOfferingUnits;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryUnitDetail;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetMyLibraryOfferings;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetMyLibraryRequests;
@@ -61,6 +62,13 @@ public class LibraryController(IMediator mediator) : ControllerBase
             categoryIds ?? Array.Empty<int>(),
             limit,
             offset));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("offerings/{offeringId:int}/units")]
+    public async Task<IActionResult> GetOfferingUnits(int offeringId)
+    {
+        var result = await mediator.Send(new GetLibraryOfferingUnitsQuery(offeringId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

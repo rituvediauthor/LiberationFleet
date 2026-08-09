@@ -3,7 +3,9 @@ import { MAX_VIDEO_DURATION_SEC } from './media-attachment-allowlist.util';
 import {
   canCompressVideoForUploadAsync,
   compressVideoForUpload,
-  isAlreadyChatSizedVideo
+  isAlreadyChatSizedVideo,
+  readVideoMaxEdgeSafe,
+  VIDEO_MAX_EDGE
 } from './video-compress.util';
 import {
   MAX_VIDEO_PASSTHROUGH_BYTES,
@@ -11,6 +13,7 @@ import {
   MAX_VIDEO_UPLOAD_BYTES,
   videoCompressFailedMessage,
   videoOverPickerLimitMessage,
+  videoResolutionTooHighMessage,
   videoStillTooLargeAfterPrepMessage
 } from './video-platform.policy';
 
@@ -67,25 +70,38 @@ export async function prepareVideoAttachment(
 
   let out = normalizeVideoFile(file);
 
-  if (canCompress && !(await isAlreadyChatSizedVideo(out))) {
-    throwIfAborted(options?.signal);
-    try {
-      out = await compressVideoForUpload(out, {
-        signal: options?.signal,
-        onProgress: (percent, label) => {
-          const mapped = 20 + Math.round(percent * 0.7);
-          options?.onProgress?.(mapped, label);
+  // Enforce a hard 720p ceiling: a short but high-res clip (e.g. 1080p under the
+  // byte limit) must still be downscaled instead of uploaded at full resolution.
+  const sourceMaxEdge = await readVideoMaxEdgeSafe(out);
+  const exceeds720p = sourceMaxEdge > VIDEO_MAX_EDGE;
+
+  if (canCompress) {
+    const mustCompress = exceeds720p || !(await isAlreadyChatSizedVideo(out));
+    if (mustCompress) {
+      throwIfAborted(options?.signal);
+      try {
+        out = await compressVideoForUpload(out, {
+          signal: options?.signal,
+          onProgress: (percent, label) => {
+            const mapped = 20 + Math.round(percent * 0.7);
+            options?.onProgress?.(mapped, label);
+          }
+        });
+      } catch (error) {
+        if (isAbortError(error)) {
+          throw error;
         }
-      });
-    } catch (error) {
-      if (isAbortError(error)) {
-        throw error;
+        // Never fall back to the un-downscaled original when the source is >720p.
+        if (exceeds720p || file.size > uploadMaxBytes) {
+          throw new Error(videoCompressFailedMessage({ uploadMaxBytes }));
+        }
+        out = normalizeVideoFile(file);
       }
-      if (file.size > uploadMaxBytes) {
-        throw new Error(videoCompressFailedMessage({ uploadMaxBytes }));
-      }
-      out = normalizeVideoFile(file);
     }
+  } else if (exceeds720p) {
+    // No downscaler available (no WebCodecs A/V, no native plugin) — refuse rather
+    // than crash the upload with a full-resolution HD file.
+    throw new Error(videoResolutionTooHighMessage());
   }
 
   if (out.size > uploadMaxBytes) {

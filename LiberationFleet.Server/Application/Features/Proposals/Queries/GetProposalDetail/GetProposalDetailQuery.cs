@@ -71,7 +71,7 @@ public class GetProposalDetailQueryHandler(
 
         var utcNow = DateTime.UtcNow;
         var statusBefore = proposal.Status;
-        ProposalVotingService.TryAutoApproveOnTimer(proposal, utcNow);
+        ProposalVotingService.TryResolveOnTimer(proposal, utcNow);
         await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
             proposal,
             statusBefore,

@@ -11,11 +11,12 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { ToastService } from '../../../components/toast/toast.component';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-rule-edit',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, CharCounterComponent],
   templateUrl: './rule-edit.component.html',
   styleUrl: './rule-edit.component.css'
 })
@@ -30,6 +31,8 @@ export class RuleEditComponent implements OnInit {
   crewId = 0;
   ruleId = 0;
   requireApprovalForEdits = true;
+  readonly titleMaxLength = 200;
+  readonly descriptionMaxLength = 10000;
   private initialFormValues: { title: string; description: string; isPublic: boolean } | null = null;
 
   private fb = inject(FormBuilder);
@@ -47,8 +50,8 @@ export class RuleEditComponent implements OnInit {
     this.ruleId = Number(this.route.snapshot.paramMap.get('id'));
 
     this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]],
+      title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
+      description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]],
       isPublic: [false]
     });
 

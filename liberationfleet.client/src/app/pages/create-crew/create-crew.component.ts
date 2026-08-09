@@ -9,11 +9,12 @@ import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewPrivacy, CrewScope } from '../../models/crew.model';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-create-crew',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, HubLoadingComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, HubLoadingComponent, CharCounterComponent],
   templateUrl: './create-crew.component.html',
   styleUrl: './create-crew.component.css'
 })
@@ -22,6 +23,7 @@ export class CreateCrewComponent {
   backButton: ActionBarButton;
   createButton: ActionBarButton;
   isLoading = false;
+  readonly nameMaxLength = 100;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -31,7 +33,7 @@ export class CreateCrewComponent {
 
   constructor() {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
       maxSize: [30, [Validators.required, Validators.min(2), Validators.max(50)]],
       privacy: ['Public' as CrewPrivacy, Validators.required],
       scope: ['Online' as CrewScope, Validators.required],

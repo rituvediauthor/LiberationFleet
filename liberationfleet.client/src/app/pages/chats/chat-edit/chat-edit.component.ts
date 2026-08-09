@@ -12,11 +12,12 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomType } from '../../../models/chat.model';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-chat-edit',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, CharCounterComponent],
   templateUrl: './chat-edit.component.html',
   styleUrl: './chat-edit.component.css'
 })

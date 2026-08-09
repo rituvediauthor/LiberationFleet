@@ -43,12 +43,6 @@ public class CreateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "Encrypted purpose is required." };
         }
 
-        var dateError = LibraryRequestValidation.ValidateDateRange(request.NeededByStart, request.NeededByEnd);
-        if (dateError is not null)
-        {
-            return new LibraryRequestOperationResponse { Success = false, Message = dateError };
-        }
-
         var userId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
@@ -96,27 +90,42 @@ public class CreateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "On-demand offerings use record acquisition instead of requests." };
         }
 
-        var quantity = unit.Offering.QuantityNotApplicable ? 1 : request.Quantity;
+        // Durables are always a single item; stock-based goods (incl. "N/A" stock
+        // consumables) keep the requested quantity so gifts scale by amount.
+        var quantity = LibraryOfferingRules.IsStockBased(unit.Offering) ? request.Quantity : 1;
         if (quantity < 1)
         {
             return new LibraryRequestOperationResponse { Success = false, Message = "Quantity must be at least 1." };
         }
 
-        if (LibraryOfferingRules.IsStockBased(unit.Offering))
+        if (LibraryOfferingRules.IsStockBased(unit.Offering)
+            && !LibraryOfferingRules.HasSufficientStock(unit.Offering, quantity))
         {
-            if (!LibraryOfferingRules.HasSufficientStock(unit.Offering, quantity))
-            {
-                return new LibraryRequestOperationResponse { Success = false, Message = "Not enough stock available." };
-            }
-        }
-        else if (quantity != 1)
-        {
-            return new LibraryRequestOperationResponse { Success = false, Message = "Quantity must be 1 for durable goods." };
+            return new LibraryRequestOperationResponse { Success = false, Message = "Not enough stock available." };
         }
 
-        var (neededByStart, neededByEnd) = LibraryRequestValidation.NormalizeDateRange(
-            request.NeededByStart,
-            request.NeededByEnd);
+        // Consumables are "gone once you get it" — no borrowing window, so skip date
+        // validation and pin the window to today. Durable/Service still validate dates.
+        DateTime neededByStart;
+        DateTime neededByEnd;
+        if (unit.Offering.Kind == LibraryOfferingKind.Consumable)
+        {
+            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+            neededByStart = today;
+            neededByEnd = today;
+        }
+        else
+        {
+            var dateError = LibraryRequestValidation.ValidateDateRange(request.NeededByStart, request.NeededByEnd);
+            if (dateError is not null)
+            {
+                return new LibraryRequestOperationResponse { Success = false, Message = dateError };
+            }
+
+            (neededByStart, neededByEnd) = LibraryRequestValidation.NormalizeDateRange(
+                request.NeededByStart,
+                request.NeededByEnd);
+        }
 
         if (!LibraryOfferingRules.IsStockBased(unit.Offering)
             && await libraryRepository.HasOverlappingOpenRequestForUnitAsync(

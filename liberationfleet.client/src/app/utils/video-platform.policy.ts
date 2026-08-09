@@ -108,3 +108,10 @@ export function videoCompressFailedMessage(options?: { uploadMaxBytes?: number }
 export function videoStillTooLargeAfterPrepMessage(sizeBytes: number): string {
   return `Video is still ${Math.ceil(sizeBytes / (1024 * 1024))} MB after compressing. Try a shorter clip.`;
 }
+
+export function videoResolutionTooHighMessage(): string {
+  const tip = isNativeApp()
+    ? 'Update the app so on-device compression can downscale it, or upload a 720p (or lower) version.'
+    : 'Attach it from a computer — we’ll downscale it automatically there — or upload a 720p (or lower) version.';
+  return `This video is higher than 720p and ${videoRuntimeLabel()} can’t downscale it here. ${tip}`;
+}

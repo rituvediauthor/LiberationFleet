@@ -33,6 +33,15 @@
         </div>
 
         <nav class="fleet-menu" aria-label="Fleet actions">
+          <button type="button" class="menu-link" (click)="goToRules()">
+            <span class="menu-icon-wrap">
+              <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
+              <app-content-badge [count]="areaCounts.rules"></app-content-badge>
+            </span>
+            <span class="menu-label">Rules</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
           <button type="button" class="menu-link fleet-name-link" (click)="goToForums()">
             <span class="menu-icon-wrap">
               <app-brand-logo
@@ -48,12 +57,12 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link" (click)="goToRules()">
+          <button type="button" class="menu-link" (click)="goToChats()">
             <span class="menu-icon-wrap">
-              <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.rules"></app-content-badge>
+              <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+              <app-content-badge [count]="areaCounts.chats"></app-content-badge>
             </span>
-            <span class="menu-label">Rules</span>
+            <span class="menu-label">Chats</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
@@ -69,17 +78,6 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button
-            type="button"
-            class="menu-link"
-            (click)="goToEmergencyRequests()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
-            </span>
-            <span class="menu-label">Emergency Requests</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
-
           <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibrary()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
@@ -89,12 +87,14 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link" (click)="goToChats()">
+          <button
+            type="button"
+            class="menu-link"
+            (click)="goToEmergencyRequests()">
             <span class="menu-icon-wrap">
-              <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.chats"></app-content-badge>
+              <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
             </span>
-            <span class="menu-label">Chats</span>
+            <span class="menu-label">Emergency Requests</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 

@@ -38,10 +38,9 @@ public class RecordLibraryAcquisitionCommandHandler(
             return new LibraryCompleteRequestResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
-        {
-            return new LibraryCompleteRequestResponse { Success = false, Message = "Encrypted note is required." };
-        }
+        // A note is optional for acquisitions (e.g. "I grabbed 6 eggs" needs only a quantity).
+        var hasEncryptedNote = !string.IsNullOrWhiteSpace(request.Nonce)
+            && !string.IsNullOrWhiteSpace(request.Ciphertext);
 
         var userId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
@@ -70,7 +69,9 @@ public class RecordLibraryAcquisitionCommandHandler(
             return new LibraryCompleteRequestResponse { Success = false, Message = "This offering is not available for on-demand acquisition." };
         }
 
-        var quantity = offering.QuantityNotApplicable ? 1 : request.Quantity;
+        // Quantity is meaningful even for "N/A" stock (e.g. 6 eggs); only durables force 1,
+        // and durables never reach this on-demand path.
+        var quantity = request.Quantity;
         if (quantity < 1)
         {
             return new LibraryCompleteRequestResponse { Success = false, Message = "Quantity must be at least 1." };
@@ -98,7 +99,7 @@ public class RecordLibraryAcquisitionCommandHandler(
             NeededByStart = today,
             NeededByEnd = today,
             PurposePreview = LibraryRequestValidation.NormalizePurposePreview(request.PurposePreview),
-            HasEncryptedContent = true,
+            HasEncryptedContent = hasEncryptedNote,
             Status = LibraryRequestStatus.Fulfilled,
             CreatedAt = utcNow,
             UpdatedAt = utcNow
@@ -107,18 +108,21 @@ public class RecordLibraryAcquisitionCommandHandler(
         await libraryRepository.AddRequestAsync(libraryRequest, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        if (hasEncryptedNote)
         {
-            ContentType = EncryptedContentType.LibraryRequest,
-            ResourceId = libraryRequest.Id.ToString(),
-            CrewId = offeringCrewId,
-            AuthorUserId = userId,
-            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-            Nonce = request.Nonce.Trim(),
-            Ciphertext = request.Ciphertext.Trim(),
-            CreatedAt = utcNow,
-            UpdatedAt = utcNow
-        }, cancellationToken);
+            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.LibraryRequest,
+                ResourceId = libraryRequest.Id.ToString(),
+                CrewId = offeringCrewId,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+                Nonce = request.Nonce.Trim(),
+                Ciphertext = request.Ciphertext.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            }, cancellationToken);
+        }
 
         trackedUnit.Offering.UpdatedAt = utcNow;
         LibraryOfferingRules.ReduceStock(trackedUnit.Offering, quantity);

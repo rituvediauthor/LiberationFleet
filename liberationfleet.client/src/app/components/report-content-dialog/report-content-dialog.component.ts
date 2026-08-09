@@ -10,11 +10,12 @@ import {
 import { ContentReportService } from '../../services/content-report.service';
 import { ToastService } from '../toast/toast.component';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
+import { CharCounterComponent } from '../char-counter/char-counter.component';
 
 @Component({
   selector: 'app-report-content-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, AccessibleDialogDirective],
+  imports: [CommonModule, FormsModule, AccessibleDialogDirective, CharCounterComponent],
   templateUrl: './report-content-dialog.component.html',
   styleUrl: './report-content-dialog.component.css'
 })

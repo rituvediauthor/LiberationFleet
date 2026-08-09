@@ -30,13 +30,15 @@
             class="form-input textarea"
             rows="5"
             formControlName="purpose"
+            maxlength="5000"
             placeholder="Why is this item needed?"
             [attr.aria-invalid]="isInvalid('purpose')"
             [attr.aria-describedby]="isInvalid('purpose') ? 'purpose-error' : null"></textarea>
+          <app-char-counter [current]="form.get('purpose')?.value?.length || 0" [max]="5000"></app-char-counter>
           <span id="purpose-error" class="error-text" role="alert" *ngIf="isInvalid('purpose')">Purpose is required</span>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" *ngIf="!isConsumable">
           <div class="form-group">
             <label for="neededByStart">Needed from</label>
             <input

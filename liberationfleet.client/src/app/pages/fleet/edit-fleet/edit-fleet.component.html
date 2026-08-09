@@ -22,8 +22,10 @@
             type="text"
             formControlName="name"
             class="form-input"
+            [maxlength]="nameMaxLength"
             [attr.aria-invalid]="isInvalid('name')"
             [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null">
+          <app-char-counter [current]="form.get('name')?.value?.length || 0" [max]="nameMaxLength"></app-char-counter>
           <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
             Fleet name is required
           </span>

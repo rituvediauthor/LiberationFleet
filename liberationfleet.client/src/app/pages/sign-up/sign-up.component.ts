@@ -14,6 +14,7 @@ import { ToastService } from '../../components/toast/toast.component';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
 import { AuthResult } from '../../models/user.model';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { usernameValidators, USERNAME_MAX_LENGTH } from '../../utils/username.util';
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -60,6 +61,7 @@ export class SignUpComponent {
   termsOfUseLoading = false;
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
+  readonly usernameMaxLength = USERNAME_MAX_LENGTH;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -72,7 +74,7 @@ export class SignUpComponent {
 
   constructor() {
     this.form = this.fb.group({
-      username: ['', Validators.required],
+      username: ['', usernameValidators()],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, passwordStrengthValidator]],
       confirmPassword: ['', Validators.required],

@@ -57,7 +57,7 @@ public class GetCrewProposalsQueryHandler(
         foreach (var proposal in proposals)
         {
             var statusBefore = proposal.Status;
-            ProposalVotingService.TryAutoApproveOnTimer(proposal, utcNow);
+            ProposalVotingService.TryResolveOnTimer(proposal, utcNow);
             await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
                 proposal,
                 statusBefore,

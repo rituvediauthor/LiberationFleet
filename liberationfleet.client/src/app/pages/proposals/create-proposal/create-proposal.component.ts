@@ -5,6 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { ProposalService } from '../../../services/proposal.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -20,7 +22,7 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
 @Component({
   selector: 'app-create-proposal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, MentionAutocompleteDirective],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, AttachPermissionNoteComponent, MentionAutocompleteDirective, CharCounterComponent],
   templateUrl: './create-proposal.component.html',
   styleUrl: './create-proposal.component.css'
 })
@@ -39,6 +41,8 @@ export class CreateProposalComponent implements OnInit {
   mentionedUserIds: number[] = [];
   authorDisplayName = '';
   isFleetScope = false;
+  readonly titleMaxLength = 200;
+  readonly descriptionMaxLength = 10000;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -55,8 +59,8 @@ export class CreateProposalComponent implements OnInit {
   ngOnInit() {
     this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet';
     this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]]
+      title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
+      description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]]
     });
 
     this.backButton = this.navigation.createBackButton(

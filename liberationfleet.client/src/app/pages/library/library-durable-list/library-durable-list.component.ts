@@ -100,6 +100,10 @@ export class LibraryDurableListComponent implements OnInit, AfterViewInit, OnDes
   }
 
   openItem(item: LibraryUnitListItem) {
+    if ((item.offeringUnitCount ?? 1) > 1) {
+      this.router.navigate(['/app/crew/library-of-things/offerings', item.offeringId, 'units']);
+      return;
+    }
     this.router.navigate(['/app/crew/library-of-things/units', item.unitId]);
   }
 

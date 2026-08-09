@@ -27,6 +27,15 @@ public class LibraryUnitListItemDto
     public string OfferingKind { get; set; } = string.Empty;
     public string FulfillmentMode { get; set; } = string.Empty;
     public string Visibility { get; set; } = string.Empty;
+
+    /// <summary>Number of active (non-retired, non-broken) units in this unit's offering.</summary>
+    public int OfferingUnitCount { get; set; } = 1;
+
+    /// <summary>True when no Open request currently reserves this unit.</summary>
+    public bool AvailableNow { get; set; } = true;
+
+    /// <summary>When unavailable, the soonest date the unit is expected to free up.</summary>
+    public DateTime? NextAvailableDate { get; set; }
 }
 
 public class LibraryCategoryListResponse
@@ -173,6 +182,7 @@ public class LibraryRequestListItemDto
     public bool HasEncryptedContent { get; set; }
     public bool HasEncryptedPurpose { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string OfferingKind { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public DateTime NeededByStart { get; set; }
     public DateTime NeededByEnd { get; set; }

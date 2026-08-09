@@ -1,4 +1,5 @@
 using FluentValidation;
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Domain;
 
 namespace LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
@@ -9,7 +10,14 @@ public class UpdateProfileCommandValidator : AbstractValidator<UpdateProfileComm
     {
         RuleFor(x => x.Username)
             .NotEmpty().WithMessage("Username is required")
-            .MaximumLength(256).WithMessage("Username must be 256 characters or fewer");
+            .MinimumLength(UsernamePolicy.MinLength)
+                .WithMessage($"Username must be at least {UsernamePolicy.MinLength} characters")
+            .MaximumLength(UsernamePolicy.MaxLength)
+                .WithMessage($"Username must be {UsernamePolicy.MaxLength} characters or fewer")
+            .Must(UsernamePolicy.MatchesPattern)
+                .WithMessage($"Username may contain {UsernamePolicy.PatternDescription}")
+            .Must(UsernamePolicy.IsAllowed)
+                .WithMessage("That username is not allowed");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")

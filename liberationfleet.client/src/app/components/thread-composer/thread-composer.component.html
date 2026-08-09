@@ -8,11 +8,13 @@
     (mentionedUserIdsChange)="onMentionedUserIdsChange($event)"
     [placeholder]="placeholder"
     [rows]="rows"
+    [maxlength]="maxLength"
     [disabled]="disabled"></textarea>
+  <app-char-counter [current]="text.length" [max]="maxLength"></app-char-counter>
   <button
     type="button"
     class="thread-composer-submit"
-    [disabled]="disabled || !text.trim()"
+    [disabled]="disabled || !text.trim() || text.length > maxLength"
     (click)="onSubmit()">
     {{ submitLabel }}
   </button>

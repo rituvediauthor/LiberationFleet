@@ -101,6 +101,7 @@
           (blur)="onComposerBlur()"
           [placeholder]="editingMessageId ? 'Edit message...' : 'Message...'"
           [attr.aria-label]="editingMessageId ? 'Edit message' : 'Message'"
+          [attr.maxlength]="messageMaxLength"
           rows="1"></textarea>
 
         <button
@@ -136,6 +137,12 @@
         </div>
       </div>
 
+      <app-char-counter
+        *ngIf="composerExpanded && messageText.length > 0"
+        [current]="messageText.length"
+        [max]="messageMaxLength">
+      </app-char-counter>
+
       <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
           <span>{{ attachment.fileName || attachment.resourceId }}</span>
@@ -153,6 +160,10 @@
         (fileDialogOpenChange)="onFileDialogOpenChange($event)"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
+      <app-attach-permission-note
+        *ngIf="!canAttachFiles"
+        [scope]="fleetId > 0 ? 'fleet' : 'crew'">
+      </app-attach-permission-note>
 
       <div class="composer-tools" *ngIf="composerExpanded">
         <span class="composer-tools-spacer" *ngIf="!canAttachFiles" aria-hidden="true"></span>

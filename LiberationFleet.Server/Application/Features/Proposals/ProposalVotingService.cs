@@ -87,20 +87,27 @@ public static class ProposalVotingService
             }
         }
 
-        TryAutoApproveOnTimer(proposal, utcNow);
+        TryResolveOnTimer(proposal, utcNow);
     }
 
-    public static void TryAutoApproveOnTimer(Proposal proposal, DateTime utcNow)
+    /// <summary>
+    /// Resolve a still-pending proposal once its timer expires. Silent consent
+    /// (no disapprovals) approves; any disapproval — including a tie/split where
+    /// neither side reached a majority — rejects, so a contested kick can't pass
+    /// just because the timer ran out.
+    /// </summary>
+    public static void TryResolveOnTimer(Proposal proposal, DateTime utcNow)
     {
         if (proposal.Status != ProposalStatus.Pending
             || !proposal.ApprovalTimerEndsAt.HasValue
-            || proposal.ApprovalTimerEndsAt > utcNow
-            || proposal.DisapproveCount > 0)
+            || proposal.ApprovalTimerEndsAt > utcNow)
         {
             return;
         }
 
-        proposal.Status = ProposalStatus.Approved;
+        proposal.Status = proposal.DisapproveCount > 0
+            ? ProposalStatus.Rejected
+            : ProposalStatus.Approved;
         proposal.ApprovalTimerEndsAt = null;
     }
 }

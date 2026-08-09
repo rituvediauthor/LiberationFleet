@@ -24,6 +24,9 @@ export interface LibraryUnitListItem {
   offeringKind?: string;
   fulfillmentMode?: string;
   visibility?: string;
+  offeringUnitCount?: number;
+  availableNow?: boolean;
+  nextAvailableDate?: string | null;
 }
 
 export interface LibraryCategoryListResponse {
@@ -155,6 +158,7 @@ export interface LibraryRequestListItem {
   hasEncryptedContent?: boolean;
   hasEncryptedPurpose?: boolean;
   status: string;
+  offeringKind?: string;
   quantity: number;
   neededByStart: string;
   neededByEnd: string;

@@ -89,6 +89,17 @@ export class LibraryService {
     return this.getUnitListPage('services-units', options);
   }
 
+  getOfferingUnits(offeringId: number): Observable<LibraryUnitListItem[]> {
+    return this.http.get<LibraryUnitListResponse>(`${this.basePath}/offerings/${offeringId}/units`).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load items');
+        }
+        return response.items;
+      })
+    );
+  }
+
   private getUnitListPage(
     path: string,
     options?: { search?: string; categoryIds?: number[]; limit?: number; offset?: number }

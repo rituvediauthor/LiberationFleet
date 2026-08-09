@@ -6,6 +6,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { FleetService } from '../../../services/fleet.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -26,13 +27,15 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
     ReactiveFormsModule,
     PageLayoutComponent,
     ConfirmDialogComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    CharCounterComponent
   ],
   templateUrl: './edit-fleet.component.html',
   styleUrl: './edit-fleet.component.css'
 })
 export class EditFleetComponent implements OnInit {
   form!: FormGroup;
+  readonly nameMaxLength = 100;
   joinCode = '';
   requireApprovalForEdits = true;
   loading = true;
@@ -63,7 +66,7 @@ export class EditFleetComponent implements OnInit {
   ngOnInit() {
     this.notificationContent.markVisited('/app/fleet/edit');
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
       privacy: ['Public' as FleetPrivacy, Validators.required],
       scope: ['Online' as FleetScope, Validators.required],
       zipCode: [''],

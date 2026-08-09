@@ -35,6 +35,12 @@ public interface ILibraryRepository
         int offset,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<LibraryUnit>> GetUnitsForOfferingAsync(
+        int offeringId,
+        IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
+        CancellationToken cancellationToken = default);
+
     Task<LibraryUnitListPage> GetStockUnitsForCrewAsync(
         int crewId,
         LibraryOfferingKind kind,

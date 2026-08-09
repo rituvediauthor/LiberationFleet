@@ -51,11 +51,15 @@
             type="text"
             formControlName="username"
             class="form-input"
+            [maxlength]="usernameMaxLength"
             [attr.aria-invalid]="isInvalid('username')"
             [attr.aria-describedby]="isInvalid('username') ? 'username-error username-hint' : 'username-hint'">
-          <span class="hint-text" id="username-hint">Must be unique across the platform</span>
+          <span class="hint-text" id="username-hint">Letters and numbers only. Must be unique across the platform.</span>
           <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username')">
-            Username is required
+            <ng-container *ngIf="form.get('username')?.hasError('required')">Username is required</ng-container>
+            <ng-container *ngIf="form.get('username')?.hasError('minlength')">Username must be at least 3 characters</ng-container>
+            <ng-container *ngIf="form.get('username')?.hasError('pattern')">Username may contain letters and numbers only</ng-container>
+            <ng-container *ngIf="form.get('username')?.hasError('usernameReserved')">That username is not allowed</ng-container>
           </span>
         </div>
 

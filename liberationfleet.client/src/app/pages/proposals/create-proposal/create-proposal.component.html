@@ -15,8 +15,10 @@
           type="text"
           formControlName="title"
           placeholder="Proposal title"
+          [maxlength]="titleMaxLength"
           [attr.aria-invalid]="isInvalid('title')"
           [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
+        <app-char-counter [current]="form.get('title')?.value?.length || 0" [max]="titleMaxLength"></app-char-counter>
         <span id="title-error" class="error-text" role="alert" *ngIf="isInvalid('title')">
           Title is required
         </span>
@@ -32,8 +34,10 @@
           appMentionAutocomplete
           [(mentionedUserIds)]="mentionedUserIds"
           placeholder="Describe your proposal"
+          [maxlength]="descriptionMaxLength"
           [attr.aria-invalid]="isInvalid('description')"
           [attr.aria-describedby]="isInvalid('description') ? 'description-error' : null"></textarea>
+        <app-char-counter [current]="form.get('description')?.value?.length || 0" [max]="descriptionMaxLength"></app-char-counter>
         <span id="description-error" class="error-text" role="alert" *ngIf="isInvalid('description')">
           Description is required
         </span>
@@ -47,6 +51,10 @@
           : (crewId > 0 ? { crewId: crewId } : null)"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
+      <app-attach-permission-note
+        *ngIf="!canAttachFiles"
+        [scope]="isFleetScope ? 'fleet' : 'crew'">
+      </app-attach-permission-note>
     </form>
   </div>
 </app-page-layout>

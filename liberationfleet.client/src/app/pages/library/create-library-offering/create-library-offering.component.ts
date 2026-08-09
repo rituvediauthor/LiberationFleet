@@ -6,6 +6,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { Subject, takeUntil } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryCategoryPickerComponent } from '../../../components/library-category-picker/library-category-picker.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
@@ -21,7 +22,7 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
 @Component({
   selector: 'app-create-library-offering',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, LibraryCategoryPickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, LibraryCategoryPickerComponent, CharCounterComponent],
   templateUrl: './create-library-offering.component.html',
   styleUrl: './create-library-offering.component.css'
 })
@@ -36,6 +37,9 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   crewId = 0;
   canAttachFiles = false;
   authorDisplayName = '';
+  readonly titleMaxLength = 200;
+  readonly descriptionMaxLength = 10000;
+  readonly unitLabelMaxLength = 64;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -60,10 +64,10 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       offeringKind: [initialKind, Validators.required],
       fulfillmentMode: [{ value: initialFulfillment, disabled: initialKind === 'Durable' }, Validators.required],
       visibility: ['CrewOnly' as LibraryOfferingVisibility, Validators.required],
-      title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(10000)]],
+      title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
+      description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]],
       valuePerUnit: [null, [Validators.required, Validators.min(0.01)]],
-      unitLabel: ['', [Validators.maxLength(64)]],
+      unitLabel: ['', [Validators.maxLength(this.unitLabelMaxLength)]],
       quantity: [1, [Validators.required, Validators.min(1), Validators.max(100)]],
       quantityNotApplicable: [initialKind === 'Service']
     });

@@ -7,11 +7,12 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-emergency-request-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, CharCounterComponent],
   templateUrl: './emergency-request-create.component.html',
   styleUrl: './emergency-request-create.component.css'
 })

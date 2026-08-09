@@ -37,12 +37,6 @@ public class UpdateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "Encrypted purpose is required." };
         }
 
-        var dateError = LibraryRequestValidation.ValidateDateRange(request.NeededByStart, request.NeededByEnd);
-        if (dateError is not null)
-        {
-            return new LibraryRequestOperationResponse { Success = false, Message = dateError };
-        }
-
         var userId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
@@ -73,9 +67,27 @@ public class UpdateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "Only open requests can be edited." };
         }
 
-        var (neededByStart, neededByEnd) = LibraryRequestValidation.NormalizeDateRange(
-            request.NeededByStart,
-            request.NeededByEnd);
+        // Consumables carry no borrowing window; pin to today and skip date validation.
+        DateTime neededByStart;
+        DateTime neededByEnd;
+        if (unit.Offering.Kind == LibraryOfferingKind.Consumable)
+        {
+            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+            neededByStart = today;
+            neededByEnd = today;
+        }
+        else
+        {
+            var dateError = LibraryRequestValidation.ValidateDateRange(request.NeededByStart, request.NeededByEnd);
+            if (dateError is not null)
+            {
+                return new LibraryRequestOperationResponse { Success = false, Message = dateError };
+            }
+
+            (neededByStart, neededByEnd) = LibraryRequestValidation.NormalizeDateRange(
+                request.NeededByStart,
+                request.NeededByEnd);
+        }
 
         if (!LibraryOfferingRules.IsStockBased(unit.Offering)
             && await libraryRepository.HasOverlappingOpenRequestForUnitAsync(

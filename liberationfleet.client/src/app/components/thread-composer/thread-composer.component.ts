@@ -2,11 +2,12 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MentionAutocompleteDirective } from '../../directives/mention-autocomplete.directive';
+import { CharCounterComponent } from '../char-counter/char-counter.component';
 
 @Component({
   selector: 'app-thread-composer',
   standalone: true,
-  imports: [CommonModule, FormsModule, MentionAutocompleteDirective],
+  imports: [CommonModule, FormsModule, MentionAutocompleteDirective, CharCounterComponent],
   templateUrl: './thread-composer.component.html',
   styleUrl: './thread-composer.component.css'
 })
@@ -21,6 +22,7 @@ export class ThreadComposerComponent {
   @Input() submitLabel = 'Post';
   @Input() disabled = false;
   @Input() rows = 3;
+  @Input() maxLength = 10000;
 
   @Output() submit = new EventEmitter<void>();
 
@@ -35,7 +37,7 @@ export class ThreadComposerComponent {
   }
 
   onSubmit() {
-    if (this.disabled || !this.text.trim()) {
+    if (this.disabled || !this.text.trim() || this.text.length > this.maxLength) {
       return;
     }
 

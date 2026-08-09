@@ -2,11 +2,12 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
+import { CharCounterComponent } from '../char-counter/char-counter.component';
 
 @Component({
   selector: 'app-kick-reason-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, AccessibleDialogDirective],
+  imports: [CommonModule, FormsModule, AccessibleDialogDirective, CharCounterComponent],
   templateUrl: './kick-reason-dialog.component.html',
   styleUrl: './kick-reason-dialog.component.css'
 })

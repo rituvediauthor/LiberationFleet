@@ -16,6 +16,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FriendService } from '../../../services/friend.service';
@@ -43,6 +45,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
+    AttachPermissionNoteComponent,
+    CharCounterComponent,
     ReportContentDialogComponent,
     UserAvatarComponent,
     LocationHeaderComponent
@@ -72,6 +76,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
+  readonly messageMaxLength = 5000;
   messageAttachments: PendingAttachment[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
   editingMessageId: number | null = null;
@@ -224,7 +229,9 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     const hasContent = Boolean(
       this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0
     );
-    return hasContent && pendingAttachmentsAllowSubmit(this.messageAttachments);
+    return hasContent
+      && this.messageText.length <= this.messageMaxLength
+      && pendingAttachmentsAllowSubmit(this.messageAttachments);
   }
 
   onAttachmentsChange() {

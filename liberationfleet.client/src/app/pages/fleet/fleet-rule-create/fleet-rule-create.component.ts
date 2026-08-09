@@ -8,11 +8,12 @@ import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetRuleOperationResponse } from '../../../models/fleet.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
   selector: 'app-fleet-rule-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, CharCounterComponent],
   templateUrl: './fleet-rule-create.component.html',
   styleUrl: './fleet-rule-create.component.css'
 })
@@ -22,6 +23,8 @@ export class FleetRuleCreateComponent implements OnInit {
   createButton!: ActionBarButton;
   isSubmitting = false;
   requireApprovalForEdits = true;
+  readonly titleMaxLength = 200;
+  readonly descriptionMaxLength = 4000;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -31,8 +34,8 @@ export class FleetRuleCreateComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.maxLength(200)]],
-      description: ['', [Validators.required, Validators.maxLength(4000)]],
+      title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
+      description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]],
       isPublic: [false]
     });
 

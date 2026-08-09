@@ -1,0 +1,32 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div class="library-list-page">
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-subtitle" *ngIf="!loading && items.length > 0">
+      {{ items.length }} item{{ items.length === 1 ? '' : 's' }} &middot; available first
+    </p>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
+      No items available for this offering.
+    </p>
+
+    <div class="item-cards" *ngIf="!loading && items.length > 0">
+      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openUnit(item)">
+        <app-library-item-card [item]="item"></app-library-item-card>
+        <span
+          class="availability-badge"
+          [class.available]="item.availableNow"
+          [class.reserved]="!item.availableNow">
+          <ng-container *ngIf="item.availableNow">Available now</ng-container>
+          <ng-container *ngIf="!item.availableNow && item.nextAvailableDate">
+            Available {{ item.nextAvailableDate | date: 'mediumDate' }}
+          </ng-container>
+          <ng-container *ngIf="!item.availableNow && !item.nextAvailableDate">
+            Currently unavailable
+          </ng-container>
+        </span>
+      </button>
+    </div>
+  </div>
+</app-page-layout>
