@@ -129,8 +129,10 @@
 .menu-icon-wrap {
   position: relative;
   width: 24px;
+  height: 24px;
   flex-shrink: 0;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
@@ -140,11 +142,17 @@
   width: 24px;
   text-align: center;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .menu-brand-logo {
-  width: 24px;
-  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 33px;
+  height: 33px;
+  line-height: 0;
+  overflow: visible;
 }
 
 .menu-badge {

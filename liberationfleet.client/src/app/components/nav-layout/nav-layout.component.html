@@ -24,7 +24,8 @@
       routerLinkActive="active"
       class="nav-item"
       #fleetNav="routerLinkActive"
-      [attr.aria-current]="fleetNav.isActive ? 'page' : null">
+      [attr.aria-current]="fleetNav.isActive ? 'page' : null"
+      style="padding-bottom: 10px; gap:0px;">
       <app-brand-logo
         class="nav-logo"
         [class.nav-logo-custom]="!!fleetImageSrc"
@@ -42,7 +43,8 @@
       [routerLinkActiveOptions]="{ exact: true }"
       class="nav-item"
       #crewNav="routerLinkActive"
-      [attr.aria-current]="crewNav.isActive ? 'page' : null">
+      [attr.aria-current]="crewNav.isActive ? 'page' : null"
+      style="padding-bottom: 10px; gap:0px;">
       <app-brand-logo
         class="nav-logo"
         [class.nav-logo-custom]="!!crewImageSrc"

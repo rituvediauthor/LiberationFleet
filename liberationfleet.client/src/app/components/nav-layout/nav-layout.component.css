@@ -114,7 +114,7 @@
 
 @media (max-width: 600px) {
   .nav-layout {
-    --bottom-nav-height: 68px;
+    --bottom-nav-height: 60px;
   }
 
   .nav-content {

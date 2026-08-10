@@ -1,3 +1,17 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+/* Parent may constrain host (e.g. dashboard menu 24px); fill that box. */
+:host(.menu-brand-logo) .brand-logo {
+  width: 100%;
+  height: 100%;
+}
+
 .brand-logo {
   display: inline-flex;
   align-items: center;
@@ -24,16 +38,16 @@
 }
 
 .size-sm {
-  width: 28px;
-  height: 28px;
+  width: 33px;
+  height: 33px;
 }
 
 .size-md {
-  width: 40px;
-  height: 40px;
+  width: 80px;
+  height: 80px;
 }
 
 .size-lg {
-  width: 96px;
-  height: 96px;
+  width: 200px;
+  height: 200px;
 }
