@@ -34,6 +34,15 @@ public class CrewInvitationRepository(ApplicationDbContext context) : ICrewInvit
             .Where(i => i.InviteeUserId == inviteeUserId && i.Status == CrewInvitationStatus.Pending)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<int>> GetPendingInviteeUserIdsForCrewAsync(
+        int crewId,
+        CancellationToken cancellationToken = default) =>
+        await context.CrewInvitations
+            .Where(i => i.CrewId == crewId && i.Status == CrewInvitationStatus.Pending)
+            .Select(i => i.InviteeUserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
 }
 
 public class UserFleetRuleAcceptanceRepository(ApplicationDbContext context) : IUserFleetRuleAcceptanceRepository

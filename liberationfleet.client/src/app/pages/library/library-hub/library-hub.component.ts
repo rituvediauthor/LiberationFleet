@@ -49,7 +49,7 @@ export class LibraryHubComponent implements OnInit, OnDestroy {
     return this.resourceCounts[key] ?? 0;
   }
 
-  openSection(section: 'requests' | 'durable' | 'consumable' | 'services' | 'mine') {
+  openSection(section: 'requests' | 'durable' | 'consumable' | 'services' | 'digital' | 'mine') {
     this.router.navigate(['/app/crew/library-of-things', section]);
   }
 

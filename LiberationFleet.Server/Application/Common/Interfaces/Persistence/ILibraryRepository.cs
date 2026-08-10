@@ -183,6 +183,10 @@ public interface ILibraryRepository
         int unitId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<LibraryRequest>> GetTrackedDeniedRequestsForRequesterAsync(
+        int requesterUserId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<LibraryRequest>> GetTrackedRequestsByRequesterAsync(
         int crewId,
         int requesterUserId,

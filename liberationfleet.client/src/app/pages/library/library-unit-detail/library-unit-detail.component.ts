@@ -48,6 +48,10 @@ export class LibraryUnitDetailComponent implements OnInit {
   confirmAction: ConfirmAction = null;
   confirmTitle = '';
   confirmMessage = '';
+  digitalRiskVisible = false;
+  digitalRiskAccepted = false;
+  readonly digitalRiskMessage =
+    'Only acquire files from trusted sources. Liberation Fleet cannot be held liable for any harm that may come from downloading software this way. By accepting, you acknowledge this risk.';
 
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
@@ -126,7 +130,7 @@ export class LibraryUnitDetailComponent implements OnInit {
   }
 
   get showAcquisitionForm(): boolean {
-    return !!this.detail?.viewer.canRecordAcquisition;
+    return !!this.detail?.viewer.canRecordAcquisition && !this.isDigital;
   }
 
   get hasActiveRequest(): boolean {
@@ -145,12 +149,19 @@ export class LibraryUnitDetailComponent implements OnInit {
     return this.detail?.offeringKind === 'Consumable';
   }
 
+  get isDigital(): boolean {
+    return this.detail?.offeringKind === 'Digital';
+  }
+
   /** Needed-by dates only make sense for durable borrowing windows. */
   get showDateFields(): boolean {
-    return this.showRequestForm && !this.isConsumable;
+    return this.showRequestForm && !this.isConsumable && !this.isDigital;
   }
 
   get showQuantityField(): boolean {
+    if (this.isDigital) {
+      return false;
+    }
     if (!this.showRequestForm && !this.showAcquisitionForm) {
       return false;
     }
@@ -173,10 +184,22 @@ export class LibraryUnitDetailComponent implements OnInit {
   }
 
   get holderLabel(): string {
-    if (this.detail?.offeringKind === 'Consumable' || this.detail?.offeringKind === 'Service') {
-      return this.detail.offeringKind === 'Service' ? 'Offered by' : 'From';
+    if (this.detail?.offeringKind === 'Consumable'
+      || this.detail?.offeringKind === 'Service'
+      || this.detail?.offeringKind === 'Digital') {
+      return this.detail.offeringKind === 'Service' || this.detail.offeringKind === 'Digital'
+        ? 'Offered by'
+        : 'From';
     }
     return 'Holder';
+  }
+
+  get downloadableFiles() {
+    return this.detail?.downloadableFiles ?? [];
+  }
+
+  get showDigitalDownload(): boolean {
+    return this.isDigital && this.digitalRiskAccepted && !!this.detail?.viewer.canRecordAcquisition;
   }
 
   openConfirm(action: ConfirmAction, title: string, message: string) {
@@ -202,6 +225,17 @@ export class LibraryUnitDetailComponent implements OnInit {
   onDismissDialog() {
     this.confirmVisible = false;
     this.confirmAction = null;
+  }
+
+  acceptDigitalRisk() {
+    this.digitalRiskVisible = false;
+    this.digitalRiskAccepted = true;
+    this.updateActionButtons();
+  }
+
+  declineDigitalRisk() {
+    this.digitalRiskVisible = false;
+    this.router.navigate(['/app/crew/library-of-things/digital']);
   }
 
   submitReportBroken() {
@@ -424,7 +458,7 @@ export class LibraryUnitDetailComponent implements OnInit {
 
     const maxQty = this.detail.viewer.maxRequestQuantity ?? this.detail.remainingStock ?? 1;
     const quantityControl = this.form.get('quantity');
-    if (this.isService) {
+    if (this.isService || this.isDigital) {
       quantityControl?.clearValidators();
       quantityControl?.setValue(1, { emitEvent: false });
     } else if (this.detail.quantityNotApplicable) {
@@ -439,7 +473,7 @@ export class LibraryUnitDetailComponent implements OnInit {
     }
     quantityControl?.updateValueAndValidity({ emitEvent: false });
 
-    if (this.isService) {
+    if (this.isService || this.isDigital) {
       quantityControl?.setValue(1, { emitEvent: false });
     }
 
@@ -447,9 +481,11 @@ export class LibraryUnitDetailComponent implements OnInit {
     // an on-demand acquisition (e.g. "I grabbed 6 eggs" only needs a quantity).
     const purposeControl = this.form.get('purpose');
     purposeControl?.setValidators(
-      this.showAcquisitionForm
+      this.showAcquisitionForm && !this.isDigital
         ? [Validators.maxLength(5000)]
-        : [Validators.required, Validators.maxLength(5000)]
+        : this.isDigital
+          ? [Validators.maxLength(5000)]
+          : [Validators.required, Validators.maxLength(5000)]
     );
     purposeControl?.updateValueAndValidity({ emitEvent: false });
 
@@ -469,11 +505,41 @@ export class LibraryUnitDetailComponent implements OnInit {
     startControl?.updateValueAndValidity({ emitEvent: false });
     endControl?.updateValueAndValidity({ emitEvent: false });
 
+    if (this.isDigital) {
+      if (this.detail.viewer.canRecordAcquisition && !this.digitalRiskAccepted) {
+        this.digitalRiskVisible = true;
+      } else if (!this.detail.viewer.canRecordAcquisition) {
+        this.digitalRiskAccepted = true;
+      }
+    }
+
     this.updateActionButtons();
     this.loading = false;
   }
 
   private updateActionButtons() {
+    if (this.isDigital) {
+      if (this.showDigitalDownload) {
+        this.primaryButton = {
+          label: 'Download',
+          type: 'primary',
+          disabled: this.isSubmitting || this.downloadableFiles.length === 0,
+          onClick: () => this.submitDigitalDownload()
+        };
+        this.secondaryButton = null;
+        return;
+      }
+
+      this.primaryButton = {
+        label: 'Download',
+        type: 'primary',
+        disabled: true,
+        onClick: () => undefined
+      };
+      this.secondaryButton = null;
+      return;
+    }
+
     if (this.detail?.viewer.canRequest) {
       this.primaryButton = {
         label: 'Request',
@@ -567,6 +633,73 @@ export class LibraryUnitDetailComponent implements OnInit {
     });
   }
 
+  private submitDigitalDownload() {
+    if (!this.detail || !this.showDigitalDownload || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.updateActionButtons();
+
+    void this.encryptionContent.whenReady().then(async () => {
+      try {
+        const payload = {
+          quantity: 1,
+          purposePreview: '',
+          nonce: '',
+          ciphertext: ''
+        };
+
+        this.libraryService.recordAcquisition(this.unitId, payload).subscribe({
+          next: response => {
+            this.isSubmitting = false;
+            if (!response.success) {
+              this.toastService.error(response.message || 'Failed to record download');
+              this.updateActionButtons();
+              return;
+            }
+
+            if (response.contributionGift) {
+              void this.giftLogCrypto.encryptLibraryCreatorContribution(response.contributionGift, this.crewId);
+            }
+            if (response.receptionGift) {
+              void this.giftLogCrypto.encryptLibraryReceptionGift(response.receptionGift, this.crewId);
+            }
+
+            for (const file of this.downloadableFiles) {
+              this.triggerFileDownload(file.dataUrl, file.fileName || 'download');
+            }
+
+            this.toastService.success('Download recorded');
+            this.updateActionButtons();
+          },
+          error: err => {
+            this.isSubmitting = false;
+            this.toastService.error(extractHttpErrorMessage(err, 'Failed to record download'));
+            this.updateActionButtons();
+          }
+        });
+      } catch (err: unknown) {
+        this.isSubmitting = false;
+        this.toastService.error(err instanceof Error ? err.message : 'Download failed');
+        this.updateActionButtons();
+      }
+    });
+  }
+
+  private triggerFileDownload(dataUrl: string | undefined, fileName: string) {
+    if (!dataUrl) {
+      return;
+    }
+    const anchor = document.createElement('a');
+    anchor.href = dataUrl;
+    anchor.download = fileName;
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  }
+
   private submitAcquisition() {
     if (!this.detail || this.isSubmitting || this.form.invalid) {
       this.form.markAllAsTouched();
@@ -579,7 +712,7 @@ export class LibraryUnitDetailComponent implements OnInit {
     void this.encryptionContent.whenReady().then(async () => {
       try {
         const purpose = ((this.form.value.purpose as string) ?? '').trim();
-        const quantity = this.isService ? 1 : Number(this.form.value.quantity);
+        const quantity = this.isService || this.isDigital ? 1 : Number(this.form.value.quantity);
         const encrypted = purpose
           ? await this.libraryCrypto.encryptRequestPurpose(this.crewId, purpose)
           : { purposePreview: '', nonce: '', ciphertext: '' };

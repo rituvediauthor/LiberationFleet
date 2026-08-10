@@ -45,6 +45,7 @@ export class PageLayoutComponent implements OnInit, OnChanges {
   @Input() showLocationHeader = true;
 
   locationHeaderInfo: LocationHeaderInfo | null = null;
+  viewScope: 'crew' | 'fleet' | null = null;
 
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -56,15 +57,20 @@ export class PageLayoutComponent implements OnInit, OnChanges {
 
   ngOnInit() {
     this.refreshLocationHeader();
+    this.refreshViewScope();
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => this.refreshLocationHeader());
+    ).subscribe(() => {
+      this.refreshLocationHeader();
+      this.refreshViewScope();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['parentTab'] || changes['locationHeader'] || changes['showLocationHeader']) {
       this.refreshLocationHeader();
+      this.refreshViewScope();
     }
   }
 
@@ -123,5 +129,30 @@ export class PageLayoutComponent implements OnInit, OnChanges {
     }
 
     this.locationHeaderInfo = fromRoute;
+  }
+
+  private refreshViewScope() {
+    const fromHeader = this.locationHeaderInfo?.parentTab;
+    if (fromHeader === 'crew' || fromHeader === 'fleet') {
+      this.viewScope = fromHeader;
+      return;
+    }
+
+    if (this.parentTab === 'crew' || this.parentTab === 'fleet') {
+      this.viewScope = this.parentTab;
+      return;
+    }
+
+    const url = this.router.url.split('?')[0];
+    if (url.startsWith('/app/fleet')) {
+      this.viewScope = 'fleet';
+      return;
+    }
+    if (url.startsWith('/app/crew')) {
+      this.viewScope = 'crew';
+      return;
+    }
+
+    this.viewScope = null;
   }
 }

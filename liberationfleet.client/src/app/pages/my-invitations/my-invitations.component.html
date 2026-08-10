@@ -1,0 +1,27 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div class="invitations-page">
+    <h1 class="page-title">My Invitations</h1>
+    <p class="intro-text">
+      Pending invitations to join crews, and fleet invitations for your crew. Open one to accept or decline.
+    </p>
+
+    <p *ngIf="loading" class="state-text">Loading invitations...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No pending invitations.</p>
+
+    <div class="invitation-cards" *ngIf="!loading && items.length > 0">
+      <button
+        type="button"
+        class="invitation-card"
+        *ngFor="let item of items"
+        (click)="openInvitation(item)">
+        <span class="kind-badge" [class.kind-crew]="item.kind === 'crew'" [class.kind-fleet]="item.kind === 'fleet'">
+          {{ kindLabel(item.kind) }}
+        </span>
+        <h2 class="card-title">{{ item.title }}</h2>
+        <p class="card-meta">{{ item.subtitle }}</p>
+        <p class="card-meta">Received {{ formatCreatedAt(item.createdAt) }}</p>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

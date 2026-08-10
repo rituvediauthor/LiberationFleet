@@ -9,6 +9,7 @@ public interface ICrewInvitationRepository
     Task<CrewInvitation?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<CrewInvitation?> GetPendingAsync(int crewId, int inviteeUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewInvitation>> GetPendingForInviteeAsync(int inviteeUserId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<int>> GetPendingInviteeUserIdsForCrewAsync(int crewId, CancellationToken cancellationToken = default);
 }
 
 public interface IUserFleetRuleAcceptanceRepository

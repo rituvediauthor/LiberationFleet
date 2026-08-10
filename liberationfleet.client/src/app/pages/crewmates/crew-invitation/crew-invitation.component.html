@@ -46,3 +46,14 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showDeclineDialog"
+  title="Decline invitation?"
+  message="You will not join this crew from this invitation. You can be invited again later."
+  confirmLabel="Decline"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmDecline()"
+  (cancelled)="onCancelDecline()"
+  (dismissed)="onCancelDecline()">
+</app-confirm-dialog>

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -21,7 +21,7 @@ import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.co
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css'
 })
-export class NotificationsComponent implements OnInit, OnDestroy {
+export class NotificationsComponent implements OnInit {
   items: NotificationItem[] = [];
   loading = true;
   errorMessage = '';
@@ -47,12 +47,6 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   /** Avatars only for notifications that have a known non-anonymous actor picture. */
   showActorAvatar(item: NotificationItem): boolean {
     return !!item.actorUserId && !!item.actorAvatarResourceId?.trim();
-  }
-
-  ngOnDestroy() {
-    if (this.items.some(item => !item.isRead)) {
-      this.notificationService.markAllRead().subscribe();
-    }
   }
 
   onFilterChange(value: string) {

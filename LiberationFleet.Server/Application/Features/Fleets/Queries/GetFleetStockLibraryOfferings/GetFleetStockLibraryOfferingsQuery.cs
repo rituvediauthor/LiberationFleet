@@ -29,12 +29,12 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
             return new LibraryUnitListResponse { Success = false, Message = "Unauthorized." };
         }
 
-        if (request.Kind is not (LibraryOfferingKind.Consumable or LibraryOfferingKind.Service))
+        if (request.Kind is not (LibraryOfferingKind.Consumable or LibraryOfferingKind.Service or LibraryOfferingKind.Digital))
         {
             return new LibraryUnitListResponse
             {
                 Success = false,
-                Message = "Kind must be Consumable or Service."
+                Message = "Kind must be Consumable, Service, or Digital."
             };
         }
 

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -16,6 +16,8 @@ import { ToastService } from '../../components/toast/toast.component';
   styleUrl: './sign-in.component.css'
 })
 export class SignInComponent {
+  @ViewChild('passwordInput') passwordInput?: ElementRef<HTMLInputElement>;
+
   form: FormGroup;
   backButton: ActionBarButton;
   signInButton: ActionBarButton;
@@ -53,8 +55,14 @@ export class SignInComponent {
     return !!control && control.invalid && (control.touched || control.dirty);
   }
 
+  onUsernameEnter(event: Event) {
+    event.preventDefault();
+    this.passwordInput?.nativeElement.focus();
+  }
+
   onSubmit() {
     if (this.form.invalid || this.isLoading) {
+      this.form.markAllAsTouched();
       return;
     }
 

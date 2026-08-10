@@ -8,7 +8,7 @@ import {
   maxVideoUploadBytes
 } from './video-platform.policy';
 
-export type AttachmentMediaKind = 'image' | 'video' | 'audio';
+export type AttachmentMediaKind = 'image' | 'video' | 'audio' | 'file';
 
 export type AttachmentValidationResult =
   | { ok: true; kind: AttachmentMediaKind }
@@ -45,6 +45,30 @@ export const ALLOWED_AUDIO_MIME = new Set([
 const ALLOWED_IMAGE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 const ALLOWED_VIDEO_EXT = new Set(['mp4', 'webm', 'mov']);
 const ALLOWED_AUDIO_EXT = new Set(['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac', 'webm']);
+const ALLOWED_FILE_EXT = new Set([
+  'epub', 'pdf', 'zip', '7z', 'rar', 'tar', 'gz', 'tgz', 'txt', 'md', 'json', 'csv',
+  'docx', 'odt', 'mobi', 'cbz', 'cbr', 'bin', 'pak', 'dat', 'wasm'
+]);
+
+const ALLOWED_FILE_MIME = new Set([
+  'application/epub+zip',
+  'application/pdf',
+  'application/zip',
+  'application/x-zip-compressed',
+  'application/x-7z-compressed',
+  'application/x-rar-compressed',
+  'application/vnd.rar',
+  'application/gzip',
+  'application/x-gzip',
+  'application/x-tar',
+  'application/octet-stream',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'application/json',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.oasis.opendocument.text'
+]);
 
 /** Rejected even if claimed as image/* (scriptable / polyglot-prone). */
 const BLOCKED_MIME = new Set([
@@ -71,6 +95,8 @@ export const MAX_VIDEO_INPUT_BYTES = MAX_VIDEO_PICK_WITH_COMPRESS_BYTES;
 /** Max video length allowed across the app (3 minutes). */
 export const MAX_VIDEO_DURATION_SEC = 3 * 60;
 export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
+/** Generic digital-good downloads (ebooks, archives, game packs). */
+export const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
 /** Max ciphertext characters for JSON media upsert (images / small payloads; must match server). */
 export const MAX_MEDIA_CIPHERTEXT_CHARS = 40 * 1024 * 1024;
@@ -115,6 +141,12 @@ export function defaultAcceptAttribute(kinds: AttachmentMediaKind[] = ['image', 
   if (kinds.includes('audio')) {
     parts.push('audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/webm,audio/aac,audio/flac,.mp3,.m4a,.wav,.ogg,.aac,.flac,.webm');
   }
+  if (kinds.includes('file')) {
+    parts.push(
+      '.epub,.pdf,.zip,.7z,.rar,.tar,.gz,.tgz,.txt,.md,.json,.csv,.docx,.odt,.mobi,.cbz,.cbr,.bin,.pak,.dat,.wasm,'
+      + 'application/pdf,application/epub+zip,application/zip,application/octet-stream'
+    );
+  }
   return parts.join(',');
 }
 
@@ -131,11 +163,16 @@ export function validateAttachmentFile(
     return { ok: false, reason: 'blocked' };
   }
 
+  const fileKindAllowed = allowedKinds.includes('file');
+
   // Empty MIME alone is OK if extension is allowlisted; bare octet-stream needs extension.
   if (mime === 'application/octet-stream') {
     // Fall through to extension check only.
   } else if (mime && !kindFromAllowedMime(mime) && !mime.startsWith('image/') && !mime.startsWith('video/') && !mime.startsWith('audio/')) {
-    return { ok: false, reason: 'unsupported' };
+    const looksLikeGenericFile = mime.startsWith('application/') || mime.startsWith('text/');
+    if (!(fileKindAllowed && looksLikeGenericFile)) {
+      return { ok: false, reason: 'unsupported' };
+    }
   } else if (mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/')) {
     if (!kindFromAllowedMime(mime)) {
       return { ok: false, reason: 'blocked' };
@@ -158,6 +195,10 @@ export function validateAttachmentFile(
     kind = kindFromExt;
   }
 
+  if (!kind && fileKindAllowed && isAllowedGenericFile(mime, extension)) {
+    kind = 'file';
+  }
+
   if (!kind || !allowedKinds.includes(kind)) {
     return { ok: false, reason: 'unsupported' };
   }
@@ -177,6 +218,9 @@ export function maxBytesForKind(kind: AttachmentMediaKind): number {
   if (kind === 'video') {
     // Platform-aware: large picks when compress works; phone passthrough otherwise.
     return maxVideoPickerBytes();
+  }
+  if (kind === 'file') {
+    return MAX_FILE_BYTES;
   }
   return MAX_AUDIO_BYTES;
 }
@@ -223,4 +267,12 @@ function kindFromAllowedExtension(extension: string): AttachmentMediaKind | null
     return 'audio';
   }
   return null;
+}
+
+function isAllowedGenericFile(mime: string, extension: string): boolean {
+  if (extension && ALLOWED_FILE_EXT.has(extension)) {
+    return !mime || mime === 'application/octet-stream' || ALLOWED_FILE_MIME.has(mime)
+      || mime.startsWith('application/') || mime.startsWith('text/');
+  }
+  return !!mime && ALLOWED_FILE_MIME.has(mime) && mime !== 'application/octet-stream';
 }

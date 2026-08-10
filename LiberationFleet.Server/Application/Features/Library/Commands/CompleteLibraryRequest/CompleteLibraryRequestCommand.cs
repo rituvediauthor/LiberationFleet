@@ -79,14 +79,7 @@ public class CompleteLibraryRequestCommandHandler(
                 libraryRequest.Unit.Status = LibraryUnitStatus.Broken;
             }
 
-            contributionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
-                membership.CrewId,
-                offering,
-                libraryRequest.Quantity,
-                libraryRequest.RequesterUserId,
-                libraryRequest.RequesterUser.Username,
-                cancellationToken);
-
+            // Single gift-log entry for the exchange (contribution + reception on one gift).
             receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
                 membership.CrewId,
                 offering,
@@ -124,14 +117,8 @@ public class CompleteLibraryRequestCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (receptionGift is not null)
-        {
-            var receptionRecord = await giftRepository.GetByIdWithUsersAsync(receptionGift.GiftId, cancellationToken);
-            if (receptionRecord is not null)
-            {
-                await mutualAidService.ApplyGiftReceptionAsync(receptionRecord, cancellationToken);
-            }
-        }
+        await ApplyReceptionIfNeededAsync(receptionGift, cancellationToken);
+        await ApplyReceptionIfNeededAsync(completerGift, cancellationToken);
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
@@ -154,5 +141,21 @@ public class CompleteLibraryRequestCommandHandler(
             CompleterGift = LibraryMapper.MapContributionGift(completerGift),
             ReceptionGift = LibraryMapper.MapContributionGift(receptionGift)
         };
+    }
+
+    private async Task ApplyReceptionIfNeededAsync(
+        CreatorContributionGiftDetails? details,
+        CancellationToken cancellationToken)
+    {
+        if (details is null)
+        {
+            return;
+        }
+
+        var receptionRecord = await giftRepository.GetByIdWithUsersAsync(details.GiftId, cancellationToken);
+        if (receptionRecord is not null)
+        {
+            await mutualAidService.ApplyGiftReceptionAsync(receptionRecord, cancellationToken);
+        }
     }
 }

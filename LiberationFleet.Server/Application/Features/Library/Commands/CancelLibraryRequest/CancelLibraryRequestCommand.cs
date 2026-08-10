@@ -11,6 +11,7 @@ public record CancelLibraryRequestCommand(int RequestId) : IRequest<LibraryReque
 public class CancelLibraryRequestCommandHandler(
     ICurrentUserService currentUser,
     ILibraryRepository libraryRepository,
+    LibraryRequestCleanupHelper requestCleanupHelper,
     IUnitOfWork unitOfWork) : IRequestHandler<CancelLibraryRequestCommand, LibraryRequestOperationResponse>
 {
     public async Task<LibraryRequestOperationResponse> Handle(
@@ -35,9 +36,11 @@ public class CancelLibraryRequestCommandHandler(
         if (libraryRequest.Status != LibraryRequestStatus.Open
             && libraryRequest.Status != LibraryRequestStatus.Denied)
         {
-            return new LibraryRequestOperationResponse { Success = false, Message = "This request cannot be cancelled." };
+            return new LibraryRequestOperationResponse { Success = false, Message = "This request cannot be deleted." };
         }
 
+        var wasDenied = libraryRequest.Status == LibraryRequestStatus.Denied;
+        await requestCleanupHelper.CancelRequestWithMessagesAsync(libraryRequest.Id, cancellationToken);
         libraryRequest.Status = LibraryRequestStatus.Cancelled;
         libraryRequest.UpdatedAt = DateTime.UtcNow;
 
@@ -46,7 +49,7 @@ public class CancelLibraryRequestCommandHandler(
         return new LibraryRequestOperationResponse
         {
             Success = true,
-            Message = "Request cancelled.",
+            Message = wasDenied ? "Denied request dismissed." : "Request deleted.",
             RequestId = libraryRequest.Id
         };
     }

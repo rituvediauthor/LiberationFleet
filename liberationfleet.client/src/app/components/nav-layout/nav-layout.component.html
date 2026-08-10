@@ -1,5 +1,7 @@
 <div class="nav-layout">
-  <div class="nav-content">
+  <div
+    class="nav-content"
+    [class.scope-fleet]="activeTab === 'fleet'">
     <div class="nav-content-inner">
       <ng-content></ng-content>
       <app-fallible-footer></app-fallible-footer>

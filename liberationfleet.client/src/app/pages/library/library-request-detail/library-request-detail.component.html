@@ -1,6 +1,6 @@
 <app-page-layout
   [backButton]="backButton"
-  [primaryButton]="detail && (detail.canComplete || detail.canEdit) ? primaryButton : null"
+  [primaryButton]="detail && (detail.canComplete || detail.canEdit || canDismissDenied) ? primaryButton : null"
   [secondaryButton]="secondaryButton">
   <div class="request-detail-page">
     <p *ngIf="loading" class="state-text">Loading...</p>
@@ -71,6 +71,12 @@
         </button>
         <button type="button" class="undeny-btn" *ngIf="detail.canUndeny" [disabled]="isSubmitting" (click)="undenyRequest()">
           Restore to queue
+        </button>
+      </div>
+
+      <div class="requester-actions" *ngIf="canDeleteOpenRequest">
+        <button type="button" class="delete-request-btn" [disabled]="isSubmitting" (click)="cancelRequest()">
+          Delete request
         </button>
       </div>
     </ng-container>

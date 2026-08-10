@@ -12,6 +12,10 @@ import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.compo
 export class UserHomeComponent {
   private router = inject(Router);
 
+  goToInvitations() {
+    this.router.navigate(['/app/crew/invitations']);
+  }
+
   goToUserProfile() {
     this.router.navigate(['/app/profile/user']);
   }

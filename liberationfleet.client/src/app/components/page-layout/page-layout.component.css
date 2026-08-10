@@ -25,6 +25,11 @@
   padding: 20px;
   padding-bottom: 24px;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.page-content.scope-fleet {
+  border: 4px solid var(--lf-color-accent-strong);
 }
 
 .page-content-inner {
@@ -79,7 +84,7 @@
   z-index: 1;
   background: transparent;
   color: var(--lf-color-text-body);
-  border: 1px solid var(--lf-color-border-subtle);
+  border: none;
   padding: 10px 16px;
   min-width: auto;
   width: 44px;
@@ -91,7 +96,6 @@
 
 .back-button:hover:not(:disabled) {
   background: var(--lf-color-bg-hover);
-  border-color: var(--lf-color-text-subtle);
 }
 
 .back-button:disabled {
@@ -163,7 +167,7 @@
 }
 
 .primary-button.has-secondary {
-  transform: translateX(calc(-50% - 40px));
+  transform: translateX(calc(-50% - 16px));
 }
 
 .secondary-button {

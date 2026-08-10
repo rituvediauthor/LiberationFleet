@@ -6,7 +6,12 @@ namespace LiberationFleet.Server.Application.Features.Library;
 public static class LibraryOfferingRules
 {
     public static bool IsStockBased(LibraryOffering offering) =>
-        offering.Kind is LibraryOfferingKind.Consumable or LibraryOfferingKind.Service;
+        offering.Kind is LibraryOfferingKind.Consumable
+            or LibraryOfferingKind.Service
+            or LibraryOfferingKind.Digital;
+
+    public static bool IsDigital(LibraryOffering offering) =>
+        offering.Kind == LibraryOfferingKind.Digital;
 
     public static bool IsOnDemand(LibraryOffering offering) =>
         offering.FulfillmentMode == LibraryFulfillmentMode.OnDemand;

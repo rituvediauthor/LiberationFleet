@@ -89,6 +89,15 @@ export class LibraryService {
     return this.getUnitListPage('services-units', options);
   }
 
+  getDigitalUnits(options?: {
+    search?: string;
+    categoryIds?: number[];
+    limit?: number;
+    offset?: number;
+  }): Observable<LibraryUnitListPage> {
+    return this.getUnitListPage('digital-units', options);
+  }
+
   getOfferingUnits(offeringId: number): Observable<LibraryUnitListItem[]> {
     return this.http.get<LibraryUnitListResponse>(`${this.basePath}/offerings/${offeringId}/units`).pipe(
       map(response => {
@@ -269,6 +278,14 @@ export class LibraryService {
 
   cancelRequest(requestId: number): Observable<LibraryRequestOperationResponse> {
     return this.http.post<LibraryRequestOperationResponse>(`${this.basePath}/requests/${requestId}/cancel`, {});
+  }
+
+  dismissDeniedRequest(requestId: number): Observable<LibraryRequestOperationResponse> {
+    return this.http.post<LibraryRequestOperationResponse>(`${this.basePath}/requests/${requestId}/dismiss`, {});
+  }
+
+  dismissAllDeniedRequests(): Observable<LibraryRequestOperationResponse> {
+    return this.http.post<LibraryRequestOperationResponse>(`${this.basePath}/requests/denied/dismiss-all`, {});
   }
 
   completeRequest(requestId: number): Observable<LibraryCompleteRequestResponse> {

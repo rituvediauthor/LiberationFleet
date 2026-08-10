@@ -44,6 +44,7 @@ export class GiftLogCryptoService {
         const recipientName = payload.recipientName;
         const middlemanName = payload.middlemanName ?? undefined;
         const platform = payload.platform;
+        const isLibraryOfThings = (platform || entry.platform) === 'Library of Things';
         const message = this.isCelebrationType(entry.type)
           ? (payload.message || entry.message || this.buildDisplayMessage(
               entry.type,
@@ -55,16 +56,18 @@ export class GiftLogCryptoService {
               entry.status,
               entry.displayFlag
             ))
-          : this.buildDisplayMessage(
-              entry.type,
-              giverName,
-              recipientName,
-              middlemanName,
-              entry.amount,
-              platform,
-              entry.status,
-              entry.displayFlag
-            );
+          : (isLibraryOfThings && payload.message)
+            ? payload.message
+            : this.buildDisplayMessage(
+                entry.type,
+                giverName,
+                recipientName,
+                middlemanName,
+                entry.amount,
+                platform,
+                entry.status,
+                entry.displayFlag
+              );
         return {
           ...entry,
           giverName,
@@ -124,7 +127,12 @@ export class GiftLogCryptoService {
     },
     crewId: number
   ): Promise<void> {
-    const message = `${gift.contributorUsername} contributed $${gift.amount} when ${gift.recipientUsername} acquired "${gift.itemTitle}"`;
+    const message = this.buildLibraryOfThingsMessage(
+      gift.contributorUsername,
+      gift.amount,
+      gift.itemTitle,
+      GiftLogCryptoService.crewGiftRecipientName
+    );
     await this.encryptAndStoreEntry({
       id: gift.giftId,
       type: 'direct',
@@ -154,19 +162,24 @@ export class GiftLogCryptoService {
     },
     crewId: number
   ): Promise<void> {
-    const message = `${gift.contributorUsername} contributed $${gift.amount} of value by helping ${gift.recipientUsername} acquire ${gift.itemTitle}`;
+    const message = this.buildLibraryOfThingsMessage(
+      gift.contributorUsername,
+      gift.amount,
+      gift.itemTitle,
+      gift.recipientUsername
+    );
     await this.encryptAndStoreEntry({
       id: gift.giftId,
       type: 'direct',
       giverId: gift.contributorUserId,
       giverName: gift.contributorUsername,
-      recipientId: gift.crewGiftRecipientUserId,
-      recipientName: GiftLogCryptoService.crewGiftRecipientName,
+      recipientId: gift.recipientUserId,
+      recipientName: gift.recipientUsername,
       amount: gift.amount,
       platform: 'Library of Things',
       timestamp: new Date(),
       message,
-      relatedUserIds: [gift.contributorUserId, gift.recipientUserId, gift.crewGiftRecipientUserId],
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
       hasEncryptedContent: false
     }, crewId);
   }
@@ -183,7 +196,12 @@ export class GiftLogCryptoService {
     },
     crewId: number
   ): Promise<void> {
-    const message = `${gift.contributorUsername} provided $${gift.amount} of ${gift.itemTitle} to ${gift.recipientUsername}`;
+    const message = this.buildLibraryOfThingsMessage(
+      gift.contributorUsername,
+      gift.amount,
+      gift.itemTitle,
+      gift.recipientUsername
+    );
     await this.encryptAndStoreEntry({
       id: gift.giftId,
       type: 'direct',
@@ -198,6 +216,17 @@ export class GiftLogCryptoService {
       relatedUserIds: [gift.contributorUserId, gift.recipientUserId],
       hasEncryptedContent: false
     }, crewId);
+  }
+
+  buildLibraryOfThingsMessage(
+    giverName: string,
+    amount: number,
+    itemTitle: string,
+    recipientName: string
+  ): string {
+    const amountText = Number.isInteger(amount) ? amount.toString() : amount.toFixed(2).replace(/\.?0+$/, '');
+    const item = itemTitle.trim() || 'an offering';
+    return `${giverName} gave $${amountText} in ${item} to ${recipientName} via the Library of Things`;
   }
 
   buildDisplayMessage(

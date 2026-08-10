@@ -83,20 +83,28 @@ public class LibraryContributionGiftService(
         string recipientUsername,
         CancellationToken cancellationToken = default)
     {
+        if (completerUserId == recipientUserId)
+        {
+            return null;
+        }
+
         var amount = LibraryOfferingRules.CalculateCompleterDurableContributionAmount(offering, quantity);
         if (amount <= 0)
         {
             return null;
         }
 
-        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
-        var gift = await CreateContributionGiftAsync(
+        // Handoff credit is peer-to-peer (provider → receiving crewmate), never "to the crew".
+        var gift = await CreatePeerGiftAsync(
             crewId,
             completerUserId,
-            crewRecipient.Id,
+            recipientUserId,
             amount,
+            countsTowardContribution: true,
+            countsTowardReception: true,
             cancellationToken);
 
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         return new CreatorContributionGiftDetails(
             gift.Id,
             completerUserId,
@@ -123,11 +131,13 @@ public class LibraryContributionGiftService(
         }
 
         var amount = LibraryOfferingRules.CalculateCreatorContributionAmount(offering, quantity);
-        var gift = await CreateReceptionGiftAsync(
+        var gift = await CreatePeerGiftAsync(
             crewId,
             offering.CreatorUserId,
             recipientUserId,
             amount,
+            countsTowardContribution: false,
+            countsTowardReception: true,
             cancellationToken);
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
@@ -214,11 +224,13 @@ public class LibraryContributionGiftService(
         return gift;
     }
 
-    private async Task<Gift> CreateReceptionGiftAsync(
+    private async Task<Gift> CreatePeerGiftAsync(
         int crewId,
         int giverUserId,
         int recipientUserId,
         decimal amount,
+        bool countsTowardContribution,
+        bool countsTowardReception,
         CancellationToken cancellationToken)
     {
         var platform = await GetOrCreateInKindPlatformAsync(crewId, cancellationToken);
@@ -232,8 +244,8 @@ public class LibraryContributionGiftService(
             Amount = amount,
             CrewPaymentPlatform = platform,
             IsCustomGift = false,
-            CountsTowardReception = true,
-            CountsTowardContribution = false,
+            CountsTowardReception = countsTowardReception,
+            CountsTowardContribution = countsTowardContribution,
             VerificationStatus = GiftVerificationStatus.Verified,
             ReceptionApplied = false,
             CreatedAt = DateTime.UtcNow

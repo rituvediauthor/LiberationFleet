@@ -12,6 +12,7 @@ public class GetCrewPublicKeysQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
+    ICrewInvitationRepository invitationRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewPublicKeysQuery, IReadOnlyList<UserKeyBundleDto>>
 {
     public async Task<IReadOnlyList<UserKeyBundleDto>> Handle(GetCrewPublicKeysQuery request, CancellationToken cancellationToken)
@@ -33,6 +34,11 @@ public class GetCrewPublicKeysQueryHandler(
             request.CrewId,
             cancellationToken);
         userIds.AddRange(pendingApplicants);
+
+        var pendingInvitees = await invitationRepository.GetPendingInviteeUserIdsForCrewAsync(
+            request.CrewId,
+            cancellationToken);
+        userIds.AddRange(pendingInvitees);
 
         var distinctUserIds = userIds.Distinct().ToList();
         var bundles = await cryptoRepository.GetUserKeyBundlesAsync(distinctUserIds, cancellationToken);

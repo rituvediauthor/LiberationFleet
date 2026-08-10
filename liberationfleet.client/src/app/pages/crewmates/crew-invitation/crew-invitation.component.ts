@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { NavigationService } from '../../../services/navigation.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -12,7 +13,7 @@ type InviteStep = 'invite' | 'rules';
 @Component({
   selector: 'app-crew-invitation',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent],
   templateUrl: './crew-invitation.component.html',
   styleUrl: './crew-invitation.component.css'
 })
@@ -23,6 +24,7 @@ export class CrewInvitationComponent implements OnInit {
   loadingRules = false;
   submitting = false;
   declining = false;
+  showDeclineDialog = false;
   errorMessage = '';
   publicRules: PublicCrewRule[] = [];
   acceptedRuleIds = new Set<number>();
@@ -89,6 +91,15 @@ export class CrewInvitationComponent implements OnInit {
     this.updateButtons();
   }
 
+  onConfirmDecline() {
+    this.showDeclineDialog = false;
+    this.performDecline();
+  }
+
+  onCancelDecline() {
+    this.showDeclineDialog = false;
+  }
+
   private onBack() {
     if (this.step === 'rules') {
       this.step = 'invite';
@@ -97,16 +108,16 @@ export class CrewInvitationComponent implements OnInit {
       this.updateButtons();
       return;
     }
-    this.navigation.back(['/app/user']);
+    this.navigation.back(['/app/crew/invitations']);
   }
 
   private updateButtons() {
     if (this.step === 'rules') {
       this.secondaryButton = {
-        label: 'Back',
+        label: 'Decline',
         type: 'secondary',
-        disabled: this.submitting,
-        onClick: () => this.onBack()
+        disabled: this.submitting || this.declining || this.loadingRules,
+        onClick: () => this.requestDecline()
       };
       this.primaryButton = {
         label: 'Request to join',
@@ -122,7 +133,7 @@ export class CrewInvitationComponent implements OnInit {
       label: 'Decline',
       type: 'secondary',
       disabled: !pending || this.declining || this.loading,
-      onClick: () => this.decline()
+      onClick: () => this.requestDecline()
     };
     this.primaryButton = {
       label: 'Accept',
@@ -130,6 +141,13 @@ export class CrewInvitationComponent implements OnInit {
       disabled: !pending || this.loading || this.loadingRules,
       onClick: () => this.continueToRules()
     };
+  }
+
+  private requestDecline() {
+    if (!this.invitation || this.declining || this.invitation.status !== 'Pending') {
+      return;
+    }
+    this.showDeclineDialog = true;
   }
 
   private continueToRules() {
@@ -161,7 +179,7 @@ export class CrewInvitationComponent implements OnInit {
     });
   }
 
-  private decline() {
+  private performDecline() {
     if (!this.invitation || this.declining) {
       return;
     }
@@ -173,7 +191,7 @@ export class CrewInvitationComponent implements OnInit {
       next: result => {
         if (result.success) {
           this.toastService.success(result.message || 'Invitation declined');
-          this.router.navigate(['/app/user']);
+          this.router.navigate(['/app/crew/invitations']);
           return;
         }
         this.toastService.error(result.message);

@@ -327,12 +327,12 @@ public class FleetsController : ControllerBase
         [FromQuery] int offset = 0)
     {
         if (!LibraryEnumParser.TryParseOfferingKind(kind, out var offeringKind)
-            || offeringKind is not (LibraryOfferingKind.Consumable or LibraryOfferingKind.Service))
+            || offeringKind is not (LibraryOfferingKind.Consumable or LibraryOfferingKind.Service or LibraryOfferingKind.Digital))
         {
             return BadRequest(new
             {
                 success = false,
-                message = "Kind must be Consumable or Service."
+                message = "Kind must be Consumable, Service, or Digital."
             });
         }
 

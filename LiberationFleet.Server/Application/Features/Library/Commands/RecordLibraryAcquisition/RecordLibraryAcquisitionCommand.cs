@@ -70,8 +70,8 @@ public class RecordLibraryAcquisitionCommandHandler(
         }
 
         // Quantity is meaningful even for "N/A" stock (e.g. 6 eggs); only durables force 1,
-        // and durables never reach this on-demand path.
-        var quantity = request.Quantity;
+        // and durables never reach this on-demand path. Digital downloads are always qty 1.
+        var quantity = LibraryOfferingRules.IsDigital(offering) ? 1 : request.Quantity;
         if (quantity < 1)
         {
             return new LibraryCompleteRequestResponse { Success = false, Message = "Quantity must be at least 1." };
@@ -133,14 +133,7 @@ public class RecordLibraryAcquisitionCommandHandler(
 
         var acquirer = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var acquirerUsername = acquirer?.Username ?? "Crewmate";
-        var contributionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
-            offeringCrewId,
-            trackedUnit.Offering,
-            quantity,
-            userId,
-            acquirerUsername,
-            cancellationToken);
-
+        // Single gift-log entry for the exchange (contribution + reception on one gift).
         var receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
             offeringCrewId,
             trackedUnit.Offering,
@@ -165,8 +158,7 @@ public class RecordLibraryAcquisitionCommandHandler(
             Success = true,
             Message = "Acquisition recorded.",
             RequestId = libraryRequest.Id,
-            GiftId = contributionGift?.GiftId ?? receptionGift?.GiftId,
-            ContributionGift = LibraryMapper.MapContributionGift(contributionGift),
+            GiftId = receptionGift?.GiftId,
             ReceptionGift = LibraryMapper.MapContributionGift(receptionGift)
         };
     }

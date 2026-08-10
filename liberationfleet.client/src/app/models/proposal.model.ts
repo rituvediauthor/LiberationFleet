@@ -5,7 +5,7 @@ export type ProposalVoteChoice = 'approve' | 'disapprove';
 
 export interface ProposalAttachment {
   resourceId: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'file';
   fileName?: string;
   mimeType?: string;
 }
@@ -121,7 +121,7 @@ export interface ProposalCommentRepliesResponse {
 
 export interface PendingAttachment {
   file?: File;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'file';
   resourceId: string;
   previewUrl?: string;
   /** JPEG poster for video chips in the picker (previewUrl stays the video blob). */

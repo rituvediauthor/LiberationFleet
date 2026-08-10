@@ -60,10 +60,11 @@ describe('CrewHomeComponent', () => {
 
   it('should show welcome actions when user has no crew', () => {
     const buttons = fixture.nativeElement.querySelectorAll('.action-btn');
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(4);
     expect(buttons[0].textContent).toContain('Create Crew');
     expect(buttons[1].textContent).toContain('Join Crew');
-    expect(buttons[2].textContent).toContain('My Join Requests');
+    expect(buttons[2].textContent).toContain('My Invitations');
+    expect(buttons[3].textContent).toContain('My Join Requests');
   });
 
   it('should show crew dashboard when user has a crew', () => {

@@ -113,6 +113,7 @@ export interface LibraryUnitDetail {
   brokenPendingConfirmation?: boolean;
   isRetired?: boolean;
   imageUrls?: string[];
+  downloadableFiles?: import('./proposal.model').ResolvedAttachment[];
   viewer: LibraryUnitViewerContext;
   fullDescription?: string | null;
 }
@@ -288,7 +289,7 @@ export interface UpdateLibraryOfferingRequest {
   visibility?: string | null;
 }
 
-export type LibraryOfferingKind = 'Durable' | 'Consumable' | 'Service';
+export type LibraryOfferingKind = 'Durable' | 'Consumable' | 'Service' | 'Digital';
 export type LibraryFulfillmentMode = 'OnRequest' | 'OnDemand';
 export type LibraryOfferingVisibility = 'CrewOnly' | 'FleetWide';
 

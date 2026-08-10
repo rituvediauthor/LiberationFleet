@@ -113,6 +113,13 @@
   color: var(--lf-color-text-secondary);
 }
 
+.file-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: var(--lf-color-text-body);
+  font-size: 14px;
+}
+
 .action-btn {
   display: inline-flex;
   align-items: center;

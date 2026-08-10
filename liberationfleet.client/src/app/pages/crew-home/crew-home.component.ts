@@ -192,6 +192,10 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/crew/join']);
   }
 
+  goToInvitations() {
+    this.router.navigate(['/app/crew/invitations']);
+  }
+
   goToJoinRequests() {
     this.router.navigate(['/app/crew/join-requests']);
   }

@@ -5,3 +5,16 @@
   font-size: 12px;
   color: var(--lf-color-text-secondary);
 }
+
+.text-btn {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--lf-color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}

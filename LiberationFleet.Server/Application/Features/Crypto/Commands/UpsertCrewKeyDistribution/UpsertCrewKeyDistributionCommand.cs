@@ -17,6 +17,7 @@ public class UpsertCrewKeyDistributionCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IProposalRepository proposalRepository,
+    ICrewInvitationRepository invitationRepository,
     CrewJoinRequestProposalService joinRequestProposalService,
     ICryptoRepository cryptoRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertCrewKeyDistributionCommand, CryptoOperationResponse>
@@ -39,8 +40,12 @@ public class UpsertCrewKeyDistributionCommandHandler(
             request.UserId,
             request.CrewId,
             cancellationToken);
+        var pendingInvitation = await invitationRepository.GetPendingAsync(
+            request.CrewId,
+            request.UserId,
+            cancellationToken);
 
-        if (!targetInCrew && pendingJoin is null)
+        if (!targetInCrew && pendingJoin is null && pendingInvitation is null)
         {
             return new CryptoOperationResponse { Success = false, Message = "Target user is not in this crew." };
         }

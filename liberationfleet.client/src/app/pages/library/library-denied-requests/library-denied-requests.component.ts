@@ -3,9 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
-import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
-import { NotificationService } from '../../../services/notification.service';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -14,38 +13,33 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { LibraryRequestListItem } from '../../../models/library.model';
 
 @Component({
-  selector: 'app-library-my-requests',
+  selector: 'app-library-denied-requests',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, LibraryItemCardComponent, ContentBadgeComponent],
-  templateUrl: './library-my-requests.component.html',
-  styleUrl: './library-my-requests.component.css'
+  imports: [CommonModule, PageLayoutComponent, LibraryItemCardComponent, ConfirmDialogComponent],
+  templateUrl: './library-denied-requests.component.html',
+  styleUrl: './library-denied-requests.component.css'
 })
-export class LibraryMyRequestsComponent implements OnInit {
+export class LibraryDeniedRequestsComponent implements OnInit {
   backButton!: ActionBarButton;
+  primaryButton!: ActionBarButton;
   items: LibraryRequestListItem[] = [];
-  deniedCount = 0;
   loading = true;
+  dismissing = false;
   errorMessage = '';
   crewId = 0;
-  resourceCounts: Record<string, number> = {};
+  showDismissAllDialog = false;
 
   private router = inject(Router);
-
-
   private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
-  private notificationService = inject(NotificationService);
   private encryptionContent = inject(EncryptionContentService);
 
   ngOnInit() {
-    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
-    this.notificationService.refreshBadges();
-    this.notificationService.resourceCounts$.subscribe(counts => {
-      this.resourceCounts = counts;
-    });
+    this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things/requests/mine']);
+    this.updatePrimaryButton();
 
     this.crewService.getMembership().subscribe({
       next: membership => {
@@ -59,16 +53,41 @@ export class LibraryMyRequestsComponent implements OnInit {
     });
   }
 
-  requestBadgeCount(requestId: number): number {
-    return this.resourceCounts[`library-request:${requestId}`] ?? 0;
-  }
-
   openRequest(item: LibraryRequestListItem) {
-    this.router.navigate(['/app/crew/library-of-things/requests', item.requestId]);
+    this.router.navigate(['/app/crew/library-of-things/requests', item.requestId], {
+      queryParams: { from: 'denied' }
+    });
   }
 
-  openDeniedRequests() {
-    this.router.navigate(['/app/crew/library-of-things/requests/denied']);
+  onConfirmDismissAll() {
+    this.showDismissAllDialog = false;
+    if (this.dismissing || this.items.length === 0) {
+      return;
+    }
+
+    this.dismissing = true;
+    this.updatePrimaryButton();
+    this.libraryService.dismissAllDeniedRequests().subscribe({
+      next: result => {
+        this.dismissing = false;
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to dismiss denied requests');
+          this.updatePrimaryButton();
+          return;
+        }
+        this.toastService.success(result.message || 'Denied requests dismissed');
+        this.router.navigate(['/app/crew/library-of-things/requests/mine']);
+      },
+      error: err => {
+        this.dismissing = false;
+        this.toastService.error(err?.error?.message || err?.message || 'Failed to dismiss denied requests');
+        this.updatePrimaryButton();
+      }
+    });
+  }
+
+  onCancelDismissAll() {
+    this.showDismissAllDialog = false;
   }
 
   toCardItem(item: LibraryRequestListItem) {
@@ -98,32 +117,44 @@ export class LibraryMyRequestsComponent implements OnInit {
     return new Date(value).toLocaleDateString();
   }
 
+  private updatePrimaryButton() {
+    this.primaryButton = {
+      label: 'Dismiss all',
+      type: 'primary',
+      disabled: this.loading || this.dismissing || this.items.length === 0,
+      onClick: () => {
+        this.showDismissAllDialog = true;
+      }
+    };
+  }
+
   private loadItems() {
     this.loading = true;
     this.errorMessage = '';
+    this.updatePrimaryButton();
 
     this.libraryService.getMyRequests().subscribe({
       next: items => {
-        void this.applyItems(items);
+        void this.applyItems(items.filter(item => item.status === 'Denied'));
       },
       error: err => {
         this.loading = false;
-        this.errorMessage = err?.message ?? 'Failed to load requests';
+        this.errorMessage = err?.message ?? 'Failed to load denied requests';
         this.toastService.error(this.errorMessage);
+        this.updatePrimaryButton();
       }
     });
   }
 
   private async applyItems(items: LibraryRequestListItem[]) {
-    const active = items.filter(item => item.status !== 'Denied' && item.status !== 'Cancelled' && item.status !== 'Expired');
-    this.deniedCount = items.filter(item => item.status === 'Denied').length;
     try {
       await this.encryptionContent.whenReady();
-      this.items = await this.libraryCrypto.enrichRequestListItems(active, this.crewId);
+      this.items = await this.libraryCrypto.enrichRequestListItems(items, this.crewId);
     } catch {
-      this.items = active;
+      this.items = items;
     } finally {
       this.loading = false;
+      this.updatePrimaryButton();
     }
   }
 }

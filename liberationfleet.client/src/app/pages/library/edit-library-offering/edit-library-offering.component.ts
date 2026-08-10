@@ -54,7 +54,9 @@ export class EditLibraryOfferingComponent implements OnInit {
   }
 
   get isStockBased(): boolean {
-    return this.offering?.offeringKind === 'Consumable' || this.offering?.offeringKind === 'Service';
+    return this.offering?.offeringKind === 'Consumable'
+      || this.offering?.offeringKind === 'Service'
+      || this.offering?.offeringKind === 'Digital';
   }
 
   get canToggleOutOfStock(): boolean {

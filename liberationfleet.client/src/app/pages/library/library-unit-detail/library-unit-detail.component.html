@@ -1,6 +1,6 @@
 <app-page-layout
   [backButton]="backButton"
-  [primaryButton]="(showRequestForm || showAcquisitionForm) ? primaryButton : (hasActiveRequest ? primaryButton : null)"
+  [primaryButton]="(showRequestForm || showAcquisitionForm || showDigitalDownload || hasActiveRequest || isDigital) ? primaryButton : null"
   [secondaryButton]="secondaryButton">
   <div class="unit-detail-page">
     <p *ngIf="loading" class="state-text">Loading...</p>
@@ -25,11 +25,12 @@
       </div>
 
       <p class="detail-description" *ngIf="detail.fullDescription">{{ detail.fullDescription }}</p>
-      <p class="detail-meta">Status: {{ detail.unitStatus }}</p>
+      <p class="detail-meta" *ngIf="!isDigital">Status: {{ detail.unitStatus }}</p>
       <p class="detail-meta" *ngIf="detail.unitLabel">Unit: {{ detail.unitLabel }}</p>
-      <p class="detail-meta" *ngIf="detail.quantityNotApplicable">Stock: N/A (varies)</p>
+      <p class="detail-meta" *ngIf="isDigital">Value per download: ${{ detail.valuePerUnit | number:'1.2-2' }}</p>
+      <p class="detail-meta" *ngIf="detail.quantityNotApplicable && !isDigital">Stock: N/A (varies)</p>
       <p class="detail-meta" *ngIf="!detail.quantityNotApplicable && !detail.isOutOfStock && detail.remainingStock != null">{{ detail.remainingStock }} available</p>
-      <p class="detail-meta" *ngIf="detail.fulfillmentMode">
+      <p class="detail-meta" *ngIf="detail.fulfillmentMode && !isDigital">
         Fulfillment: {{ detail.fulfillmentMode === 'OnDemand' ? 'On demand' : 'On request' }}
       </p>
       <p class="detail-meta" *ngIf="detail.visibility">
@@ -48,9 +49,20 @@
       <p class="notice" *ngIf="hasActiveRequest && !detail.viewer.canRequest">
         You already have a {{ detail.viewer.activeRequestStatus?.toLowerCase() }} request for this item.
       </p>
-      <p class="notice" *ngIf="!detail.viewer.isHolder && !detail.viewer.canRequest && !hasActiveRequest && !showAcquisitionForm && !detail.brokenPendingConfirmation && !detail.isOutOfStock">
+      <p class="notice" *ngIf="!detail.viewer.isHolder && !detail.viewer.canRequest && !hasActiveRequest && !showAcquisitionForm && !showDigitalDownload && !detail.brokenPendingConfirmation && !detail.isOutOfStock && !isDigital">
         This item is not available right now.
       </p>
+
+      <section *ngIf="isDigital && digitalRiskAccepted" class="action-section">
+        <h2 class="section-title">Files</h2>
+        <p class="section-note" *ngIf="downloadableFiles.length === 0">No downloadable files are available yet.</p>
+        <ul class="file-list" *ngIf="downloadableFiles.length > 0">
+          <li *ngFor="let file of downloadableFiles">{{ file.fileName || 'Downloadable file' }}</li>
+        </ul>
+        <p class="section-note" *ngIf="showDigitalDownload">
+          Download records a LoT gift for the listed value and saves the files to your device.
+        </p>
+      </section>
 
       <form [formGroup]="form" *ngIf="showRequestForm || showAcquisitionForm" class="request-form">
         <h2 class="section-title">{{ showAcquisitionForm ? 'Record acquisition' : 'Request this item' }}</h2>
@@ -172,4 +184,15 @@
   (confirmed)="onConfirmDialog()"
   (dismissed)="onDismissDialog()"
   (cancelled)="onDismissDialog()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [visible]="digitalRiskVisible"
+  title="Download risk warning"
+  [message]="digitalRiskMessage"
+  confirmLabel="Accept risk"
+  cancelLabel="Decline"
+  (confirmed)="acceptDigitalRisk()"
+  (dismissed)="declineDigitalRisk()"
+  (cancelled)="declineDigitalRisk()">
 </app-confirm-dialog>

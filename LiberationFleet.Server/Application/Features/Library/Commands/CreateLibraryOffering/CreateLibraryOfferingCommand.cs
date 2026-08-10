@@ -26,6 +26,7 @@ public record CreateLibraryOfferingCommand(
 public class CreateLibraryOfferingCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    ICrewRepository crewRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateLibraryOfferingCommand, LibraryOfferingOperationResponse>
@@ -80,6 +81,16 @@ public class CreateLibraryOfferingCommandHandler(
             return new LibraryOfferingOperationResponse { Success = false, Message = "Durable goods must use on-request fulfillment." };
         }
 
+        if (request.Kind == LibraryOfferingKind.Digital && request.FulfillmentMode != LibraryFulfillmentMode.OnDemand)
+        {
+            return new LibraryOfferingOperationResponse { Success = false, Message = "Digital goods must use on-demand download." };
+        }
+
+        if (request.Kind == LibraryOfferingKind.Digital && !request.QuantityNotApplicable)
+        {
+            return new LibraryOfferingOperationResponse { Success = false, Message = "Digital goods do not use quantity." };
+        }
+
         var categoryIds = request.CategoryIds.Distinct().ToList();
         if (categoryIds.Count == 0)
         {
@@ -91,6 +102,22 @@ public class CreateLibraryOfferingCommandHandler(
         if (membership is null)
         {
             return new LibraryOfferingOperationResponse { Success = false, Message = "You are not in a crew." };
+        }
+
+        if (request.Kind == LibraryOfferingKind.Digital)
+        {
+            var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+            var canAttach = membership.IsOrganizer
+                || membership.CanAttachFiles
+                || (crew?.AllowCrewmateFileAttachments ?? false);
+            if (!canAttach)
+            {
+                return new LibraryOfferingOperationResponse
+                {
+                    Success = false,
+                    Message = "File attachment permission is required to list digital goods."
+                };
+            }
         }
 
         var categories = await libraryRepository.GetCategoriesByIdsAsync(categoryIds, cancellationToken);
@@ -114,8 +141,11 @@ public class CreateLibraryOfferingCommandHandler(
         }
 
         var utcNow = DateTime.UtcNow;
-        var isStock = request.Kind is LibraryOfferingKind.Consumable or LibraryOfferingKind.Service;
-        var quantityNotApplicable = request.QuantityNotApplicable || request.Kind == LibraryOfferingKind.Service;
+        var isStock = request.Kind is LibraryOfferingKind.Consumable
+            or LibraryOfferingKind.Service
+            or LibraryOfferingKind.Digital;
+        var quantityNotApplicable = request.QuantityNotApplicable
+            || request.Kind is LibraryOfferingKind.Service or LibraryOfferingKind.Digital;
         var offering = new LibraryOffering
         {
             CrewId = membership.CrewId,

@@ -2,10 +2,12 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { NavigationService } from '../../../services/navigation.service';
 import { CrewService } from '../../../services/crew.service';
+import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { InviteCandidate } from '../../../models/crew.model';
 
@@ -35,6 +37,7 @@ export class InviteCrewmateComponent implements OnInit {
   private router = inject(Router);
   private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
+  private cryptoSession = inject(CryptoSessionService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -102,10 +105,12 @@ export class InviteCrewmateComponent implements OnInit {
 
     this.submitting = true;
     this.updatePrimaryButton();
+    const inviteeUserId = this.selected.userId;
 
-    this.crewService.inviteCrewmate(this.selected.userId).subscribe({
-      next: result => {
+    this.crewService.inviteCrewmate(inviteeUserId).subscribe({
+      next: async result => {
         if (result.success) {
+          await this.tryDistributeCrewKey(inviteeUserId);
           this.toastService.success(result.message || 'Invitation sent');
           this.router.navigate(['/app/crew/crewmates']);
           return;
@@ -120,5 +125,21 @@ export class InviteCrewmateComponent implements OnInit {
         this.updatePrimaryButton();
       }
     });
+  }
+
+  private async tryDistributeCrewKey(inviteeUserId: number): Promise<void> {
+    if (!this.cryptoSession.isUnlocked()) {
+      return;
+    }
+
+    try {
+      const membership = await firstValueFrom(this.crewService.getMembership());
+      if (!membership.hasCrew || !membership.crewId) {
+        return;
+      }
+      await this.cryptoSession.distributeCrewKeyToUser(membership.crewId, inviteeUserId);
+    } catch {
+      // Invitation already succeeded; key sync can retry when a crewmate opens the app.
+    }
   }
 }

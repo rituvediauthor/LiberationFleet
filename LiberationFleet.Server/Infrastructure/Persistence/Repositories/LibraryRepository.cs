@@ -98,8 +98,6 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)
-            .Include(u => u.Offering)
-                .ThenInclude(o => o.Units)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => u.Offering.CrewId == crewId
                 && !u.Offering.IsDeleted
@@ -144,8 +142,6 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(c => c.Category)
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Crew)
-            .Include(u => u.Offering)
-                .ThenInclude(o => o.Units)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => crewIds.Contains(u.Offering.CrewId)
                 && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
@@ -346,7 +342,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(o => o.Units)
             .FirstOrDefaultAsync(o => o.Id == offeringId, cancellationToken);
 
-    private static async Task<LibraryUnitListPage> ToUnitListPageAsync(
+    private async Task<LibraryUnitListPage> ToUnitListPageAsync(
         IQueryable<LibraryUnit> query,
         int limit,
         int offset,
@@ -367,11 +363,46 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             fetched = fetched.Take(limit).ToList();
         }
 
+        // Avoid Including Offering.Units (cycle with AsNoTracking). Attach count placeholders for mapping.
+        await HydrateOfferingUnitCountsAsync(fetched, cancellationToken);
+
         return new LibraryUnitListPage
         {
             Items = fetched,
             HasMore = hasMore
         };
+    }
+
+    private async Task HydrateOfferingUnitCountsAsync(
+        List<LibraryUnit> units,
+        CancellationToken cancellationToken)
+    {
+        if (units.Count == 0)
+        {
+            return;
+        }
+
+        var offeringIds = units.Select(u => u.OfferingId).Distinct().ToList();
+        var counts = await context.LibraryUnits
+            .AsNoTracking()
+            .Where(u => offeringIds.Contains(u.OfferingId)
+                && !u.IsRetired
+                && u.Status != LibraryUnitStatus.Broken)
+            .GroupBy(u => u.OfferingId)
+            .Select(g => new { OfferingId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.OfferingId, x => x.Count, cancellationToken);
+
+        foreach (var unit in units)
+        {
+            var count = counts.GetValueOrDefault(unit.OfferingId, 1);
+            unit.Offering.Units = Enumerable.Range(0, count)
+                .Select(_ => new LibraryUnit
+                {
+                    OfferingId = unit.OfferingId,
+                    Status = LibraryUnitStatus.Available
+                })
+                .ToList();
+        }
     }
 
     public async Task<IReadOnlyList<LibraryCategory>> GetCategoriesByIdsAsync(
@@ -594,7 +625,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .FirstOrDefaultAsync(
                 r => r.Id == requestId
                     && ((r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
-                            || r.Unit.Offering.Kind == LibraryOfferingKind.Service)
+                            || r.Unit.Offering.Kind == LibraryOfferingKind.Service
+                            || r.Unit.Offering.Kind == LibraryOfferingKind.Digital)
                         ? r.Unit.Offering.CreatorUserId == possessorUserId
                         : r.Unit.CurrentPossessorUserId == possessorUserId),
                 cancellationToken);
@@ -613,7 +645,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .FirstOrDefaultAsync(
                 r => r.Id == requestId
                     && ((r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
-                            || r.Unit.Offering.Kind == LibraryOfferingKind.Service)
+                            || r.Unit.Offering.Kind == LibraryOfferingKind.Service
+                            || r.Unit.Offering.Kind == LibraryOfferingKind.Digital)
                         ? r.Unit.Offering.CreatorUserId == possessorUserId
                         : r.Unit.CurrentPossessorUserId == possessorUserId),
                 cancellationToken);
@@ -689,6 +722,14 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 && (r.Status == LibraryRequestStatus.Open || r.Status == LibraryRequestStatus.Denied))
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<LibraryRequest>> GetTrackedDeniedRequestsForRequesterAsync(
+        int requesterUserId,
+        CancellationToken cancellationToken = default) =>
+        await context.LibraryRequests
+            .Where(r => r.RequesterUserId == requesterUserId
+                && r.Status == LibraryRequestStatus.Denied)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<LibraryRequest>> GetTrackedRequestsByRequesterAsync(
         int crewId,
         int requesterUserId,
@@ -727,7 +768,9 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         var stockOfferings = await context.LibraryOfferings
             .Where(o => o.CrewId == crewId
                 && o.CreatorUserId == userId
-                && (o.Kind == LibraryOfferingKind.Consumable || o.Kind == LibraryOfferingKind.Service)
+                && (o.Kind == LibraryOfferingKind.Consumable
+                    || o.Kind == LibraryOfferingKind.Service
+                    || o.Kind == LibraryOfferingKind.Digital)
                 && !o.IsDeleted)
             .ToListAsync(cancellationToken);
 

@@ -197,6 +197,10 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/fleet/join']);
   }
 
+  goToInvitations() {
+    this.router.navigate(['/app/crew/invitations']);
+  }
+
   goToJoinRequests() {
     this.router.navigate(['/app/fleet/join-requests']);
   }

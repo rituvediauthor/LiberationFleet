@@ -42,10 +42,20 @@ public class CrewPaymentPlatformRepository : ICrewPaymentPlatformRepository
     public Task<CrewPaymentPlatform?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.CrewPaymentPlatforms.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-    public Task<CrewPaymentPlatform?> GetByCrewAndNameAsync(int crewId, string name, CancellationToken cancellationToken = default) =>
-        _context.CrewPaymentPlatforms.FirstOrDefaultAsync(
+    public Task<CrewPaymentPlatform?> GetByCrewAndNameAsync(int crewId, string name, CancellationToken cancellationToken = default)
+    {
+        // Prefer local tracked/pending entities so Get-or-create within one SaveChanges doesn't double-insert.
+        var local = _context.CrewPaymentPlatforms.Local
+            .FirstOrDefault(p => p.CrewId == crewId && p.Name == name);
+        if (local is not null)
+        {
+            return Task.FromResult<CrewPaymentPlatform?>(local);
+        }
+
+        return _context.CrewPaymentPlatforms.FirstOrDefaultAsync(
             p => p.CrewId == crewId && p.Name == name,
             cancellationToken);
+    }
 
     public async Task<CrewPaymentPlatform> AddAsync(CrewPaymentPlatform platform, CancellationToken cancellationToken = default)
     {

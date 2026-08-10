@@ -17,6 +17,7 @@ import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
+import { MyInvitationsComponent } from './pages/my-invitations/my-invitations.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
@@ -66,6 +67,7 @@ import { CreateLibraryOfferingComponent } from './pages/library/create-library-o
 import { EditLibraryOfferingComponent } from './pages/library/edit-library-offering/edit-library-offering.component';
 import { LibraryUnitDetailComponent } from './pages/library/library-unit-detail/library-unit-detail.component';
 import { LibraryMyRequestsComponent } from './pages/library/library-my-requests/library-my-requests.component';
+import { LibraryDeniedRequestsComponent } from './pages/library/library-denied-requests/library-denied-requests.component';
 import { LibraryRequestDetailComponent } from './pages/library/library-request-detail/library-request-detail.component';
 import { LibraryIncomingRequestsComponent } from './pages/library/library-incoming-requests/library-incoming-requests.component';
 import { LibraryRequestChatComponent } from './pages/library/library-request-chat/library-request-chat.component';
@@ -486,6 +488,13 @@ export const routes: Routes = [
     data: { parentTab: 'crew', locationHeader: 'Join Requests' }
   },
   {
+    path: 'app/crew/invitations',
+    component: MyInvitationsComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Invitations' }
+  },
+  {
     path: 'app/crew/edit',
     component: EditCrewComponent,
     canActivate: [authGuard],
@@ -704,6 +713,12 @@ export const routes: Routes = [
     data: { parentTab: 'crew', locationHeader: 'My Requests' }
   },
   {
+    path: 'app/crew/library-of-things/requests/denied',
+    component: LibraryDeniedRequestsComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Denied Requests' }
+  },
+  {
     path: 'app/crew/library-of-things/requests/:id/chat',
     component: LibraryRequestChatComponent,
     canActivate: [authGuard, libraryAccessGuard],
@@ -738,6 +753,12 @@ export const routes: Routes = [
     component: LibraryStockListComponent,
     canActivate: [authGuard, libraryAccessGuard],
     data: { title: 'Services', stockKind: 'Service', parentTab: 'crew', locationHeader: 'Services' }
+  },
+  {
+    path: 'app/crew/library-of-things/digital',
+    component: LibraryStockListComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { title: 'Digital Goods', stockKind: 'Digital', parentTab: 'crew', locationHeader: 'Digital Goods' }
   },
   {
     path: 'app/crew/library-of-things/mine',

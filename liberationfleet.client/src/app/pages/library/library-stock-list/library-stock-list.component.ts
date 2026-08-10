@@ -60,7 +60,7 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
     const data = this.route.snapshot.data;
     this.pageTitle = (data['title'] as string) ?? this.pageTitle;
     this.stockKind = (data['stockKind'] as LibraryOfferingKind) ?? this.stockKind;
-    this.holderLabel = this.stockKind === 'Service' ? 'Offered by' : 'From';
+    this.holderLabel = this.stockKind === 'Service' || this.stockKind === 'Digital' ? 'Offered by' : 'From';
 
     this.crewService.getMembership().subscribe({
       next: membership => {
@@ -110,8 +110,13 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   openItem(item: LibraryUnitListItem) {
+    const from = this.stockKind === 'Service'
+      ? 'services'
+      : this.stockKind === 'Digital'
+        ? 'digital'
+        : 'consumable';
     this.router.navigate(['/app/crew/library-of-things/units', item.unitId], {
-      queryParams: { from: this.stockKind === 'Service' ? 'services' : 'consumable' }
+      queryParams: { from }
     });
   }
 
@@ -148,6 +153,13 @@ export class LibraryStockListComponent implements OnInit, AfterViewInit, OnDestr
           limit: this.pageSize,
           offset: reset ? 0 : this.items.length
         })
+      : this.stockKind === 'Digital'
+        ? this.libraryService.getDigitalUnits({
+            search: this.searchQuery,
+            categoryIds: [...this.selectedCategoryIds],
+            limit: this.pageSize,
+            offset: reset ? 0 : this.items.length
+          })
       : this.libraryService.getConsumableUnits({
           search: this.searchQuery,
           categoryIds: [...this.selectedCategoryIds],

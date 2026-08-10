@@ -35,6 +35,7 @@ export class LibraryRequestDetailComponent implements OnInit {
   isSubmitting = false;
   crewId = 0;
   requestId = 0;
+  fromDenied = false;
   private originalFormValue: { purpose: string; neededByStart: string; neededByEnd: string } | null = null;
 
   private fb = inject(FormBuilder);
@@ -60,6 +61,7 @@ export class LibraryRequestDetailComponent implements OnInit {
     this.form.statusChanges.subscribe(() => this.updateButtons());
 
     this.requestId = Number(this.route.snapshot.paramMap.get('id'));
+    this.fromDenied = this.route.snapshot.queryParamMap.get('from') === 'denied';
     if (!this.requestId) {
       this.loading = false;
       this.errorMessage = 'Invalid request.';
@@ -89,6 +91,20 @@ export class LibraryRequestDetailComponent implements OnInit {
 
   get isConsumable(): boolean {
     return this.detail?.offeringKind === 'Consumable';
+  }
+
+  get canDismissDenied(): boolean {
+    return !!this.detail
+      && this.detail.status === 'Denied'
+      && this.detail.canCancel
+      && !this.detail.isPossessorView;
+  }
+
+  get canDeleteOpenRequest(): boolean {
+    return !!this.detail
+      && this.detail.status === 'Open'
+      && this.detail.canCancel
+      && !this.detail.isPossessorView;
   }
 
   private isDirty(): boolean {
@@ -159,11 +175,12 @@ export class LibraryRequestDetailComponent implements OnInit {
 
     this.detail = enriched;
 
-    this.backButton = this.navigation.createBackButton([
-      enriched.isPossessorView
-        ? '/app/crew/library-of-things/requests'
-        : '/app/crew/library-of-things/requests/mine'
-    ]);
+    const backTarget = enriched.isPossessorView
+      ? '/app/crew/library-of-things/requests'
+      : this.fromDenied || enriched.status === 'Denied'
+        ? '/app/crew/library-of-things/requests/denied'
+        : '/app/crew/library-of-things/requests/mine';
+    this.backButton = this.navigation.createBackButton([backTarget]);
 
     // Consumables have no borrowing window, so their date fields are hidden and
     // must not block editing/saving of the purpose.
@@ -201,7 +218,14 @@ export class LibraryRequestDetailComponent implements OnInit {
       return;
     }
 
-    if (this.detail.canComplete) {
+    if (this.canDismissDenied) {
+      this.primaryButton = {
+        label: 'Dismiss',
+        type: 'primary',
+        disabled: this.isSubmitting,
+        onClick: () => this.dismissDeniedRequest()
+      };
+    } else if (this.detail.canComplete) {
       this.primaryButton = {
         label: 'Complete',
         type: 'primary',
@@ -231,9 +255,9 @@ export class LibraryRequestDetailComponent implements OnInit {
         disabled: this.isSubmitting,
         onClick: () => this.router.navigate(['/app/crew/library-of-things/requests', this.requestId, 'chat'])
       };
-    } else if (this.detail.canCancel) {
+    } else if (this.canDeleteOpenRequest) {
       this.secondaryButton = {
-        label: 'Cancel Request',
+        label: 'Delete request',
         type: 'secondary',
         disabled: this.isSubmitting,
         onClick: () => this.cancelRequest()
@@ -392,7 +416,7 @@ export class LibraryRequestDetailComponent implements OnInit {
     });
   }
 
-  private cancelRequest() {
+  cancelRequest() {
     if (!this.detail?.canCancel || this.isSubmitting) {
       return;
     }
@@ -404,17 +428,45 @@ export class LibraryRequestDetailComponent implements OnInit {
       next: response => {
         this.isSubmitting = false;
         if (!response.success) {
-          this.toastService.error(response.message || 'Failed to cancel request');
+          this.toastService.error(response.message || 'Failed to delete request');
           this.updateButtons();
           return;
         }
 
-        this.toastService.success('Request cancelled');
+        this.toastService.success(response.message || 'Request deleted');
         this.router.navigate(['/app/crew/library-of-things/requests/mine']);
       },
       error: err => {
         this.isSubmitting = false;
-        this.toastService.error(extractHttpErrorMessage(err, 'Failed to cancel request'));
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to delete request'));
+        this.updateButtons();
+      }
+    });
+  }
+
+  private dismissDeniedRequest() {
+    if (!this.canDismissDenied || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.updateButtons();
+
+    this.libraryService.dismissDeniedRequest(this.requestId).subscribe({
+      next: response => {
+        this.isSubmitting = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to dismiss request');
+          this.updateButtons();
+          return;
+        }
+
+        this.toastService.success(response.message || 'Denied request dismissed');
+        this.router.navigate(['/app/crew/library-of-things/requests/denied']);
+      },
+      error: err => {
+        this.isSubmitting = false;
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to dismiss request'));
         this.updateButtons();
       }
     });

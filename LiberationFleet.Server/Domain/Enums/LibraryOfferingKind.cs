@@ -4,5 +4,6 @@ public enum LibraryOfferingKind
 {
     Durable = 0,
     Consumable = 1,
-    Service = 2
+    Service = 2,
+    Digital = 3
 }

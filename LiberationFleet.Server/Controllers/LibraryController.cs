@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Features.Library.Commands.CancelLibrary
 using LiberationFleet.Server.Application.Features.Library.Commands.CompleteLibraryRequest;
 using LiberationFleet.Server.Application.Features.Library.Commands.CreateLibraryOffering;
 using LiberationFleet.Server.Application.Features.Library.Commands.CreateLibraryRequest;
+using LiberationFleet.Server.Application.Features.Library.Commands.DismissDeniedLibraryRequests;
 using LiberationFleet.Server.Application.Features.Library.Commands.DenyLibraryRequest;
 using LiberationFleet.Server.Application.Features.Library.Commands.ConfirmLibraryUnitBroken;
 using LiberationFleet.Server.Application.Features.Library.Commands.RecordLibraryMaintenance;
@@ -97,6 +98,22 @@ public class LibraryController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(new GetStockLibraryOfferingsQuery(
             LibraryOfferingKind.Service,
+            search,
+            categoryIds ?? Array.Empty<int>(),
+            limit,
+            offset));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("digital-units")]
+    public async Task<IActionResult> GetDigitalUnits(
+        [FromQuery] string? search,
+        [FromQuery] int[]? categoryIds,
+        [FromQuery] int limit = 30,
+        [FromQuery] int offset = 0)
+    {
+        var result = await mediator.Send(new GetStockLibraryOfferingsQuery(
+            LibraryOfferingKind.Digital,
             search,
             categoryIds ?? Array.Empty<int>(),
             limit,
@@ -292,6 +309,20 @@ public class LibraryController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> CancelRequest(int id)
     {
         var result = await mediator.Send(new CancelLibraryRequestCommand(id));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("requests/{id:int}/dismiss")]
+    public async Task<IActionResult> DismissDeniedRequest(int id)
+    {
+        var result = await mediator.Send(new DismissDeniedLibraryRequestsCommand(id));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("requests/denied/dismiss-all")]
+    public async Task<IActionResult> DismissAllDeniedRequests()
+    {
+        var result = await mediator.Send(new DismissDeniedLibraryRequestsCommand());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

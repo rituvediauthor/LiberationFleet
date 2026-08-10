@@ -18,7 +18,14 @@
             <input type="radio" formControlName="offeringKind" value="Service" />
             <span>Service</span>
           </label>
+          <label class="radio-option">
+            <input type="radio" formControlName="offeringKind" value="Digital" />
+            <span>Digital goods</span>
+          </label>
         </div>
+        <p class="field-hint durable-notice" *ngIf="offeringKind === 'Durable'">
+          Durable listings do not count as a gift to the crew until another crewmate requests and acquires the item.
+        </p>
       </div>
 
       <div class="form-group" *ngIf="showFulfillmentMode">
@@ -96,7 +103,7 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="valuePerUnit">Value per unit ($)</label>
+          <label for="valuePerUnit">{{ valueLabel }}</label>
           <input
             id="valuePerUnit"
             class="form-input"
@@ -111,7 +118,7 @@
           </span>
         </div>
 
-        <div class="form-group" *ngIf="offeringKind !== 'Service'">
+        <div class="form-group" *ngIf="offeringKind !== 'Service' && offeringKind !== 'Digital'">
           <label for="quantity">{{ quantityLabel }}</label>
           <input
             id="quantity"
@@ -129,7 +136,7 @@
         </div>
       </div>
 
-      <p class="field-hint" *ngIf="offeringKind !== 'Service'">{{ quantityHint }}</p>
+      <p class="field-hint" *ngIf="offeringKind !== 'Service' && offeringKind !== 'Digital'">{{ quantityHint }}</p>
 
       <label class="checkbox-option" *ngIf="showQuantityNotApplicable">
         <input type="checkbox" formControlName="quantityNotApplicable" />
@@ -143,16 +150,33 @@
       </div>
 
       <div class="form-group">
-        <label>Images (up to 5)</label>
+        <label>{{ offeringKind === 'Digital' ? 'Files (required, up to 5)' : 'Images (up to 5)' }}</label>
         <app-proposal-attachment-picker
           *ngIf="canAttachFiles"
           [attachments]="attachments"
           [allowAudioRecording]="false"
-          [allowedKinds]="['image']"
+          [allowedKinds]="offeringKind === 'Digital' ? ['image', 'file', 'video', 'audio'] : ['image']"
+          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
-        <p class="hint-text" *ngIf="!canAttachFiles">Image uploads require crew file attachment permission.</p>
+        <p class="hint-text" *ngIf="!canAttachFiles">
+          {{ offeringKind === 'Digital'
+            ? 'Digital goods require crew or fleet file attachment permission.'
+            : 'Image uploads require crew file attachment permission.' }}
+        </p>
+        <p class="hint-text" *ngIf="offeringKind === 'Digital' && canAttachFiles">
+          Add downloadable files (e.g. EPUB, game archives). Recipients must accept a risk warning before downloading.
+        </p>
       </div>
     </form>
   </div>
 </app-page-layout>
+
+<app-confirm-dialog
+  [visible]="durableNoticeVisible"
+  title="Durable goods and crew gifts"
+  [message]="durableNoticeMessage"
+  confirmLabel="Got it"
+  (confirmed)="dismissDurableNotice()"
+  (dismissed)="dismissDurableNotice()">
+</app-confirm-dialog>

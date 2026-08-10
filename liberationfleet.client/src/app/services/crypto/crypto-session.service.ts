@@ -160,6 +160,23 @@ export class CryptoSessionService {
     }
   }
 
+  /** Wrap and upload the current crew key for a specific user (e.g. pending invitee). */
+  async distributeCrewKeyToUser(crewId: number, userId: number): Promise<void> {
+    if (!this.identityPrivateKey) {
+      return;
+    }
+
+    const material = await this.resolveCrewKeyMaterial(crewId, false);
+    let memberKey: UserKeyBundle;
+    try {
+      memberKey = await firstValueFrom(this.cryptoApi.getPublicKey(userId));
+    } catch {
+      return;
+    }
+
+    await this.uploadSingleDistribution(crewId, material.keyVersion, material.bytes, memberKey);
+  }
+
   async ensureFleetKeyReady(fleetId: number): Promise<CryptoKey> {
     if (!this.identityPrivateKey) {
       throw new Error('Encryption keys are locked.');

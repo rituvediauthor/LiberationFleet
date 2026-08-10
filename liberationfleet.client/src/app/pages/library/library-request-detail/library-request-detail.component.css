@@ -104,14 +104,16 @@ label {
   cursor: pointer;
 }
 
-.possessor-actions {
+.possessor-actions,
+.requester-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .deny-btn,
-.undeny-btn {
+.undeny-btn,
+.delete-request-btn {
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 14px;
@@ -119,7 +121,8 @@ label {
   cursor: pointer;
 }
 
-.deny-btn {
+.deny-btn,
+.delete-request-btn {
   border: 1px solid var(--lf-color-error-toast-border);
   background: var(--lf-color-danger-soft-bg);
   color: var(--lf-color-danger);
@@ -132,7 +135,8 @@ label {
 }
 
 .deny-btn:disabled,
-.undeny-btn:disabled {
+.undeny-btn:disabled,
+.delete-request-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

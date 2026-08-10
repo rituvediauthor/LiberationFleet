@@ -523,18 +523,7 @@ export class CrewmateDetailComponent implements OnInit {
       return;
     }
 
-    if (this.profile.isSelf) {
-      this.primaryButton = {
-        label: 'Nominate',
-        type: 'primary',
-        disabled: this.actionLoading,
-        onClick: () => this.onNominate()
-      };
-      this.secondaryButton = null;
-      return;
-    }
-
-    if (this.profile.isPlaceholderMember) {
+    if (this.profile.isSelf || this.profile.isPlaceholderMember) {
       this.primaryButton = null;
       this.secondaryButton = null;
       return;
@@ -559,12 +548,7 @@ export class CrewmateDetailComponent implements OnInit {
       return;
     }
 
-    this.secondaryButton = {
-      label: 'Nominate',
-      type: 'secondary',
-      disabled,
-      onClick: () => this.onNominate()
-    };
+    this.secondaryButton = null;
 
     switch (state) {
       case 'requestSent':
@@ -585,7 +569,6 @@ export class CrewmateDetailComponent implements OnInit {
         break;
       case 'blocked':
         this.primaryButton = null;
-        this.secondaryButton = null;
         break;
       default:
         this.primaryButton = {

@@ -28,12 +28,18 @@ describe('UserHomeComponent', () => {
     expect(navLayout).toBeTruthy();
 
     const links = fixture.nativeElement.querySelectorAll('.menu-link');
-    expect(links.length).toBe(5);
-    expect(links[0].textContent).toContain('User Profile');
-    expect(links[1].textContent).toContain('Gift History');
-    expect(links[2].textContent).toContain('Activity center');
-    expect(links[3].textContent).toContain('Preferences');
-    expect(links[4].textContent).toContain('Donate');
+    expect(links.length).toBe(6);
+    expect(links[0].textContent).toContain('My Invitations');
+    expect(links[1].textContent).toContain('User Profile');
+    expect(links[2].textContent).toContain('Gift History');
+    expect(links[3].textContent).toContain('Activity center');
+    expect(links[4].textContent).toContain('Preferences');
+    expect(links[5].textContent).toContain('Donate');
+  });
+
+  it('should navigate to invitations', () => {
+    component.goToInvitations();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/invitations']);
   });
 
   it('should navigate to user profile page', () => {

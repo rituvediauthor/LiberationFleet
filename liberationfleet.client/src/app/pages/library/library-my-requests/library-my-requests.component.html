@@ -2,6 +2,14 @@
   <div class="library-list-page">
     <h1 class="page-title">My Requests</h1>
 
+    <button
+      type="button"
+      class="text-btn"
+      *ngIf="!loading && deniedCount > 0"
+      (click)="openDeniedRequests()">
+      View denied ({{ deniedCount }})
+    </button>
+
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">

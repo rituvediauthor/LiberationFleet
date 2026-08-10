@@ -13,6 +13,7 @@
             class="form-input"
             autocomplete="username"
             placeholder="Enter your username or email"
+            (keydown.enter)="onUsernameEnter($event)"
             [attr.aria-invalid]="isInvalid('usernameOrEmail')"
             [attr.aria-describedby]="isInvalid('usernameOrEmail') ? 'username-error' : null">
           <span
@@ -27,6 +28,7 @@
         <div class="form-group">
           <label for="password">Password</label>
           <input
+            #passwordInput
             id="password"
             type="password"
             formControlName="password"

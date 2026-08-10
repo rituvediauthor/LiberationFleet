@@ -180,14 +180,20 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       }
 
       try {
-        const prepared = await compressMediaFile(file, result.kind, {
-          signal: controller.signal,
-          onProgress: (percent, label) => {
-            pending.progress = percent;
-            pending.progressLabel = label;
-            this.cdr.markForCheck();
-          }
-        });
+        let prepared = file;
+        if (result.kind !== 'file') {
+          prepared = await compressMediaFile(file, result.kind, {
+            signal: controller.signal,
+            onProgress: (percent, label) => {
+              pending.progress = percent;
+              pending.progressLabel = label;
+              this.cdr.markForCheck();
+            }
+          });
+        } else {
+          pending.progress = 100;
+          pending.progressLabel = 'Ready';
+        }
 
         if (controller.signal.aborted) {
           this.removeByResourceId(resourceId);

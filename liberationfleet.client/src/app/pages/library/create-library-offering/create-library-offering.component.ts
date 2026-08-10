@@ -6,6 +6,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { Subject, takeUntil } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryCategoryPickerComponent } from '../../../components/library-category-picker/library-category-picker.component';
 import { LibraryService } from '../../../services/library.service';
@@ -22,7 +23,15 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
 @Component({
   selector: 'app-create-library-offering',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ProposalAttachmentPickerComponent, LibraryCategoryPickerComponent, CharCounterComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    ProposalAttachmentPickerComponent,
+    LibraryCategoryPickerComponent,
+    CharCounterComponent,
+    ConfirmDialogComponent
+  ],
   templateUrl: './create-library-offering.component.html',
   styleUrl: './create-library-offering.component.css'
 })
@@ -37,6 +46,10 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   crewId = 0;
   canAttachFiles = false;
   authorDisplayName = '';
+  durableNoticeVisible = false;
+  private durableNoticeShown = false;
+  readonly durableNoticeMessage =
+    'Listing a durable item does not count as a gift to the crew until another crewmate requests and acquires it. This prevents inflating priority scores by listing items nobody needs.';
   readonly titleMaxLength = 200;
   readonly descriptionMaxLength = 10000;
   readonly unitLabelMaxLength = 64;
@@ -58,21 +71,26 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     const initialKind = this.parseKind(this.route.snapshot.queryParamMap.get('kind'));
     const initialFulfillment = initialKind === 'Durable'
       ? 'OnRequest'
-      : this.parseFulfillment(this.route.snapshot.queryParamMap.get('fulfillment'));
+      : initialKind === 'Digital'
+        ? 'OnDemand'
+        : this.parseFulfillment(this.route.snapshot.queryParamMap.get('fulfillment'));
 
     this.form = this.fb.group({
       offeringKind: [initialKind, Validators.required],
-      fulfillmentMode: [{ value: initialFulfillment, disabled: initialKind === 'Durable' }, Validators.required],
+      fulfillmentMode: [{ value: initialFulfillment, disabled: initialKind === 'Durable' || initialKind === 'Digital' }, Validators.required],
       visibility: ['CrewOnly' as LibraryOfferingVisibility, Validators.required],
       title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
       description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]],
       valuePerUnit: [null, [Validators.required, Validators.min(0.01)]],
       unitLabel: ['', [Validators.maxLength(this.unitLabelMaxLength)]],
       quantity: [1, [Validators.required, Validators.min(1), Validators.max(100)]],
-      quantityNotApplicable: [initialKind === 'Service']
+      quantityNotApplicable: [initialKind === 'Service' || initialKind === 'Digital']
     });
 
     this.applyKindRules(initialKind);
+    if (initialKind === 'Durable') {
+      this.showDurableNotice();
+    }
 
     this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
 
@@ -100,7 +118,13 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
     this.form.get('offeringKind')?.valueChanges
       .pipe(takeUntil(this.destroy$))
-      .subscribe(kind => this.applyKindRules(kind as LibraryOfferingKind));
+      .subscribe(kind => {
+        const offeringKind = kind as LibraryOfferingKind;
+        this.applyKindRules(offeringKind);
+        if (offeringKind === 'Durable') {
+          this.showDurableNotice();
+        }
+      });
 
     this.form.get('quantityNotApplicable')?.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -128,11 +152,27 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   }
 
   get showFulfillmentMode(): boolean {
-    return this.offeringKind !== 'Durable';
+    return this.offeringKind !== 'Durable' && this.offeringKind !== 'Digital';
   }
 
   get showQuantityNotApplicable(): boolean {
     return this.offeringKind === 'Consumable';
+  }
+
+  get valueLabel(): string {
+    return this.offeringKind === 'Digital' ? 'Value per download ($)' : 'Value per unit ($)';
+  }
+
+  dismissDurableNotice() {
+    this.durableNoticeVisible = false;
+  }
+
+  private showDurableNotice() {
+    if (this.durableNoticeShown) {
+      return;
+    }
+    this.durableNoticeShown = true;
+    this.durableNoticeVisible = true;
   }
 
   get quantityLabel(): string {
@@ -158,6 +198,18 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     if (this.form.invalid || this.isSubmitting || this.crewId <= 0 || this.selectedCategoryIds.length === 0) {
       return;
     }
+    const raw = this.form.getRawValue();
+    const offeringKind = raw.offeringKind as LibraryOfferingKind;
+    if (offeringKind === 'Digital') {
+      if (!this.canAttachFiles) {
+        this.toastService.error('File attachment permission is required to list digital goods.');
+        return;
+      }
+      if (this.attachments.length === 0) {
+        this.toastService.error('Add at least one downloadable file.');
+        return;
+      }
+    }
     if (!pendingAttachmentsAllowSubmit(this.attachments)) {
       this.toastService.error('Wait for attachments to finish processing, or cancel them.');
       return;
@@ -166,14 +218,17 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     this.isSubmitting = true;
     this.updateCreateButton();
 
-    const raw = this.form.getRawValue();
-    const offeringKind = raw.offeringKind as LibraryOfferingKind;
-    const quantityNotApplicable = offeringKind === 'Service' || !!raw.quantityNotApplicable;
+    const quantityNotApplicable = offeringKind === 'Service'
+      || offeringKind === 'Digital'
+      || !!raw.quantityNotApplicable;
     const quantity = offeringKind === 'Durable'
       ? Number(raw.quantity)
       : quantityNotApplicable
         ? 1
         : Number(raw.quantity);
+    const fulfillmentMode = offeringKind === 'Digital'
+      ? 'OnDemand'
+      : raw.fulfillmentMode as LibraryFulfillmentMode;
 
     void this.encryptionContent.whenReady().then(async () => {
       try {
@@ -197,7 +252,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
           quantityNotApplicable,
           thumbnailResourceId: encrypted.thumbnailResourceId,
           kind: offeringKind,
-          fulfillmentMode: raw.fulfillmentMode as LibraryFulfillmentMode,
+          fulfillmentMode,
           visibility: raw.visibility as LibraryOfferingVisibility,
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
@@ -240,6 +295,15 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (kind === 'Digital') {
+      fulfillmentControl?.setValue('OnDemand');
+      fulfillmentControl?.disable();
+      quantityNaControl?.setValue(true);
+      quantityNaControl?.disable();
+      quantityControl?.disable();
+      return;
+    }
+
     fulfillmentControl?.enable();
 
     if (kind === 'Service') {
@@ -255,7 +319,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   private applyQuantityFieldState() {
     const quantityControl = this.form.get('quantity');
-    if (this.offeringKind === 'Service') {
+    if (this.offeringKind === 'Service' || this.offeringKind === 'Digital') {
       quantityControl?.disable();
       return;
     }
@@ -273,6 +337,8 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
         return '/app/crew/library-of-things/consumable';
       case 'Service':
         return '/app/crew/library-of-things/services';
+      case 'Digital':
+        return '/app/crew/library-of-things/digital';
       default:
         return '/app/crew/library-of-things/durable';
     }
@@ -283,7 +349,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   }
 
   private parseKind(value: string | null): LibraryOfferingKind {
-    if (value === 'Consumable' || value === 'Service') {
+    if (value === 'Consumable' || value === 'Service' || value === 'Digital') {
       return value;
     }
     return 'Durable';
@@ -294,12 +360,15 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   }
 
   private updateCreateButton() {
+    const digitalBlocked = this.offeringKind === 'Digital'
+      && (!this.canAttachFiles || this.attachments.length === 0);
     this.createButton = {
       label: 'Create',
       type: 'primary',
       disabled: this.isSubmitting
         || this.form.invalid
         || this.selectedCategoryIds.length === 0
+        || digitalBlocked
         || !pendingAttachmentsAllowSubmit(this.attachments),
       onClick: () => this.onSubmit()
     };

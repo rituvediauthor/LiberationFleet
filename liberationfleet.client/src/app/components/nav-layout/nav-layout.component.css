@@ -24,6 +24,11 @@
   overflow-x: hidden;
   padding: 20px;
   padding-bottom: 24px;
+  box-sizing: border-box;
+}
+
+.nav-content.scope-fleet {
+  border: 4px solid var(--lf-color-accent-strong);
 }
 
 .nav-content-inner {

@@ -58,6 +58,8 @@ export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {
     'getPublicRulesByJoinCode',
     'submitJoinRequest',
     'getMyJoinRequests',
+    'getMyInvitations',
+    'getInvitation',
     'getPaymentPlatforms'
   ]);
 }

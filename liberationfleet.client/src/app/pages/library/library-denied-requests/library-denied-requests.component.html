@@ -1,0 +1,35 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton" [fillHeight]="true">
+  <div class="library-list-page">
+    <h1 class="page-title">Denied Requests</h1>
+    <p class="intro-text">
+      Requests that were denied. Dismiss them individually from the detail page, or dismiss all at once.
+    </p>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
+      You have no denied requests.
+    </p>
+
+    <div class="item-cards" *ngIf="!loading && items.length > 0">
+      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openRequest(item)">
+        <app-library-item-card [item]="toCardItem(item)" holderLabel="From"></app-library-item-card>
+        <div class="request-meta">
+          <span class="status-badge" data-status="Denied">Denied</span>
+          <span class="date-range">{{ formatDateRange(item) }}</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showDismissAllDialog"
+  title="Dismiss all denied requests?"
+  message="These denied requests will be removed from your list."
+  confirmLabel="Dismiss all"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmDismissAll()"
+  (cancelled)="onCancelDismissAll()"
+  (dismissed)="onCancelDismissAll()">
+</app-confirm-dialog>

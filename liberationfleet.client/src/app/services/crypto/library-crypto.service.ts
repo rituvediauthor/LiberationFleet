@@ -127,8 +127,12 @@ export class LibraryCryptoService {
     }
 
     const imageAttachments = (payload.attachments ?? []).filter(attachment => attachment.type === 'image');
+    const fileAttachments = (payload.attachments ?? []).filter(attachment => attachment.type !== 'image');
     const resolvedImages = imageAttachments.length > 0
       ? await this.proposalCrypto.decryptAttachments(crewId, imageAttachments)
+      : [];
+    const resolvedFiles = fileAttachments.length > 0
+      ? await this.proposalCrypto.decryptAttachments(crewId, fileAttachments)
       : [];
     const imageUrls = resolvedImages
       .map(attachment => attachment.dataUrl)
@@ -149,7 +153,8 @@ export class LibraryCryptoService {
       ...detail,
       thumbnailUrl,
       fullDescription: payload.description ?? detail.descriptionPreview ?? null,
-      imageUrls: imageUrls.length > 0 ? imageUrls : (thumbnailUrl ? [thumbnailUrl] : [])
+      imageUrls: imageUrls.length > 0 ? imageUrls : (thumbnailUrl ? [thumbnailUrl] : []),
+      downloadableFiles: resolvedFiles
     };
   }
 

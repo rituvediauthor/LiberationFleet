@@ -76,7 +76,13 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 0;
+}
+
+.season-ready-separator {
+  border: none;
+  border-top: 2px solid var(--lf-color-border);
+  margin: 28px 0 20px;
 }
 
 .hint-text {

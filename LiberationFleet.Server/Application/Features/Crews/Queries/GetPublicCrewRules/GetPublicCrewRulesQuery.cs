@@ -14,6 +14,7 @@ public class GetPublicCrewRulesQueryHandler(
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
     ICrewMembershipRepository membershipRepository,
+    ICrewInvitationRepository invitationRepository,
     IFleetRepository fleetRepository) : IRequestHandler<GetPublicCrewRulesQuery, PublicCrewRulesResponse>
 {
     public async Task<PublicCrewRulesResponse> Handle(GetPublicCrewRulesQuery request, CancellationToken cancellationToken)
@@ -44,8 +45,15 @@ public class GetPublicCrewRulesQueryHandler(
             };
         }
 
-        if (crew.Privacy == CrewPrivacy.InviteOnly
-            || (hasJoinCode && !PrivacyAccess.CanDiscoverByJoinCode(crew.Privacy)))
+        var pendingInvitation = await invitationRepository.GetPendingAsync(
+            crew.Id,
+            currentUser.UserId.Value,
+            cancellationToken);
+        var hasPendingInvitation = pendingInvitation is not null;
+
+        if (!hasPendingInvitation
+            && (crew.Privacy == CrewPrivacy.InviteOnly
+                || (hasJoinCode && !PrivacyAccess.CanDiscoverByJoinCode(crew.Privacy))))
         {
             return new PublicCrewRulesResponse
             {
@@ -54,7 +62,7 @@ public class GetPublicCrewRulesQueryHandler(
             };
         }
 
-        if (PrivacyAccess.IsFleetScopedCrewPrivacy(crew.Privacy))
+        if (!hasPendingInvitation && PrivacyAccess.IsFleetScopedCrewPrivacy(crew.Privacy))
         {
             var targetFleet = await fleetRepository.GetFleetForCrewAsync(crew.Id, cancellationToken);
             if (targetFleet is null
@@ -67,7 +75,9 @@ public class GetPublicCrewRulesQueryHandler(
                 };
             }
         }
-        else if (!PrivacyAccess.CanDiscoverByBrowse(crew.Privacy) && !hasJoinCode)
+        else if (!hasPendingInvitation
+            && !PrivacyAccess.CanDiscoverByBrowse(crew.Privacy)
+            && !hasJoinCode)
         {
             return new PublicCrewRulesResponse { Success = false, Message = "Crew not found." };
         }

@@ -479,9 +479,9 @@ export class ProposalCryptoService {
     for (const attachment of attachments) {
       const contentType = attachment.type === 'image'
         ? 'ImageAsset'
-        : attachment.type === 'video'
-          ? 'VideoAsset'
-          : 'AudioAsset';
+        : attachment.type === 'audio'
+          ? 'AudioAsset'
+          : 'VideoAsset';
       const bucket = grouped.get(contentType) ?? [];
       bucket.push(attachment);
       grouped.set(contentType, bucket);
@@ -575,9 +575,9 @@ export class ProposalCryptoService {
   ): Promise<ResolvedAttachment> {
     const contentType = attachment.type === 'image'
       ? 'ImageAsset'
-      : attachment.type === 'video'
-        ? 'VideoAsset'
-        : 'AudioAsset';
+      : attachment.type === 'audio'
+        ? 'AudioAsset'
+        : 'VideoAsset';
 
     try {
       const sessionKeyVersion = this.resolveScopeKeyVersion(scope);
@@ -879,9 +879,9 @@ export class ProposalCryptoService {
 
     const contentType = attachment.type === 'image'
       ? 'ImageAsset'
-      : attachment.type === 'video'
-        ? 'VideoAsset'
-        : 'AudioAsset';
+      : attachment.type === 'audio'
+        ? 'AudioAsset'
+        : 'VideoAsset';
 
     const useBinaryUpload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
 
