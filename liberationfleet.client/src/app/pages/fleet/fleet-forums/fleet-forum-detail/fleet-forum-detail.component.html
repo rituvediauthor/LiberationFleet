@@ -1,28 +1,31 @@
-<div class="discussion-detail-page scope-fleet" *ngIf="loading || loadError">
+<div class="discussion-detail-page" *ngIf="loading || loadError">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
   </div>
-  <p class="loading-text" *ngIf="loading">Loading post...</p>
-  <div class="error-state" *ngIf="!loading && loadError">
-    <p>{{ loadError }}</p>
-    <button type="button" class="action-btn secondary" (click)="retryLoad()">Try again</button>
+  <div class="detail-scroll scope-fleet">
+    <p class="loading-text" *ngIf="loading">Loading post...</p>
+    <div class="error-state" *ngIf="!loading && loadError">
+      <p>{{ loadError }}</p>
+      <button type="button" class="action-btn secondary" (click)="retryLoad()">Try again</button>
+    </div>
   </div>
 </div>
 
-<div class="discussion-detail-page scope-fleet" *ngIf="!loading && !loadError && !contentRevealed">
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && !contentRevealed">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
   </div>
+  <div class="detail-scroll scope-fleet" aria-hidden="true"></div>
 </div>
 
-<div class="discussion-detail-page scope-fleet" *ngIf="!loading && !loadError && contentRevealed && post as p">
+<div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
   <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
-  <div class="detail-scroll" #detailScroll>
+  <div class="detail-scroll scope-fleet" #detailScroll>
     <div class="scroll-page-body">
     <div class="detail-hero" *ngIf="carouselImages.length > 0 && !editing">
       <app-library-image-carousel
