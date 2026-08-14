@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Application.Features.Chats.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Domain.Entities;
 

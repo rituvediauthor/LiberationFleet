@@ -565,7 +565,7 @@ export class ProposalCryptoService {
       }
     }
 
-    const resolved = attachments.map(attachment => ({
+    const resolved: ResolvedAttachment[] = attachments.map(attachment => ({
       ...attachment,
       dataUrl: dataUrlByResourceId.get(attachment.resourceId)
     }));
