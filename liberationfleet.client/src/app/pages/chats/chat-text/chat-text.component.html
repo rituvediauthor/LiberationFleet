@@ -72,8 +72,7 @@
         <p class="message-body" *ngIf="message.body"><app-mention-text [text]="message.body" /></p>
         <app-proposal-attachment-display
           [attachments]="message.resolvedAttachments ?? []"
-          [compact]="true"
-          [crewId]="crewId">
+          [compact]="true">
         </app-proposal-attachment-display>
       </article>
     </div>
