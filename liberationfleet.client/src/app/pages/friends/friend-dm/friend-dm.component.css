@@ -203,11 +203,18 @@
   padding: 10px 14px;
   font-size: 14px;
   font-family: inherit;
+  height: 40px;
+  max-height: 40px;
   min-height: 40px;
+  overflow: hidden;
 }
 
 .message-input.expanded {
+  height: auto;
   min-height: 72px;
+  max-height: 160px;
+  overflow-x: hidden;
+  overflow-y: auto;
   border-radius: 12px;
 }
 
