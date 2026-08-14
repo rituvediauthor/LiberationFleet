@@ -82,12 +82,12 @@ describe('ToastContainerComponent', () => {
     expect(fixture.nativeElement.querySelector('.toast-success')).toBeTruthy();
   });
 
-  it('getIcon should return correct icons', () => {
+  it('getIconClass should return correct Font Awesome classes', () => {
     const component = fixture.componentInstance;
-    expect(component.getIcon('success')).toBe('✓');
-    expect(component.getIcon('error')).toBe('✕');
-    expect(component.getIcon('warning')).toBe('⚠');
-    expect(component.getIcon('info')).toBe('ℹ');
+    expect(component.getIconClass('success')).toBe('fa-circle-check');
+    expect(component.getIconClass('error')).toBe('fa-circle-xmark');
+    expect(component.getIconClass('warning')).toBe('fa-triangle-exclamation');
+    expect(component.getIconClass('info')).toBe('fa-circle-info');
   });
 
   it('close should remove toast', () => {
