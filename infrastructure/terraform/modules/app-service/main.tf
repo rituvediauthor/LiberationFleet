@@ -28,7 +28,7 @@ resource "azurerm_linux_web_app" "this" {
     minimum_tls_version                               = "1.2"
     container_registry_use_managed_identity           = true
     container_registry_managed_identity_client_id     = var.managed_identity_client_id
-    health_check_path                                 = "/"
+    health_check_path                                 = "/healthz"
     health_check_eviction_time_in_min                 = 5
     websockets_enabled                                = true
     http2_enabled                                     = true

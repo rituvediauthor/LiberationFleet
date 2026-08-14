@@ -103,8 +103,6 @@ if (corsOrigins.Length > 0)
 
 app.UseExceptionHandler();
 
-await ApplyMigrationsAsync(app);
-
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapStaticAssets();
@@ -121,21 +119,27 @@ if (!app.Environment.IsEnvironment("Docker"))
 
 app.UseAuthentication();
 app.UseAuthorization();
+// Liveness for Azure App Service / Docker before (and while) migrations run.
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<VoiceHub>("/hubs/voice");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapFallbackToFile("/index.html");
 
-app.Run();
+// Listen before migrations so platform health probes are not blocked by SQL retries.
+await app.StartAsync();
+await ApplyMigrationsAsync(app);
+await app.WaitForShutdownAsync();
 
 static async Task ApplyMigrationsAsync(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseMigrations");
 
     const int maxAttempts = 15;
+    Exception? lastError = null;
     for (var attempt = 1; attempt <= maxAttempts; attempt++)
     {
         try
@@ -146,8 +150,16 @@ static async Task ApplyMigrationsAsync(WebApplication app)
         }
         catch (Exception ex) when (attempt < maxAttempts)
         {
+            lastError = ex;
             logger.LogWarning(ex, "Database not ready (attempt {Attempt}/{MaxAttempts}). Retrying in 5 seconds...", attempt, maxAttempts);
             await Task.Delay(TimeSpan.FromSeconds(5));
         }
+        catch (Exception ex)
+        {
+            lastError = ex;
+        }
     }
+
+    logger.LogCritical(lastError, "Database migrations failed after {MaxAttempts} attempts", maxAttempts);
+    throw new InvalidOperationException($"Database migrations failed after {maxAttempts} attempts.", lastError);
 }
