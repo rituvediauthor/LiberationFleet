@@ -46,6 +46,7 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   private keydownListener: (() => void) | null = null;
   private scrollListener: (() => void) | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private classObserver: MutationObserver | null = null;
 
   ngOnInit() {
     this.setupComposerHighlight();
@@ -103,6 +104,8 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     this.scrollListener = null;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.classObserver?.disconnect();
+    this.classObserver = null;
     this.removeRepositionListeners();
     this.hideDropdown();
   }
@@ -162,6 +165,11 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       this.resizeObserver = new ResizeObserver(() => this.syncBackdropStyles());
       this.resizeObserver.observe(textarea);
     }
+
+    if (typeof MutationObserver !== 'undefined') {
+      this.classObserver = new MutationObserver(() => this.syncBackdropStyles());
+      this.classObserver.observe(textarea, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
   }
 
   private syncBackdropStyles() {
@@ -182,12 +190,22 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       'wordSpacing',
       'textIndent',
       'boxSizing',
-      'borderRadius'
+      'borderRadius',
+      'whiteSpace',
+      'overflow',
+      'overflowX',
+      'overflowY',
+      'textOverflow',
+      'wordBreak',
+      'overflowWrap'
     ] as const;
 
     props.forEach(prop => {
       this.renderer.setStyle(this.backdrop, prop, styles[prop]);
     });
+
+    this.backdrop.scrollTop = textarea.scrollTop;
+    this.backdrop.scrollLeft = textarea.scrollLeft;
   }
 
   private syncComposerFromValue(value: string) {
