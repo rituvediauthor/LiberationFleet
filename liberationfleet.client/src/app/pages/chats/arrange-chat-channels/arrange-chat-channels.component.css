@@ -1,0 +1,121 @@
+:host {
+  display: block;
+}
+
+.arrange-page {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--lf-color-text-body);
+}
+
+.page-subtitle {
+  margin: 0 0 20px;
+  color: var(--lf-color-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.state-text {
+  text-align: center;
+  color: var(--lf-color-text-secondary);
+  margin: 24px 0;
+}
+
+.state-text.error {
+  color: var(--lf-color-danger, #b42318);
+}
+
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  touch-action: none;
+}
+
+.channel-list.is-dragging {
+  user-select: none;
+}
+
+.drop-zone {
+  height: 8px;
+  margin: 0 4px;
+  border-radius: 4px;
+  transition: background-color 0.12s ease, height 0.12s ease;
+}
+
+.drop-zone.active {
+  height: 16px;
+  background: color-mix(in srgb, var(--lf-color-accent-strong) 35%, transparent);
+  outline: 2px solid var(--lf-color-accent-strong);
+  outline-offset: -2px;
+}
+
+.channel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 10px;
+  background: var(--lf-color-bg-elevated, #fff);
+}
+
+.channel-row.dragging {
+  opacity: 0.55;
+  border-color: var(--lf-color-accent-strong);
+}
+
+.drag-handle {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.type-icon {
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+  color: var(--lf-color-accent);
+  font-size: 15px;
+}
+
+.channel-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channel-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-type {
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+}

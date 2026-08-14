@@ -87,7 +87,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
 
   exportCrewmateStates() {
     this.crewmateService.exportCrewmateStates().subscribe({
-      next: blob => this.downloadBlob(blob, 'crewmate-states.json'),
+      next: blob => this.downloadBlob(blob, 'crewmate-states.csv'),
       error: () => this.toastService.error('Failed to export crewmate states')
     });
   }

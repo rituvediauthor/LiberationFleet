@@ -192,6 +192,11 @@ app-root {
   box-shadow: inset 0 0 0 2px var(--lf-focus-ring-color, var(--lf-color-accent-strong));
 }
 
+.dropdown-menu button.danger-item,
+.message-menu button.danger-item {
+  color: var(--lf-color-danger);
+}
+
 .mention-composer-host {
   position: relative;
 }

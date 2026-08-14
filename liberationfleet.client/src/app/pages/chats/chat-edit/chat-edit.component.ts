@@ -93,6 +93,11 @@ export class ChatEditComponent implements OnInit {
     return this.requireApprovalForEdits ? 'Submit proposal' : 'Save';
   }
 
+  get roomTypeLabel(): string {
+    const type = this.form?.get('roomType')?.value as ChatRoomType | undefined;
+    return type === 'Voice' ? 'Voice chat' : 'Text chat';
+  }
+
   isInvalid(controlName: string): boolean {
     return isControlInvalidForA11y(this.form?.get(controlName));
   }
@@ -199,6 +204,7 @@ export class ChatEditComponent implements OnInit {
             purpose: decrypted.purpose ?? '',
             roomType: decrypted.roomType
           });
+          this.form.get('roomType')?.disable({ emitEvent: false });
           this.initialFormValues = this.form.getRawValue();
         } finally {
           this.loading = false;

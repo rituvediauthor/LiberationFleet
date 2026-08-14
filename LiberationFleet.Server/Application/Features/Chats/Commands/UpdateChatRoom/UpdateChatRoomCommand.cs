@@ -82,7 +82,7 @@ public class UpdateChatRoomCommandHandler(
                     request.Purpose),
                 room.Id,
                 request.Purpose,
-                request.RoomType,
+                room.RoomType,
                 request.Nonce.Trim(),
                 request.Ciphertext.Trim(),
                 request.KeyVersion,
@@ -102,7 +102,6 @@ public class UpdateChatRoomCommandHandler(
 
         var utcNow = DateTime.UtcNow;
         room.Purpose = request.Purpose.Trim();
-        room.RoomType = request.RoomType;
         room.LastActivityAt = utcNow;
 
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope

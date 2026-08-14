@@ -15,6 +15,7 @@ public interface IForumRepository
         int offset,
         int limit,
         bool excludeAdultContent,
+        IReadOnlyCollection<int>? excludeAuthorUserIds,
         CancellationToken cancellationToken = default);
     Task<ForumPostPage> GetByFleetIdPageAsync(
         int fleetId,

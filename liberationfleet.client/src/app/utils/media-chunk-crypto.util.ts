@@ -1,5 +1,6 @@
 import { bytesToBase64, base64ToBytes, bytesToUtf8, utf8ToBytes } from '../services/crypto/crypto-encoding.util';
 import { resolveBlobMime } from './media-mime.util';
+import { MEDIA_PLAIN_NONCE } from './media-attachment-allowlist.util';
 
 const AES_ALGORITHM = 'AES-GCM';
 
@@ -9,7 +10,40 @@ export const MEDIA_CRYPTO_CHUNK_PLAINTEXT = 512 * 1024;
 /** Ciphertext framing version: clear header + per-chunk AES-GCM (not one giant GCM). */
 export const MEDIA_CRYPTO_V2 = 2;
 
+export { MEDIA_PLAIN_NONCE };
+
 export type MediaEncryptProgress = (percent: number, label: string) => void;
+
+/** Build the same v1 media header used before AES, for unencrypted storage. */
+export function buildPlainMediaPayload(fileBytes: Uint8Array, mimeType: string): Uint8Array {
+  const mimeBytes = utf8ToBytes(mimeType || 'application/octet-stream');
+  if (mimeBytes.length > 0xffff) {
+    throw new Error('Media MIME type is too long.');
+  }
+  const plaintext = new Uint8Array(1 + 2 + mimeBytes.length + fileBytes.length);
+  plaintext[0] = 1;
+  plaintext[1] = mimeBytes.length & 0xff;
+  plaintext[2] = (mimeBytes.length >> 8) & 0xff;
+  plaintext.set(mimeBytes, 3);
+  plaintext.set(fileBytes, 3 + mimeBytes.length);
+  return plaintext;
+}
+
+function parsePlainMediaPayload(ciphertext: Uint8Array): Blob {
+  if (ciphertext.length > 3 && ciphertext[0] === 1) {
+    const mimeLen = ciphertext[1] | (ciphertext[2] << 8);
+    const mimeStart = 3;
+    const dataStart = mimeStart + mimeLen;
+    if (dataStart <= ciphertext.length) {
+      const mime = resolveBlobMime(
+        bytesToUtf8(ciphertext.subarray(mimeStart, dataStart)),
+        ciphertext.subarray(dataStart)
+      );
+      return new Blob([ciphertext.subarray(dataStart)], { type: mime });
+    }
+  }
+  return new Blob([ciphertext], { type: 'application/octet-stream' });
+}
 
 /**
  * Encrypt a media Blob as v2 chunked AES-GCM.
@@ -84,7 +118,7 @@ export async function encryptMediaBlobChunked(
 
 /**
  * Decrypt media ciphertext to a Blob.
- * Supports: v2 chunked framing, v1 single-GCM binary, legacy JSON {dataUrl}.
+ * Supports: plaintext sentinel, v2 chunked framing, v1 single-GCM binary, legacy JSON {dataUrl}.
  */
 export async function decryptMediaCiphertextToBlob(
   crewAesKey: CryptoKey,
@@ -94,6 +128,10 @@ export async function decryptMediaCiphertextToBlob(
   const ciphertext = ciphertextBytes instanceof Uint8Array
     ? ciphertextBytes
     : new Uint8Array(ciphertextBytes);
+
+  if (nonce === MEDIA_PLAIN_NONCE) {
+    return parsePlainMediaPayload(ciphertext);
+  }
 
   if (ciphertext.length > 0 && ciphertext[0] === MEDIA_CRYPTO_V2) {
     return decryptMediaV2(crewAesKey, nonce, ciphertext);

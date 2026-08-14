@@ -11,8 +11,9 @@ import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { NotificationContentService } from '../../services/notification-content.service';
-import { CrewPrivacy, CrewScope, CycleCapMode, UpdateCrewRequest } from '../../models/crew.model';
+import { CrewMembershipStatus, CrewPrivacy, CrewScope, CycleCapMode, UpdateCrewRequest } from '../../models/crew.model';
 import { PendingAttachment } from '../../models/proposal.model';
 import { formValuesChanged } from '../../utils/save-button.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
@@ -61,6 +62,7 @@ export class EditCrewComponent implements OnInit {
   private toastService = inject(ToastService);
   private proposalCrypto = inject(ProposalCryptoService);
   private cryptoSession = inject(CryptoSessionService);
+  private images = inject(EncryptedImageCacheService);
   private notificationContent = inject(NotificationContentService);
 
   ngOnInit() {
@@ -211,6 +213,8 @@ export class EditCrewComponent implements OnInit {
     this.isSaving = true;
     this.updateSaveButton();
 
+    const previousImageId = this.initialImageResourceId;
+
     try {
       if (this.canAttachFiles && this.imageAttachments.length > 0) {
         if (!this.crewId) {
@@ -249,6 +253,9 @@ export class EditCrewComponent implements OnInit {
             this.joinCode = result.crew.joinCode;
             this.patchFormFromCrew(result.crew);
             this.captureInitialState();
+            this.images.invalidate(previousImageId, 'ImageAsset');
+            this.images.invalidate(result.crew.imageResourceId, 'ImageAsset');
+            this.refreshMembershipCache(result.crew);
             void this.refreshImagePreview();
             this.isSaving = false;
             this.updateSaveButton();
@@ -270,6 +277,30 @@ export class EditCrewComponent implements OnInit {
       this.isSaving = false;
       this.updateSaveButton();
     }
+  }
+
+  private refreshMembershipCache(crew: {
+    id: number;
+    name: string;
+    joinCode: string;
+    libraryOfThingsEnabled?: boolean;
+    imageResourceId?: string | null;
+  }): void {
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        const next: CrewMembershipStatus = {
+          ...membership,
+          hasCrew: true,
+          crewId: crew.id,
+          crewName: crew.name,
+          joinCode: crew.joinCode,
+          libraryOfThingsEnabled: crew.libraryOfThingsEnabled ?? membership.libraryOfThingsEnabled,
+          imageResourceId: crew.imageResourceId ?? null
+        };
+        this.crewService.setCachedMembership(next);
+      },
+      error: () => this.crewService.clearMembershipCache()
+    });
   }
 
   private get isSaveDisabled(): boolean {

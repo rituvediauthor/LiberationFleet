@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { PendingAttachment, ProposalCommentEncryptedPayload, ResolvedAttachment } from '../../models/proposal.model';
+import { PendingAttachment, ProposalAttachment, ProposalCommentEncryptedPayload, ProposalEncryptedPayload, ResolvedAttachment } from '../../models/proposal.model';
 import {
   LibraryRequestDetail,
   LibraryRequestListItem,
@@ -11,7 +11,6 @@ import { ProposalCryptoService } from './proposal-crypto.service';
 import { CryptoSessionService } from './crypto-session.service';
 import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
-import { ProposalEncryptedPayload } from '../../models/proposal.model';
 import { firstValueFrom } from 'rxjs';
 
 export interface LibraryOfferingEncryptInput {
@@ -38,9 +37,16 @@ export class LibraryCryptoService {
   async encryptOfferingPayload(
     crewId: number,
     payload: LibraryOfferingEncryptInput,
-    attachments: PendingAttachment[]
+    attachments: PendingAttachment[],
+    existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string; thumbnailResourceId: string | null; descriptionPreview: string }> {
-    const limitedAttachments = attachments.slice(0, 5);
+    const detailAttachments = attachments
+      .filter(a => a.role === 'detail' || (!a.role && a.type === 'image'))
+      .slice(0, 5);
+    const downloadAttachments = attachments
+      .filter(a => a.role === 'download' || (!a.role && a.type !== 'image'))
+      .slice(0, 5);
+    const limitedAttachments = [...detailAttachments, ...downloadAttachments];
     const encrypted = await this.proposalCrypto.encryptProposalPayload(
       crewId,
       {
@@ -48,10 +54,14 @@ export class LibraryCryptoService {
         description: payload.description.trim(),
         authorDisplayName: payload.authorDisplayName
       },
-      limitedAttachments
+      limitedAttachments,
+      existingAttachments
     );
 
-    const thumbnailResourceId = limitedAttachments.find(a => a.type === 'image')?.resourceId ?? null;
+    const thumbnailResourceId = detailAttachments.find(a => a.type === 'image')?.resourceId
+      ?? existingAttachments.find(a => a.type === 'image')?.resourceId
+      ?? limitedAttachments.find(a => a.type === 'image')?.resourceId
+      ?? null;
     const descriptionPreview = payload.description.trim().slice(0, 200);
 
     return {
@@ -59,6 +69,11 @@ export class LibraryCryptoService {
       thumbnailResourceId,
       descriptionPreview
     };
+  }
+
+  async loadOfferingPayload(offeringId: number, crewId: number): Promise<ProposalEncryptedPayload | null> {
+    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    return this.decryptOfferingPayload(offeringId, crewId, crewKey);
   }
 
   async encryptRequestPurpose(crewId: number, purpose: string): Promise<{ nonce: string; ciphertext: string; purposePreview: string }> {
@@ -126,20 +141,32 @@ export class LibraryCryptoService {
       };
     }
 
-    const imageAttachments = (payload.attachments ?? []).filter(attachment => attachment.type === 'image');
-    const fileAttachments = (payload.attachments ?? []).filter(attachment => attachment.type !== 'image');
-    const resolvedImages = imageAttachments.length > 0
-      ? await this.proposalCrypto.decryptAttachments(crewId, imageAttachments)
-      : [];
-    const resolvedFiles = fileAttachments.length > 0
-      ? await this.proposalCrypto.decryptAttachments(crewId, fileAttachments)
+    const attachments = payload.attachments ?? [];
+    const detailAttachments = attachments.filter(attachment =>
+      attachment.role === 'detail' || (!attachment.role && attachment.type === 'image')
+    );
+    const downloadAttachments = attachments.filter(attachment =>
+      attachment.role === 'download' || (!attachment.role && attachment.type !== 'image')
+    );
+    const resolvedImages = detailAttachments.length > 0
+      ? await this.proposalCrypto.decryptAttachments(crewId, detailAttachments)
       : [];
     const imageUrls = resolvedImages
       .map(attachment => attachment.dataUrl)
       .filter((url): url is string => !!url);
 
+    // Download files: metadata only until the user acquires and downloads.
+    const downloadableFiles: ResolvedAttachment[] = downloadAttachments.map(attachment => ({
+      resourceId: attachment.resourceId,
+      type: attachment.type,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      role: attachment.role ?? 'download',
+      encrypted: attachment.encrypted
+    }));
+
     let thumbnailUrl = detail.thumbnailUrl ?? null;
-    const thumbId = payload.thumbnailResourceId ?? imageAttachments[0]?.resourceId;
+    const thumbId = payload.thumbnailResourceId ?? detailAttachments[0]?.resourceId;
     if (thumbId) {
       const thumbFromPayload = resolvedImages.find(attachment => attachment.resourceId === thumbId)?.dataUrl;
       if (thumbFromPayload) {
@@ -154,8 +181,16 @@ export class LibraryCryptoService {
       thumbnailUrl,
       fullDescription: payload.description ?? detail.descriptionPreview ?? null,
       imageUrls: imageUrls.length > 0 ? imageUrls : (thumbnailUrl ? [thumbnailUrl] : []),
-      downloadableFiles: resolvedFiles
+      downloadableFiles
     };
+  }
+
+  /** Decrypt downloadable digital files after acquisition (lazy). */
+  async decryptDownloadFiles(crewId: number, files: ResolvedAttachment[]): Promise<ResolvedAttachment[]> {
+    if (!files.length || !this.cryptoSession.isUnlocked()) {
+      return files;
+    }
+    return this.proposalCrypto.decryptAttachments(crewId, files);
   }
 
   async enrichRequestListItems(items: LibraryRequestListItem[], crewId: number): Promise<LibraryRequestListItem[]> {

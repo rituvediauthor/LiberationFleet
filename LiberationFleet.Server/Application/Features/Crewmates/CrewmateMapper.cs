@@ -124,7 +124,7 @@ public static class CrewmateMapper
         {
             UserId = crewmate.Id,
             Username = crewmate.Username,
-            AvatarResourceId = crewmate.AvatarResourceId,
+            AvatarResourceId = canAttachFilesToCrewContent ? crewmate.AvatarResourceId : null,
             Roles = CrewRoleMapper.MapRoles(membership),
             ElectedRoles = CrewRoleMapper.MapElectedRoleDtos(membership),
             PaymentPlatforms = MapPaymentPlatforms(crewmate),

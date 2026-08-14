@@ -98,10 +98,18 @@ export const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 /** Generic digital-good downloads (ebooks, archives, game packs). */
 export const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
+/** Raised caps when the user opts out of end-to-end encryption for an attachment. */
+export const MAX_IMAGE_BYTES_PLAIN = 50 * 1024 * 1024;
+export const MAX_AUDIO_BYTES_PLAIN = 100 * 1024 * 1024;
+export const MAX_FILE_BYTES_PLAIN = 500 * 1024 * 1024;
+
+/** Nonce sentinel for unencrypted media stored via the encrypted-content envelope. */
+export const MEDIA_PLAIN_NONCE = '__plain__';
+
 /** Max ciphertext characters for JSON media upsert (images / small payloads; must match server). */
 export const MAX_MEDIA_CIPHERTEXT_CHARS = 40 * 1024 * 1024;
-/** Max raw ciphertext bytes for binary video/audio upsert (must match server). */
-export const MAX_MEDIA_CIPHERTEXT_BYTES = 320 * 1024 * 1024;
+/** Max raw ciphertext/plain bytes for binary upsert (must match server; supports ~500 MB plain files). */
+export const MAX_MEDIA_CIPHERTEXT_BYTES = 512 * 1024 * 1024;
 
 /** @deprecated Use maxVideoUploadBytes from video-platform.policy */
 export function effectiveMaxVideoBytes(): number {
@@ -152,7 +160,8 @@ export function defaultAcceptAttribute(kinds: AttachmentMediaKind[] = ['image', 
 
 export function validateAttachmentFile(
   file: Pick<File, 'name' | 'type' | 'size'>,
-  allowedKinds: AttachmentMediaKind[] = ['image', 'video', 'audio']
+  allowedKinds: AttachmentMediaKind[] = ['image', 'video', 'audio'],
+  options?: { encrypt?: boolean }
 ): AttachmentValidationResult {
   if (DANGEROUS_NAME.test(file.name)) {
     return { ok: false, reason: 'blocked' };
@@ -203,7 +212,8 @@ export function validateAttachmentFile(
     return { ok: false, reason: 'unsupported' };
   }
 
-  const maxBytes = maxBytesForKind(kind);
+  const encrypt = options?.encrypt !== false;
+  const maxBytes = maxBytesForKind(kind, encrypt);
   if (file.size > maxBytes) {
     return { ok: false, reason: 'too-large' };
   }
@@ -211,13 +221,22 @@ export function validateAttachmentFile(
   return { ok: true, kind };
 }
 
-export function maxBytesForKind(kind: AttachmentMediaKind): number {
-  if (kind === 'image') {
-    return MAX_IMAGE_BYTES;
-  }
+export function maxBytesForKind(kind: AttachmentMediaKind, encrypt = true): number {
   if (kind === 'video') {
     // Platform-aware: large picks when compress works; phone passthrough otherwise.
     return maxVideoPickerBytes();
+  }
+  if (!encrypt) {
+    if (kind === 'image') {
+      return MAX_IMAGE_BYTES_PLAIN;
+    }
+    if (kind === 'file') {
+      return MAX_FILE_BYTES_PLAIN;
+    }
+    return MAX_AUDIO_BYTES_PLAIN;
+  }
+  if (kind === 'image') {
+    return MAX_IMAGE_BYTES;
   }
   if (kind === 'file') {
     return MAX_FILE_BYTES;

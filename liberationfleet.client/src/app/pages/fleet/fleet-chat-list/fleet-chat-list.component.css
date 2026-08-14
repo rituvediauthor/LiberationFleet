@@ -4,6 +4,62 @@
   margin: 0 auto;
 }
 
+.chat-list-action-bar {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.page-menu {
+  position: relative;
+}
+
+.kebab-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.kebab-btn:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+}
+
+.page-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.page-menu-panel button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.page-menu-panel button:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
 .page-title {
   font-size: 24px;
   font-weight: 700;

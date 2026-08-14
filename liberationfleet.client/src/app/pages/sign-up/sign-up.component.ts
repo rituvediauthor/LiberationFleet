@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
+import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 import { AuthService } from '../../services/auth.service';
 import { NavigationService } from '../../services/navigation.service';
@@ -41,7 +42,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 @Component({
   selector: 'app-sign-up',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent, AccessibleDialogDirective],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RecoveryKeyDisplayComponent, AccessibleDialogDirective, CharCounterComponent],
   templateUrl: './sign-up.component.html',
   styleUrl: './sign-up.component.css'
 })

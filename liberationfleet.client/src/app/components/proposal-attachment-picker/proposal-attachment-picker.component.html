@@ -27,6 +27,14 @@
     </button>
   </div>
 
+  <label class="encrypt-toggle" *ngIf="showEncryptToggle && canAddMore">
+    <input
+      type="checkbox"
+      [checked]="encryptAttachments"
+      (change)="onEncryptToggle($event)" />
+    <span>Encrypt attached files</span>
+  </label>
+
   <div class="recording-panel" *ngIf="canRecordAudio && audioRecorder.isRecording">
     <span class="recording-indicator" role="status">Recording {{ audioRecorder.formatElapsed() }} / 3:00</span>
     <button type="button" class="attach-btn stop-btn" (mousedown)="$event.preventDefault()" (click)="stopRecording()">Stop</button>

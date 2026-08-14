@@ -1,7 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
-using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -16,7 +16,8 @@ public class GetChatRoomMessagesQueryHandler(
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
-    IUserBlockRepository blockRepository) : IRequestHandler<GetChatRoomMessagesQuery, ChatMessageListResponse>
+    IUserBlockRepository blockRepository,
+    CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetChatRoomMessagesQuery, ChatMessageListResponse>
 {
     private const int MaxLimit = 50;
 
@@ -81,10 +82,18 @@ public class GetChatRoomMessagesQueryHandler(
         }
 
         var allowKick = room.CrewId.HasValue;
+        IReadOnlySet<int>? avatarAllowed = null;
+        if (room.CrewId.HasValue)
+        {
+            avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(
+                room.CrewId.Value,
+                cancellationToken);
+        }
+
         var items = messages.Select(message =>
         {
             envelopeById.TryGetValue(message.Id.ToString(), out var envelope);
-            return ChatMapper.MapMessage(message, envelope, userId, allowKick);
+            return ChatMapper.MapMessage(message, envelope, userId, allowKick, avatarAllowed);
         }).ToList();
 
         return new ChatMessageListResponse

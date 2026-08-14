@@ -149,25 +149,54 @@
         <app-char-counter [current]="form.get('unitLabel')?.value?.length || 0" [max]="unitLabelMaxLength"></app-char-counter>
       </div>
 
-      <div class="form-group">
-        <label>{{ offeringKind === 'Digital' ? 'Files (required, up to 5)' : 'Images (up to 5)' }}</label>
-        <app-proposal-attachment-picker
-          *ngIf="canAttachFiles"
-          [attachments]="attachments"
-          [allowAudioRecording]="false"
-          [allowedKinds]="offeringKind === 'Digital' ? ['image', 'file', 'video', 'audio'] : ['image']"
-          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
-          (attachmentsChange)="onAttachmentsChange()">
-        </app-proposal-attachment-picker>
-        <p class="hint-text" *ngIf="!canAttachFiles">
-          {{ offeringKind === 'Digital'
-            ? 'Digital goods require crew or fleet file attachment permission.'
-            : 'Image uploads require crew file attachment permission.' }}
-        </p>
-        <p class="hint-text" *ngIf="offeringKind === 'Digital' && canAttachFiles">
-          Add downloadable files (e.g. EPUB, game archives). Recipients must accept a risk warning before downloading.
-        </p>
-      </div>
+      <ng-container *ngIf="offeringKind === 'Digital'; else nonDigitalAttachments">
+        <div class="form-group">
+          <label>Detail images (optional, up to 5)</label>
+          <app-proposal-attachment-picker
+            *ngIf="canAttachFiles"
+            [attachments]="detailAttachments"
+            [allowAudioRecording]="false"
+            [allowedKinds]="['image']"
+            [maxAttachments]="5"
+            [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+            (attachmentsChange)="onAttachmentsChange()">
+          </app-proposal-attachment-picker>
+          <p class="hint-text" *ngIf="!canAttachFiles">
+            Digital goods require crew or fleet file attachment permission.
+          </p>
+        </div>
+        <div class="form-group">
+          <label>Download files (required, up to 5)</label>
+          <app-proposal-attachment-picker
+            *ngIf="canAttachFiles"
+            [attachments]="downloadAttachments"
+            [allowAudioRecording]="false"
+            [allowedKinds]="['file', 'video', 'audio']"
+            [maxAttachments]="5"
+            [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+            (attachmentsChange)="onAttachmentsChange()">
+          </app-proposal-attachment-picker>
+          <p class="hint-text" *ngIf="canAttachFiles">
+            Add downloadable files (e.g. EPUB, game archives). Recipients must accept a risk warning before downloading.
+          </p>
+        </div>
+      </ng-container>
+      <ng-template #nonDigitalAttachments>
+        <div class="form-group">
+          <label>Images (up to 5)</label>
+          <app-proposal-attachment-picker
+            *ngIf="canAttachFiles"
+            [attachments]="attachments"
+            [allowAudioRecording]="false"
+            [allowedKinds]="['image']"
+            [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+            (attachmentsChange)="onAttachmentsChange()">
+          </app-proposal-attachment-picker>
+          <p class="hint-text" *ngIf="!canAttachFiles">
+            Image uploads require crew file attachment permission.
+          </p>
+        </div>
+      </ng-template>
     </form>
   </div>
 </app-page-layout>

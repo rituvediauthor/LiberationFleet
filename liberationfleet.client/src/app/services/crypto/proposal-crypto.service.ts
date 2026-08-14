@@ -18,6 +18,7 @@ import { bytesToBase64 } from './crypto-encoding.util';
 import { buildMediaCacheKey, MediaBlobCacheService } from './media-blob-cache.service';
 import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-compression.util';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
+import { buildPlainMediaPayload, MEDIA_PLAIN_NONCE } from '../../utils/media-chunk-crypto.util';
 import { MediaUploadQueueService } from '../media-upload-queue.service';
 
 export interface ProposalCryptoScope {
@@ -490,7 +491,9 @@ export class ProposalCryptoService {
     const dataUrlByResourceId = new Map<string, string>();
     for (const [contentType, bucket] of grouped.entries()) {
       const resourceIds = bucket.map(attachment => attachment.resourceId);
-      const useBinaryDownload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
+      const useBinaryDownload = contentType === 'VideoAsset'
+        || contentType === 'AudioAsset'
+        || bucket.some(attachment => attachment.encrypted === false);
 
       const pendingIds: string[] = [];
       for (const resourceId of resourceIds) {
@@ -562,10 +565,78 @@ export class ProposalCryptoService {
       }
     }
 
-    return attachments.map(attachment => ({
+    const resolved = attachments.map(attachment => ({
       ...attachment,
       dataUrl: dataUrlByResourceId.get(attachment.resourceId)
     }));
+
+    const posterIds = [...new Set(
+      resolved
+        .map(attachment => attachment.posterResourceId)
+        .filter((id): id is string => !!id)
+    )];
+    const posterUrlById = new Map<string, string>();
+    if (posterIds.length > 0 && this.cryptoSession.isUnlocked()) {
+      const pendingPosterIds: string[] = [];
+      for (const posterId of posterIds) {
+        const cachedUrl = await this.tryCachedMediaUrl(normalizedScope, posterId, sessionKeyVersion);
+        if (cachedUrl) {
+          posterUrlById.set(posterId, cachedUrl);
+        } else {
+          pendingPosterIds.push(posterId);
+        }
+      }
+      if (pendingPosterIds.length > 0) {
+        try {
+          const envelopes = await firstValueFrom(
+            this.cryptoApi.getEncryptedContents(
+              'ImageAsset',
+              pendingPosterIds,
+              normalizedScope.crewId,
+              normalizedScope.fleetId
+            )
+          );
+          for (const envelope of envelopes) {
+            try {
+              const url = await this.decryptMediaCached(
+                scopeKey,
+                normalizedScope,
+                envelope.resourceId,
+                envelope.keyVersion,
+                envelope.nonce,
+                envelope.ciphertext
+              );
+              posterUrlById.set(envelope.resourceId, url);
+            } catch {
+              // Skip unreadable posters.
+            }
+          }
+        } catch {
+          // Skip poster batch.
+        }
+      }
+    }
+
+    await Promise.all(resolved.map(async attachment => {
+      if (attachment.type !== 'video' || !attachment.dataUrl) {
+        return;
+      }
+      if (attachment.posterResourceId) {
+        attachment.posterUrl = posterUrlById.get(attachment.posterResourceId);
+      }
+      if (attachment.posterUrl) {
+        return;
+      }
+      try {
+        const blob = await fetch(attachment.dataUrl).then(response => response.blob());
+        const poster = await extractVideoPosterFrame(blob);
+        attachment.posterUrl = URL.createObjectURL(poster);
+      } catch {
+        // Leave the player without a poster if capture fails.
+      }
+    }));
+
+    return resolved;
   }
 
   private async decryptAttachment(
@@ -586,7 +657,7 @@ export class ProposalCryptoService {
         return { ...attachment, dataUrl: cachedUrl };
       }
 
-      if (contentType === 'VideoAsset' || contentType === 'AudioAsset') {
+      if (contentType === 'VideoAsset' || contentType === 'AudioAsset' || attachment.encrypted === false) {
         const payload = await firstValueFrom(
           this.cryptoApi.getEncryptedContentBytes(
             contentType,
@@ -831,7 +902,12 @@ export class ProposalCryptoService {
         resourceId: attachment.resourceId,
         type: attachment.type,
         fileName: attachment.fileName ?? attachment.file?.name,
-        mimeType: attachment.file?.type
+        mimeType: attachment.file?.type,
+        role: attachment.role,
+        encrypted: attachment.encrypted !== false,
+        posterResourceId: attachment.type === 'video'
+          ? (await this.uploadSingleVideoPoster(scope, attachment) ?? undefined)
+          : undefined
       });
     }
 
@@ -844,7 +920,11 @@ export class ProposalCryptoService {
     jobId: string,
     onProgress?: (percent: number) => void
   ): Promise<void> {
-    this.uploadQueue.updateJob(jobId, { phase: 'encrypting', progress: 5 });
+    const storeEncrypted = attachment.encrypted !== false;
+    this.uploadQueue.updateJob(jobId, {
+      phase: storeEncrypted ? 'encrypting' : 'uploading',
+      progress: 5
+    });
     onProgress?.(5);
 
     let file = attachment.file;
@@ -874,7 +954,10 @@ export class ProposalCryptoService {
     }
 
     const scopeKey = await this.resolveScopeKey(scope);
-    this.uploadQueue.updateJob(jobId, { phase: 'encrypting', progress: 15 });
+    this.uploadQueue.updateJob(jobId, {
+      phase: storeEncrypted ? 'encrypting' : 'uploading',
+      progress: 15
+    });
     onProgress?.(15);
 
     const contentType = attachment.type === 'image'
@@ -883,7 +966,44 @@ export class ProposalCryptoService {
         ? 'AudioAsset'
         : 'VideoAsset';
 
-    const useBinaryUpload = contentType === 'VideoAsset' || contentType === 'AudioAsset';
+    // Unencrypted payloads always use the binary path (supports large plain images/files).
+    const useBinaryUpload = !storeEncrypted
+      || contentType === 'VideoAsset'
+      || contentType === 'AudioAsset';
+
+    if (!storeEncrypted) {
+      const fileBytes = new Uint8Array(await file.arrayBuffer());
+      const plainPayload = buildPlainMediaPayload(fileBytes, file.type || 'application/octet-stream');
+      this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: 35 });
+      onProgress?.(35);
+
+      const result = await firstValueFrom(
+        this.cryptoApi.upsertEncryptedContentBytesWithProgress(
+          {
+            contentType,
+            resourceId: attachment.resourceId,
+            crewId: scope.crewId,
+            fleetId: scope.fleetId,
+            keyVersion: 1,
+            nonce: MEDIA_PLAIN_NONCE,
+            ciphertext: new Blob([plainPayload], { type: 'application/octet-stream' })
+          },
+          uploadPercent => {
+            const mapped = 35 + Math.round(uploadPercent * 0.6);
+            this.uploadQueue.updateJob(jobId, { phase: 'uploading', progress: mapped });
+            onProgress?.(mapped);
+          }
+        )
+      );
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to upload attachment.');
+      }
+
+      this.uploadQueue.updateJob(jobId, { phase: 'finalizing', progress: 98 });
+      onProgress?.(98);
+      return;
+    }
 
     // Video/audio: chunked encrypt → Blob PUT (Signal-style). Never load the whole file
     // + base64 into RAM — that reloads the iOS PWA tab.
@@ -967,6 +1087,14 @@ export class ProposalCryptoService {
     onProgress?.(98);
   }
 
+  /** Upload a JPEG poster for a single video so in-thread players can show a still. */
+  private async uploadSingleVideoPoster(
+    scope: ProposalCryptoScope,
+    video: PendingAttachment
+  ): Promise<string | null> {
+    return this.uploadVideoPosterThumbnail(scope, [video]);
+  }
+
   /** Upload a JPEG poster for the first video so list cards can show a preview. */
   private async uploadVideoPosterThumbnail(
     scope: ProposalCryptoScope,
@@ -1031,7 +1159,20 @@ export class ProposalCryptoService {
       return this.cryptoSession.ensureCrewKeyReady(scope.crewId);
     }
 
-    throw new Error('Encryption scope is required.');
+    return this.cryptoSession.ensureUserContentKeyReady();
+  }
+
+  async hasEncryptedContent(
+    scope: ProposalCryptoScope,
+    resourceId: string,
+    contentType: EncryptedContentType
+  ): Promise<boolean> {
+    const crewId = scope.crewId && scope.crewId > 0 ? scope.crewId : undefined;
+    const fleetId = scope.fleetId && scope.fleetId > 0 ? scope.fleetId : undefined;
+    const envelopes = await firstValueFrom(
+      this.cryptoApi.getEncryptedContents(contentType, [resourceId], crewId, fleetId)
+    );
+    return !!envelopes[0];
   }
 
   createResourceId(): string {
@@ -1072,8 +1213,8 @@ export class ProposalCryptoService {
     const result = await firstValueFrom(this.cryptoApi.upsertEncryptedContent({
       contentType,
       resourceId: attachment.resourceId,
-      crewId: normalizedScope.crewId,
-      fleetId: normalizedScope.fleetId,
+      crewId: normalizedScope.crewId && normalizedScope.crewId > 0 ? normalizedScope.crewId : undefined,
+      fleetId: normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined,
       keyVersion: 1,
       nonce: encrypted.nonce,
       ciphertext: encrypted.ciphertext
@@ -1096,15 +1237,27 @@ export class ProposalCryptoService {
       return null;
     }
 
-    const scopeKey = await this.resolveScopeKey(normalizedScope);
-    const envelopes = await firstValueFrom(
+    let scopeKey = await this.resolveScopeKey(normalizedScope);
+    let envelopes = await firstValueFrom(
       this.cryptoApi.getEncryptedContents(
         contentType,
         [resourceId],
-        normalizedScope.crewId,
-        normalizedScope.fleetId
+        normalizedScope.crewId && normalizedScope.crewId > 0 ? normalizedScope.crewId : undefined,
+        normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined
       )
     );
+    if (
+      !envelopes[0]
+      && contentType === 'ProfileAvatar'
+      && ((normalizedScope.crewId && normalizedScope.crewId > 0) || (normalizedScope.fleetId && normalizedScope.fleetId > 0))
+    ) {
+      envelopes = await firstValueFrom(
+        this.cryptoApi.getEncryptedContents(contentType, [resourceId])
+      );
+      if (envelopes[0]) {
+        scopeKey = await this.cryptoSession.ensureUserContentKeyReady();
+      }
+    }
     const envelope = envelopes[0];
     if (!envelope) {
       return null;

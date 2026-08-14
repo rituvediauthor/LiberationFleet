@@ -129,6 +129,13 @@ h1 {
   gap: 6px;
 }
 
+.post-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .comment-header {
   display: flex;
   align-items: flex-start;
@@ -257,7 +264,6 @@ h1 {
 .comment-input {
   flex: 1;
   min-height: 40px;
-  max-height: 120px;
   resize: none;
   border: 1px solid var(--lf-color-border-subtle);
   border-radius: 20px;

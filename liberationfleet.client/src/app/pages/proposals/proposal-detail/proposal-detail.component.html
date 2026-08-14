@@ -1,7 +1,7 @@
 <div class="proposal-detail-page" *ngIf="!loading && proposal as p">
   <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
-  <div class="detail-scroll">
+  <div class="detail-scroll" #detailScroll>
     <div class="scroll-page-body">
     <div class="detail-hero" *ngIf="carouselImages.length > 0 && !editing">
       <app-library-image-carousel
@@ -88,7 +88,7 @@
           <p class="section-label">Current attachments</p>
           <ul>
             <li *ngFor="let attachment of keptEditAttachments; let i = index">
-              <span>{{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}</span>
+              <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
               <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
             </li>
           </ul>
@@ -277,7 +277,7 @@
     </div>
   </div>
 
-  <div class="detail-action-bar" *ngIf="!editing">
+  <div class="detail-action-bar" *ngIf="!editing" [appComposerFooterPad]="detailScroll">
     <div class="detail-action-bar-surface">
     <div class="detail-action-bar-main">
       <button
@@ -304,6 +304,7 @@
             (blur)="onCommentBlur()"
             [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
             [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
+            [attr.maxlength]="commentMaxLength"
             rows="1"></textarea>
 
           <div class="composer-actions-col" *ngIf="commentExpanded">
@@ -326,9 +327,15 @@
           </div>
         </div>
 
+        <app-char-counter
+          *ngIf="commentExpanded"
+          [current]="commentText.length"
+          [max]="commentMaxLength">
+        </app-char-counter>
+
         <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
           <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
-            <span>{{ attachment.fileName || attachment.resourceId }}</span>
+            <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
             <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
           </div>
         </div>
@@ -353,7 +360,7 @@
         class="action-btn secondary"
         *ngIf="!commentExpanded && p.canVote"
         (click)="openVoteDialog()">
-        Vote
+        {{ proposal.currentUserVote ? 'Change vote' : 'Vote' }}
       </button>
     </div>
 

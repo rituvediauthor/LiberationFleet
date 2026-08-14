@@ -1,31 +1,20 @@
 <app-page-layout [backButton]="backButton" [fillHeight]="true">
   <div class="library-list-page">
     <h1 class="page-title">My Requests</h1>
+    <p class="intro-text">Choose a status to view those requests.</p>
 
-    <button
-      type="button"
-      class="text-btn"
-      *ngIf="!loading && deniedCount > 0"
-      (click)="openDeniedRequests()">
-      View denied ({{ deniedCount }})
-    </button>
-
-    <p *ngIf="loading" class="state-text">Loading...</p>
-    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
-    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
-      You have not submitted any requests yet.
-    </p>
-
-    <div class="item-cards" *ngIf="!loading && items.length > 0">
-      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openRequest(item)">
-        <span class="entry-badge-anchor">
-          <app-content-badge [count]="requestBadgeCount(item.requestId)"></app-content-badge>
-        </span>
-        <app-library-item-card [item]="toCardItem(item)" holderLabel="From"></app-library-item-card>
-        <div class="request-meta">
-          <span class="status-badge" [attr.data-status]="item.status">{{ item.status }}</span>
-          <span class="date-range">{{ formatDateRange(item) }}</span>
-        </div>
+    <div class="status-hub">
+      <button type="button" class="status-hub-btn" (click)="openPending()">
+        <span>Pending</span>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="status-hub-btn" (click)="openFulfilled()">
+        <span>Fulfilled</span>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="status-hub-btn" (click)="openDenied()">
+        <span>Denied</span>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
       </button>
     </div>
   </div>

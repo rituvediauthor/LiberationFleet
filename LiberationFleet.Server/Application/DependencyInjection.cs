@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<NotificationService>();
         services.AddScoped<ContentMentionService>();
         services.AddScoped<ContentTenureService>();
+        services.AddScoped<CrewAvatarVisibilityService>();
 
         return services;
     }

@@ -43,6 +43,10 @@ export class ProposalAttachmentDisplayComponent {
     return isSafeMediaDataUrl(attachment.dataUrl) ? attachment.dataUrl! : null;
   }
 
+  safePosterUrl(attachment: ResolvedAttachment): string | null {
+    return isSafeMediaDataUrl(attachment.posterUrl) ? attachment.posterUrl! : null;
+  }
+
   get unresolvedImageAttachments(): ResolvedAttachment[] {
     return this.imageAttachments.filter(attachment => !this.safeDataUrl(attachment));
   }

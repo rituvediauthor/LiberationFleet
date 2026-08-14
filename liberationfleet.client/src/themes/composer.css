@@ -12,6 +12,23 @@
   flex: 1;
   min-width: 0;
   font-size: 16px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.composer-input-row .comment-input:not(.expanded),
+.composer-input-row .message-input:not(.expanded) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 44px;
+}
+
+.composer-input-row .comment-input.expanded,
+.composer-input-row .message-input.expanded {
+  white-space: pre-wrap;
+  overflow-y: auto;
+  max-height: 160px;
 }
 
 .composer-actions-col {
@@ -80,4 +97,9 @@
 .composer-tools .message-attachment-picker,
 .composer-tools .comment-attachment-picker {
   margin-top: 0;
+}
+
+.composer-tools.collapsed-tools {
+  margin-top: 0;
+  min-height: 0;
 }

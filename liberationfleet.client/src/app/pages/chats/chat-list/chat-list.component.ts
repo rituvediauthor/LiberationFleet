@@ -33,6 +33,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   crewId = 0;
   openMenuRoomId: number | null = null;
+  pageMenuOpen = false;
   mutedItems: MutedContentItem[] = [];
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
@@ -109,6 +110,19 @@ export class ChatListComponent implements OnInit, OnDestroy {
   @HostListener('document:click')
   closeMenus() {
     this.openMenuRoomId = null;
+    this.pageMenuOpen = false;
+  }
+
+  togglePageMenu(event: Event) {
+    event.stopPropagation();
+    this.openMenuRoomId = null;
+    this.pageMenuOpen = !this.pageMenuOpen;
+  }
+
+  goArrangeChannels(event: Event) {
+    event.stopPropagation();
+    this.pageMenuOpen = false;
+    void this.router.navigate(['/app/crew/chats/arrange']);
   }
 
   get visibleRooms(): ChatRoomListItem[] {
@@ -188,6 +202,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
 
   toggleMenu(roomId: number, event: Event) {
     event.stopPropagation();
+    this.pageMenuOpen = false;
     this.openMenuRoomId = this.openMenuRoomId === roomId ? null : roomId;
   }
 
@@ -304,6 +319,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
           this.rooms = this.crewId > 0
             ? await this.chatCrypto.decryptRooms(items, { crewId: this.crewId })
             : items;
+        } catch {
+          this.rooms = response.items ?? [];
         } finally {
           this.loading = false;
         }

@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { FallibleFooterComponent } from '../fallible-footer/fallible-footer.component';
-import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
 import { LocationHeaderComponent } from '../location-header/location-header.component';
 import {
   LocationHeaderInfo,
@@ -25,7 +24,7 @@ export interface ActionBarButton {
 @Component({
   selector: 'app-page-layout',
   standalone: true,
-  imports: [CommonModule, FallibleFooterComponent, BrandLogoComponent, LocationHeaderComponent],
+  imports: [CommonModule, FallibleFooterComponent, LocationHeaderComponent],
   templateUrl: './page-layout.component.html',
   styleUrl: './page-layout.component.css'
 })
@@ -72,21 +71,6 @@ export class PageLayoutComponent implements OnInit, OnChanges {
       this.refreshLocationHeader();
       this.refreshViewScope();
     }
-  }
-
-  get showCrewFallback(): boolean {
-    return !this.backButton
-      && !this.primaryButton
-      && !this.secondaryButton
-      && !this.brandNavButton;
-  }
-
-  onBrandNavClick() {
-    this.router.navigate(['/']);
-  }
-
-  goToCrewHome() {
-    void this.router.navigate(['/app/crew']);
   }
 
   private refreshLocationHeader() {

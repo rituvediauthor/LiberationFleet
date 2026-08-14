@@ -9,7 +9,6 @@ public record GetBlockedUsersQuery : IRequest<BlockedUserListResponse>;
 
 public class GetBlockedUsersQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<GetBlockedUsersQuery, BlockedUserListResponse>
 {
     public async Task<BlockedUserListResponse> Handle(GetBlockedUsersQuery request, CancellationToken cancellationToken)
@@ -20,12 +19,6 @@ public class GetBlockedUsersQueryHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
-        {
-            return new BlockedUserListResponse { Success = false, Message = "You are not in a crew." };
-        }
-
         var blocks = await blockRepository.GetBlocksByBlockerWithUsersAsync(userId, cancellationToken);
         var items = blocks
             .Where(b => b.Blocked is not null)

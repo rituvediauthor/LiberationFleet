@@ -15,6 +15,7 @@ import {
   mapFriendshipState
 } from '../models/crewmate.model';
 import { MentionSearchResponse } from '../utils/mention.util';
+import { GiftLogResponse } from '../models/gift.model';
 
 @Injectable({
   providedIn: 'root'
@@ -145,8 +146,8 @@ export class CrewmateService {
     return this.http.get(`${this.apiUrl}/export-states`, { responseType: 'blob' });
   }
 
-  exportGiftLog(): Observable<Blob> {
-    return this.http.get('/api/gifts/export', { responseType: 'blob' });
+  exportGiftLog(): Observable<GiftLogResponse> {
+    return this.http.get<GiftLogResponse>('/api/gifts/export');
   }
 
   addPlaceholderCrewmate(

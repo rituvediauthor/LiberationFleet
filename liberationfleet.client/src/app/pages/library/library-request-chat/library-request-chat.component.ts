@@ -17,6 +17,8 @@ import { MentionTextComponent } from '../../../components/mention-text/mention-t
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
+import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
@@ -46,6 +48,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
     AttachPermissionNoteComponent,
+    CharCounterComponent,
+    ComposerFooterPadDirective,
     LocationHeaderComponent
   ],
   templateUrl: './library-request-chat.component.html',
@@ -72,6 +76,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   authorDisplayName = '';
   messages: LibraryRequestMessage[] = [];
   messageText = '';
+  readonly messageMaxLength = 5000;
   mentionedUserIds: number[] = [];
   messageAttachments: PendingAttachment[] = [];
   canAttachFiles = false;
@@ -219,7 +224,9 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
 
   canSend(): boolean {
     const hasContent = Boolean(this.messageText.trim()) || this.messageAttachments.length > 0;
-    return hasContent && pendingAttachmentsAllowSubmit(this.messageAttachments);
+    return hasContent
+      && this.messageText.length <= this.messageMaxLength
+      && pendingAttachmentsAllowSubmit(this.messageAttachments);
   }
 
   onAttachmentsChange() {

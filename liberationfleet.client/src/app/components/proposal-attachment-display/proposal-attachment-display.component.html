@@ -17,13 +17,14 @@
     </div>
 
     <p class="attachment-fallback" *ngFor="let attachment of unresolvedImageAttachments">
-      {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
+      Image
     </p>
 
     <figure class="attachment-item" *ngFor="let attachment of nonImageAttachments">
       <video
         *ngIf="attachment.type === 'video' && safeDataUrl(attachment) as videoUrl"
         [src]="videoUrl"
+        [poster]="safePosterUrl(attachment) || null"
         [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
         preload="metadata"
@@ -37,9 +38,8 @@
         controls
         preload="metadata"></audio>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
-        {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
+        {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : 'Attachment') }}
       </p>
-      <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
       <button
         type="button"
         class="delete-attachment-btn"
@@ -59,6 +59,7 @@
       <video
         *ngIf="attachment.type === 'video' && safeDataUrl(attachment) as videoUrl"
         [src]="videoUrl"
+        [poster]="safePosterUrl(attachment) || null"
         [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
         preload="metadata"
@@ -72,9 +73,8 @@
         controls
         preload="metadata"></audio>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
-        {{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}
+        {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : (attachment.type === 'audio' ? 'Audio' : 'Attachment')) }}
       </p>
-      <figcaption *ngIf="attachment.fileName">{{ attachment.fileName }}</figcaption>
       <button
         type="button"
         class="delete-attachment-btn"

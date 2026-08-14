@@ -20,6 +20,7 @@ public class ProposalCrewChatChange
     /// Crew chat proposals keep the name in the encrypted NameNonce/NameCiphertext pair.
     /// </summary>
     public string? PlaintextName { get; set; }
+    public string? OrderedRoomIdsJson { get; set; }
     public int KeyVersion { get; set; } = 1;
     public bool IsAdultContent { get; set; }
     public bool IsApplied { get; set; }

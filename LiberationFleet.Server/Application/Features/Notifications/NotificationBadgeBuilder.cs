@@ -8,7 +8,15 @@ public static class NotificationBadgeBuilder
 {
     private static readonly string[] AreaKeys =
     [
-        "chats", "forums", "proposals", "giftLog", "rules", "settings", "library", "crewmates", "fleet"
+        "crewChats", "fleetChats",
+        "crewForums", "fleetForums",
+        "crewProposals", "fleetProposals",
+        "crewGiftLog", "fleetGiftLog",
+        "crewRules", "fleetRules",
+        "crewSettings", "fleetSettings",
+        "crewLibrary", "fleetLibrary",
+        "crewCrewmates", "fleetCrewmates",
+        "fleet"
     ];
 
     public static NotificationBadgeSummaryResponse Build(
@@ -196,55 +204,88 @@ public static class NotificationBadgeBuilder
     {
         var path = notification.ActionUrl.Split('?')[0];
 
-        if (path.StartsWith("/app/crew/chats/", StringComparison.Ordinal)
-            || path.StartsWith("/app/fleet/chats/", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/chats/", StringComparison.Ordinal))
         {
-            return "chats";
+            return "crewChats";
         }
 
-        if (path.StartsWith("/app/crew/forums/", StringComparison.Ordinal)
-            || path.StartsWith("/app/fleet/forums/", StringComparison.Ordinal))
+        if (path.StartsWith("/app/fleet/chats/", StringComparison.Ordinal))
         {
-            return "forums";
+            return "fleetChats";
         }
 
-        if (path.StartsWith("/app/crew/proposals", StringComparison.Ordinal)
-            || path.StartsWith("/app/fleet/proposals", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/forums/", StringComparison.Ordinal))
         {
-            return "proposals";
+            return "crewForums";
         }
 
-        if (path.StartsWith("/app/crew/library-of-things", StringComparison.Ordinal)
-            || path.StartsWith("/app/fleet/library", StringComparison.Ordinal))
+        if (path.StartsWith("/app/fleet/forums/", StringComparison.Ordinal))
         {
-            return "library";
+            return "fleetForums";
         }
 
-        if (path.StartsWith("/app/crew/rules", StringComparison.Ordinal)
-            || path.StartsWith("/app/fleet/rules", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/proposals", StringComparison.Ordinal))
         {
-            return "rules";
+            return "crewProposals";
         }
 
-        if (path.Equals("/app/crew/edit", StringComparison.Ordinal)
-            || path.Equals("/app/fleet/edit", StringComparison.Ordinal))
+        if (path.StartsWith("/app/fleet/proposals", StringComparison.Ordinal))
         {
-            return "settings";
+            return "fleetProposals";
         }
 
-        if (path.StartsWith("/app/crew/crewmates", StringComparison.Ordinal)
-            || path.StartsWith("/app/fleet/crews", StringComparison.Ordinal))
+        if (path.StartsWith("/app/crew/library-of-things", StringComparison.Ordinal))
         {
-            return "crewmates";
+            return "crewLibrary";
+        }
+
+        if (path.StartsWith("/app/fleet/library", StringComparison.Ordinal))
+        {
+            return "fleetLibrary";
+        }
+
+        if (path.StartsWith("/app/crew/rules", StringComparison.Ordinal))
+        {
+            return "crewRules";
+        }
+
+        if (path.StartsWith("/app/fleet/rules", StringComparison.Ordinal))
+        {
+            return "fleetRules";
+        }
+
+        if (path.Equals("/app/crew/edit", StringComparison.Ordinal))
+        {
+            return "crewSettings";
+        }
+
+        if (path.Equals("/app/fleet/edit", StringComparison.Ordinal))
+        {
+            return "fleetSettings";
+        }
+
+        if (path.StartsWith("/app/crew/crewmates", StringComparison.Ordinal))
+        {
+            return "crewCrewmates";
+        }
+
+        if (path.StartsWith("/app/fleet/crews", StringComparison.Ordinal))
+        {
+            return "fleetCrewmates";
         }
 
         if (path == "/app/crew/gift-log"
             || path.StartsWith("/app/crew/season-setup", StringComparison.Ordinal)
             || path.StartsWith("/app/crew/join-season", StringComparison.Ordinal)
-            || path == "/app/fleet/gift-log"
+            || path.StartsWith("/app/crew/emergency-requests", StringComparison.Ordinal))
+        {
+            return "crewGiftLog";
+        }
+
+        if (path == "/app/fleet/gift-log"
             || path.StartsWith("/app/fleet/emergency", StringComparison.Ordinal))
         {
-            return "giftLog";
+            return "fleetGiftLog";
         }
 
         if (path.StartsWith("/app/fleet/", StringComparison.Ordinal))
@@ -254,27 +295,32 @@ public static class NotificationBadgeBuilder
 
         return notification.Kind switch
         {
-            NotificationKind.NewChatMessage or NotificationKind.NewFleetChatMessage => "chats",
+            NotificationKind.NewChatMessage => "crewChats",
+            NotificationKind.NewFleetChatMessage => "fleetChats",
             NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply
-                or NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment
+                or NotificationKind.Mention
+                or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked => "crewForums",
+            NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment
                 or NotificationKind.NewFleetReply or NotificationKind.FleetMention
-                or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked
-                or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked => "forums",
-            NotificationKind.NewProposal or NotificationKind.NewFleetProposal
-                or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
-                or NotificationKind.FleetProposalAccepted or NotificationKind.FleetProposalRejected => "proposals",
+                or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked => "fleetForums",
+            NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
+                => "crewProposals",
+            NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted
+                or NotificationKind.FleetProposalRejected => "fleetProposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
-                or NotificationKind.SurvivalThresholdsRefreshed => "giftLog",
-            NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited
-                or NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted
-                or NotificationKind.FleetRuleEdited => "rules",
-            NotificationKind.CrewSettingChanged or NotificationKind.FleetSettingChanged => "settings",
+                or NotificationKind.SurvivalThresholdsRefreshed => "crewGiftLog",
+            NotificationKind.NewFleetGifts => "fleetGiftLog",
+            NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "crewRules",
+            NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted
+                or NotificationKind.FleetRuleEdited => "fleetRules",
+            NotificationKind.CrewSettingChanged => "crewSettings",
+            NotificationKind.FleetSettingChanged => "fleetSettings",
             NotificationKind.NewCrewmate or NotificationKind.CrewmateKicked or NotificationKind.CrewmateRejoinAllowed
-                or NotificationKind.JoinRequestFromPerson or NotificationKind.JoinRequestFromCrew => "crewmates",
+                or NotificationKind.JoinRequestFromPerson => "crewCrewmates",
+            NotificationKind.JoinRequestFromCrew => "fleetCrewmates",
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
-                or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "library",
-            NotificationKind.NewFleetGifts => "fleet",
+                or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "crewLibrary",
             _ => null
         };
     }

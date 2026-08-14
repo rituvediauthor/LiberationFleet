@@ -52,6 +52,7 @@
             [allowedKinds]="['image']"
             [maxAttachments]="1"
             [allowAudioRecording]="false"
+            [showEncryptToggle]="false"
             (attachmentsChange)="onImageAttachmentsChange()">
           </app-proposal-attachment-picker>
           <p class="hint-text" *ngIf="!canAttachFiles">
@@ -139,7 +140,7 @@
               <input type="checkbox" formControlName="allowCrewmateFileAttachments">
               Allow fleet members to attach files to fleet content
             </label>
-            <span class="hint-text">Applies to chats, forums, comments, and library offerings.</span>
+            <span class="hint-text">Applies to chats, posts, comments, and library offerings.</span>
           </div>
 
           <ng-container *ngIf="allowCrewmateFileAttachments">

@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using System.Text.Json;
 
 namespace LiberationFleet.Server.Application.Features.Chats;
 
@@ -30,7 +31,8 @@ public class CrewChatsProposalService(
         string? nameCiphertext,
         int keyVersion,
         bool isAdultContent,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default,
+        string? orderedRoomIdsJson = null)
     {
         var utcNow = DateTime.UtcNow;
         var proposal = new Proposal
@@ -55,6 +57,7 @@ public class CrewChatsProposalService(
             RoomType = roomType,
             NameNonce = nameNonce,
             NameCiphertext = nameCiphertext,
+            OrderedRoomIdsJson = orderedRoomIdsJson,
             KeyVersion = keyVersion <= 0 ? 1 : keyVersion,
             IsAdultContent = isAdultContent
         }, cancellationToken);
@@ -102,7 +105,8 @@ public class CrewChatsProposalService(
         ChatRoomType roomType,
         string plaintextName,
         bool isAdultContent,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default,
+        string? orderedRoomIdsJson = null)
     {
         var utcNow = DateTime.UtcNow;
         var proposal = new Proposal
@@ -126,6 +130,7 @@ public class CrewChatsProposalService(
             Purpose = purpose.Trim(),
             RoomType = roomType,
             PlaintextName = plaintextName.Trim(),
+            OrderedRoomIdsJson = orderedRoomIdsJson,
             KeyVersion = 1,
             IsAdultContent = isAdultContent
         }, cancellationToken);
@@ -202,6 +207,9 @@ public class CrewChatsProposalService(
                             cancellationToken);
                     }
                     break;
+                case CrewChatProposalAction.Reorder:
+                    await ApplyReorderAsync(change, crewId: null, proposal.FleetId, cancellationToken);
+                    break;
             }
 
             change.IsApplied = true;
@@ -225,6 +233,9 @@ public class CrewChatsProposalService(
                         proposal.Id,
                         cancellationToken);
                 }
+                break;
+            case CrewChatProposalAction.Reorder:
+                await ApplyReorderAsync(change, proposal.CrewId, fleetId: null, cancellationToken);
                 break;
         }
 
@@ -334,7 +345,6 @@ public class CrewChatsProposalService(
         }
 
         room.Purpose = change.Purpose;
-        room.RoomType = change.RoomType;
         room.LastActivityAt = utcNow;
 
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
@@ -369,7 +379,6 @@ public class CrewChatsProposalService(
 
         room.Name = change.PlaintextName.Trim();
         room.Purpose = change.Purpose;
-        room.RoomType = change.RoomType;
         room.LastActivityAt = utcNow;
     }
 
@@ -391,5 +400,38 @@ public class CrewChatsProposalService(
 
         room.IsDeleted = true;
         room.LastActivityAt = utcNow;
+    }
+
+    private async Task ApplyReorderAsync(
+        ProposalCrewChatChange change,
+        int? crewId,
+        int? fleetId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(change.OrderedRoomIdsJson))
+        {
+            return;
+        }
+
+        int[]? roomIds;
+        try
+        {
+            roomIds = JsonSerializer.Deserialize<int[]>(change.OrderedRoomIdsJson);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (roomIds is null)
+        {
+            return;
+        }
+
+        await chatRepository.UpdateRoomSortOrdersAsync(
+            roomIds.Distinct().ToArray(),
+            crewId,
+            fleetId,
+            cancellationToken);
     }
 }

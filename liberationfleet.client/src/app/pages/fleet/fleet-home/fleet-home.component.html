@@ -36,7 +36,7 @@
           <button type="button" class="menu-link" (click)="goToRules()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.rules"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetRules"></app-content-badge>
             </span>
             <span class="menu-label">Rules</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -51,7 +51,7 @@
                 alt=""
                 [customSrc]="fleetImageSrc">
               </app-brand-logo>
-              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetForums"></app-content-badge>
             </span>
             <span class="menu-label">{{ status?.fleetName }}</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -60,7 +60,7 @@
           <button type="button" class="menu-link" (click)="goToChats()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.chats"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetChats"></app-content-badge>
             </span>
             <span class="menu-label">Chats</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -72,7 +72,7 @@
             (click)="goToGiftLog()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.giftLog"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetGiftLog"></app-content-badge>
             </span>
             <span class="menu-label">Giving Season</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -81,7 +81,7 @@
           <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibrary()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.library"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetLibrary"></app-content-badge>
             </span>
             <span class="menu-label">Library of Things</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -101,7 +101,7 @@
           <button type="button" class="menu-link" (click)="goToProposals()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.proposals"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetProposals"></app-content-badge>
             </span>
             <span class="menu-label">Proposals</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -110,7 +110,7 @@
           <button type="button" class="menu-link" (click)="goToCrews()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewmates"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetCrewmates"></app-content-badge>
             </span>
             <span class="menu-label">Crews</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -119,7 +119,7 @@
           <button type="button" class="menu-link" (click)="goToEditFleet()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
+              <app-content-badge [count]="areaCounts.fleetSettings"></app-content-badge>
             </span>
             <span class="menu-label">Fleet Settings</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>

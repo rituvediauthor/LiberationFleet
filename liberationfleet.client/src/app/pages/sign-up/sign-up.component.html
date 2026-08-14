@@ -27,6 +27,7 @@
             [maxlength]="usernameMaxLength"
             [attr.aria-invalid]="isInvalid('username')"
             [attr.aria-describedby]="isInvalid('username') ? 'username-error' : null">
+          <app-char-counter [current]="form.get('username')?.value?.length || 0" [max]="usernameMaxLength"></app-char-counter>
           <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username')">
             <ng-container *ngIf="form.get('username')?.hasError('required')">Username is required</ng-container>
             <ng-container *ngIf="form.get('username')?.hasError('minlength')">Username must be at least 3 characters</ng-container>

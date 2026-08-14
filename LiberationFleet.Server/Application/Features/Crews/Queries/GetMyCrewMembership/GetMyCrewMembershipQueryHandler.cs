@@ -29,6 +29,11 @@ public class GetMyCrewMembershipQueryHandler(
         }
 
         var crew = membership.Crew;
+        if (crew is null)
+        {
+            return new CrewMembershipStatusDto { HasCrew = false };
+        }
+
         var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
             userId.Value,
             membership.CrewId,

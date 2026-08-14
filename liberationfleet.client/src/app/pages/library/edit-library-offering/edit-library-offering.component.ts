@@ -5,14 +5,20 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
+import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { LibraryService } from '../../../services/library.service';
+import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
+import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
-import { LibraryOfferingListItem, LibraryOfferingVisibility } from '../../../models/library.model';
+import { EncryptionContentService } from '../../../services/encryption-content.service';
+import { LibraryOfferingListItem, LibraryOfferingVisibility, UpdateLibraryOfferingRequest } from '../../../models/library.model';
+import { PendingAttachment, ProposalEncryptedPayload } from '../../../models/proposal.model';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
 @Component({
   selector: 'app-edit-library-offering',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, PageLayoutComponent, ConfirmDialogComponent, ProposalAttachmentPickerComponent],
   templateUrl: './edit-library-offering.component.html',
   styleUrl: './edit-library-offering.component.css'
 })
@@ -30,14 +36,22 @@ export class EditLibraryOfferingComponent implements OnInit {
   deleting = false;
   errorMessage = '';
   offeringId = 0;
+  crewId = 0;
+  canAttachFiles = false;
   confirmDeleteVisible = false;
+  downloadAttachments: PendingAttachment[] = [];
+  existingDownloadNames: string[] = [];
+  private existingPayload: ProposalEncryptedPayload | null = null;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   private navigation = inject(NavigationService);
   private libraryService = inject(LibraryService);
+  private libraryCrypto = inject(LibraryCryptoService);
+  private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private encryptionContent = inject(EncryptionContentService);
 
   ngOnInit() {
     this.offeringId = Number(this.route.snapshot.paramMap.get('id'));
@@ -50,13 +64,27 @@ export class EditLibraryOfferingComponent implements OnInit {
       return;
     }
 
-    this.loadOffering();
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
+        this.loadOffering();
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'Failed to load crew membership.';
+      }
+    });
   }
 
   get isStockBased(): boolean {
     return this.offering?.offeringKind === 'Consumable'
       || this.offering?.offeringKind === 'Service'
       || this.offering?.offeringKind === 'Digital';
+  }
+
+  get isDigital(): boolean {
+    return this.offering?.offeringKind === 'Digital';
   }
 
   get canToggleOutOfStock(): boolean {
@@ -74,7 +102,8 @@ export class EditLibraryOfferingComponent implements OnInit {
 
     const visibilityChanged = this.visibility !== this.initialVisibility;
     const stockChanged = this.canToggleOutOfStock && this.isOutOfStock !== this.initialIsOutOfStock;
-    return visibilityChanged || stockChanged;
+    const filesChanged = this.isDigital && this.downloadAttachments.length > 0;
+    return visibilityChanged || stockChanged || filesChanged;
   }
 
   toggleOutOfStock() {
@@ -86,6 +115,10 @@ export class EditLibraryOfferingComponent implements OnInit {
   }
 
   onVisibilityChange() {
+    this.updateActionButtons();
+  }
+
+  onDownloadsChange() {
     this.updateActionButtons();
   }
 
@@ -126,8 +159,14 @@ export class EditLibraryOfferingComponent implements OnInit {
         this.initialIsOutOfStock = this.isOutOfStock;
         this.visibility = offering.visibility === 'FleetWide' ? 'FleetWide' : 'CrewOnly';
         this.initialVisibility = this.visibility;
-        this.loading = false;
         this.updateActionButtons();
+
+        if (offering.offeringKind === 'Digital' && this.crewId > 0) {
+          void this.loadExistingDigitalPayload(offering.offeringId);
+          return;
+        }
+
+        this.loading = false;
       },
       error: err => {
         this.loading = false;
@@ -136,39 +175,98 @@ export class EditLibraryOfferingComponent implements OnInit {
     });
   }
 
+  private async loadExistingDigitalPayload(offeringId: number) {
+    try {
+      await this.encryptionContent.whenReady();
+      this.existingPayload = await this.libraryCrypto.loadOfferingPayload(offeringId, this.crewId);
+      this.existingDownloadNames = (this.existingPayload?.attachments ?? [])
+        .filter(attachment => attachment.role === 'download' || (!attachment.role && attachment.type !== 'image'))
+        .map(attachment => attachment.fileName || 'Download file');
+    } catch {
+      this.existingPayload = null;
+    } finally {
+      this.loading = false;
+      this.updateActionButtons();
+    }
+  }
+
   private save() {
     if (!this.offering || this.saving || !this.hasChanges) {
       return;
     }
 
+    if (this.isDigital && this.downloadAttachments.length > 0) {
+      if (!this.canAttachFiles) {
+        this.toastService.error('File attachment permission is required to replace digital files.');
+        return;
+      }
+      if (!pendingAttachmentsAllowSubmit(this.downloadAttachments)) {
+        this.toastService.error('Wait for attachments to finish processing, or cancel them.');
+        return;
+      }
+    }
+
     this.saving = true;
     this.updateActionButtons();
+    void this.saveAsync();
+  }
 
-    const payload: { isOutOfStock?: boolean; visibility?: string } = {
+  private async saveAsync() {
+    if (!this.offering) {
+      return;
+    }
+
+    const payload: UpdateLibraryOfferingRequest = {
       visibility: this.visibility
     };
     if (this.canToggleOutOfStock) {
       payload.isOutOfStock = this.isOutOfStock;
     }
 
-    this.libraryService.updateOffering(this.offeringId, payload).subscribe({
-      next: response => {
-        this.saving = false;
-        if (!response.success) {
-          this.toastService.error(response.message || 'Failed to update offering');
-          this.updateActionButtons();
-          return;
-        }
-
-        this.toastService.success('Offering updated');
-        this.router.navigate(['/app/crew/library-of-things/mine']);
-      },
-      error: err => {
-        this.saving = false;
-        this.toastService.error(err?.message ?? 'Failed to update offering');
-        this.updateActionButtons();
+    try {
+      if (this.isDigital && this.downloadAttachments.length > 0 && this.crewId > 0) {
+        const existingDetail = (this.existingPayload?.attachments ?? [])
+          .filter(attachment => attachment.role === 'detail' || (!attachment.role && attachment.type === 'image'));
+        const encrypted = await this.libraryCrypto.encryptOfferingPayload(
+          this.crewId,
+          {
+            title: this.existingPayload?.title || this.offering.title,
+            description: this.existingPayload?.description || this.offering.descriptionPreview,
+            authorDisplayName: this.existingPayload?.authorDisplayName || ''
+          },
+          this.downloadAttachments.map(attachment => ({ ...attachment, role: 'download' })),
+          existingDetail
+        );
+        payload.nonce = encrypted.nonce;
+        payload.ciphertext = encrypted.ciphertext;
+        payload.thumbnailResourceId = encrypted.thumbnailResourceId;
+        payload.keyVersion = 1;
       }
-    });
+
+      this.libraryService.updateOffering(this.offeringId, payload).subscribe({
+        next: response => {
+          this.saving = false;
+          if (!response.success) {
+            this.toastService.error(response.message || 'Failed to update offering');
+            this.updateActionButtons();
+            return;
+          }
+
+          this.toastService.success('Offering updated');
+          this.router.navigate(['/app/crew/library-of-things/mine']);
+        },
+        error: err => {
+          this.saving = false;
+          this.toastService.error(err?.message ?? 'Failed to update offering');
+          this.updateActionButtons();
+        }
+      });
+    } catch (err: unknown) {
+      this.saving = false;
+      const message = err instanceof Error ? err.message : 'Failed to update offering';
+      this.toastService.error(message);
+      this.updateActionButtons();
+    }
   }
 
   private deleteOffering() {

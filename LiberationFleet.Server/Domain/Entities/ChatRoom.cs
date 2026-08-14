@@ -14,6 +14,7 @@ public class ChatRoom
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
+    public int SortOrder { get; set; }
     public bool IsDeleted { get; set; }
     public bool AnonymousModeEnabled { get; set; }
     public bool IsAdultContent { get; set; }

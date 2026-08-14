@@ -33,6 +33,7 @@ import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
+import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
@@ -49,7 +50,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     CharCounterComponent,
     ReportContentDialogComponent,
     UserAvatarComponent,
-    LocationHeaderComponent
+    LocationHeaderComponent,
+    ComposerFooterPadDirective
   ],
   templateUrl: './friend-dm.component.html',
   styleUrl: './friend-dm.component.css'

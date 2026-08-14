@@ -31,7 +31,10 @@ public class GetEncryptedContentsQueryHandler(
 
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
-        if (hasCrewScope == hasFleetScope)
+        var isPersonalAvatar = request.ContentType == EncryptedContentTypeDto.ProfileAvatar
+            && !hasCrewScope
+            && !hasFleetScope;
+        if (!isPersonalAvatar && hasCrewScope == hasFleetScope)
         {
             return Array.Empty<EncryptedContentEnvelopeDto>();
         }
@@ -44,7 +47,7 @@ public class GetEncryptedContentsQueryHandler(
                 return Array.Empty<EncryptedContentEnvelopeDto>();
             }
         }
-        else if (!await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
+        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
         {
             return Array.Empty<EncryptedContentEnvelopeDto>();
         }
@@ -54,6 +57,7 @@ public class GetEncryptedContentsQueryHandler(
             request.ResourceIds,
             crewId: request.CrewId,
             fleetId: request.FleetId,
+            authorUserId: isPersonalAvatar ? userId : null,
             cancellationToken: cancellationToken);
 
         await deepFreezeService.HydrateAsync(envelopes, cancellationToken);

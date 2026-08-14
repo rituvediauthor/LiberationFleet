@@ -1,20 +1,38 @@
 @import '../library-durable-list/library-durable-list.component.css';
 
-.request-meta {
-  margin: 0 0 8px;
-  font-size: 12px;
+.intro-text {
+  margin: 0 0 16px;
+  font-size: 14px;
   color: var(--lf-color-text-secondary);
+  line-height: 1.45;
 }
 
-.text-btn {
-  display: inline-block;
-  margin: 0 0 16px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--lf-color-accent);
-  font: inherit;
+.status-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-hub-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  text-decoration: underline;
+}
+
+.status-hub-btn:hover {
+  background: var(--lf-color-bg-hover);
+}
+
+.status-hub-btn i {
+  color: var(--lf-color-text-subtle);
 }

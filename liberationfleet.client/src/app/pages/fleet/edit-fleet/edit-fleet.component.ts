@@ -12,8 +12,9 @@ import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
+import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
-import { FleetPrivacy, FleetScope, UpdateFleetRequest } from '../../../models/fleet.model';
+import { FleetPrivacy, FleetScope, FleetStatus, UpdateFleetRequest } from '../../../models/fleet.model';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { formValuesChanged } from '../../../utils/save-button.util';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
@@ -61,6 +62,7 @@ export class EditFleetComponent implements OnInit {
   private toastService = inject(ToastService);
   private proposalCrypto = inject(ProposalCryptoService);
   private cryptoSession = inject(CryptoSessionService);
+  private images = inject(EncryptedImageCacheService);
   private notificationContent = inject(NotificationContentService);
 
   ngOnInit() {
@@ -177,6 +179,8 @@ export class EditFleetComponent implements OnInit {
     this.isSaving = true;
     this.updateSaveButton();
 
+    const previousImageId = this.initialImageResourceId;
+
     try {
       if (this.canAttachFiles && this.imageAttachments.length > 0) {
         if (!this.fleetId) {
@@ -213,6 +217,9 @@ export class EditFleetComponent implements OnInit {
             this.joinCode = result.fleet.joinCode;
             this.patchFormFromFleet(result.fleet);
             this.captureInitialState();
+            this.images.invalidate(previousImageId, 'ImageAsset');
+            this.images.invalidate(result.fleet.imageResourceId, 'ImageAsset');
+            this.refreshStatusCache(result.fleet);
             void this.refreshImagePreview();
             this.isSaving = false;
             this.updateSaveButton();
@@ -234,6 +241,30 @@ export class EditFleetComponent implements OnInit {
       this.isSaving = false;
       this.updateSaveButton();
     }
+  }
+
+  private refreshStatusCache(fleet: {
+    id: number;
+    name: string;
+    joinCode: string;
+    libraryOfThingsEnabled?: boolean;
+    imageResourceId?: string | null;
+  }): void {
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        const next: FleetStatus = {
+          ...status,
+          hasFleet: true,
+          fleetId: fleet.id,
+          fleetName: fleet.name,
+          joinCode: fleet.joinCode,
+          libraryOfThingsEnabled: fleet.libraryOfThingsEnabled ?? status.libraryOfThingsEnabled,
+          imageResourceId: fleet.imageResourceId ?? null
+        };
+        this.fleetService.setCachedStatus(next);
+      },
+      error: () => this.fleetService.clearStatusCache()
+    });
   }
 
   private get isSaveDisabled(): boolean {

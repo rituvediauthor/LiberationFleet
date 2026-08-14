@@ -208,14 +208,22 @@ export class NotificationService {
 
   private toAreaCounts(counts: Record<string, number>): CrewNotificationAreaCounts {
     return {
-      chats: counts['chats'] ?? 0,
-      forums: counts['forums'] ?? 0,
-      proposals: counts['proposals'] ?? 0,
-      giftLog: counts['giftLog'] ?? 0,
-      rules: counts['rules'] ?? 0,
-      settings: counts['settings'] ?? 0,
-      library: counts['library'] ?? 0,
-      crewmates: counts['crewmates'] ?? 0,
+      crewChats: counts['crewChats'] ?? 0,
+      fleetChats: counts['fleetChats'] ?? 0,
+      crewForums: counts['crewForums'] ?? 0,
+      fleetForums: counts['fleetForums'] ?? 0,
+      crewProposals: counts['crewProposals'] ?? 0,
+      fleetProposals: counts['fleetProposals'] ?? 0,
+      crewGiftLog: counts['crewGiftLog'] ?? 0,
+      fleetGiftLog: counts['fleetGiftLog'] ?? 0,
+      crewRules: counts['crewRules'] ?? 0,
+      fleetRules: counts['fleetRules'] ?? 0,
+      crewSettings: counts['crewSettings'] ?? 0,
+      fleetSettings: counts['fleetSettings'] ?? 0,
+      crewLibrary: counts['crewLibrary'] ?? 0,
+      fleetLibrary: counts['fleetLibrary'] ?? 0,
+      crewCrewmates: counts['crewCrewmates'] ?? 0,
+      fleetCrewmates: counts['fleetCrewmates'] ?? 0,
       fleet: counts['fleet'] ?? 0
     };
   }

@@ -8,13 +8,18 @@
   flex-direction: column;
   height: 100%;
   background: var(--lf-color-bg-page);
+  box-sizing: border-box;
+}
+
+.chat-text-page.scope-fleet {
+  border: 4px solid var(--lf-color-accent-strong);
 }
 
 .message-scroll {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: 88px;
   display: flex;
   flex-direction: column;
 }
@@ -221,7 +226,7 @@
 
 .composer-tools {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-top: 12px;
   min-height: 36px;

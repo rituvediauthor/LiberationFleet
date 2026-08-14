@@ -2,6 +2,7 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { startWith, switchMap } from 'rxjs/operators';
 import { NavLayoutComponent } from '../../../components/nav-layout/nav-layout.component';
 import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { DonationCampaignWidgetComponent } from '../../../components/donation-campaign-widget/donation-campaign-widget.component';
@@ -65,56 +66,61 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
       })
     );
 
-    this.fleetService.getStatus().subscribe({
-      next: status => {
-        if (status.hasFleet && status.needsRuleAcceptance) {
-          this.router.navigate(['/app/fleet/accept-rules']);
-          return;
-        }
+    this.subscriptions.add(
+      this.fleetService.statusChanged$.pipe(
+        startWith(undefined),
+        switchMap(() => this.fleetService.getStatus())
+      ).subscribe({
+        next: status => {
+          if (status.hasFleet && status.needsRuleAcceptance) {
+            this.router.navigate(['/app/fleet/accept-rules']);
+            return;
+          }
 
-        this.status = status;
-        this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
-        this.showNextAidWidget = !!status.hasFleet;
-        this.nextAid = null;
-        this.nextAidLoaded = !this.showNextAidWidget;
-        this.loading = false;
-        void this.refreshFleetImage();
+          this.status = status;
+          this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+          this.showNextAidWidget = !!status.hasFleet;
+          this.nextAid = null;
+          this.nextAidLoaded = !this.showNextAidWidget;
+          this.loading = false;
+          void this.refreshFleetImage();
 
-        if (status.hasFleet && status.fleetId) {
-          this.forumPrefetch.prefetchFleetSpace(status.fleetId);
-        }
+          if (status.hasFleet && status.fleetId) {
+            this.forumPrefetch.prefetchFleetSpace(status.fleetId);
+          }
 
-        if (this.showNextAidWidget) {
-          this.fleetService.getNextAid().subscribe({
-            next: result => {
-              this.nextAid = result.success ? (result.nextAid ?? null) : null;
-              this.nextAidLoaded = true;
-            },
-            error: () => {
-              this.nextAid = null;
-              this.nextAidLoaded = true;
-            }
-          });
-        }
-
-        if (status.hasFleet) {
-          this.fleetService.getCurrent().subscribe({
-            next: result => {
-              if (result.success && result.fleet) {
-                this.libraryOfThingsEnabled = result.fleet.libraryOfThingsEnabled !== false;
+          if (this.showNextAidWidget) {
+            this.fleetService.getNextAid().subscribe({
+              next: result => {
+                this.nextAid = result.success ? (result.nextAid ?? null) : null;
+                this.nextAidLoaded = true;
+              },
+              error: () => {
+                this.nextAid = null;
+                this.nextAidLoaded = true;
               }
-            }
-          });
+            });
+          }
+
+          if (status.hasFleet) {
+            this.fleetService.getCurrent().subscribe({
+              next: result => {
+                if (result.success && result.fleet) {
+                  this.libraryOfThingsEnabled = result.fleet.libraryOfThingsEnabled !== false;
+                }
+              }
+            });
+          }
+        },
+        error: () => {
+          this.loading = false;
+          this.status = { hasFleet: false };
+          this.showNextAidWidget = false;
+          this.nextAidLoaded = true;
+          this.fleetImageSrc = null;
         }
-      },
-      error: () => {
-        this.loading = false;
-        this.status = { hasFleet: false };
-        this.showNextAidWidget = false;
-        this.nextAidLoaded = true;
-        this.fleetImageSrc = null;
-      }
-    });
+      })
+    );
 
     this.notificationService.refreshBadges();
     this.subscriptions.add(

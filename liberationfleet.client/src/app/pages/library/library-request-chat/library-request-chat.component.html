@@ -30,7 +30,7 @@
     </div>
   </div>
 
-  <div class="chat-action-bar">
+  <div class="chat-action-bar" [appComposerFooterPad]="messageScroll">
     <div class="chat-action-bar-inner">
       <button
         type="button"
@@ -56,6 +56,7 @@
             (blur)="onComposerBlur()"
             placeholder="Message..."
             aria-label="Message"
+            [attr.maxlength]="messageMaxLength"
             rows="1"></textarea>
 
           <div class="composer-actions-col" *ngIf="composerExpanded">
@@ -69,6 +70,12 @@
             </button>
           </div>
         </div>
+
+        <app-char-counter
+          *ngIf="composerExpanded"
+          [current]="messageText.length"
+          [max]="messageMaxLength">
+        </app-char-counter>
 
         <app-proposal-attachment-picker
           *ngIf="canAttachFiles"

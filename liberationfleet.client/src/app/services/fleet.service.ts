@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map, shareReplay, tap } from 'rxjs';
+import { Observable, Subject, map, of, shareReplay, tap } from 'rxjs';
 import {
   CreateFleetRequest,
   CrewLookupResponse,
@@ -56,6 +56,9 @@ import {
 export class FleetService {
   private readonly apiUrl = '/api/fleets';
   private statusRequest$: Observable<FleetStatus> | null = null;
+  private readonly statusChangedSubject = new Subject<void>();
+  /** Emits when the session fleet status cache is cleared or replaced. */
+  readonly statusChanged$ = this.statusChangedSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -77,10 +80,17 @@ export class FleetService {
 
   clearStatusCache(): void {
     this.statusRequest$ = null;
+    this.statusChangedSubject.next();
+  }
+
+  /** Replace the session cache after a successful save (avoids an extra GET). */
+  setCachedStatus(status: FleetStatus): void {
+    this.statusRequest$ = of(status).pipe(shareReplay({ bufferSize: 1, refCount: false }));
+    this.statusChangedSubject.next();
   }
 
   clearSessionCache(): void {
-    this.clearStatusCache();
+    this.statusRequest$ = null;
   }
 
   acceptRules(acceptedRuleIds: number[]): Observable<FleetOperationResult> {
@@ -150,9 +160,15 @@ export class FleetService {
   updateCurrent(request: UpdateFleetRequest): Observable<FleetOperationResult> {
     return this.http.put<FleetOperationResult>(`${this.apiUrl}/current`, request).pipe(
       tap(result => {
-        if (result.success) {
-          this.clearStatusCache();
+        if (!result.success) {
+          return;
         }
+        if (result.fleet && !result.proposalsSubmitted) {
+          // Silent clear — caller refreshes via setCachedStatus after image invalidation.
+          this.statusRequest$ = null;
+          return;
+        }
+        this.clearStatusCache();
       })
     );
   }

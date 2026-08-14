@@ -1,8 +1,10 @@
 using LiberationFleet.Server.Application.Features.Chats.Commands.CreateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.CreateKickFromChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatRoom;
+using LiberationFleet.Server.Application.Features.Chats.Commands.ReorderChatRooms;
 using LiberationFleet.Server.Application.Features.Chats.Commands.SendChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleAnonymousMode;
+using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
@@ -79,6 +81,16 @@ public class ChatsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpPut("rooms/order")]
+    public async Task<IActionResult> ReorderRooms([FromBody] ReorderChatRoomsRequest body)
+    {
+        var result = await _mediator.Send(new ReorderChatRoomsCommand(
+            body.RoomIds,
+            body.Personal,
+            body.Scope));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpDelete("rooms/{roomId:int}")]
     public async Task<IActionResult> DeleteRoom(int roomId, [FromBody] DeleteChatRoomRequest? body)
     {
@@ -131,6 +143,13 @@ public class ChatsController : ControllerBase
             body.KeyVersion,
             body.Body,
             body.MentionedUserIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("rooms/{roomId:int}/messages/{messageId:int}")]
+    public async Task<IActionResult> DeleteMessage(int roomId, int messageId)
+    {
+        var result = await _mediator.Send(new DeleteChatMessageCommand(roomId, messageId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

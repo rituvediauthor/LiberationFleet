@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -45,6 +45,7 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   errorMessage = '';
   showFilters = false;
   crewId = 0;
+  openMenuOfferingId: number | null = null;
 
   private readonly pageSize = 30;
   private router = inject(Router);
@@ -100,6 +101,16 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
     this.destroy$.complete();
   }
 
+  @HostListener('document:click')
+  closeMenus() {
+    this.openMenuOfferingId = null;
+  }
+
+  toggleMenu(offeringId: number, event: Event) {
+    event.stopPropagation();
+    this.openMenuOfferingId = this.openMenuOfferingId === offeringId ? null : offeringId;
+  }
+
   onSearchChange() {
     this.searchChanges$.next(this.searchQuery);
   }
@@ -127,7 +138,9 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   }
 
   canEdit(offering: LibraryOfferingListItem): boolean {
-    return offering.offeringKind === 'Consumable' || offering.offeringKind === 'Service';
+    return offering.offeringKind === 'Consumable'
+      || offering.offeringKind === 'Service'
+      || offering.offeringKind === 'Digital';
   }
 
   kindLabel(kind: string): string {
@@ -136,6 +149,8 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
         return 'Consumable';
       case 'Service':
         return 'Service';
+      case 'Digital':
+        return 'Digital';
       default:
         return 'Durable';
     }

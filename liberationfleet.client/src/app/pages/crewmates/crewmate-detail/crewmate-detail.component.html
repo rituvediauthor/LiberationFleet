@@ -266,9 +266,9 @@
           <button
             type="button"
             class="block-btn"
-            [disabled]="actionLoading || isBlocked"
+            [disabled]="actionLoading"
             (click)="onBlockCrewmate()">
-            {{ isBlocked ? 'Blocked' : 'Block crewmate' }}
+            {{ isBlocked ? 'Unblock crewmate' : 'Block crewmate' }}
           </button>
           <p class="hint-text">
             Blocking hides all comments and messages between you and this crewmate. Neither of you will see the other's content.

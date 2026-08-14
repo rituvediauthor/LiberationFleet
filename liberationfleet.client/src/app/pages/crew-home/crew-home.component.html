@@ -40,7 +40,7 @@
           <button type="button" class="menu-link" (click)="goToRules()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-book menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.rules"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewRules"></app-content-badge>
             </span>
             <span class="menu-label">Rules</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -55,7 +55,7 @@
                 alt=""
                 [customSrc]="crewImageSrc">
               </app-brand-logo>
-              <app-content-badge [count]="areaCounts.forums"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewForums"></app-content-badge>
             </span>
             <span class="menu-label">{{ membership?.crewName }}</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -64,7 +64,7 @@
           <button type="button" class="menu-link" [routerLink]="['/app/crew/chats']">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.chats"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewChats"></app-content-badge>
             </span>
             <span class="menu-label">Chats</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -73,7 +73,7 @@
           <button type="button" class="menu-link" (click)="goToGiftLog()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.giftLog"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewGiftLog"></app-content-badge>
             </span>
             <span class="menu-label">Giving Season</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -82,7 +82,7 @@
           <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibraryOfThings()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.library"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewLibrary"></app-content-badge>
             </span>
             <span class="menu-label">Library of Things</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -99,7 +99,7 @@
           <button type="button" class="menu-link" (click)="goToProposals()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.proposals"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewProposals"></app-content-badge>
             </span>
             <span class="menu-label">Proposals</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -108,7 +108,7 @@
           <button type="button" class="menu-link" (click)="goToCrewmates()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewmates"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewCrewmates"></app-content-badge>
             </span>
             <span class="menu-label">Crewmates</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
@@ -117,7 +117,7 @@
           <button type="button" class="menu-link" (click)="goToEditCrew()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.settings"></app-content-badge>
+              <app-content-badge [count]="areaCounts.crewSettings"></app-content-badge>
             </span>
             <span class="menu-label">Crew Settings</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>

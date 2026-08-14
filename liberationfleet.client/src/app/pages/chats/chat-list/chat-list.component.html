@@ -1,4 +1,26 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
+  <div actionBar class="chat-list-action-bar">
+    <div class="page-menu">
+      <button
+        type="button"
+        class="kebab-btn"
+        aria-label="Chat list options"
+        [attr.aria-expanded]="pageMenuOpen"
+        aria-haspopup="menu"
+        (click)="togglePageMenu($event)">
+        <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+      </button>
+      <div
+        class="page-menu-panel"
+        role="menu"
+        *ngIf="pageMenuOpen"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="closeMenus()">
+        <button type="button" role="menuitem" (click)="goArrangeChannels($event)">Arrange Channels</button>
+      </div>
+    </div>
+  </div>
+
   <div class="chat-list-page">
     <h1 class="page-title">Chats</h1>
 

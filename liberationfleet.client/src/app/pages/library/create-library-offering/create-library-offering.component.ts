@@ -40,6 +40,8 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   attachments: PendingAttachment[] = [];
+  detailAttachments: PendingAttachment[] = [];
+  downloadAttachments: PendingAttachment[] = [];
   categories: LibraryCategory[] = [];
   selectedCategoryIds: number[] = [];
   isSubmitting = false;
@@ -205,12 +207,15 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
         this.toastService.error('File attachment permission is required to list digital goods.');
         return;
       }
-      if (this.attachments.length === 0) {
+      if (this.downloadAttachments.length === 0) {
         this.toastService.error('Add at least one downloadable file.');
         return;
       }
     }
-    if (!pendingAttachmentsAllowSubmit(this.attachments)) {
+    const submitAttachments = offeringKind === 'Digital'
+      ? this.buildDigitalAttachments()
+      : this.attachments;
+    if (!pendingAttachmentsAllowSubmit(submitAttachments)) {
       this.toastService.error('Wait for attachments to finish processing, or cancel them.');
       return;
     }
@@ -239,7 +244,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
             description: raw.description.trim(),
             authorDisplayName: this.authorDisplayName
           },
-          this.attachments
+          submitAttachments
         );
 
         this.libraryService.createOffering({
@@ -348,6 +353,12 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     this.updateCreateButton();
   }
 
+  private buildDigitalAttachments(): PendingAttachment[] {
+    const detail = this.detailAttachments.map(a => ({ ...a, role: 'detail' as const }));
+    const downloads = this.downloadAttachments.map(a => ({ ...a, role: 'download' as const }));
+    return [...detail, ...downloads];
+  }
+
   private parseKind(value: string | null): LibraryOfferingKind {
     if (value === 'Consumable' || value === 'Service' || value === 'Digital') {
       return value;
@@ -360,8 +371,11 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   }
 
   private updateCreateButton() {
+    const submitAttachments = this.offeringKind === 'Digital'
+      ? this.buildDigitalAttachments()
+      : this.attachments;
     const digitalBlocked = this.offeringKind === 'Digital'
-      && (!this.canAttachFiles || this.attachments.length === 0);
+      && (!this.canAttachFiles || this.downloadAttachments.length === 0);
     this.createButton = {
       label: 'Create',
       type: 'primary',
@@ -369,7 +383,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
         || this.form.invalid
         || this.selectedCategoryIds.length === 0
         || digitalBlocked
-        || !pendingAttachmentsAllowSubmit(this.attachments),
+        || !pendingAttachmentsAllowSubmit(submitAttachments),
       onClick: () => this.onSubmit()
     };
   }

@@ -1,4 +1,4 @@
-<div class="chat-text-page">
+<div class="chat-text-page" [class.scope-fleet]="isFleetScope">
   <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
   <div class="message-scroll" #messageScroll>
@@ -49,6 +49,14 @@
               (click)="$event.stopPropagation()"
               (keydown.escape)="closeMenus()">
               <button type="button" role="menuitem" *ngIf="isOwnMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
+              <button
+                type="button"
+                role="menuitem"
+                class="danger-item"
+                *ngIf="isOwnMessage(message)"
+                (click)="deleteOwnMessage(message, $event)">
+                Delete
+              </button>
               <button type="button" role="menuitem" *ngIf="!isOwnMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
               <button
                 type="button"
@@ -74,7 +82,7 @@
     </div>
   </div>
 
-  <div class="chat-action-bar" *ngIf="contentRevealed">
+  <div class="chat-action-bar" *ngIf="contentRevealed" [appComposerFooterPad]="messageScroll">
     <div class="chat-action-bar-inner">
     <button
       type="button"
@@ -138,18 +146,19 @@
       </div>
 
       <app-char-counter
-        *ngIf="composerExpanded && messageText.length > 0"
+        *ngIf="composerExpanded"
         [current]="messageText.length"
         [max]="messageMaxLength">
       </app-char-counter>
 
       <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
-          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
           <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
         </div>
       </div>
 
+      <div class="composer-tools" [class.collapsed-tools]="!composerExpanded">
       <!-- Keep picker mounted while collapsed so iOS file-dialog focus cannot destroy it mid-select. -->
       <app-proposal-attachment-picker
         class="message-attachment-picker"
@@ -161,15 +170,14 @@
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
       <app-attach-permission-note
-        *ngIf="!canAttachFiles"
+        *ngIf="!canAttachFiles && composerExpanded"
         [scope]="fleetId > 0 ? 'fleet' : 'crew'">
       </app-attach-permission-note>
-
-      <div class="composer-tools" *ngIf="composerExpanded">
-        <span class="composer-tools-spacer" *ngIf="!canAttachFiles" aria-hidden="true"></span>
+        <span class="composer-tools-spacer" *ngIf="composerExpanded && !canAttachFiles" aria-hidden="true"></span>
         <button
           type="button"
           class="anonymous-mode-btn"
+          *ngIf="composerExpanded"
           [class.active]="composeAnonymously"
           (mousedown)="$event.preventDefault()"
           (click)="toggleComposeAnonymously()"

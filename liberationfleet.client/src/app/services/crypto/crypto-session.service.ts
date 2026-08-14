@@ -38,6 +38,7 @@ export class CryptoSessionService {
   private identityPublicKeySpki: string | null = null;
   private readonly crewKeyMaterial = new Map<number, CrewKeyMaterial>();
   private readonly fleetKeyMaterial = new Map<number, FleetKeyMaterial>();
+  private userContentKey: CryptoKey | null = null;
   private readonly unlockedSubject = new BehaviorSubject(false);
   private backupWrapVersion: number | null = null;
 
@@ -68,12 +69,28 @@ export class CryptoSessionService {
     return this.fleetKeyMaterial.get(fleetId)?.keyVersion ?? null;
   }
 
+  async ensureUserContentKeyReady(): Promise<CryptoKey> {
+    if (this.userContentKey) {
+      return this.userContentKey;
+    }
+
+    const privateKey = this.requireIdentityPrivateKey();
+    const publicKeySpki = this.identityPublicKeySpki;
+    if (!publicKeySpki) {
+      throw new Error('Encryption is not unlocked.');
+    }
+
+    this.userContentKey = await this.cryptoService.deriveUserContentAesKey(privateKey, publicKeySpki);
+    return this.userContentKey;
+  }
+
   clearSession(): void {
     this.identityPrivateKey = null;
     this.identityPublicKeySpki = null;
     this.backupWrapVersion = null;
     this.crewKeyMaterial.clear();
     this.fleetKeyMaterial.clear();
+    this.userContentKey = null;
     this.unlockedSubject.next(false);
     void this.mediaBlobCache.clear();
   }
@@ -407,12 +424,21 @@ export class CryptoSessionService {
     this.unlockedSubject.next(true);
   }
 
+  private async fetchPublicKey(userId: number): Promise<UserKeyBundle | undefined> {
+    try {
+      return await firstValueFrom(this.cryptoApi.getPublicKey(userId));
+    } catch {
+      return undefined;
+    }
+  }
+
   private async unwrapDistribution(
     crewId: number,
     distribution: CrewKeyDistribution,
     publicKeyByUserId: Map<number, UserKeyBundle>
   ): Promise<CrewKeyMaterial> {
-    const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId);
+    const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId)
+      ?? await this.fetchPublicKey(distribution.wrappedByUserId);
     if (!wrapperPublicKey) {
       throw new Error('Missing public key for crew key author.');
     }

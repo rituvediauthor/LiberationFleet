@@ -287,6 +287,10 @@ export interface LibraryOfferingListPage {
 export interface UpdateLibraryOfferingRequest {
   isOutOfStock?: boolean | null;
   visibility?: string | null;
+  thumbnailResourceId?: string | null;
+  nonce?: string | null;
+  ciphertext?: string | null;
+  keyVersion?: number | null;
 }
 
 export type LibraryOfferingKind = 'Durable' | 'Consumable' | 'Service' | 'Digital';

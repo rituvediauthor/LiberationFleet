@@ -88,18 +88,10 @@ public class UpsertEncryptedContentCommandHandler(
 
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
-        if (hasCrewScope == hasFleetScope)
+        var isPersonalAvatar = domainType == EncryptedContentType.ProfileAvatar && !hasCrewScope && !hasFleetScope;
+        if (!isPersonalAvatar && hasCrewScope == hasFleetScope)
         {
             return new CryptoOperationResponse { Success = false, Message = "Exactly one of crew or fleet scope is required." };
-        }
-
-        if (domainType == EncryptedContentType.ProfileAvatar && !hasCrewScope)
-        {
-            return new CryptoOperationResponse
-            {
-                Success = false,
-                Message = "Profile pictures require crew membership. Join a crew to upload an avatar."
-            };
         }
 
         var userId = currentUser.UserId.Value;
@@ -120,7 +112,7 @@ public class UpsertEncryptedContentCommandHandler(
                 return new CryptoOperationResponse { Success = false, Message = "You are not in this crew." };
             }
         }
-        else if (!await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
+        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
         {
             return new CryptoOperationResponse { Success = false, Message = "You are not in this fleet." };
         }
@@ -133,14 +125,23 @@ public class UpsertEncryptedContentCommandHandler(
         {
             if (hasCrewScope)
             {
-                if (existing.CrewId != request.CrewId!.Value)
+                var sameCrew = existing.CrewId == request.CrewId!.Value;
+                var personalToCrew = domainType == EncryptedContentType.ProfileAvatar
+                    && !existing.CrewId.HasValue
+                    && !existing.FleetId.HasValue
+                    && existing.AuthorUserId == userId;
+                if (!sameCrew && !personalToCrew)
                 {
                     return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this crew." };
                 }
             }
-            else if (existing.FleetId != request.FleetId!.Value)
+            else if (hasFleetScope && existing.FleetId != request.FleetId!.Value)
             {
                 return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this fleet." };
+            }
+            else if (isPersonalAvatar && (existing.CrewId.HasValue || existing.FleetId.HasValue || existing.AuthorUserId != userId))
+            {
+                return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found." };
             }
 
             if (existing.AuthorUserId != userId)

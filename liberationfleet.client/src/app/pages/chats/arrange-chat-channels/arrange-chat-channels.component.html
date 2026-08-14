@@ -1,0 +1,53 @@
+<app-page-layout
+  [showFallibleFooter]="false"
+  [backButton]="backButton"
+  [primaryButton]="primaryButton"
+  [secondaryButton]="secondaryButton"
+  [fillHeight]="true">
+  <div class="arrange-page">
+    <h1 class="page-title">Arrange Channels</h1>
+    <p class="page-subtitle">
+      Drag channels to change their order. Submit a proposal for everyone, or set a personal order only you see.
+    </p>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && rooms.length === 0" class="state-text">No chat channels yet.</p>
+
+    <div class="channel-list" *ngIf="!loading && rooms.length > 0" [class.is-dragging]="draggingIndex !== null">
+      <div
+        class="drop-zone"
+        [class.active]="isDropHighlight(0)"
+        (pointerenter)="onDropZoneEnter(0)">
+      </div>
+
+      <ng-container *ngFor="let room of rooms; let i = index">
+        <div
+          class="channel-row"
+          [class.dragging]="draggingIndex === i"
+          (pointerenter)="onRowPointerEnter(i)">
+          <button
+            type="button"
+            class="drag-handle"
+            aria-label="Drag to reorder"
+            (pointerdown)="onHandlePointerDown(i, $event)">
+            <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
+          </button>
+          <span class="type-icon" [attr.aria-label]="roomTypeLabel(room)">
+            <i [class]="roomTypeIcon(room)" aria-hidden="true"></i>
+          </span>
+          <div class="channel-main">
+            <span class="channel-name">{{ room.name || 'Chat channel' }}</span>
+            <span class="channel-type">{{ roomTypeLabel(room) }}</span>
+          </div>
+        </div>
+
+        <div
+          class="drop-zone"
+          [class.active]="isDropHighlight(i + 1)"
+          (pointerenter)="onDropZoneEnter(i + 1)">
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</app-page-layout>

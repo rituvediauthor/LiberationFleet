@@ -1,5 +1,5 @@
 using LiberationFleet.Server.Application.Common;
-using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -69,7 +69,8 @@ public static class ChatMapper
         ChatRoomMessage message,
         EncryptedContentEnvelope? envelope,
         int? viewerUserId = null,
-        bool allowKick = false)
+        bool allowKick = false,
+        IReadOnlySet<int>? crewAvatarAllowedUserIds = null)
     {
         var isOwn = viewerUserId.HasValue && message.AuthorUserId == viewerUserId.Value;
         var hideIdentity = message.IsAnonymous && !isOwn;
@@ -87,7 +88,10 @@ public static class ChatMapper
                         : string.Empty,
             AuthorAvatarResourceId = hideIdentity || message.IsAnonymous
                 ? null
-                : message.AuthorUser?.AvatarResourceId,
+                : CrewAvatarVisibilityService.Filter(
+                    message.AuthorUser?.AvatarResourceId,
+                    message.AuthorUserId,
+                    crewAvatarAllowedUserIds),
             CreatedAt = message.CreatedAt,
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope),

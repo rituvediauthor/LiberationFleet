@@ -43,6 +43,7 @@ public class ForumRepository : IForumRepository
         int offset,
         int limit,
         bool excludeAdultContent,
+        IReadOnlyCollection<int>? excludeAuthorUserIds,
         CancellationToken cancellationToken = default)
     {
         var query = _context.ForumPosts
@@ -52,6 +53,11 @@ public class ForumRepository : IForumRepository
         if (excludeAdultContent)
         {
             query = query.Where(p => !p.IsAdultContent);
+        }
+
+        if (excludeAuthorUserIds is { Count: > 0 })
+        {
+            query = query.Where(p => !excludeAuthorUserIds.Contains(p.AuthorUserId));
         }
 
         var fetched = await query

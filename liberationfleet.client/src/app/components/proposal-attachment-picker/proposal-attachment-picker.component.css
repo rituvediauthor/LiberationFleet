@@ -7,6 +7,26 @@
   align-items: center;
 }
 
+.encrypt-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary, #555);
+  cursor: pointer;
+  user-select: none;
+}
+
+.encrypt-toggle input {
+  margin: 0;
+}
+
+:host-context(.composer-tools) .encrypt-toggle {
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
 :host-context(.composer-tools) .attachment-actions {
   margin-bottom: 0;
 }

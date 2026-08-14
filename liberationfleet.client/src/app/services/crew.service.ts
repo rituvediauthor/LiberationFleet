@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, shareReplay, tap } from 'rxjs';
+import { Observable, Subject, of, shareReplay, tap } from 'rxjs';
 import {
   CreateCrewRequest,
   CrewInvitationDetailResponse,
@@ -25,6 +25,9 @@ import { PaymentPlatformOption } from '../models/gift.model';
 export class CrewService {
   private readonly apiUrl = '/api/crews';
   private membershipRequest$: Observable<CrewMembershipStatus> | null = null;
+  private readonly membershipChangedSubject = new Subject<void>();
+  /** Emits when the session membership cache is cleared or replaced. */
+  readonly membershipChanged$ = this.membershipChangedSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -46,10 +49,17 @@ export class CrewService {
 
   clearMembershipCache(): void {
     this.membershipRequest$ = null;
+    this.membershipChangedSubject.next();
+  }
+
+  /** Replace the session cache after a successful save (avoids an extra GET). */
+  setCachedMembership(status: CrewMembershipStatus): void {
+    this.membershipRequest$ = of(status).pipe(shareReplay({ bufferSize: 1, refCount: false }));
+    this.membershipChangedSubject.next();
   }
 
   clearSessionCache(): void {
-    this.clearMembershipCache();
+    this.membershipRequest$ = null;
   }
 
   getCurrentCrew(): Observable<CrewOperationResult> {
@@ -59,9 +69,15 @@ export class CrewService {
   updateCrew(request: UpdateCrewRequest): Observable<CrewOperationResult> {
     return this.http.put<CrewOperationResult>(`${this.apiUrl}/current`, request).pipe(
       tap(result => {
-        if (result.success) {
-          this.clearMembershipCache();
+        if (!result.success) {
+          return;
         }
+        if (result.crew && !result.proposalsSubmitted) {
+          // Silent clear — caller refreshes via setCachedMembership after image invalidation.
+          this.membershipRequest$ = null;
+          return;
+        }
+        this.clearMembershipCache();
       })
     );
   }

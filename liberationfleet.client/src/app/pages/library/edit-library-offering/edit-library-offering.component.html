@@ -61,6 +61,28 @@
         </button>
       </div>
 
+      <div class="form-group" *ngIf="isDigital">
+        <span class="group-label">Replace download files</span>
+        <p class="toggle-note" *ngIf="existingDownloadNames.length > 0">
+          Current files: {{ existingDownloadNames.join(', ') }}
+        </p>
+        <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
+          [attachments]="downloadAttachments"
+          [allowAudioRecording]="false"
+          [allowedKinds]="['file', 'video', 'audio']"
+          [maxAttachments]="5"
+          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+          (attachmentsChange)="onDownloadsChange()">
+        </app-proposal-attachment-picker>
+        <p class="toggle-note" *ngIf="!canAttachFiles">
+          File attachment permission is required to replace digital files.
+        </p>
+        <p class="toggle-note" *ngIf="canAttachFiles">
+          Adding files here replaces the current downloadable files. Leave empty to keep the existing files.
+        </p>
+      </div>
+
       <section class="delete-section" *ngIf="isStockBased">
         <h2 class="section-title">Delete offering</h2>
         <p class="section-note">

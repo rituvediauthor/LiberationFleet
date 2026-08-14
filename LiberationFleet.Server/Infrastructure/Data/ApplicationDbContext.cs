@@ -63,6 +63,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ForumLike> ForumLikes => Set<ForumLike>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
+    public DbSet<UserChatChannelOrder> UserChatChannelOrders => Set<UserChatChannelOrder>();
     public DbSet<VoiceParticipantSession> VoiceParticipantSessions => Set<VoiceParticipantSession>();
     public DbSet<UserRegisteredDevice> UserRegisteredDevices => Set<UserRegisteredDevice>();
     public DbSet<SecurityAlert> SecurityAlerts => Set<SecurityAlert>();
@@ -1014,6 +1015,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.AnonymousModeEnabled).HasDefaultValue(false);
             entity.Property(e => e.IsAdultContent).HasDefaultValue(false);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0);
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_ChatRooms_CrewOrFleet",
                 "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));
@@ -1036,6 +1038,35 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserChatChannelOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OrderedRoomIdsJson).IsRequired();
+            entity.HasIndex(e => new { e.UserId, e.CrewId })
+                .IsUnique()
+                .HasFilter("[CrewId] IS NOT NULL");
+            entity.HasIndex(e => new { e.UserId, e.FleetId })
+                .IsUnique()
+                .HasFilter("[FleetId] IS NOT NULL");
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_UserChatChannelOrders_CrewOrFleet",
+                "([CrewId] IS NOT NULL AND [FleetId] IS NULL) OR ([CrewId] IS NULL AND [FleetId] IS NOT NULL)"));
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<ChatRoomMessage>(entity =>

@@ -16,8 +16,10 @@ using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetKickedCre
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmateProfile;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Queries.SearchCrewmatesForMention;
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -53,7 +55,13 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> ExportStates()
     {
         var result = await _mediator.Send(new ExportCrewmateStatesQuery());
-        return result.Success ? Ok(result) : BadRequest(result);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        var csv = BuildCrewmateStatesCsv(result);
+        return File(CsvText.ToUtf8Bytes(csv), "text/csv", "crewmate-states.csv");
     }
 
     [HttpPost("placeholders")]
@@ -222,5 +230,36 @@ public class CrewmatesController : ControllerBase
     {
         var result = await _mediator.Send(new AllowCrewmateRejoinCommand(userId));
         return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    private static string BuildCrewmateStatesCsv(CrewmateStatesExportResponse result)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine(
+            "Username,LifetimeContributions,ReceptionThisYear,PriorityScore,EmergencyLevel,PeopleRepresented,DisabilityLevel,IdentityGroups,SacrificeCountLastSeason,SurvivalThresholdRecipient,EstimatedMonthlyContribution,PaymentPlatforms,Roles");
+
+        foreach (var item in result.Items)
+        {
+            var platforms = string.Join("; ", item.PaymentPlatforms.Select(p =>
+                string.IsNullOrWhiteSpace(p.Handle) ? p.PlatformName : $"{p.PlatformName}:{p.Handle}"));
+            var identity = string.Join("; ", item.IdentityGroups);
+            var roles = string.Join("; ", item.Roles);
+            builder.AppendLine(string.Join(',',
+                CsvText.Escape(item.Username),
+                CsvText.Escape(item.LifetimeContributions.ToString()),
+                CsvText.Escape(item.ReceptionThisYear.ToString()),
+                CsvText.Escape(item.PriorityScore.ToString()),
+                CsvText.Escape(item.EmergencyLevel.ToString()),
+                CsvText.Escape(item.PeopleRepresentedCount.ToString()),
+                CsvText.Escape(item.DisabilityLevel.ToString()),
+                CsvText.Escape(identity),
+                CsvText.Escape(item.SacrificeCountLastSeason.ToString()),
+                CsvText.Escape(item.IsSurvivalThresholdRecipient ? "Yes" : "No"),
+                CsvText.Escape(item.EstimatedMonthlyContribution?.ToString() ?? ""),
+                CsvText.Escape(platforms),
+                CsvText.Escape(roles)));
+        }
+
+        return builder.ToString();
     }
 }

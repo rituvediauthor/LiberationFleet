@@ -64,11 +64,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
         ? { crewId: this.crewId }
         : this.fleetId != null && this.fleetId > 0
           ? { fleetId: this.fleetId }
-          : null;
-    if (!scope) {
-      this.src = null;
-      return;
-    }
+          : {};
 
     const requested = this.resourceId.trim();
     // Keep current picture visible while a cached/decrypt load resolves (avoids nav flicker).

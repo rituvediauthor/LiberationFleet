@@ -39,8 +39,11 @@ export class LibraryIncomingRequestsComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private encryptionContent = inject(EncryptionContentService);
 
-  ngOnInit() {
+  constructor() {
     this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
+  }
+
+  ngOnInit() {
     this.notificationService.refreshBadges();
     this.notificationService.resourceCounts$.subscribe(counts => {
       this.resourceCounts = counts;

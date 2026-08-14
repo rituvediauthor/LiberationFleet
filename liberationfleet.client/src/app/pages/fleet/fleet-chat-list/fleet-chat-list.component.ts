@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
@@ -20,6 +20,7 @@ export class FleetChatListComponent implements OnInit {
   rooms: ChatRoomListItem[] = [];
   loading = true;
   errorMessage = '';
+  pageMenuOpen = false;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   fleetId = 0;
@@ -39,6 +40,22 @@ export class FleetChatListComponent implements OnInit {
       onClick: () => this.router.navigate(['/app/fleet/chats/create'])
     };
     void this.loadRooms();
+  }
+
+  @HostListener('document:click')
+  closeMenus() {
+    this.pageMenuOpen = false;
+  }
+
+  togglePageMenu(event: Event) {
+    event.stopPropagation();
+    this.pageMenuOpen = !this.pageMenuOpen;
+  }
+
+  goArrangeChannels(event: Event) {
+    event.stopPropagation();
+    this.pageMenuOpen = false;
+    void this.router.navigate(['/app/fleet/chats/arrange']);
   }
 
   formatActivity(date: string): string {

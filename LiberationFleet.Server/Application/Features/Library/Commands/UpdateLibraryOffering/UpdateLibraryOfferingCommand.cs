@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -10,13 +11,18 @@ namespace LiberationFleet.Server.Application.Features.Library.Commands.UpdateLib
 public record UpdateLibraryOfferingCommand(
     int OfferingId,
     bool? IsOutOfStock,
-    LibraryOfferingVisibility? Visibility)
+    LibraryOfferingVisibility? Visibility,
+    string? ThumbnailResourceId,
+    string? Nonce,
+    string? Ciphertext,
+    int? KeyVersion)
     : IRequest<LibraryOfferingOperationResponse>;
 
 public class UpdateLibraryOfferingCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
+    ICryptoRepository cryptoRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateLibraryOfferingCommand, LibraryOfferingOperationResponse>
 {
     public async Task<LibraryOfferingOperationResponse> Handle(
@@ -66,6 +72,41 @@ public class UpdateLibraryOfferingCommandHandler(
         if (request.Visibility.HasValue)
         {
             offering.Visibility = request.Visibility.Value;
+            changed = true;
+        }
+
+        var replacingEncryptedContent = !string.IsNullOrWhiteSpace(request.Nonce)
+            && !string.IsNullOrWhiteSpace(request.Ciphertext);
+        if (replacingEncryptedContent)
+        {
+            if (offering.Kind != LibraryOfferingKind.Digital)
+            {
+                return new LibraryOfferingOperationResponse
+                {
+                    Success = false,
+                    Message = "Only digital offerings can replace download files."
+                };
+            }
+
+            var utcNow = DateTime.UtcNow;
+            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+            {
+                ContentType = EncryptedContentType.LibraryItem,
+                ResourceId = offering.Id.ToString(),
+                CrewId = membership.CrewId,
+                AuthorUserId = userId,
+                KeyVersion = request.KeyVersion is > 0 ? request.KeyVersion.Value : 1,
+                Nonce = request.Nonce!.Trim(),
+                Ciphertext = request.Ciphertext!.Trim(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            }, cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(request.ThumbnailResourceId))
+            {
+                offering.ThumbnailResourceId = request.ThumbnailResourceId.Trim();
+            }
+
             changed = true;
         }
 

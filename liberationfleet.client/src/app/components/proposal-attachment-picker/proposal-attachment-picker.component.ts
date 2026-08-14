@@ -8,7 +8,7 @@ import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-co
 import {
   AttachmentMediaKind,
   defaultAcceptAttribute,
-  MAX_AUDIO_BYTES,
+  maxBytesForKind,
   validateAttachmentFile
 } from '../../utils/media-attachment-allowlist.util';
 import { videoOverPickerLimitMessage } from '../../utils/video-platform.policy';
@@ -30,12 +30,17 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
   @Input() maxAttachments = 0;
   /** When set, compressed files upload in the background immediately. */
   @Input() cryptoScope: ProposalCryptoScope | null = null;
+  /** Show the encrypt checkbox (hidden for profile/crew/fleet brand images). */
+  @Input() showEncryptToggle = true;
   /** @deprecated Prefer allowedKinds; still honored if set for the file dialog hint. */
   @Input() acceptTypes?: string;
   @Output() fileDialogOpenChange = new EventEmitter<boolean>();
   @Output() attachmentsChange = new EventEmitter<void>();
   /** Emits whenever busy/ready state changes (for submit gating). */
   @Output() readinessChange = new EventEmitter<boolean>();
+
+  /** Default on: end-to-end encrypt newly selected attachments. */
+  encryptAttachments = true;
 
   audioRecorder = new AudioRecorderController();
 
@@ -129,6 +134,11 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     this.setFileDialogOpen(false);
   }
 
+  onEncryptToggle(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.encryptAttachments = input.checked;
+  }
+
   private async addSelectedFiles(files: File[]) {
     for (const file of files) {
       if (!this.canAddMore) {
@@ -140,7 +150,9 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         break;
       }
 
-      const result = validateAttachmentFile(file, this.allowedKinds);
+      const result = validateAttachmentFile(file, this.allowedKinds, {
+        encrypt: this.encryptAttachments
+      });
       if (!result.ok) {
         if (result.reason === 'too-large') {
           const isVideo = /\.(mp4|m4v|webm|mov)$/i.test(file.name)
@@ -170,6 +182,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         progress: 1,
         progressLabel: result.kind === 'video' ? 'Preparing video…' : 'Processing…',
         previewUrl: result.kind === 'image' ? URL.createObjectURL(file) : undefined,
+        encrypted: this.encryptAttachments,
         abort: () => controller.abort()
       };
       this.attachments.push(pending);
@@ -404,7 +417,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       this.toastService.error('Audio attachments are not allowed here.');
       return;
     }
-    if (blob.size > MAX_AUDIO_BYTES) {
+    if (blob.size > maxBytesForKind('audio', this.encryptAttachments)) {
       this.toastService.error('Recording is too large.');
       return;
     }
@@ -423,6 +436,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       status: 'processing',
       progress: 5,
       progressLabel: 'Processing audio…',
+      encrypted: this.encryptAttachments,
       abort: () => controller.abort()
     };
     this.attachments.push(pending);
@@ -441,7 +455,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
           this.cdr.markForCheck();
         }
       });
-      if (compressed.size > MAX_AUDIO_BYTES) {
+      if (compressed.size > maxBytesForKind('audio', this.encryptAttachments)) {
         this.toastService.error('Recording is too large.');
         this.removeByResourceId(resourceId);
         return;

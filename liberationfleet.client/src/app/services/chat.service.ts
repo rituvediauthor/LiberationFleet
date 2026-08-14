@@ -24,6 +24,18 @@ export class ChatService {
     return this.http.get<ChatRoomListResponse>(`${this.apiUrl}/rooms`);
   }
 
+  reorderRooms(request: {
+    roomIds: number[];
+    personal: boolean;
+    scope?: 'crew' | 'fleet';
+  }): Observable<ChatOperationResponse> {
+    return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/order`, {
+      roomIds: request.roomIds,
+      personal: request.personal,
+      scope: request.scope ?? 'crew'
+    });
+  }
+
   getRoom(roomId: number): Observable<ChatRoomDetailResponse> {
     return this.http.get<ChatRoomDetailResponse>(`${this.apiUrl}/rooms/${roomId}`);
   }
@@ -92,6 +104,10 @@ export class ChatService {
       body: payload.body ?? null,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
+  }
+
+  deleteMessage(roomId: number, messageId: number): Observable<ChatOperationResponse> {
+    return this.http.delete<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`);
   }
 
   toggleAnonymousMode(roomId: number, enabled: boolean): Observable<ChatOperationResponse> {

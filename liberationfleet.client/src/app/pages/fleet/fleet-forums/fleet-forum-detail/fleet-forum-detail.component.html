@@ -1,4 +1,4 @@
-<div class="discussion-detail-page" *ngIf="loading || loadError">
+<div class="discussion-detail-page scope-fleet" *ngIf="loading || loadError">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
@@ -11,7 +11,7 @@
   </div>
 </div>
 
-<div class="discussion-detail-page" *ngIf="!loading && !loadError && !contentRevealed">
+<div class="discussion-detail-page scope-fleet" *ngIf="!loading && !loadError && !contentRevealed">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
@@ -19,7 +19,7 @@
   </div>
 </div>
 
-<div class="discussion-detail-page" *ngIf="!loading && !loadError && contentRevealed && post as p">
+<div class="discussion-detail-page scope-fleet" *ngIf="!loading && !loadError && contentRevealed && post as p">
   <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
   <div class="detail-scroll" #detailScroll>
@@ -50,6 +50,27 @@
           <span>{{ p.createdAt | date:'medium' }}</span>
           <span *ngIf="p.isAdultContent" class="adult-badge">18+</span>
         </p>
+        <div class="menu-wrap" *ngIf="p.canEdit || p.canDelete || !isOwnPost">
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="Post options"
+            [attr.aria-expanded]="openPostMenu"
+            aria-haspopup="menu"
+            (click)="togglePostMenu($event)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+          <div
+            class="dropdown-menu"
+            role="menu"
+            *ngIf="openPostMenu"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeMenus()">
+            <button type="button" role="menuitem" *ngIf="p.canEdit" (click)="startEdit()">Edit post</button>
+            <button type="button" role="menuitem" *ngIf="!isOwnPost" (click)="openReportPost()">Report</button>
+            <button type="button" role="menuitem" class="danger-item" *ngIf="p.canDelete" (click)="deletePost()">Delete post</button>
+          </div>
+        </div>
       </div>
 
       <div class="edit-form" *ngIf="editing">
@@ -74,7 +95,7 @@
           <p class="section-label">Current attachments</p>
           <ul>
             <li *ngFor="let attachment of keptEditAttachments; let i = index">
-              <span>{{ attachment.type }}: {{ attachment.fileName || attachment.resourceId }}</span>
+              <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
               <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
             </li>
           </ul>
@@ -120,12 +141,7 @@
         *ngIf="!editing && nonImageAttachments.length > 0"
         [attachments]="nonImageAttachments">
       </app-proposal-attachment-display>
-
-      <div class="author-actions" *ngIf="!editing && (p.canEdit || p.canDelete || !isOwnPost)">
-        <button type="button" class="link-btn" *ngIf="p.canEdit" (click)="startEdit()">Edit post</button>
-        <button type="button" class="danger-btn" *ngIf="p.canDelete" (click)="deletePost()">Delete post</button>
-        <button type="button" class="link-btn" *ngIf="!isOwnPost" (click)="openReportPost()">Report</button>
-      </div>
+    </div>
     </div>
 
     <section class="comments-section">
@@ -261,7 +277,7 @@
     </div>
   </div>
 
-  <div class="detail-action-bar" *ngIf="!editing">
+  <div class="detail-action-bar" *ngIf="!editing" [appComposerFooterPad]="detailScroll">
     <button
       type="button"
       class="back-btn"
@@ -286,6 +302,7 @@
           (blur)="onCommentBlur()"
           [placeholder]="editingCommentId ? 'Edit comment...' : (replyParentId ? 'Write a reply...' : 'Comment...')"
           [attr.aria-label]="editingCommentId ? 'Edit comment' : (replyParentId ? 'Write a reply' : 'Comment')"
+          [attr.maxlength]="commentMaxLength"
           rows="1"></textarea>
 
         <div class="composer-actions-col" *ngIf="commentExpanded">
@@ -308,9 +325,15 @@
         </div>
       </div>
 
+      <app-char-counter
+        *ngIf="commentExpanded"
+        [current]="commentText.length"
+        [max]="commentMaxLength">
+      </app-char-counter>
+
       <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
-          <span>{{ attachment.fileName || attachment.resourceId }}</span>
+          <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
           <button type="button" class="link-btn" (click)="removeKeptCommentAttachment(i)">Remove</button>
         </div>
       </div>

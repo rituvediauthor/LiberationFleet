@@ -41,6 +41,7 @@ import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
 } from '../../../../utils/notification-deep-link.util';
+import { ComposerFooterPadDirective } from '../../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../../utils/location-header.util';
@@ -64,7 +65,8 @@ import { LocationHeaderInfo } from '../../../../utils/location-header.util';
     ForumEngagementBarComponent,
     ForumCommentLikeComponent,
     LocationHeaderComponent,
-    NotificationTargetDirective
+    NotificationTargetDirective,
+    ComposerFooterPadDirective
   ],
   templateUrl: './fleet-forum-detail.component.html',
   styleUrl: './fleet-forum-detail.component.css'
@@ -89,6 +91,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
+  readonly commentMaxLength = 10000;
   mentionedUserIds: number[] = [];
   commentFocused = false;
   commentUiMinimized = false;
@@ -109,6 +112,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   editingCommentId: number | null = null;
   editingCommentParentId: number | null = null;
   openCommentMenuId: number | null = null;
+  openPostMenu = false;
   currentUserId: number | null = null;
   showAdultGate = false;
   contentRevealed = true;
@@ -206,6 +210,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   @HostListener('document:click')
   closeMenus() {
     this.openCommentMenuId = null;
+    this.openPostMenu = false;
   }
 
   goBack() {
@@ -331,7 +336,14 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   toggleCommentMenu(commentId: number, event: Event) {
     event.stopPropagation();
+    this.openPostMenu = false;
     this.openCommentMenuId = this.openCommentMenuId === commentId ? null : commentId;
+  }
+
+  togglePostMenu(event: Event) {
+    event.stopPropagation();
+    this.openCommentMenuId = null;
+    this.openPostMenu = !this.openPostMenu;
   }
 
   startEditComment(comment: FleetForumComment, parentCommentId: number | null = null, event?: Event) {
@@ -390,6 +402,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.openPostMenu = false;
     this.editing = true;
     this.editTitle = this.post.title ?? '';
     this.editDescription = this.post.description ?? this.post.body ?? '';
@@ -619,6 +632,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.openPostMenu = false;
     this.fleetService.deleteForum(this.post.id).subscribe({
       next: result => {
         if (result.success) {
@@ -636,7 +650,9 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     const hasContent = Boolean(
       this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0
     );
-    return hasContent && pendingAttachmentsAllowSubmit(this.commentAttachments);
+    return hasContent
+      && this.commentText.length <= this.commentMaxLength
+      && pendingAttachmentsAllowSubmit(this.commentAttachments);
   }
 
   attachmentsReadyForEdit(): boolean {

@@ -52,6 +52,7 @@ import {
 } from '../../../utils/notification-deep-link.util';
 import { AppStorageService, StorageScope } from '../../../services/storage/app-storage.service';
 import { ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY } from '../../../services/storage/storage-keys';
+import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
@@ -74,7 +75,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     UserAvatarComponent,
     AccessibleDialogDirective,
     LocationHeaderComponent,
-    NotificationTargetDirective
+    NotificationTargetDirective,
+    ComposerFooterPadDirective
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -94,6 +96,12 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     const pageLabel = this.roomName?.trim() || this.baseLocationHeader.pageLabel;
     return { ...this.baseLocationHeader, pageLabel };
   }
+
+  get isFleetScope(): boolean {
+    return this.route.snapshot.data['scope'] === 'fleet'
+      || this.router.url.startsWith('/app/fleet/chats');
+  }
+
   composeAnonymously = false;
   canModerateAttachments = false;
   canAttachFiles = false;
@@ -155,6 +163,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
+  private hubDeleteSubscription?: Subscription;
 
   @HostListener('document:click')
   closeMenus() {
@@ -185,6 +194,11 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.hubUpdateSubscription = this.chatHub.messageUpdated$.subscribe(message => {
       void this.onMessageUpdated(message);
+    });
+    this.hubDeleteSubscription = this.chatHub.messageDeleted$.subscribe(event => {
+      if (event.roomId === this.roomId) {
+        this.messages = this.messages.filter(existing => existing.id !== event.messageId);
+      }
     });
 
     this.profileService.getProfile().subscribe({
@@ -249,6 +263,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.intersectionObserver?.disconnect();
     this.hubSubscription?.unsubscribe();
     this.hubUpdateSubscription?.unsubscribe();
+    this.hubDeleteSubscription?.unsubscribe();
     void this.chatHub.leaveRoom();
   }
 
@@ -363,6 +378,28 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.messageAttachments = [];
     this.composerUiMinimized = false;
     this.composerFocused = true;
+  }
+
+  deleteOwnMessage(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    this.openMessageMenuId = null;
+    if (!this.isOwnMessage(message) || this.sending) {
+      return;
+    }
+
+    this.chatService.deleteMessage(this.roomId, message.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to delete message');
+          return;
+        }
+        this.messages = this.messages.filter(existing => existing.id !== message.id);
+        if (this.editingMessageId === message.id) {
+          this.cancelEditMessage();
+        }
+      },
+      error: () => this.toastService.error('Failed to delete message')
+    });
   }
 
   openReportMessage(message: ChatMessage, event?: Event) {

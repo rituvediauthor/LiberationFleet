@@ -26,15 +26,84 @@ public class ChatRepository : IChatRepository
         await _context.ChatRooms
             .Include(r => r.CreatedByUser)
             .Where(r => r.CrewId == crewId && !r.IsDeleted)
-            .OrderByDescending(r => r.LastActivityAt)
+            .OrderBy(r => r.SortOrder)
+            .ThenByDescending(r => r.LastActivityAt)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<ChatRoom>> GetRoomsByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default) =>
         await _context.ChatRooms
             .Include(r => r.CreatedByUser)
             .Where(r => r.FleetId == fleetId && !r.IsDeleted)
-            .OrderByDescending(r => r.LastActivityAt)
+            .OrderBy(r => r.SortOrder)
+            .ThenByDescending(r => r.LastActivityAt)
             .ToListAsync(cancellationToken);
+
+    public Task<UserChatChannelOrder?> GetPersonalOrderAsync(
+        int userId,
+        int? crewId,
+        int? fleetId,
+        CancellationToken cancellationToken = default) =>
+        _context.UserChatChannelOrders.FirstOrDefaultAsync(
+            order => order.UserId == userId
+                && order.CrewId == crewId
+                && order.FleetId == fleetId,
+            cancellationToken);
+
+    public async Task UpsertPersonalOrderAsync(
+        int userId,
+        int? crewId,
+        int? fleetId,
+        string orderedRoomIdsJson,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await GetPersonalOrderAsync(userId, crewId, fleetId, cancellationToken);
+        if (order is null)
+        {
+            await _context.UserChatChannelOrders.AddAsync(new UserChatChannelOrder
+            {
+                UserId = userId,
+                CrewId = crewId,
+                FleetId = fleetId,
+                OrderedRoomIdsJson = orderedRoomIdsJson,
+                UpdatedAt = DateTime.UtcNow
+            }, cancellationToken);
+            return;
+        }
+
+        order.OrderedRoomIdsJson = orderedRoomIdsJson;
+        order.UpdatedAt = DateTime.UtcNow;
+    }
+
+    public async Task UpdateRoomSortOrdersAsync(
+        IReadOnlyList<int> orderedRoomIds,
+        int? crewId,
+        int? fleetId,
+        CancellationToken cancellationToken = default)
+    {
+        var orderByRoomId = orderedRoomIds
+            .Select((roomId, index) => new { roomId, index })
+            .ToDictionary(item => item.roomId, item => item.index);
+
+        var rooms = await _context.ChatRooms
+            .Where(room => !room.IsDeleted
+                && room.CrewId == crewId
+                && room.FleetId == fleetId)
+            .OrderBy(room => room.SortOrder)
+            .ThenByDescending(room => room.LastActivityAt)
+            .ToListAsync(cancellationToken);
+
+        var sortedRooms = rooms
+            .Select((room, existingIndex) => new { room, existingIndex })
+            .OrderBy(item => orderByRoomId.TryGetValue(item.room.Id, out var index) ? index : int.MaxValue)
+            .ThenBy(item => item.existingIndex)
+            .Select(item => item.room)
+            .ToList();
+
+        for (var index = 0; index < sortedRooms.Count; index++)
+        {
+            sortedRooms[index].SortOrder = index;
+        }
+    }
 
     public async Task AddRoomAsync(ChatRoom room, CancellationToken cancellationToken = default) =>
         await _context.ChatRooms.AddAsync(room, cancellationToken);

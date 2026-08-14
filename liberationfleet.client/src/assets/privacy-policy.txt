@@ -71,7 +71,7 @@ We support client-side encryption for much user-generated content, including (as
 - Direct messages between friends
 - Certain library item bodies and library request/message content
 - Gift-log display fields (for example display names or message text shown in the log)
-- Media attachments (images, video, and audio encrypted as opaque ciphertext)
+- Media attachments (images, video, audio, and files), encrypted as opaque ciphertext by default
 
 We store:
 - Your public encryption key
@@ -83,6 +83,8 @@ Your login password is used for authentication. It is not used to encrypt your p
 
 We do not hold the keys needed to decrypt end-to-end encrypted content in normal operation. Only you and other members who have valid keys can decrypt that content on their devices.
 
+You may optionally turn off encryption for individual file attachments when uploading (the “Encrypt attached files” control defaults to on). Unencrypted attachments are still stored in our media envelope format, but without AES encryption, so operators and anyone with database/storage access can read those file bytes. Prefer encryption for sensitive content. Profile, crew, and fleet brand images remain end-to-end encrypted and do not offer this opt-out.
+
 Encryption does not extend to:
 - Gift amounts, participant identities in gift records, or mutual-aid calculation data (section 2.4)
 - Crew/fleet settings and membership metadata (section 2.2)
@@ -90,11 +92,12 @@ Encryption does not extend to:
 - Notification titles/bodies shown in the app
 - Voice-channel presence metadata
 - App donation records and safety-report evidence packets as described below
+- Attachments you explicitly upload with encryption turned off (this section)
 
 Some fleet chat may be stored in readable form when a client does not send an encrypted envelope. Prefer features that mark content as encrypted in the product UI.
 
 2.6 Media attachments
-When you attach media, your device processes allowed file types, may compress or re-encode them, encrypts them, and uploads ciphertext. We do not store your attachment as ordinary host files. Allowed types are limited (raster images such as JPEG/PNG/WebP/GIF, common video and audio formats). Potentially hazardous types such as SVG, HTML, and executable formats are blocked by the client. Size limits apply.
+When you attach media with encryption on (the default), your device processes allowed file types, may compress or re-encode them, encrypts them, and uploads ciphertext. We do not store encrypted attachments as ordinary host files. Allowed types are limited (raster images such as JPEG/PNG/WebP/GIF, common video and audio formats, and certain downloadable file types for Library digital goods). Potentially hazardous types such as SVG, HTML, and executable formats are blocked by the client. Size limits apply; unencrypted uploads may allow larger files (for example roughly up to 50 MB images, 100 MB audio, and 500 MB generic files) because they skip encryption overhead, but we discourage unencrypted upload for private or sensitive material.
 
 2.7 Library of Things
 For Library offerings and requests we may store plaintext browsing fields such as title, short description preview, value, quantity/stock, categories, dates, and short purpose previews, plus encrypted envelopes for fuller payloads and private messages related to a request.

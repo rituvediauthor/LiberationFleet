@@ -134,19 +134,51 @@
   background: var(--lf-color-warning-soft-bg);
 }
 
-.edit-btn {
+.offering-actions {
+  position: relative;
   flex-shrink: 0;
-  padding: 6px 14px;
-  border: 1px solid var(--lf-color-accent);
+}
+
+.kebab-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
   border-radius: 8px;
-  background: var(--lf-color-accent-soft-bg);
-  color: var(--lf-color-accent);
-  font-size: 13px;
-  font-weight: 600;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
   cursor: pointer;
 }
 
-.edit-btn:hover {
+.kebab-btn:hover {
+  background: var(--lf-color-bg-hover);
+}
+
+.offering-menu {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 120px;
+  padding: 6px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.offering-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.offering-menu button:hover {
   background: var(--lf-color-accent-soft-bg-alt);
 }
 

@@ -96,6 +96,15 @@ public class UpdateChatRoomRequest
     public string PlaintextOldPurpose { get; set; } = string.Empty;
 }
 
+public class ReorderChatRoomsRequest
+{
+    public List<int> RoomIds { get; set; } = [];
+    public bool Personal { get; set; }
+
+    /// <summary>"crew" (default) or "fleet".</summary>
+    public string Scope { get; set; } = "crew";
+}
+
 public class DeleteChatRoomRequest
 {
     public string PlaintextName { get; set; } = string.Empty;

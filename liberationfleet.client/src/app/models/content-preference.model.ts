@@ -23,12 +23,12 @@ export const ADULT_CONTENT_PREFERENCE_OPTIONS: {
   {
     value: 'Block',
     label: 'Block',
-    description: 'Hide all chats and forums marked 18+.'
+    description: 'Hide all chats and posts marked 18+.'
   },
   {
     value: 'Ask',
     label: 'Ask',
-    description: 'Show 18+ entries with blurred forum thumbnails. Confirm your age before opening.'
+    description: 'Show 18+ entries with blurred post thumbnails. Confirm your age before opening.'
   },
   {
     value: 'Show',

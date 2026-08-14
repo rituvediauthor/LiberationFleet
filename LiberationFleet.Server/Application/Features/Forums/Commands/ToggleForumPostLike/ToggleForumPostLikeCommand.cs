@@ -85,10 +85,10 @@ public class ToggleForumPostLikeCommandHandler(
                     UserId = post.AuthorUserId,
                     CrewId = crewId,
                     Kind = isFleet ? NotificationKind.FleetForumPostLiked : NotificationKind.ForumPostLiked,
-                    Title = isFleet ? "Fleet forum post liked" : "Forum post liked",
+                    Title = isFleet ? "Fleet post liked" : "Post liked",
                     Body = isFleet
-                        ? "Someone liked your fleet forum post."
-                        : "Someone liked your forum post.",
+                        ? "Someone liked your fleet post."
+                        : "Someone liked your post.",
                     ActionUrl = actionUrl,
                     RelatedEntityId = post.Id,
                     ActorUserId = userId

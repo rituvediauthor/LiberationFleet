@@ -15,7 +15,8 @@
         <section class="section avatar-section">
           <h2>Profile picture</h2>
           <p class="section-hint">
-            One image, encrypted with your crew key. Requires an unlocked encryption session and crew membership.
+            One image. Encrypted with your personal key until you join a crew, then with your crew key.
+            It will not appear in crew spaces until you have file attachment privileges.
           </p>
 
           <div class="avatar-preview" *ngIf="displayAvatarUrl">
@@ -35,12 +36,12 @@
             [allowedKinds]="['image']"
             [maxAttachments]="1"
             [allowAudioRecording]="false"
+            [showEncryptToggle]="false"
             (attachmentsChange)="onAvatarAttachmentsChange()">
           </app-proposal-attachment-picker>
 
           <p class="hint-text" *ngIf="!canEditAvatar">
-            <ng-container *ngIf="crewId <= 0">Join a crew to upload a profile picture.</ng-container>
-            <ng-container *ngIf="crewId > 0 && !encryptionUnlocked">Unlock encryption to upload or view your profile picture.</ng-container>
+            Unlock encryption to upload or view your profile picture.
           </p>
         </section>
 
@@ -54,6 +55,7 @@
             [maxlength]="usernameMaxLength"
             [attr.aria-invalid]="isInvalid('username')"
             [attr.aria-describedby]="isInvalid('username') ? 'username-error username-hint' : 'username-hint'">
+          <app-char-counter [current]="form.get('username')?.value?.length || 0" [max]="usernameMaxLength"></app-char-counter>
           <span class="hint-text" id="username-hint">Letters and numbers only. Must be unique across the platform.</span>
           <span id="username-error" class="error-text" role="alert" *ngIf="isInvalid('username')">
             <ng-container *ngIf="form.get('username')?.hasError('required')">Username is required</ng-container>
@@ -106,7 +108,7 @@
         <section class="section encryption-section">
           <h2>Encryption</h2>
           <p class="section-hint">
-            Your 12-word recovery key decrypts crew posts, proposals, forums, and encrypted gift messages.
+            Your 12-word recovery key decrypts crew posts, proposals, and encrypted gift messages.
             It is separate from your login password.
           </p>
 

@@ -11,8 +11,8 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Allow large encrypted media uploads (binary ciphertext up to ~320 MB for 300 MB video).
-const long maxMediaBodyBytes = 320L * 1024 * 1024;
+// Allow large media uploads (binary ciphertext/plain up to ~512 MB for ~500 MB plain files).
+const long maxMediaBodyBytes = 512L * 1024 * 1024;
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = maxMediaBodyBytes;

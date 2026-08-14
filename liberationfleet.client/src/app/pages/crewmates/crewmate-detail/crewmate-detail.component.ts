@@ -96,6 +96,7 @@ export class CrewmateDetailComponent implements OnInit {
 
   onBlockCrewmate() {
     if (this.isBlocked) {
+      this.runAction(() => this.crewmateService.unblockCrewmate(this.userId));
       return;
     }
     this.showBlockDialog = true;
@@ -568,7 +569,12 @@ export class CrewmateDetailComponent implements OnInit {
         };
         break;
       case 'blocked':
-        this.primaryButton = null;
+        this.primaryButton = {
+          label: 'Unblock',
+          type: 'primary',
+          disabled,
+          onClick: () => this.runAction(() => this.crewmateService.unblockCrewmate(this.userId))
+        };
         break;
       default:
         this.primaryButton = {

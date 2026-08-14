@@ -26,6 +26,7 @@ export class ChatHubService implements OnDestroy {
 
   readonly messageReceived$ = new Subject<ChatMessage>();
   readonly messageUpdated$ = new Subject<ChatMessage>();
+  readonly messageDeleted$ = new Subject<{ roomId: number; messageId: number }>();
   readonly roomCreated$ = new Subject<ChatRoomListItem>();
   readonly roomActivityUpdated$ = new Subject<ChatRoomActivityUpdate>();
   readonly directMessageReceived$ = new Subject<DirectMessageReceivedEvent>();
@@ -122,6 +123,10 @@ export class ChatHubService implements OnDestroy {
 
     this.connection.on('MessageUpdated', (message: ChatMessage) => {
       this.messageUpdated$.next(message);
+    });
+
+    this.connection.on('MessageDeleted', (event: { roomId: number; messageId: number }) => {
+      this.messageDeleted$.next(event);
     });
 
     this.connection.on('RoomCreated', (room: ChatRoomListItem) => {

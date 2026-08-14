@@ -166,6 +166,7 @@ public class CryptoRepository : ICryptoRepository
         IReadOnlyList<string> resourceIds,
         int? crewId = null,
         int? fleetId = null,
+        int? authorUserId = null,
         CancellationToken cancellationToken = default)
     {
         if (resourceIds.Count == 0)
@@ -184,6 +185,13 @@ public class CryptoRepository : ICryptoRepository
         if (fleetId.HasValue)
         {
             query = query.Where(e => e.FleetId == fleetId);
+        }
+
+        if (authorUserId.HasValue)
+        {
+            query = query.Where(e => e.AuthorUserId == authorUserId
+                && e.CrewId == null
+                && e.FleetId == null);
         }
 
         return await query.ToListAsync(cancellationToken);

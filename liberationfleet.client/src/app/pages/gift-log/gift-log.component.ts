@@ -187,7 +187,25 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   exportGiftLog() {
     this.crewmateService.exportGiftLog().subscribe({
-      next: blob => this.downloadBlob(blob, 'gift-log.json'),
+      next: async response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to export gift log');
+          return;
+        }
+
+        let entries = response.items ?? [];
+        if (this.crewId > 0) {
+          try {
+            await this.encryptionContent.whenReady();
+            entries = await this.giftLogCrypto.decryptEntries(entries, this.crewId);
+          } catch {
+            // Fall back to whatever plaintext fields the export already includes.
+          }
+        }
+
+        const csv = this.toGiftLogCsv(entries);
+        this.downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'gift-log.csv');
+      },
       error: () => this.toastService.error('Failed to export gift log')
     });
   }
@@ -451,5 +469,39 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     anchor.click();
     URL.revokeObjectURL(url);
     this.toastService.success('Export downloaded.');
+  }
+
+  private toGiftLogCsv(entries: GiftLogEntry[]): string {
+    const header = [
+      'Timestamp',
+      'Type',
+      'Giver',
+      'Recipient',
+      'Middleman',
+      'Amount',
+      'Platform',
+      'Message',
+      'Status'
+    ];
+    const rows = entries.map(entry => [
+      this.csvCell(entry.timestamp instanceof Date ? entry.timestamp.toISOString() : String(entry.timestamp ?? '')),
+      this.csvCell(entry.type),
+      this.csvCell(entry.giverName),
+      this.csvCell(entry.recipientName),
+      this.csvCell(entry.middlemanName ?? ''),
+      this.csvCell(String(entry.amount ?? '')),
+      this.csvCell(entry.platform),
+      this.csvCell(entry.message),
+      this.csvCell(entry.status ?? '')
+    ].join(','));
+    return [header.join(','), ...rows].join('\r\n');
+  }
+
+  private csvCell(value: string): string {
+    const text = value ?? '';
+    if (/[",\r\n]/.test(text)) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
   }
 }

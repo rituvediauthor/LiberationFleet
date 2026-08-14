@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -41,6 +41,7 @@ import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
 } from '../../../utils/notification-deep-link.util';
+import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
@@ -63,12 +64,15 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     AccessibleDialogDirective,
     UserAvatarComponent,
     LocationHeaderComponent,
-    NotificationTargetDirective
+    NotificationTargetDirective,
+    ComposerFooterPadDirective
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
 })
 export class ProposalDetailComponent implements OnInit, OnDestroy {
+  @ViewChild('detailScroll') detailScroll?: ElementRef<HTMLElement>;
+
   private readonly baseLocationHeader = injectLocationHeaderInfo();
 
   get locationHeaderView(): LocationHeaderInfo | null {
@@ -86,6 +90,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
+  readonly commentMaxLength = 10000;
   mentionedUserIds: number[] = [];
   commentFocused = false;
   commentUiMinimized = false;
@@ -386,7 +391,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.showVoteDialog = true;
-    this.selectedVote = '';
+    this.selectedVote = this.proposal.currentUserVote ?? '';
   }
 
   closeVoteDialog = () => {
@@ -749,7 +754,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     const hasContent = Boolean(
       this.commentText.trim() || this.commentAttachments.length > 0 || this.keptCommentEditAttachments.length > 0
     );
-    return hasContent && pendingAttachmentsAllowSubmit(this.commentAttachments);
+    return hasContent
+      && this.commentText.length <= this.commentMaxLength
+      && pendingAttachmentsAllowSubmit(this.commentAttachments);
   }
 
   attachmentsReadyForEdit(): boolean {

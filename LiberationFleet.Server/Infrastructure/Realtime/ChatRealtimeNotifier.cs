@@ -17,6 +17,11 @@ public class ChatRealtimeNotifier(IHubContext<ChatHub> hubContext) : IChatRealti
             .Group(ChatHub.RoomGroup(roomId))
             .SendAsync("MessageUpdated", message, cancellationToken);
 
+    public Task NotifyMessageDeletedAsync(int crewId, int roomId, int messageId, CancellationToken cancellationToken = default) =>
+        hubContext.Clients
+            .Group(ChatHub.RoomGroup(roomId))
+            .SendAsync("MessageDeleted", new { roomId, messageId }, cancellationToken);
+
     public Task NotifyRoomCreatedAsync(int crewId, ChatRoomListItemDto room, CancellationToken cancellationToken = default) =>
         hubContext.Clients
             .Group(ChatHub.CrewGroup(crewId))

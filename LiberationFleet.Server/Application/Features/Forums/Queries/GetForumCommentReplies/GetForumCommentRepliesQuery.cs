@@ -2,7 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums;
-using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -16,7 +16,8 @@ public class GetForumCommentRepliesQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
-    IUserBlockRepository blockRepository) : IRequestHandler<GetForumCommentRepliesQuery, ForumCommentRepliesResponse>
+    IUserBlockRepository blockRepository,
+    CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetForumCommentRepliesQuery, ForumCommentRepliesResponse>
 {
     public async Task<ForumCommentRepliesResponse> Handle(GetForumCommentRepliesQuery request, CancellationToken cancellationToken)
     {
@@ -68,6 +69,7 @@ public class GetForumCommentRepliesQueryHandler(
         var replyCommentIds = replies.Select(r => r.Id).ToList();
         var commentLikeCounts = await forumRepository.GetActiveLikeCountsForCommentsAsync(replyCommentIds, cancellationToken);
         var likedCommentIds = await forumRepository.GetActiveLikedCommentIdsByUserAsync(userId, replyCommentIds, cancellationToken);
+        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(crewId, cancellationToken);
 
         var items = replies.Select(reply =>
         {
@@ -80,7 +82,8 @@ public class GetForumCommentRepliesQueryHandler(
                 0,
                 replyToUsername,
                 likeCount,
-                likedCommentIds.Contains(reply.Id));
+                likedCommentIds.Contains(reply.Id),
+                avatarAllowed);
         }).ToList();
 
         return new ForumCommentRepliesResponse

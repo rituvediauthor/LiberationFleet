@@ -35,6 +35,22 @@ h1 {
   min-height: 96px;
 }
 
+.readonly-value {
+  margin: 0;
+  font-weight: 400;
+  padding: 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  background: var(--lf-color-bg-muted);
+  font-size: 14px;
+}
+
+.hint-text {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--lf-color-text-secondary);
+}
+
 .error-text {
   display: block;
   margin-top: -12px;

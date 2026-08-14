@@ -1,28 +1,44 @@
 import { NotificationItem } from '../models/notification.model';
 
 export type CrewNotificationArea =
-  | 'chats'
-  | 'forums'
-  | 'proposals'
-  | 'giftLog'
-  | 'rules'
-  | 'settings'
-  | 'library'
-  | 'crewmates'
+  | 'crewChats'
+  | 'fleetChats'
+  | 'crewForums'
+  | 'fleetForums'
+  | 'crewProposals'
+  | 'fleetProposals'
+  | 'crewGiftLog'
+  | 'fleetGiftLog'
+  | 'crewRules'
+  | 'fleetRules'
+  | 'crewSettings'
+  | 'fleetSettings'
+  | 'crewLibrary'
+  | 'fleetLibrary'
+  | 'crewCrewmates'
+  | 'fleetCrewmates'
   | 'fleet';
 
 export type CrewNotificationAreaCounts = Record<CrewNotificationArea, number>;
 
 export function emptyAreaCounts(): CrewNotificationAreaCounts {
   return {
-    chats: 0,
-    forums: 0,
-    proposals: 0,
-    giftLog: 0,
-    rules: 0,
-    settings: 0,
-    library: 0,
-    crewmates: 0,
+    crewChats: 0,
+    fleetChats: 0,
+    crewForums: 0,
+    fleetForums: 0,
+    crewProposals: 0,
+    fleetProposals: 0,
+    crewGiftLog: 0,
+    fleetGiftLog: 0,
+    crewRules: 0,
+    fleetRules: 0,
+    crewSettings: 0,
+    fleetSettings: 0,
+    crewLibrary: 0,
+    fleetLibrary: 0,
+    crewCrewmates: 0,
+    fleetCrewmates: 0,
     fleet: 0
   };
 }
@@ -30,36 +46,58 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
 export function resolveNotificationArea(item: NotificationItem): CrewNotificationArea | null {
   const path = item.actionUrl.split('?')[0];
 
-  if (path.startsWith('/app/crew/chats/') || path.startsWith('/app/fleet/chats/')) {
-    return 'chats';
+  if (path.startsWith('/app/crew/chats/')) {
+    return 'crewChats';
   }
-  if (path.startsWith('/app/crew/forums/') || path.startsWith('/app/fleet/forums/')) {
-    return 'forums';
+  if (path.startsWith('/app/fleet/chats/')) {
+    return 'fleetChats';
   }
-  if (path.startsWith('/app/crew/proposals') || path.startsWith('/app/fleet/proposals')) {
-    return 'proposals';
+  if (path.startsWith('/app/crew/forums/')) {
+    return 'crewForums';
   }
-  if (path.startsWith('/app/crew/library-of-things') || path.startsWith('/app/fleet/library')) {
-    return 'library';
+  if (path.startsWith('/app/fleet/forums/')) {
+    return 'fleetForums';
   }
-  if (path.startsWith('/app/crew/rules') || path.startsWith('/app/fleet/rules')) {
-    return 'rules';
+  if (path.startsWith('/app/crew/proposals')) {
+    return 'crewProposals';
   }
-  if (path === '/app/crew/edit' || path === '/app/fleet/edit') {
-    return 'settings';
+  if (path.startsWith('/app/fleet/proposals')) {
+    return 'fleetProposals';
   }
-  if (path.startsWith('/app/crew/crewmates') || path.startsWith('/app/fleet/crews')) {
-    return 'crewmates';
+  if (path.startsWith('/app/crew/library-of-things')) {
+    return 'crewLibrary';
+  }
+  if (path.startsWith('/app/fleet/library')) {
+    return 'fleetLibrary';
+  }
+  if (path.startsWith('/app/crew/rules')) {
+    return 'crewRules';
+  }
+  if (path.startsWith('/app/fleet/rules')) {
+    return 'fleetRules';
+  }
+  if (path === '/app/crew/edit') {
+    return 'crewSettings';
+  }
+  if (path === '/app/fleet/edit') {
+    return 'fleetSettings';
+  }
+  if (path.startsWith('/app/crew/crewmates')) {
+    return 'crewCrewmates';
+  }
+  if (path.startsWith('/app/fleet/crews')) {
+    return 'fleetCrewmates';
   }
   if (
     path === '/app/crew/gift-log'
     || path.startsWith('/app/crew/season-setup')
     || path.startsWith('/app/crew/join-season')
     || path.startsWith('/app/crew/emergency-requests')
-    || path === '/app/fleet/gift-log'
-    || path.startsWith('/app/fleet/emergency')
   ) {
-    return 'giftLog';
+    return 'crewGiftLog';
+  }
+  if (path === '/app/fleet/gift-log' || path.startsWith('/app/fleet/emergency')) {
+    return 'fleetGiftLog';
   }
   if (path.startsWith('/app/fleet/')) {
     return 'fleet';
@@ -67,39 +105,66 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
 
   switch (item.kind) {
     case 'NewChatMessage':
+      return 'crewChats';
     case 'NewFleetChatMessage':
-      return 'chats';
+      return 'fleetChats';
     case 'NewForumPost':
     case 'NewForumComment':
     case 'ForumPostLiked':
     case 'ForumCommentLiked':
-      return 'forums';
+    case 'NewReply':
+    case 'Mention':
+      return 'crewForums';
+    case 'NewFleetForumPost':
+    case 'NewFleetForumComment':
+    case 'NewFleetReply':
+    case 'FleetMention':
+    case 'FleetForumPostLiked':
+    case 'FleetForumCommentLiked':
+      return 'fleetForums';
     case 'NewProposal':
-    case 'NewFleetProposal':
     case 'ProposalRejected':
     case 'ProposalAccepted':
-    case 'NewReply':
-      return 'proposals';
+      return 'crewProposals';
+    case 'NewFleetProposal':
+    case 'FleetProposalAccepted':
+    case 'FleetProposalRejected':
+      return 'fleetProposals';
     case 'NewGifts':
     case 'NewCycle':
     case 'NewSeason':
     case 'SurvivalThresholdsRefreshed':
-    case 'NewFleetGifts':
     case 'NewEmergencyRequest':
-      return 'giftLog';
+      return 'crewGiftLog';
+    case 'NewFleetGifts':
+      return 'fleetGiftLog';
     case 'NewRule':
     case 'RuleDeleted':
     case 'RuleEdited':
-      return 'rules';
+      return 'crewRules';
+    case 'NewFleetRule':
+    case 'FleetRuleDeleted':
+    case 'FleetRuleEdited':
+      return 'fleetRules';
     case 'CrewSettingChanged':
+      return 'crewSettings';
     case 'FleetSettingChanged':
-      return 'settings';
+      return 'fleetSettings';
     case 'NewCrewmate':
     case 'CrewmateKicked':
     case 'CrewmateRejoinAllowed':
     case 'JoinRequestFromPerson':
+      return 'crewCrewmates';
     case 'JoinRequestFromCrew':
-      return 'crewmates';
+      return 'fleetCrewmates';
+    case 'NewLibraryRequest':
+    case 'LibraryRequestDenied':
+    case 'LibraryRequestCompleted':
+    case 'NewLibraryRequestMessage':
+    case 'LibraryUnitBrokenReported':
+    case 'LibraryUnitBrokenConfirmed':
+    case 'LibraryUnitReportedFixed':
+      return 'crewLibrary';
     default:
       return null;
   }

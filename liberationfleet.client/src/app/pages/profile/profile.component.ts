@@ -16,6 +16,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
 import { IdentityGroupsEditorComponent } from '../../components/identity-groups-editor/identity-groups-editor.component';
+import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 import { ProposalAttachmentPickerComponent } from '../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
@@ -79,7 +80,8 @@ function optionalPasswordChangeValidator(control: AbstractControl): ValidationEr
     RecoveryKeyDisplayComponent,
     PaymentPlatformEditorComponent,
     IdentityGroupsEditorComponent,
-    ProposalAttachmentPickerComponent
+    ProposalAttachmentPickerComponent,
+    CharCounterComponent
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
@@ -151,7 +153,7 @@ export class ProfileComponent implements OnInit {
   }
 
   get canEditAvatar(): boolean {
-    return this.crewId > 0 && this.encryptionUnlocked;
+    return this.encryptionUnlocked;
   }
 
   get displayAvatarUrl(): string | null {
@@ -288,11 +290,7 @@ export class ProfileComponent implements OnInit {
     }
 
     if (this.avatarAttachments.length > 0 && !this.canEditAvatar) {
-      this.toastService.error(
-        this.crewId > 0
-          ? 'Unlock encryption before uploading an avatar.'
-          : 'Join a crew to upload a profile avatar.'
-      );
+      this.toastService.error('Unlock encryption before uploading an avatar.');
       return;
     }
 
@@ -330,7 +328,7 @@ export class ProfileComponent implements OnInit {
       let avatarResourceId = this.avatarResourceId;
       if (this.avatarAttachments.length > 0) {
         avatarResourceId = await this.proposalCrypto.uploadImageAttachment(
-          { crewId: this.crewId },
+          this.avatarCryptoScope(),
           this.avatarAttachments[0],
           'ProfileAvatar'
         );
@@ -442,8 +440,12 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  private avatarCryptoScope(): { crewId?: number } {
+    return this.crewId > 0 ? { crewId: this.crewId } : {};
+  }
+
   private async refreshAvatarPreview() {
-    if (!this.avatarResourceId || !this.crewId || !this.encryptionUnlocked) {
+    if (!this.avatarResourceId || !this.encryptionUnlocked) {
       if (!this.avatarAttachments.length) {
         this.avatarPreviewUrl = null;
       }
@@ -451,10 +453,49 @@ export class ProfileComponent implements OnInit {
     }
 
     this.avatarPreviewUrl = await this.images.getDataUrl(
+      this.avatarCryptoScope(),
+      this.avatarResourceId,
+      'ProfileAvatar'
+    );
+
+    if (this.avatarPreviewUrl && this.crewId > 0) {
+      await this.maybeMigratePersonalAvatarToCrew();
+    }
+  }
+
+  private async maybeMigratePersonalAvatarToCrew(): Promise<void> {
+    if (!this.avatarResourceId || this.crewId <= 0 || !this.avatarPreviewUrl) {
+      return;
+    }
+
+    const alreadyCrewScoped = await this.proposalCrypto.hasEncryptedContent(
       { crewId: this.crewId },
       this.avatarResourceId,
       'ProfileAvatar'
     );
+    if (alreadyCrewScoped) {
+      return;
+    }
+
+    try {
+      const blob = await fetch(this.avatarPreviewUrl).then(r => r.blob());
+      const file = new File([blob], 'avatar.jpg', { type: blob.type || 'image/jpeg' });
+      await this.proposalCrypto.uploadImageAttachment(
+        { crewId: this.crewId },
+        {
+          file,
+          blob,
+          type: 'image',
+          resourceId: this.avatarResourceId,
+          previewUrl: this.avatarPreviewUrl,
+          status: 'ready'
+        },
+        'ProfileAvatar'
+      );
+      this.images.invalidate(this.avatarResourceId, 'ProfileAvatar');
+    } catch {
+      // Keep the personal envelope until the user saves a new picture.
+    }
   }
 
   private loadPlatformOptions() {

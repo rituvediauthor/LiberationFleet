@@ -3,8 +3,10 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using System.Text.Json;
 
 namespace LiberationFleet.Server.Application.Features.Chats.Queries.GetCrewChatRooms;
 
@@ -32,6 +34,12 @@ public class GetCrewChatRoomsQueryHandler(
         }
 
         var rooms = await chatRepository.GetRoomsByCrewIdAsync(membership.CrewId, cancellationToken);
+        var personalOrder = await chatRepository.GetPersonalOrderAsync(
+            userId,
+            membership.CrewId,
+            fleetId: null,
+            cancellationToken);
+        rooms = ApplyPersonalOrder(rooms, personalOrder?.OrderedRoomIdsJson);
         var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
         rooms = rooms
@@ -58,5 +66,34 @@ public class GetCrewChatRoomsQueryHandler(
             Message = "Chat rooms loaded.",
             Items = items
         };
+    }
+
+    private static IReadOnlyList<ChatRoom> ApplyPersonalOrder(
+        IReadOnlyList<ChatRoom> rooms,
+        string? orderedRoomIdsJson)
+    {
+        if (string.IsNullOrWhiteSpace(orderedRoomIdsJson))
+        {
+            return rooms;
+        }
+
+        try
+        {
+            var roomIds = JsonSerializer.Deserialize<int[]>(orderedRoomIdsJson) ?? [];
+            var positionById = roomIds
+                .Distinct()
+                .Select((id, index) => new { id, index })
+                .ToDictionary(item => item.id, item => item.index);
+            return rooms
+                .Select((room, repositoryIndex) => new { room, repositoryIndex })
+                .OrderBy(item => positionById.TryGetValue(item.room.Id, out var index) ? index : int.MaxValue)
+                .ThenBy(item => item.repositoryIndex)
+                .Select(item => item.room)
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return rooms;
+        }
     }
 }

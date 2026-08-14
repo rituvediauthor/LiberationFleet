@@ -40,6 +40,17 @@ public class GetCrewPublicKeysQueryHandler(
             cancellationToken);
         userIds.AddRange(pendingInvitees);
 
+        var latestVersion = await cryptoRepository.GetLatestCrewKeyVersionAsync(request.CrewId, cancellationToken);
+        if (latestVersion.HasValue)
+        {
+            var distributions = await cryptoRepository.GetCrewKeyDistributionsAsync(
+                request.CrewId,
+                latestVersion.Value,
+                cancellationToken);
+            userIds.AddRange(distributions.Select(d => d.WrappedByUserId));
+            userIds.AddRange(distributions.Select(d => d.UserId));
+        }
+
         var distinctUserIds = userIds.Distinct().ToList();
         var bundles = await cryptoRepository.GetUserKeyBundlesAsync(distinctUserIds, cancellationToken);
         return bundles.Select(CryptoMapper.MapKeyBundle).ToList();

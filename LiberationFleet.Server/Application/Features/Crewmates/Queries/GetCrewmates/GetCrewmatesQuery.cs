@@ -1,7 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
-using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Services;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Queries.GetCrewmates;
@@ -13,7 +13,8 @@ public class GetCrewmatesQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
-    IUserBlockRepository blockRepository) : IRequestHandler<GetCrewmatesQuery, CrewmateListResponse>
+    IUserBlockRepository blockRepository,
+    CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetCrewmatesQuery, CrewmateListResponse>
 {
     public async Task<CrewmateListResponse> Handle(GetCrewmatesQuery request, CancellationToken cancellationToken)
     {
@@ -36,6 +37,9 @@ public class GetCrewmatesQueryHandler(
         }
 
         var members = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
+        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(
+            membership.CrewId,
+            cancellationToken);
         var friendships = await friendshipRepository.GetForUserAsync(viewerId, cancellationToken);
         var friendshipByUserId = friendships.ToDictionary(
             f => f.RequesterUserId == viewerId ? f.AddresseeUserId : f.RequesterUserId,
@@ -52,7 +56,10 @@ public class GetCrewmatesQueryHandler(
             {
                 UserId = member.UserId,
                 Username = member.User.Username,
-                AvatarResourceId = member.User.AvatarResourceId,
+                AvatarResourceId = CrewAvatarVisibilityService.Filter(
+                    member.User.AvatarResourceId,
+                    member.UserId,
+                    avatarAllowed),
                 LastLoginAt = member.User.LastLoginAt,
                 IsSelf = member.UserId == viewerId,
                 IsPlaceholderMember = member.IsPlaceholderMember,

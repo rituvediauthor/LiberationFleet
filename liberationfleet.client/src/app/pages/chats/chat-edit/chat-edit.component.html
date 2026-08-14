@@ -8,9 +8,8 @@
     <form [formGroup]="form" *ngIf="!loading && !loadError">
       <label class="field">
         <span>Type</span>
-        <select formControlName="roomType">
-          <option *ngFor="let type of roomTypes" [value]="type.value">{{ type.label }}</option>
-        </select>
+        <p class="readonly-value">{{ roomTypeLabel }}</p>
+        <span class="hint-text">Type is set when the room is created and cannot be changed.</span>
       </label>
 
       <label class="field">

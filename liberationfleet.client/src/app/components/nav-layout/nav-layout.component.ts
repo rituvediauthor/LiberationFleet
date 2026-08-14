@@ -2,6 +2,7 @@ import { Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { startWith, switchMap } from 'rxjs/operators';
 import { FallibleFooterComponent } from '../fallible-footer/fallible-footer.component';
 import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
 import { ContentBadgeComponent } from '../content-badge/content-badge.component';
@@ -71,7 +72,10 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
       })
     );
     this.subscriptions.add(
-      this.crewService.getMembership().subscribe({
+      this.crewService.membershipChanged$.pipe(
+        startWith(undefined),
+        switchMap(() => this.crewService.getMembership())
+      ).subscribe({
         next: membership => {
           this.crewId = membership.crewId ?? 0;
           this.crewImageResourceId = membership.imageResourceId ?? null;
@@ -80,7 +84,10 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
       })
     );
     this.subscriptions.add(
-      this.fleetService.getStatus().subscribe({
+      this.fleetService.statusChanged$.pipe(
+        startWith(undefined),
+        switchMap(() => this.fleetService.getStatus())
+      ).subscribe({
         next: status => {
           this.fleetId = status.fleetId ?? 0;
           this.fleetImageResourceId = status.imageResourceId ?? null;

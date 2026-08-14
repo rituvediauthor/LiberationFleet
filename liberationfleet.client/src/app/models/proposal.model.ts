@@ -8,10 +8,17 @@ export interface ProposalAttachment {
   type: 'image' | 'video' | 'audio' | 'file';
   fileName?: string;
   mimeType?: string;
+  /** Library digital offerings: detail images vs downloadable files. */
+  role?: 'detail' | 'download';
+  /** When false, media was stored without AES (nonce sentinel). Default true for back-compat. */
+  encrypted?: boolean;
+  /** Encrypted JPEG poster for videos so players can show a still before playback. */
+  posterResourceId?: string;
 }
 
 export interface ResolvedAttachment extends ProposalAttachment {
   dataUrl?: string;
+  posterUrl?: string;
 }
 
 export interface ProposalEncryptedPayload {
@@ -137,4 +144,8 @@ export interface PendingAttachment {
   uploaded?: boolean;
   /** Cancel in-flight compression/processing. */
   abort?: () => void;
+  /** Library digital offerings: detail images vs downloadable files. */
+  role?: 'detail' | 'download';
+  /** When false, upload/store without AES. Default true. */
+  encrypted?: boolean;
 }

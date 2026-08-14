@@ -199,7 +199,7 @@ export class LibraryUnitDetailComponent implements OnInit {
   }
 
   get showDigitalDownload(): boolean {
-    return this.isDigital && this.digitalRiskAccepted && !!this.detail?.viewer.canRecordAcquisition;
+    return this.isDigital && !!this.detail?.viewer.canRecordAcquisition && this.downloadableFiles.length > 0;
   }
 
   openConfirm(action: ConfirmAction, title: string, message: string) {
@@ -231,11 +231,11 @@ export class LibraryUnitDetailComponent implements OnInit {
     this.digitalRiskVisible = false;
     this.digitalRiskAccepted = true;
     this.updateActionButtons();
+    this.submitDigitalDownload();
   }
 
   declineDigitalRisk() {
     this.digitalRiskVisible = false;
-    this.router.navigate(['/app/crew/library-of-things/digital']);
   }
 
   submitReportBroken() {
@@ -505,14 +505,6 @@ export class LibraryUnitDetailComponent implements OnInit {
     startControl?.updateValueAndValidity({ emitEvent: false });
     endControl?.updateValueAndValidity({ emitEvent: false });
 
-    if (this.isDigital) {
-      if (this.detail.viewer.canRecordAcquisition && !this.digitalRiskAccepted) {
-        this.digitalRiskVisible = true;
-      } else if (!this.detail.viewer.canRecordAcquisition) {
-        this.digitalRiskAccepted = true;
-      }
-    }
-
     this.updateActionButtons();
     this.loading = false;
   }
@@ -521,17 +513,17 @@ export class LibraryUnitDetailComponent implements OnInit {
     if (this.isDigital) {
       if (this.showDigitalDownload) {
         this.primaryButton = {
-          label: 'Download',
+          label: 'Download file',
           type: 'primary',
           disabled: this.isSubmitting || this.downloadableFiles.length === 0,
-          onClick: () => this.submitDigitalDownload()
+          onClick: () => this.onDownloadFileClick()
         };
         this.secondaryButton = null;
         return;
       }
 
       this.primaryButton = {
-        label: 'Download',
+        label: 'Download file',
         type: 'primary',
         disabled: true,
         onClick: () => undefined
@@ -633,6 +625,17 @@ export class LibraryUnitDetailComponent implements OnInit {
     });
   }
 
+  private onDownloadFileClick() {
+    if (!this.detail || !this.showDigitalDownload || this.isSubmitting) {
+      return;
+    }
+    if (!this.digitalRiskAccepted) {
+      this.digitalRiskVisible = true;
+      return;
+    }
+    this.submitDigitalDownload();
+  }
+
   private submitDigitalDownload() {
     if (!this.detail || !this.showDigitalDownload || this.isSubmitting) {
       return;
@@ -652,26 +655,39 @@ export class LibraryUnitDetailComponent implements OnInit {
 
         this.libraryService.recordAcquisition(this.unitId, payload).subscribe({
           next: response => {
-            this.isSubmitting = false;
-            if (!response.success) {
-              this.toastService.error(response.message || 'Failed to record download');
-              this.updateActionButtons();
-              return;
-            }
+            void (async () => {
+              try {
+                if (!response.success) {
+                  this.toastService.error(response.message || 'Failed to record download');
+                  return;
+                }
 
-            if (response.contributionGift) {
-              void this.giftLogCrypto.encryptLibraryCreatorContribution(response.contributionGift, this.crewId);
-            }
-            if (response.receptionGift) {
-              void this.giftLogCrypto.encryptLibraryReceptionGift(response.receptionGift, this.crewId);
-            }
+                if (response.contributionGift) {
+                  void this.giftLogCrypto.encryptLibraryCreatorContribution(response.contributionGift, this.crewId);
+                }
+                if (response.receptionGift) {
+                  void this.giftLogCrypto.encryptLibraryReceptionGift(response.receptionGift, this.crewId);
+                }
 
-            for (const file of this.downloadableFiles) {
-              this.triggerFileDownload(file.dataUrl, file.fileName || 'download');
-            }
+                const decrypted = await this.libraryCrypto.decryptDownloadFiles(
+                  this.crewId,
+                  this.downloadableFiles
+                );
+                for (const file of decrypted) {
+                  this.triggerFileDownload(file.dataUrl, file.fileName || 'download');
+                  if (file.dataUrl?.startsWith('blob:')) {
+                    URL.revokeObjectURL(file.dataUrl);
+                  }
+                }
 
-            this.toastService.success('Download recorded');
-            this.updateActionButtons();
+                this.toastService.success('Download recorded');
+              } catch (err: unknown) {
+                this.toastService.error(err instanceof Error ? err.message : 'Download failed');
+              } finally {
+                this.isSubmitting = false;
+                this.updateActionButtons();
+              }
+            })();
           },
           error: err => {
             this.isSubmitting = false;

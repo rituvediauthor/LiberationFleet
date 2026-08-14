@@ -128,6 +128,10 @@ public class UpdateLibraryOfferingRequest
 {
     public bool? IsOutOfStock { get; set; }
     public string? Visibility { get; set; }
+    public string? ThumbnailResourceId { get; set; }
+    public string? Nonce { get; set; }
+    public string? Ciphertext { get; set; }
+    public int? KeyVersion { get; set; }
 }
 
 public class LibraryUnitDetailResponse

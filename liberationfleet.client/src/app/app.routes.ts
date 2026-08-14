@@ -49,6 +49,7 @@ import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.compo
 import { ChatEditComponent } from './pages/chats/chat-edit/chat-edit.component';
 import { ChatTextComponent } from './pages/chats/chat-text/chat-text.component';
 import { ChatVoiceComponent } from './pages/chats/chat-voice/chat-voice.component';
+import { ArrangeChatChannelsComponent } from './pages/chats/arrange-chat-channels/arrange-chat-channels.component';
 import { RuleListComponent } from './pages/rules/rule-list/rule-list.component';
 import { RuleCreateComponent } from './pages/rules/rule-create/rule-create.component';
 import { RuleEditComponent } from './pages/rules/rule-edit/rule-edit.component';
@@ -67,6 +68,7 @@ import { CreateLibraryOfferingComponent } from './pages/library/create-library-o
 import { EditLibraryOfferingComponent } from './pages/library/edit-library-offering/edit-library-offering.component';
 import { LibraryUnitDetailComponent } from './pages/library/library-unit-detail/library-unit-detail.component';
 import { LibraryMyRequestsComponent } from './pages/library/library-my-requests/library-my-requests.component';
+import { LibraryMyRequestStatusComponent } from './pages/library/library-my-request-status/library-my-request-status.component';
 import { LibraryDeniedRequestsComponent } from './pages/library/library-denied-requests/library-denied-requests.component';
 import { LibraryRequestDetailComponent } from './pages/library/library-request-detail/library-request-detail.component';
 import { LibraryIncomingRequestsComponent } from './pages/library/library-incoming-requests/library-incoming-requests.component';
@@ -227,6 +229,12 @@ export const routes: Routes = [
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'fleet', locationHeader: 'Chats' }
+  },
+  {
+    path: 'app/fleet/chats/arrange',
+    component: ArrangeChatChannelsComponent,
+    canActivate: [authGuard],
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Arrange Channels' }
   },
   {
     path: 'app/fleet/chats/create',
@@ -558,6 +566,12 @@ export const routes: Routes = [
     data: { parentTab: 'crew', locationHeader: 'Chats' }
   },
   {
+    path: 'app/crew/chats/arrange',
+    component: ArrangeChatChannelsComponent,
+    canActivate: [authGuard],
+    data: { scope: 'crew', parentTab: 'crew', locationHeader: 'Arrange Channels' }
+  },
+  {
     path: 'app/crew/chats/create',
     component: ChatCreateComponent,
     canActivate: [authGuard],
@@ -711,6 +725,18 @@ export const routes: Routes = [
     component: LibraryMyRequestsComponent,
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'My Requests' }
+  },
+  {
+    path: 'app/crew/library-of-things/requests/mine/pending',
+    component: LibraryMyRequestStatusComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Pending Requests', requestStatus: 'Open' }
+  },
+  {
+    path: 'app/crew/library-of-things/requests/mine/fulfilled',
+    component: LibraryMyRequestStatusComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Fulfilled Requests', requestStatus: 'Fulfilled' }
   },
   {
     path: 'app/crew/library-of-things/requests/denied',

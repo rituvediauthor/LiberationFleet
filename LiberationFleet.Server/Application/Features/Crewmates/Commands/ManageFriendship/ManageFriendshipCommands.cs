@@ -310,31 +310,29 @@ public class BlockCrewmateCommandHandler(
 
 public class UnblockCrewmateCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UnblockCrewmateCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(UnblockCrewmateCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
-            currentUser,
-            membershipRepository,
-            blockRepository,
-            request.TargetUserId,
-            cancellationToken,
-            allowBlocked: true);
-        if (!context.Success)
+        if (!currentUser.UserId.HasValue)
         {
-            return context.ToOperationResponse();
+            return new CrewmateOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var removed = await blockRepository.RemoveAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var viewerId = currentUser.UserId.Value;
+        if (viewerId == request.TargetUserId)
+        {
+            return new CrewmateOperationResponse { Success = false, Message = "You cannot perform this action on yourself." };
+        }
+
+        var removed = await blockRepository.RemoveAsync(viewerId, request.TargetUserId, cancellationToken);
         if (!removed)
         {
             return new CrewmateOperationResponse
             {
                 Success = false,
-                Message = "Crewmate is not blocked.",
+                Message = "This user is not blocked.",
                 FriendshipState = CrewmateFriendshipStateDto.None
             };
         }
@@ -344,7 +342,7 @@ public class UnblockCrewmateCommandHandler(
         return new CrewmateOperationResponse
         {
             Success = true,
-            Message = "Crewmate unblocked.",
+            Message = "User unblocked.",
             FriendshipState = CrewmateFriendshipStateDto.None
         };
     }

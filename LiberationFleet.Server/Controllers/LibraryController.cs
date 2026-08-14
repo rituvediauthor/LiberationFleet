@@ -150,7 +150,14 @@ public class LibraryController(IMediator mediator) : ControllerBase
             visibility = parsedVisibility;
         }
 
-        var result = await mediator.Send(new UpdateLibraryOfferingCommand(id, body.IsOutOfStock, visibility));
+        var result = await mediator.Send(new UpdateLibraryOfferingCommand(
+            id,
+            body.IsOutOfStock,
+            visibility,
+            body.ThumbnailResourceId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

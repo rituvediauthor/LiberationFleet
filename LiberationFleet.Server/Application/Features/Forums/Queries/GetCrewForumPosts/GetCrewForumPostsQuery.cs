@@ -2,7 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums;
-using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -15,7 +15,9 @@ public class GetCrewForumPostsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     IForumRepository forumRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewForumPostsQuery, ForumListResponse>
+    ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository,
+    CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetCrewForumPostsQuery, ForumListResponse>
 {
     private const int MaxLimit = 50;
 
@@ -39,11 +41,13 @@ public class GetCrewForumPostsQueryHandler(
         var limit = Math.Clamp(request.Limit, 1, MaxLimit);
         var offset = Math.Max(0, request.Offset);
 
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var page = await forumRepository.GetByCrewIdPageAsync(
             membership.CrewId,
             offset,
             limit,
             excludeAdult,
+            hiddenUserIds,
             cancellationToken);
         var posts = page.Items;
 
@@ -59,6 +63,9 @@ public class GetCrewForumPostsQueryHandler(
         var likeCounts = await forumRepository.GetActiveLikeCountsForPostsAsync(postIds, cancellationToken);
         var likedPostIds = await forumRepository.GetActiveLikedPostIdsByUserAsync(userId, postIds, cancellationToken);
         var commentCounts = await forumRepository.GetCommentCountsForPostsAsync(postIds, cancellationToken);
+        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(
+            membership.CrewId,
+            cancellationToken);
 
         var items = posts.Select(post =>
         {
@@ -70,7 +77,8 @@ public class GetCrewForumPostsQueryHandler(
                 envelope,
                 likeCount,
                 likedPostIds.Contains(post.Id),
-                commentCount);
+                commentCount,
+                avatarAllowed);
         }).ToList();
 
         return new ForumListResponse

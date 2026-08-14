@@ -2,7 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums;
-using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -16,7 +16,8 @@ public class GetForumPostDetailQueryHandler(
     IUserRepository userRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
-    IUserBlockRepository blockRepository) : IRequestHandler<GetForumPostDetailQuery, ForumDetailResponse>
+    IUserBlockRepository blockRepository,
+    CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetForumPostDetailQuery, ForumDetailResponse>
 {
     public async Task<ForumDetailResponse> Handle(GetForumPostDetailQuery request, CancellationToken cancellationToken)
     {
@@ -78,6 +79,7 @@ public class GetForumPostDetailQueryHandler(
         var postLikeCounts = await forumRepository.GetActiveLikeCountsForPostsAsync([post.Id], cancellationToken);
         var likedPostIds = await forumRepository.GetActiveLikedPostIdsByUserAsync(userId, [post.Id], cancellationToken);
         postLikeCounts.TryGetValue(post.Id, out var postLikeCount);
+        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(crewId, cancellationToken);
 
         var commentDtos = topLevel.Select(comment =>
         {
@@ -89,7 +91,8 @@ public class GetForumPostDetailQueryHandler(
                 envelope,
                 replyCount,
                 likeCount: likeCount,
-                likedByCurrentUser: likedCommentIds.Contains(comment.Id));
+                likedByCurrentUser: likedCommentIds.Contains(comment.Id),
+                crewAvatarAllowedUserIds: avatarAllowed);
         }).ToList();
 
         return new ForumDetailResponse
@@ -103,7 +106,8 @@ public class GetForumPostDetailQueryHandler(
                 userId,
                 postLikeCount,
                 likedPostIds.Contains(post.Id),
-                visibleComments.Count)
+                visibleComments.Count,
+                avatarAllowed)
         };
     }
 }

@@ -36,13 +36,14 @@ public class UpsertEncryptedContentBytesCommandHandler(
     private static readonly HashSet<EncryptedContentType> AllowedTypes =
     [
         EncryptedContentType.VideoAsset,
-        EncryptedContentType.AudioAsset
+        EncryptedContentType.AudioAsset,
+        EncryptedContentType.ImageAsset
     ];
 
     /// <summary>
-    /// Raw ciphertext budget for binary uploads (~300 MB plaintext + AES-GCM overhead + mime header).
+    /// Raw ciphertext/plain budget for binary uploads (~500 MB plaintext + framing overhead).
     /// </summary>
-    private const int MaxMediaCiphertextBytes = 320 * 1024 * 1024;
+    private const int MaxMediaCiphertextBytes = 512 * 1024 * 1024;
 
     public async Task<CryptoOperationResponse> Handle(
         UpsertEncryptedContentBytesCommand request,
@@ -72,7 +73,7 @@ public class UpsertEncryptedContentBytesCommandHandler(
             return new CryptoOperationResponse
             {
                 Success = false,
-                Message = "Binary upload is only supported for video and audio."
+                Message = "Binary upload is only supported for image, video, and audio."
             };
         }
 
