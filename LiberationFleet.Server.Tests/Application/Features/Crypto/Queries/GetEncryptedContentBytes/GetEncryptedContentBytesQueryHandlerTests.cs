@@ -82,6 +82,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
                 It.Is<IReadOnlyList<string>>(ids => ids.Count == 1 && ids[0] == "vid-1"),
                 10,
                 null,
+                It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
@@ -134,6 +135,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
                 It.IsAny<IReadOnlyList<string>>(),
                 10,
                 null,
+                It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
