@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 13px;
   color: var(--lf-color-text-secondary, #555);
   cursor: pointer;
@@ -22,12 +22,70 @@
   margin: 0;
 }
 
-:host-context(.composer-tools) .encrypt-toggle {
-  margin-bottom: 0;
-  font-size: 12px;
+.encrypt-toggle-icon {
+  display: none;
 }
 
+:host-context(.composer-tools) {
+  display: contents;
+}
+
+:host-context(.composer-tools).collapsed,
+:host(.collapsed) {
+  display: none;
+}
+
+:host-context(.composer-tools) .attachment-picker,
 :host-context(.composer-tools) .attachment-actions {
+  display: contents;
+}
+
+:host-context(.composer-tools) .encrypt-toggle {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--lf-color-accent-border);
+  border-radius: 8px;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+:host-context(.composer-tools) .encrypt-toggle.active {
+  background: var(--lf-color-accent);
+  border-color: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
+}
+
+:host-context(.composer-tools) .encrypt-toggle input,
+:host-context(.composer-tools) .encrypt-toggle-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:host-context(.composer-tools) .encrypt-toggle-icon {
+  display: inline-flex;
+}
+
+:host-context(.composer-tools) .recording-panel,
+:host-context(.composer-tools) .attachment-list {
+  flex: 1 1 100%;
+  width: 100%;
+  order: 20;
   margin-bottom: 0;
 }
 

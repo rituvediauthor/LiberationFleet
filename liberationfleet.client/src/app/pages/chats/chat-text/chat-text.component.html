@@ -145,12 +145,6 @@
         </div>
       </div>
 
-      <app-char-counter
-        *ngIf="composerExpanded"
-        [current]="messageText.length"
-        [max]="messageMaxLength">
-      </app-char-counter>
-
       <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
           <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
@@ -169,15 +163,18 @@
         (fileDialogOpenChange)="onFileDialogOpenChange($event)"
         (attachmentsChange)="onAttachmentsChange()">
       </app-proposal-attachment-picker>
+      <app-char-counter
+        [current]="messageText.length"
+        [max]="messageMaxLength">
+      </app-char-counter>
       <app-attach-permission-note
-        *ngIf="!canAttachFiles && composerExpanded"
+        *ngIf="!canAttachFiles"
+        class="composer-permission-note"
         [scope]="fleetId > 0 ? 'fleet' : 'crew'">
       </app-attach-permission-note>
-        <span class="composer-tools-spacer" *ngIf="composerExpanded && !canAttachFiles" aria-hidden="true"></span>
         <button
           type="button"
           class="anonymous-mode-btn"
-          *ngIf="composerExpanded"
           [class.active]="composeAnonymously"
           (mousedown)="$event.preventDefault()"
           (click)="toggleComposeAnonymously()"

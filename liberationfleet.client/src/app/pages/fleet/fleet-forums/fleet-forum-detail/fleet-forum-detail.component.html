@@ -324,12 +324,6 @@
         </div>
       </div>
 
-      <app-char-counter
-        *ngIf="commentExpanded"
-        [current]="commentText.length"
-        [max]="commentMaxLength">
-      </app-char-counter>
-
       <div class="kept-attachments" *ngIf="keptCommentEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptCommentEditAttachments; let i = index">
           <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
@@ -337,16 +331,26 @@
         </div>
       </div>
 
-      <app-proposal-attachment-picker
-        *ngIf="canAttachFiles"
-        class="comment-attachment-picker"
-        [class.collapsed]="!commentExpanded"
-        [attachments]="commentAttachments"
-        [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : null"
-        (fileDialogOpenChange)="onFileDialogOpenChange($event)"
-        (attachmentsChange)="onAttachmentsChange()">
-      </app-proposal-attachment-picker>
-      <app-attach-permission-note *ngIf="!canAttachFiles" scope="fleet"></app-attach-permission-note>
+      <div class="composer-tools" [class.collapsed-tools]="!commentExpanded">
+        <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
+          class="comment-attachment-picker"
+          [class.collapsed]="!commentExpanded"
+          [attachments]="commentAttachments"
+          [cryptoScope]="fleetId > 0 ? { fleetId: fleetId } : null"
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+          (attachmentsChange)="onAttachmentsChange()">
+        </app-proposal-attachment-picker>
+        <app-char-counter
+          [current]="commentText.length"
+          [max]="commentMaxLength">
+        </app-char-counter>
+        <app-attach-permission-note
+          *ngIf="!canAttachFiles"
+          class="composer-permission-note"
+          scope="fleet">
+        </app-attach-permission-note>
+      </div>
     </div>
   </div>
 </div>

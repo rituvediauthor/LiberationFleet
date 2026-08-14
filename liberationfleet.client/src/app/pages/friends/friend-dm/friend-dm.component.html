@@ -105,12 +105,6 @@
         </div>
       </div>
 
-      <app-char-counter
-        *ngIf="composerExpanded"
-        [current]="messageText.length"
-        [max]="messageMaxLength">
-      </app-char-counter>
-
       <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
           <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
@@ -118,16 +112,26 @@
         </div>
       </div>
 
-      <app-proposal-attachment-picker
-        class="message-attachment-picker"
-        *ngIf="canAttachFiles"
-        [class.collapsed]="!composerExpanded"
-        [attachments]="messageAttachments"
-        [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
-        (fileDialogOpenChange)="onFileDialogOpenChange($event)"
-        (attachmentsChange)="onAttachmentsChange()">
-      </app-proposal-attachment-picker>
-      <app-attach-permission-note *ngIf="!canAttachFiles" scope="crew"></app-attach-permission-note>
+      <div class="composer-tools" [class.collapsed-tools]="!composerExpanded">
+        <app-proposal-attachment-picker
+          class="message-attachment-picker"
+          *ngIf="canAttachFiles"
+          [class.collapsed]="!composerExpanded"
+          [attachments]="messageAttachments"
+          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+          (attachmentsChange)="onAttachmentsChange()">
+        </app-proposal-attachment-picker>
+        <app-char-counter
+          [current]="messageText.length"
+          [max]="messageMaxLength">
+        </app-char-counter>
+        <app-attach-permission-note
+          *ngIf="!canAttachFiles"
+          class="composer-permission-note"
+          scope="crew">
+        </app-attach-permission-note>
+      </div>
     </div>
     </div>
   </div>

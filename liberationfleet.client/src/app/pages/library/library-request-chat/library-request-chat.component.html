@@ -71,22 +71,26 @@
           </div>
         </div>
 
-        <app-char-counter
-          *ngIf="composerExpanded"
-          [current]="messageText.length"
-          [max]="messageMaxLength">
-        </app-char-counter>
-
-        <app-proposal-attachment-picker
-          *ngIf="canAttachFiles"
-          class="message-attachment-picker"
-          [class.collapsed]="!composerExpanded"
-          [attachments]="messageAttachments"
-        [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
-        (fileDialogOpenChange)="onFileDialogOpenChange($event)"
-        (attachmentsChange)="onAttachmentsChange()">
-        </app-proposal-attachment-picker>
-        <app-attach-permission-note *ngIf="!canAttachFiles" scope="crew"></app-attach-permission-note>
+        <div class="composer-tools" [class.collapsed-tools]="!composerExpanded">
+          <app-proposal-attachment-picker
+            *ngIf="canAttachFiles"
+            class="message-attachment-picker"
+            [class.collapsed]="!composerExpanded"
+            [attachments]="messageAttachments"
+            [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+            (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+            (attachmentsChange)="onAttachmentsChange()">
+          </app-proposal-attachment-picker>
+          <app-char-counter
+            [current]="messageText.length"
+            [max]="messageMaxLength">
+          </app-char-counter>
+          <app-attach-permission-note
+            *ngIf="!canAttachFiles"
+            class="composer-permission-note"
+            scope="crew">
+          </app-attach-permission-note>
+        </div>
       </div>
     </div>
   </div>
