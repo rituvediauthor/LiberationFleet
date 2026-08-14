@@ -40,13 +40,13 @@ public class UpsertEncryptedContentBytesCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenImageType_ReturnsFailure()
+    public async Task Handle_WhenUnsupportedContentType_ReturnsFailure()
     {
         var handler = CreateHandler(userId: 1);
 
         var result = await handler.Handle(new UpsertEncryptedContentBytesCommand(
-            EncryptedContentTypeDto.ImageAsset,
-            "img-1",
+            EncryptedContentTypeDto.ForumPost,
+            "post-1",
             CrewId: 10,
             FleetId: null,
             KeyVersion: 1,
@@ -54,7 +54,7 @@ public class UpsertEncryptedContentBytesCommandHandlerTests
             CiphertextBytes: [1, 2, 3]), CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.Message.Should().Be("Binary upload is only supported for video and audio.");
+        result.Message.Should().Be("Binary upload is only supported for image, video, and audio.");
     }
 
     [Fact]
