@@ -1,4 +1,4 @@
-import { Component, Injectable } from '@angular/core';
+import { Component, HostBinding, Injectable, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BehaviorSubject } from 'rxjs';
 
@@ -60,23 +60,50 @@ export class ToastService {
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.css'
 })
-export class ToastContainerComponent {
+export class ToastContainerComponent implements OnInit, OnDestroy {
+  /** Keeps fixed toasts inside the visual viewport when the mobile keyboard opens. */
+  @HostBinding('style.top.px') viewportTop = 0;
+
+  private readonly onViewportChange = () => this.syncViewportOffset();
+
   constructor(public toastService: ToastService) {}
 
   get toasts$() {
     return this.toastService.toasts$;
   }
 
+  ngOnInit() {
+    this.syncViewportOffset();
+    window.visualViewport?.addEventListener('resize', this.onViewportChange);
+    window.visualViewport?.addEventListener('scroll', this.onViewportChange);
+    window.addEventListener('resize', this.onViewportChange);
+  }
+
+  ngOnDestroy() {
+    window.visualViewport?.removeEventListener('resize', this.onViewportChange);
+    window.visualViewport?.removeEventListener('scroll', this.onViewportChange);
+    window.removeEventListener('resize', this.onViewportChange);
+  }
+
   close(id: string) {
     this.toastService.remove(id);
   }
 
-  getIcon(type: string): string {
+  getIconClass(type: string): string {
     switch (type) {
-      case 'success': return '✓';
-      case 'error': return '✕';
-      case 'warning': return '⚠';
-      default: return 'ℹ';
+      case 'success':
+        return 'fa-circle-check';
+      case 'error':
+        return 'fa-circle-xmark';
+      case 'warning':
+        return 'fa-triangle-exclamation';
+      default:
+        return 'fa-circle-info';
     }
+  }
+
+  private syncViewportOffset() {
+    const offsetTop = window.visualViewport?.offsetTop ?? 0;
+    this.viewportTop = Math.max(0, Math.round(offsetTop));
   }
 }

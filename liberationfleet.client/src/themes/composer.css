@@ -14,21 +14,32 @@
   font-size: 16px;
   overflow-wrap: anywhere;
   word-break: break-word;
+  resize: none;
+  field-sizing: fixed;
+  box-sizing: border-box;
 }
 
 .composer-input-row .comment-input:not(.expanded),
 .composer-input-row .message-input:not(.expanded) {
+  height: 40px;
+  max-height: 40px;
+  min-height: 40px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-height: 44px;
+  line-height: 1.25;
 }
 
 .composer-input-row .comment-input.expanded,
 .composer-input-row .message-input.expanded {
-  white-space: pre-wrap;
-  overflow-y: auto;
+  height: auto;
+  min-height: 72px;
   max-height: 160px;
+  white-space: pre-wrap;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .composer-actions-col {

@@ -267,16 +267,23 @@ h1 {
 
 .comment-input {
   flex: 1;
+  height: 40px;
+  max-height: 40px;
   min-height: 40px;
   resize: none;
   border: 1px solid var(--lf-color-border-subtle);
   border-radius: 20px;
   padding: 10px 14px;
   font-size: 14px;
+  overflow: hidden;
 }
 
 .comment-input.expanded {
+  height: auto;
   min-height: 72px;
+  max-height: 160px;
+  overflow-x: hidden;
+  overflow-y: auto;
   border-radius: 12px;
 }
 
