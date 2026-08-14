@@ -15,12 +15,12 @@
   overflow-wrap: anywhere;
   word-break: break-word;
   resize: none;
+  field-sizing: fixed;
   box-sizing: border-box;
 }
 
 .composer-input-row .comment-input:not(.expanded),
 .composer-input-row .message-input:not(.expanded) {
-  field-sizing: fixed;
   height: 40px;
   max-height: 40px;
   min-height: 40px;
@@ -32,9 +32,8 @@
 
 .composer-input-row .comment-input.expanded,
 .composer-input-row .message-input.expanded {
-  /* Grow with content up to the cap; never let the control stretch the footer further. */
-  field-sizing: content;
-  height: auto;
+  /* Fixed sizing avoids Chromium field-sizing:content corner affordances. */
+  height: 72px;
   min-height: 72px;
   max-height: 160px;
   white-space: pre-wrap;
@@ -42,6 +41,11 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+/* Hide native resize grip if a browser still paints one. */
+.composer-input-row textarea::-webkit-resizer {
+  display: none;
 }
 
 .composer-actions-col {

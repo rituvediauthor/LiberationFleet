@@ -1,7 +1,7 @@
-<div class="chat-text-page" [class.scope-fleet]="isFleetScope">
+<div class="chat-text-page">
   <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 
-  <div class="message-scroll" #messageScroll>
+  <div class="message-scroll" #messageScroll [class.scope-fleet]="isFleetScope">
     <div class="scroll-page-body chat-channel-body">
     <p class="state-text" *ngIf="loading">Loading messages...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
