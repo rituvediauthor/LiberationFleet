@@ -84,6 +84,14 @@ export class CryptoSessionService {
     return this.userContentKey;
   }
 
+  private requireIdentityPrivateKey(): CryptoKey {
+    if (!this.identityPrivateKey) {
+      throw new Error('Encryption is not unlocked.');
+    }
+
+    return this.identityPrivateKey;
+  }
+
   clearSession(): void {
     this.identityPrivateKey = null;
     this.identityPublicKeySpki = null;
