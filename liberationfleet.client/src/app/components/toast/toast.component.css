@@ -1,10 +1,20 @@
-.toast-container {
+:host {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 0;
+  right: 0;
+  left: 0;
   z-index: 9999;
   pointer-events: none;
-  max-width: 400px;
+}
+
+.toast-container {
+  position: relative;
+  top: 20px;
+  right: 20px;
+  margin-left: auto;
+  width: fit-content;
+  max-width: min(400px, calc(100% - 40px));
+  pointer-events: none;
 }
 
 .toast {
@@ -25,12 +35,17 @@
   align-items: center;
   gap: 12px;
   flex: 1;
+  min-width: 0;
 }
 
 .toast-icon {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 18px;
+  line-height: 1;
+  width: 1.15em;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toast-message {
@@ -42,13 +57,19 @@
 .toast-close {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
   padding: 0;
   margin-left: 12px;
   flex-shrink: 0;
   opacity: 0.7;
   transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
 .toast-close:hover {
@@ -107,7 +128,9 @@
     top: 10px;
     right: 10px;
     left: 10px;
+    margin-left: 0;
     max-width: none;
+    width: auto;
   }
 
   .toast {
