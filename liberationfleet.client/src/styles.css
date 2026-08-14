@@ -202,27 +202,34 @@ app-root {
 }
 
 .mention-composer-shell {
+  /* Textarea alone sizes the shell; backdrop is painted on top and must not grow the row. */
   position: relative;
-  display: grid;
+  display: block;
   flex: 1;
   min-width: 0;
   width: 100%;
 }
 
-.mention-composer-shell > textarea,
-.mention-composer-shell > .mention-composer-backdrop {
-  grid-area: 1 / 1;
+.mention-composer-shell > textarea {
+  display: block;
+  position: relative;
+  z-index: 1;
   width: 100%;
 }
 
 .mention-composer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
   overflow: hidden;
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   color: var(--lf-color-text-primary);
   border: 1px solid transparent;
   background: transparent;
+  box-sizing: border-box;
 }
 
 textarea.mention-composer-input {

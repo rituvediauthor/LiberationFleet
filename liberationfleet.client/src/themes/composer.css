@@ -15,12 +15,12 @@
   overflow-wrap: anywhere;
   word-break: break-word;
   resize: none;
-  field-sizing: fixed;
   box-sizing: border-box;
 }
 
 .composer-input-row .comment-input:not(.expanded),
 .composer-input-row .message-input:not(.expanded) {
+  field-sizing: fixed;
   height: 40px;
   max-height: 40px;
   min-height: 40px;
@@ -32,6 +32,8 @@
 
 .composer-input-row .comment-input.expanded,
 .composer-input-row .message-input.expanded {
+  /* Grow with content up to the cap; never let the control stretch the footer further. */
+  field-sizing: content;
   height: auto;
   min-height: 72px;
   max-height: 160px;
@@ -87,11 +89,24 @@
   cursor: default;
 }
 
+.composer,
+.comment-composer {
+  min-width: 0;
+}
+
 .composer.expanded,
 .comment-composer.expanded {
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+/* Mention shell is inserted around the textarea; keep it from stretching the action bar. */
+.composer-input-row > .mention-composer-shell {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .message-attachment-picker,
