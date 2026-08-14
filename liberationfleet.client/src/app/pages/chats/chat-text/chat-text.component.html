@@ -73,9 +73,7 @@
         <app-proposal-attachment-display
           [attachments]="message.resolvedAttachments ?? []"
           [compact]="true"
-          [canDelete]="canModerateAttachments"
-          [crewId]="crewId"
-          (attachmentDeleted)="onAttachmentDeleted($event, message)">
+          [crewId]="crewId">
         </app-proposal-attachment-display>
       </article>
     </div>
