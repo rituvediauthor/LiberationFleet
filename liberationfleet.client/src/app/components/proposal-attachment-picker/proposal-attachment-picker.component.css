@@ -10,20 +10,32 @@
 .encrypt-toggle {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
   font-size: 13px;
   color: var(--lf-color-text-secondary, #555);
   cursor: pointer;
   user-select: none;
 }
 
-.encrypt-toggle input {
-  margin: 0;
+.encrypt-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.encrypt-toggle-icon {
-  display: none;
+.encrypt-toggle-icon.fa-lock {
+  transform: translateY(1px);
 }
 
 :host-context(.composer-tools) {
@@ -64,7 +76,6 @@
   color: var(--lf-color-text-inverse);
 }
 
-:host-context(.composer-tools) .encrypt-toggle input,
 :host-context(.composer-tools) .encrypt-toggle-text {
   position: absolute;
   width: 1px;
@@ -79,6 +90,17 @@
 
 :host-context(.composer-tools) .encrypt-toggle-icon {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+:host-context(.composer-tools) .encrypt-toggle-icon.fa-lock {
+  /* FA lock shackle sits high in the em box; nudge to optical center. */
+  transform: translateY(1px);
 }
 
 :host-context(.composer-tools) .recording-panel,

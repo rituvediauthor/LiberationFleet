@@ -25,23 +25,23 @@
       (click)="startRecording()">
       <i class="fa-solid fa-microphone" aria-hidden="true"></i>
     </button>
-    <label
+    <button
+      type="button"
       class="encrypt-toggle"
       *ngIf="showEncryptToggle && canAddMore"
       [class.active]="encryptAttachments"
+      (mousedown)="$event.preventDefault()"
+      (click)="onEncryptToggle()"
+      [attr.aria-pressed]="encryptAttachments"
       [attr.aria-label]="encryptAttachments ? 'Disable encryption for attached files' : 'Encrypt attached files'"
       [title]="encryptAttachments ? 'Attached files will be encrypted' : 'Attached files will not be encrypted'">
-      <input
-        type="checkbox"
-        [checked]="encryptAttachments"
-        (change)="onEncryptToggle($event)" />
       <i
         class="fa-solid encrypt-toggle-icon"
         [class.fa-lock]="encryptAttachments"
         [class.fa-lock-open]="!encryptAttachments"
         aria-hidden="true"></i>
       <span class="encrypt-toggle-text">Encrypt attached files</span>
-    </label>
+    </button>
   </div>
 
   <div class="recording-panel" *ngIf="canRecordAudio && audioRecorder.isRecording">

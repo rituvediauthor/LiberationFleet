@@ -134,9 +134,11 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     this.setFileDialogOpen(false);
   }
 
-  onEncryptToggle(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.encryptAttachments = input.checked;
+  onEncryptToggle() {
+    this.encryptAttachments = !this.encryptAttachments;
+    this.toastService.info(
+      this.encryptAttachments ? 'Encrypting attachments' : 'Not encrypting attachments'
+    );
   }
 
   private async addSelectedFiles(files: File[]) {
