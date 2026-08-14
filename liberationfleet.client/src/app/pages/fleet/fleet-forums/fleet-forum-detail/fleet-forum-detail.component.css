@@ -282,7 +282,8 @@ h1 {
 }
 
 .comment-input.expanded {
-  height: 72px;
+  field-sizing: content;
+  height: auto;
   min-height: 72px;
   max-height: 160px;
   overflow-x: hidden;
