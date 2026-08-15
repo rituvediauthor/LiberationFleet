@@ -373,7 +373,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       resourceId: attachment.resourceId,
       type: attachment.type,
       fileName: attachment.fileName,
-      mimeType: attachment.mimeType
+      mimeType: attachment.mimeType,
+      encrypted: attachment.encrypted,
+      posterResourceId: attachment.posterResourceId
     }));
     this.messageAttachments = [];
     this.composerUiMinimized = false;
@@ -690,13 +692,14 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           this.messages = this.crewId > 0
             ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
+          this.loading = false;
           if (scrollToBottom && !this.highlightSeekActive) {
             setTimeout(() => this.scrollToBottom(), 0);
           }
           this.continueHighlightSeek();
+          void this.resolveLoadedMessageAttachments();
         } catch (error: unknown) {
           this.loadError = error instanceof Error ? error.message : 'Failed to decrypt messages';
-        } finally {
           this.loading = false;
         }
       },
@@ -733,6 +736,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
             ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
           this.messages = [...older, ...this.messages];
+          this.loadingOlder = false;
           if (preserveScroll && !options?.forHighlightSeek) {
             setTimeout(() => {
               if (scrollEl) {
@@ -743,7 +747,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           if (options?.forHighlightSeek) {
             this.continueHighlightSeek();
           }
-        } finally {
+          void this.resolveLoadedMessageAttachments();
+        } catch {
           this.loadingOlder = false;
         }
       },
@@ -755,6 +760,20 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         this.highlightSeekActive = false;
       }
     });
+  }
+
+  /** Fill video/image URLs after text is already on screen. */
+  private async resolveLoadedMessageAttachments(): Promise<void> {
+    const scope = this.getCryptoScope();
+    if (!scope.crewId && !scope.fleetId) {
+      return;
+    }
+    try {
+      const resolved = await this.chatCrypto.resolveMessageAttachments(this.messages, scope);
+      this.messages = resolved;
+    } catch {
+      // Media resolve is best-effort; text already rendered.
+    }
   }
 
   private continueHighlightSeek() {

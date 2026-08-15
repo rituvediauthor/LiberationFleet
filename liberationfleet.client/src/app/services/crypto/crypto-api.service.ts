@@ -238,6 +238,34 @@ export class CryptoApiService {
   }
 
   /**
+   * Envelope nonce / key version only (no ciphertext body).
+   * Used to choose plain streaming vs encrypted full download.
+   */
+  getEncryptedContentMeta(
+    contentType: EncryptedContentType,
+    resourceId: string,
+    crewId?: number | null,
+    fleetId?: number | null
+  ): Observable<{ resourceId: string; keyVersion: number; nonce: string }> {
+    let params = new HttpParams()
+      .set('contentType', contentType)
+      .set('resourceId', resourceId);
+
+    if (crewId != null) {
+      params = params.set('crewId', crewId.toString());
+    }
+
+    if (fleetId != null) {
+      params = params.set('fleetId', fleetId.toString());
+    }
+
+    return this.http.get<{ resourceId: string; keyVersion: number; nonce: string }>(
+      `${this.apiUrl}/content/meta`,
+      { params }
+    );
+  }
+
+  /**
    * Raw AES-GCM ciphertext bytes for one media resource (avoids multi‑MB JSON base64).
    * Nonce / keyVersion / resourceId come from X-LF-* response headers.
    */

@@ -500,10 +500,14 @@ export class ProposalCryptoService {
     }
 
     const dataUrlByResourceId = new Map<string, string>();
+    const attachmentByResourceId = new Map(
+      attachments.map(attachment => [attachment.resourceId, attachment] as const)
+    );
+
     for (const [contentType, bucket] of grouped.entries()) {
       const pendingIds: string[] = [];
       for (const attachment of bucket) {
-        // Unencrypted video: stream via Range-capable endpoint (no full-file download).
+        // Known-plain video: stream only — never fall through to full /content/bytes.
         if (attachment.type === 'video' && attachment.encrypted === false) {
           const streamUrl = this.tryBuildPlainMediaStreamUrl(
             contentType as EncryptedContentType,
@@ -512,8 +516,8 @@ export class ProposalCryptoService {
           );
           if (streamUrl) {
             dataUrlByResourceId.set(attachment.resourceId, streamUrl);
-            continue;
           }
+          continue;
         }
 
         const cachedUrl = await this.tryCachedMediaUrl(
@@ -537,7 +541,50 @@ export class ProposalCryptoService {
         || bucket.some(attachment => attachment.encrypted === false);
 
       if (useBinaryDownload) {
+        // Probe nonce first for video/audio so plain envelopes stream instead of
+        // downloading up to ~600 MB into memory (which never meaningfully finishes).
+        const downloadIds: string[] = [];
         await Promise.all(pendingIds.map(async resourceId => {
+          const attachment = attachmentByResourceId.get(resourceId);
+          const shouldProbe = contentType === 'VideoAsset'
+            || contentType === 'AudioAsset'
+            || attachment?.encrypted === false;
+          if (!shouldProbe) {
+            downloadIds.push(resourceId);
+            return;
+          }
+
+          try {
+            const meta = await firstValueFrom(
+              this.cryptoApi.getEncryptedContentMeta(
+                contentType as EncryptedContentType,
+                resourceId,
+                normalizedScope.crewId,
+                normalizedScope.fleetId
+              )
+            );
+            if (meta.nonce === MEDIA_PLAIN_NONCE) {
+              const streamUrl = this.tryBuildPlainMediaStreamUrl(
+                contentType as EncryptedContentType,
+                meta.resourceId || resourceId,
+                normalizedScope
+              );
+              if (streamUrl) {
+                dataUrlByResourceId.set(meta.resourceId || resourceId, streamUrl);
+              }
+              // Plain but no token / stream URL: skip — do not full-download.
+              return;
+            }
+            downloadIds.push(resourceId);
+          } catch {
+            // Meta unavailable — only full-download when the attachment is not marked plain.
+            if (attachment?.encrypted !== false) {
+              downloadIds.push(resourceId);
+            }
+          }
+        }));
+
+        await Promise.all(downloadIds.map(async resourceId => {
           try {
             const payload = await firstValueFrom(
               this.cryptoApi.getEncryptedContentBytes(
@@ -547,9 +594,21 @@ export class ProposalCryptoService {
                 normalizedScope.fleetId
               )
             );
-            const scopeKey = payload.nonce === MEDIA_PLAIN_NONCE
-              ? null
-              : await getScopeKey();
+
+            // Safety net: if bytes endpoint still returns a plain envelope, stream instead.
+            if (payload.nonce === MEDIA_PLAIN_NONCE) {
+              const streamUrl = this.tryBuildPlainMediaStreamUrl(
+                contentType as EncryptedContentType,
+                payload.resourceId || resourceId,
+                normalizedScope
+              );
+              if (streamUrl) {
+                dataUrlByResourceId.set(payload.resourceId || resourceId, streamUrl);
+              }
+              return;
+            }
+
+            const scopeKey = await getScopeKey();
             const url = await this.decryptMediaBytesCached(
               scopeKey,
               normalizedScope,
@@ -671,10 +730,37 @@ export class ProposalCryptoService {
         : 'VideoAsset';
 
     try {
-      if (attachment.type === 'video' && attachment.encrypted === false) {
-        const streamUrl = this.tryBuildPlainMediaStreamUrl(contentType, attachment.resourceId, scope);
-        if (streamUrl) {
-          return { ...attachment, dataUrl: streamUrl };
+      if (attachment.type === 'video') {
+        if (attachment.encrypted === false) {
+          const streamUrl = this.tryBuildPlainMediaStreamUrl(contentType, attachment.resourceId, scope);
+          if (streamUrl) {
+            return { ...attachment, dataUrl: streamUrl };
+          }
+          return { ...attachment };
+        }
+
+        try {
+          const meta = await firstValueFrom(
+            this.cryptoApi.getEncryptedContentMeta(
+              contentType,
+              attachment.resourceId,
+              scope.crewId,
+              scope.fleetId
+            )
+          );
+          if (meta.nonce === MEDIA_PLAIN_NONCE) {
+            const streamUrl = this.tryBuildPlainMediaStreamUrl(
+              contentType,
+              meta.resourceId || attachment.resourceId,
+              scope
+            );
+            if (streamUrl) {
+              return { ...attachment, dataUrl: streamUrl, encrypted: false };
+            }
+            return { ...attachment, encrypted: false };
+          }
+        } catch {
+          // Fall through to encrypted download path.
         }
       }
 
@@ -693,8 +779,19 @@ export class ProposalCryptoService {
             scope.fleetId
           )
         );
+        if (payload.nonce === MEDIA_PLAIN_NONCE) {
+          const streamUrl = this.tryBuildPlainMediaStreamUrl(
+            contentType,
+            payload.resourceId || attachment.resourceId,
+            scope
+          );
+          if (streamUrl) {
+            return { ...attachment, dataUrl: streamUrl, encrypted: false };
+          }
+          return { ...attachment, encrypted: false };
+        }
         const url = await this.decryptMediaBytesCached(
-          payload.nonce === MEDIA_PLAIN_NONCE ? null : scopeKey,
+          scopeKey,
           scope,
           payload.resourceId || attachment.resourceId,
           payload.keyVersion,

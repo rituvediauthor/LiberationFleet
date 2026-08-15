@@ -254,7 +254,9 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
       resourceId: attachment.resourceId,
       type: attachment.type,
       fileName: attachment.fileName,
-      mimeType: attachment.mimeType
+      mimeType: attachment.mimeType,
+      encrypted: attachment.encrypted,
+      posterResourceId: attachment.posterResourceId
     }));
     this.messageAttachments = [];
     this.composerUiMinimized = false;
@@ -386,12 +388,13 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
           this.messages = this.crewId > 0
             ? await this.decryptMessages(response.items ?? [])
             : response.items ?? [];
+          this.loading = false;
           if (scrollToBottom) {
             setTimeout(() => this.scrollToBottom(), 0);
           }
+          void this.resolveLoadedMessageAttachments();
         } catch (error: unknown) {
           this.loadError = error instanceof Error ? error.message : 'Failed to decrypt messages';
-        } finally {
           this.loading = false;
         }
       },
@@ -424,12 +427,14 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
             ? await this.decryptMessages(response.items ?? [])
             : response.items ?? [];
           this.messages = [...older, ...this.messages];
+          this.loadingOlder = false;
           setTimeout(() => {
             if (scrollEl) {
               scrollEl.scrollTop = scrollEl.scrollHeight - previousHeight;
             }
           }, 0);
-        } finally {
+          void this.resolveLoadedMessageAttachments();
+        } catch {
           this.loadingOlder = false;
         }
       },
@@ -438,6 +443,21 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
         this.toastService.error('Failed to load older messages');
       }
     });
+  }
+
+  private async resolveLoadedMessageAttachments(): Promise<void> {
+    if (this.crewId <= 0) {
+      return;
+    }
+    try {
+      const resolved = await this.chatCrypto.resolveMessageAttachments(
+        this.messages,
+        { crewId: this.crewId }
+      );
+      this.messages = resolved as DirectMessage[];
+    } catch {
+      // Media resolve is best-effort; text already rendered.
+    }
   }
 
   private async decryptMessages(messages: DirectMessage[]): Promise<DirectMessage[]> {

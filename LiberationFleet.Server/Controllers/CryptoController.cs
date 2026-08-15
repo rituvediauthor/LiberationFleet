@@ -9,6 +9,7 @@ using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewPublicKeys;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContentBytes;
+using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContentMeta;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContents;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetPublicKeys;
@@ -206,6 +207,26 @@ public class CryptoController : ControllerBase
         Response.Headers["X-LF-KeyVersion"] = result.KeyVersion.ToString();
         Response.Headers["X-LF-ResourceId"] = result.ResourceId;
         return File(result.CiphertextBytes, "application/octet-stream");
+    }
+
+    /// <summary>
+    /// Envelope nonce / key version only — does not load ciphertext.
+    /// Clients use this to choose plain streaming vs encrypted download.
+    /// </summary>
+    [HttpGet("content/meta")]
+    public async Task<IActionResult> GetEncryptedContentMeta(
+        [FromQuery] EncryptedContentTypeDto contentType,
+        [FromQuery] string resourceId,
+        [FromQuery] int? crewId = null,
+        [FromQuery] int? fleetId = null)
+    {
+        var result = await _mediator.Send(new GetEncryptedContentMetaQuery(contentType, resourceId, crewId, fleetId));
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result);
     }
 
     /// <summary>
