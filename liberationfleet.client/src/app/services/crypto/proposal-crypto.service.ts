@@ -20,7 +20,8 @@ import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-co
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 import { buildPlainMediaPayload, MEDIA_PLAIN_NONCE } from '../../utils/media-chunk-crypto.util';
 import { MediaUploadQueueService } from '../media-upload-queue.service';
-import { AuthService } from '../auth.service';
+import { AppStorageService, StorageScope } from '../storage/app-storage.service';
+import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from '../storage/storage-keys';
 
 export interface ProposalCryptoScope {
   crewId?: number;
@@ -39,7 +40,7 @@ export class ProposalCryptoService {
   private cryptoSession = inject(CryptoSessionService);
   private mediaBlobCache = inject(MediaBlobCacheService);
   private uploadQueue = inject(MediaUploadQueueService);
-  private authService = inject(AuthService);
+  private storage = inject(AppStorageService);
   private readonly videoPrefetchInFlight = new Set<string>();
 
   async decryptListItems(items: ProposalListItem[], scope: ProposalCryptoScope | number): Promise<ProposalListItem[]> {
@@ -932,7 +933,7 @@ export class ProposalCryptoService {
     resourceId: string,
     scope: ProposalCryptoScope
   ): string | null {
-    const accessToken = this.authService.getToken();
+    const accessToken = this.readAccessToken();
     if (!accessToken || !resourceId) {
       return null;
     }
@@ -944,6 +945,18 @@ export class ProposalCryptoService {
       crewId: scope.crewId,
       fleetId: scope.fleetId
     });
+  }
+
+  /**
+   * Read the JWT without injecting AuthService — AuthService depends on
+   * EncryptedImageCacheService which depends on this service (circular DI).
+   */
+  private readAccessToken(): string | null {
+    const remember = this.storage.get(StorageScope.Persistent, REMEMBER_LOGIN_STORAGE_KEY);
+    const preferredScope = remember !== 'false' ? StorageScope.Persistent : StorageScope.Session;
+    return this.storage.get(preferredScope, AUTH_TOKEN_STORAGE_KEY)
+      ?? this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY)
+      ?? this.storage.get(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY);
   }
 
   private async decryptMediaCached(
