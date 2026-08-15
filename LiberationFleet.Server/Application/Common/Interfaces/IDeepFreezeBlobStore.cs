@@ -17,5 +17,11 @@ public interface IDeepFreezeBlobStore
 
     Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Open a seekable read stream over a raw binary blob (for Range / progressive playback).
+    /// Caller owns the returned stream.
+    /// </summary>
+    Task<(Stream Stream, long Length)?> OpenReadAsync(string blobPath, CancellationToken cancellationToken = default);
+
     Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default);
 }

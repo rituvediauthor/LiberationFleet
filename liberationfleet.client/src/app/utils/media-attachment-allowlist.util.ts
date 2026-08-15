@@ -252,8 +252,26 @@ export function isSafeMediaDataUrl(dataUrl: string | null | undefined): boolean 
   if (dataUrl.startsWith('blob:')) {
     return true;
   }
+  // Progressive plain-media stream (Range-capable API; same-origin or configured apiBaseUrl).
+  if (isPlainMediaStreamUrl(dataUrl)) {
+    return true;
+  }
   const lower = dataUrl.slice(0, 64).toLowerCase();
   return SAFE_DATA_URL_PREFIXES.some(prefix => lower.startsWith(prefix));
+}
+
+/** Authenticated progressive playback URL for unencrypted video/audio. */
+export function isPlainMediaStreamUrl(url: string): boolean {
+  const marker = '/api/crypto/content/plain-media';
+  if (url.startsWith(`${marker}?`) || url === marker) {
+    return true;
+  }
+  try {
+    const parsed = new URL(url, 'http://local.invalid');
+    return parsed.pathname === marker || parsed.pathname.endsWith(marker);
+  } catch {
+    return false;
+  }
 }
 
 function kindFromAllowedMime(mime: string): AttachmentMediaKind | null {

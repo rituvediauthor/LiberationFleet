@@ -49,6 +49,25 @@ public sealed class LocalDeepFreezeBlobStore(IOptions<MediaDeepFreezeOptions> op
         return await File.ReadAllBytesAsync(fullPath, cancellationToken);
     }
 
+    public Task<(Stream Stream, long Length)?> OpenReadAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fullPath = ResolvePath(blobPath);
+        if (!File.Exists(fullPath))
+        {
+            return Task.FromResult<(Stream Stream, long Length)?>(null);
+        }
+
+        var stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 64 * 1024,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+        return Task.FromResult<(Stream Stream, long Length)?>((stream, stream.Length));
+    }
+
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default)
     {
         var fullPath = ResolvePath(blobPath);

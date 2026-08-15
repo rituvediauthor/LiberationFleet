@@ -88,6 +88,20 @@ public sealed class AzureDeepFreezeBlobStore : IDeepFreezeBlobStore
         return response.Value.Content.ToArray();
     }
 
+    public async Task<(Stream Stream, long Length)?> OpenReadAsync(string blobPath, CancellationToken cancellationToken = default)
+    {
+        var container = EnsureContainer();
+        var blob = container.GetBlobClient(blobPath);
+        if (!await blob.ExistsAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        var props = await blob.GetPropertiesAsync(cancellationToken: cancellationToken);
+        var stream = await blob.OpenReadAsync(cancellationToken: cancellationToken);
+        return (stream, props.Value.ContentLength);
+    }
+
     public async Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default)
     {
         var container = EnsureContainer();

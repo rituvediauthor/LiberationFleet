@@ -20,6 +20,9 @@ public sealed class NullDeepFreezeBlobStore : IDeepFreezeBlobStore
     public Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Task.FromResult<byte[]?>(null);
 
+    public Task<(Stream Stream, long Length)?> OpenReadAsync(string blobPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult<(Stream Stream, long Length)?>(null);
+
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 }
@@ -45,6 +48,9 @@ public sealed class DeepFreezeBlobStoreRouter(
 
     public Task<byte[]?> DownloadBytesAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Active.DownloadBytesAsync(blobPath, cancellationToken);
+
+    public Task<(Stream Stream, long Length)?> OpenReadAsync(string blobPath, CancellationToken cancellationToken = default) =>
+        Active.OpenReadAsync(blobPath, cancellationToken);
 
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Active.DeleteAsync(blobPath, cancellationToken);

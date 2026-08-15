@@ -20,6 +20,7 @@ import { compressMediaFile, extractVideoPosterFrame } from '../../utils/media-co
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
 import { buildPlainMediaPayload, MEDIA_PLAIN_NONCE } from '../../utils/media-chunk-crypto.util';
 import { MediaUploadQueueService } from '../media-upload-queue.service';
+import { AuthService } from '../auth.service';
 
 export interface ProposalCryptoScope {
   crewId?: number;
@@ -38,6 +39,7 @@ export class ProposalCryptoService {
   private cryptoSession = inject(CryptoSessionService);
   private mediaBlobCache = inject(MediaBlobCacheService);
   private uploadQueue = inject(MediaUploadQueueService);
+  private authService = inject(AuthService);
   private readonly videoPrefetchInFlight = new Set<string>();
 
   async decryptListItems(items: ProposalListItem[], scope: ProposalCryptoScope | number): Promise<ProposalListItem[]> {
@@ -251,7 +253,7 @@ export class ProposalCryptoService {
       const attachments = payload.attachments ?? [];
       if (videoPrefetchQueue) {
         for (const attachment of attachments) {
-          if (attachment.type === 'video' && attachment.resourceId) {
+          if (attachment.type === 'video' && attachment.resourceId && attachment.encrypted !== false) {
             videoPrefetchQueue.push(attachment);
           }
         }
@@ -499,24 +501,40 @@ export class ProposalCryptoService {
 
     const dataUrlByResourceId = new Map<string, string>();
     for (const [contentType, bucket] of grouped.entries()) {
-      const resourceIds = bucket.map(attachment => attachment.resourceId);
-      const useBinaryDownload = contentType === 'VideoAsset'
-        || contentType === 'AudioAsset'
-        || bucket.some(attachment => attachment.encrypted === false);
-
       const pendingIds: string[] = [];
-      for (const resourceId of resourceIds) {
-        const cachedUrl = await this.tryCachedMediaUrl(normalizedScope, resourceId, sessionKeyVersion);
+      for (const attachment of bucket) {
+        // Unencrypted video: stream via Range-capable endpoint (no full-file download).
+        if (attachment.type === 'video' && attachment.encrypted === false) {
+          const streamUrl = this.tryBuildPlainMediaStreamUrl(
+            contentType as EncryptedContentType,
+            attachment.resourceId,
+            normalizedScope
+          );
+          if (streamUrl) {
+            dataUrlByResourceId.set(attachment.resourceId, streamUrl);
+            continue;
+          }
+        }
+
+        const cachedUrl = await this.tryCachedMediaUrl(
+          normalizedScope,
+          attachment.resourceId,
+          sessionKeyVersion
+        );
         if (cachedUrl) {
-          dataUrlByResourceId.set(resourceId, cachedUrl);
+          dataUrlByResourceId.set(attachment.resourceId, cachedUrl);
         } else {
-          pendingIds.push(resourceId);
+          pendingIds.push(attachment.resourceId);
         }
       }
 
       if (pendingIds.length === 0) {
         continue;
       }
+
+      const useBinaryDownload = contentType === 'VideoAsset'
+        || contentType === 'AudioAsset'
+        || bucket.some(attachment => attachment.encrypted === false);
 
       if (useBinaryDownload) {
         await Promise.all(pendingIds.map(async resourceId => {
@@ -653,6 +671,13 @@ export class ProposalCryptoService {
         : 'VideoAsset';
 
     try {
+      if (attachment.type === 'video' && attachment.encrypted === false) {
+        const streamUrl = this.tryBuildPlainMediaStreamUrl(contentType, attachment.resourceId, scope);
+        if (streamUrl) {
+          return { ...attachment, dataUrl: streamUrl };
+        }
+      }
+
       const sessionKeyVersion = this.resolveScopeKeyVersion(scope);
       const cachedUrl = await this.tryCachedMediaUrl(scope, attachment.resourceId, sessionKeyVersion);
       if (cachedUrl) {
@@ -803,6 +828,25 @@ export class ProposalCryptoService {
       }
     }
     return null;
+  }
+
+  private tryBuildPlainMediaStreamUrl(
+    contentType: EncryptedContentType,
+    resourceId: string,
+    scope: ProposalCryptoScope
+  ): string | null {
+    const accessToken = this.authService.getToken();
+    if (!accessToken || !resourceId) {
+      return null;
+    }
+
+    return this.cryptoApi.buildPlainMediaStreamUrl({
+      contentType,
+      resourceId,
+      accessToken,
+      crewId: scope.crewId,
+      fleetId: scope.fleetId
+    });
   }
 
   private async decryptMediaCached(

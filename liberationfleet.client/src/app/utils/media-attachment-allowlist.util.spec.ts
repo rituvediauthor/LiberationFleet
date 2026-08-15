@@ -99,4 +99,10 @@ describe('media-attachment-allowlist', () => {
     expect(isSafeMediaDataUrl('data:image/svg+xml;base64,aaa')).toBeFalse();
     expect(isSafeMediaDataUrl('data:text/html;base64,aaa')).toBeFalse();
   });
+
+  it('allows authenticated plain-media stream URLs for progressive video playback', () => {
+    expect(isSafeMediaDataUrl('/api/crypto/content/plain-media?resourceId=abc&access_token=t')).toBeTrue();
+    expect(isSafeMediaDataUrl('https://api.example.com/api/crypto/content/plain-media?x=1')).toBeTrue();
+    expect(isSafeMediaDataUrl('/api/crypto/content/bytes?resourceId=abc')).toBeFalse();
+  });
 });

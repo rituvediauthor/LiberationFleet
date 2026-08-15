@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -248,6 +249,110 @@ public sealed class MediaDeepFreezeService(
         catch (FormatException)
         {
             return null;
+        }
+    }
+
+    public async Task<PlainMediaContentStream?> OpenPlainMediaContentAsync(
+        EncryptedContentEnvelope envelope,
+        CancellationToken cancellationToken = default)
+    {
+        if (!PlainMediaFraming.IsPlainNonce(envelope.Nonce))
+        {
+            return null;
+        }
+
+        Stream? rawStream = null;
+        try
+        {
+            long rawLength;
+            if (!string.IsNullOrWhiteSpace(envelope.Ciphertext))
+            {
+                byte[] bytes;
+                try
+                {
+                    bytes = Convert.FromBase64String(envelope.Ciphertext.Trim());
+                }
+                catch (FormatException)
+                {
+                    return null;
+                }
+
+                rawStream = new MemoryStream(bytes, writable: false);
+                rawLength = bytes.Length;
+            }
+            else if (envelope.StorageTier == EncryptedContentStorageTier.DeepFreeze
+                && !string.IsNullOrWhiteSpace(envelope.ColdBlobPath)
+                && blobStore.IsEnabled
+                && IsBinaryBlobPath(envelope.ColdBlobPath))
+            {
+                var opened = await blobStore.OpenReadAsync(envelope.ColdBlobPath, cancellationToken);
+                if (opened is null)
+                {
+                    return null;
+                }
+
+                rawStream = opened.Value.Stream;
+                rawLength = opened.Value.Length;
+            }
+            else if (envelope.StorageTier == EncryptedContentStorageTier.DeepFreeze
+                && !string.IsNullOrWhiteSpace(envelope.ColdBlobPath)
+                && blobStore.IsEnabled)
+            {
+                // Legacy base64 cold blob — fall back to full load into a memory stream.
+                var legacy = await blobStore.DownloadAsync(envelope.ColdBlobPath, cancellationToken);
+                if (string.IsNullOrWhiteSpace(legacy))
+                {
+                    return null;
+                }
+
+                byte[] bytes;
+                try
+                {
+                    bytes = Convert.FromBase64String(legacy.Trim());
+                }
+                catch (FormatException)
+                {
+                    return null;
+                }
+
+                rawStream = new MemoryStream(bytes, writable: false);
+                rawLength = bytes.Length;
+            }
+            else
+            {
+                return null;
+            }
+
+            if (!PlainMediaFraming.TryGetHeader(rawStream, out var mimeType, out var headerLength))
+            {
+                await rawStream.DisposeAsync();
+                return null;
+            }
+
+            var contentLength = rawLength - headerLength;
+            if (contentLength < 0)
+            {
+                await rawStream.DisposeAsync();
+                return null;
+            }
+
+            var contentStream = new BoundedReadStream(rawStream, headerLength, contentLength);
+            rawStream = null; // ownership transferred
+            return new PlainMediaContentStream
+            {
+                ContentStream = contentStream,
+                ContentType = mimeType,
+                ContentLength = contentLength
+            };
+        }
+        catch
+        {
+            if (rawStream is not null)
+            {
+                await rawStream.DisposeAsync();
+            }
+
+            throw;
         }
     }
 
