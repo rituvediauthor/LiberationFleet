@@ -828,7 +828,6 @@ export class ProposalCryptoService {
       }
     }
     return null;
-<<<<<<< HEAD
   }
 
   private tryBuildPlainMediaStreamUrl(
@@ -848,8 +847,6 @@ export class ProposalCryptoService {
       crewId: scope.crewId,
       fleetId: scope.fleetId
     });
-=======
->>>>>>> origin/master
   }
 
   private async decryptMediaCached(
