@@ -1,4 +1,9 @@
-import { decryptMediaCiphertextToBlob, encryptMediaBlobChunked } from './media-chunk-crypto.util';
+import {
+  buildPlainMediaPayload,
+  decryptMediaCiphertextToBlob,
+  encryptMediaBlobChunked,
+  MEDIA_PLAIN_NONCE
+} from './media-chunk-crypto.util';
 
 describe('media-chunk-crypto', () => {
   async function aesKey(): Promise<CryptoKey> {
@@ -24,5 +29,13 @@ describe('media-chunk-crypto', () => {
     expect(outBytes.length).toBe(plain.length);
     expect(Array.from(outBytes.slice(0, 32))).toEqual(Array.from(plain.slice(0, 32)));
     expect(Array.from(outBytes.slice(-32))).toEqual(Array.from(plain.slice(-32)));
+  });
+
+  it('parses unencrypted payloads without an AES key', async () => {
+    const plain = new Uint8Array([1, 2, 3, 4, 5]);
+    const framed = buildPlainMediaPayload(plain, 'video/mp4');
+    const out = await decryptMediaCiphertextToBlob(null, MEDIA_PLAIN_NONCE, framed);
+    expect(out.type).toBe('video/mp4');
+    expect(Array.from(new Uint8Array(await out.arrayBuffer()))).toEqual([1, 2, 3, 4, 5]);
   });
 });
