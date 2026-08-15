@@ -135,8 +135,8 @@ public class CryptoController : ControllerBase
     /// Metadata via query string + X-LF-Nonce header.
     /// </summary>
     [HttpPut("content/bytes")]
-    [RequestSizeLimit(512L * 1024 * 1024)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 512L * 1024 * 1024)]
+    [RequestSizeLimit(640L * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 640L * 1024 * 1024)]
     public async Task<IActionResult> UpsertEncryptedContentBytes(
         [FromQuery] EncryptedContentTypeDto contentType,
         [FromQuery] string resourceId,

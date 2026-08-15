@@ -39,6 +39,30 @@ describe('media-attachment-allowlist', () => {
     expect(huge).toEqual({ ok: false, reason: 'too-large' });
   });
 
+  it('allows unencrypted generic files up to 600 MB and rejects above', () => {
+    const kinds: Array<'image' | 'video' | 'audio' | 'file'> = ['file'];
+    const under = validateAttachmentFile(
+      { name: 'pack.zip', type: 'application/zip', size: 600 * 1024 * 1024 },
+      kinds,
+      { encrypt: false }
+    );
+    expect(under).toEqual({ ok: true, kind: 'file' });
+
+    const over = validateAttachmentFile(
+      { name: 'pack.zip', type: 'application/zip', size: 600 * 1024 * 1024 + 1 },
+      kinds,
+      { encrypt: false }
+    );
+    expect(over).toEqual({ ok: false, reason: 'too-large' });
+
+    const encrypted = validateAttachmentFile(
+      { name: 'pack.zip', type: 'application/zip', size: 101 * 1024 * 1024 },
+      kinds,
+      { encrypt: true }
+    );
+    expect(encrypted).toEqual({ ok: false, reason: 'too-large' });
+  });
+
   it('builds a strict accept attribute without image/* wildcards', () => {
     const accept = defaultAcceptAttribute(['image']);
     expect(accept).toContain('image/jpeg');
