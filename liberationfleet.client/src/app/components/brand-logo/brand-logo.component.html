@@ -4,7 +4,9 @@
   [class.size-md]="size === 'md'"
   [class.size-lg]="size === 'lg'"
   [class.has-custom]="!!customSrc"
-  [class.monochrome]="useGreyscale">
+  [class.monochrome]="useGreyscale"
+  [class.themed]="useThemedMask"
+  [style.--lf-brand-mask]="maskImage">
   <img
     class="logo-image"
     [src]="resolvedSrc"

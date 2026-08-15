@@ -23,7 +23,7 @@
 
 /* Match page-layout / nav-layout: fleet outline only between header and footer. */
 .detail-scroll.scope-fleet {
-  border: 4px solid var(--lf-color-accent-strong);
+  border: 4px solid var(--lf-color-fleet-indicator);
 }
 
 .detail-hero {
