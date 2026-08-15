@@ -29,7 +29,8 @@ export interface PreparedVideoAttachment {
  * Limits adapt by runtime (Capacitor iOS / Android / web) via video-platform.policy:
  *  - With native AVFoundation/MediaCodec or WebCodecs A/V: pick up to 600 MB, compress to ~720p
  *  - Without (encrypted): phone-safe passthrough (~64 MB); desktop can still upload larger originals
- *  - Unencrypted: same 600 MB ceiling as plain file uploads (no phone 64 MB passthrough)
+ *  - Unencrypted: same 600 MB ceiling as plain file uploads; no phone 64 MB passthrough and
+ *    no 720p downscale/refuse — originals upload as-is (duration + byte limits still apply)
  *
  * Never uses canvas/MediaRecorder re-encode (that path dropped audio on iPhone).
  */
@@ -68,38 +69,40 @@ export async function prepareVideoAttachment(
 
   let out = normalizeVideoFile(file);
 
-  // Enforce a hard 720p ceiling: a short but high-res clip (e.g. 1080p under the
-  // byte limit) must still be downscaled instead of uploaded at full resolution.
-  const sourceMaxEdge = await readVideoMaxEdgeSafe(out);
-  const exceeds720p = sourceMaxEdge > VIDEO_MAX_EDGE;
+  // Encrypted path: hard 720p ceiling (downscale when possible, else refuse).
+  // Unencrypted: keep the original resolution — only duration + byte limits apply.
+  if (encrypt) {
+    const sourceMaxEdge = await readVideoMaxEdgeSafe(out);
+    const exceeds720p = sourceMaxEdge > VIDEO_MAX_EDGE;
 
-  if (canCompress) {
-    const mustCompress = exceeds720p || !(await isAlreadyChatSizedVideo(out));
-    if (mustCompress) {
-      throwIfAborted(options?.signal);
-      try {
-        out = await compressVideoForUpload(out, {
-          signal: options?.signal,
-          onProgress: (percent, label) => {
-            const mapped = 20 + Math.round(percent * 0.7);
-            options?.onProgress?.(mapped, label);
+    if (canCompress) {
+      const mustCompress = exceeds720p || !(await isAlreadyChatSizedVideo(out));
+      if (mustCompress) {
+        throwIfAborted(options?.signal);
+        try {
+          out = await compressVideoForUpload(out, {
+            signal: options?.signal,
+            onProgress: (percent, label) => {
+              const mapped = 20 + Math.round(percent * 0.7);
+              options?.onProgress?.(mapped, label);
+            }
+          });
+        } catch (error) {
+          if (isAbortError(error)) {
+            throw error;
           }
-        });
-      } catch (error) {
-        if (isAbortError(error)) {
-          throw error;
+          // Never fall back to the un-downscaled original when the source is >720p.
+          if (exceeds720p || file.size > uploadMaxBytes) {
+            throw new Error(videoCompressFailedMessage({ uploadMaxBytes }));
+          }
+          out = normalizeVideoFile(file);
         }
-        // Never fall back to the un-downscaled original when the source is >720p.
-        if (exceeds720p || file.size > uploadMaxBytes) {
-          throw new Error(videoCompressFailedMessage({ uploadMaxBytes }));
-        }
-        out = normalizeVideoFile(file);
       }
+    } else if (exceeds720p) {
+      // No downscaler available (no WebCodecs A/V, no native plugin) — refuse rather
+      // than crash the upload with a full-resolution HD file.
+      throw new Error(videoResolutionTooHighMessage());
     }
-  } else if (exceeds720p) {
-    // No downscaler available (no WebCodecs A/V, no native plugin) — refuse rather
-    // than crash the upload with a full-resolution HD file.
-    throw new Error(videoResolutionTooHighMessage());
   }
 
   if (out.size > uploadMaxBytes) {
