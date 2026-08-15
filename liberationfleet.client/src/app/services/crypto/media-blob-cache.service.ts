@@ -10,6 +10,17 @@ const STORE_NAME = 'blobs';
 const MAX_ENTRIES = 50;
 const MAX_TOTAL_BYTES = 250 * 1024 * 1024;
 
+/**
+ * Skip caching individual blobs larger than this.
+ * Unencrypted videos can be hundreds of MB; copying them into IndexedDB
+ * (via arrayBuffer) freezes playback and often OOMs mobile Safari.
+ */
+export const MAX_CACHEABLE_MEDIA_ENTRY_BYTES = 32 * 1024 * 1024;
+
+export function shouldCacheMediaBlob(sizeBytes: number): boolean {
+  return sizeBytes > 0 && sizeBytes <= MAX_CACHEABLE_MEDIA_ENTRY_BYTES;
+}
+
 interface MediaCacheRecord {
   key: string;
   /** Raw bytes — do not store Blob; iOS home-screen Safari returns empty Blobs after relaunch. */
@@ -107,7 +118,7 @@ export class MediaBlobCacheService {
 
   async put(key: string, blob: Blob, mime?: string): Promise<void> {
     try {
-      if (!blob || blob.size === 0) {
+      if (!blob || !shouldCacheMediaBlob(blob.size)) {
         return;
       }
 
