@@ -50,10 +50,47 @@ export class ChatCryptoService {
   }
 
   async decryptMessages(messages: ChatMessage[], scope: ChatCryptoScope): Promise<ChatMessage[]> {
-    return Promise.all(messages.map(message => this.decryptSingleMessage(message, scope)));
+    // Text/metadata only — callers should invoke resolveMessageAttachments afterward so
+    // media work cannot block the room loading spinner.
+    return Promise.all(
+      messages.map(message => this.decryptSingleMessage(message, scope, { resolveAttachments: false }))
+    );
   }
 
-  async decryptSingleMessage(message: ChatMessage, scope: ChatCryptoScope): Promise<ChatMessage> {
+  /** Resolve attachment media URLs for messages that already have decrypted text. */
+  async resolveMessageAttachments(messages: ChatMessage[], scope: ChatCryptoScope): Promise<ChatMessage[]> {
+    if (!(scope.crewId || scope.fleetId)) {
+      return messages;
+    }
+
+    return Promise.all(
+      messages.map(async message => {
+        const attachments = message.resolvedAttachments;
+        if (!attachments?.length) {
+          return message;
+        }
+        // Already has playable/stream URLs.
+        if (attachments.every(attachment => !!attachment.dataUrl || attachment.type === 'file')) {
+          return message;
+        }
+        try {
+          const resolvedAttachments = await this.proposalCrypto.decryptAttachments(
+            scope.crewId ? { crewId: scope.crewId } : { fleetId: scope.fleetId },
+            attachments
+          );
+          return { ...message, resolvedAttachments };
+        } catch {
+          return message;
+        }
+      })
+    );
+  }
+
+  async decryptSingleMessage(
+    message: ChatMessage,
+    scope: ChatCryptoScope,
+    options?: { resolveAttachments?: boolean }
+  ): Promise<ChatMessage> {
     if (!message.hasEncryptedContent || !message.encryptedPayload) {
       return message;
     }
@@ -67,7 +104,7 @@ export class ChatCryptoService {
     }
 
     const scopeKey = await this.resolveScopeKey(scope);
-    return this.decryptMessage(message, scopeKey, scope);
+    return this.decryptMessage(message, scopeKey, scope, options);
   }
 
   async encryptMessagePayload(
@@ -78,12 +115,12 @@ export class ChatCryptoService {
     existingAttachments: ProposalAttachment[] = []
   ): Promise<{ nonce: string; ciphertext: string }> {
     if (scope.fleetId) {
-      const fleetKey = await this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
-      return this.cryptoService.encryptJson(fleetKey, {
-        body,
-        authorDisplayName,
-        attachments: existingAttachments
-      });
+      return this.proposalCrypto.encryptCommentPayload(
+        { fleetId: scope.fleetId },
+        { body, authorDisplayName },
+        newAttachments,
+        existingAttachments
+      );
     }
 
     return this.proposalCrypto.encryptCommentPayload(
@@ -126,7 +163,8 @@ export class ChatCryptoService {
   private async decryptMessage(
     message: ChatMessage,
     scopeKey: CryptoKey,
-    scope: ChatCryptoScope
+    scope: ChatCryptoScope,
+    options?: { resolveAttachments?: boolean }
   ): Promise<ChatMessage> {
     if (!message.hasEncryptedContent || !message.encryptedPayload) {
       return message;
@@ -139,9 +177,13 @@ export class ChatCryptoService {
         message.encryptedPayload.ciphertext
       );
       const attachments = payload.attachments ?? [];
-      const resolvedAttachments = scope.crewId
-        ? await this.proposalCrypto.decryptAttachments(scope.crewId, attachments)
-        : [];
+      const resolveAttachments = options?.resolveAttachments !== false;
+      const resolvedAttachments = resolveAttachments && (scope.crewId || scope.fleetId)
+        ? await this.proposalCrypto.decryptAttachments(
+          scope.crewId ? { crewId: scope.crewId } : { fleetId: scope.fleetId },
+          attachments
+        )
+        : attachments;
       return {
         ...message,
         body: payload.body,

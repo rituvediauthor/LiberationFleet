@@ -9,10 +9,12 @@ using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetCrewPublicKeys;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContentBytes;
+using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContentMeta;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContents;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetKeyState;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetFleetPublicKeys;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetMyPrivateKeyBackup;
+using LiberationFleet.Server.Application.Features.Crypto.Queries.GetPlainMediaStream;
 using LiberationFleet.Server.Application.Features.Crypto.Queries.GetPublicKey;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -205,6 +207,48 @@ public class CryptoController : ControllerBase
         Response.Headers["X-LF-KeyVersion"] = result.KeyVersion.ToString();
         Response.Headers["X-LF-ResourceId"] = result.ResourceId;
         return File(result.CiphertextBytes, "application/octet-stream");
+    }
+
+    /// <summary>
+    /// Envelope nonce / key version only — does not load ciphertext.
+    /// Clients use this to choose plain streaming vs encrypted download.
+    /// </summary>
+    [HttpGet("content/meta")]
+    public async Task<IActionResult> GetEncryptedContentMeta(
+        [FromQuery] EncryptedContentTypeDto contentType,
+        [FromQuery] string resourceId,
+        [FromQuery] int? crewId = null,
+        [FromQuery] int? fleetId = null)
+    {
+        var result = await _mediator.Send(new GetEncryptedContentMetaQuery(contentType, resourceId, crewId, fleetId));
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Progressive / Range stream of an unencrypted (<c>__plain__</c>) video/audio payload
+    /// with the MIME framing header stripped. Accepts Bearer via header or
+    /// <c>?access_token=</c> (for HTML5 media elements that cannot set Authorization).
+    /// </summary>
+    [HttpGet("content/plain-media")]
+    public async Task<IActionResult> GetPlainMediaStream(
+        [FromQuery] EncryptedContentTypeDto contentType,
+        [FromQuery] string resourceId,
+        [FromQuery] int? crewId = null,
+        [FromQuery] int? fleetId = null)
+    {
+        var result = await _mediator.Send(new GetPlainMediaStreamQuery(contentType, resourceId, crewId, fleetId));
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        // FileStreamResult disposes the stream when the response completes.
+        return File(result.ContentStream, result.ContentType, enableRangeProcessing: true);
     }
 
     [HttpDelete("content")]

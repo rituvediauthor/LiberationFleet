@@ -8,19 +8,30 @@
 }
 
 .encrypt-toggle {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  width: 36px;
+  height: 36px;
   margin: 0;
   padding: 0;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--lf-color-accent-border);
+  border-radius: 8px;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
   font: inherit;
-  font-size: 13px;
-  color: var(--lf-color-text-secondary, #555);
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
   cursor: pointer;
   user-select: none;
+}
+
+.encrypt-toggle.active {
+  background: var(--lf-color-accent);
+  border-color: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .encrypt-toggle-icon {
@@ -35,7 +46,20 @@
 }
 
 .encrypt-toggle-icon.fa-lock {
+  /* FA lock shackle sits high in the em box; nudge to optical center. */
   transform: translateY(1px);
+}
+
+.encrypt-toggle-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 :host-context(.composer-tools) {
@@ -50,57 +74,6 @@
 :host-context(.composer-tools) .attachment-picker,
 :host-context(.composer-tools) .attachment-actions {
   display: contents;
-}
-
-:host-context(.composer-tools) .encrypt-toggle {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--lf-color-accent-border);
-  border-radius: 8px;
-  background: var(--lf-color-accent-soft-bg-alt);
-  color: var(--lf-color-accent);
-  font-size: 15px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-:host-context(.composer-tools) .encrypt-toggle.active {
-  background: var(--lf-color-accent);
-  border-color: var(--lf-color-accent);
-  color: var(--lf-color-text-inverse);
-}
-
-:host-context(.composer-tools) .encrypt-toggle-text {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-:host-context(.composer-tools) .encrypt-toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  font-size: 15px;
-  line-height: 1;
-}
-
-:host-context(.composer-tools) .encrypt-toggle-icon.fa-lock {
-  /* FA lock shackle sits high in the em box; nudge to optical center. */
-  transform: translateY(1px);
 }
 
 :host-context(.composer-tools) .recording-panel,

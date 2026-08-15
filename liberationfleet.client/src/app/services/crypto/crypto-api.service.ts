@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEventType, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import {
@@ -10,14 +10,40 @@ import {
   UserKeyBundle,
   UserPrivateKeyBackup
 } from '../../models/crypto.model';
+import { ApiUrlService } from '../api-url.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CryptoApiService {
   private readonly apiUrl = '/api/crypto';
+  private readonly apiUrls = inject(ApiUrlService);
 
   constructor(private http: HttpClient) {}
+
+  /**
+   * Progressive playback URL for unencrypted (`__plain__`) video/audio.
+   * Uses `access_token` query so HTML5 media elements can Range-request without Authorization.
+   */
+  buildPlainMediaStreamUrl(options: {
+    contentType: EncryptedContentType;
+    resourceId: string;
+    accessToken: string;
+    crewId?: number | null;
+    fleetId?: number | null;
+  }): string {
+    const params = new URLSearchParams();
+    params.set('contentType', options.contentType);
+    params.set('resourceId', options.resourceId);
+    if (options.crewId != null && options.crewId > 0) {
+      params.set('crewId', String(options.crewId));
+    }
+    if (options.fleetId != null && options.fleetId > 0) {
+      params.set('fleetId', String(options.fleetId));
+    }
+    params.set('access_token', options.accessToken);
+    return this.apiUrls.resolveApi(`${this.apiUrl}/content/plain-media?${params.toString()}`);
+  }
 
   upsertPublicKey(identityPublicKey: string, keyVersion = 1): Observable<CryptoOperationResponse> {
     return this.http.put<CryptoOperationResponse>(`${this.apiUrl}/keys/public`, {
@@ -209,6 +235,34 @@ export class CryptoApiService {
     }
 
     return this.http.get<EncryptedContentEnvelope[]>(`${this.apiUrl}/content`, { params });
+  }
+
+  /**
+   * Envelope nonce / key version only (no ciphertext body).
+   * Used to choose plain streaming vs encrypted full download.
+   */
+  getEncryptedContentMeta(
+    contentType: EncryptedContentType,
+    resourceId: string,
+    crewId?: number | null,
+    fleetId?: number | null
+  ): Observable<{ resourceId: string; keyVersion: number; nonce: string }> {
+    let params = new HttpParams()
+      .set('contentType', contentType)
+      .set('resourceId', resourceId);
+
+    if (crewId != null) {
+      params = params.set('crewId', crewId.toString());
+    }
+
+    if (fleetId != null) {
+      params = params.set('fleetId', fleetId.toString());
+    }
+
+    return this.http.get<{ resourceId: string; keyVersion: number; nonce: string }>(
+      `${this.apiUrl}/content/meta`,
+      { params }
+    );
   }
 
   /**

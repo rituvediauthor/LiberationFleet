@@ -31,6 +31,26 @@ public interface IMediaDeepFreezeService
         EncryptedContentEnvelope envelope,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Open a seekable stream over the raw file bytes of a <c>__plain__</c> media envelope
+    /// (MIME header stripped). Caller owns the returned stream.
+    /// </summary>
+    Task<PlainMediaContentStream?> OpenPlainMediaContentAsync(
+        EncryptedContentEnvelope envelope,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Delete cold blob if present (call before/with SQL delete).</summary>
     Task DeleteColdBlobIfPresentAsync(EncryptedContentEnvelope envelope, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Seekable plain-media payload ready for HTTP Range responses.</summary>
+public sealed class PlainMediaContentStream : IAsyncDisposable, IDisposable
+{
+    public required Stream ContentStream { get; init; }
+    public required string ContentType { get; init; }
+    public required long ContentLength { get; init; }
+
+    public void Dispose() => ContentStream.Dispose();
+
+    public ValueTask DisposeAsync() => ContentStream.DisposeAsync();
 }

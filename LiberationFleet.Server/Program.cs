@@ -54,7 +54,10 @@ builder.Services.AddAuthentication("Bearer")
             {
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                // SignalR hubs and HTML5 media elements cannot set Authorization headers.
+                if (!string.IsNullOrEmpty(accessToken)
+                    && (path.StartsWithSegments("/hubs")
+                        || path.StartsWithSegments("/api/crypto/content/plain-media")))
                 {
                     context.Token = accessToken;
                 }
@@ -80,7 +83,14 @@ if (corsOrigins.Length > 0)
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
-                .WithExposedHeaders("X-LF-Nonce", "X-LF-KeyVersion", "X-LF-ResourceId");
+                .WithExposedHeaders(
+                    "X-LF-Nonce",
+                    "X-LF-KeyVersion",
+                    "X-LF-ResourceId",
+                    "Accept-Ranges",
+                    "Content-Range",
+                    "Content-Length",
+                    "Content-Type");
         });
     });
 }
