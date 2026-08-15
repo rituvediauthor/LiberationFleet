@@ -51,6 +51,7 @@
   --lf-color-error-toast-text: #721c24;
   --lf-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
   --lf-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --lf-shadow-bar: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  /* Negative spread keeps the cast above the bar (no bottom bleed). */
+  --lf-shadow-bar: 0 -4px 8px -4px rgba(0, 0, 0, 0.12);
   --lf-shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.1);
 }

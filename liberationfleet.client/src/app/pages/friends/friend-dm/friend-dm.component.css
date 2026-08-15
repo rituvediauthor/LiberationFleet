@@ -167,7 +167,7 @@
   padding: 12px 20px;
   border-top: 1px solid var(--lf-color-border);
   background: var(--lf-color-bg-surface);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--lf-shadow-bar);
   z-index: 100;
 }
 
