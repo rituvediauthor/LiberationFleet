@@ -1,6 +1,9 @@
 export type BrandLogoVariant = 'lf' | 'fleet' | 'crew';
 
-/** Color brand assets. Inactive/grey treatment is applied in CSS (filter: grayscale). */
+/**
+ * Built-in brand assets. Crew/fleet marks are painted with theme tokens via CSS
+ * mask in BrandLogoComponent; inactive/muted treatment uses the muted token.
+ */
 export const BRAND_LOGO_ASSETS: Record<BrandLogoVariant, string> = {
   lf: 'assets/images/LFleetLogo.png',
   fleet: 'assets/images/Fleeticon.png',
