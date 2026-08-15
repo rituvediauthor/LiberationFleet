@@ -110,8 +110,10 @@ stages:
 
   - stage: TerraformPlanPR
     displayName: Terraform plan (PR)
-    dependsOn: []
-    condition: eq(variables['Build.Reason'], 'PullRequest')
+    # Run after Build so a single hosted agent isn't split across parallel PR jobs
+    # (free-tier pools often cancel/starve the Build stage when plan runs concurrently).
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
     variables:
       - group: liberationfleet-shared
       - group: liberationfleet-staging
