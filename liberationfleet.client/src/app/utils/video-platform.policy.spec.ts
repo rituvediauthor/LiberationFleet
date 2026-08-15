@@ -28,10 +28,23 @@ describe('video-platform.policy', () => {
     }
   });
 
+  it('raises unencrypted video ceilings past phone passthrough', () => {
+    expect(maxVideoPickerBytes({ encrypt: false })).toBe(MAX_VIDEO_PICK_WITH_COMPRESS_BYTES);
+    expect(maxVideoUploadBytes({ encrypt: false })).toBe(MAX_VIDEO_PICK_WITH_COMPRESS_BYTES);
+    expect(maxVideoPickerBytes({ encrypt: false })).toBeGreaterThan(MAX_VIDEO_PASSTHROUGH_BYTES);
+  });
+
   it('builds a non-empty over-limit message', () => {
     const message = videoOverPickerLimitMessage('clip.mp4');
     expect(message).toContain('clip.mp4');
     expect(message.length).toBeGreaterThan(20);
+  });
+
+  it('mentions the raised ceiling for unencrypted over-limit messages', () => {
+    const message = videoOverPickerLimitMessage('clip.mp4', { encrypt: false });
+    expect(message).toContain('clip.mp4');
+    expect(message).toContain('600');
+    expect(message).not.toContain('without auto-compress');
   });
 
   it('reports native vs web runtime helpers without throwing', () => {

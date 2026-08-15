@@ -161,7 +161,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
             || (file.type || '').toLowerCase().startsWith('video/');
           this.toastService.error(
             isVideo
-              ? videoOverPickerLimitMessage(file.name)
+              ? videoOverPickerLimitMessage(file.name, { encrypt: this.encryptAttachments })
               : `${file.name} is too large for this attachment type.`
           );
         } else if (result.reason === 'blocked') {
@@ -199,6 +199,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
         if (result.kind !== 'file') {
           prepared = await compressMediaFile(file, result.kind, {
             signal: controller.signal,
+            encrypt: this.encryptAttachments,
             onProgress: (percent, label) => {
               pending.progress = percent;
               pending.progressLabel = label;

@@ -223,8 +223,8 @@ export function validateAttachmentFile(
 
 export function maxBytesForKind(kind: AttachmentMediaKind, encrypt = true): number {
   if (kind === 'video') {
-    // Platform-aware: large picks when compress works; phone passthrough otherwise.
-    return maxVideoPickerBytes();
+    // Platform-aware when encrypting; unencrypted uses the raised plain ceiling.
+    return maxVideoPickerBytes({ encrypt });
   }
   if (!encrypt) {
     if (kind === 'image') {

@@ -1,4 +1,3 @@
-import { isConstrainedMobileRuntime } from './app-platform.util';
 import { MAX_VIDEO_DURATION_SEC } from './media-attachment-allowlist.util';
 import {
   canCompressVideoForUploadAsync,
@@ -8,9 +7,8 @@ import {
   VIDEO_MAX_EDGE
 } from './video-compress.util';
 import {
-  MAX_VIDEO_PASSTHROUGH_BYTES,
-  MAX_VIDEO_PICK_WITH_COMPRESS_BYTES,
-  MAX_VIDEO_UPLOAD_BYTES,
+  maxVideoPickerBytes,
+  maxVideoUploadBytes,
   videoCompressFailedMessage,
   videoOverPickerLimitMessage,
   videoResolutionTooHighMessage,
@@ -30,13 +28,14 @@ export interface PreparedVideoAttachment {
  *
  * Limits adapt by runtime (Capacitor iOS / Android / web) via video-platform.policy:
  *  - With native AVFoundation/MediaCodec or WebCodecs A/V: pick up to 600 MB, compress to ~720p
- *  - Without: phone-safe passthrough (~64 MB); desktop can still upload larger originals
+ *  - Without (encrypted): phone-safe passthrough (~64 MB); desktop can still upload larger originals
+ *  - Unencrypted: same 600 MB ceiling as plain file uploads (no phone 64 MB passthrough)
  *
  * Never uses canvas/MediaRecorder re-encode (that path dropped audio on iPhone).
  */
 export async function prepareVideoAttachment(
   file: File,
-  options?: { onProgress?: VideoPrepProgress; signal?: AbortSignal }
+  options?: { onProgress?: VideoPrepProgress; signal?: AbortSignal; encrypt?: boolean }
 ): Promise<PreparedVideoAttachment> {
   throwIfAborted(options?.signal);
   options?.onProgress?.(5, 'Checking video…');
@@ -45,14 +44,13 @@ export async function prepareVideoAttachment(
     throw new Error('Unsupported video type. Use MP4, MOV, or WebM.');
   }
 
+  const encrypt = options?.encrypt !== false;
   const canCompress = await canCompressVideoForUploadAsync();
-  const pickMaxBytes = canCompress
-    ? MAX_VIDEO_PICK_WITH_COMPRESS_BYTES
-    : (isConstrainedMobileRuntime() ? MAX_VIDEO_PASSTHROUGH_BYTES : MAX_VIDEO_UPLOAD_BYTES);
-  const uploadMaxBytes = canCompress ? MAX_VIDEO_UPLOAD_BYTES : pickMaxBytes;
+  const pickMaxBytes = maxVideoPickerBytes({ encrypt });
+  const uploadMaxBytes = maxVideoUploadBytes({ encrypt });
 
   if (file.size > pickMaxBytes) {
-    throw new Error(videoOverPickerLimitMessage(undefined, { canCompress }));
+    throw new Error(videoOverPickerLimitMessage(undefined, { canCompress, encrypt }));
   }
 
   options?.onProgress?.(15, 'Reading video…');
