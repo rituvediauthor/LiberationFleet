@@ -20,6 +20,9 @@
   --lf-color-accent: #007aff;
   --lf-color-accent-hover: #0056b3;
   --lf-color-accent-strong: #1d4ed8;
+  --lf-color-fleet-indicator: var(--lf-color-accent);
+  --lf-color-brand-icon: var(--lf-color-accent);
+  --lf-color-brand-icon-muted: var(--lf-color-text-secondary);
   --lf-color-accent-pill-bg: #dbeafe;
   --lf-color-accent-border: #cfe0ff;
   --lf-color-flag-orange: #ef6c00;

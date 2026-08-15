@@ -39,7 +39,7 @@ html {
   --lf-safe-right: env(safe-area-inset-right, 0px);
   --lf-safe-bottom: env(safe-area-inset-bottom, 0px);
   --lf-safe-left: env(safe-area-inset-left, 0px);
-  /* Notch / home-indicator buffers stay black in every theme. */
+  /* Top notch / status-bar gutter stays dark for system UI contrast. */
   background: #000;
 }
 
@@ -55,7 +55,8 @@ body {
   flex-shrink: 0;
   width: 100%;
   height: var(--lf-safe-bottom);
-  background: #000;
+  /* Match footer / action-bar surface across themes. */
+  background: var(--lf-color-bg-surface);
   pointer-events: none;
 }
 

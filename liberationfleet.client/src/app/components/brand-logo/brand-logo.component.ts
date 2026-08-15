@@ -31,6 +31,18 @@ export class BrandLogoComponent {
     return BRAND_LOGO_ASSETS[this.variant];
   }
 
+  /** Theme-tinted mask for built-in crew/fleet marks (not custom uploads or LF wordmark). */
+  get useThemedMask(): boolean {
+    return !this.customSrc && (this.variant === 'crew' || this.variant === 'fleet');
+  }
+
+  get maskImage(): string | null {
+    if (!this.useThemedMask) {
+      return null;
+    }
+    return `url("${this.resolvedSrc}")`;
+  }
+
   get useGreyscale(): boolean {
     return this.monochrome && !this.customSrc;
   }

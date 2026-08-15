@@ -24,7 +24,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: filter 0.2s ease, opacity 0.2s ease;
+  transition: filter 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
 }
 
 .has-custom .logo-image {
@@ -32,7 +32,33 @@
   border-radius: 6px;
 }
 
-.monochrome .logo-image {
+/*
+ * Paint crew/fleet brand marks with theme tokens via CSS mask so light/dark
+ * accents stay in sync. Custom uploaded images keep their natural colors.
+ */
+.brand-logo.themed:not(.has-custom) {
+  background-color: var(--lf-color-brand-icon);
+  -webkit-mask-image: var(--lf-brand-mask);
+  mask-image: var(--lf-brand-mask);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.brand-logo.themed:not(.has-custom) .logo-image {
+  opacity: 0;
+}
+
+.brand-logo.themed.monochrome:not(.has-custom) {
+  background-color: var(--lf-color-brand-icon-muted);
+  opacity: 0.85;
+}
+
+.monochrome:not(.themed) .logo-image,
+.monochrome.has-custom .logo-image {
   filter: grayscale(1);
   opacity: 0.75;
 }
