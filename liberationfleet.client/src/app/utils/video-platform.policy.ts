@@ -37,8 +37,20 @@ export function canCompressVideoForUpload(): boolean {
   return hasNativeVideoCompressPlugin() || canCompressVideoWithAudio();
 }
 
+export type VideoLimitOptions = {
+  /**
+   * When false, skip the phone 64 MB passthrough ceiling and allow the same
+   * large pick/upload budget as other unencrypted attachments (600 MB).
+   * Defaults to true (E2EE path).
+   */
+  encrypt?: boolean;
+};
+
 /** Picker / allowlist max for the current runtime. */
-export function maxVideoPickerBytes(): number {
+export function maxVideoPickerBytes(options?: VideoLimitOptions): number {
+  if (options?.encrypt === false) {
+    return MAX_VIDEO_PICK_WITH_COMPRESS_BYTES;
+  }
   return canCompressVideoForUpload()
     ? MAX_VIDEO_PICK_WITH_COMPRESS_BYTES
     : maxVideoPassthroughBytes();
@@ -47,8 +59,12 @@ export function maxVideoPickerBytes(): number {
 /**
  * Max size of the file we encrypt/upload after prep.
  * With compress: full upload budget. Without: phone-safe passthrough only.
+ * Unencrypted: same raised ceiling as plain file uploads (no encrypt RAM spike).
  */
-export function maxVideoUploadBytes(): number {
+export function maxVideoUploadBytes(options?: VideoLimitOptions): number {
+  if (options?.encrypt === false) {
+    return MAX_VIDEO_PICK_WITH_COMPRESS_BYTES;
+  }
   if (canCompressVideoForUpload()) {
     return MAX_VIDEO_UPLOAD_BYTES;
   }
@@ -81,8 +97,14 @@ export function videoRuntimeLabel(): string {
 
 export function videoOverPickerLimitMessage(
   fileName?: string,
-  options?: { canCompress?: boolean }
+  options?: { canCompress?: boolean; encrypt?: boolean }
 ): string {
+  const encrypt = options?.encrypt !== false;
+  if (!encrypt) {
+    const maxMb = Math.floor(MAX_VIDEO_PICK_WITH_COMPRESS_BYTES / (1024 * 1024));
+    const subject = fileName?.trim() ? fileName.trim() : 'This video';
+    return `${subject} is over ${maxMb} MB — too large to upload.`;
+  }
   const canCompress = options?.canCompress ?? canCompressVideoForUpload();
   const maxBytes = canCompress
     ? MAX_VIDEO_PICK_WITH_COMPRESS_BYTES

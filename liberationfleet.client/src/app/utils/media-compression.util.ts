@@ -17,7 +17,7 @@ export type MediaCompressProgress = (percent: number, label: string) => void;
 export async function compressMediaFile(
   file: File,
   type: 'image' | 'video' | 'audio',
-  options?: { onProgress?: MediaCompressProgress; signal?: AbortSignal }
+  options?: { onProgress?: MediaCompressProgress; signal?: AbortSignal; encrypt?: boolean }
 ): Promise<File> {
   throwIfAborted(options?.signal);
 
@@ -32,7 +32,11 @@ export async function compressMediaFile(
   if (type === 'video') {
     // Lazy: keeps Mediabunny / native compress out of the initial production bundle.
     const { prepareVideoAttachment } = await import('./video-attachment.pipeline');
-    const prepared = await prepareVideoAttachment(file, options);
+    const prepared = await prepareVideoAttachment(file, {
+      onProgress: options?.onProgress,
+      signal: options?.signal,
+      encrypt: options?.encrypt
+    });
     return prepared.file;
   }
 

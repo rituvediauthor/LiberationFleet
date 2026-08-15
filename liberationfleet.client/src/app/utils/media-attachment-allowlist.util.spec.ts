@@ -63,6 +63,30 @@ describe('media-attachment-allowlist', () => {
     expect(encrypted).toEqual({ ok: false, reason: 'too-large' });
   });
 
+  it('allows unencrypted video past the 64 MB phone passthrough ceiling', () => {
+    const kinds: Array<'image' | 'video' | 'audio' | 'file'> = ['video'];
+    const under = validateAttachmentFile(
+      { name: 'clip.mp4', type: 'video/mp4', size: 65 * 1024 * 1024 },
+      kinds,
+      { encrypt: false }
+    );
+    expect(under).toEqual({ ok: true, kind: 'video' });
+
+    const atPlainCap = validateAttachmentFile(
+      { name: 'clip.mp4', type: 'video/mp4', size: 600 * 1024 * 1024 },
+      kinds,
+      { encrypt: false }
+    );
+    expect(atPlainCap).toEqual({ ok: true, kind: 'video' });
+
+    const over = validateAttachmentFile(
+      { name: 'clip.mp4', type: 'video/mp4', size: 600 * 1024 * 1024 + 1 },
+      kinds,
+      { encrypt: false }
+    );
+    expect(over).toEqual({ ok: false, reason: 'too-large' });
+  });
+
   it('builds a strict accept attribute without image/* wildcards', () => {
     const accept = defaultAcceptAttribute(['image']);
     expect(accept).toContain('image/jpeg');
