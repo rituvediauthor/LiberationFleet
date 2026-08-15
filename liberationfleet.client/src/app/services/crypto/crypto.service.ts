@@ -297,7 +297,7 @@ export class CryptoService {
 
   /** Same as decryptMediaToBlob but accepts raw ciphertext bytes (binary download path). */
   async decryptMediaBytesToBlob(
-    crewAesKey: CryptoKey,
+    crewAesKey: CryptoKey | null,
     nonce: string,
     ciphertextBytes: Uint8Array | ArrayBuffer
   ): Promise<Blob> {

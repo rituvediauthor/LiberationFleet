@@ -119,9 +119,10 @@ export async function encryptMediaBlobChunked(
 /**
  * Decrypt media ciphertext to a Blob.
  * Supports: plaintext sentinel, v2 chunked framing, v1 single-GCM binary, legacy JSON {dataUrl}.
+ * @param crewAesKey Required for encrypted envelopes; unused when nonce is {@link MEDIA_PLAIN_NONCE}.
  */
 export async function decryptMediaCiphertextToBlob(
-  crewAesKey: CryptoKey,
+  crewAesKey: CryptoKey | null,
   nonce: string,
   ciphertextBytes: Uint8Array | ArrayBuffer
 ): Promise<Blob> {
@@ -130,7 +131,12 @@ export async function decryptMediaCiphertextToBlob(
     : new Uint8Array(ciphertextBytes);
 
   if (nonce === MEDIA_PLAIN_NONCE) {
+    // Unencrypted envelope: skip AES entirely (scope key is unused).
     return parsePlainMediaPayload(ciphertext);
+  }
+
+  if (!crewAesKey) {
+    throw new Error('Missing encryption key for media.');
   }
 
   if (ciphertext.length > 0 && ciphertext[0] === MEDIA_CRYPTO_V2) {

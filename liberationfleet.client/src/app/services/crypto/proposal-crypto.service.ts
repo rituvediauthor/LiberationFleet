@@ -474,7 +474,16 @@ export class ProposalCryptoService {
       return attachments.map(attachment => ({ ...attachment }));
     }
 
-    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    // Defer crew/fleet key resolve until an encrypted envelope needs AES.
+    // Unencrypted videos must not wait on key material before download/parse.
+    let scopeKeyPromise: Promise<CryptoKey> | null = null;
+    const getScopeKey = (): Promise<CryptoKey> => {
+      if (!scopeKeyPromise) {
+        scopeKeyPromise = this.resolveScopeKey(normalizedScope);
+      }
+      return scopeKeyPromise;
+    };
+
     const sessionKeyVersion = this.resolveScopeKeyVersion(normalizedScope);
     const grouped = new Map<string, ProposalAttachment[]>();
     for (const attachment of attachments) {
@@ -520,6 +529,9 @@ export class ProposalCryptoService {
                 normalizedScope.fleetId
               )
             );
+            const scopeKey = payload.nonce === MEDIA_PLAIN_NONCE
+              ? null
+              : await getScopeKey();
             const url = await this.decryptMediaBytesCached(
               scopeKey,
               normalizedScope,
@@ -537,6 +549,7 @@ export class ProposalCryptoService {
       }
 
       try {
+        const scopeKey = await getScopeKey();
         const envelopes = await firstValueFrom(
           this.cryptoApi.getEncryptedContents(
             contentType as EncryptedContentType,
@@ -588,6 +601,7 @@ export class ProposalCryptoService {
       }
       if (pendingPosterIds.length > 0) {
         try {
+          const scopeKey = await getScopeKey();
           const envelopes = await firstValueFrom(
             this.cryptoApi.getEncryptedContents(
               'ImageAsset',
@@ -617,24 +631,12 @@ export class ProposalCryptoService {
       }
     }
 
-    await Promise.all(resolved.map(async attachment => {
-      if (attachment.type !== 'video' || !attachment.dataUrl) {
-        return;
+    for (const attachment of resolved) {
+      if (attachment.type !== 'video' || !attachment.posterResourceId) {
+        continue;
       }
-      if (attachment.posterResourceId) {
-        attachment.posterUrl = posterUrlById.get(attachment.posterResourceId);
-      }
-      if (attachment.posterUrl) {
-        return;
-      }
-      try {
-        const blob = await fetch(attachment.dataUrl).then(response => response.blob());
-        const poster = await extractVideoPosterFrame(blob);
-        attachment.posterUrl = URL.createObjectURL(poster);
-      } catch {
-        // Leave the player without a poster if capture fails.
-      }
-    }));
+      attachment.posterUrl = posterUrlById.get(attachment.posterResourceId);
+    }
 
     return resolved;
   }
@@ -667,7 +669,7 @@ export class ProposalCryptoService {
           )
         );
         const url = await this.decryptMediaBytesCached(
-          scopeKey,
+          payload.nonce === MEDIA_PLAIN_NONCE ? null : scopeKey,
           scope,
           payload.resourceId || attachment.resourceId,
           payload.keyVersion,
@@ -790,9 +792,17 @@ export class ProposalCryptoService {
     resourceId: string,
     keyVersion: number
   ): Promise<string | null> {
-    const cacheKey = buildMediaCacheKey(scope, resourceId, keyVersion);
-    const blob = await this.mediaBlobCache.get(cacheKey);
-    return blob ? URL.createObjectURL(blob) : null;
+    // Uploads hardcode keyVersion 1; session version can drift after rotation.
+    // Try both so plain/encrypted media still hit IndexedDB without a re-download.
+    const versions = keyVersion === 1 ? [1] : [keyVersion, 1];
+    for (const version of versions) {
+      const cacheKey = buildMediaCacheKey(scope, resourceId, version);
+      const blob = await this.mediaBlobCache.get(cacheKey);
+      if (blob) {
+        return URL.createObjectURL(blob);
+      }
+    }
+    return null;
   }
 
   private async decryptMediaCached(
@@ -815,7 +825,7 @@ export class ProposalCryptoService {
   }
 
   private async decryptMediaBytesCached(
-    scopeKey: CryptoKey,
+    scopeKey: CryptoKey | null,
     scope: ProposalCryptoScope,
     resourceId: string,
     keyVersion: number,
