@@ -41,9 +41,9 @@ public class UpsertEncryptedContentBytesCommandHandler(
     ];
 
     /// <summary>
-    /// Raw ciphertext/plain budget for binary uploads (~500 MB plaintext + framing overhead).
+    /// Raw ciphertext/plain budget for binary uploads (~600 MB plaintext + framing overhead).
     /// </summary>
-    private const int MaxMediaCiphertextBytes = 512 * 1024 * 1024;
+    private const int MaxMediaCiphertextBytes = 640 * 1024 * 1024;
 
     public async Task<CryptoOperationResponse> Handle(
         UpsertEncryptedContentBytesCommand request,
