@@ -60,7 +60,8 @@ export class CryptoApiService {
         const type = (!blob.type || blob.type === 'application/octet-stream' || blob.type === 'binary/octet-stream')
           ? mimeHint
           : blob.type;
-        return type === blob.type ? blob : new Blob([blob], { type });
+        // slice retags without copying the underlying bytes.
+        return type === blob.type ? blob : blob.slice(0, blob.size, type);
       })
     );
   }

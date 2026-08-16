@@ -3,7 +3,7 @@ import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthInterceptor } from './auth.interceptor';
 import { AppStorageService, StorageScope } from './storage/app-storage.service';
-import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
+import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from './storage/storage-keys';
 import { clearAuthStorage } from '../testing/test-helpers';
 
 describe('AuthInterceptor', () => {
@@ -39,6 +39,17 @@ describe('AuthInterceptor', () => {
 
     const req = httpMock.expectOne('/api/protected');
     expect(req.request.headers.get('Authorization')).toBe('Bearer bearer-token');
+    req.flush({});
+  });
+
+  it('should use session token when remember-login is disabled', () => {
+    storage.set(StorageScope.Persistent, REMEMBER_LOGIN_STORAGE_KEY, 'false');
+    storage.set(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY, 'session-token');
+
+    http.get('/api/protected').subscribe();
+
+    const req = httpMock.expectOne('/api/protected');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer session-token');
     req.flush({});
   });
 
