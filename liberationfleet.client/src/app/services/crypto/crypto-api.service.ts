@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEventType, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, catchError, of } from 'rxjs';
 import {
   CrewKeyState,
   CryptoOperationResponse,
@@ -43,6 +43,34 @@ export class CryptoApiService {
     }
     params.set('access_token', options.accessToken);
     return this.apiUrls.resolveApi(`${this.apiUrl}/content/plain-media?${params.toString()}`);
+  }
+
+  /**
+   * Download a plain-media stream via HttpClient (Authorization header) into a
+   * blob object URL. Used when progressive video src loads a shell but Safari/iOS
+   * refuses to play (missing Range seek / moov-at-end). Prefer the stream URL first.
+   */
+  fetchPlainMediaObjectUrl(streamUrl: string): Observable<string> {
+    const requestUrl = stripAccessTokenQuery(streamUrl);
+    return this.http.get(requestUrl, {
+      responseType: 'blob',
+      // Same-origin or CORS API; interceptor adds Bearer.
+      observe: 'body'
+    }).pipe(
+      map(blob => URL.createObjectURL(blob))
+    );
+  }
+
+  /** True when the plain-media endpoint advertises byte ranges (required for Safari play). */
+  plainMediaAcceptsRanges(streamUrl: string): Observable<boolean> {
+    const requestUrl = stripAccessTokenQuery(streamUrl);
+    return this.http.head(requestUrl, { observe: 'response' }).pipe(
+      map(response => {
+        const accept = (response.headers.get('Accept-Ranges') || '').toLowerCase();
+        return accept.includes('bytes');
+      }),
+      catchError(() => of(false))
+    );
   }
 
   upsertPublicKey(identityPublicKey: string, keyVersion = 1): Observable<CryptoOperationResponse> {
@@ -321,5 +349,20 @@ export class CryptoApiService {
       .set('crewId', crewId.toString());
 
     return this.http.delete<CryptoOperationResponse>(`${this.apiUrl}/content`, { params });
+  }
+}
+
+/** Drop access_token so HttpClient + AuthInterceptor use the Authorization header instead. */
+function stripAccessTokenQuery(url: string): string {
+  try {
+    const absolute = url.startsWith('http://') || url.startsWith('https://');
+    const parsed = absolute ? new URL(url) : new URL(url, 'http://local.invalid');
+    parsed.searchParams.delete('access_token');
+    if (absolute) {
+      return parsed.toString();
+    }
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url.replace(/([?&])access_token=[^&]*&?/, '$1').replace(/[?&]$/, '');
   }
 }

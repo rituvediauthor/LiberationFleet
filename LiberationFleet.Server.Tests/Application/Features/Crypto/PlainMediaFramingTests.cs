@@ -50,4 +50,33 @@ public class PlainMediaFramingTests
         bounded.ReadByte().Should().Be(15);
         bounded.Position.Should().Be(6);
     }
+
+    [Fact]
+    public void MediaMimeSniff_ResolvesMp4FromFtyp()
+    {
+        // size(4) + 'ftyp' + 'isom'
+        var bytes = new byte[]
+        {
+            0, 0, 0, 20,
+            (byte)'f', (byte)'t', (byte)'y', (byte)'p',
+            (byte)'i', (byte)'s', (byte)'o', (byte)'m',
+            0, 0, 0, 0, 0, 0, 0, 0
+        };
+        MediaMimeSniff.Sniff(bytes).Should().Be("video/mp4");
+    }
+
+    [Fact]
+    public void MediaMimeSniff_Resolve_UpgradesGenericMime()
+    {
+        var bytes = new byte[]
+        {
+            0, 0, 0, 20,
+            (byte)'f', (byte)'t', (byte)'y', (byte)'p',
+            (byte)'m', (byte)'p', (byte)'4', (byte)'2',
+            0, 0, 0, 0, 0, 0, 0, 0
+        };
+        using var stream = new MemoryStream(bytes);
+        MediaMimeSniff.Resolve("application/octet-stream", stream).Should().Be("video/mp4");
+        stream.Position.Should().Be(0);
+    }
 }

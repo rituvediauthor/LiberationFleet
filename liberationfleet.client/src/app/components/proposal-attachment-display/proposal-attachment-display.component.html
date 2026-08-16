@@ -27,7 +27,12 @@
         [poster]="safePosterUrl(attachment) || null"
         [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
+        playsinline
+        webkit-playsinline
         preload="metadata"
+        (error)="onMediaError($event, attachment)"
+        (loadedmetadata)="onMediaLoadedMetadata($event, attachment)"
+        (play)="onMediaPlay($event, attachment)"
         (webkitbeginfullscreen)="onVideoFullscreenEnter()"
         (webkitendfullscreen)="onVideoFullscreenExit()"
         (fullscreenchange)="onVideoFullscreenChange($event)"></video>
@@ -36,7 +41,10 @@
         [src]="audioUrl"
         [attr.aria-label]="attachment.fileName || 'Audio attachment'"
         controls
-        preload="metadata"></audio>
+        preload="metadata"
+        (error)="onMediaError($event, attachment)"
+        (loadedmetadata)="onMediaLoadedMetadata($event, attachment)"
+        (play)="onMediaPlay($event, attachment)"></audio>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : 'Attachment') }}
       </p>
@@ -62,7 +70,12 @@
         [poster]="safePosterUrl(attachment) || null"
         [attr.aria-label]="attachment.fileName || 'Video attachment'"
         controls
+        playsinline
+        webkit-playsinline
         preload="metadata"
+        (error)="onMediaError($event, attachment)"
+        (loadedmetadata)="onMediaLoadedMetadata($event, attachment)"
+        (play)="onMediaPlay($event, attachment)"
         (webkitbeginfullscreen)="onVideoFullscreenEnter()"
         (webkitendfullscreen)="onVideoFullscreenExit()"
         (fullscreenchange)="onVideoFullscreenChange($event)"></video>
@@ -71,7 +84,10 @@
         [src]="audioUrl"
         [attr.aria-label]="attachment.fileName || 'Audio attachment'"
         controls
-        preload="metadata"></audio>
+        preload="metadata"
+        (error)="onMediaError($event, attachment)"
+        (loadedmetadata)="onMediaLoadedMetadata($event, attachment)"
+        (play)="onMediaPlay($event, attachment)"></audio>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : (attachment.type === 'audio' ? 'Audio' : 'Attachment')) }}
       </p>
