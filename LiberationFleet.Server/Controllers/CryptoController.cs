@@ -251,6 +251,8 @@ public class CryptoController : ControllerBase
 
         // Advertise byte ranges explicitly; FileStreamResult also needs a seekable stream.
         Response.Headers.AcceptRanges = "bytes";
+        // Tokenized URL — allow the media element to keep short-lived buffers (YouTube-like).
+        Response.Headers.CacheControl = "private, max-age=300";
 
         // FileStreamResult disposes the stream when the response completes.
         return File(result.ContentStream, result.ContentType, enableRangeProcessing: true);

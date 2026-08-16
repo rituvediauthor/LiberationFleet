@@ -508,8 +508,7 @@ export class ProposalCryptoService {
     for (const [contentType, bucket] of grouped.entries()) {
       const pendingIds: string[] = [];
       for (const attachment of bucket) {
-        // Known-plain AV: progressive stream URL so the player mounts immediately.
-        // Full blob download happens on play (see proposal-attachment-display).
+        // Known-plain AV: progressive Range URL (YouTube-style) — browser plays via <video src>.
         if (
           (attachment.type === 'video' || attachment.type === 'audio')
           && attachment.encrypted === false
@@ -600,7 +599,7 @@ export class ProposalCryptoService {
               )
             );
 
-            // Safety net: plain envelope → stream URL (blob conversion happens on play).
+            // Safety net: plain envelope → progressive Range URL for <video>/<audio>.
             if (payload.nonce === MEDIA_PLAIN_NONCE) {
               const streamUrl = this.tryBuildPlainMediaStreamUrl(
                 contentType as EncryptedContentType,
