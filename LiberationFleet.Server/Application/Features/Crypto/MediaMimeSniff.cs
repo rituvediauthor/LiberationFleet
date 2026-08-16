@@ -10,13 +10,34 @@ public static class MediaMimeSniff
 {
     public static bool IsGenericMime(string? mime) =>
         string.IsNullOrWhiteSpace(mime)
-        || string.Equals(mime.Trim(), "application/octet-stream", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(mime.Trim(), "binary/octet-stream", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(Normalize(mime), "application/octet-stream", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Normalize(mime), "binary/octet-stream", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Strip codecs parameters and map common aliases to browser-friendly types.
+    /// </summary>
+    public static string Normalize(string? mime)
+    {
+        var trimmed = (mime ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return string.Empty;
+        }
+
+        var baseType = trimmed.Split(';', 2)[0].Trim();
+        return baseType switch
+        {
+            "audio/m4a" or "audio/x-m4a" => "audio/mp4",
+            "audio/mp3" => "audio/mpeg",
+            "audio/wave" or "audio/x-wav" => "audio/wav",
+            _ => baseType
+        };
+    }
 
     /// <summary>
     /// Peek the first bytes of a seekable stream (rewinds to the original position).
     /// </summary>
-    public static string? TrySniff(Stream stream)
+    public static string? TrySniff(Stream stream, bool preferAudio = false)
     {
         if (stream is null || !stream.CanRead || !stream.CanSeek)
         {
@@ -33,7 +54,7 @@ public static class MediaMimeSniff
                 return null;
             }
 
-            return Sniff(buffer[..read]);
+            return Sniff(buffer[..read], preferAudio);
         }
         finally
         {
@@ -42,13 +63,14 @@ public static class MediaMimeSniff
     }
 
     /// <summary>
-    /// Prefer a concrete video/* type when the declared MIME is generic or a
-    /// QuickTime container that browsers play more reliably as video/mp4.
+    /// Prefer a concrete media type when the declared MIME is generic, or when an
+    /// AudioAsset WebM would otherwise be labeled video/webm.
     /// </summary>
-    public static string Resolve(string? declared, Stream contentStream)
+    public static string Resolve(string? declared, Stream contentStream, bool preferAudio = false)
     {
-        var trimmed = (declared ?? string.Empty).Trim();
-        var sniffed = TrySniff(contentStream);
+        var trimmed = Normalize(declared);
+        preferAudio = preferAudio || trimmed.StartsWith("audio/", StringComparison.Ordinal);
+        var sniffed = TrySniff(contentStream, preferAudio);
 
         if (IsGenericMime(trimmed))
         {
@@ -61,10 +83,16 @@ public static class MediaMimeSniff
             return "video/mp4";
         }
 
+        // Voice notes / audio uploads: keep audio/* even if EBML looks like video/webm.
+        if (preferAudio && trimmed.StartsWith("video/", StringComparison.Ordinal))
+        {
+            return "audio/" + trimmed["video/".Length..];
+        }
+
         return trimmed;
     }
 
-    public static string? Sniff(ReadOnlySpan<byte> view)
+    public static string? Sniff(ReadOnlySpan<byte> view, bool preferAudio = false)
     {
         if (view.Length < 12)
         {
@@ -100,24 +128,32 @@ public static class MediaMimeSniff
         if (view[4] == 0x66 && view[5] == 0x74 && view[6] == 0x79 && view[7] == 0x70)
         {
             var brand = Encoding.ASCII.GetString(view.Slice(8, Math.Min(4, view.Length - 8))).ToLowerInvariant();
+            if (brand.Contains("m4a", StringComparison.Ordinal)
+                || brand.Contains("mp4a", StringComparison.Ordinal)
+                || preferAudio)
+            {
+                return "audio/mp4";
+            }
+
             if (brand.StartsWith("qt", StringComparison.Ordinal) || brand.Contains("qt", StringComparison.Ordinal))
             {
                 // Still serve as video/mp4 when possible — many browsers refuse quicktime over HTTP.
                 return "video/mp4";
             }
 
-            if (brand.Contains("m4a", StringComparison.Ordinal))
-            {
-                return "audio/mp4";
-            }
-
             return "video/mp4";
         }
 
-        // WebM / Matroska
+        // WebM / Matroska — EBML header alone cannot distinguish audio-only containers.
         if (view[0] == 0x1a && view[1] == 0x45 && view[2] == 0xdf && view[3] == 0xa3)
         {
-            return "video/webm";
+            return preferAudio ? "audio/webm" : "video/webm";
+        }
+
+        // OGG
+        if (view[0] == 0x4f && view[1] == 0x67 && view[2] == 0x67 && view[3] == 0x53)
+        {
+            return "audio/ogg";
         }
 
         // WAV

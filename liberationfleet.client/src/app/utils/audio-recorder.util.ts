@@ -24,7 +24,10 @@ export class AudioRecorderController {
     this.chunks = [];
     this.elapsedMs = 0;
 
-    const recorder = new MediaRecorder(stream);
+    const preferredMime = pickAudioRecorderMime();
+    const recorder = preferredMime
+      ? new MediaRecorder(stream, { mimeType: preferredMime })
+      : new MediaRecorder(stream);
     this.recorder = recorder;
 
     recorder.ondataavailable = event => {
@@ -34,8 +37,9 @@ export class AudioRecorderController {
     };
 
     recorder.onstop = () => {
+      const mime = recorder.mimeType || preferredMime || 'audio/webm';
       const blob = this.chunks.length > 0
-        ? new Blob(this.chunks, { type: recorder.mimeType || 'audio/webm' })
+        ? new Blob(this.chunks, { type: mime })
         : null;
       this.cleanup();
       this.stopResolve?.(blob);
@@ -119,4 +123,22 @@ export class AudioRecorderController {
   private notify(): void {
     this.onStateChange?.();
   }
+}
+
+/** Prefer AAC/MP4 when available so recordings play on Safari/iOS. */
+function pickAudioRecorderMime(): string {
+  const candidates = [
+    'audio/mp4',
+    'audio/aac',
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus'
+  ];
+  return candidates.find(type => {
+    try {
+      return MediaRecorder.isTypeSupported(type);
+    } catch {
+      return false;
+    }
+  }) ?? '';
 }

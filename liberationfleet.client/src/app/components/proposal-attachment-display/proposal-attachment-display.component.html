@@ -39,7 +39,8 @@
           [src]="audioUrl"
           [attr.aria-label]="attachment.fileName || 'Audio attachment'"
           controls
-          preload="metadata"></audio>
+          preload="metadata"
+          (error)="onAudioError(attachment, $event)"></audio>
       </div>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : 'Attachment') }}
@@ -78,7 +79,8 @@
           [src]="audioUrl"
           [attr.aria-label]="attachment.fileName || 'Audio attachment'"
           controls
-          preload="metadata"></audio>
+          preload="metadata"
+          (error)="onAudioError(attachment, $event)"></audio>
       </div>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : (attachment.type === 'audio' ? 'Audio' : 'Attachment')) }}
