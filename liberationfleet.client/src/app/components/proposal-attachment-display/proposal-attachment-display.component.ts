@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { ResolvedAttachment } from '../../models/proposal.model';
@@ -7,7 +7,6 @@ import { LibraryImageCarouselComponent } from '../library-image-carousel/library
 import { isPlainMediaStreamUrl, isSafeMediaDataUrl } from '../../utils/media-attachment-allowlist.util';
 import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-viewport-zoom';
 import { CryptoApiService } from '../../services/crypto/crypto-api.service';
-import { isAppleMobileBrowser, isNativeIos } from '../../utils/app-platform.util';
 
 @Component({
   selector: 'app-proposal-attachment-display',
@@ -18,6 +17,7 @@ import { isAppleMobileBrowser, isNativeIos } from '../../utils/app-platform.util
 })
 export class ProposalAttachmentDisplayComponent {
   private readonly cryptoApi = inject(CryptoApiService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() attachments: ResolvedAttachment[] = [];
   @Input() compact = false;
@@ -30,8 +30,17 @@ export class ProposalAttachmentDisplayComponent {
   /** Tracks native fullscreen so chrome hide/show stays balanced. */
   private videoFullscreenActive = false;
 
-  /** resourceIds currently converting plain-media stream → blob for playback. */
+  /** resourceIds converting plain-media stream → blob for playback. */
   private readonly blobFallbackInflight = new Set<string>();
+
+  /** resourceIds that already have a playable blob: URL. */
+  private readonly blobReady = new Set<string>();
+
+  /** resourceIds showing "Preparing playback…" */
+  preparingPlayback = new Set<string>();
+
+  /** Last prepare error message by resourceId. */
+  prepareError = new Map<string, string>();
 
   get imageAttachments(): ResolvedAttachment[] {
     return this.attachments.filter(attachment => attachment.type === 'image');
@@ -57,6 +66,16 @@ export class ProposalAttachmentDisplayComponent {
 
   get unresolvedImageAttachments(): ResolvedAttachment[] {
     return this.imageAttachments.filter(attachment => !this.safeDataUrl(attachment));
+  }
+
+  isPlainStream(attachment: ResolvedAttachment): boolean {
+    return isPlainMediaStreamUrl(attachment.dataUrl || '');
+  }
+
+  needsPlainPlayButton(attachment: ResolvedAttachment): boolean {
+    return this.isPlainStream(attachment)
+      && !this.blobReady.has(attachment.resourceId)
+      && !this.preparingPlayback.has(attachment.resourceId);
   }
 
   deleteAttachment(attachment: ResolvedAttachment) {
@@ -89,79 +108,20 @@ export class ProposalAttachmentDisplayComponent {
   }
 
   /**
-   * Progressive plain-media often shows a poster + controls ("loaded") while Safari/iOS
-   * still cannot start playback (Range/moov). On error or a dead play attempt, swap to a
-   * fully downloaded blob: URL which is locally seekable.
+   * Progressive plain-media mounts the player quickly (poster + shell) but often
+   * will not start on iOS/Safari. A dedicated Play button starts an authenticated
+   * blob download under the user gesture, then swaps src and plays.
    */
+  startPlainPlayback(attachment: ResolvedAttachment, media: HTMLMediaElement): void {
+    void this.convertPlainStreamToBlobAndPlay(attachment, media);
+  }
+
   onMediaError(event: Event, attachment: ResolvedAttachment): void {
+    if (!this.isPlainStream(attachment)) {
+      return;
+    }
     const media = event.target as HTMLMediaElement | null;
-    void this.tryPlainMediaBlobFallback(attachment, media, /* autoPlay */ false);
-  }
-
-  onMediaLoadedMetadata(event: Event, attachment: ResolvedAttachment): void {
-    const media = event.target as HTMLMediaElement | null;
-    if (!media || !isPlainMediaStreamUrl(attachment.dataUrl || '')) {
-      return;
-    }
-
-    const durationOk = Number.isFinite(media.duration) && media.duration > 0;
-    const seekableOk = media.seekable.length > 0;
-    if (durationOk && seekableOk) {
-      if (isNativeIos() || isAppleMobileBrowser()) {
-        void this.ensureAcceptRangesOrBlob(attachment, media);
-      }
-      return;
-    }
-
-    // Metadata incomplete or non-seekable progressive source — blob so play can work.
-    void this.tryPlainMediaBlobFallback(attachment, media, false);
-  }
-
-  private async ensureAcceptRangesOrBlob(
-    attachment: ResolvedAttachment,
-    media: HTMLMediaElement
-  ): Promise<void> {
-    const streamUrl = attachment.dataUrl;
-    if (!streamUrl || !isPlainMediaStreamUrl(streamUrl)) {
-      return;
-    }
-    try {
-      const accepts = await firstValueFrom(this.cryptoApi.plainMediaAcceptsRanges(streamUrl));
-      if (!accepts) {
-        await this.tryPlainMediaBlobFallback(attachment, media, false);
-      }
-    } catch {
-      await this.tryPlainMediaBlobFallback(attachment, media, false);
-    }
-  }
-
-  onMediaPlay(event: Event, attachment: ResolvedAttachment): void {
-    const media = event.target as HTMLMediaElement | null;
-    if (!media || !isPlainMediaStreamUrl(attachment.dataUrl || '')) {
-      return;
-    }
-
-    // Only probe for the iOS "play does nothing" failure mode. Elsewhere, trust
-    // progressive Range playback and only fall back on the error event.
-    if (!isNativeIos() && !isAppleMobileBrowser()) {
-      return;
-    }
-
-    window.setTimeout(() => {
-      if (!isPlainMediaStreamUrl(attachment.dataUrl || '')) {
-        return;
-      }
-      if (media.error) {
-        void this.tryPlainMediaBlobFallback(attachment, media, true);
-        return;
-      }
-      // Successful start: playing (even if still buffering) or time advanced.
-      if (!media.paused || media.currentTime > 0.05) {
-        return;
-      }
-      // Still paused at t=0 after a play gesture — classic dead control chrome.
-      void this.tryPlainMediaBlobFallback(attachment, media, true);
-    }, 600);
+    void this.convertPlainStreamToBlobAndPlay(attachment, media, /* autoPlay */ false);
   }
 
   onVideoFullscreenEnter(): void {
@@ -195,10 +155,10 @@ export class ProposalAttachmentDisplayComponent {
     }
   }
 
-  private async tryPlainMediaBlobFallback(
+  private async convertPlainStreamToBlobAndPlay(
     attachment: ResolvedAttachment,
     media: HTMLMediaElement | null,
-    autoPlay: boolean
+    autoPlay = true
   ): Promise<void> {
     const streamUrl = attachment.dataUrl;
     if (!streamUrl || !isPlainMediaStreamUrl(streamUrl)) {
@@ -209,29 +169,39 @@ export class ProposalAttachmentDisplayComponent {
     }
 
     this.blobFallbackInflight.add(attachment.resourceId);
+    this.preparingPlayback.add(attachment.resourceId);
+    this.prepareError.delete(attachment.resourceId);
+    this.cdr.markForCheck();
     try {
-      const blobUrl = await firstValueFrom(this.cryptoApi.fetchPlainMediaObjectUrl(streamUrl));
+      media?.pause();
+      const mimeHint = attachment.mimeType
+        || (attachment.type === 'audio' ? 'audio/mp4' : 'video/mp4');
+      const blobUrl = await firstValueFrom(
+        this.cryptoApi.fetchPlainMediaObjectUrl(streamUrl, mimeHint)
+      );
       if (attachment.dataUrl !== streamUrl) {
         URL.revokeObjectURL(blobUrl);
         return;
       }
       attachment.dataUrl = blobUrl;
+      this.blobReady.add(attachment.resourceId);
       if (media) {
-        const wasPaused = media.paused;
         media.src = blobUrl;
         media.load();
-        if (autoPlay || !wasPaused) {
+        if (autoPlay) {
           try {
             await media.play();
           } catch {
-            // User gesture may have expired; controls remain for a second tap.
+            // Gesture may be gone after a long download; native controls work on next tap.
           }
         }
       }
     } catch {
-      // Leave stream URL in place; native error UI (if any) stays.
+      this.prepareError.set(attachment.resourceId, 'Unable to prepare this video for playback.');
     } finally {
+      this.preparingPlayback.delete(attachment.resourceId);
       this.blobFallbackInflight.delete(attachment.resourceId);
+      this.cdr.markForCheck();
     }
   }
 }

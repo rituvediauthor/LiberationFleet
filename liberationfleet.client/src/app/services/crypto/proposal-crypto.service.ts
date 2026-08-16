@@ -508,19 +508,19 @@ export class ProposalCryptoService {
     for (const [contentType, bucket] of grouped.entries()) {
       const pendingIds: string[] = [];
       for (const attachment of bucket) {
-        // Known-plain AV: authenticated blob URL (progressive stream URLs do not play).
+        // Known-plain AV: progressive stream URL so the player mounts immediately.
+        // Full blob download happens on play (see proposal-attachment-display).
         if (
           (attachment.type === 'video' || attachment.type === 'audio')
           && attachment.encrypted === false
         ) {
-          const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+          const streamUrl = this.tryBuildPlainMediaStreamUrl(
             contentType as EncryptedContentType,
             attachment.resourceId,
-            normalizedScope,
-            attachment.mimeType
+            normalizedScope
           );
-          if (playbackUrl) {
-            dataUrlByResourceId.set(attachment.resourceId, playbackUrl);
+          if (streamUrl) {
+            dataUrlByResourceId.set(attachment.resourceId, streamUrl);
           }
           continue;
         }
@@ -546,8 +546,8 @@ export class ProposalCryptoService {
         || bucket.some(attachment => attachment.encrypted === false);
 
       if (useBinaryDownload) {
-        // Probe nonce first for video/audio so plain envelopes stream instead of
-        // downloading up to ~600 MB into memory (which never meaningfully finishes).
+        // Probe nonce first for video/audio so plain envelopes use the stream URL
+        // instead of downloading framed /content/bytes into memory at list time.
         const downloadIds: string[] = [];
         await Promise.all(pendingIds.map(async resourceId => {
           const attachment = attachmentByResourceId.get(resourceId);
@@ -569,16 +569,15 @@ export class ProposalCryptoService {
               )
             );
             if (meta.nonce === MEDIA_PLAIN_NONCE) {
-              const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+              const streamUrl = this.tryBuildPlainMediaStreamUrl(
                 contentType as EncryptedContentType,
                 meta.resourceId || resourceId,
-                normalizedScope,
-                attachment?.mimeType
+                normalizedScope
               );
-              if (playbackUrl) {
-                dataUrlByResourceId.set(meta.resourceId || resourceId, playbackUrl);
+              if (streamUrl) {
+                dataUrlByResourceId.set(meta.resourceId || resourceId, streamUrl);
               }
-              // Plain but unresolved: skip — do not pull framed /content/bytes.
+              // Plain but no stream URL: skip — do not full-download at resolve time.
               return;
             }
             downloadIds.push(resourceId);
@@ -601,16 +600,15 @@ export class ProposalCryptoService {
               )
             );
 
-            // Safety net: plain envelope from bytes endpoint → blob playback URL.
+            // Safety net: plain envelope → stream URL (blob conversion happens on play).
             if (payload.nonce === MEDIA_PLAIN_NONCE) {
-              const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+              const streamUrl = this.tryBuildPlainMediaStreamUrl(
                 contentType as EncryptedContentType,
                 payload.resourceId || resourceId,
-                normalizedScope,
-                attachmentByResourceId.get(resourceId)?.mimeType
+                normalizedScope
               );
-              if (playbackUrl) {
-                dataUrlByResourceId.set(payload.resourceId || resourceId, playbackUrl);
+              if (streamUrl) {
+                dataUrlByResourceId.set(payload.resourceId || resourceId, streamUrl);
               }
               return;
             }
@@ -739,14 +737,13 @@ export class ProposalCryptoService {
     try {
       if (attachment.type === 'video' || attachment.type === 'audio') {
         if (attachment.encrypted === false) {
-          const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+          const streamUrl = this.tryBuildPlainMediaStreamUrl(
             contentType,
             attachment.resourceId,
-            scope,
-            attachment.mimeType
+            scope
           );
-          if (playbackUrl) {
-            return { ...attachment, dataUrl: playbackUrl };
+          if (streamUrl) {
+            return { ...attachment, dataUrl: streamUrl };
           }
           return { ...attachment };
         }
@@ -761,14 +758,13 @@ export class ProposalCryptoService {
             )
           );
           if (meta.nonce === MEDIA_PLAIN_NONCE) {
-            const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+            const streamUrl = this.tryBuildPlainMediaStreamUrl(
               contentType,
               meta.resourceId || attachment.resourceId,
-              scope,
-              attachment.mimeType
+              scope
             );
-            if (playbackUrl) {
-              return { ...attachment, dataUrl: playbackUrl, encrypted: false };
+            if (streamUrl) {
+              return { ...attachment, dataUrl: streamUrl, encrypted: false };
             }
             return { ...attachment, encrypted: false };
           }
@@ -793,14 +789,13 @@ export class ProposalCryptoService {
           )
         );
         if (payload.nonce === MEDIA_PLAIN_NONCE) {
-          const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+          const streamUrl = this.tryBuildPlainMediaStreamUrl(
             contentType,
             payload.resourceId || attachment.resourceId,
-            scope,
-            attachment.mimeType
+            scope
           );
-          if (playbackUrl) {
-            return { ...attachment, dataUrl: playbackUrl, encrypted: false };
+          if (streamUrl) {
+            return { ...attachment, dataUrl: streamUrl, encrypted: false };
           }
           return { ...attachment, encrypted: false };
         }
@@ -958,49 +953,6 @@ export class ProposalCryptoService {
       crewId: scope.crewId,
       fleetId: scope.fleetId
     });
-  }
-
-  /**
-   * Resolve unencrypted media to a blob: object URL via authenticated HttpClient.
-   * Progressive video src=plain-media consistently fails to start playback
-   * (especially iOS); blob URLs match the encrypted path that already works.
-   */
-  private async resolvePlainMediaPlaybackUrl(
-    contentType: EncryptedContentType,
-    resourceId: string,
-    scope: ProposalCryptoScope,
-    mimeHint?: string
-  ): Promise<string | null> {
-    if (!resourceId) {
-      return null;
-    }
-
-    const cachedUrl = await this.tryCachedMediaUrl(scope, resourceId, 1);
-    if (cachedUrl) {
-      return cachedUrl;
-    }
-
-    const streamUrl = this.tryBuildPlainMediaStreamUrl(contentType, resourceId, scope);
-    if (!streamUrl) {
-      return null;
-    }
-
-    const hint = mimeHint
-      || (contentType === 'AudioAsset' ? 'audio/mp4' : 'video/mp4');
-
-    try {
-      const blob = await firstValueFrom(
-        this.cryptoApi.fetchPlainMediaBlob(streamUrl, hint)
-      );
-      const maxCacheBytes = 32 * 1024 * 1024;
-      if (blob.size > 0 && blob.size <= maxCacheBytes) {
-        const cacheKey = buildMediaCacheKey(scope, resourceId, 1);
-        void this.mediaBlobCache.put(cacheKey, blob);
-      }
-      return URL.createObjectURL(blob);
-    } catch {
-      return null;
-    }
   }
 
   /**

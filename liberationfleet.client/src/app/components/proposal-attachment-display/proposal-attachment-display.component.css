@@ -19,6 +19,14 @@
   margin: 0;
 }
 
+.media-shell {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .attachment-item img,
 .attachment-item video {
   display: block;
@@ -31,6 +39,50 @@
 
 .attachment-item audio {
   width: 100%;
+}
+
+.plain-play-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: none;
+  border-radius: 999px;
+  min-width: 72px;
+  min-height: 72px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.72);
+  cursor: pointer;
+}
+
+.plain-play-btn.audio {
+  position: static;
+  transform: none;
+  display: block;
+  margin: 8px auto 0;
+  min-width: 96px;
+  min-height: 40px;
+}
+
+.plain-play-btn:hover,
+.plain-play-btn:focus-visible {
+  background: rgba(15, 23, 42, 0.88);
+}
+
+.plain-prepare {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+}
+
+.plain-prepare.error {
+  color: var(--lf-color-danger);
 }
 
 .attachment-fallback {
