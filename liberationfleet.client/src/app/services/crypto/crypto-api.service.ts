@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEventType, HttpParams } from '@angular/common/http';
-import { Observable, map, catchError, of } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import {
   CrewKeyState,
   CryptoOperationResponse,
@@ -46,24 +46,44 @@ export class CryptoApiService {
   }
 
   /**
-   * Download plain-media bytes via HttpClient (Authorization header) into a
-   * typed Blob. Use for video/audio element src via URL.createObjectURL —
-   * progressive stream URLs often show controls but refuse to play on iOS/Safari.
+   * Download plain-media bytes for playback. Uses the same URL the video
+   * element uses (including ?access_token=) via fetch — not HttpClient — so
+   * Capacitor/native absolute API origins and session auth stay aligned with
+   * progressive streaming (no relative-/api rewrite, no Bearer-only path).
    */
   fetchPlainMediaBlob(streamUrl: string, mimeHint = 'video/mp4'): Observable<Blob> {
-    const requestUrl = toAuthorizedPlainMediaRequestUrl(streamUrl);
-    return this.http.get(requestUrl, {
-      responseType: 'blob',
-      observe: 'body'
-    }).pipe(
-      map(blob => {
-        const type = (!blob.type || blob.type === 'application/octet-stream' || blob.type === 'binary/octet-stream')
-          ? mimeHint
-          : blob.type;
-        // slice retags without copying the underlying bytes.
-        return type === blob.type ? blob : blob.slice(0, blob.size, type);
-      })
-    );
+    return new Observable<Blob>(subscriber => {
+      const controller = new AbortController();
+      void (async () => {
+        try {
+          const response = await fetch(streamUrl, {
+            method: 'GET',
+            signal: controller.signal,
+            // Auth is the access_token query on streamUrl (same as <video src>).
+            credentials: 'omit'
+          });
+          if (!response.ok) {
+            throw new Error(`Media download failed (${response.status}).`);
+          }
+          const blob = await response.blob();
+          if (!blob.size) {
+            throw new Error('Media download returned an empty file.');
+          }
+          const type = (!blob.type || blob.type === 'application/octet-stream' || blob.type === 'binary/octet-stream')
+            ? mimeHint
+            : blob.type;
+          subscriber.next(type === blob.type ? blob : blob.slice(0, blob.size, type));
+          subscriber.complete();
+        } catch (error) {
+          if ((error as { name?: string })?.name === 'AbortError') {
+            subscriber.complete();
+            return;
+          }
+          subscriber.error(error);
+        }
+      })();
+      return () => controller.abort();
+    });
   }
 
   /** @see fetchPlainMediaBlob */
@@ -73,16 +93,56 @@ export class CryptoApiService {
     );
   }
 
+  /** Probe Content-Length for the plain-media stream (keeps access_token). */
+  plainMediaContentLength(streamUrl: string): Observable<number | null> {
+    return new Observable<number | null>(subscriber => {
+      const controller = new AbortController();
+      void (async () => {
+        try {
+          const response = await fetch(streamUrl, {
+            method: 'HEAD',
+            signal: controller.signal,
+            credentials: 'same-origin'
+          });
+          if (!response.ok) {
+            subscriber.next(null);
+            subscriber.complete();
+            return;
+          }
+          const raw = response.headers.get('Content-Length');
+          const length = raw ? Number(raw) : NaN;
+          subscriber.next(Number.isFinite(length) && length >= 0 ? length : null);
+          subscriber.complete();
+        } catch {
+          subscriber.next(null);
+          subscriber.complete();
+        }
+      })();
+      return () => controller.abort();
+    });
+  }
+
   /** True when the plain-media endpoint advertises byte ranges (required for Safari play). */
   plainMediaAcceptsRanges(streamUrl: string): Observable<boolean> {
-    const requestUrl = toAuthorizedPlainMediaRequestUrl(streamUrl);
-    return this.http.head(requestUrl, { observe: 'response' }).pipe(
-      map(response => {
-        const accept = (response.headers.get('Accept-Ranges') || '').toLowerCase();
-        return accept.includes('bytes');
-      }),
-      catchError(() => of(false))
-    );
+    return new Observable<boolean>(subscriber => {
+      const controller = new AbortController();
+      void (async () => {
+        try {
+          const response = await fetch(streamUrl, {
+            method: 'HEAD',
+            signal: controller.signal,
+            credentials: 'same-origin'
+          });
+          const accept = (response.headers.get('Accept-Ranges') || '').toLowerCase();
+          subscriber.next(response.ok && accept.includes('bytes'));
+          subscriber.complete();
+        } catch {
+          subscriber.next(false);
+          subscriber.complete();
+        }
+      })();
+      return () => controller.abort();
+    });
   }
 
   upsertPublicKey(identityPublicKey: string, keyVersion = 1): Observable<CryptoOperationResponse> {
@@ -361,23 +421,5 @@ export class CryptoApiService {
       .set('crewId', crewId.toString());
 
     return this.http.delete<CryptoOperationResponse>(`${this.apiUrl}/content`, { params });
-  }
-}
-
-/** Prefer relative /api URLs so ApiBaseUrl + Auth interceptors apply; drop access_token. */
-function toAuthorizedPlainMediaRequestUrl(url: string): string {
-  try {
-    const absolute = url.startsWith('http://') || url.startsWith('https://');
-    const parsed = absolute ? new URL(url) : new URL(url, 'http://local.invalid');
-    parsed.searchParams.delete('access_token');
-    if (parsed.pathname.startsWith('/api/')) {
-      return `${parsed.pathname}${parsed.search}`;
-    }
-    if (absolute) {
-      return parsed.toString();
-    }
-    return `${parsed.pathname}${parsed.search}`;
-  } catch {
-    return url.replace(/([?&])access_token=[^&]*&?/, '$1').replace(/[?&]$/, '');
   }
 }
