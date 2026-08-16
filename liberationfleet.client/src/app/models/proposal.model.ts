@@ -142,6 +142,8 @@ export interface PendingAttachment {
   fileName?: string;
   /** True once the encrypted asset is stored on the server. */
   uploaded?: boolean;
+  /** In-flight background upload (shared so send can await without double-upload). */
+  uploadTask?: Promise<void>;
   /** Cancel in-flight compression/processing. */
   abort?: () => void;
   /** Library digital offerings: detail images vs downloadable files. */

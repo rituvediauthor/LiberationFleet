@@ -94,14 +94,6 @@
             [attr.aria-label]="editingMessageId ? 'Save' : 'Send'">
             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
           </button>
-          <button
-            type="button"
-            class="composer-cancel-btn"
-            *ngIf="editingMessageId"
-            [disabled]="sending"
-            (click)="cancelEditMessage()">
-            Cancel
-          </button>
         </div>
       </div>
 
@@ -119,6 +111,14 @@
           [current]="messageText.length"
           [max]="messageMaxLength">
         </app-char-counter>
+        <button
+          type="button"
+          class="composer-cancel-btn"
+          *ngIf="editingMessageId"
+          [disabled]="sending"
+          (click)="cancelEditMessage()">
+          Cancel
+        </button>
         <app-attach-permission-note
           *ngIf="!canAttachFiles"
           class="composer-permission-note"
@@ -126,7 +126,7 @@
         </app-attach-permission-note>
       </div>
 
-      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+      <div class="kept-attachments" *ngIf="composerExpanded && keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
           <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : (attachment.type === 'image' ? 'Image' : 'Attachment')) }}</span>
           <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>

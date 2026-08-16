@@ -80,6 +80,38 @@
   </div>
 
   <div class="chat-action-bar" *ngIf="contentRevealed" [appComposerFooterPad]="messageScroll">
+    <div class="chat-outbox" *ngIf="outbox.length > 0">
+      <div
+        class="outbox-item"
+        *ngFor="let entry of outbox"
+        [class.is-failed]="entry.status === 'failed'"
+        [class.is-sending]="entry.status === 'sending' || entry.status === 'queued'">
+        <div class="outbox-main">
+          <p class="outbox-preview">{{ outboxPreview(entry) }}</p>
+          <p class="outbox-status" *ngIf="entry.status === 'queued' || entry.status === 'sending'">
+            {{ entry.status === 'sending' ? 'Sending…' : 'Waiting for upload…' }}
+          </p>
+          <p class="outbox-status error" *ngIf="entry.status === 'failed'">
+            {{ entry.error || 'Failed to send' }}
+          </p>
+        </div>
+        <div class="outbox-actions">
+          <button type="button" class="link-btn" [disabled]="entry.status === 'sending'" (click)="editOutboxEntry(entry)">
+            Edit
+          </button>
+          <button
+            type="button"
+            class="link-btn"
+            *ngIf="entry.status === 'failed'"
+            (click)="retryOutboxEntry(entry)">
+            Retry
+          </button>
+          <button type="button" class="link-btn" [disabled]="entry.status === 'sending'" (click)="dismissOutboxEntry(entry)">
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="chat-action-bar-inner">
     <button
       type="button"
@@ -126,18 +158,10 @@
           <button
             type="button"
             class="composer-send-btn"
-            [disabled]="sending || !canSend()"
+            [disabled]="!canSend()"
             (click)="sendMessage()"
             [attr.aria-label]="editingMessageId ? 'Save' : 'Send'">
             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-          </button>
-          <button
-            type="button"
-            class="composer-cancel-btn"
-            *ngIf="editingMessageId"
-            [disabled]="sending"
-            (click)="cancelEditMessage()">
-            Cancel
           </button>
         </div>
       </div>
@@ -157,6 +181,14 @@
         [current]="messageText.length"
         [max]="messageMaxLength">
       </app-char-counter>
+      <button
+        type="button"
+        class="composer-cancel-btn"
+        *ngIf="editingMessageId"
+        [disabled]="sending"
+        (click)="cancelEditMessage()">
+        Cancel
+      </button>
       <app-attach-permission-note
         *ngIf="!canAttachFiles"
         class="composer-permission-note"
@@ -175,7 +207,7 @@
         </button>
       </div>
 
-      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+      <div class="kept-attachments" *ngIf="composerExpanded && keptEditAttachments.length > 0">
         <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
           <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : (attachment.type === 'image' ? 'Image' : 'Attachment')) }}</span>
           <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
