@@ -98,7 +98,13 @@ public sealed class AzureDeepFreezeBlobStore : IDeepFreezeBlobStore
         }
 
         var props = await blob.GetPropertiesAsync(cancellationToken: cancellationToken);
-        var stream = await blob.OpenReadAsync(cancellationToken: cancellationToken);
+        // Seekable buffered read so ASP.NET Range (206) can jump to moov/mdat like local files.
+        var stream = await blob.OpenReadAsync(
+            new BlobOpenReadOptions(allowModifications: false)
+            {
+                BufferSize = 1 * 1024 * 1024
+            },
+            cancellationToken);
         return (stream, props.Value.ContentLength);
     }
 

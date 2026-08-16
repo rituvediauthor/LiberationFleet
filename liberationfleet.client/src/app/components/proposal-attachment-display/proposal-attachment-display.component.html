@@ -23,53 +23,23 @@
     <figure class="attachment-item" *ngFor="let attachment of nonImageAttachments">
       <div class="media-shell" *ngIf="attachment.type === 'video' && safeDataUrl(attachment) as videoUrl">
         <video
-          #plainVideo
           [src]="videoUrl"
           [poster]="safePosterUrl(attachment) || null"
           [attr.aria-label]="attachment.fileName || 'Video attachment'"
-          [controls]="!needsPlainPlayButton(attachment)"
+          controls
           playsinline
           webkit-playsinline
           preload="metadata"
-          (error)="onMediaError($event, attachment)"
           (webkitbeginfullscreen)="onVideoFullscreenEnter()"
           (webkitendfullscreen)="onVideoFullscreenExit()"
           (fullscreenchange)="onVideoFullscreenChange($event)"></video>
-        <button
-          type="button"
-          class="plain-play-btn"
-          *ngIf="needsPlainPlayButton(attachment)"
-          (click)="startPlainPlayback(attachment, plainVideo)">
-          Play
-        </button>
-        <p class="plain-prepare" *ngIf="preparingPlayback.has(attachment.resourceId)">
-          Preparing playback…
-        </p>
-        <p class="plain-prepare error" *ngIf="prepareError.get(attachment.resourceId) as err">
-          {{ err }}
-        </p>
       </div>
       <div class="media-shell" *ngIf="attachment.type === 'audio' && safeDataUrl(attachment) as audioUrl">
         <audio
-          #plainAudio
           [src]="audioUrl"
           [attr.aria-label]="attachment.fileName || 'Audio attachment'"
-          [controls]="!needsPlainPlayButton(attachment)"
-          preload="metadata"
-          (error)="onMediaError($event, attachment)"></audio>
-        <button
-          type="button"
-          class="plain-play-btn audio"
-          *ngIf="needsPlainPlayButton(attachment)"
-          (click)="startPlainPlayback(attachment, plainAudio)">
-          Play
-        </button>
-        <p class="plain-prepare" *ngIf="preparingPlayback.has(attachment.resourceId)">
-          Preparing playback…
-        </p>
-        <p class="plain-prepare error" *ngIf="prepareError.get(attachment.resourceId) as err">
-          {{ err }}
-        </p>
+          controls
+          preload="metadata"></audio>
       </div>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : 'Attachment') }}
@@ -92,53 +62,23 @@
         [alt]="attachment.fileName || 'Image attachment'" />
       <div class="media-shell" *ngIf="attachment.type === 'video' && safeDataUrl(attachment) as videoUrl">
         <video
-          #plainVideoStacked
           [src]="videoUrl"
           [poster]="safePosterUrl(attachment) || null"
           [attr.aria-label]="attachment.fileName || 'Video attachment'"
-          [controls]="!needsPlainPlayButton(attachment)"
+          controls
           playsinline
           webkit-playsinline
           preload="metadata"
-          (error)="onMediaError($event, attachment)"
           (webkitbeginfullscreen)="onVideoFullscreenEnter()"
           (webkitendfullscreen)="onVideoFullscreenExit()"
           (fullscreenchange)="onVideoFullscreenChange($event)"></video>
-        <button
-          type="button"
-          class="plain-play-btn"
-          *ngIf="needsPlainPlayButton(attachment)"
-          (click)="startPlainPlayback(attachment, plainVideoStacked)">
-          Play
-        </button>
-        <p class="plain-prepare" *ngIf="preparingPlayback.has(attachment.resourceId)">
-          Preparing playback…
-        </p>
-        <p class="plain-prepare error" *ngIf="prepareError.get(attachment.resourceId) as err">
-          {{ err }}
-        </p>
       </div>
       <div class="media-shell" *ngIf="attachment.type === 'audio' && safeDataUrl(attachment) as audioUrl">
         <audio
-          #plainAudioStacked
           [src]="audioUrl"
           [attr.aria-label]="attachment.fileName || 'Audio attachment'"
-          [controls]="!needsPlainPlayButton(attachment)"
-          preload="metadata"
-          (error)="onMediaError($event, attachment)"></audio>
-        <button
-          type="button"
-          class="plain-play-btn audio"
-          *ngIf="needsPlainPlayButton(attachment)"
-          (click)="startPlainPlayback(attachment, plainAudioStacked)">
-          Play
-        </button>
-        <p class="plain-prepare" *ngIf="preparingPlayback.has(attachment.resourceId)">
-          Preparing playback…
-        </p>
-        <p class="plain-prepare error" *ngIf="prepareError.get(attachment.resourceId) as err">
-          {{ err }}
-        </p>
+          controls
+          preload="metadata"></audio>
       </div>
       <p class="attachment-fallback" *ngIf="!safeDataUrl(attachment)">
         {{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : (attachment.type === 'audio' ? 'Audio' : 'Attachment')) }}

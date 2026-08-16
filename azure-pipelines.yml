@@ -124,6 +124,8 @@ stages:
           vmImage: $(vmImage)
         steps:
           - checkout: self
+            # Same as deploy jobs: keep OAuth token available for Terraform OIDC refresh.
+            persistCredentials: true
           - template: .azure/pipelines/templates/terraform-apply.yml
             parameters:
               environmentName: staging
