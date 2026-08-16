@@ -155,15 +155,21 @@
   white-space: nowrap;
 }
 
+.composer-tools .encrypt-toggle {
+  order: 8;
+}
+
+.composer-tools .composer-cancel-btn {
+  order: 9;
+  align-self: center;
+  padding: 0 6px;
+  min-height: 36px;
+}
+
 .composer-tools .anonymous-mode-btn {
   margin-left: 0;
   flex-shrink: 0;
-  order: 9;
-}
-
-.composer-tools:not(:has(.anonymous-mode-btn)) .encrypt-toggle {
-  margin-left: 0;
-  order: 8;
+  order: 10;
 }
 
 .composer-tools .composer-permission-note {

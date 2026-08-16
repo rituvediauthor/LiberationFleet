@@ -30,7 +30,7 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { AuthService } from '../../../services/auth.service';
 import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
-import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
+import { waitForPendingAttachmentsReady } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { NavigationService } from '../../../services/navigation.service';
@@ -54,6 +54,18 @@ import { ComposerFooterPadDirective } from '../../../directives/composer-footer-
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
+
+interface ChatOutboxEntry {
+  localId: string;
+  body: string;
+  attachments: PendingAttachment[];
+  keptAttachments: ProposalAttachment[];
+  editingMessageId: number | null;
+  mentionedUserIds: number[];
+  isAnonymous: boolean;
+  status: 'queued' | 'sending' | 'failed';
+  error?: string;
+}
 
 @Component({
   selector: 'app-chat-text',
@@ -112,6 +124,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   mentionedUserIds: number[] = [];
   messageAttachments: PendingAttachment[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
+  outbox: ChatOutboxEntry[] = [];
   editingMessageId: number | null = null;
   openMessageMenuId: number | null = null;
   showReportDialog = false;
@@ -156,6 +169,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private contentPreferenceService = inject(ContentPreferenceService);
   private storage = inject(AppStorageService);
   private intersectionObserver?: IntersectionObserver;
+  private bottomStickObserver?: ResizeObserver;
+  private preferStickToBottom = true;
+  private outboxPumpRunning = false;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
   private hubDeleteSubscription?: Subscription;
@@ -242,11 +258,13 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     this.setupLazyLoadObserver();
+    this.setupBottomStickObserver();
     this.messageItems?.changes.subscribe(() => this.setupLazyLoadObserver());
   }
 
   ngOnDestroy() {
     this.intersectionObserver?.disconnect();
+    this.bottomStickObserver?.disconnect();
     this.hubSubscription?.unsubscribe();
     this.hubUpdateSubscription?.unsubscribe();
     this.hubDeleteSubscription?.unsubscribe();
@@ -335,9 +353,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     const hasContent = Boolean(
       this.messageText.trim() || this.messageAttachments.length > 0 || this.keptEditAttachments.length > 0
     );
-    return hasContent
-      && this.messageText.length <= this.messageMaxLength
-      && pendingAttachmentsAllowSubmit(this.messageAttachments);
+    // Allow send while uploads are still running — the outbox waits, then posts.
+    return hasContent && this.messageText.length <= this.messageMaxLength;
   }
 
   onAttachmentsChange() {
@@ -424,65 +441,76 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async sendMessage() {
-    if (!this.canSend() || this.sending || this.crewId <= 0) {
+    if (!this.canSend() || this.crewId <= 0) {
       return;
     }
 
-    this.sending = true;
-    try {
-      const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
-        || this.router.url.startsWith('/app/fleet/chats');
-      const text = this.messageText.trim();
-      const cryptoScope = isFleetScope && this.fleetId > 0
-        ? { fleetId: this.fleetId }
-        : { crewId: this.crewId };
+    const entry: ChatOutboxEntry = {
+      localId: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      body: this.messageText.trim(),
+      attachments: [...this.messageAttachments],
+      keptAttachments: [...this.keptEditAttachments],
+      editingMessageId: this.editingMessageId,
+      mentionedUserIds: [...this.mentionedUserIds],
+      isAnonymous: this.composeAnonymously,
+      status: 'queued'
+    };
 
-      const encrypted = await this.chatCrypto.encryptMessagePayload(
-        cryptoScope,
-        text,
-        this.composeAnonymously ? 'Anonymous' : this.authorDisplayName,
-        this.messageAttachments,
-        this.keptEditAttachments
-      );
+    this.outbox = [...this.outbox, entry];
+    this.messageText = '';
+    this.mentionedUserIds = [];
+    this.messageAttachments = [];
+    this.keptEditAttachments = [];
+    this.editingMessageId = null;
+    this.composerFocused = false;
+    this.preferStickToBottom = true;
+    this.scrollToBottom();
+    void this.pumpOutbox();
+  }
 
-      const request$ = this.editingMessageId
-        ? this.chatService.updateMessage(this.roomId, this.editingMessageId, {
-            ...encrypted,
-            mentionedUserIds: this.mentionedUserIds
-          })
-        : this.chatService.sendMessage(this.roomId, {
-            ...encrypted,
-            body: truncateNotificationPreview(text),
-            mentionedUserIds: this.mentionedUserIds,
-            isAnonymous: this.composeAnonymously
-          });
-
-      request$.subscribe({
-        next: response => {
-          this.sending = false;
-          if (!response.success) {
-            this.toastService.error(response.message || 'Failed to send message');
-            return;
-          }
-          if (response.messageId && this.composeAnonymously) {
-            this.recentOwnMessageIds.add(response.messageId);
-          }
-          this.messageText = '';
-          this.mentionedUserIds = [];
-          this.messageAttachments = [];
-          this.keptEditAttachments = [];
-          this.editingMessageId = null;
-          this.composerFocused = false;
-        },
-        error: () => {
-          this.sending = false;
-          this.toastService.error('Failed to send message');
-        }
-      });
-    } catch {
-      this.sending = false;
-      this.toastService.error('Failed to encrypt message');
+  editOutboxEntry(entry: ChatOutboxEntry) {
+    if (entry.status === 'sending') {
+      return;
     }
+
+    this.outbox = this.outbox.filter(item => item.localId !== entry.localId);
+    this.editingMessageId = entry.editingMessageId;
+    this.messageText = entry.body;
+    this.messageAttachments = [...entry.attachments];
+    this.keptEditAttachments = [...entry.keptAttachments];
+    this.mentionedUserIds = [...entry.mentionedUserIds];
+    this.composeAnonymously = entry.isAnonymous;
+    this.composerUiMinimized = false;
+    this.composerFocused = true;
+  }
+
+  retryOutboxEntry(entry: ChatOutboxEntry) {
+    if (entry.status === 'sending') {
+      return;
+    }
+    entry.status = 'queued';
+    entry.error = undefined;
+    this.outbox = [...this.outbox];
+    void this.pumpOutbox();
+  }
+
+  dismissOutboxEntry(entry: ChatOutboxEntry) {
+    if (entry.status === 'sending') {
+      return;
+    }
+    this.outbox = this.outbox.filter(item => item.localId !== entry.localId);
+  }
+
+  outboxPreview(entry: ChatOutboxEntry): string {
+    const text = entry.body.trim();
+    if (text) {
+      return text.length > 120 ? `${text.slice(0, 117)}…` : text;
+    }
+    const count = entry.attachments.length + entry.keptAttachments.length;
+    if (count > 0) {
+      return count === 1 ? 'Attachment' : `${count} attachments`;
+    }
+    return 'Empty message';
   }
 
   isOwnMessage(message: ChatMessage): boolean {
@@ -622,18 +650,18 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    const scrollEl = this.messageScroll?.nativeElement;
-    const shouldStickToBottom = scrollEl
-      ? scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 80
-      : true;
-
+    const shouldStickToBottom = this.preferStickToBottom || this.isNearBottom();
     const decrypted = this.crewId > 0
       ? await this.chatCrypto.decryptSingleMessage(message, this.getCryptoScope())
       : message;
     this.messages = [...this.messages, decrypted];
 
-    if (shouldStickToBottom) {
+    const ownMessage = this.isOwnMessage(decrypted);
+    if (shouldStickToBottom || ownMessage) {
+      this.preferStickToBottom = true;
       setTimeout(() => this.scrollToBottom(), 0);
+      // Media decode can grow the bubble after the first stick.
+      setTimeout(() => this.scrollToBottom(), 100);
     }
   }
 
@@ -653,10 +681,11 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
             : response.items ?? [];
           this.loading = false;
           if (scrollToBottom && !this.highlightSeekActive) {
+            this.preferStickToBottom = true;
             setTimeout(() => this.scrollToBottom(), 0);
           }
           this.continueHighlightSeek();
-          void this.resolveLoadedMessageAttachments();
+          void this.resolveLoadedMessageAttachments(scrollToBottom && !this.highlightSeekActive);
         } catch (error: unknown) {
           this.loadError = error instanceof Error ? error.message : 'Failed to decrypt messages';
           this.loading = false;
@@ -706,7 +735,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           if (options?.forHighlightSeek) {
             this.continueHighlightSeek();
           }
-          void this.resolveLoadedMessageAttachments();
+          void this.resolveLoadedMessageAttachments(false);
         } catch {
           this.loadingOlder = false;
         }
@@ -722,16 +751,114 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Fill video/image URLs after text is already on screen. */
-  private async resolveLoadedMessageAttachments(): Promise<void> {
+  private async resolveLoadedMessageAttachments(scrollAfter = false): Promise<void> {
     const scope = this.getCryptoScope();
     if (!scope.crewId && !scope.fleetId) {
       return;
     }
+
+    const snapshot = this.messages;
+    if (!snapshot.some(message => (message.resolvedAttachments?.length ?? 0) > 0)) {
+      return;
+    }
+
     try {
-      const resolved = await this.chatCrypto.resolveMessageAttachments(this.messages, scope);
-      this.messages = resolved;
+      const resolved = await this.chatCrypto.resolveMessageAttachments(snapshot, scope);
+      const resolvedById = new Map(resolved.map(message => [message.id, message] as const));
+      // Merge by id so hub messages that arrived during resolve are not dropped.
+      this.messages = this.messages.map(message => {
+        const next = resolvedById.get(message.id);
+        if (!next) {
+          return message;
+        }
+        return {
+          ...message,
+          resolvedAttachments: next.resolvedAttachments ?? message.resolvedAttachments
+        };
+      });
+
+      if (scrollAfter || this.preferStickToBottom) {
+        setTimeout(() => this.scrollToBottom(), 0);
+        setTimeout(() => this.scrollToBottom(), 150);
+      }
     } catch {
       // Media resolve is best-effort; text already rendered.
+    }
+  }
+
+  private async pumpOutbox(): Promise<void> {
+    if (this.outboxPumpRunning) {
+      return;
+    }
+    this.outboxPumpRunning = true;
+    try {
+      while (true) {
+        const entry = this.outbox.find(item => item.status === 'queued');
+        if (!entry) {
+          break;
+        }
+        await this.flushOutboxEntry(entry);
+      }
+    } finally {
+      this.outboxPumpRunning = false;
+      this.sending = this.outbox.some(item => item.status === 'sending' || item.status === 'queued');
+    }
+  }
+
+  private async flushOutboxEntry(entry: ChatOutboxEntry): Promise<void> {
+    entry.status = 'sending';
+    entry.error = undefined;
+    this.sending = true;
+    this.outbox = [...this.outbox];
+
+    try {
+      await waitForPendingAttachmentsReady(entry.attachments);
+
+      const cryptoScope = this.getCryptoScope();
+      const encrypted = await this.chatCrypto.encryptMessagePayload(
+        cryptoScope,
+        entry.body,
+        entry.isAnonymous ? 'Anonymous' : this.authorDisplayName,
+        entry.attachments,
+        entry.keptAttachments
+      );
+
+      const response = entry.editingMessageId
+        ? await new Promise<{ success: boolean; message?: string; messageId?: number }>((resolve, reject) => {
+            this.chatService.updateMessage(this.roomId, entry.editingMessageId!, {
+              ...encrypted,
+              mentionedUserIds: entry.mentionedUserIds
+            }).subscribe({ next: resolve, error: reject });
+          })
+        : await new Promise<{ success: boolean; message?: string; messageId?: number }>((resolve, reject) => {
+            this.chatService.sendMessage(this.roomId, {
+              ...encrypted,
+              body: truncateNotificationPreview(entry.body),
+              mentionedUserIds: entry.mentionedUserIds,
+              isAnonymous: entry.isAnonymous
+            }).subscribe({ next: resolve, error: reject });
+          });
+
+      if (!response.success) {
+        entry.status = 'failed';
+        entry.error = response.message || 'Failed to send message';
+        this.outbox = [...this.outbox];
+        this.toastService.error(entry.error);
+        return;
+      }
+
+      if (response.messageId && entry.isAnonymous) {
+        this.recentOwnMessageIds.add(response.messageId);
+      }
+
+      this.outbox = this.outbox.filter(item => item.localId !== entry.localId);
+      this.preferStickToBottom = true;
+      this.scrollToBottom();
+    } catch (error: unknown) {
+      entry.status = 'failed';
+      entry.error = error instanceof Error ? error.message : 'Failed to send message';
+      this.outbox = [...this.outbox];
+      this.toastService.error(entry.error);
     }
   }
 
@@ -778,11 +905,44 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.intersectionObserver.observe(triggerElement);
   }
 
+  private setupBottomStickObserver() {
+    this.bottomStickObserver?.disconnect();
+    const scrollEl = this.messageScroll?.nativeElement;
+    if (!scrollEl) {
+      return;
+    }
+
+    const body = scrollEl.querySelector('.chat-channel-body');
+    if (!body) {
+      return;
+    }
+
+    this.bottomStickObserver = new ResizeObserver(() => {
+      if (this.preferStickToBottom) {
+        scrollEl.scrollTop = scrollEl.scrollHeight;
+      }
+    });
+    this.bottomStickObserver.observe(body);
+
+    scrollEl.addEventListener('scroll', () => {
+      this.preferStickToBottom = this.isNearBottom(120);
+    }, { passive: true });
+  }
+
+  private isNearBottom(thresholdPx = 80): boolean {
+    const scrollEl = this.messageScroll?.nativeElement;
+    if (!scrollEl) {
+      return true;
+    }
+    return scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < thresholdPx;
+  }
+
   private scrollToBottom() {
     const scrollEl = this.messageScroll?.nativeElement;
     if (!scrollEl) {
       return;
     }
+    this.preferStickToBottom = true;
     scrollEl.scrollTop = scrollEl.scrollHeight;
   }
 }

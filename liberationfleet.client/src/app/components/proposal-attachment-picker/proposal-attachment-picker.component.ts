@@ -235,16 +235,22 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
           pending.progress = 0;
           pending.progressLabel = 'Uploading…';
           this.emitChange();
+          const uploadTask = this.proposalCrypto.uploadAttachmentInBackground(
+            this.cryptoScope,
+            pending,
+            (percent, label) => {
+              pending.progress = percent;
+              pending.progressLabel = label;
+              this.cdr.markForCheck();
+            }
+          ).finally(() => {
+            if (pending.uploadTask === uploadTask) {
+              pending.uploadTask = undefined;
+            }
+          });
+          pending.uploadTask = uploadTask;
           try {
-            await this.proposalCrypto.uploadAttachmentInBackground(
-              this.cryptoScope,
-              pending,
-              (percent, label) => {
-                pending.progress = percent;
-                pending.progressLabel = label;
-                this.cdr.markForCheck();
-              }
-            );
+            await uploadTask;
           } catch (uploadError) {
             const message = uploadError instanceof Error ? uploadError.message : 'Upload failed';
             this.toastService.error(message);

@@ -1056,14 +1056,26 @@ export class ProposalCryptoService {
 
     for (const attachment of attachments) {
       if (!attachment.uploaded) {
+        if (attachment.uploadTask) {
+          try {
+            await attachment.uploadTask;
+          } catch {
+            // Fall through — status/error handled below / by retry upload.
+          }
+        }
+      }
+
+      if (!attachment.uploaded) {
         const label = attachment.fileName || attachment.file?.name || `${attachment.type} attachment`;
         const jobId = this.uploadQueue.createJob(label);
         try {
           await this.encryptAndUpsertAttachment(scope, attachment, jobId);
           attachment.uploaded = true;
+          attachment.status = 'ready';
           this.uploadQueue.updateJob(jobId, { phase: 'done', progress: 100 });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Upload failed';
+          attachment.status = 'error';
           this.uploadQueue.updateJob(jobId, { phase: 'error', progress: 0, error: message });
           throw error;
         }
