@@ -508,15 +508,19 @@ export class ProposalCryptoService {
     for (const [contentType, bucket] of grouped.entries()) {
       const pendingIds: string[] = [];
       for (const attachment of bucket) {
-        // Known-plain video: stream only — never fall through to full /content/bytes.
-        if (attachment.type === 'video' && attachment.encrypted === false) {
-          const streamUrl = this.tryBuildPlainMediaStreamUrl(
+        // Known-plain AV: authenticated blob URL (progressive stream URLs do not play).
+        if (
+          (attachment.type === 'video' || attachment.type === 'audio')
+          && attachment.encrypted === false
+        ) {
+          const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
             contentType as EncryptedContentType,
             attachment.resourceId,
-            normalizedScope
+            normalizedScope,
+            attachment.mimeType
           );
-          if (streamUrl) {
-            dataUrlByResourceId.set(attachment.resourceId, streamUrl);
+          if (playbackUrl) {
+            dataUrlByResourceId.set(attachment.resourceId, playbackUrl);
           }
           continue;
         }
@@ -565,15 +569,16 @@ export class ProposalCryptoService {
               )
             );
             if (meta.nonce === MEDIA_PLAIN_NONCE) {
-              const streamUrl = this.tryBuildPlainMediaStreamUrl(
+              const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
                 contentType as EncryptedContentType,
                 meta.resourceId || resourceId,
-                normalizedScope
+                normalizedScope,
+                attachment?.mimeType
               );
-              if (streamUrl) {
-                dataUrlByResourceId.set(meta.resourceId || resourceId, streamUrl);
+              if (playbackUrl) {
+                dataUrlByResourceId.set(meta.resourceId || resourceId, playbackUrl);
               }
-              // Plain but no token / stream URL: skip — do not full-download.
+              // Plain but unresolved: skip — do not pull framed /content/bytes.
               return;
             }
             downloadIds.push(resourceId);
@@ -596,15 +601,16 @@ export class ProposalCryptoService {
               )
             );
 
-            // Safety net: if bytes endpoint still returns a plain envelope, stream instead.
+            // Safety net: plain envelope from bytes endpoint → blob playback URL.
             if (payload.nonce === MEDIA_PLAIN_NONCE) {
-              const streamUrl = this.tryBuildPlainMediaStreamUrl(
+              const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
                 contentType as EncryptedContentType,
                 payload.resourceId || resourceId,
-                normalizedScope
+                normalizedScope,
+                attachmentByResourceId.get(resourceId)?.mimeType
               );
-              if (streamUrl) {
-                dataUrlByResourceId.set(payload.resourceId || resourceId, streamUrl);
+              if (playbackUrl) {
+                dataUrlByResourceId.set(payload.resourceId || resourceId, playbackUrl);
               }
               return;
             }
@@ -731,11 +737,16 @@ export class ProposalCryptoService {
         : 'VideoAsset';
 
     try {
-      if (attachment.type === 'video') {
+      if (attachment.type === 'video' || attachment.type === 'audio') {
         if (attachment.encrypted === false) {
-          const streamUrl = this.tryBuildPlainMediaStreamUrl(contentType, attachment.resourceId, scope);
-          if (streamUrl) {
-            return { ...attachment, dataUrl: streamUrl };
+          const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
+            contentType,
+            attachment.resourceId,
+            scope,
+            attachment.mimeType
+          );
+          if (playbackUrl) {
+            return { ...attachment, dataUrl: playbackUrl };
           }
           return { ...attachment };
         }
@@ -750,13 +761,14 @@ export class ProposalCryptoService {
             )
           );
           if (meta.nonce === MEDIA_PLAIN_NONCE) {
-            const streamUrl = this.tryBuildPlainMediaStreamUrl(
+            const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
               contentType,
               meta.resourceId || attachment.resourceId,
-              scope
+              scope,
+              attachment.mimeType
             );
-            if (streamUrl) {
-              return { ...attachment, dataUrl: streamUrl, encrypted: false };
+            if (playbackUrl) {
+              return { ...attachment, dataUrl: playbackUrl, encrypted: false };
             }
             return { ...attachment, encrypted: false };
           }
@@ -781,13 +793,14 @@ export class ProposalCryptoService {
           )
         );
         if (payload.nonce === MEDIA_PLAIN_NONCE) {
-          const streamUrl = this.tryBuildPlainMediaStreamUrl(
+          const playbackUrl = await this.resolvePlainMediaPlaybackUrl(
             contentType,
             payload.resourceId || attachment.resourceId,
-            scope
+            scope,
+            attachment.mimeType
           );
-          if (streamUrl) {
-            return { ...attachment, dataUrl: streamUrl, encrypted: false };
+          if (playbackUrl) {
+            return { ...attachment, dataUrl: playbackUrl, encrypted: false };
           }
           return { ...attachment, encrypted: false };
         }
@@ -945,6 +958,49 @@ export class ProposalCryptoService {
       crewId: scope.crewId,
       fleetId: scope.fleetId
     });
+  }
+
+  /**
+   * Resolve unencrypted media to a blob: object URL via authenticated HttpClient.
+   * Progressive video src=plain-media consistently fails to start playback
+   * (especially iOS); blob URLs match the encrypted path that already works.
+   */
+  private async resolvePlainMediaPlaybackUrl(
+    contentType: EncryptedContentType,
+    resourceId: string,
+    scope: ProposalCryptoScope,
+    mimeHint?: string
+  ): Promise<string | null> {
+    if (!resourceId) {
+      return null;
+    }
+
+    const cachedUrl = await this.tryCachedMediaUrl(scope, resourceId, 1);
+    if (cachedUrl) {
+      return cachedUrl;
+    }
+
+    const streamUrl = this.tryBuildPlainMediaStreamUrl(contentType, resourceId, scope);
+    if (!streamUrl) {
+      return null;
+    }
+
+    const hint = mimeHint
+      || (contentType === 'AudioAsset' ? 'audio/mp4' : 'video/mp4');
+
+    try {
+      const blob = await firstValueFrom(
+        this.cryptoApi.fetchPlainMediaBlob(streamUrl, hint)
+      );
+      const maxCacheBytes = 32 * 1024 * 1024;
+      if (blob.size > 0 && blob.size <= maxCacheBytes) {
+        const cacheKey = buildMediaCacheKey(scope, resourceId, 1);
+        void this.mediaBlobCache.put(cacheKey, blob);
+      }
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
   }
 
   /**
