@@ -58,13 +58,15 @@ public sealed class LocalDeepFreezeBlobStore(IOptions<MediaDeepFreezeOptions> op
             return Task.FromResult<(Stream Stream, long Length)?>(null);
         }
 
+        // RandomAccess: plain-media Range (206) responses seek to moov/mdat offsets.
+        // SequentialScan made reverse seeks unreliable for Safari progressive play.
         var stream = new FileStream(
             fullPath,
             FileMode.Open,
             FileAccess.Read,
             FileShare.Read,
             bufferSize: 64 * 1024,
-            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+            options: FileOptions.Asynchronous | FileOptions.RandomAccess);
         return Task.FromResult<(Stream Stream, long Length)?>((stream, stream.Length));
     }
 

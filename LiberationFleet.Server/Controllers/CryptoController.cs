@@ -233,8 +233,10 @@ public class CryptoController : ControllerBase
     /// Progressive / Range stream of an unencrypted (<c>__plain__</c>) video/audio payload
     /// with the MIME framing header stripped. Accepts Bearer via header or
     /// <c>?access_token=</c> (for HTML5 media elements that cannot set Authorization).
+    /// HEAD is required so Safari can probe Accept-Ranges before play.
     /// </summary>
     [HttpGet("content/plain-media")]
+    [HttpHead("content/plain-media")]
     public async Task<IActionResult> GetPlainMediaStream(
         [FromQuery] EncryptedContentTypeDto contentType,
         [FromQuery] string resourceId,
@@ -246,6 +248,9 @@ public class CryptoController : ControllerBase
         {
             return NotFound();
         }
+
+        // Advertise byte ranges explicitly; FileStreamResult also needs a seekable stream.
+        Response.Headers.AcceptRanges = "bytes";
 
         // FileStreamResult disposes the stream when the response completes.
         return File(result.ContentStream, result.ContentType, enableRangeProcessing: true);
