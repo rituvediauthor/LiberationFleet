@@ -79,4 +79,27 @@ public class PlainMediaFramingTests
         MediaMimeSniff.Resolve("application/octet-stream", stream).Should().Be("video/mp4");
         stream.Position.Should().Be(0);
     }
+
+    [Fact]
+    public void MediaMimeSniff_Resolve_PreferAudioLabelsWebmAsAudio()
+    {
+        var bytes = new byte[]
+        {
+            0x1a, 0x45, 0xdf, 0xa3,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        };
+        using var stream = new MemoryStream(bytes);
+        MediaMimeSniff.Resolve("application/octet-stream", stream, preferAudio: true)
+            .Should().Be("audio/webm");
+        MediaMimeSniff.Resolve("audio/webm;codecs=opus", stream)
+            .Should().Be("audio/webm");
+    }
+
+    [Fact]
+    public void MediaMimeSniff_Normalize_StripsCodecsAndAliases()
+    {
+        MediaMimeSniff.Normalize("audio/webm;codecs=opus").Should().Be("audio/webm");
+        MediaMimeSniff.Normalize("audio/m4a").Should().Be("audio/mp4");
+        MediaMimeSniff.Normalize("audio/mp3").Should().Be("audio/mpeg");
+    }
 }

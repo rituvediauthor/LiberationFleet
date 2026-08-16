@@ -338,7 +338,8 @@ public sealed class MediaDeepFreezeService(
 
             var contentStream = new BoundedReadStream(rawStream, headerLength, contentLength);
             rawStream = null; // ownership transferred
-            var resolvedMime = MediaMimeSniff.Resolve(mimeType, contentStream);
+            var preferAudio = envelope.ContentType == EncryptedContentType.AudioAsset;
+            var resolvedMime = MediaMimeSniff.Resolve(mimeType, contentStream, preferAudio);
             return new PlainMediaContentStream
             {
                 ContentStream = contentStream,

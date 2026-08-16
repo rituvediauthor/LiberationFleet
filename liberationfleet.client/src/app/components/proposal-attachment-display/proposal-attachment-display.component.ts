@@ -1,9 +1,13 @@
-import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ResolvedAttachment } from '../../models/proposal.model';
 import { EncryptedContentType } from '../../models/crypto.model';
 import { LibraryImageCarouselComponent } from '../library-image-carousel/library-image-carousel.component';
-import { isSafeMediaDataUrl } from '../../utils/media-attachment-allowlist.util';
+import {
+  isPlainMediaStreamUrl,
+  isSafeMediaDataUrl
+} from '../../utils/media-attachment-allowlist.util';
+import { normalizeMediaMime, resolveBlobMime } from '../../utils/media-mime.util';
 import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-viewport-zoom';
 
 @Component({
@@ -13,7 +17,7 @@ import { enterMediaDetailZoom, exitMediaDetailZoom } from '../../utils/media-vie
   templateUrl: './proposal-attachment-display.component.html',
   styleUrl: './proposal-attachment-display.component.css'
 })
-export class ProposalAttachmentDisplayComponent {
+export class ProposalAttachmentDisplayComponent implements OnDestroy {
   @Input() attachments: ResolvedAttachment[] = [];
   @Input() compact = false;
   @Input() canDelete = false;
@@ -24,6 +28,10 @@ export class ProposalAttachmentDisplayComponent {
 
   /** Tracks native fullscreen so chrome hide/show stays balanced. */
   private videoFullscreenActive = false;
+
+  /** Blob fallbacks when progressive audio streams fail to decode in &lt;audio&gt;. */
+  private readonly audioBlobUrls = new Map<string, string>();
+  private readonly audioBlobInFlight = new Set<string>();
 
   get imageAttachments(): ResolvedAttachment[] {
     return this.attachments.filter(attachment => attachment.type === 'image');
@@ -40,6 +48,12 @@ export class ProposalAttachmentDisplayComponent {
   }
 
   safeDataUrl(attachment: ResolvedAttachment): string | null {
+    if (attachment.type === 'audio') {
+      const blobUrl = this.audioBlobUrls.get(attachment.resourceId);
+      if (blobUrl) {
+        return blobUrl;
+      }
+    }
     return isSafeMediaDataUrl(attachment.dataUrl) ? attachment.dataUrl! : null;
   }
 
@@ -80,6 +94,26 @@ export class ProposalAttachmentDisplayComponent {
     return 'ImageAsset';
   }
 
+  /**
+   * Progressive Range URLs work well for video; some audio containers (esp. WebM)
+   * fail in &lt;audio&gt; until the full file is buffered as a blob with a correct MIME.
+   */
+  onAudioError(attachment: ResolvedAttachment, event: Event): void {
+    const el = event.target as HTMLAudioElement | null;
+    const streamUrl = attachment.dataUrl;
+    if (!el || !streamUrl || !isPlainMediaStreamUrl(streamUrl)) {
+      return;
+    }
+    if (this.audioBlobUrls.has(attachment.resourceId) || this.audioBlobInFlight.has(attachment.resourceId)) {
+      return;
+    }
+
+    this.audioBlobInFlight.add(attachment.resourceId);
+    void this.loadAudioBlobFallback(attachment, streamUrl, el)
+      .catch(() => undefined)
+      .finally(() => this.audioBlobInFlight.delete(attachment.resourceId));
+  }
+
   onVideoFullscreenEnter(): void {
     if (this.videoFullscreenActive) {
       return;
@@ -109,5 +143,43 @@ export class ProposalAttachmentDisplayComponent {
     } else {
       this.onVideoFullscreenExit();
     }
+  }
+
+  ngOnDestroy(): void {
+    for (const url of this.audioBlobUrls.values()) {
+      URL.revokeObjectURL(url);
+    }
+    this.audioBlobUrls.clear();
+  }
+
+  private async loadAudioBlobFallback(
+    attachment: ResolvedAttachment,
+    streamUrl: string,
+    el: HTMLAudioElement
+  ): Promise<void> {
+    const response = await fetch(streamUrl);
+    if (!response.ok) {
+      return;
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      return;
+    }
+
+    const declared = normalizeMediaMime(attachment.mimeType)
+      || normalizeMediaMime(response.headers.get('content-type'))
+      || 'audio/mpeg';
+    const mime = resolveBlobMime(declared, bytes, { preferAudio: true });
+    const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+
+    const previous = this.audioBlobUrls.get(attachment.resourceId);
+    if (previous) {
+      URL.revokeObjectURL(previous);
+    }
+    this.audioBlobUrls.set(attachment.resourceId, blobUrl);
+
+    el.src = blobUrl;
+    el.load();
   }
 }

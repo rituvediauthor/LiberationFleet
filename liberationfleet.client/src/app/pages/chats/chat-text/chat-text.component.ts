@@ -28,8 +28,6 @@ import { FleetService } from '../../../services/fleet.service';
 import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
-import { CrewmateService } from '../../../services/crewmate.service';
-import { CryptoApiService } from '../../../services/crypto/crypto-api.service';
 import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
@@ -103,7 +101,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   composeAnonymously = false;
-  canModerateAttachments = false;
   canAttachFiles = false;
   messages: ChatMessage[] = [];
   crewId = 0;
@@ -154,8 +151,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private profileService = inject(ProfileService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
-  private crewmateService = inject(CrewmateService);
-  private cryptoApi = inject(CryptoApiService);
   private toastService = inject(ToastService);
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
@@ -204,15 +199,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.authorDisplayName = profile.username;
-        if (this.currentUserId) {
-          this.crewmateService.getCrewmateProfile(this.currentUserId).subscribe({
-            next: response => {
-              if (response.success && response.profile) {
-                this.canModerateAttachments = response.profile.canModerateAttachments;
-              }
-            }
-          });
-        }
       }
     });
 
@@ -580,33 +566,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       },
       error: () => this.toastService.error('Failed to submit kick proposal')
-    });
-  }
-
-  onAttachmentDeleted(resourceId: string, message: ChatMessage) {
-    const attachment = message.resolvedAttachments?.find(item => item.resourceId === resourceId);
-    if (!attachment || !this.crewId) {
-      return;
-    }
-
-    const contentType = attachment.type === 'video'
-      ? 'VideoAsset'
-      : attachment.type === 'audio'
-        ? 'AudioAsset'
-        : 'ImageAsset';
-
-    this.cryptoApi.deleteAttachment(contentType, resourceId, this.crewId).subscribe({
-      next: response => {
-        if (!response.success) {
-          this.toastService.error(response.message || 'Failed to delete attachment');
-          return;
-        }
-
-        message.resolvedAttachments = (message.resolvedAttachments ?? [])
-          .filter(item => item.resourceId !== resourceId);
-        this.toastService.success('Attachment deleted.');
-      },
-      error: () => this.toastService.error('Failed to delete attachment')
     });
   }
 

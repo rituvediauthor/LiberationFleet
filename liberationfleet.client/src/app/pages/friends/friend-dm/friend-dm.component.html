@@ -105,13 +105,6 @@
         </div>
       </div>
 
-      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
-        <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
-          <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
-          <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
-        </div>
-      </div>
-
       <div class="composer-tools" [class.collapsed-tools]="!composerExpanded">
         <app-proposal-attachment-picker
           class="message-attachment-picker"
@@ -131,6 +124,13 @@
           class="composer-permission-note"
           scope="crew">
         </app-attach-permission-note>
+      </div>
+
+      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
+          <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : (attachment.type === 'image' ? 'Image' : 'Attachment')) }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
+        </div>
       </div>
     </div>
     </div>

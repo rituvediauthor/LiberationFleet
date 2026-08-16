@@ -190,13 +190,15 @@ async function reencodeAudio(file: File): Promise<File> {
     source.buffer = decoded;
     source.connect(destination);
 
-    const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-          ? 'audio/mp4'
-          : '';
+    const preferredMime = MediaRecorder.isTypeSupported('audio/mp4')
+      ? 'audio/mp4'
+      : MediaRecorder.isTypeSupported('audio/aac')
+        ? 'audio/aac'
+        : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : '';
 
     if (!preferredMime) {
       return file;
@@ -231,7 +233,7 @@ async function reencodeAudio(file: File): Promise<File> {
       return file;
     }
 
-    const extension = preferredMime.includes('mp4') ? 'm4a' : 'webm';
+    const extension = preferredMime.includes('mp4') || preferredMime.includes('aac') ? 'm4a' : 'webm';
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'audio';
     return new File([compressed], `${baseName}.${extension}`, {
       type: preferredMime,

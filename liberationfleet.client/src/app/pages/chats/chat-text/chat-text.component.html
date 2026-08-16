@@ -72,10 +72,7 @@
         <p class="message-body" *ngIf="message.body"><app-mention-text [text]="message.body" /></p>
         <app-proposal-attachment-display
           [attachments]="message.resolvedAttachments ?? []"
-          [compact]="true"
-          [canDelete]="canModerateAttachments"
-          [crewId]="crewId"
-          (attachmentDeleted)="onAttachmentDeleted($event, message)">
+          [compact]="true">
         </app-proposal-attachment-display>
       </article>
     </div>
@@ -145,13 +142,6 @@
         </div>
       </div>
 
-      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
-        <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
-          <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'image' ? 'Image' : 'Attachment') }}</span>
-          <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
-        </div>
-      </div>
-
       <div class="composer-tools" [class.collapsed-tools]="!composerExpanded">
       <!-- Keep picker mounted while collapsed so iOS file-dialog focus cannot destroy it mid-select. -->
       <app-proposal-attachment-picker
@@ -183,6 +173,13 @@
           [title]="composeAnonymously ? 'Anonymous posting on' : 'Post anonymously'">
           <i class="fa-solid fa-user-secret" aria-hidden="true"></i>
         </button>
+      </div>
+
+      <div class="kept-attachments" *ngIf="keptEditAttachments.length > 0">
+        <div class="kept-attachment" *ngFor="let attachment of keptEditAttachments; let i = index">
+          <span>{{ attachment.type === 'video' ? 'Video' : (attachment.type === 'audio' ? 'Audio' : (attachment.type === 'image' ? 'Image' : 'Attachment')) }}</span>
+          <button type="button" class="link-btn" (click)="removeKeptAttachment(i)">Remove</button>
+        </div>
       </div>
     </div>
     </div>
