@@ -46,24 +46,35 @@ export class CryptoApiService {
   }
 
   /**
-   * Download a plain-media stream via HttpClient (Authorization header) into a
-   * blob object URL. Used when progressive video src loads a shell but Safari/iOS
-   * refuses to play (missing Range seek / moov-at-end). Prefer the stream URL first.
+   * Download plain-media bytes via HttpClient (Authorization header) into a
+   * typed Blob. Use for video/audio element src via URL.createObjectURL —
+   * progressive stream URLs often show controls but refuse to play on iOS/Safari.
    */
-  fetchPlainMediaObjectUrl(streamUrl: string): Observable<string> {
-    const requestUrl = stripAccessTokenQuery(streamUrl);
+  fetchPlainMediaBlob(streamUrl: string, mimeHint = 'video/mp4'): Observable<Blob> {
+    const requestUrl = toAuthorizedPlainMediaRequestUrl(streamUrl);
     return this.http.get(requestUrl, {
       responseType: 'blob',
-      // Same-origin or CORS API; interceptor adds Bearer.
       observe: 'body'
     }).pipe(
+      map(blob => {
+        const type = (!blob.type || blob.type === 'application/octet-stream' || blob.type === 'binary/octet-stream')
+          ? mimeHint
+          : blob.type;
+        return type === blob.type ? blob : new Blob([blob], { type });
+      })
+    );
+  }
+
+  /** @see fetchPlainMediaBlob */
+  fetchPlainMediaObjectUrl(streamUrl: string, mimeHint = 'video/mp4'): Observable<string> {
+    return this.fetchPlainMediaBlob(streamUrl, mimeHint).pipe(
       map(blob => URL.createObjectURL(blob))
     );
   }
 
   /** True when the plain-media endpoint advertises byte ranges (required for Safari play). */
   plainMediaAcceptsRanges(streamUrl: string): Observable<boolean> {
-    const requestUrl = stripAccessTokenQuery(streamUrl);
+    const requestUrl = toAuthorizedPlainMediaRequestUrl(streamUrl);
     return this.http.head(requestUrl, { observe: 'response' }).pipe(
       map(response => {
         const accept = (response.headers.get('Accept-Ranges') || '').toLowerCase();
@@ -352,12 +363,15 @@ export class CryptoApiService {
   }
 }
 
-/** Drop access_token so HttpClient + AuthInterceptor use the Authorization header instead. */
-function stripAccessTokenQuery(url: string): string {
+/** Prefer relative /api URLs so ApiBaseUrl + Auth interceptors apply; drop access_token. */
+function toAuthorizedPlainMediaRequestUrl(url: string): string {
   try {
     const absolute = url.startsWith('http://') || url.startsWith('https://');
     const parsed = absolute ? new URL(url) : new URL(url, 'http://local.invalid');
     parsed.searchParams.delete('access_token');
+    if (parsed.pathname.startsWith('/api/')) {
+      return `${parsed.pathname}${parsed.search}`;
+    }
     if (absolute) {
       return parsed.toString();
     }
