@@ -1597,6 +1597,11 @@ public partial class MutualAidService(
 
         foreach (var cycle in cycles.Where(c => c.UserId == userId && !c.CycleCompleted))
         {
+            if (cycle.UsesSegmentCap)
+            {
+                continue;
+            }
+
             cycle.CycleCompleted = true;
             cycle.CycleCompletedAt ??= DateTime.UtcNow;
             cycle.HasCycleStarted = false;
@@ -2530,6 +2535,26 @@ public partial class MutualAidService(
         }
 
         return total;
+    }
+
+    public async Task<decimal> GetMonthlyContributionExcludingLotAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var members = await mutualAidRepository.GetActiveMembersWithUsersAsync(crewId, cancellationToken);
+        var membership = members.FirstOrDefault(m => m.UserId == userId);
+        if (membership is null)
+        {
+            return 0m;
+        }
+
+        return await GetCrewmateMonthlyContributionAverageAsync(
+            membership,
+            DateTime.UtcNow,
+            includeLibraryOfThings: false,
+            createdBeforeUtc: null,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<int>> GetLockedCycleUserIdsAsync(

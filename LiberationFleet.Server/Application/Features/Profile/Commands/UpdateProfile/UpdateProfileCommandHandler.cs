@@ -82,6 +82,25 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         user.AvatarResourceId = string.IsNullOrWhiteSpace(request.AvatarResourceId)
             ? null
             : request.AvatarResourceId.Trim();
+
+        if (user.InNeedOfAid && !request.InNeedOfAid)
+        {
+            var crew = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+            var floor = crew?.FinancialMembershipContributionFloor ?? 0m;
+            var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken);
+            if (monthlyExclLot < floor)
+            {
+                return new ProfileOperationResponse
+                {
+                    Success = false,
+                    Message = $"Your monthly contribution (3 mo, excluding Library of Things) must be at least ${floor:0.##} to toggle in-need off."
+                };
+            }
+        }
+
         user.InNeedOfAid = request.InNeedOfAid;
         user.EmergencyLevel = request.EmergencyLevel;
         user.PeopleRepresentedCount = request.PeopleRepresentedCount;
@@ -190,6 +209,19 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 cancellationToken);
             var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
+            var canToggleOff = true;
+            var toggleFloor = 0m;
+            if (reloaded.InNeedOfAid)
+            {
+                var crewForFloor = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+                toggleFloor = crewForFloor?.FinancialMembershipContributionFloor ?? 0m;
+                var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
+                    userId.Value,
+                    membership.CrewId,
+                    cancellationToken);
+                canToggleOff = monthlyExclLot >= toggleFloor;
+            }
+
             profile = ProfileMapper.MapUser(
                 reloaded,
                 giftStats,
@@ -197,7 +229,9 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 isFinancialMember,
                 priorityScore,
                 reloaded.PercentBonus,
-                isSurvivalRecipient);
+                isSurvivalRecipient,
+                canToggleOff,
+                toggleFloor);
         }
 
         return new ProfileOperationResponse

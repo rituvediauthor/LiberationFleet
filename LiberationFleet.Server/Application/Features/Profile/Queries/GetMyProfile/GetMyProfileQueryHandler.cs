@@ -95,6 +95,20 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         var previousDonations = await _donationRepository.SumCompletedUsdForUserInRangeAsync(
             userId.Value, previousStart, currentStart, cancellationToken);
 
+        var canToggleOff = true;
+        var toggleFloor = 0m;
+        if (membership is not null && user.InNeedOfAid)
+        {
+            var crew = membership.Crew
+                ?? await _mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
+            toggleFloor = crew?.FinancialMembershipContributionFloor ?? 0m;
+            var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken);
+            canToggleOff = monthlyExclLot >= toggleFloor;
+        }
+
         return ProfileMapper.MapUser(
             user,
             giftStats,
@@ -103,6 +117,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             priorityScore,
             user.PercentBonus,
             isSurvivalRecipient,
+            canToggleOff,
+            toggleFloor,
             previousDonations,
             currentDonations,
             previousYear,

@@ -40,6 +40,8 @@ public class UserProfileDto
     public IReadOnlyList<string> IdentityGroups { get; set; } = Array.Empty<string>();
     public bool NeedsSurvivalAid { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
+    public bool CanToggleInNeedOff { get; set; }
+    public decimal InNeedToggleFloor { get; set; }
     public UserProfileStatsDto Stats { get; set; } = new();
 }
 
