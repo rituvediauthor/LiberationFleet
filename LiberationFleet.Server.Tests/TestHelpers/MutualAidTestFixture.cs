@@ -157,6 +157,7 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             EstimatedMonthlyContribution = monthlyContribution,
             IsSeasonReady = true,
             IsInSeason = true,
+            GivingSeasonJoinedAt = crew.CurrentSeasonStartDate,
             IsHonoraryMember = true,
             CurrentPriorityScore = user.Username switch
             {

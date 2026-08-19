@@ -27,6 +27,8 @@ public interface IMutualAidService
     Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionForUserAsync(Gift gift, int recipientUserId, CancellationToken cancellationToken = default);
     Task OnCrewmatePriorityChangedAsync(int userId, CancellationToken cancellationToken = default);
+    Task OnInNeedOfAidChangedAsync(int userId, bool isInNeedOfAid, CancellationToken cancellationToken = default);
+    Task EnsureCurrentMonthSurvivalThresholdsAsync(int userId, CancellationToken cancellationToken = default);
     /// <summary>
     /// Recalculates priority scores including contributions and reorders unlocked cycle units.
     /// </summary>

@@ -96,16 +96,30 @@ public class MutualAidRepository : IMutualAidRepository
             t => t.CrewId == crewId && t.UserId == userId && t.Year == year && t.Month == month,
             cancellationToken);
 
-    public async Task<decimal> GetContributionsLast3MonthsAsync(int userId, int crewId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetFinancialContributionsByMonthAsync(
+        int userId,
+        int crewId,
+        DateTime rangeStartUtc,
+        DateTime rangeEndExclusiveUtc,
+        CancellationToken cancellationToken = default)
     {
-        var threeMonthsAgo = DateTime.UtcNow.AddMonths(-3);
-        return await _context.Gifts
+        const string libraryOfThingsPlatformName = "Library of Things";
+        var gifts = await _context.Gifts
+            .Include(g => g.CrewPaymentPlatform)
             .Where(g => g.CrewId == crewId
                 && g.GiverUserId == userId
                 && g.CountsTowardContribution
                 && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated)
-                && g.CreatedAt >= threeMonthsAgo)
-            .SumAsync(g => g.Amount, cancellationToken);
+                && g.CreatedAt >= rangeStartUtc
+                && g.CreatedAt < rangeEndExclusiveUtc
+                && (g.CrewPaymentPlatform == null
+                    || g.CrewPaymentPlatform.Name != libraryOfThingsPlatformName))
+            .Select(g => new { g.CreatedAt, g.Amount })
+            .ToListAsync(cancellationToken);
+
+        return gifts
+            .GroupBy(g => (g.CreatedAt.Year, g.CreatedAt.Month))
+            .ToDictionary(group => group.Key, group => group.Sum(g => g.Amount));
     }
 
     public async Task<decimal> GetLifetimeContributionsAsync(
@@ -209,7 +223,7 @@ public class MutualAidRepository : IMutualAidRepository
             .OrderByDescending(d => d)
             .ToListAsync(cancellationToken);
 
-        return dates.FirstOrDefault();
+        return dates.Count == 0 ? null : dates[0];
     }
 
     public async Task<int> GetNextThresholdOrderPositionAsync(int crewId, CancellationToken cancellationToken = default)

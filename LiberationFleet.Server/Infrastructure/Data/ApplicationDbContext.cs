@@ -347,6 +347,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.ReceptionThisYearOverride).HasPrecision(18, 2);
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
             entity.Property(e => e.IsInSeason).HasDefaultValue(false);
+            entity.Property(e => e.GivingSeasonJoinedAt);
             entity.Property(e => e.CurrentPriorityScore).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.HasOne(e => e.User)
                 .WithMany(u => u.CrewMemberships)

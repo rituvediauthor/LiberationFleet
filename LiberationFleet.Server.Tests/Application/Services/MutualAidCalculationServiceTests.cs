@@ -85,21 +85,72 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
-    public void CalculateMonthlyGivingCapacity_UsesRecentContributionsWhenPresent()
+    public void GetEffectiveGivingSeasonJoinMonthStart_WhenFewerThan15DaysLeft_RoundsUpToNextMonth()
     {
-        MutualAidCalculationService.CalculateMonthlyGivingCapacity(90m, 25m).Should().Be(30m);
+        var joined = new DateTime(2026, 8, 18, 12, 0, 0, DateTimeKind.Utc);
+        MutualAidCalculationService.GetEffectiveGivingSeasonJoinMonthStart(joined)
+            .Should().Be(new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
     }
 
     [Fact]
-    public void CalculateMonthlyGivingCapacity_FallsBackToEstimateWhenNoContributions()
+    public void GetEffectiveGivingSeasonJoinMonthStart_When15OrMoreDaysLeft_UsesJoinMonth()
     {
-        MutualAidCalculationService.CalculateMonthlyGivingCapacity(0m, 40m).Should().Be(40m);
+        var joined = new DateTime(2026, 8, 17, 12, 0, 0, DateTimeKind.Utc);
+        MutualAidCalculationService.GetEffectiveGivingSeasonJoinMonthStart(joined)
+            .Should().Be(new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc));
     }
 
     [Fact]
-    public void CalculateMonthlyGivingCapacity_ReturnsZeroWhenNoContributionsOrEstimate()
+    public void GetCalendarMonthContribution_UsesActualWhenFinancialGiftsExist()
     {
-        MutualAidCalculationService.CalculateMonthlyGivingCapacity(0m, null).Should().Be(0m);
+        MutualAidCalculationService.GetCalendarMonthContribution(
+            40m,
+            new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+            estimatedMonthlyContribution: 100m).Should().Be(40m);
+    }
+
+    [Fact]
+    public void GetCalendarMonthContribution_UsesEstimateForEmptyMonthBeforeJoin()
+    {
+        MutualAidCalculationService.GetCalendarMonthContribution(
+            0m,
+            new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+            estimatedMonthlyContribution: 100m).Should().Be(100m);
+    }
+
+    [Fact]
+    public void GetCalendarMonthContribution_UsesZeroForEmptyMonthAfterJoin()
+    {
+        MutualAidCalculationService.GetCalendarMonthContribution(
+            0m,
+            new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+            estimatedMonthlyContribution: 100m).Should().Be(0m);
+    }
+
+    [Fact]
+    public void GetCalendarMonthContribution_UsesEstimateWhenNeverJoinedGivingSeason()
+    {
+        MutualAidCalculationService.GetCalendarMonthContribution(
+            0m,
+            new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+            effectiveJoinMonthStartUtc: null,
+            estimatedMonthlyContribution: 75m).Should().Be(75m);
+    }
+
+    [Fact]
+    public void AverageMonthlyGivingCapacity_AveragesThreeMonths()
+    {
+        MutualAidCalculationService.AverageMonthlyGivingCapacity([90m, 0m, 30m]).Should().Be(40m);
+    }
+
+    [Fact]
+    public void GetPastThreeCalendarMonths_IncludesCurrentAndTwoPrior()
+    {
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 8, 19, 0, 0, 0, DateTimeKind.Utc));
+        months.Should().Equal((2026, 6), (2026, 7), (2026, 8));
     }
 
     [Fact]

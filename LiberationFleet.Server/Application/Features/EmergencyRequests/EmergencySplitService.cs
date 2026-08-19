@@ -591,10 +591,7 @@ public class EmergencySplitService(
         CancellationToken cancellationToken)
     {
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
-        var totalContributions = participants
-            .Where(p => p.EstimatedMonthlyContribution.HasValue)
-            .Select(p => p.EstimatedMonthlyContribution!.Value);
-        var totalMonthly = MutualAidCalculationService.GetTotalMonthlyContributions(totalContributions);
+        var totalMonthly = await mutualAidService.GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken);
         var thresholdRecipients = participants.Count(p => p.User.NeedsSurvivalAid);
         var survivalAmount = MutualAidCalculationService.GetSurvivalThresholdAmount(totalMonthly, thresholdRecipients);
 

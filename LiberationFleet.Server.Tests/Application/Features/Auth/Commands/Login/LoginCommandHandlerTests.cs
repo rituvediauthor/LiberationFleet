@@ -25,6 +25,7 @@ public class LoginCommandHandlerTests
             .Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        var mutualAidService = HandlerTestFixture.CreateMutualAidServiceMock();
         var handler = new LoginCommandHandler(
             userRepository.Object,
             new Mock<ISecurityRepository>().Object,
@@ -32,6 +33,7 @@ public class LoginCommandHandlerTests
             passwordHasher.Object,
             tokenService.Object,
             new Mock<IMediator>().Object,
+            mutualAidService.Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
         var result = await handler.Handle(new LoginCommand
@@ -49,6 +51,9 @@ public class LoginCommandHandlerTests
         userRepository.Verify(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()), Times.Once);
         unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         passwordHasher.Verify(h => h.Verify("password123", user.PasswordHash), Times.Once);
+        mutualAidService.Verify(
+            m => m.EnsureCurrentMonthSurvivalThresholdsAsync(user.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -70,6 +75,7 @@ public class LoginCommandHandlerTests
             passwordHasher.Object,
             tokenService.Object,
             new Mock<IMediator>().Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
         var result = await handler.Handle(new LoginCommand
@@ -105,6 +111,7 @@ public class LoginCommandHandlerTests
             passwordHasher.Object,
             tokenService.Object,
             new Mock<IMediator>().Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
         var result = await handler.Handle(new LoginCommand
