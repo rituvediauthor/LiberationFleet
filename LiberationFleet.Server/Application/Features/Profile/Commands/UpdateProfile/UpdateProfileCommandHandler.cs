@@ -82,7 +82,23 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         user.AvatarResourceId = string.IsNullOrWhiteSpace(request.AvatarResourceId)
             ? null
             : request.AvatarResourceId.Trim();
-        user.InNeedOfAid = request.InNeedOfAid;
+
+        var crew = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+        var floor = crew?.FinancialMembershipContributionFloor ?? 0m;
+        var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
+            userId.Value,
+            membership.CrewId,
+            cancellationToken);
+
+        if (CrewInNeedService.IsBelowContributionFloor(monthlyExclLot, floor))
+        {
+            user.InNeedOfAid = true;
+        }
+        else
+        {
+            user.InNeedOfAid = request.InNeedOfAid;
+        }
+
         user.EmergencyLevel = request.EmergencyLevel;
         user.PeopleRepresentedCount = request.PeopleRepresentedCount;
         user.DisabilityLevel = request.DisabilityLevel;
@@ -151,23 +167,28 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             _unitOfWork,
             cancellationToken);
 
-        if (previousEmergencyLevel != user.EmergencyLevel
-            || previousInNeedOfAid != user.InNeedOfAid
-            || previousPeopleRepresentedCount != user.PeopleRepresentedCount
-            || previousDisabilityLevel != user.DisabilityLevel)
+        var reloaded = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
+        if (reloaded is null)
         {
-            if (previousInNeedOfAid != user.InNeedOfAid)
+            return new ProfileOperationResponse { Success = false, Message = "User not found." };
+        }
+
+        if (previousEmergencyLevel != reloaded.EmergencyLevel
+            || previousInNeedOfAid != reloaded.InNeedOfAid
+            || previousPeopleRepresentedCount != reloaded.PeopleRepresentedCount
+            || previousDisabilityLevel != reloaded.DisabilityLevel)
+        {
+            if (previousInNeedOfAid != reloaded.InNeedOfAid)
             {
                 await _mutualAidService.OnInNeedOfAidChangedAsync(
                     userId.Value,
-                    user.InNeedOfAid,
+                    reloaded.InNeedOfAid,
                     cancellationToken);
             }
 
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
         }
 
-        var reloaded = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
         UserProfileDto? profile = null;
         if (reloaded is not null)
         {
@@ -190,6 +211,9 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 cancellationToken);
             var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
+            var toggleFloor = floor;
+            var canToggleOff = CrewInNeedService.CanToggleInNeedOff(monthlyExclLot, toggleFloor);
+
             profile = ProfileMapper.MapUser(
                 reloaded,
                 giftStats,
@@ -197,7 +221,9 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 isFinancialMember,
                 priorityScore,
                 reloaded.PercentBonus,
-                isSurvivalRecipient);
+                isSurvivalRecipient,
+                canToggleOff,
+                toggleFloor);
         }
 
         return new ProfileOperationResponse

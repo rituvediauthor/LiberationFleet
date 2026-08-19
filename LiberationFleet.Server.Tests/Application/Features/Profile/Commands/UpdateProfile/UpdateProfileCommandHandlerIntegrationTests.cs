@@ -17,8 +17,8 @@ public class UpdateProfileCommandHandlerIntegrationTests
         await using (context)
         {
             var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
-            // Threshold 0 => ApplyInNeedDefaultAsync leaves an explicit InNeedOfAid=false alone.
-            crew.InNeedDefaultThreshold = 0;
+            // Floor 0 with no gifts => average 0, not below floor; explicit InNeedOfAid=false is kept.
+            crew.FinancialMembershipContributionFloor = 0;
             context.UserPaymentPlatforms.Add(new UserPaymentPlatform
             {
                 UserId = user.Id,

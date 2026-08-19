@@ -33,6 +33,8 @@ export interface UserProfile {
   identityGroups: string[];
   needsSurvivalAid: boolean;
   isSurvivalThresholdRecipient: boolean;
+  canToggleInNeedOff: boolean;
+  inNeedToggleFloor: number;
   stats: UserProfileStats;
 }
 

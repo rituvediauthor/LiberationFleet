@@ -1548,6 +1548,25 @@ public partial class MutualAidService(
             crew.Id,
             crew.CurrentSeasonStartDate!.Value,
             cancellationToken)).ToList();
+
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var isMember = await IsFinancialMemberAsync(
+            membership.UserId,
+            crew.Id,
+            membership,
+            cancellationToken);
+
+        foreach (var segment in cycles.Where(c =>
+            c.UserId == membership.UserId
+            && c.UsesSegmentCap
+            && !c.CycleCompleted
+            && c.CycleReceived < c.CycleCapAtStart))
+        {
+            segment.CycleCompleted = false;
+            segment.CycleCompletedAt = null;
+            segment.HasCycleStarted = false;
+        }
+
         var primary = cycles
             .Where(c => c.UserId == membership.UserId && IsPrimaryCycle(c))
             .OrderBy(c => c.ReceptionOrderPosition)
@@ -1561,12 +1580,6 @@ public partial class MutualAidService(
             return;
         }
 
-        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
-        var isMember = await IsFinancialMemberAsync(
-            membership.UserId,
-            crew.Id,
-            membership,
-            cancellationToken);
         var effectiveCap = EmergencySplitService.ResolveSegmentCap(
             primary,
             isMember,
@@ -1575,6 +1588,7 @@ public partial class MutualAidService(
 
         if (primary.CycleReceived >= effectiveCap)
         {
+            await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
             return;
         }
 
@@ -1597,6 +1611,11 @@ public partial class MutualAidService(
 
         foreach (var cycle in cycles.Where(c => c.UserId == userId && !c.CycleCompleted))
         {
+            if (cycle.UsesSegmentCap)
+            {
+                continue;
+            }
+
             cycle.CycleCompleted = true;
             cycle.CycleCompletedAt ??= DateTime.UtcNow;
             cycle.HasCycleStarted = false;
@@ -2530,6 +2549,26 @@ public partial class MutualAidService(
         }
 
         return total;
+    }
+
+    public async Task<decimal> GetMonthlyContributionExcludingLotAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var members = await mutualAidRepository.GetActiveMembersWithUsersAsync(crewId, cancellationToken);
+        var membership = members.FirstOrDefault(m => m.UserId == userId);
+        if (membership is null)
+        {
+            return 0m;
+        }
+
+        return await GetCrewmateMonthlyContributionAverageAsync(
+            membership,
+            DateTime.UtcNow,
+            includeLibraryOfThings: false,
+            createdBeforeUtc: null,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<int>> GetLockedCycleUserIdsAsync(

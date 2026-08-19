@@ -113,14 +113,21 @@ public class GetMyProfileQueryHandlerTests
         membershipRepository ??= SetupDefaultMembershipRepository(currentUserId);
         mutualAidRepository ??= SetupDefaultMutualAidRepository();
 
+        var crewRepository = new Mock<ICrewRepository>(MockBehavior.Loose);
+        crewRepository
+            .Setup(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HandlerTestFixture.CreateCrew());
+
         return new GetMyProfileQueryHandler(
             userRepository.Object,
             giftRepository.Object,
             membershipRepository.Object,
+            crewRepository.Object,
             mutualAidRepository.Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
-            CreateDonationRepositoryMock().Object);
+            CreateDonationRepositoryMock().Object,
+            HandlerTestFixture.CreateUnitOfWorkMock().Object);
     }
 
     private static Mock<IAppDonationRepository> CreateDonationRepositoryMock()

@@ -16,6 +16,8 @@ public static class ProfileMapper
         decimal priorityScore,
         int percentBoost,
         bool isSurvivalThresholdRecipient,
+        bool canToggleInNeedOff = true,
+        decimal inNeedToggleFloor = 0m,
         decimal donationsPreviousTaxYearUsd = 0m,
         decimal donationsCurrentTaxYearUsd = 0m,
         int previousTaxYear = 0,
@@ -46,6 +48,8 @@ public static class ProfileMapper
             IdentityGroups = IdentityGroupKeys.Parse(user.IdentityGroups),
             NeedsSurvivalAid = user.NeedsSurvivalAid,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
+            CanToggleInNeedOff = canToggleInNeedOff,
+            InNeedToggleFloor = inNeedToggleFloor,
             Stats = BuildStats(
                 giftStats,
                 membership,

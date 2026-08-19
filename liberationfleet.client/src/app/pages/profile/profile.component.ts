@@ -103,6 +103,8 @@ export class ProfileComponent implements OnInit {
   pendingRecoveryPhrase = '';
   rotatingRecoveryKey = false;
   crewId = 0;
+  canToggleInNeedOff = true;
+  inNeedToggleFloor = 0;
   avatarAttachments: PendingAttachment[] = [];
   avatarResourceId: string | null = null;
   avatarPreviewUrl: string | null = null;
@@ -360,6 +362,8 @@ export class ProfileComponent implements OnInit {
           this.images.invalidate(this.initialAvatarResourceId, 'ProfileAvatar');
         }
         this.profile = result.profile;
+        this.canToggleInNeedOff = result.profile.canToggleInNeedOff ?? true;
+        this.inNeedToggleFloor = result.profile.inNeedToggleFloor ?? 0;
         this.avatarResourceId = result.profile.avatarResourceId ?? null;
         this.loadPlatformOptions();
         this.form.patchValue({
@@ -419,6 +423,8 @@ export class ProfileComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: (profile) => {
         this.profile = profile;
+        this.canToggleInNeedOff = profile.canToggleInNeedOff ?? true;
+        this.inNeedToggleFloor = profile.inNeedToggleFloor ?? 0;
         this.avatarResourceId = profile.avatarResourceId ?? null;
         this.syncPlatformOptions();
         this.authService.updateCurrentUser({
@@ -515,7 +521,7 @@ export class ProfileComponent implements OnInit {
     this.form = this.fb.group({
       username: [profile.username, usernameValidators()],
       email: [profile.email, [Validators.required, Validators.email]],
-      inNeedOfAid: [profile.inNeedOfAid],
+      inNeedOfAid: [this.canToggleInNeedOff ? profile.inNeedOfAid : true],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [profile.disabilityLevel ?? 0, [Validators.min(0), Validators.max(3)]],

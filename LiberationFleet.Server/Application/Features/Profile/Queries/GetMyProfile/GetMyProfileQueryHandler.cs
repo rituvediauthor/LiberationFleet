@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Services;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Profile.Queries.GetMyProfile;
@@ -11,27 +12,33 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
     private readonly IUserRepository _userRepository;
     private readonly IGiftRepository _giftRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
+    private readonly ICrewRepository _crewRepository;
     private readonly IMutualAidRepository _mutualAidRepository;
     private readonly IMutualAidService _mutualAidService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAppDonationRepository _donationRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public GetMyProfileQueryHandler(
         IUserRepository userRepository,
         IGiftRepository giftRepository,
         ICrewMembershipRepository membershipRepository,
+        ICrewRepository crewRepository,
         IMutualAidRepository mutualAidRepository,
         IMutualAidService mutualAidService,
         ICurrentUserService currentUserService,
-        IAppDonationRepository donationRepository)
+        IAppDonationRepository donationRepository,
+        IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
         _membershipRepository = membershipRepository;
+        _crewRepository = crewRepository;
         _mutualAidRepository = mutualAidRepository;
         _mutualAidService = mutualAidService;
         _currentUserService = currentUserService;
         _donationRepository = donationRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<UserProfileDto?> Handle(GetMyProfileQuery request, CancellationToken cancellationToken)
@@ -54,9 +61,29 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         var priorityScore = 0m;
         var giftStats = new CrewmateGiftStatsDto();
         var isSurvivalRecipient = false;
+        var canToggleOff = true;
+        var toggleFloor = 0m;
 
         if (membership is not null)
         {
+            var inNeedChanged = await CrewInNeedService.ApplyInNeedDefaultAsync(
+                userId.Value,
+                _userRepository,
+                _giftRepository,
+                _crewRepository,
+                _membershipRepository,
+                _unitOfWork,
+                cancellationToken);
+            if (inNeedChanged)
+            {
+                await _mutualAidService.OnInNeedOfAidChangedAsync(userId.Value, isInNeedOfAid: true, cancellationToken);
+                user = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
+                if (user is null)
+                {
+                    return null;
+                }
+            }
+
             giftStats = await _giftRepository.GetCrewmateGiftStatsAsync(
                 userId.Value,
                 membership.CrewId,
@@ -82,6 +109,11 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 ?? await _mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
             isSurvivalRecipient = crew?.AllowSurvivalThresholds == true
                 && unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
+
+            toggleFloor = crew?.FinancialMembershipContributionFloor ?? 0m;
+            canToggleOff = CrewInNeedService.CanToggleInNeedOff(
+                giftStats.AverageMonthlyContributions,
+                toggleFloor);
         }
 
         var now = DateTime.UtcNow;
@@ -103,6 +135,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             priorityScore,
             user.PercentBonus,
             isSurvivalRecipient,
+            canToggleOff,
+            toggleFloor,
             previousDonations,
             currentDonations,
             previousYear,
