@@ -9,7 +9,7 @@
       <p class="intro-text">
         In order to start using mutual aid functions, at least three crewmates need to:
         have payment platforms registered to their profile and enter an estimate of how much
-        money they will be able to contribute on a monthly basis, then mark themselves as ready.
+        money they will be able to contribute on a monthly basis (which may be $0), then mark themselves as ready.
       </p>
       <p class="ready-count">{{ readyCount }} of 3 crewmates ready</p>
 
@@ -33,12 +33,12 @@
             type="number"
             formControlName="estimatedMonthlyContribution"
             class="form-input"
-            min="0.01"
+            min="0"
             step="0.01"
             [attr.aria-invalid]="isInvalid('estimatedMonthlyContribution')"
             [attr.aria-describedby]="isInvalid('estimatedMonthlyContribution') ? 'estimate-error' : null">
           <span id="estimate-error" class="error-text" role="alert" *ngIf="isInvalid('estimatedMonthlyContribution')">
-            Enter an estimate of at least $0.01
+            Enter an estimate of $0 or more
           </span>
         </div>
 

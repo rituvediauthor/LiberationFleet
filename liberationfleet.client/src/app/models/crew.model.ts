@@ -17,6 +17,7 @@ export interface Crew {
   allowCrossCrewGiving?: boolean;
   requireApprovalForEdits?: boolean;
   inNeedDefaultThreshold?: number;
+  financialMembershipContributionFloor?: number;
   libraryOfThingsEnabled?: boolean;
   memberCycleCapMode?: CycleCapMode;
   memberCycleCapFixedAmount?: number;
@@ -101,6 +102,7 @@ export interface UpdateCrewRequest {
   allowCrossCrewGiving: boolean;
   requireApprovalForEdits: boolean;
   inNeedDefaultThreshold: number;
+  financialMembershipContributionFloor: number;
   libraryOfThingsEnabled: boolean;
   memberCycleCapMode: CycleCapMode;
   memberCycleCapFixedAmount: number;

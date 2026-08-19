@@ -55,7 +55,7 @@ export class JoinSeasonComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]],
+      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0)]],
       emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],

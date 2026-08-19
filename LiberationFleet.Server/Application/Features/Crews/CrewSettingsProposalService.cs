@@ -126,6 +126,7 @@ public class CrewSettingsProposalService(
         crew.AllowSurvivalThresholds = request.AllowSurvivalThresholds;
         crew.RequireApprovalForEdits = request.RequireApprovalForEdits;
         crew.InNeedDefaultThreshold = request.InNeedDefaultThreshold;
+        crew.FinancialMembershipContributionFloor = request.FinancialMembershipContributionFloor;
         crew.LibraryOfThingsEnabled = request.LibraryOfThingsEnabled;
         crew.MemberCycleCapMode = CrewUpdateValidator.ParseCycleCapMode(request.MemberCycleCapMode);
         crew.MemberCycleCapFixedAmount = request.MemberCycleCapFixedAmount;
@@ -184,6 +185,9 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.InNeedDefaultThreshold:
                 crew.InNeedDefaultThreshold = decimal.Parse(change.NewValue);
+                break;
+            case CrewSettingField.FinancialMembershipContributionFloor:
+                crew.FinancialMembershipContributionFloor = decimal.Parse(change.NewValue);
                 break;
             case CrewSettingField.LibraryOfThingsEnabled:
                 crew.LibraryOfThingsEnabled = bool.Parse(change.NewValue);

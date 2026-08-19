@@ -1,7 +1,7 @@
 <app-page-layout [backButton]="backButton" [fillHeight]="true">
   <div class="library-list-page">
     <h1 class="page-title">Requests</h1>
-    <p class="page-note">Soonest open request per item you hold</p>
+    <p class="page-note">Open requests for items you hold</p>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
@@ -17,6 +17,19 @@
         <app-library-item-card [item]="toCardItem(item)" holderLabel="Requester"></app-library-item-card>
         <div class="request-meta">
           <span class="requester-name">{{ item.requesterUsername }}</span>
+          <span class="priority-score" *ngIf="item.requesterPriorityScore != null">
+            Priority score: {{ item.requesterPriorityScore }}
+          </span>
+          <span class="priority-note highest" *ngIf="item.hasHighestPriorityAmongOpenRequests">
+            This crewmate has highest priority
+          </span>
+          <button
+            type="button"
+            class="priority-note link-btn"
+            *ngIf="item.hasHighestPriorityAmongOpenRequests === false && item.higherPriorityRequestId"
+            (click)="openHigherPriorityRequest($event, item)">
+            Lower priority score than {{ item.higherPriorityRequesterUsername }}
+          </button>
           <span class="timestamp">{{ formatTimestamp(item.createdAt) }}</span>
         </div>
       </button>

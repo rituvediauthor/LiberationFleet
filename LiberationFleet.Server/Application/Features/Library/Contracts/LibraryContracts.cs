@@ -191,6 +191,10 @@ public class LibraryRequestListItemDto
     public DateTime NeededByStart { get; set; }
     public DateTime NeededByEnd { get; set; }
     public DateTime CreatedAt { get; set; }
+    public decimal? RequesterPriorityScore { get; set; }
+    public bool? HasHighestPriorityAmongOpenRequests { get; set; }
+    public int? HigherPriorityRequestId { get; set; }
+    public string? HigherPriorityRequesterUsername { get; set; }
 }
 
 public class LibraryRequestListResponse

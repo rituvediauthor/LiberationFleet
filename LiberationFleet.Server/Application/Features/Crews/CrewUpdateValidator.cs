@@ -35,6 +35,11 @@ public static class CrewUpdateValidator
             return Failure("In-need threshold cannot be negative.");
         }
 
+        if (request.FinancialMembershipContributionFloor < 0)
+        {
+            return Failure("Financial membership contribution floor cannot be negative.");
+        }
+
         if (request.MemberCycleCapFixedAmount < 0 || request.NonMemberCycleCapFixedAmount < 0)
         {
             return Failure("Cycle cap amounts cannot be negative.");

@@ -22,6 +22,20 @@
         View all {{ detail.openRequestCountOnUnit }} active requests for this item
       </button>
 
+      <div class="priority-panel" *ngIf="detail.isPossessorView && detail.requesterPriorityScore != null">
+        <p class="priority-score">Requester priority score: {{ detail.requesterPriorityScore }}</p>
+        <p class="priority-note highest" *ngIf="detail.hasHighestPriorityAmongOpenRequests">
+          This crewmate has highest priority
+        </p>
+        <button
+          type="button"
+          class="priority-note link-btn"
+          *ngIf="detail.hasHighestPriorityAmongOpenRequests === false && detail.higherPriorityRequestId"
+          (click)="openHigherPriorityRequest()">
+          Lower priority score than {{ detail.higherPriorityRequesterUsername }}
+        </button>
+      </div>
+
       <form [formGroup]="form" class="request-form">
         <div class="form-group">
           <label for="purpose">Purpose</label>

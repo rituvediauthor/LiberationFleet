@@ -521,26 +521,34 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
     public async Task<bool> HasOpenRequestForUnitByUserAsync(
         int unitId,
         int requesterUserId,
-        CancellationToken cancellationToken = default) =>
-        await context.LibraryRequests.AnyAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        return await context.LibraryRequests.AnyAsync(
             r => r.UnitId == unitId
                 && r.RequesterUserId == requesterUserId
-                && r.Status == LibraryRequestStatus.Open,
+                && r.Status == LibraryRequestStatus.Open
+                && r.NeededByStart > utcNow,
             cancellationToken);
+    }
 
     public async Task<bool> HasOverlappingOpenRequestForUnitAsync(
         int unitId,
         DateTime neededByStart,
         DateTime neededByEnd,
         int? excludeRequestId = null,
-        CancellationToken cancellationToken = default) =>
-        await context.LibraryRequests.AnyAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        return await context.LibraryRequests.AnyAsync(
             r => r.UnitId == unitId
                 && r.Status == LibraryRequestStatus.Open
+                && r.NeededByStart > utcNow
                 && (excludeRequestId == null || r.Id != excludeRequestId)
                 && r.NeededByStart <= neededByEnd
                 && neededByStart <= r.NeededByEnd,
             cancellationToken);
+    }
 
     public async Task AddRequestAsync(LibraryRequest request, CancellationToken cancellationToken = default) =>
         await context.LibraryRequests.AddAsync(request, cancellationToken);
@@ -564,7 +572,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         int possessorUserId,
         CancellationToken cancellationToken = default)
     {
-        var openRequests = await context.LibraryRequests
+        var utcNow = DateTime.UtcNow;
+        return await context.LibraryRequests
             .AsNoTracking()
             .Include(r => r.RequesterUser)
             .Include(r => r.Unit)
@@ -574,25 +583,21 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(r => r.Unit)
                 .ThenInclude(u => u.CurrentPossessorUser)
             .Where(r => r.Status == LibraryRequestStatus.Open
+                && r.NeededByStart > utcNow
                 && r.Unit.CurrentPossessorUserId == possessorUserId
                 && r.Unit.Offering.CrewId == crewId)
             .OrderBy(r => r.NeededByStart)
             .ThenBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
-
-        return openRequests
-            .GroupBy(r => r.UnitId)
-            .Select(g => g.First())
-            .OrderBy(r => r.NeededByStart)
-            .ThenBy(r => r.CreatedAt)
-            .ToList();
     }
 
     public async Task<IReadOnlyList<LibraryRequest>> GetOpenRequestsForUnitAsync(
         int unitId,
         int crewId,
-        CancellationToken cancellationToken = default) =>
-        await context.LibraryRequests
+        CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        return await context.LibraryRequests
             .AsNoTracking()
             .Include(r => r.RequesterUser)
             .Include(r => r.Unit)
@@ -603,17 +608,42 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(u => u.CurrentPossessorUser)
             .Where(r => r.UnitId == unitId
                 && r.Unit.Offering.CrewId == crewId
-                && r.Status == LibraryRequestStatus.Open)
+                && r.Status == LibraryRequestStatus.Open
+                && r.NeededByStart > utcNow)
             .OrderBy(r => r.NeededByStart)
             .ThenBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
+    }
 
     public async Task<int> CountOpenRequestsForUnitAsync(
         int unitId,
-        CancellationToken cancellationToken = default) =>
-        await context.LibraryRequests.CountAsync(
-            r => r.UnitId == unitId && r.Status == LibraryRequestStatus.Open,
+        CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        return await context.LibraryRequests.CountAsync(
+            r => r.UnitId == unitId
+                && r.Status == LibraryRequestStatus.Open
+                && r.NeededByStart > utcNow,
             cancellationToken);
+    }
+
+    public async Task ExpireStaleOpenRequestsForCrewAsync(
+        int crewId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        var stale = await context.LibraryRequests
+            .Where(r => r.Status == LibraryRequestStatus.Open
+                && r.NeededByStart <= utcNow
+                && r.Unit.Offering.CrewId == crewId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var request in stale)
+        {
+            request.Status = LibraryRequestStatus.Expired;
+            request.UpdatedAt = utcNow;
+        }
+    }
 
     public async Task<LibraryRequest?> GetTrackedRequestByIdForPossessorAsync(
         int requestId,

@@ -59,6 +59,7 @@ public class CrewsController : ControllerBase
             body.AllowSurvivalThresholds,
             body.RequireApprovalForEdits,
             body.InNeedDefaultThreshold,
+            body.FinancialMembershipContributionFloor,
             body.LibraryOfThingsEnabled,
             body.MemberCycleCapMode,
             body.MemberCycleCapFixedAmount,

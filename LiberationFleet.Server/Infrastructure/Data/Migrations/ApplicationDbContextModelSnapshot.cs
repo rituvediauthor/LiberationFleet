@@ -388,6 +388,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(20m);
 
+                    b.Property<decimal>("FinancialMembershipContributionFloor")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("JoinCode")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -490,6 +496,16 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
+
+                    b.Property<int>("CatchUpSnapshotMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("CatchUpSnapshotYear")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<bool>("SeasonStarted")
                         .ValueGeneratedOnAdd()
@@ -3230,6 +3246,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("CapIsProvisional")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("CatchUpCapAtSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("CatchUpVisible")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);

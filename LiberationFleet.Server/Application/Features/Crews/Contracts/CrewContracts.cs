@@ -15,6 +15,7 @@ public class CrewDto
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
+    public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public string MemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal MemberCycleCapFixedAmount { get; set; }
@@ -43,6 +44,7 @@ public class UpdateCrewRequest
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
+    public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public string MemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal MemberCycleCapFixedAmount { get; set; }

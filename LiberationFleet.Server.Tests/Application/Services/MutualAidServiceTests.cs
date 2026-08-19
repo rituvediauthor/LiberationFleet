@@ -787,6 +787,263 @@ public class MutualAidServiceTests
             && !c.CycleCompleted)).Should().Be(1);
     }
 
+    [Fact]
+    public async Task SaveSeasonSetupAsync_AllowsZeroEstimatedContribution()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var result = await fixture.Service.SaveSeasonSetupAsync(fixture.Alice.Id, 0m, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        var membership = await fixture.Context.CrewMemberships.SingleAsync(m =>
+            m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        membership.EstimatedMonthlyContribution.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task SaveSeasonSetupAsync_RejectsNegativeEstimatedContribution()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var result = await fixture.Service.SaveSeasonSetupAsync(fixture.Alice.Id, -1m, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("negative");
+    }
+
+    [Fact]
+    public async Task MarkSeasonReadyAsync_AllowsZeroEstimatedContribution()
+    {
+        var context = TestDbContextFactory.Create();
+        await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
+
+        var user = new User
+        {
+            Username = "zero",
+            Email = "zero@example.com",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var crew = HandlerTestFixture.CreateCrew(createdByUserId: user.Id);
+        crew.SeasonStarted = false;
+        context.Crews.Add(crew);
+        await context.SaveChangesAsync();
+
+        var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
+        context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = user.Id,
+            CrewId = crew.Id,
+            EstimatedMonthlyContribution = 0m,
+            JoinedAt = DateTime.UtcNow
+        });
+        context.UserPaymentPlatforms.Add(new UserPaymentPlatform
+        {
+            UserId = user.Id,
+            CrewPaymentPlatformId = platforms["PayPal"].Id,
+            Handle = "@zero"
+        });
+        await context.SaveChangesAsync();
+
+        var service = HandlerTestFixture.CreateMutualAidService(context);
+        var result = await service.MarkSeasonReadyAsync(user.Id, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Status!.UserSeasonReady.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsFinancialMemberAsync_WhenNoRoleAndNoRecentGifts_ReturnsFalse()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var membership = await fixture.Context.CrewMemberships.SingleAsync(m =>
+            m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        membership.IsHonoraryMember = false;
+        membership.GivingSeasonJoinedAt = DateTime.UtcNow.AddMonths(-4);
+        membership.EstimatedMonthlyContribution = 90m;
+        await fixture.Context.SaveChangesAsync();
+
+        var isMember = await fixture.Service.IsFinancialMemberAsync(
+            fixture.Alice.Id,
+            fixture.Crew.Id,
+            membership,
+            CancellationToken.None);
+
+        isMember.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsFinancialMemberAsync_WhenRoleHeld_DoesNotExpire()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var membership = await fixture.Context.CrewMemberships.SingleAsync(m =>
+            m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        membership.IsHonoraryMember = false;
+        membership.IsAccountant = true;
+        membership.GivingSeasonJoinedAt = DateTime.UtcNow.AddMonths(-4);
+        membership.EstimatedMonthlyContribution = 0m;
+        await fixture.Context.SaveChangesAsync();
+
+        var isMember = await fixture.Service.IsFinancialMemberAsync(
+            fixture.Alice.Id,
+            fixture.Crew.Id,
+            membership,
+            CancellationToken.None);
+
+        isMember.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsFinancialMemberAsync_WhenLibraryOfThingsGiftsMeetAverage_ReturnsTrue()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var membership = await fixture.Context.CrewMemberships.SingleAsync(m =>
+            m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        membership.IsHonoraryMember = false;
+        membership.GivingSeasonJoinedAt = DateTime.UtcNow.AddMonths(-4);
+        membership.EstimatedMonthlyContribution = 0m;
+        var lotPlatform = new CrewPaymentPlatform
+        {
+            CrewId = fixture.Crew.Id,
+            Name = "Library of Things"
+        };
+        fixture.Context.CrewPaymentPlatforms.Add(lotPlatform);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.Gifts.Add(new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Bob.Id,
+            Type = GiftType.Direct,
+            Amount = 30m,
+            CrewPaymentPlatformId = lotPlatform.Id,
+            CrewPaymentPlatform = lotPlatform,
+            CountsTowardContribution = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var isMember = await fixture.Service.IsFinancialMemberAsync(
+            fixture.Alice.Id,
+            fixture.Crew.Id,
+            membership,
+            CancellationToken.None);
+
+        isMember.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsFinancialMemberAsync_WhenAverageBelowCrewFloor_ReturnsFalse()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        fixture.Crew.FinancialMembershipContributionFloor = 15m;
+        var membership = await fixture.Context.CrewMemberships.SingleAsync(m =>
+            m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        membership.IsHonoraryMember = false;
+        membership.GivingSeasonJoinedAt = DateTime.UtcNow.AddMonths(-4);
+        membership.EstimatedMonthlyContribution = 0m;
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.Gifts.Add(new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Bob.Id,
+            Type = GiftType.Direct,
+            Amount = 30m,
+            CountsTowardContribution = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var isMember = await fixture.Service.IsFinancialMemberAsync(
+            fixture.Alice.Id,
+            fixture.Crew.Id,
+            membership,
+            CancellationToken.None);
+
+        isMember.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsFinancialMemberAsync_WhenAverageMeetsCrewFloor_ReturnsTrue()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        fixture.Crew.FinancialMembershipContributionFloor = 10m;
+        var membership = await fixture.Context.CrewMemberships.SingleAsync(m =>
+            m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        membership.IsHonoraryMember = false;
+        membership.GivingSeasonJoinedAt = DateTime.UtcNow.AddMonths(-4);
+        membership.EstimatedMonthlyContribution = 0m;
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.Gifts.Add(new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Bob.Id,
+            Type = GiftType.Direct,
+            Amount = 30m,
+            CountsTowardContribution = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var isMember = await fixture.Service.IsFinancialMemberAsync(
+            fixture.Alice.Id,
+            fixture.Crew.Id,
+            membership,
+            CancellationToken.None);
+
+        isMember.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetReceptionOrderAsync_ShowsCatchUpOnlyAfterMonthlySnapshot()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
+        bobCycle.CycleCompleted = true;
+        bobCycle.CycleCompletedAt = DateTime.UtcNow;
+        bobCycle.CycleReceived = 100m;
+        await fixture.Context.SaveChangesAsync();
+
+        var beforeSnapshot = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            forRecordGift: true,
+            cancellationToken: CancellationToken.None);
+        beforeSnapshot.Should().Contain(e => e.UserId == fixture.Bob.Id && e.EntryType == "catchUp");
+
+        var carolCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Carol.Id && c.SeasonStartDate == fixture.SeasonStart);
+        carolCycle.CycleCompleted = true;
+        carolCycle.CycleCompletedAt = DateTime.UtcNow;
+        carolCycle.CycleReceived = 100m;
+        await fixture.Context.SaveChangesAsync();
+
+        var sameMonth = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            forRecordGift: true,
+            cancellationToken: CancellationToken.None);
+        sameMonth.Should().NotContain(e => e.UserId == fixture.Carol.Id && e.EntryType == "catchUp");
+
+        fixture.Crew.CatchUpSnapshotMonth = 0;
+        fixture.Crew.CatchUpSnapshotYear = 0;
+        await fixture.Context.SaveChangesAsync();
+
+        var nextEval = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            forRecordGift: true,
+            cancellationToken: CancellationToken.None);
+        nextEval.Should().Contain(e => e.UserId == fixture.Carol.Id && e.EntryType == "catchUp");
+    }
+
     private static IReadOnlyList<CrewMemberPlatforms> CreateMemberPlatforms() =>
     [
         new CrewMemberPlatforms { UserId = 1, Username = "giver", PlatformIds = [1] },

@@ -204,9 +204,12 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.SeasonStarted).HasDefaultValue(false);
             entity.Property(e => e.SeasonMemberCycleCap).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.SeasonNonMemberCycleCap).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.CatchUpSnapshotYear).HasDefaultValue(0);
+            entity.Property(e => e.CatchUpSnapshotMonth).HasDefaultValue(0);
             entity.Property(e => e.AllowSurvivalThresholds).HasDefaultValue(true);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
             entity.Property(e => e.InNeedDefaultThreshold).HasPrecision(18, 2).HasDefaultValue(20m);
+            entity.Property(e => e.FinancialMembershipContributionFloor).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
             entity.Property(e => e.MemberCycleCapMode).HasDefaultValue(CycleCapMode.CapacityBased);
             entity.Property(e => e.MemberCycleCapFixedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
@@ -418,6 +421,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.PriorityScoreAtSeasonStart).HasPrecision(18, 2);
             entity.Property(e => e.HasCycleStarted).HasDefaultValue(false);
             entity.Property(e => e.UsesSegmentCap).HasDefaultValue(false);
+            entity.Property(e => e.CatchUpVisible).HasDefaultValue(false);
+            entity.Property(e => e.CatchUpCapAtSnapshot).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)

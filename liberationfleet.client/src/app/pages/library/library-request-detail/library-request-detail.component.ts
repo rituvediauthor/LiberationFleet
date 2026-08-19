@@ -275,6 +275,14 @@ export class LibraryRequestDetailComponent implements OnInit {
     this.router.navigate(['/app/crew/library-of-things/units', this.detail.unitId, 'active-requests']);
   }
 
+  openHigherPriorityRequest() {
+    if (!this.detail?.higherPriorityRequestId) {
+      return;
+    }
+
+    this.router.navigate(['/app/crew/library-of-things/requests', this.detail.higherPriorityRequestId]);
+  }
+
   denyRequest() {
     if (!this.detail?.canDeny || this.isSubmitting) {
       return;

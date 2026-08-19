@@ -96,24 +96,53 @@ public class MutualAidRepository : IMutualAidRepository
             t => t.CrewId == crewId && t.UserId == userId && t.Year == year && t.Month == month,
             cancellationToken);
 
-    public async Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetFinancialContributionsByMonthAsync(
+    public Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetFinancialContributionsByMonthAsync(
         int userId,
         int crewId,
         DateTime rangeStartUtc,
         DateTime rangeEndExclusiveUtc,
+        CancellationToken cancellationToken = default) =>
+        GetContributionsByMonthAsync(
+            userId,
+            crewId,
+            rangeStartUtc,
+            rangeEndExclusiveUtc,
+            includeLibraryOfThings: false,
+            createdBeforeUtc: null,
+            cancellationToken);
+
+    public async Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetContributionsByMonthAsync(
+        int userId,
+        int crewId,
+        DateTime rangeStartUtc,
+        DateTime rangeEndExclusiveUtc,
+        bool includeLibraryOfThings,
+        DateTime? createdBeforeUtc = null,
         CancellationToken cancellationToken = default)
     {
         const string libraryOfThingsPlatformName = "Library of Things";
-        var gifts = await _context.Gifts
+        var query = _context.Gifts
             .Include(g => g.CrewPaymentPlatform)
             .Where(g => g.CrewId == crewId
                 && g.GiverUserId == userId
                 && g.CountsTowardContribution
                 && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated)
                 && g.CreatedAt >= rangeStartUtc
-                && g.CreatedAt < rangeEndExclusiveUtc
-                && (g.CrewPaymentPlatform == null
-                    || g.CrewPaymentPlatform.Name != libraryOfThingsPlatformName))
+                && g.CreatedAt < rangeEndExclusiveUtc);
+
+        if (createdBeforeUtc.HasValue)
+        {
+            query = query.Where(g => g.CreatedAt < createdBeforeUtc.Value);
+        }
+
+        if (!includeLibraryOfThings)
+        {
+            query = query.Where(g =>
+                g.CrewPaymentPlatform == null
+                || g.CrewPaymentPlatform.Name != libraryOfThingsPlatformName);
+        }
+
+        var gifts = await query
             .Select(g => new { g.CreatedAt, g.Amount })
             .ToListAsync(cancellationToken);
 

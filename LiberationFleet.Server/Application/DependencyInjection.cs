@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<EmptyCrewCleanupService>();
         services.AddScoped<LibraryContributionGiftService>();
         services.AddScoped<LibraryRequestCleanupHelper>();
+        services.AddScoped<LibraryRequestPriorityService>();
         services.AddScoped<LibraryMemberCleanupService>();
         services.AddScoped<NotificationService>();
         services.AddScoped<ContentMentionService>();

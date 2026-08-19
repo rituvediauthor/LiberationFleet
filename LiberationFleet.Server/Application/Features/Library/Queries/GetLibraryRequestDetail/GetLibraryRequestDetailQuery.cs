@@ -12,6 +12,7 @@ public class GetLibraryRequestDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
+    LibraryRequestPriorityService priorityService,
     IUnitOfWork unitOfWork) : IRequestHandler<GetLibraryRequestDetailQuery, LibraryRequestDetailResponse>
 {
     public async Task<LibraryRequestDetailResponse> Handle(
@@ -31,11 +32,16 @@ public class GetLibraryRequestDetailQueryHandler(
         }
 
         var utcNow = DateTime.UtcNow;
+        await libraryRepository.ExpireStaleOpenRequestsForCrewAsync(membership.CrewId, utcNow, cancellationToken);
+
         var tracked = await libraryRepository.GetTrackedRequestByIdAsync(request.RequestId, cancellationToken);
-        if (tracked is not null && LibraryRequestExpiryService.TryExpireDeniedRequest(tracked, utcNow))
+        if (tracked is not null)
         {
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            LibraryRequestExpiryService.TryExpireDeniedRequest(tracked, utcNow);
+            LibraryRequestExpiryService.TryExpireOpenRequest(tracked, utcNow);
         }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var libraryRequest = await libraryRepository.GetRequestByIdForCrewAsync(
             request.RequestId,
@@ -55,11 +61,26 @@ public class GetLibraryRequestDetailQueryHandler(
             ? await libraryRepository.CountOpenRequestsForUnitAsync(libraryRequest.UnitId, cancellationToken)
             : 0;
 
+        var detail = LibraryMapper.MapRequestDetail(libraryRequest, userId, openCount);
+        if (detail.IsPossessorView && libraryRequest.Status == LibraryRequestStatus.Open)
+        {
+            var unitOpenRequests = await libraryRepository.GetOpenRequestsForUnitAsync(
+                libraryRequest.UnitId,
+                membership.CrewId,
+                cancellationToken);
+            await priorityService.ApplyPossessorPriorityToDetailAsync(
+                detail,
+                libraryRequest,
+                unitOpenRequests,
+                membership.CrewId,
+                cancellationToken);
+        }
+
         return new LibraryRequestDetailResponse
         {
             Success = true,
             Message = "Request loaded.",
-            Item = LibraryMapper.MapRequestDetail(libraryRequest, userId, openCount)
+            Item = detail
         };
     }
 }

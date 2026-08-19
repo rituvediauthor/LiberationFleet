@@ -23,6 +23,14 @@ public interface IMutualAidRepository
         DateTime rangeStartUtc,
         DateTime rangeEndExclusiveUtc,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetContributionsByMonthAsync(
+        int userId,
+        int crewId,
+        DateTime rangeStartUtc,
+        DateTime rangeEndExclusiveUtc,
+        bool includeLibraryOfThings,
+        DateTime? createdBeforeUtc = null,
+        CancellationToken cancellationToken = default);
     Task<decimal> GetLifetimeContributionsAsync(int userId, int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<decimal> GetCrewLifetimeContributionsAsync(int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<bool> HasContributedSinceAsync(int userId, int crewId, DateTime since, DateTime? until = null, CancellationToken cancellationToken = default);
