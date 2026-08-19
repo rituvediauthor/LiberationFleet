@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Data;
@@ -230,7 +231,6 @@ public class GiftRepository : IGiftRepository
         DateTime? seasonStartDate,
         CancellationToken cancellationToken = default)
     {
-        var threeMonthsAgo = DateTime.UtcNow.AddMonths(-3);
         var yearStart = new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         var contributedGifts = _context.Gifts.Where(g =>
@@ -254,14 +254,33 @@ public class GiftRepository : IGiftRepository
             sacrificeQuery = sacrificeQuery.Where(_ => false);
         }
 
-        var contributionsLast3Months = await contributedGifts
-            .Where(g => g.CreatedAt >= threeMonthsAgo)
-            .SumAsync(g => g.Amount, cancellationToken);
+        var membership = await _context.CrewMemberships
+            .FirstOrDefaultAsync(m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned, cancellationToken);
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(DateTime.UtcNow);
+        var rangeStart = new DateTime(months[0].Year, months[0].Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var rangeEnd = rangeStart.AddMonths(3);
+        var contributionGifts = await _context.Gifts
+            .Where(g => g.CrewId == crewId
+                && g.GiverUserId == userId
+                && g.CountsTowardContribution
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated)
+                && g.CreatedAt >= rangeStart
+                && g.CreatedAt < rangeEnd)
+            .Select(g => new { g.CreatedAt, g.Amount })
+            .ToListAsync(cancellationToken);
+        var byMonth = contributionGifts
+            .GroupBy(g => (g.CreatedAt.Year, g.CreatedAt.Month))
+            .ToDictionary(group => group.Key, group => group.Sum(g => g.Amount));
+        var averageMonthly = MutualAidCalculationService.CalculateThreeMonthContributionAverage(
+            months,
+            byMonth,
+            membership?.GivingSeasonJoinedAt,
+            membership?.EstimatedMonthlyContribution ?? 0m);
 
         return new CrewmateGiftStatsDto
         {
             SacrificeCountLastSeason = await sacrificeQuery.CountAsync(cancellationToken),
-            AverageMonthlyContributions = Math.Round(contributionsLast3Months / 3m, 2),
+            AverageMonthlyContributions = averageMonthly,
             LifetimeContributions = await contributedGifts.SumAsync(g => g.Amount, cancellationToken),
             ReceptionThisYear = await receivedGifts
                 .Where(g => g.CreatedAt >= yearStart)

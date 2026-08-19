@@ -160,7 +160,7 @@ public class EmergencySplitServiceTests
         var result = await splitService.ApplySplitAsync(request, fx.Alice.Id, 25m, CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("ahead of the requester");
+        result.Message.Should().Contain("current and next cycle");
     }
 
     [Fact]
@@ -179,6 +179,33 @@ public class EmergencySplitServiceTests
 
         result.Success.Should().BeFalse();
         result.Message.Should().Contain("at most $20");
+    }
+
+    [Fact]
+    public async Task ApplySplit_WhenOffererIsNotLockedLeaderOrRunnerUp_Fails()
+    {
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = await AddEmergencyRequestAsync(fx, fx.Bob, amountNeeded: 50m, fx.Alice);
+        var splitService = CreateSplitService(fx);
+
+        var result = await splitService.ApplySplitAsync(request, fx.Carol.Id, 25m, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("current and next cycle");
+    }
+
+    [Fact]
+    public async Task CaptureEligibleOffererUserIds_ReturnsLockedLeaderAndRunnerUp()
+    {
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var splitService = CreateSplitService(fx);
+
+        var ids = await splitService.CaptureEligibleOffererUserIdsAsync(
+            fx.Crew.Id,
+            fx.Carol.Id,
+            CancellationToken.None);
+
+        ids.Should().BeEquivalentTo([fx.Bob.Id, fx.Alice.Id]);
     }
 
     private static EmergencySplitService CreateSplitService(MutualAidSeasonFixture fx) =>

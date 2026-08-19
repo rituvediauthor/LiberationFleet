@@ -38,8 +38,8 @@ public class EmergencySplitService(
         CancellationToken cancellationToken)
     {
         await mutualAidService.EnsureNextSeasonCyclesAsync(crewId, cancellationToken);
-        var queue = await BuildPrimaryQueueAsync(crewId, cancellationToken);
-        return GetUsersAheadOf(queue, requesterUserId);
+        var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(crewId, cancellationToken);
+        return lockedUserIds.Where(id => id != requesterUserId).ToList();
     }
 
     public async Task<EmergencySplitEligibility> GetViewerSplitEligibilityAsync(
@@ -62,13 +62,15 @@ public class EmergencySplitService(
             if (!HasEligibilitySnapshot(request))
             {
                 await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
-                var liveQueue = await BuildPrimaryQueueAsync(request.CrewId, cancellationToken);
-                if (!GetUsersAheadOf(liveQueue, request.RequesterUserId).Contains(viewerUserId))
+                var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(
+                    request.CrewId,
+                    cancellationToken);
+                if (!lockedUserIds.Contains(viewerUserId) || viewerUserId == request.RequesterUserId)
                 {
                     return new EmergencySplitEligibility
                     {
                         CanSplit = false,
-                        Message = "You can only split if your incomplete cycle is ahead of the requester."
+                        Message = "Only the current and next cycle recipients can split aid for an emergency request."
                     };
                 }
             }
@@ -77,7 +79,7 @@ public class EmergencySplitService(
                 return new EmergencySplitEligibility
                 {
                     CanSplit = false,
-                    Message = "You can only split if your incomplete cycle was ahead of the requester when they submitted this request."
+                    Message = "Only the current and next cycle recipients can split aid for an emergency request."
                 };
             }
         }
@@ -162,17 +164,19 @@ public class EmergencySplitService(
         {
             if (!HasEligibilitySnapshot(request))
             {
-                var liveQueue = await BuildPrimaryQueueAsync(request.CrewId, cancellationToken);
-                if (!GetUsersAheadOf(liveQueue, request.RequesterUserId).Contains(offererUserId))
+                var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(
+                    request.CrewId,
+                    cancellationToken);
+                if (!lockedUserIds.Contains(offererUserId) || offererUserId == request.RequesterUserId)
                 {
                     return EmergencySplitResult.Failed(
-                        "You can only split if your incomplete cycle is ahead of the requester.");
+                        "Only the current and next cycle recipients can split aid for an emergency request.");
                 }
             }
             else
             {
                 return EmergencySplitResult.Failed(
-                    "You can only split if your incomplete cycle was ahead of the requester when they submitted this request.");
+                    "Only the current and next cycle recipients can split aid for an emergency request.");
             }
         }
 
@@ -379,71 +383,6 @@ public class EmergencySplitService(
         }
 
         return GetSegmentRemaining(primary, capacity, isMember);
-    }
-
-    private async Task<IReadOnlyList<(int UserId, DateTime SeasonStart, int Position)>> BuildPrimaryQueueAsync(
-        int crewId,
-        CancellationToken cancellationToken)
-    {
-        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-        if (crew is null || !crew.CurrentSeasonStartDate.HasValue)
-        {
-            return Array.Empty<(int, DateTime, int)>();
-        }
-
-        var cyclesBySeason = await LoadCyclesBySeasonAsync(crewId, crew.CurrentSeasonStartDate.Value, cancellationToken);
-        var frozenCapacity = await BuildCapacityContextAsync(crew, useFrozenSeasonCaps: true, cancellationToken);
-        var liveCapacity = await BuildCapacityContextAsync(crew, useFrozenSeasonCaps: false, cancellationToken);
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
-        var memberStatus = new Dictionary<int, bool>();
-        foreach (var participant in participants)
-        {
-            memberStatus[participant.UserId] = await mutualAidService.IsFinancialMemberAsync(
-                participant.UserId,
-                crewId,
-                participant,
-                cancellationToken);
-        }
-
-        var queue = new List<(int UserId, DateTime SeasonStart, int Position)>();
-        foreach (var (seasonStart, cycles) in cyclesBySeason.OrderBy(kv => kv.Key))
-        {
-            foreach (var primary in cycles
-                .Where(c => !c.CycleCompleted
-                    && c.EmergencyRequestId is null
-                    && c.EmergencySplitOfferId is null)
-                .OrderBy(c => c.ReceptionOrderPosition))
-            {
-                var isMember = memberStatus.GetValueOrDefault(primary.UserId, false);
-                var capacity = primary.CapIsProvisional ? liveCapacity : frozenCapacity;
-                if (GetSegmentRemaining(primary, capacity, isMember) <= 0m)
-                {
-                    continue;
-                }
-
-                queue.Add((primary.UserId, seasonStart, primary.ReceptionOrderPosition));
-            }
-        }
-
-        return queue;
-    }
-
-    private static IReadOnlyList<int> GetUsersAheadOf(
-        IReadOnlyList<(int UserId, DateTime SeasonStart, int Position)> queue,
-        int requesterUserId)
-    {
-        var requesterIndex = queue.ToList().FindIndex(entry => entry.UserId == requesterUserId);
-        if (requesterIndex < 0)
-        {
-            // Requester has no incomplete primary yet — treat no one as ahead.
-            return Array.Empty<int>();
-        }
-
-        return queue
-            .Take(requesterIndex)
-            .Select(entry => entry.UserId)
-            .Distinct()
-            .ToList();
     }
 
     private async Task<Dictionary<DateTime, List<SeasonCycle>>> LoadCyclesBySeasonAsync(

@@ -94,6 +94,36 @@ public static class MutualAidCalculationService
         return Math.Round(list.Average(), 2);
     }
 
+    /// <summary>
+    /// Three-month contribution average using join-month fill rules.
+    /// </summary>
+    public static decimal CalculateThreeMonthContributionAverage(
+        IReadOnlyList<(int Year, int Month)> months,
+        IReadOnlyDictionary<(int Year, int Month), decimal> actualByMonth,
+        DateTime? givingSeasonJoinedAtUtc,
+        decimal estimatedMonthlyContribution)
+    {
+        DateTime? effectiveJoinMonthStart = givingSeasonJoinedAtUtc.HasValue
+            ? GetEffectiveGivingSeasonJoinMonthStart(givingSeasonJoinedAtUtc.Value)
+            : null;
+
+        var monthAmounts = months.Select(month =>
+        {
+            var monthStart = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var actual = actualByMonth.GetValueOrDefault((month.Year, month.Month));
+            return GetCalendarMonthContribution(
+                actual,
+                monthStart,
+                effectiveJoinMonthStart,
+                estimatedMonthlyContribution);
+        });
+
+        return AverageMonthlyGivingCapacity(monthAmounts);
+    }
+
+    public const string MonthlyContributionAverageExplanation =
+        "Last three calendar months of gifts, including Library of Things and emergency aid. Months before joining the season use your estimate; months after joining with no gifts count as $0.";
+
     public static decimal CalculatePriorityScore(
         User user,
         CrewMembership membership,

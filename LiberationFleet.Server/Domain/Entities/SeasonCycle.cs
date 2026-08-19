@@ -26,6 +26,8 @@ public class SeasonCycle
     public int ReceptionOrderPosition { get; set; }
     public bool HasCycleStarted { get; set; }
     public bool UsesSegmentCap { get; set; }
+    public bool CatchUpVisible { get; set; }
+    public decimal CatchUpCapAtSnapshot { get; set; }
     public int? EmergencyRequestId { get; set; }
     public int? EmergencySplitOfferId { get; set; }
 

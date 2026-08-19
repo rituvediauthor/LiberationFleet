@@ -359,21 +359,21 @@ public partial class MutualAidService(
             }
         }
 
-        if (!forRecordGift)
+        foreach (var cycle in cycles
+            .Where(c => c.CycleCompleted && UserNeedsAid(c) && !c.UsesSegmentCap && c.CatchUpVisible)
+            .OrderBy(c => c.ReceptionOrderPosition))
         {
-            foreach (var cycle in cycles
-                .Where(c => c.CycleCompleted && UserNeedsAid(c) && !c.UsesSegmentCap)
-                .OrderBy(c => c.ReceptionOrderPosition))
+            var catchUp = Math.Max(0m, cycle.CatchUpCapAtSnapshot - cycle.CycleReceived);
+            if (catchUp <= 0 && PendingForCycle(cycle) <= 0)
             {
-                var catchUp = MutualAidCalculationService.GetCatchUpAmount(cycle, CapFor(cycle));
-                if (catchUp <= 0 && PendingForCycle(cycle) <= 0)
-                {
-                    continue;
-                }
-
-                AddCycleEntry(cycle, "catchUp", catchUp);
+                continue;
             }
 
+            AddCycleEntry(cycle, "catchUp", catchUp);
+        }
+
+        if (!forRecordGift)
+        {
             foreach (var unit in units)
             {
                 if (unit.Any(c => lockedCycleIds.Contains(c.Id)))
@@ -548,7 +548,7 @@ public partial class MutualAidService(
             return new SeasonReadyResultDto { Success = false, Message = "You are not in a crew." };
         }
 
-        if (membership.EstimatedMonthlyContribution <= 0)
+        if (membership.EstimatedMonthlyContribution is null)
         {
             return new SeasonReadyResultDto { Success = false, Message = "Save your season setup before marking ready." };
         }
@@ -596,9 +596,9 @@ public partial class MutualAidService(
         decimal estimatedMonthlyContribution,
         CancellationToken cancellationToken = default)
     {
-        if (estimatedMonthlyContribution <= 0)
+        if (estimatedMonthlyContribution < 0)
         {
-            return new SeasonSetupSaveResultDto { Success = false, Message = "Estimated monthly contribution must be greater than zero." };
+            return new SeasonSetupSaveResultDto { Success = false, Message = "Estimated monthly contribution cannot be negative." };
         }
 
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
@@ -1298,40 +1298,25 @@ public partial class MutualAidService(
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false)
     {
-        if (membership.IsHonoraryMember || CrewRoleMapper.HasAnyRole(membership))
+        if (CrewRoleMapper.HasAnyRole(membership))
         {
             return true;
         }
 
-        if (membership.EstimatedMonthlyContribution is > 0m)
+        DateTime? createdBefore = null;
+        if (excludeActiveSeasonContributions)
         {
-            return true;
+            var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+            createdBefore = crew?.CurrentSeasonStartDate;
         }
 
-        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-        if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
-        {
-            return false;
-        }
-
-        if (!excludeActiveSeasonContributions
-            && await mutualAidRepository.HasContributedSinceAsync(userId, crewId, crew.CurrentSeasonStartDate.Value, cancellationToken: cancellationToken))
-        {
-            return true;
-        }
-
-        var previousStart = await mutualAidRepository.GetPreviousSeasonStartDateAsync(crewId, crew.CurrentSeasonStartDate.Value, cancellationToken);
-        if (previousStart.HasValue)
-        {
-            return await mutualAidRepository.HasContributedSinceAsync(
-                userId,
-                crewId,
-                previousStart.Value,
-                crew.CurrentSeasonStartDate.Value,
-                cancellationToken);
-        }
-
-        return false;
+        var average = await GetCrewmateMonthlyContributionAverageAsync(
+            membership,
+            DateTime.UtcNow,
+            includeLibraryOfThings: true,
+            createdBefore,
+            cancellationToken);
+        return average > 0m;
     }
 
     public IReadOnlyList<int> FindMiddlemen(int giverUserId, int recipientUserId, IReadOnlyList<CrewMemberPlatforms> members)
@@ -1753,6 +1738,61 @@ public partial class MutualAidService(
 
         var now = DateTime.UtcNow;
         await CreateMonthlyThresholdsForMonthAsync(crew, now.Year, now.Month, cancellationToken);
+        await EnsureMonthlyCatchUpSnapshotsAsync(crew, now.Year, now.Month, cancellationToken);
+    }
+
+    private async Task EnsureMonthlyCatchUpSnapshotsAsync(
+        Crew crew,
+        int year,
+        int month,
+        CancellationToken cancellationToken)
+    {
+        if (crew.CatchUpSnapshotYear == year && crew.CatchUpSnapshotMonth == month)
+        {
+            return;
+        }
+
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate!.Value,
+            cancellationToken)).ToList();
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+        var memberStatus = new Dictionary<int, bool>();
+        foreach (var participant in participants)
+        {
+            memberStatus[participant.UserId] = await IsFinancialMemberAsync(
+                participant.UserId,
+                crew.Id,
+                participant,
+                cancellationToken);
+        }
+
+        var effectiveMemberCap = GetEffectiveCycleCap(true, crew, capacityContext);
+        var effectiveNonMemberCap = GetEffectiveCycleCap(false, crew, capacityContext);
+
+        foreach (var cycle in cycles.Where(c => c.CycleCompleted && IsPrimaryCycle(c) && !c.UsesSegmentCap))
+        {
+            if (cycle.User?.InNeedOfAid == false)
+            {
+                cycle.CatchUpVisible = false;
+                cycle.CatchUpCapAtSnapshot = 0m;
+                continue;
+            }
+
+            var isMember = memberStatus.GetValueOrDefault(cycle.UserId, false);
+            var cap = EmergencySplitService.ResolveSegmentCap(
+                cycle,
+                isMember,
+                effectiveMemberCap,
+                effectiveNonMemberCap);
+            cycle.CatchUpVisible = cap > cycle.CycleReceived;
+            cycle.CatchUpCapAtSnapshot = cap;
+        }
+
+        crew.CatchUpSnapshotYear = year;
+        crew.CatchUpSnapshotMonth = month;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private async Task CreateMonthlyThresholdsForMonthAsync(
@@ -2479,44 +2519,74 @@ public partial class MutualAidService(
         var total = 0m;
         foreach (var participant in participants)
         {
-            total += await GetCrewmateMonthlyGivingCapacityAsync(participant, utcNow, cancellationToken);
+            total += await GetCrewmateMonthlyContributionAverageAsync(
+                participant,
+                utcNow,
+                includeLibraryOfThings: false,
+                createdBeforeUtc: null,
+                cancellationToken);
         }
 
         return total;
     }
 
-    private async Task<decimal> GetCrewmateMonthlyGivingCapacityAsync(
+    public async Task<IReadOnlyList<int>> GetLockedCycleUserIdsAsync(
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted || !crew.CurrentSeasonStartDate.HasValue)
+        {
+            return Array.Empty<int>();
+        }
+
+        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate.Value,
+            cancellationToken);
+        var incomplete = cycles
+            .Where(c => !c.CycleCompleted && c.User?.InNeedOfAid != false)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .ToList();
+        var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(incomplete);
+        var ids = new List<int>();
+        if (leader is not null)
+        {
+            ids.Add(leader.UserId);
+        }
+
+        if (runnerUp is not null && !ids.Contains(runnerUp.UserId))
+        {
+            ids.Add(runnerUp.UserId);
+        }
+
+        return ids;
+    }
+
+    private async Task<decimal> GetCrewmateMonthlyContributionAverageAsync(
         CrewMembership membership,
         DateTime utcNow,
+        bool includeLibraryOfThings,
+        DateTime? createdBeforeUtc,
         CancellationToken cancellationToken)
     {
         var months = MutualAidCalculationService.GetPastThreeCalendarMonths(utcNow);
         var rangeStart = new DateTime(months[0].Year, months[0].Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var rangeEnd = rangeStart.AddMonths(3);
-        var byMonth = await mutualAidRepository.GetFinancialContributionsByMonthAsync(
+        var byMonth = await mutualAidRepository.GetContributionsByMonthAsync(
             membership.UserId,
             membership.CrewId,
             rangeStart,
             rangeEnd,
+            includeLibraryOfThings,
+            createdBeforeUtc,
             cancellationToken);
 
-        DateTime? effectiveJoinMonthStart = membership.GivingSeasonJoinedAt.HasValue
-            ? MutualAidCalculationService.GetEffectiveGivingSeasonJoinMonthStart(membership.GivingSeasonJoinedAt.Value)
-            : null;
-        var estimate = membership.EstimatedMonthlyContribution ?? 0m;
-
-        var monthAmounts = months.Select(month =>
-        {
-            var monthStart = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var actual = byMonth.GetValueOrDefault((month.Year, month.Month));
-            return MutualAidCalculationService.GetCalendarMonthContribution(
-                actual,
-                monthStart,
-                effectiveJoinMonthStart,
-                estimate);
-        });
-
-        return MutualAidCalculationService.AverageMonthlyGivingCapacity(monthAmounts);
+        return MutualAidCalculationService.CalculateThreeMonthContributionAverage(
+            months,
+            byMonth,
+            membership.GivingSeasonJoinedAt,
+            membership.EstimatedMonthlyContribution ?? 0m);
     }
 
     private async Task<CapacityContext> BuildCapacityContextAsync(Crew crew, CancellationToken cancellationToken)

@@ -147,6 +147,20 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
+    public void CalculateThreeMonthContributionAverage_AppliesJoinMonthFillRules()
+    {
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 8, 19, 0, 0, 0, DateTimeKind.Utc));
+        var byMonth = new Dictionary<(int Year, int Month), decimal> { [(2026, 8)] = 30m };
+        var joined = new DateTime(2026, 8, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        MutualAidCalculationService.CalculateThreeMonthContributionAverage(
+            months,
+            byMonth,
+            joined,
+            estimatedMonthlyContribution: 90m).Should().Be(70m);
+    }
+
+    [Fact]
     public void GetPastThreeCalendarMonths_IncludesCurrentAndTwoPrior()
     {
         var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 8, 19, 0, 0, 0, DateTimeKind.Utc));

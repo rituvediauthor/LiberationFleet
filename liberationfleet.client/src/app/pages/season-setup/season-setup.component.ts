@@ -59,7 +59,7 @@ export class SeasonSetupComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0.01)]],
+      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0)]],
       emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],
@@ -82,7 +82,7 @@ export class SeasonSetupComponent implements OnInit {
         this.readyCount = status.readyCount;
         this.seasonReady = status.userSeasonReady;
         this.seasonStarted = status.seasonStarted;
-        if (status.estimatedMonthlyContribution) {
+        if (status.estimatedMonthlyContribution != null) {
           this.form.patchValue({ estimatedMonthlyContribution: status.estimatedMonthlyContribution });
         }
         this.captureInitialState();

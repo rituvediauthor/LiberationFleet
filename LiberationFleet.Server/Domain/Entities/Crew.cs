@@ -22,6 +22,10 @@ public class Crew
     public DateTime? FollowingSeasonStartDate { get; set; }
     public decimal SeasonMemberCycleCap { get; set; }
     public decimal SeasonNonMemberCycleCap { get; set; }
+    /// <summary>UTC calendar year of the last catch-up visibility snapshot.</summary>
+    public int CatchUpSnapshotYear { get; set; }
+    /// <summary>UTC calendar month of the last catch-up visibility snapshot.</summary>
+    public int CatchUpSnapshotMonth { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
