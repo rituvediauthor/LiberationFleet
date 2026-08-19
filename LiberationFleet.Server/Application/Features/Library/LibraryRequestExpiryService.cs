@@ -22,11 +22,29 @@ public static class LibraryRequestExpiryService
         return true;
     }
 
+    public static bool TryExpireOpenRequest(LibraryRequest request, DateTime utcNow)
+    {
+        if (request.Status != LibraryRequestStatus.Open)
+        {
+            return false;
+        }
+
+        if (request.NeededByStart > utcNow)
+        {
+            return false;
+        }
+
+        request.Status = LibraryRequestStatus.Expired;
+        request.UpdatedAt = utcNow;
+        return true;
+    }
+
     public static void ApplyExpiry(IEnumerable<LibraryRequest> requests, DateTime utcNow)
     {
         foreach (var request in requests)
         {
             TryExpireDeniedRequest(request, utcNow);
+            TryExpireOpenRequest(request, utcNow);
         }
     }
 }

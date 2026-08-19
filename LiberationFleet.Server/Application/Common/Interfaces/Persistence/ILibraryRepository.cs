@@ -125,6 +125,11 @@ public interface ILibraryRepository
         int unitId,
         CancellationToken cancellationToken = default);
 
+    Task ExpireStaleOpenRequestsForCrewAsync(
+        int crewId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default);
+
     Task<bool> HasOpenRequestForUnitByUserAsync(
         int unitId,
         int requesterUserId,

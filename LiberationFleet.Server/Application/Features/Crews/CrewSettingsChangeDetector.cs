@@ -95,6 +95,14 @@ public static class CrewSettingsChangeDetector
                 request.InNeedDefaultThreshold.ToString("0.##")));
         }
 
+        if (crew.FinancialMembershipContributionFloor != request.FinancialMembershipContributionFloor)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.FinancialMembershipContributionFloor,
+                crew.FinancialMembershipContributionFloor.ToString("0.##"),
+                request.FinancialMembershipContributionFloor.ToString("0.##")));
+        }
+
         if (crew.LibraryOfThingsEnabled != request.LibraryOfThingsEnabled)
         {
             changes.Add(new CrewSettingChangeItem(
@@ -243,6 +251,8 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to set \"Require approval for crew edits\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.InNeedDefaultThreshold =>
                 $"Proposal to change in-need default threshold from ${change.OldValue} to ${change.NewValue}.",
+            CrewSettingField.FinancialMembershipContributionFloor =>
+                $"Proposal to change financial membership contribution floor from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.LibraryOfThingsEnabled =>
                 $"Proposal to set \"Library of Things\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.MemberCycleCapMode =>

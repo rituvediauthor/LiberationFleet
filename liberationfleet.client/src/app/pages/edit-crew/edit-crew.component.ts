@@ -78,6 +78,7 @@ export class EditCrewComponent implements OnInit {
       allowCrossCrewGiving: [false],
       requireApprovalForEdits: [true],
       inNeedDefaultThreshold: [20, [Validators.required, Validators.min(0)]],
+      financialMembershipContributionFloor: [0, [Validators.required, Validators.min(0)]],
       libraryOfThingsEnabled: [true],
       memberCycleCapMode: ['CapacityBased' as CycleCapMode, Validators.required],
       memberCycleCapFixedAmount: [0, [Validators.min(0)]],
@@ -379,6 +380,7 @@ export class EditCrewComponent implements OnInit {
     allowCrossCrewGiving?: boolean;
     requireApprovalForEdits?: boolean;
     inNeedDefaultThreshold?: number;
+    financialMembershipContributionFloor?: number;
     libraryOfThingsEnabled?: boolean;
     memberCycleCapMode?: CycleCapMode | string;
     memberCycleCapFixedAmount?: number;
@@ -405,6 +407,7 @@ export class EditCrewComponent implements OnInit {
       allowCrossCrewGiving: crew.allowCrossCrewGiving ?? false,
       requireApprovalForEdits: crew.requireApprovalForEdits ?? true,
       inNeedDefaultThreshold: crew.inNeedDefaultThreshold ?? 20,
+      financialMembershipContributionFloor: crew.financialMembershipContributionFloor ?? 0,
       libraryOfThingsEnabled: crew.libraryOfThingsEnabled ?? true,
       memberCycleCapMode: crew.memberCycleCapMode ?? 'CapacityBased',
       memberCycleCapFixedAmount: crew.memberCycleCapFixedAmount ?? 0,
@@ -438,6 +441,7 @@ export class EditCrewComponent implements OnInit {
       allowCrossCrewGiving: !!this.form.get('allowCrossCrewGiving')?.value,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
       inNeedDefaultThreshold: Number(this.form.get('inNeedDefaultThreshold')?.value),
+      financialMembershipContributionFloor: Number(this.form.get('financialMembershipContributionFloor')?.value),
       libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,
       memberCycleCapMode: this.form.get('memberCycleCapMode')?.value as CycleCapMode,
       memberCycleCapFixedAmount: Number(this.form.get('memberCycleCapFixedAmount')?.value),

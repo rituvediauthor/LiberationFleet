@@ -69,6 +69,15 @@ export class LibraryIncomingRequestsComponent implements OnInit {
     this.router.navigate(['/app/crew/library-of-things/requests', item.requestId]);
   }
 
+  openHigherPriorityRequest(event: Event, item: LibraryRequestListItem) {
+    event.stopPropagation();
+    if (!item.higherPriorityRequestId) {
+      return;
+    }
+
+    this.router.navigate(['/app/crew/library-of-things/requests', item.higherPriorityRequestId]);
+  }
+
   toCardItem(item: LibraryRequestListItem) {
     return this.libraryCrypto.toListItem({
       unitId: item.unitId,

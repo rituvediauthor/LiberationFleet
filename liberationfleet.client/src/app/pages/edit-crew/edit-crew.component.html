@@ -173,6 +173,23 @@
           </span>
         </div>
 
+        <div class="form-group">
+          <label for="financialMembershipContributionFloor">Financial membership contribution floor ($)</label>
+          <input
+            id="financialMembershipContributionFloor"
+            type="number"
+            formControlName="financialMembershipContributionFloor"
+            class="form-input"
+            min="0"
+            step="1"
+            [attr.aria-invalid]="isInvalid('financialMembershipContributionFloor')"
+            [attr.aria-describedby]="isInvalid('financialMembershipContributionFloor') ? 'financialMembershipContributionFloor-error financialMembershipContributionFloor-hint' : 'financialMembershipContributionFloor-hint'">
+          <span class="hint-text" id="financialMembershipContributionFloor-hint">Crewmates without a crew role must keep a 3-month average contribution at or above this amount to remain financial members. Set to 0 to require any positive average.</span>
+          <span id="financialMembershipContributionFloor-error" class="error-text" role="alert" *ngIf="isInvalid('financialMembershipContributionFloor')">
+            Floor must be 0 or greater
+          </span>
+        </div>
+
         <section class="settings-section">
           <h2 class="section-title">Library of Things</h2>
           <div class="form-group checkbox-group">

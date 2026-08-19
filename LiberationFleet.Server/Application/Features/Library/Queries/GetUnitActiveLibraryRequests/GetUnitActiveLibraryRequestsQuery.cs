@@ -10,7 +10,9 @@ public record GetUnitActiveLibraryRequestsQuery(int UnitId) : IRequest<LibraryRe
 public class GetUnitActiveLibraryRequestsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    ILibraryRepository libraryRepository) : IRequestHandler<GetUnitActiveLibraryRequestsQuery, LibraryRequestListResponse>
+    ILibraryRepository libraryRepository,
+    LibraryRequestPriorityService priorityService,
+    IUnitOfWork unitOfWork) : IRequestHandler<GetUnitActiveLibraryRequestsQuery, LibraryRequestListResponse>
 {
     public async Task<LibraryRequestListResponse> Handle(
         GetUnitActiveLibraryRequestsQuery request,
@@ -39,16 +41,23 @@ public class GetUnitActiveLibraryRequestsQueryHandler(
             return new LibraryRequestListResponse { Success = false, Message = "You are not the holder of this item." };
         }
 
+        var utcNow = DateTime.UtcNow;
+        await libraryRepository.ExpireStaleOpenRequestsForCrewAsync(membership.CrewId, utcNow, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         var requests = await libraryRepository.GetOpenRequestsForUnitAsync(
             request.UnitId,
             membership.CrewId,
             cancellationToken);
 
+        var items = requests.Select(LibraryMapper.MapRequestListItem).ToList();
+        await priorityService.ApplyPossessorPriorityAsync(items, requests, membership.CrewId, cancellationToken);
+
         return new LibraryRequestListResponse
         {
             Success = true,
             Message = "Active requests loaded.",
-            Items = requests.Select(LibraryMapper.MapRequestListItem).ToList()
+            Items = items
         };
     }
 }

@@ -29,6 +29,8 @@ public class Crew
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
+    /// <summary>Minimum 3-month average contribution to retain financial membership (roles exempt).</summary>
+    public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public CycleCapMode MemberCycleCapMode { get; set; } = CycleCapMode.CapacityBased;
     public decimal MemberCycleCapFixedAmount { get; set; }

@@ -19,6 +19,7 @@ public static class CrewMapper
         AllowSurvivalThresholds = crew.AllowSurvivalThresholds,
         RequireApprovalForEdits = crew.RequireApprovalForEdits,
         InNeedDefaultThreshold = crew.InNeedDefaultThreshold,
+        FinancialMembershipContributionFloor = crew.FinancialMembershipContributionFloor,
         LibraryOfThingsEnabled = crew.LibraryOfThingsEnabled,
         MemberCycleCapMode = crew.MemberCycleCapMode.ToString(),
         MemberCycleCapFixedAmount = crew.MemberCycleCapFixedAmount,

@@ -164,6 +164,10 @@ export interface LibraryRequestListItem {
   neededByStart: string;
   neededByEnd: string;
   createdAt: string;
+  requesterPriorityScore?: number | null;
+  hasHighestPriorityAmongOpenRequests?: boolean | null;
+  higherPriorityRequestId?: number | null;
+  higherPriorityRequesterUsername?: string | null;
   fullPurpose?: string | null;
 }
 

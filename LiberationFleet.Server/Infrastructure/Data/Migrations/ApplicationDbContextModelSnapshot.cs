@@ -388,6 +388,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(20m);
 
+                    b.Property<decimal>("FinancialMembershipContributionFloor")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("JoinCode")
                         .IsRequired()
                         .HasMaxLength(32)

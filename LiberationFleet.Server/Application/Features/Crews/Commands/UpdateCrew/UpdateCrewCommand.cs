@@ -20,6 +20,7 @@ public record UpdateCrewCommand(
     bool AllowSurvivalThresholds,
     bool RequireApprovalForEdits,
     decimal InNeedDefaultThreshold,
+    decimal FinancialMembershipContributionFloor,
     bool LibraryOfThingsEnabled,
     string MemberCycleCapMode,
     decimal MemberCycleCapFixedAmount,

@@ -1303,10 +1303,10 @@ public partial class MutualAidService(
             return true;
         }
 
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
         DateTime? createdBefore = null;
         if (excludeActiveSeasonContributions)
         {
-            var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
             createdBefore = crew?.CurrentSeasonStartDate;
         }
 
@@ -1316,7 +1316,9 @@ public partial class MutualAidService(
             includeLibraryOfThings: true,
             createdBefore,
             cancellationToken);
-        return average > 0m;
+
+        var floor = crew?.FinancialMembershipContributionFloor ?? 0m;
+        return floor <= 0m ? average > 0m : average >= floor;
     }
 
     public IReadOnlyList<int> FindMiddlemen(int giverUserId, int recipientUserId, IReadOnlyList<CrewMemberPlatforms> members)

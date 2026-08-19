@@ -24,5 +24,6 @@ public enum CrewSettingField
     MinimumCrewmateTenureDaysForProposals = 19,
     MinimumContributionForProposals = 20,
     AllowCrossCrewGiving = 21,
-    ImageResourceId = 22
+    ImageResourceId = 22,
+    FinancialMembershipContributionFloor = 23
 }
