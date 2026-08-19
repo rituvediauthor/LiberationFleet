@@ -17,7 +17,12 @@ public interface IMutualAidRepository
     Task<MonthlySurvivalThreshold?> GetThresholdByIdAsync(int thresholdId, CancellationToken cancellationToken = default);
     Task AddThresholdAsync(MonthlySurvivalThreshold threshold, CancellationToken cancellationToken = default);
     Task<bool> HasThresholdForMonthAsync(int crewId, int userId, int year, int month, CancellationToken cancellationToken = default);
-    Task<decimal> GetContributionsLast3MonthsAsync(int userId, int crewId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetFinancialContributionsByMonthAsync(
+        int userId,
+        int crewId,
+        DateTime rangeStartUtc,
+        DateTime rangeEndExclusiveUtc,
+        CancellationToken cancellationToken = default);
     Task<decimal> GetLifetimeContributionsAsync(int userId, int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<decimal> GetCrewLifetimeContributionsAsync(int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<bool> HasContributedSinceAsync(int userId, int crewId, DateTime since, DateTime? until = null, CancellationToken cancellationToken = default);

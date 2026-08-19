@@ -33,6 +33,8 @@ public class CrewMembership
     public decimal? ReceptionThisYearOverride { get; set; }
     public bool IsSeasonReady { get; set; }
     public bool IsInSeason { get; set; }
+    /// <summary>When the crewmate first joined the giving season (not crew join). Used for monthly giving capacity.</summary>
+    public DateTime? GivingSeasonJoinedAt { get; set; }
     public decimal CurrentPriorityScore { get; set; }
 
     public User User { get; set; } = null!;

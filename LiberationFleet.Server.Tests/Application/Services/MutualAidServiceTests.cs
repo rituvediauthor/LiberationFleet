@@ -563,6 +563,230 @@ public class MutualAidServiceTests
             && c.CapIsProvisional)).Should().Be(3);
     }
 
+    [Fact]
+    public async Task GetPreviousSeasonStartDateAsync_WhenNoPriorSeason_ReturnsNull()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var repository = new MutualAidRepository(fixture.Context);
+
+        var previous = await repository.GetPreviousSeasonStartDateAsync(
+            fixture.Crew.Id,
+            fixture.Crew.CurrentSeasonStartDate!.Value,
+            CancellationToken.None);
+
+        previous.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPreviousSeasonStartDateAsync_WhenPriorSeasonExists_ReturnsMostRecentPriorStart()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var priorStart = fixture.SeasonStart.AddMonths(-3);
+        fixture.Context.SeasonCycles.Add(new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Alice.Id,
+            SeasonStartDate = priorStart,
+            CycleCapAtStart = 600m,
+            CycleCompleted = true,
+            ReceptionOrderPosition = 0
+        });
+        await fixture.Context.SaveChangesAsync();
+        var repository = new MutualAidRepository(fixture.Context);
+
+        var previous = await repository.GetPreviousSeasonStartDateAsync(
+            fixture.Crew.Id,
+            fixture.Crew.CurrentSeasonStartDate!.Value,
+            CancellationToken.None);
+
+        previous.Should().Be(priorStart);
+    }
+
+    [Fact]
+    public async Task GetCrewMonthlyGivingCapacity_ExcludesLibraryOfThingsAndUsesJoinMonthRules()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var now = DateTime.UtcNow;
+        var joinMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.GivingSeasonJoinedAt = joinMonthStart.AddDays(1);
+            membership.EstimatedMonthlyContribution = 90m;
+        }
+
+        var lotPlatform = new CrewPaymentPlatform
+        {
+            CrewId = fixture.Crew.Id,
+            Name = "Library of Things"
+        };
+        fixture.Context.CrewPaymentPlatforms.Add(lotPlatform);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.Gifts.AddRange(
+            new Gift
+            {
+                CrewId = fixture.Crew.Id,
+                GiverUserId = fixture.Alice.Id,
+                RecipientUserId = fixture.Bob.Id,
+                Type = GiftType.Direct,
+                Amount = 60m,
+                CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+                CountsTowardContribution = true,
+                CreatedAt = joinMonthStart.AddDays(2)
+            },
+            new Gift
+            {
+                CrewId = fixture.Crew.Id,
+                GiverUserId = fixture.Alice.Id,
+                RecipientUserId = fixture.Bob.Id,
+                Type = GiftType.Direct,
+                Amount = 500m,
+                CrewPaymentPlatformId = lotPlatform.Id,
+                CrewPaymentPlatform = lotPlatform,
+                CountsTowardContribution = true,
+                CreatedAt = joinMonthStart.AddDays(3)
+            });
+        await fixture.Context.SaveChangesAsync();
+
+        var capacity = await fixture.Service.GetCrewMonthlyGivingCapacityAsync(fixture.Crew.Id, CancellationToken.None);
+
+        var priorMonthStart = joinMonthStart.AddMonths(-1);
+        var twoMonthsAgoStart = joinMonthStart.AddMonths(-2);
+        decimal MonthValue(DateTime monthStart, decimal actual) =>
+            MutualAidCalculationService.GetCalendarMonthContribution(
+                actual,
+                monthStart,
+                joinMonthStart,
+                90m);
+
+        var aliceAverage = MutualAidCalculationService.AverageMonthlyGivingCapacity(
+        [
+            MonthValue(twoMonthsAgoStart, 0m),
+            MonthValue(priorMonthStart, 0m),
+            MonthValue(joinMonthStart, 60m)
+        ]);
+        var othersAverage = MutualAidCalculationService.AverageMonthlyGivingCapacity(
+        [
+            MonthValue(twoMonthsAgoStart, 0m),
+            MonthValue(priorMonthStart, 0m),
+            MonthValue(joinMonthStart, 0m)
+        ]);
+
+        capacity.Should().Be(aliceAverage + othersAverage + othersAverage);
+    }
+
+    [Fact]
+    public async Task GetCrewMonthlyGivingCapacity_WhenJoinedWithFewerThan15DaysLeft_RoundsJoinToNextMonth()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var now = DateTime.UtcNow;
+        var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+        var lateJoin = new DateTime(now.Year, now.Month, daysInMonth, 12, 0, 0, DateTimeKind.Utc);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.GivingSeasonJoinedAt = lateJoin;
+            membership.EstimatedMonthlyContribution = 90m;
+        }
+
+        await fixture.Context.SaveChangesAsync();
+
+        var capacity = await fixture.Service.GetCrewMonthlyGivingCapacityAsync(fixture.Crew.Id, CancellationToken.None);
+
+        capacity.Should().Be(270m);
+    }
+
+    [Fact]
+    public async Task GetReceptionOrderAsync_CreatesCurrentMonthSurvivalThresholdsWhenMissing()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        fixture.Carol.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.GetReceptionOrderAsync(fixture.Alice.Id, cancellationToken: CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        (await fixture.Context.MonthlySurvivalThresholds.CountAsync(t =>
+            t.CrewId == fixture.Crew.Id
+            && t.UserId == fixture.Carol.Id
+            && t.Year == now.Year
+            && t.Month == now.Month)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task OnInNeedOfAidChanged_WhenNoLongerInNeed_CompletesAndDeactivatesCurrentCycle()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
+        cycle.HasCycleStarted = true;
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Bob.InNeedOfAid = false;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.OnInNeedOfAidChangedAsync(fixture.Bob.Id, isInNeedOfAid: false, CancellationToken.None);
+
+        var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == cycle.Id);
+        reloaded.CycleCompleted.Should().BeTrue();
+        reloaded.HasCycleStarted.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OnInNeedOfAidChanged_WhenBackInNeedAndUnderCap_ReopensCycle()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
+        cycle.CycleCompleted = true;
+        cycle.CycleCompletedAt = DateTime.UtcNow;
+        cycle.HasCycleStarted = false;
+        cycle.CycleReceived = 100m;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.OnInNeedOfAidChangedAsync(fixture.Bob.Id, isInNeedOfAid: true, CancellationToken.None);
+
+        var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == cycle.Id);
+        reloaded.CycleCompleted.Should().BeFalse();
+        reloaded.CycleReceived.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task OnInNeedOfAidChanged_WhenBackInNeedAndAtCap_DoesNotReopenCycle()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var cycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
+        cycle.CycleCompleted = true;
+        cycle.CycleCompletedAt = DateTime.UtcNow;
+        cycle.HasCycleStarted = false;
+        cycle.CycleReceived = 600m;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.OnInNeedOfAidChangedAsync(fixture.Bob.Id, isInNeedOfAid: true, CancellationToken.None);
+
+        var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == cycle.Id);
+        reloaded.CycleCompleted.Should().BeTrue();
+        reloaded.CycleReceived.Should().Be(600m);
+    }
+
+    [Fact]
+    public async Task OnInNeedOfAidChanged_WhenNoCurrentCycleExists_CreatesOne()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var existing = await fixture.Context.SeasonCycles
+            .Where(c => c.UserId == fixture.Carol.Id && c.SeasonStartDate == fixture.SeasonStart)
+            .ToListAsync();
+        fixture.Context.SeasonCycles.RemoveRange(existing);
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.OnInNeedOfAidChangedAsync(fixture.Carol.Id, isInNeedOfAid: true, CancellationToken.None);
+
+        (await fixture.Context.SeasonCycles.CountAsync(c =>
+            c.UserId == fixture.Carol.Id
+            && c.SeasonStartDate == fixture.SeasonStart
+            && !c.CycleCompleted)).Should().Be(1);
+    }
+
     private static IReadOnlyList<CrewMemberPlatforms> CreateMemberPlatforms() =>
     [
         new CrewMemberPlatforms { UserId = 1, Username = "giver", PlatformIds = [1] },

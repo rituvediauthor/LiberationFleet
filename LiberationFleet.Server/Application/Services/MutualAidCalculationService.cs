@@ -34,16 +34,64 @@ public static class MutualAidCalculationService
     public static decimal GetEffectiveNonMemberCycleCap(decimal seasonStartCap, decimal currentCalculatedCap) =>
         currentCalculatedCap <= seasonStartCap ? currentCalculatedCap : seasonStartCap;
 
-    public static decimal CalculateMonthlyGivingCapacity(
-        decimal contributionsLast3Months,
-        decimal? estimatedMonthlyContribution)
+    /// <summary>
+    /// First of the calendar month that counts as this crewmate's giving-season start
+    /// for capacity. Joining with fewer than 15 days left in the month rounds up.
+    /// </summary>
+    public static DateTime GetEffectiveGivingSeasonJoinMonthStart(DateTime joinedAtUtc)
     {
-        if (contributionsLast3Months > 0m)
+        var year = joinedAtUtc.Year;
+        var month = joinedAtUtc.Month;
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var daysLeftIncludingJoinDay = daysInMonth - joinedAtUtc.Day + 1;
+        if (daysLeftIncludingJoinDay < 15)
         {
-            return Math.Round(contributionsLast3Months / 3m, 2);
+            return new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
         }
 
-        return estimatedMonthlyContribution ?? 0m;
+        return new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+    }
+
+    public static IReadOnlyList<(int Year, int Month)> GetPastThreeCalendarMonths(DateTime utcNow)
+    {
+        var current = new DateTime(utcNow.Year, utcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        return
+        [
+            (current.AddMonths(-2).Year, current.AddMonths(-2).Month),
+            (current.AddMonths(-1).Year, current.AddMonths(-1).Month),
+            (current.Year, current.Month)
+        ];
+    }
+
+    /// <summary>
+    /// Financial contributions for one calendar month. Empty months before joining
+    /// the giving season use the estimate; empty months after joining are zero.
+    /// </summary>
+    public static decimal GetCalendarMonthContribution(
+        decimal financialContributionsInMonth,
+        DateTime monthStartUtc,
+        DateTime? effectiveJoinMonthStartUtc,
+        decimal estimatedMonthlyContribution)
+    {
+        if (financialContributionsInMonth > 0m)
+        {
+            return financialContributionsInMonth;
+        }
+
+        var monthIsBeforeJoin = !effectiveJoinMonthStartUtc.HasValue
+            || monthStartUtc < effectiveJoinMonthStartUtc.Value;
+        return monthIsBeforeJoin ? estimatedMonthlyContribution : 0m;
+    }
+
+    public static decimal AverageMonthlyGivingCapacity(IEnumerable<decimal> monthAmounts)
+    {
+        var list = monthAmounts as IList<decimal> ?? monthAmounts.ToList();
+        if (list.Count == 0)
+        {
+            return 0m;
+        }
+
+        return Math.Round(list.Average(), 2);
     }
 
     public static decimal CalculatePriorityScore(

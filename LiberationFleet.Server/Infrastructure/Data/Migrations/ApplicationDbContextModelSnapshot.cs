@@ -630,6 +630,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("GivingSeasonJoinedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("IntermediaryFailedCompletions")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")

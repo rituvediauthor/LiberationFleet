@@ -64,7 +64,11 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             NextSeasonStartDate = DateTime.UtcNow.AddDays(-10).AddTicks(1),
             FollowingSeasonStartDate = DateTime.UtcNow.AddDays(-10).AddTicks(2),
             SeasonMemberCycleCap = cycleCap,
-            SeasonNonMemberCycleCap = cycleCap
+            SeasonNonMemberCycleCap = cycleCap,
+            MemberCycleCapMode = Domain.Enums.CycleCapMode.Fixed,
+            MemberCycleCapFixedAmount = cycleCap,
+            NonMemberCycleCapMode = Domain.Enums.CycleCapMode.Fixed,
+            NonMemberCycleCapFixedAmount = cycleCap
         };
         context.Crews.Add(crew);
         await context.SaveChangesAsync();
@@ -157,6 +161,7 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
             EstimatedMonthlyContribution = monthlyContribution,
             IsSeasonReady = true,
             IsInSeason = true,
+            GivingSeasonJoinedAt = crew.CurrentSeasonStartDate,
             IsHonoraryMember = true,
             CurrentPriorityScore = user.Username switch
             {

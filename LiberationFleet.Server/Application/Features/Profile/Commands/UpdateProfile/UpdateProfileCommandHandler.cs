@@ -156,6 +156,14 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             || previousPeopleRepresentedCount != user.PeopleRepresentedCount
             || previousDisabilityLevel != user.DisabilityLevel)
         {
+            if (previousInNeedOfAid != user.InNeedOfAid)
+            {
+                await _mutualAidService.OnInNeedOfAidChangedAsync(
+                    userId.Value,
+                    user.InNeedOfAid,
+                    cancellationToken);
+            }
+
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
         }
 

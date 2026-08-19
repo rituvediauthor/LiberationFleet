@@ -15,6 +15,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IMediator _mediator;
+    private readonly IMutualAidService _mutualAidService;
     private readonly ILogger<LoginCommandHandler> _logger;
 
     public LoginCommandHandler(
@@ -24,6 +25,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
         IMediator mediator,
+        IMutualAidService mutualAidService,
         ILogger<LoginCommandHandler> logger)
     {
         _userRepository = userRepository;
@@ -32,6 +34,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _mediator = mediator;
+        _mutualAidService = mutualAidService;
         _logger = logger;
     }
 
@@ -92,6 +95,15 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
             request.DeviceId,
             request.DeviceName,
             request.UserAgent), cancellationToken);
+
+        try
+        {
+            await _mutualAidService.EnsureCurrentMonthSurvivalThresholdsAsync(user.Id, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to ensure monthly survival thresholds after login for user {UserId}.", user.Id);
+        }
 
         _logger.LogInformation("User logged in: {Email}", user.Email);
 
