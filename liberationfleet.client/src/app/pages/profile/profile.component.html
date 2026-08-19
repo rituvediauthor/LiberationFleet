@@ -179,11 +179,10 @@
 
         <div class="form-group checkbox-group">
           <label class="checkbox-label">
-            <input type="checkbox" formControlName="inNeedOfAid" [attr.disabled]="!canToggleInNeedOff && profile?.inNeedOfAid ? '' : null">
+            <input type="checkbox" formControlName="inNeedOfAid" [attr.disabled]="!canToggleInNeedOff ? '' : null">
             In need of aid
           </label>
-          <span class="hint-text" *ngIf="canToggleInNeedOff">Defaults to on when average monthly contributions are below the crew floor</span>
-          <span class="hint-text warning-text" *ngIf="!canToggleInNeedOff && profile?.inNeedOfAid">
+          <span class="hint-text warning-text" *ngIf="!canToggleInNeedOff">
             Your monthly contribution (3 mo) must be greater than or equal to ${{ inNeedToggleFloor }} to toggle this setting off
           </span>
         </div>

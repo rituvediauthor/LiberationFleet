@@ -521,7 +521,7 @@ export class ProfileComponent implements OnInit {
     this.form = this.fb.group({
       username: [profile.username, usernameValidators()],
       email: [profile.email, [Validators.required, Validators.email]],
-      inNeedOfAid: [profile.inNeedOfAid],
+      inNeedOfAid: [this.canToggleInNeedOff ? profile.inNeedOfAid : true],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [profile.disabilityLevel ?? 0, [Validators.min(0), Validators.max(3)]],

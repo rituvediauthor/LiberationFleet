@@ -83,25 +83,22 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             ? null
             : request.AvatarResourceId.Trim();
 
-        if (user.InNeedOfAid && !request.InNeedOfAid)
+        var crew = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+        var floor = crew?.FinancialMembershipContributionFloor ?? 0m;
+        var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
+            userId.Value,
+            membership.CrewId,
+            cancellationToken);
+
+        if (CrewInNeedService.IsBelowContributionFloor(monthlyExclLot, floor))
         {
-            var crew = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
-            var floor = crew?.FinancialMembershipContributionFloor ?? 0m;
-            var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
-                userId.Value,
-                membership.CrewId,
-                cancellationToken);
-            if (monthlyExclLot < floor)
-            {
-                return new ProfileOperationResponse
-                {
-                    Success = false,
-                    Message = $"Your monthly contribution (3 mo, excluding Library of Things) must be at least ${floor:0.##} to toggle in-need off."
-                };
-            }
+            user.InNeedOfAid = true;
+        }
+        else
+        {
+            user.InNeedOfAid = request.InNeedOfAid;
         }
 
-        user.InNeedOfAid = request.InNeedOfAid;
         user.EmergencyLevel = request.EmergencyLevel;
         user.PeopleRepresentedCount = request.PeopleRepresentedCount;
         user.DisabilityLevel = request.DisabilityLevel;
@@ -170,23 +167,28 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             _unitOfWork,
             cancellationToken);
 
-        if (previousEmergencyLevel != user.EmergencyLevel
-            || previousInNeedOfAid != user.InNeedOfAid
-            || previousPeopleRepresentedCount != user.PeopleRepresentedCount
-            || previousDisabilityLevel != user.DisabilityLevel)
+        var reloaded = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
+        if (reloaded is null)
         {
-            if (previousInNeedOfAid != user.InNeedOfAid)
+            return new ProfileOperationResponse { Success = false, Message = "User not found." };
+        }
+
+        if (previousEmergencyLevel != reloaded.EmergencyLevel
+            || previousInNeedOfAid != reloaded.InNeedOfAid
+            || previousPeopleRepresentedCount != reloaded.PeopleRepresentedCount
+            || previousDisabilityLevel != reloaded.DisabilityLevel)
+        {
+            if (previousInNeedOfAid != reloaded.InNeedOfAid)
             {
                 await _mutualAidService.OnInNeedOfAidChangedAsync(
                     userId.Value,
-                    user.InNeedOfAid,
+                    reloaded.InNeedOfAid,
                     cancellationToken);
             }
 
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
         }
 
-        var reloaded = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
         UserProfileDto? profile = null;
         if (reloaded is not null)
         {
@@ -209,18 +211,8 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 cancellationToken);
             var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
-            var canToggleOff = true;
-            var toggleFloor = 0m;
-            if (reloaded.InNeedOfAid)
-            {
-                var crewForFloor = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
-                toggleFloor = crewForFloor?.FinancialMembershipContributionFloor ?? 0m;
-                var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
-                    userId.Value,
-                    membership.CrewId,
-                    cancellationToken);
-                canToggleOff = monthlyExclLot >= toggleFloor;
-            }
+            var toggleFloor = floor;
+            var canToggleOff = CrewInNeedService.CanToggleInNeedOff(monthlyExclLot, toggleFloor);
 
             profile = ProfileMapper.MapUser(
                 reloaded,

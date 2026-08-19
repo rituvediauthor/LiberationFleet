@@ -1548,6 +1548,25 @@ public partial class MutualAidService(
             crew.Id,
             crew.CurrentSeasonStartDate!.Value,
             cancellationToken)).ToList();
+
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var isMember = await IsFinancialMemberAsync(
+            membership.UserId,
+            crew.Id,
+            membership,
+            cancellationToken);
+
+        foreach (var segment in cycles.Where(c =>
+            c.UserId == membership.UserId
+            && c.UsesSegmentCap
+            && !c.CycleCompleted
+            && c.CycleReceived < c.CycleCapAtStart))
+        {
+            segment.CycleCompleted = false;
+            segment.CycleCompletedAt = null;
+            segment.HasCycleStarted = false;
+        }
+
         var primary = cycles
             .Where(c => c.UserId == membership.UserId && IsPrimaryCycle(c))
             .OrderBy(c => c.ReceptionOrderPosition)
@@ -1561,12 +1580,6 @@ public partial class MutualAidService(
             return;
         }
 
-        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
-        var isMember = await IsFinancialMemberAsync(
-            membership.UserId,
-            crew.Id,
-            membership,
-            cancellationToken);
         var effectiveCap = EmergencySplitService.ResolveSegmentCap(
             primary,
             isMember,
@@ -1575,6 +1588,7 @@ public partial class MutualAidService(
 
         if (primary.CycleReceived >= effectiveCap)
         {
+            await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
             return;
         }
 

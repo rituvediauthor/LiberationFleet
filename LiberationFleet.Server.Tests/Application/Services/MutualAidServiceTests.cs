@@ -788,6 +788,49 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task OnInNeedOfAidChanged_WhenOptOutWithEmergencySegment_KeepsSegmentIncomplete()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart && !c.EmergencySplitOfferId.HasValue);
+        var segment = new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Bob.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 100m,
+            UsesSegmentCap = true,
+            EmergencySplitOfferId = 1,
+            CycleReceived = 25m,
+            CycleCompleted = false,
+            ReceptionOrderPosition = primary.ReceptionOrderPosition,
+            PriorityScoreAtSeasonStart = primary.PriorityScoreAtSeasonStart
+        };
+        fixture.Context.SeasonCycles.Add(segment);
+        primary.HasCycleStarted = true;
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Bob.InNeedOfAid = false;
+        await fixture.Context.SaveChangesAsync();
+        await fixture.Service.OnInNeedOfAidChangedAsync(fixture.Bob.Id, isInNeedOfAid: false, CancellationToken.None);
+
+        var reloadedPrimary = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
+        var reloadedSegment = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == segment.Id);
+        reloadedPrimary.CycleCompleted.Should().BeTrue();
+        reloadedSegment.CycleCompleted.Should().BeFalse();
+        reloadedSegment.CycleReceived.Should().Be(25m);
+
+        fixture.Bob.InNeedOfAid = true;
+        await fixture.Context.SaveChangesAsync();
+        await fixture.Service.OnInNeedOfAidChangedAsync(fixture.Bob.Id, isInNeedOfAid: true, CancellationToken.None);
+
+        reloadedPrimary = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
+        reloadedSegment = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == segment.Id);
+        reloadedPrimary.CycleCompleted.Should().BeFalse();
+        reloadedSegment.CycleCompleted.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task SaveSeasonSetupAsync_AllowsZeroEstimatedContribution()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
