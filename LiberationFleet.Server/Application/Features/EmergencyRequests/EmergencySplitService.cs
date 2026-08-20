@@ -699,7 +699,7 @@ public class EmergencySplitService(
         }
     }
 
-    private static void RestoreSegmentCap(
+    public static void RestoreSegmentCap(
         SeasonCycle segment,
         decimal amount,
         EmergencyCapacityContext capacityContext,

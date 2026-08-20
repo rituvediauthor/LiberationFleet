@@ -788,17 +788,23 @@ public class MutualAidServiceTests
     }
 
     [Fact]
-    public async Task OnInNeedOfAidChanged_WhenOptOutWithEmergencySegment_KeepsSegmentIncomplete()
+    public async Task OnInNeedOfAidChanged_WhenOptOutWithEmergencySegment_ForgivesSegmentAndRestoresPrimary()
     {
-        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
         var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
-            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart && !c.EmergencySplitOfferId.HasValue);
+            c.UserId == fixture.Bob.Id
+            && c.SeasonStartDate == fixture.SeasonStart
+            && !c.EmergencySplitOfferId.HasValue
+            && !c.EmergencyRequestId.HasValue);
+        primary.UsesSegmentCap = true;
+        primary.CycleCapAtStart = 50m;
+        primary.HasCycleStarted = true;
         var segment = new SeasonCycle
         {
             CrewId = fixture.Crew.Id,
             UserId = fixture.Bob.Id,
             SeasonStartDate = fixture.SeasonStart,
-            CycleCapAtStart = 100m,
+            CycleCapAtStart = 50m,
             UsesSegmentCap = true,
             EmergencySplitOfferId = 1,
             CycleReceived = 25m,
@@ -807,7 +813,6 @@ public class MutualAidServiceTests
             PriorityScoreAtSeasonStart = primary.PriorityScoreAtSeasonStart
         };
         fixture.Context.SeasonCycles.Add(segment);
-        primary.HasCycleStarted = true;
         await fixture.Context.SaveChangesAsync();
 
         fixture.Bob.InNeedOfAid = false;
@@ -817,8 +822,10 @@ public class MutualAidServiceTests
         var reloadedPrimary = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
         var reloadedSegment = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == segment.Id);
         reloadedPrimary.CycleCompleted.Should().BeTrue();
-        reloadedSegment.CycleCompleted.Should().BeFalse();
+        reloadedSegment.CycleCompleted.Should().BeTrue();
         reloadedSegment.CycleReceived.Should().Be(25m);
+        // Forgiven remainder ($25) restored onto primary ($50 → $75).
+        reloadedPrimary.CycleCapAtStart.Should().Be(75m);
 
         fixture.Bob.InNeedOfAid = true;
         await fixture.Context.SaveChangesAsync();
@@ -827,7 +834,8 @@ public class MutualAidServiceTests
         reloadedPrimary = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
         reloadedSegment = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == segment.Id);
         reloadedPrimary.CycleCompleted.Should().BeFalse();
-        reloadedSegment.CycleCompleted.Should().BeFalse();
+        // Forgiven segment stays complete on re-opt-in.
+        reloadedSegment.CycleCompleted.Should().BeTrue();
     }
 
     [Fact]
