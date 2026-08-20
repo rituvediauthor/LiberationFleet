@@ -14,7 +14,12 @@ public class CrewMembership
     public bool IsCeremonialOrganizer { get; set; }
     public bool IsModerator { get; set; }
     public bool IsIntermediary { get; set; }
+    /// <summary>Consecutive intermediary completion failures (resets on a successful completion).</summary>
     public int IntermediaryFailedCompletions { get; set; }
+    /// <summary>UTC year*100+month of the current intermediary failure month bucket.</summary>
+    public int IntermediaryFailureMonthKey { get; set; }
+    /// <summary>Failures recorded in <see cref="IntermediaryFailureMonthKey"/>.</summary>
+    public int IntermediaryFailuresInMonth { get; set; }
     public bool IsRepresentative { get; set; }
     /// <summary>Inclusive UTC start of the Representative term.</summary>
     public DateTime? RepresentativeTermStartUtc { get; set; }

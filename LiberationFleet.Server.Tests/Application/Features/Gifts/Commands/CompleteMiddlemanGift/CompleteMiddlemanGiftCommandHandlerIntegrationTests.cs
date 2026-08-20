@@ -39,6 +39,7 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
+            fixture.Service,
             fixture.Context);
 
         var result = await handler.Handle(
@@ -106,6 +107,7 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             membershipRepository,
             giftRepository,
             crewPaymentPlatformRepository,
+            fixture.Service,
             fixture.Context);
 
         var result = await handler.Handle(

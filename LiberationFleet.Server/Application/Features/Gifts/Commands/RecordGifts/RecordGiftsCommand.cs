@@ -27,6 +27,7 @@ public class RecordGiftsCommandHandler(
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IUserRepository userRepository,
     IMutualAidService mutualAidService,
+    ICustomGiftRecordingService customGiftRecordingService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
@@ -51,6 +52,7 @@ public class RecordGiftsCommandHandler(
 
         Gift? lastSaved = null;
         var notifiedRecipients = new HashSet<int>();
+        var recordedCount = 0;
 
         foreach (var item in request.Gifts)
         {
@@ -101,47 +103,69 @@ public class RecordGiftsCommandHandler(
                 }
             }
 
-            var isSurvivalThreshold = !item.IsCustom
-                && string.Equals(item.EntryType, "survivalThreshold", StringComparison.OrdinalIgnoreCase);
-            var isRepresentativeGift = !item.IsCustom
-                && string.Equals(item.EntryType, "representative", StringComparison.OrdinalIgnoreCase);
-            var isCatchUp = !item.IsCustom
-                && string.Equals(item.EntryType, "catchUp", StringComparison.OrdinalIgnoreCase);
-            var countsTowardReception = !item.MiddlemanId.HasValue;
-
-            var gift = new Gift
+            if (item.IsCustom)
             {
-                CrewId = membership.CrewId,
-                GiverUserId = userId,
-                RecipientUserId = item.RecipientId,
-                MiddlemanUserId = item.MiddlemanId,
-                Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
-                Amount = item.Amount,
-                CrewPaymentPlatformId = item.PaymentPlatformId,
-                IsSurvivalThreshold = isSurvivalThreshold,
-                IsRepresentativeGift = isRepresentativeGift,
-                IsCustomGift = item.IsCustom,
-                CountsTowardReception = countsTowardReception,
-                CountsTowardContribution = true,
-                SeasonCycleId = item.SeasonCycleId,
-                VerificationStatus = item.IsCustom
-                    ? GiftVerificationStatus.Verified
-                    : GiftVerificationStatus.Pending,
-                CreatedAt = DateTime.UtcNow
-            };
+                var category = CustomGiftRecordingService.ParseCategory(item.EntryType);
+                var (applied, other) = await customGiftRecordingService.RecordAsync(
+                    membership.CrewId,
+                    userId,
+                    item.RecipientId,
+                    item.Amount,
+                    item.PaymentPlatformId,
+                    item.MiddlemanId,
+                    category,
+                    cancellationToken);
 
-            // Catch-up gifts credit a completed cycle via SeasonCycleId.
-            _ = isCatchUp;
+                if (applied is null && other is null)
+                {
+                    return new GiftOperationResponse { Success = false, Message = "Could not record custom gift." };
+                }
 
-            await giftRepository.AddAsync(gift, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            if (item.IsCustom && countsTowardReception)
-            {
-                await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
+                recordedCount += (applied is not null ? 1 : 0) + (other is not null ? 1 : 0);
+                var highlight = other ?? applied;
+                lastSaved = highlight is not null
+                    ? await giftRepository.GetByIdWithUsersAsync(highlight.Id, cancellationToken)
+                    : null;
             }
+            else
+            {
+                var isSurvivalThreshold = string.Equals(
+                    item.EntryType,
+                    "survivalThreshold",
+                    StringComparison.OrdinalIgnoreCase);
+                var isRepresentativeGift = string.Equals(
+                    item.EntryType,
+                    "representative",
+                    StringComparison.OrdinalIgnoreCase);
+                var isCatchUp = string.Equals(item.EntryType, "catchUp", StringComparison.OrdinalIgnoreCase);
+                var countsTowardReception = !item.MiddlemanId.HasValue;
 
-            lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+                var gift = new Gift
+                {
+                    CrewId = membership.CrewId,
+                    GiverUserId = userId,
+                    RecipientUserId = item.RecipientId,
+                    MiddlemanUserId = item.MiddlemanId,
+                    Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
+                    Amount = item.Amount,
+                    CrewPaymentPlatformId = item.PaymentPlatformId,
+                    IsSurvivalThreshold = isSurvivalThreshold,
+                    IsRepresentativeGift = isRepresentativeGift,
+                    IsCustomGift = false,
+                    CountsTowardReception = countsTowardReception,
+                    CountsTowardContribution = true,
+                    SeasonCycleId = item.SeasonCycleId,
+                    VerificationStatus = GiftVerificationStatus.Pending,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _ = isCatchUp;
+
+                await giftRepository.AddAsync(gift, cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                recordedCount++;
+                lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+            }
 
             if (notifiedRecipients.Add(item.RecipientId))
             {
@@ -155,8 +179,10 @@ public class RecordGiftsCommandHandler(
                         Kind = NotificationKind.NewGifts,
                         Title = "New gift(s)",
                         Body = "You received a new gift in your crew.",
-                        ActionUrl = $"/app/crew/gift-log?highlightId={gift.Id}",
-                        RelatedEntityId = gift.Id
+                        ActionUrl = lastSaved is not null
+                            ? $"/app/crew/gift-log?highlightId={lastSaved.Id}"
+                            : "/app/crew/gift-log",
+                        RelatedEntityId = lastSaved?.Id
                     }, cancellationToken);
                 }
             }
@@ -167,7 +193,7 @@ public class RecordGiftsCommandHandler(
         return new GiftOperationResponse
         {
             Success = true,
-            Message = request.Gifts.Count == 1 ? "Gift recorded." : $"{request.Gifts.Count} gifts recorded.",
+            Message = recordedCount == 1 ? "Gift recorded." : $"{recordedCount} gifts recorded.",
             Entry = lastSaved is not null ? GiftMapper.MapGift(lastSaved) : null
         };
     }

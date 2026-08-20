@@ -70,6 +70,8 @@ public interface IMutualAidService
     Task RemoveMemberFromSeasonAsync(int crewId, int userId, CancellationToken cancellationToken = default);
     Task RecordEmergencySacrificeAsync(int crewId, int sacrificerUserId, CancellationToken cancellationToken = default);
     Task RecordIntermediaryFailureAsync(int crewId, int intermediaryUserId, CancellationToken cancellationToken = default);
+    /// <summary>Clears the consecutive intermediary failure streak after a successful completion.</summary>
+    Task RecordIntermediarySuccessAsync(int crewId, int intermediaryUserId, CancellationToken cancellationToken = default);
     IReadOnlyList<int> FindMiddlemen(int giverUserId, int recipientUserId, IReadOnlyList<CrewMemberPlatforms> members);
 }
 

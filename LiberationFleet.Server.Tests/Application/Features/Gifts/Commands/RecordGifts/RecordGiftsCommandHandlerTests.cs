@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
@@ -285,6 +286,7 @@ public class RecordGiftsCommandHandlerTests
             crewPaymentPlatformRepository.Object,
             userRepository.Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
+            new Mock<ICustomGiftRecordingService>(MockBehavior.Loose).Object,
             notificationService,
             unitOfWork.Object);
     }

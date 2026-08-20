@@ -654,6 +654,16 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("IntermediaryFailureMonthKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("IntermediaryFailuresInMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<bool>("IsAccountant")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -1588,6 +1598,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<int?>("CustomGiftCategory")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsRepresentativeGift")
                         .ValueGeneratedOnAdd()

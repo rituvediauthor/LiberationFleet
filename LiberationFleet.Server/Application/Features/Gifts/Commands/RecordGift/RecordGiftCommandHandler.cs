@@ -13,6 +13,7 @@ public class RecordGiftCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftCommand request, CancellationToken cancellationToken)
@@ -106,6 +107,7 @@ public class RecordGiftCommandHandler(
             IsSurvivalThreshold = initiated.IsSurvivalThreshold,
             IsRepresentativeGift = initiated.IsRepresentativeGift,
             IsCustomGift = initiated.IsCustomGift,
+            CustomGiftCategory = initiated.CustomGiftCategory,
             CountsTowardReception = true,
             CountsTowardContribution = true,
             SeasonCycleId = initiated.SeasonCycleId,
@@ -115,6 +117,7 @@ public class RecordGiftCommandHandler(
 
         await giftRepository.AddAsync(gift, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await mutualAidService.RecordIntermediarySuccessAsync(crewId, userId, cancellationToken);
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
         return new GiftOperationResponse

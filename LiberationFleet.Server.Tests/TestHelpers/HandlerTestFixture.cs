@@ -1,5 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Services;
@@ -164,6 +166,10 @@ public static class HandlerTestFixture
             .Returns(Task.CompletedTask);
         mock.Setup(m => m.TryEndSeasonIfCompleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        mock.Setup(m => m.RecordIntermediaryFailureAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mock.Setup(m => m.RecordIntermediarySuccessAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         mock.Setup(m => m.EnsureNextSeasonCyclesAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mock.Setup(m => m.EnsurePrimarySeasonCycleExistsAsync(
@@ -228,6 +234,28 @@ public static class HandlerTestFixture
             membershipRepository,
             new GiftRepository(context),
             CreateNotificationService(context),
+            context);
+    }
+
+    public static CustomGiftRecordingService CreateCustomGiftRecordingService(
+        ApplicationDbContext context,
+        MutualAidService? mutualAidService = null)
+    {
+        mutualAidService ??= CreateMutualAidService(context);
+        var mutualAidRepository = new MutualAidRepository(context);
+        var membershipRepository = new CrewMembershipRepository(context);
+        var emergencyRequestRepository = new EmergencyRequestRepository(context);
+        return new CustomGiftRecordingService(
+            new GiftRepository(context),
+            mutualAidRepository,
+            emergencyRequestRepository,
+            new EmergencyReconciliationService(
+                new EmergencySplitService(
+                    mutualAidRepository,
+                    membershipRepository,
+                    emergencyRequestRepository,
+                    mutualAidService)),
+            mutualAidService,
             context);
     }
 

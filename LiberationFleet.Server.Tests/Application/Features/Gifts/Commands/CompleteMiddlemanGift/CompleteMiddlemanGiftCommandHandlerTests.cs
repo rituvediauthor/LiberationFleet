@@ -168,6 +168,7 @@ public class CompleteMiddlemanGiftCommandHandlerTests
             membershipRepository.Object,
             giftRepository.Object,
             crewPaymentPlatformRepository.Object,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             unitOfWork.Object);
     }
 

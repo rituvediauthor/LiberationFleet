@@ -8,6 +8,7 @@ export type GiftLogType =
   | 'cyclestarted'
   | 'survivalthresholdsrefreshed';
 export type ReceptionEntryType = 'survivalThreshold' | 'cycle' | 'catchUp' | 'representative';
+export type CustomGiftCategory = 'cycle' | 'survivalThreshold' | 'emergency' | 'other';
 export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete' | 'unverified';
 export type GiftDisplayFlag = 'notComplete' | 'cantComplete' | 'unverified';
 export type GiftVerificationAction =
@@ -46,6 +47,7 @@ export interface GiftLogEntry {
   status?: GiftEntryStatus;
   verificationStatus?: string;
   displayFlag?: GiftDisplayFlag | null;
+  customGiftCategory?: CustomGiftCategory | null;
   availableActions?: GiftVerificationAction[];
   completionPlatformOptions?: PaymentPlatformOption[];
   hasEncryptedContent?: boolean;
@@ -76,7 +78,7 @@ export interface GiftRecordItem {
   recipientId: number;
   middlemanId?: number;
   isCustom: boolean;
-  entryType?: ReceptionEntryType;
+  entryType?: ReceptionEntryType | CustomGiftCategory;
   seasonCycleId?: number;
 }
 

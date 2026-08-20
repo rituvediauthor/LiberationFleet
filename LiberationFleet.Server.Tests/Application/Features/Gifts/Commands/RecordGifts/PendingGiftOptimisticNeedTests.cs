@@ -20,6 +20,7 @@ public class PendingGiftOptimisticNeedTests
             new CrewPaymentPlatformRepository(fixture.Context),
             new UserRepository(fixture.Context),
             fixture.Service,
+            HandlerTestFixture.CreateCustomGiftRecordingService(fixture.Context, fixture.Service),
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);
     }
