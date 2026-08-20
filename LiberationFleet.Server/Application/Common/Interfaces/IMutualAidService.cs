@@ -34,6 +34,10 @@ public interface IMutualAidService
     /// </summary>
     Task OnCrewContributionsChangedAsync(int crewId, CancellationToken cancellationToken = default);
     /// <summary>
+    /// Ends the current season when all in-need cycles are satisfied (production rollover).
+    /// </summary>
+    Task TryEndSeasonIfCompleteAsync(int crewId, CancellationToken cancellationToken = default);
+    /// <summary>
     /// Ensures current-season participants each have a next-season primary cycle.
     /// </summary>
     Task EnsureNextSeasonCyclesAsync(int crewId, CancellationToken cancellationToken = default);
@@ -53,6 +57,13 @@ public interface IMutualAidService
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false);
     Task EnsureMemberInActiveSeasonAsync(
+        int crewId,
+        CrewMembership membership,
+        CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Ensures a primary season cycle exists for the member in the current season (correct reception order).
+    /// </summary>
+    Task EnsurePrimarySeasonCycleExistsAsync(
         int crewId,
         CrewMembership membership,
         CancellationToken cancellationToken = default);

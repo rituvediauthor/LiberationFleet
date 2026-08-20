@@ -410,7 +410,11 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         modelBuilder.Entity<SeasonCycle>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.CrewId, e.UserId, e.SeasonStartDate });
+            entity.HasIndex(e => new { e.CrewId, e.SeasonStartDate });
+            entity.HasIndex(e => new { e.CrewId, e.UserId, e.SeasonStartDate })
+                .IsUnique()
+                .HasFilter("[EmergencyRequestId] IS NULL AND [EmergencySplitOfferId] IS NULL")
+                .HasDatabaseName("IX_SeasonCycles_OnePrimaryPerUserSeason");
             entity.Property(e => e.CycleCapAtStart).HasPrecision(18, 2);
             entity.Property(e => e.CycleCapAtCompletion).HasPrecision(18, 2);
             entity.Property(e => e.SplitReservedAmount).HasPrecision(18, 2).HasDefaultValue(0m);

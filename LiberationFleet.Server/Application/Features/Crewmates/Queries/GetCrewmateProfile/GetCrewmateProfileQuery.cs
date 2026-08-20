@@ -106,7 +106,7 @@ public class GetCrewmateProfileQueryHandler(
         SeasonCycle? seasonCycle = null;
         if (crew.CurrentSeasonStartDate is DateTime seasonStartDate)
         {
-            seasonCycle = await mutualAidRepository.GetSeasonCycleAsync(
+            seasonCycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
                 viewerMembership.CrewId,
                 request.UserId,
                 seasonStartDate,

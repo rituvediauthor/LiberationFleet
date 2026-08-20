@@ -3353,7 +3353,12 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("CrewId", "UserId", "SeasonStartDate");
+                    b.HasIndex("CrewId", "SeasonStartDate");
+
+                    b.HasIndex("CrewId", "UserId", "SeasonStartDate")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SeasonCycles_OnePrimaryPerUserSeason")
+                        .HasFilter("[EmergencyRequestId] IS NULL AND [EmergencySplitOfferId] IS NULL");
 
                     b.ToTable("SeasonCycles");
                 });

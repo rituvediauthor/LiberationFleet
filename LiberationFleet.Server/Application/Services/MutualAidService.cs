@@ -909,6 +909,18 @@ public partial class MutualAidService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task TryEndSeasonIfCompleteAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted)
+        {
+            return;
+        }
+
+        await TryEndSeasonAsync(crew, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task ReorderUnlockedUnitsForSeasonAsync(
         Crew crew,
         DateTime seasonStartDate,
@@ -1500,15 +1512,20 @@ public partial class MutualAidService(
             return;
         }
 
-        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+        var existingPrimary = await mutualAidRepository.GetPrimarySeasonCycleAsync(
             crew.Id,
+            membership.UserId,
             crew.CurrentSeasonStartDate.Value,
-            cancellationToken)).ToList();
-        if (cycles.Any(c => c.UserId == membership.UserId && IsPrimaryCycle(c)))
+            cancellationToken);
+        if (existingPrimary is not null)
         {
             return;
         }
 
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate.Value,
+            cancellationToken)).ToList();
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var isMember = await IsFinancialMemberAsync(membership.UserId, crew.Id, membership, cancellationToken);
         var cycleCap = GetEffectiveCycleCap(isMember, crew, capacityContext);
@@ -1665,6 +1682,20 @@ public partial class MutualAidService(
         }
 
         await JoinActiveSeasonAsync(crew, membership, cancellationToken);
+    }
+
+    public async Task EnsurePrimarySeasonCycleExistsAsync(
+        int crewId,
+        CrewMembership membership,
+        CancellationToken cancellationToken = default)
+    {
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted)
+        {
+            return;
+        }
+
+        await EnsureCurrentSeasonPrimaryCycleAsync(crew, membership, cancellationToken);
     }
 
     private static int GetInsertPositionForNewCycle(
@@ -2035,7 +2066,7 @@ public partial class MutualAidService(
         cycle.CycleCompletedAt = null;
     }
 
-    private async Task TryEndSeasonAsync(Crew crew, CancellationToken cancellationToken)
+    private async Task TryEndSeasonAsync(Crew crew, CancellationToken cancellationToken, bool force = false)
     {
         if (!crew.CurrentSeasonStartDate.HasValue)
         {
@@ -2047,41 +2078,44 @@ public partial class MutualAidService(
         var effectiveMemberCap = GetEffectiveCycleCap(true, crew, capacityContext);
         var effectiveNonMemberCap = GetEffectiveCycleCap(false, crew, capacityContext);
 
-        var allComplete = true;
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
-        var memberStatus = new Dictionary<int, bool>();
-        foreach (var participant in participants)
+        if (!force)
         {
-            memberStatus[participant.UserId] = await IsFinancialMemberAsync(
-                participant.UserId,
-                crew.Id,
-                participant,
-                cancellationToken);
-        }
-
-        foreach (var cycle in cycles)
-        {
-            if (cycle.User?.InNeedOfAid == false)
+            var allComplete = true;
+            var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+            var memberStatus = new Dictionary<int, bool>();
+            foreach (var participant in participants)
             {
-                continue;
+                memberStatus[participant.UserId] = await IsFinancialMemberAsync(
+                    participant.UserId,
+                    crew.Id,
+                    participant,
+                    cancellationToken);
             }
 
-            var isMember = memberStatus.GetValueOrDefault(cycle.UserId, false);
-            var cap = EmergencySplitService.ResolveSegmentCap(
-                cycle,
-                isMember,
-                effectiveMemberCap,
-                effectiveNonMemberCap);
-            if (!MutualAidCalculationService.IsCycleSatisfied(cycle, cap))
+            foreach (var cycle in cycles)
             {
-                allComplete = false;
-                break;
-            }
-        }
+                if (cycle.User?.InNeedOfAid == false)
+                {
+                    continue;
+                }
 
-        if (!allComplete)
-        {
-            return;
+                var isMember = memberStatus.GetValueOrDefault(cycle.UserId, false);
+                var cap = EmergencySplitService.ResolveSegmentCap(
+                    cycle,
+                    isMember,
+                    effectiveMemberCap,
+                    effectiveNonMemberCap);
+                if (!MutualAidCalculationService.IsCycleSatisfied(cycle, cap))
+                {
+                    allComplete = false;
+                    break;
+                }
+            }
+
+            if (!allComplete)
+            {
+                return;
+            }
         }
 
         await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);

@@ -47,6 +47,21 @@ public class MutualAidRepository : IMutualAidRepository
             c => c.CrewId == crewId && c.UserId == userId && c.SeasonStartDate == seasonStartDate,
             cancellationToken);
 
+    public Task<SeasonCycle?> GetPrimarySeasonCycleAsync(
+        int crewId,
+        int userId,
+        DateTime seasonStartDate,
+        CancellationToken cancellationToken = default) =>
+        _context.SeasonCycles
+            .Where(c =>
+                c.CrewId == crewId
+                && c.UserId == userId
+                && c.SeasonStartDate == seasonStartDate
+                && c.EmergencyRequestId == null
+                && c.EmergencySplitOfferId == null)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<SeasonCycle?> GetSeasonCycleByIdAsync(int cycleId, CancellationToken cancellationToken = default) =>
         _context.SeasonCycles
             .Include(c => c.User)
@@ -283,35 +298,43 @@ public class MutualAidRepository : IMutualAidRepository
         int claimantUserId,
         CancellationToken cancellationToken = default)
     {
-        var crew = await GetCrewAsync(crewId, cancellationToken);
-        if (crew?.CurrentSeasonStartDate is not null)
-        {
-            var placeholderCycle = await GetSeasonCycleAsync(
-                crewId,
-                placeholderUserId,
-                crew.CurrentSeasonStartDate.Value,
-                cancellationToken);
-            var claimantCycle = await GetSeasonCycleAsync(
-                crewId,
-                claimantUserId,
-                crew.CurrentSeasonStartDate.Value,
-                cancellationToken);
+        var placeholderCycles = await _context.SeasonCycles
+            .Where(c => c.CrewId == crewId && c.UserId == placeholderUserId)
+            .ToListAsync(cancellationToken);
 
-            if (placeholderCycle is not null)
+        if (placeholderCycles.Count > 0)
+        {
+            var seasonDates = placeholderCycles.Select(c => c.SeasonStartDate).Distinct().ToList();
+            var claimantCycles = await _context.SeasonCycles
+                .Where(c => c.CrewId == crewId && c.UserId == claimantUserId && seasonDates.Contains(c.SeasonStartDate))
+                .ToListAsync(cancellationToken);
+
+            foreach (var placeholderCycle in placeholderCycles)
             {
-                if (claimantCycle is not null)
+                var isPrimary = placeholderCycle.EmergencyRequestId is null
+                    && placeholderCycle.EmergencySplitOfferId is null;
+
+                if (isPrimary)
                 {
-                    claimantCycle.TotalReceptionAmount += placeholderCycle.TotalReceptionAmount;
-                    claimantCycle.SurvivalThresholdReceived += placeholderCycle.SurvivalThresholdReceived;
-                    claimantCycle.CycleReceived += placeholderCycle.CycleReceived;
-                    claimantCycle.CycleCompleted = claimantCycle.CycleCompleted || placeholderCycle.CycleCompleted;
-                    claimantCycle.HasCycleStarted = claimantCycle.HasCycleStarted || placeholderCycle.HasCycleStarted;
-                    _context.SeasonCycles.Remove(placeholderCycle);
+                    var claimantPrimary = claimantCycles.FirstOrDefault(c =>
+                        c.SeasonStartDate == placeholderCycle.SeasonStartDate
+                        && c.EmergencyRequestId is null
+                        && c.EmergencySplitOfferId is null);
+
+                    if (claimantPrimary is not null)
+                    {
+                        claimantPrimary.TotalReceptionAmount += placeholderCycle.TotalReceptionAmount;
+                        claimantPrimary.SurvivalThresholdReceived += placeholderCycle.SurvivalThresholdReceived;
+                        claimantPrimary.CycleReceived += placeholderCycle.CycleReceived;
+                        claimantPrimary.CycleCompleted = claimantPrimary.CycleCompleted || placeholderCycle.CycleCompleted;
+                        claimantPrimary.HasCycleStarted = claimantPrimary.HasCycleStarted || placeholderCycle.HasCycleStarted;
+                        _context.SeasonCycles.Remove(placeholderCycle);
+                        continue;
+                    }
                 }
-                else
-                {
-                    placeholderCycle.UserId = claimantUserId;
-                }
+
+                placeholderCycle.UserId = claimantUserId;
+                claimantCycles.Add(placeholderCycle);
             }
         }
 
