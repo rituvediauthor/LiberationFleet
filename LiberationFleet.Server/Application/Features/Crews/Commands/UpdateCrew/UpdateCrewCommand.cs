@@ -43,6 +43,7 @@ public class UpdateCrewCommandHandler(
     IGiftRepository giftRepository,
     ContentTenureService contentTenureService,
     CrewSettingsProposalService crewSettingsProposalService,
+    CrewInNeedReevaluationService crewInNeedReevaluationService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateCrewCommand, CrewOperationResponse>
 {
@@ -134,6 +135,11 @@ public class UpdateCrewCommandHandler(
 
         CrewSettingsProposalService.ApplyDirectUpdate(crew, request, privacy, scope);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (changes.Any(c => c.Field == CrewSettingField.InNeedDefaultThreshold))
+        {
+            await crewInNeedReevaluationService.ReevaluateCrewAsync(crew.Id, cancellationToken);
+        }
 
         var preview = string.Join(
             " ",

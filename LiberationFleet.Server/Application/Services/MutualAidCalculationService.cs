@@ -122,7 +122,7 @@ public static class MutualAidCalculationService
     }
 
     public const string MonthlyContributionAverageExplanation =
-        "Last three calendar months of gifts, including Library of Things and emergency aid. Months before joining the season use your estimate; months after joining with no gifts count as $0.";
+        "Last three calendar months of gifts, excluding Library of Things; emergency aid is included. Months before joining the season use your estimate; months after joining with no gifts count as $0.";
 
     public static decimal CalculatePriorityScore(
         User user,

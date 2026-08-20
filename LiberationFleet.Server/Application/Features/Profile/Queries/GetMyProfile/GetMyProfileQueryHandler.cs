@@ -62,7 +62,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         var giftStats = new CrewmateGiftStatsDto();
         var isSurvivalRecipient = false;
         var canToggleOff = true;
-        var toggleFloor = 0m;
+        var toggleThreshold = 0m;
 
         if (membership is not null)
         {
@@ -110,10 +110,10 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             isSurvivalRecipient = crew?.AllowSurvivalThresholds == true
                 && unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
 
-            toggleFloor = crew?.FinancialMembershipContributionFloor ?? 0m;
+            toggleThreshold = crew?.InNeedDefaultThreshold ?? 0m;
             canToggleOff = CrewInNeedService.CanToggleInNeedOff(
                 giftStats.AverageMonthlyContributions,
-                toggleFloor);
+                toggleThreshold);
         }
 
         var now = DateTime.UtcNow;
@@ -136,7 +136,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             user.PercentBonus,
             isSurvivalRecipient,
             canToggleOff,
-            toggleFloor,
+            toggleThreshold,
             previousDonations,
             currentDonations,
             previousYear,

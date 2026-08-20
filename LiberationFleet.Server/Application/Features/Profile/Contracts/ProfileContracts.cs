@@ -41,7 +41,7 @@ public class UserProfileDto
     public bool NeedsSurvivalAid { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public bool CanToggleInNeedOff { get; set; }
-    public decimal InNeedToggleFloor { get; set; }
+    public decimal InNeedToggleThreshold { get; set; }
     public UserProfileStatsDto Stats { get; set; } = new();
 }
 

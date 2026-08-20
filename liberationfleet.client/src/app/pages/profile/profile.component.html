@@ -136,7 +136,7 @@
           <div class="readonly-item">
             <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
             <span class="readonly-value">${{ stats.averageMonthlyContributions }}</span>
-            <span class="hint-text">Last three calendar months of gifts, including Library of Things and emergency aid. Months before joining the season use your estimate; months after joining with no gifts count as $0.</span>
+            <span class="hint-text">Last three calendar months of gifts, excluding Library of Things; emergency aid is included. Months before joining the season use your estimate; months after joining with no gifts count as $0.</span>
           </div>
           <div class="readonly-item">
             <span class="readonly-label">Membership status</span>
@@ -183,7 +183,7 @@
             In need of aid
           </label>
           <span class="hint-text warning-text" *ngIf="!canToggleInNeedOff">
-            Your monthly contribution (3 mo) must be greater than or equal to ${{ inNeedToggleFloor }} to toggle this setting off
+            Your monthly contribution average (3 mo, excluding Library of Things) must exceed ${{ inNeedToggleThreshold }} to toggle this setting off
           </span>
         </div>
 

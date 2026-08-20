@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -12,6 +13,7 @@ public class CrewSettingsProposalService(
     ICrewRepository crewRepository,
     IFleetRepository fleetRepository,
     NotificationService notificationService,
+    CrewInNeedReevaluationService crewInNeedReevaluationService,
     IUnitOfWork unitOfWork)
 {
     public async Task<int> CreateProposalsAsync(
@@ -101,6 +103,11 @@ public class CrewSettingsProposalService(
 
         await ApplyChangeAsync(crew, change, cancellationToken);
         change.IsApplied = true;
+
+        if (change.Field == CrewSettingField.InNeedDefaultThreshold)
+        {
+            await crewInNeedReevaluationService.ReevaluateCrewAsync(crew.Id, cancellationToken);
+        }
 
         await notificationService.NotifyCrewAsync(
             proposal.CrewId!.Value,

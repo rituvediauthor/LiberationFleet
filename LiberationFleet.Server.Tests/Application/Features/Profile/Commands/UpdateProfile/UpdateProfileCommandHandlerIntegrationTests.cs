@@ -1,7 +1,7 @@
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
-using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +17,19 @@ public class UpdateProfileCommandHandlerIntegrationTests
         await using (context)
         {
             var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
-            // Floor 0 with no gifts => average 0, not below floor; explicit InNeedOfAid=false is kept.
-            crew.FinancialMembershipContributionFloor = 0;
+            crew.InNeedDefaultThreshold = 0m;
+            context.Gifts.Add(new Gift
+            {
+                CrewId = crew.Id,
+                GiverUserId = user.Id,
+                RecipientUserId = user.Id,
+                Type = GiftType.Direct,
+                Amount = 30m,
+                CountsTowardContribution = true,
+                CountsTowardReception = false,
+                VerificationStatus = GiftVerificationStatus.Verified,
+                CreatedAt = DateTime.UtcNow
+            });
             context.UserPaymentPlatforms.Add(new UserPaymentPlatform
             {
                 UserId = user.Id,

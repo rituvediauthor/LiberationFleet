@@ -84,13 +84,13 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             : request.AvatarResourceId.Trim();
 
         var crew = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
-        var floor = crew?.FinancialMembershipContributionFloor ?? 0m;
+        var inNeedThreshold = crew?.InNeedDefaultThreshold ?? 0m;
         var monthlyExclLot = await _mutualAidService.GetMonthlyContributionExcludingLotAsync(
             userId.Value,
             membership.CrewId,
             cancellationToken);
 
-        if (CrewInNeedService.IsBelowContributionFloor(monthlyExclLot, floor))
+        if (CrewInNeedService.IsAtOrBelowInNeedThreshold(monthlyExclLot, inNeedThreshold))
         {
             user.InNeedOfAid = true;
         }
@@ -211,8 +211,8 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 cancellationToken);
             var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
-            var toggleFloor = floor;
-            var canToggleOff = CrewInNeedService.CanToggleInNeedOff(monthlyExclLot, toggleFloor);
+            var toggleThreshold = inNeedThreshold;
+            var canToggleOff = CrewInNeedService.CanToggleInNeedOff(monthlyExclLot, toggleThreshold);
 
             profile = ProfileMapper.MapUser(
                 reloaded,
@@ -223,7 +223,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 reloaded.PercentBonus,
                 isSurvivalRecipient,
                 canToggleOff,
-                toggleFloor);
+                toggleThreshold);
         }
 
         return new ProfileOperationResponse

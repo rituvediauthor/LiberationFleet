@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -5,15 +6,21 @@ namespace LiberationFleet.Server.Application.Services;
 
 public static class CrewInNeedService
 {
-    public static bool IsBelowContributionFloor(decimal monthlyContributionExclLot, decimal floor) =>
-        monthlyContributionExclLot < floor;
-
-    public static bool CanToggleInNeedOff(decimal monthlyContributionExclLot, decimal floor) =>
-        monthlyContributionExclLot >= floor;
+    /// <summary>
+    /// True when the LoT-excluded 3-month average is at or below the in-need threshold (forced in-need).
+    /// </summary>
+    public static bool IsAtOrBelowInNeedThreshold(decimal monthlyContributionExclLot, decimal inNeedThreshold) =>
+        monthlyContributionExclLot <= inNeedThreshold;
 
     /// <summary>
-    /// Forces in-need when the crewmate's 3-month average (excluding LoT) is below the financial membership floor.
-    /// Returns true when InNeedOfAid was changed from false to true.
+    /// Toggle off allowed only when average exceeds the in-need threshold (LoT excluded).
+    /// </summary>
+    public static bool CanToggleInNeedOff(decimal monthlyContributionExclLot, decimal inNeedThreshold) =>
+        monthlyContributionExclLot > inNeedThreshold;
+
+    /// <summary>
+    /// Forces in-need when the crewmate's 3-month average (excluding LoT) is at or below
+    /// <see cref="Crew.InNeedDefaultThreshold"/>. Returns true when InNeedOfAid was changed from false to true.
     /// </summary>
     public static async Task<bool> ApplyInNeedDefaultAsync(
         int userId,
@@ -42,7 +49,7 @@ public static class CrewInNeedService
             crew.CurrentSeasonStartDate,
             cancellationToken);
 
-        if (!IsBelowContributionFloor(giftStats.AverageMonthlyContributions, crew.FinancialMembershipContributionFloor))
+        if (!IsAtOrBelowInNeedThreshold(giftStats.AverageMonthlyContributions, crew.InNeedDefaultThreshold))
         {
             return false;
         }
