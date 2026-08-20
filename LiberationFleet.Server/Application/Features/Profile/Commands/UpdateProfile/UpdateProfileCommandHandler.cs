@@ -210,7 +210,8 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
                 cancellationToken);
-            var isSurvivalRecipient = unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
+            var isSurvivalRecipient = crew?.AllowSurvivalThresholds == true
+                && unsatisfiedThresholds.Any(t => t.UserId == userId.Value);
             var toggleThreshold = inNeedThreshold;
             var canToggleOff = CrewInNeedService.CanToggleInNeedOff(monthlyExclLot, toggleThreshold);
 

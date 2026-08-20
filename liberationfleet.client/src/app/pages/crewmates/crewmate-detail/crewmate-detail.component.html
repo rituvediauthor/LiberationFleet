@@ -136,12 +136,14 @@
         <div class="readonly-item">
           <span class="readonly-label">Membership status</span>
           <span class="readonly-value">{{ profile.membershipStatus ? 'Active' : 'Inactive' }}</span>
+          <span class="hint-text">Based on 3-month contribution average including Library of Things (and crew roles).</span>
         </div>
         <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
-          <span class="readonly-label">Monthly giving capacity</span>
+          <span class="readonly-label">Estimated monthly contribution</span>
           <span class="readonly-value">
             {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
           </span>
+          <span class="hint-text">Self-estimate used for months before joining the season.</span>
         </div>
         <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
           <span class="readonly-label">Lifetime contributions</span>
@@ -212,7 +214,7 @@
 
         <div class="aid-stat-form">
           <label class="aid-stat-field">
-            <span>Monthly giving capacity ($)</span>
+            <span>Estimated monthly contribution ($)</span>
             <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.estimatedMonthlyContribution" class="form-input">
           </label>
           <label class="aid-stat-field">

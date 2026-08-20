@@ -41,6 +41,7 @@ public class UpdateCrewCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
+    IMutualAidService mutualAidService,
     ContentTenureService contentTenureService,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewInNeedReevaluationService crewInNeedReevaluationService,
@@ -121,13 +122,16 @@ public class UpdateCrewCommandHandler(
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
+            var capacityWhenProposing = await mutualAidService.GetCrewMonthlyGivingCapacityAsync(
+                crew.Id,
+                cancellationToken);
             return new CrewOperationResponse
             {
                 Success = true,
                 Message = proposalsCreated == 1
                     ? "1 proposal submitted for crew approval."
                     : $"{proposalsCreated} proposals submitted for crew approval.",
-                Crew = CrewMapper.MapCrew(crew, memberCount),
+                Crew = CrewMapper.MapCrew(crew, memberCount, capacityWhenProposing),
                 ProposalsSubmitted = true,
                 ProposalsCreated = proposalsCreated
             };
@@ -153,11 +157,14 @@ public class UpdateCrewCommandHandler(
             excludeUserId: currentUser.UserId.Value,
             cancellationToken: cancellationToken);
 
+        var monthlyGivingCapacity = await mutualAidService.GetCrewMonthlyGivingCapacityAsync(
+            crew.Id,
+            cancellationToken);
         return new CrewOperationResponse
         {
             Success = true,
             Message = "Crew updated.",
-            Crew = CrewMapper.MapCrew(crew, memberCount)
+            Crew = CrewMapper.MapCrew(crew, memberCount, monthlyGivingCapacity)
         };
     }
 }
