@@ -250,9 +250,11 @@ public static class CrewSettingsChangeDescriber
             CrewSettingField.RequireApprovalForEdits =>
                 $"Proposal to set \"Require approval for crew edits\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.InNeedDefaultThreshold =>
-                $"Proposal to change in-need default threshold from ${change.OldValue} to ${change.NewValue}.",
+                $"Proposal to change in-need threshold from ${change.OldValue} to ${change.NewValue}. " +
+                "Crewmates whose 3-month average (excluding Library of Things) is at or below this cannot opt out of in-need.",
             CrewSettingField.FinancialMembershipContributionFloor =>
-                $"Proposal to change financial membership contribution floor from ${change.OldValue} to ${change.NewValue}.",
+                $"Proposal to change financial membership contribution floor from ${change.OldValue} to ${change.NewValue}. " +
+                "Average includes Library of Things gifts.",
             CrewSettingField.LibraryOfThingsEnabled =>
                 $"Proposal to set \"Library of Things\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.MemberCycleCapMode =>

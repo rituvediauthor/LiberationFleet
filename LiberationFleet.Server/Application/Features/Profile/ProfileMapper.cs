@@ -17,7 +17,7 @@ public static class ProfileMapper
         int percentBoost,
         bool isSurvivalThresholdRecipient,
         bool canToggleInNeedOff = true,
-        decimal inNeedToggleFloor = 0m,
+        decimal inNeedToggleThreshold = 0m,
         decimal donationsPreviousTaxYearUsd = 0m,
         decimal donationsCurrentTaxYearUsd = 0m,
         int previousTaxYear = 0,
@@ -49,7 +49,7 @@ public static class ProfileMapper
             NeedsSurvivalAid = user.NeedsSurvivalAid,
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             CanToggleInNeedOff = canToggleInNeedOff,
-            InNeedToggleFloor = inNeedToggleFloor,
+            InNeedToggleThreshold = inNeedToggleThreshold,
             Stats = BuildStats(
                 giftStats,
                 membership,

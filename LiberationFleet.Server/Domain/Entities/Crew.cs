@@ -28,9 +28,14 @@ public class Crew
     public int CatchUpSnapshotMonth { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
-    public decimal InNeedDefaultThreshold { get; set; } = 20m;
-    /// <summary>Minimum 3-month average contribution to retain financial membership (roles exempt).</summary>
+    /// <summary>
+    /// Minimum 3-month average contribution (including LoT) to retain financial membership (roles exempt).
+    /// </summary>
     public decimal FinancialMembershipContributionFloor { get; set; }
+    /// <summary>
+    /// LoT-excluded 3-month average must exceed this to allow opting out of in-need; at or below forces in-need.
+    /// </summary>
+    public decimal InNeedDefaultThreshold { get; set; } = 20m;
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public CycleCapMode MemberCycleCapMode { get; set; } = CycleCapMode.CapacityBased;
     public decimal MemberCycleCapFixedAmount { get; set; }

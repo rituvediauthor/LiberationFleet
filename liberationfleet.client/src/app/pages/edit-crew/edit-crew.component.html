@@ -157,7 +157,7 @@
         </div>
 
         <div class="form-group">
-          <label for="inNeedDefaultThreshold">In-need default threshold ($)</label>
+          <label for="inNeedDefaultThreshold">In-need threshold ($)</label>
           <input
             id="inNeedDefaultThreshold"
             type="number"
@@ -167,7 +167,7 @@
             step="1"
             [attr.aria-invalid]="isInvalid('inNeedDefaultThreshold')"
             [attr.aria-describedby]="isInvalid('inNeedDefaultThreshold') ? 'inNeedDefaultThreshold-error inNeedDefaultThreshold-hint' : 'inNeedDefaultThreshold-hint'">
-          <span class="hint-text" id="inNeedDefaultThreshold-hint">Crewmates whose avg. monthly contributions (3 mo) fall below this are automatically marked in need of aid.</span>
+          <span class="hint-text" id="inNeedDefaultThreshold-hint">Crewmates whose 3-month average contributions (excluding Library of Things) are at or below this cannot opt out of in-need and are automatically marked in need of aid.</span>
           <span id="inNeedDefaultThreshold-error" class="error-text" role="alert" *ngIf="isInvalid('inNeedDefaultThreshold')">
             Threshold must be 0 or greater
           </span>
@@ -184,7 +184,7 @@
             step="1"
             [attr.aria-invalid]="isInvalid('financialMembershipContributionFloor')"
             [attr.aria-describedby]="isInvalid('financialMembershipContributionFloor') ? 'financialMembershipContributionFloor-error financialMembershipContributionFloor-hint' : 'financialMembershipContributionFloor-hint'">
-          <span class="hint-text" id="financialMembershipContributionFloor-hint">Crewmates without a crew role must keep a 3-month average contribution at or above this amount to remain financial members. Set to 0 to require any positive average.</span>
+          <span class="hint-text" id="financialMembershipContributionFloor-hint">Crewmates without a crew role must keep a 3-month average contribution (including Library of Things) at or above this amount to remain financial members. Set to 0 to require any positive average.</span>
           <span id="financialMembershipContributionFloor-error" class="error-text" role="alert" *ngIf="isInvalid('financialMembershipContributionFloor')">
             Floor must be 0 or greater
           </span>

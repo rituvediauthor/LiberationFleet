@@ -34,7 +34,7 @@ export interface UserProfile {
   needsSurvivalAid: boolean;
   isSurvivalThresholdRecipient: boolean;
   canToggleInNeedOff: boolean;
-  inNeedToggleFloor: number;
+  inNeedToggleThreshold: number;
   stats: UserProfileStats;
 }
 

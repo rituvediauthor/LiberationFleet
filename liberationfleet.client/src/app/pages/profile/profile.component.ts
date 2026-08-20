@@ -104,7 +104,7 @@ export class ProfileComponent implements OnInit {
   rotatingRecoveryKey = false;
   crewId = 0;
   canToggleInNeedOff = true;
-  inNeedToggleFloor = 0;
+  inNeedToggleThreshold = 0;
   avatarAttachments: PendingAttachment[] = [];
   avatarResourceId: string | null = null;
   avatarPreviewUrl: string | null = null;
@@ -363,7 +363,7 @@ export class ProfileComponent implements OnInit {
         }
         this.profile = result.profile;
         this.canToggleInNeedOff = result.profile.canToggleInNeedOff ?? true;
-        this.inNeedToggleFloor = result.profile.inNeedToggleFloor ?? 0;
+        this.inNeedToggleThreshold = result.profile.inNeedToggleThreshold ?? 0;
         this.avatarResourceId = result.profile.avatarResourceId ?? null;
         this.loadPlatformOptions();
         this.form.patchValue({
@@ -424,7 +424,7 @@ export class ProfileComponent implements OnInit {
       next: (profile) => {
         this.profile = profile;
         this.canToggleInNeedOff = profile.canToggleInNeedOff ?? true;
-        this.inNeedToggleFloor = profile.inNeedToggleFloor ?? 0;
+        this.inNeedToggleThreshold = profile.inNeedToggleThreshold ?? 0;
         this.avatarResourceId = profile.avatarResourceId ?? null;
         this.syncPlatformOptions();
         this.authService.updateCurrentUser({
