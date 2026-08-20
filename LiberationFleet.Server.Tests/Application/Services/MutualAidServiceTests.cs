@@ -1095,6 +1095,142 @@ public class MutualAidServiceTests
         nextEval.Should().Contain(e => e.UserId == fixture.Carol.Id && e.EntryType == "catchUp");
     }
 
+    [Fact]
+    public async Task GetPrimarySeasonCycleAsync_WhenSegmentExists_ReturnsPrimary()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id
+            && c.SeasonStartDate == fixture.SeasonStart
+            && c.EmergencyRequestId == null
+            && c.EmergencySplitOfferId == null);
+        // Insert segment with lower Id order ambiguity via FirstOrDefault without filter.
+        fixture.Context.SeasonCycles.Add(new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Bob.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 25m,
+            EmergencySplitOfferId = 7,
+            CycleReceived = 5m,
+            ReceptionOrderPosition = primary.ReceptionOrderPosition - 1,
+            PriorityScoreAtSeasonStart = primary.PriorityScoreAtSeasonStart
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var repo = new MutualAidRepository(fixture.Context);
+        var found = await repo.GetPrimarySeasonCycleAsync(
+            fixture.Crew.Id,
+            fixture.Bob.Id,
+            fixture.SeasonStart,
+            CancellationToken.None);
+
+        found.Should().NotBeNull();
+        found!.Id.Should().Be(primary.Id);
+        found.EmergencySplitOfferId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MergePlaceholderIdentity_TransfersPrimaryAndSegments()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var placeholder = new User
+        {
+            Username = "placeholder",
+            Email = "placeholder@example.com",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsUnclaimedPlaceholder = true,
+            InNeedOfAid = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            IsBanned = false,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsInSeason = true,
+            IsSeasonReady = true,
+            IsHonoraryMember = true,
+            EstimatedMonthlyContribution = 50m
+        });
+        var placeholderPrimary = new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = placeholder.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 100m,
+            CycleReceived = 20m,
+            TotalReceptionAmount = 20m,
+            ReceptionOrderPosition = 9,
+            PriorityScoreAtSeasonStart = 50m
+        };
+        var placeholderSegment = new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = placeholder.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 30m,
+            EmergencyRequestId = 42,
+            CycleReceived = 10m,
+            ReceptionOrderPosition = 8,
+            PriorityScoreAtSeasonStart = 50m
+        };
+        fixture.Context.SeasonCycles.AddRange(placeholderPrimary, placeholderSegment);
+        await fixture.Context.SaveChangesAsync();
+
+        // Claimant already has a primary — merge amounts and reassign segment.
+        var repo = new MutualAidRepository(fixture.Context);
+        await repo.MergePlaceholderIdentityDataAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        (await fixture.Context.SeasonCycles.CountAsync(c => c.UserId == placeholder.Id)).Should().Be(0);
+        var carolPrimary = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Carol.Id
+            && c.SeasonStartDate == fixture.SeasonStart
+            && c.EmergencyRequestId == null
+            && c.EmergencySplitOfferId == null);
+        carolPrimary.CycleReceived.Should().Be(20m);
+        var transferredSegment = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.EmergencyRequestId == 42);
+        transferredSegment.UserId.Should().Be(fixture.Carol.Id);
+    }
+
+    [Fact]
+    public async Task SimulateNewSeasonAsync_UsesProductionRolloverWithoutDuplicateCurrentPrimaries()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var previousStart = fixture.Crew.CurrentSeasonStartDate!.Value;
+        var nextStart = fixture.Crew.NextSeasonStartDate!.Value;
+
+        var result = await fixture.Service.SimulateNewSeasonAsync(fixture.Alice.Id, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        var crew = await fixture.Context.Crews.SingleAsync(c => c.Id == fixture.Crew.Id);
+        crew.CurrentSeasonStartDate.Should().Be(nextStart);
+        crew.CurrentSeasonStartDate.Should().NotBe(previousStart);
+
+        var currentPrimaries = await fixture.Context.SeasonCycles
+            .Where(c =>
+                c.CrewId == fixture.Crew.Id
+                && c.SeasonStartDate == crew.CurrentSeasonStartDate
+                && c.EmergencyRequestId == null
+                && c.EmergencySplitOfferId == null)
+            .GroupBy(c => c.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToListAsync();
+        currentPrimaries.Should().OnlyContain(g => g.Count == 1);
+    }
+
     private static IReadOnlyList<CrewMemberPlatforms> CreateMemberPlatforms() =>
     [
         new CrewMemberPlatforms { UserId = 1, Username = "giver", PlatformIds = [1] },

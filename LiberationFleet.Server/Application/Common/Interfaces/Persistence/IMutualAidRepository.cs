@@ -9,6 +9,10 @@ public interface IMutualAidRepository
     Task<IReadOnlyList<CrewMembership>> GetSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetActiveMembersWithUsersAsync(int crewId, CancellationToken cancellationToken = default);
     Task<SeasonCycle?> GetSeasonCycleAsync(int crewId, int userId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Primary cycle only (no emergency request / split-offer binding), ordered by reception position.
+    /// </summary>
+    Task<SeasonCycle?> GetPrimarySeasonCycleAsync(int crewId, int userId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
     Task<SeasonCycle?> GetSeasonCycleByIdAsync(int cycleId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SeasonCycle>> GetSeasonCyclesAsync(int crewId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DateTime>> GetSeasonStartDatesOnOrAfterAsync(int crewId, DateTime onOrAfter, CancellationToken cancellationToken = default);

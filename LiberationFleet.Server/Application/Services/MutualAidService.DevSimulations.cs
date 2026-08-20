@@ -69,12 +69,19 @@ public partial class MutualAidService
             return DevFail("Season has not started.");
         }
 
-        crew.CurrentSeasonStartDate = DateTime.UtcNow;
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
-        await InitializeSeasonStateAsync(crew, participants, cancellationToken);
+        // Dev "New Season" uses production rollover with force so unfinished cycles do not block.
+        var previousSeasonStart = crew.CurrentSeasonStartDate.Value;
+        await TryEndSeasonAsync(crew, cancellationToken, force: true);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return DevSuccess("Started a new season.");
+        crew = await mutualAidRepository.GetCrewAsync(crew.Id, cancellationToken) ?? crew;
+        if (!crew.CurrentSeasonStartDate.HasValue
+            || crew.CurrentSeasonStartDate.Value == previousSeasonStart)
+        {
+            return DevFail("Season rollover did not advance. Ensure next-season cycles can be promoted.");
+        }
+
+        return DevSuccess("Started a new season via production rollover.");
     }
 
     public async Task<DevActionResultDto> CompleteAllCyclesAsync(int userId, CancellationToken cancellationToken = default)

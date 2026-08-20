@@ -2,7 +2,9 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
@@ -35,6 +37,7 @@ public class CrewmateAidStatProposalService(
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     IMutualAidRepository mutualAidRepository,
+    IMutualAidService mutualAidService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -96,6 +99,36 @@ public class CrewmateAidStatProposalService(
         {
             return CrewmateAidStatProposalResult.Failed(
                 "Season cycle fields can only be edited after the crew has started a season.");
+        }
+
+        if (crew?.CurrentSeasonStartDate is DateTime seasonStart
+            && normalized.Any(i => i.Field == CrewmateAidStatField.CycleReceived))
+        {
+            var cycleReceivedItem = normalized.First(i => i.Field == CrewmateAidStatField.CycleReceived);
+            var received = decimal.Parse(cycleReceivedItem.NewValue, CultureInfo.InvariantCulture);
+            var cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
+                crewId,
+                targetUserId,
+                seasonStart,
+                cancellationToken);
+            if (cycle is not null)
+            {
+                var isMember = await mutualAidService.IsFinancialMemberAsync(
+                    targetUserId,
+                    crewId,
+                    targetMembership,
+                    cancellationToken);
+                var effectiveCap = EmergencySplitService.ResolveSegmentCap(
+                    cycle,
+                    isMember,
+                    crew.SeasonMemberCycleCap,
+                    crew.SeasonNonMemberCycleCap);
+                if (received > effectiveCap)
+                {
+                    return CrewmateAidStatProposalResult.Failed(
+                        $"Cycle reception cannot exceed the effective cycle cap (${effectiveCap.ToString(CultureInfo.InvariantCulture)}).");
+                }
+            }
         }
 
         var pending = await proposalRepository.GetPendingCrewmateAidStatChangeForTargetAsync(
@@ -208,39 +241,73 @@ public class CrewmateAidStatProposalService(
 
         var crew = await mutualAidRepository.GetCrewAsync(proposal.CrewId.Value, cancellationToken);
         SeasonCycle? cycle = null;
+        var isFinancialMember = false;
+        decimal effectiveCap = 0m;
         if (crew?.CurrentSeasonStartDate is DateTime seasonStart
             && items.Any(i => IsCycleField(i.Field)))
         {
-            cycle = await mutualAidRepository.GetSeasonCycleAsync(
+            isFinancialMember = await mutualAidService.IsFinancialMemberAsync(
+                change.TargetUserId,
+                proposal.CrewId.Value,
+                membership,
+                cancellationToken);
+
+            cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
                 proposal.CrewId.Value,
                 change.TargetUserId,
                 seasonStart,
                 cancellationToken);
             if (cycle is null)
             {
-                cycle = new SeasonCycle
+                await mutualAidService.EnsurePrimarySeasonCycleExistsAsync(
+                    proposal.CrewId.Value,
+                    membership,
+                    cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
+                    proposal.CrewId.Value,
+                    change.TargetUserId,
+                    seasonStart,
+                    cancellationToken);
+            }
+
+            if (cycle is null)
+            {
+                change.IsApplied = true;
+                change.Description = $"{change.Description}\n(Could not apply: no primary season cycle available.)";
+                return;
+            }
+
+            effectiveCap = EmergencySplitService.ResolveSegmentCap(
+                cycle,
+                isFinancialMember,
+                crew.SeasonMemberCycleCap,
+                crew.SeasonNonMemberCycleCap);
+
+            var cycleReceivedItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.CycleReceived);
+            if (cycleReceivedItem is not null)
+            {
+                var received = decimal.Parse(cycleReceivedItem.NewValue, CultureInfo.InvariantCulture);
+                if (received > effectiveCap)
                 {
-                    CrewId = proposal.CrewId.Value,
-                    UserId = change.TargetUserId,
-                    SeasonStartDate = seasonStart,
-                    CycleCapAtStart = membership.IsHonoraryMember || !await IsFinancialMemberFallback(membership)
-                        ? crew.SeasonNonMemberCycleCap
-                        : crew.SeasonMemberCycleCap,
-                    PriorityScoreAtSeasonStart = membership.CurrentPriorityScore,
-                    ReceptionOrderPosition = 0,
-                    HasCycleStarted = true
-                };
-                await mutualAidRepository.AddSeasonCycleAsync(cycle, cancellationToken);
+                    change.IsApplied = true;
+                    change.Description =
+                        $"{change.Description}\n(Could not apply: cycle reception ${received.ToString(CultureInfo.InvariantCulture)} exceeds effective cap ${effectiveCap.ToString(CultureInfo.InvariantCulture)}.)";
+                    return;
+                }
             }
         }
 
         var utcNow = DateTime.UtcNow;
         foreach (var item in items)
         {
-            ApplyChange(membership, cycle, item, utcNow);
+            ApplyChange(membership, cycle, item, utcNow, effectiveCap);
         }
 
         change.IsApplied = true;
+
+        await mutualAidService.OnCrewContributionsChangedAsync(proposal.CrewId.Value, cancellationToken);
+        await mutualAidService.TryEndSeasonIfCompleteAsync(proposal.CrewId.Value, cancellationToken);
     }
 
     private static bool IsCycleField(CrewmateAidStatField field) =>
@@ -249,14 +316,12 @@ public class CrewmateAidStatProposalService(
             or CrewmateAidStatField.CycleReceived
             or CrewmateAidStatField.CycleCompleted;
 
-    private static Task<bool> IsFinancialMemberFallback(CrewMembership membership) =>
-        Task.FromResult(!membership.IsHonoraryMember && !membership.IsPlaceholderMember);
-
     private static void ApplyChange(
         CrewMembership membership,
         SeasonCycle? cycle,
         CrewmateAidStatChangeItem item,
-        DateTime utcNow)
+        DateTime utcNow,
+        decimal effectiveCap)
     {
         switch (item.Field)
         {
@@ -284,7 +349,7 @@ public class CrewmateAidStatProposalService(
                 cycle.CycleCompletedAt = completed ? utcNow : null;
                 if (completed)
                 {
-                    cycle.CycleCapAtCompletion = cycle.CycleCapAtStart;
+                    cycle.CycleCapAtCompletion = effectiveCap > 0m ? effectiveCap : cycle.CycleCapAtStart;
                 }
                 break;
         }
