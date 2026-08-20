@@ -133,8 +133,8 @@ public class RecordLibraryAcquisitionCommandHandler(
 
         var acquirer = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var acquirerUsername = acquirer?.Username ?? "Crewmate";
-        // Single gift-log entry for the exchange (contribution + reception on one gift).
-        var receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
+        // Single gift-log entry: creator contribution (financial membership) + recipient reception.
+        var receptionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
             offeringCrewId,
             trackedUnit.Offering,
             quantity,
@@ -151,6 +151,8 @@ public class RecordLibraryAcquisitionCommandHandler(
             {
                 await mutualAidService.ApplyGiftReceptionAsync(receptionRecord, cancellationToken);
             }
+
+            await mutualAidService.OnCrewContributionsChangedAsync(offeringCrewId, cancellationToken);
         }
 
         return new LibraryCompleteRequestResponse
