@@ -106,7 +106,6 @@ public class UpdateProfileCommandHandlerTests
         var crew = HandlerTestFixture.CreateCrew();
         crew.AllowSurvivalThresholds = false;
         var membership = HandlerTestFixture.CreateMembership(user, crew);
-        membership.Crew = crew;
 
         var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
         userRepository
@@ -121,6 +120,11 @@ public class UpdateProfileCommandHandlerTests
         userRepository
             .Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        var crewRepository = new Mock<ICrewRepository>();
+        crewRepository
+            .Setup(r => r.GetByIdAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(crew);
 
         var mutualAidRepository = new Mock<IMutualAidRepository>();
         mutualAidRepository
@@ -139,6 +143,7 @@ public class UpdateProfileCommandHandlerTests
             currentUserId: user.Id,
             userRepository: userRepository,
             membershipRepository: membershipRepository,
+            crewRepository: crewRepository,
             mutualAidRepository: mutualAidRepository);
 
         var result = await handler.Handle(new UpdateProfileCommand
@@ -161,7 +166,8 @@ public class UpdateProfileCommandHandlerTests
         Mock<IGiftRepository>? giftRepository = null,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
         Mock<ICrewPaymentPlatformRepository>? crewPaymentPlatformRepository = null,
-        Mock<IMutualAidRepository>? mutualAidRepository = null)
+        Mock<IMutualAidRepository>? mutualAidRepository = null,
+        Mock<ICrewRepository>? crewRepository = null)
     {
         userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
         unitOfWork ??= HandlerTestFixture.CreateUnitOfWorkMock();
@@ -169,12 +175,13 @@ public class UpdateProfileCommandHandlerTests
         membershipRepository ??= SetupDefaultMembershipRepository(currentUserId);
         crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
         mutualAidRepository ??= SetupDefaultMutualAidRepository();
+        crewRepository ??= new Mock<ICrewRepository>();
 
         return new UpdateProfileCommandHandler(
             userRepository.Object,
             giftRepository.Object,
             membershipRepository.Object,
-            new Mock<ICrewRepository>().Object,
+            crewRepository.Object,
             crewPaymentPlatformRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
