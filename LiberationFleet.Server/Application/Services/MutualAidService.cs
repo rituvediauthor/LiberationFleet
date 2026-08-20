@@ -694,9 +694,30 @@ public partial class MutualAidService(
         }
 
         // Emergency gifts are logged as custom but must credit the emergency segment, not the waterfall.
+        // Categorized custom gifts (cycle / survival / other) apply only to the selected category.
         if (gift.IsCustomGift && !gift.EmergencyRequestId.HasValue)
         {
-            await ApplyCustomGiftWaterfallAsync(gift, recipientUserId, crew, cancellationToken);
+            if (gift.CustomGiftCategory == CustomGiftCategory.Other || !gift.CountsTowardReception)
+            {
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                return;
+            }
+
+            if (gift.CustomGiftCategory == CustomGiftCategory.SurvivalThreshold
+                || gift.IsSurvivalThreshold)
+            {
+                await ApplyCustomSurvivalOnlyAsync(gift, recipientUserId, crew, cancellationToken);
+            }
+            else if (gift.CustomGiftCategory == CustomGiftCategory.Cycle)
+            {
+                await ApplyCustomCycleOnlyAsync(gift, recipientUserId, crew, cancellationToken);
+            }
+            else
+            {
+                // Legacy custom gifts without a category keep the survival → cycle waterfall.
+                await ApplyCustomGiftWaterfallAsync(gift, recipientUserId, crew, cancellationToken);
+            }
+
             await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
             await TryEndSeasonAsync(crew, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1245,12 +1266,45 @@ public partial class MutualAidService(
         }
 
         membership.IntermediaryFailedCompletions++;
-        if (membership.IntermediaryFailedCompletions >= 2)
+
+        var now = DateTime.UtcNow;
+        var monthKey = now.Year * 100 + now.Month;
+        if (membership.IntermediaryFailureMonthKey != monthKey)
+        {
+            membership.IntermediaryFailureMonthKey = monthKey;
+            membership.IntermediaryFailuresInMonth = 1;
+        }
+        else
+        {
+            membership.IntermediaryFailuresInMonth++;
+        }
+
+        // Lose the role after two consecutive failures, or two failures in the same calendar month.
+        if (membership.IntermediaryFailedCompletions >= 2
+            || membership.IntermediaryFailuresInMonth >= 2)
         {
             membership.IsIntermediary = false;
             membership.IntermediaryFailedCompletions = 0;
+            membership.IntermediaryFailuresInMonth = 0;
+            membership.IntermediaryFailureMonthKey = 0;
         }
 
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RecordIntermediarySuccessAsync(
+        int crewId,
+        int intermediaryUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var membership = await membershipRepository.GetMembershipAsync(intermediaryUserId, crewId, cancellationToken);
+        if (membership is null)
+        {
+            return;
+        }
+
+        // A successful completion breaks the consecutive-failure streak only.
+        membership.IntermediaryFailedCompletions = 0;
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -1953,6 +2007,117 @@ public partial class MutualAidService(
             threshold.Satisfied = true;
             threshold.ReceivedAmount = threshold.ThresholdAmount;
         }
+    }
+
+    private async Task ApplyCustomSurvivalOnlyAsync(
+        Gift gift,
+        int recipientUserId,
+        Crew crew,
+        CancellationToken cancellationToken)
+    {
+        var remaining = gift.Amount;
+
+        if (AreSurvivalThresholdsEnabled(crew))
+        {
+            var thresholds = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken))
+                .Where(t => t.UserId == recipientUserId)
+                .OrderBy(t => t.Year)
+                .ThenBy(t => t.Month)
+                .ThenBy(t => t.ReceptionOrderPosition)
+                .ToList();
+
+            foreach (var threshold in thresholds)
+            {
+                if (remaining <= 0m)
+                {
+                    break;
+                }
+
+                var need = threshold.ThresholdAmount - threshold.ReceivedAmount;
+                if (need <= 0m)
+                {
+                    continue;
+                }
+
+                var applied = Math.Min(remaining, need);
+                threshold.ReceivedAmount += applied;
+                remaining -= applied;
+                if (threshold.ReceivedAmount >= threshold.ThresholdAmount)
+                {
+                    threshold.Satisfied = true;
+                    threshold.ReceivedAmount = threshold.ThresholdAmount;
+                }
+            }
+        }
+
+        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate!.Value,
+            cancellationToken);
+        var totalTarget = cycles
+            .Where(c => c.UserId == recipientUserId && IsPrimaryCycle(c))
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .FirstOrDefault()
+            ?? cycles.Where(c => c.UserId == recipientUserId).OrderBy(c => c.ReceptionOrderPosition).FirstOrDefault();
+        if (totalTarget is not null)
+        {
+            totalTarget.TotalReceptionAmount += gift.Amount;
+            totalTarget.SurvivalThresholdReceived += gift.Amount - remaining;
+        }
+    }
+
+    private async Task ApplyCustomCycleOnlyAsync(
+        Gift gift,
+        int recipientUserId,
+        Crew crew,
+        CancellationToken cancellationToken)
+    {
+        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate!.Value,
+            cancellationToken);
+
+        SeasonCycle? target = null;
+        if (gift.SeasonCycleId.HasValue)
+        {
+            target = cycles.FirstOrDefault(c => c.Id == gift.SeasonCycleId.Value);
+        }
+
+        target ??= cycles
+            .Where(c =>
+                c.UserId == recipientUserId
+                && IsPrimaryCycle(c)
+                && !c.CycleCompleted)
+            .OrderByDescending(c => c.HasCycleStarted)
+            .ThenBy(c => c.ReceptionOrderPosition)
+            .FirstOrDefault();
+
+        if (target is null)
+        {
+            return;
+        }
+
+        target.TotalReceptionAmount += gift.Amount;
+
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var membership = await membershipRepository.GetMembershipAsync(recipientUserId, crew.Id, cancellationToken);
+        var isMember = membership is not null
+            && await IsFinancialMemberAsync(recipientUserId, crew.Id, membership, cancellationToken);
+        var effectiveCap = EmergencySplitService.ResolveSegmentCap(
+            target,
+            isMember,
+            GetEffectiveCycleCap(true, crew, capacityContext),
+            GetEffectiveCycleCap(false, crew, capacityContext));
+
+        var room = Math.Max(0m, effectiveCap - target.CycleReceived);
+        if (room <= 0m)
+        {
+            return;
+        }
+
+        var applied = Math.Min(gift.Amount, room);
+        target.CycleReceived += applied;
+        UpdateCycleCompletion(target, effectiveCap);
     }
 
     private async Task ApplyCustomGiftWaterfallAsync(

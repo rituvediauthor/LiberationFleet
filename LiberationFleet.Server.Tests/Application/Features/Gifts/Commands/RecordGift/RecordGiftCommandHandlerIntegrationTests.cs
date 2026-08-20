@@ -45,6 +45,7 @@ public class RecordGiftCommandHandlerIntegrationTests
                 membershipRepository,
                 giftRepository,
                 crewPaymentPlatformRepository,
+                HandlerTestFixture.CreateMutualAidService(context),
                 context);
 
             var result = await handler.Handle(
@@ -139,6 +140,7 @@ public class RecordGiftCommandHandlerIntegrationTests
                 membershipRepository,
                 giftRepository,
                 crewPaymentPlatformRepository,
+                HandlerTestFixture.CreateMutualAidService(context),
                 context);
 
             var result = await handler.Handle(

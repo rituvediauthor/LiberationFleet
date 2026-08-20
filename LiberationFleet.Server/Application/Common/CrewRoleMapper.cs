@@ -179,7 +179,7 @@ public static class CrewRoleMapper
             CrewRole.Moderator =>
                 "Delete inappropriate file attachments and restrict a crewmate's ability to attach files.",
             CrewRole.Intermediary =>
-                "Bridge gifts when giver and recipient do not share a payment platform. Automatically loses the role after failing to complete two gifts.",
+                "Bridge gifts when giver and recipient do not share a payment platform. Automatically loses the role after failing to complete two gifts in a row, or two gifts in the same calendar month.",
             CrewRole.Representative =>
                 "Serve a fixed term receiving mutual aid (except survival thresholds) so they can take time off work to speak or vote for the crew at government functions. Nominations require a future start and end date.",
             CrewRole.Accountant =>
@@ -329,6 +329,8 @@ public static class CrewRoleMapper
                     if (assign)
                     {
                         membership.IntermediaryFailedCompletions = 0;
+                        membership.IntermediaryFailuresInMonth = 0;
+                        membership.IntermediaryFailureMonthKey = 0;
                     }
                     break;
                 case CrewRole.Representative:

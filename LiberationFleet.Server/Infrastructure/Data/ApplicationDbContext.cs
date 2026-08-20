@@ -338,6 +338,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsModerator).HasDefaultValue(false);
             entity.Property(e => e.IsIntermediary).HasDefaultValue(false);
             entity.Property(e => e.IntermediaryFailedCompletions).HasDefaultValue(0);
+            entity.Property(e => e.IntermediaryFailureMonthKey).HasDefaultValue(0);
+            entity.Property(e => e.IntermediaryFailuresInMonth).HasDefaultValue(0);
             entity.Property(e => e.IsRepresentative).HasDefaultValue(false);
             entity.Property(e => e.RepresentativeReceivedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.IsAccountant).HasDefaultValue(false);
@@ -370,6 +372,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsRepresentativeGift).HasDefaultValue(false);
             entity.Property(e => e.CountsTowardReception).HasDefaultValue(true);
             entity.Property(e => e.IsCustomGift).HasDefaultValue(false);
+            entity.Property(e => e.CustomGiftCategory);
             entity.Property(e => e.CountsTowardContribution).HasDefaultValue(true);
             entity.Property(e => e.ReceptionApplied).HasDefaultValue(false);
             entity.Property(e => e.VerificationStatus).HasDefaultValue(GiftVerificationStatus.Pending);

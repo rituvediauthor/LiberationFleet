@@ -18,6 +18,7 @@ public class Gift
     public bool IsRepresentativeGift { get; set; }
     public bool CountsTowardReception { get; set; } = true;
     public bool IsCustomGift { get; set; }
+    public CustomGiftCategory? CustomGiftCategory { get; set; }
     public bool CountsTowardContribution { get; set; } = true;
     public bool ReceptionApplied { get; set; }
     public GiftVerificationStatus VerificationStatus { get; set; } = GiftVerificationStatus.Pending;

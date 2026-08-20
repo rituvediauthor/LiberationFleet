@@ -70,6 +70,7 @@ export class RecordGiftComponent implements OnInit {
     this.form = this.fb.group({
       customRecipientId: [''],
       customAmount: [''],
+      customCategory: ['other'],
       customMiddlemanId: [''],
       customPaymentPlatformId: [''],
       entries: this.fb.array([])
@@ -379,12 +380,14 @@ export class RecordGiftComponent implements OnInit {
     const customPlatformId = Number(formValue.customPaymentPlatformId);
     if (customAmount > 0 && customRecipientId > 0 && customPlatformId > 0 && customRecipientId !== this.activeUserId) {
       const customMiddlemanId = Number(formValue.customMiddlemanId);
+      const customCategory = String(formValue.customCategory || 'other');
       items.push({
         amount: customAmount,
         paymentPlatformId: customPlatformId,
         recipientId: customRecipientId,
         middlemanId: customMiddlemanId > 0 ? customMiddlemanId : undefined,
-        isCustom: true
+        isCustom: true,
+        entryType: customCategory as GiftRecordItem['entryType']
       });
     }
 

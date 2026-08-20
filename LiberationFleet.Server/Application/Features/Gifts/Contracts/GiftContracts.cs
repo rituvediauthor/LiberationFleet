@@ -27,6 +27,7 @@ public class GiftLogEntryDto
     public string? Status { get; set; }
     public string VerificationStatus { get; set; } = string.Empty;
     public string? DisplayFlag { get; set; }
+    public string? CustomGiftCategory { get; set; }
     public IReadOnlyList<string> AvailableActions { get; set; } = Array.Empty<string>();
     public IReadOnlyList<GiftPlatformOptionDto> CompletionPlatformOptions { get; set; } = Array.Empty<GiftPlatformOptionDto>();
     public bool HasEncryptedContent { get; set; }

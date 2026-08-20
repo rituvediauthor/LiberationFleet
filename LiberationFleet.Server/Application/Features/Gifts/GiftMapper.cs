@@ -66,6 +66,9 @@ public static class GiftMapper
             Status = entryStatus,
             VerificationStatus = gift.VerificationStatus.ToString(),
             DisplayFlag = displayFlag,
+            CustomGiftCategory = gift.CustomGiftCategory.HasValue
+                ? CustomGiftRecordingService.ToApiValue(gift.CustomGiftCategory.Value)
+                : null,
             AvailableActions = availableActions,
             CompletionPlatformOptions = completionPlatformOptions is null
                 ? Array.Empty<GiftPlatformOptionDto>()
@@ -158,6 +161,12 @@ public static class GiftMapper
                 $"{gift.MiddlemanUser!.Username} completed {gift.GiverUser.Username}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
             _ => string.Empty
         };
+
+        if (gift.CustomGiftCategory.HasValue)
+        {
+            var label = CustomGiftRecordingService.ToDisplayLabel(gift.CustomGiftCategory.Value);
+            baseMessage = $"{baseMessage} [{label}]";
+        }
 
         if (displayFlag == GiftVerificationUiHelper.FlagNotComplete)
         {
