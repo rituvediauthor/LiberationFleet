@@ -1556,16 +1556,7 @@ public partial class MutualAidService(
             membership,
             cancellationToken);
 
-        foreach (var segment in cycles.Where(c =>
-            c.UserId == membership.UserId
-            && c.UsesSegmentCap
-            && !c.CycleCompleted
-            && c.CycleReceived < c.CycleCapAtStart))
-        {
-            segment.CycleCompleted = false;
-            segment.CycleCompletedAt = null;
-            segment.HasCycleStarted = false;
-        }
+        // Forgiven emergency/payback segments stay complete on re-opt-in; only reopen the primary.
 
         var primary = cycles
             .Where(c => c.UserId == membership.UserId && IsPrimaryCycle(c))
@@ -1604,18 +1595,50 @@ public partial class MutualAidService(
         int userId,
         CancellationToken cancellationToken)
     {
-        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
             crew.Id,
             crew.CurrentSeasonStartDate!.Value,
-            cancellationToken);
+            cancellationToken)).ToList();
 
-        foreach (var cycle in cycles.Where(c => c.UserId == userId && !c.CycleCompleted))
+        var membership = await membershipRepository.GetMembershipAsync(userId, crew.Id, cancellationToken);
+        var isMember = membership is not null
+            && await IsFinancialMemberAsync(userId, crew.Id, membership, cancellationToken);
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var emergencyCapacity = new EmergencyCapacityContext
         {
-            if (cycle.UsesSegmentCap)
+            MemberCycleCap = GetEffectiveCycleCap(true, crew, capacityContext),
+            NonMemberCycleCap = GetEffectiveCycleCap(false, crew, capacityContext),
+            SurvivalThresholdAmount = capacityContext.SurvivalThresholdAmount
+        };
+
+        var primary = cycles
+            .Where(c => c.UserId == userId && IsPrimaryCycle(c))
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .FirstOrDefault();
+
+        var incompleteForUser = cycles.Where(c => c.UserId == userId && !c.CycleCompleted).ToList();
+
+        // Forgive emergency/payback segments first and restore primary caps before completing the primary.
+        // Primaries may also have UsesSegmentCap after a split (reduced remaining cycle); those are not segments.
+        foreach (var segment in incompleteForUser.Where(IsBoundSegment))
+        {
+            var forgivenRemainder = Math.Max(0m, segment.CycleCapAtStart - segment.CycleReceived);
+            if (primary is not null && forgivenRemainder > 0m)
             {
-                continue;
+                EmergencySplitService.RestoreSegmentCap(
+                    primary,
+                    forgivenRemainder,
+                    emergencyCapacity,
+                    isMember);
             }
 
+            segment.CycleCompleted = true;
+            segment.CycleCompletedAt ??= DateTime.UtcNow;
+            segment.HasCycleStarted = false;
+        }
+
+        foreach (var cycle in incompleteForUser.Where(c => !IsBoundSegment(c)))
+        {
             cycle.CycleCompleted = true;
             cycle.CycleCompletedAt ??= DateTime.UtcNow;
             cycle.HasCycleStarted = false;
