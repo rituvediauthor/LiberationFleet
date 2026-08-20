@@ -14,6 +14,7 @@ public class SubmitEmergencySplitCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    IFleetRepository fleetRepository,
     EmergencySplitService splitService,
     IUnitOfWork unitOfWork) : IRequestHandler<SubmitEmergencySplitCommand, EmergencyRequestOperationResponse>
 {
@@ -32,10 +33,15 @@ public class SubmitEmergencySplitCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You must be in an active season to split a cycle." };
         }
 
-        var emergencyRequest = await emergencyRequestRepository.GetByIdAsync(request.RequestId, cancellationToken);
-        if (emergencyRequest is null || emergencyRequest.CrewId != membership.CrewId)
+        var (emergencyRequest, accessError) = await EmergencyRequestAccess.GetAccessibleRequestAsync(
+            emergencyRequestRepository,
+            fleetRepository,
+            request.RequestId,
+            membership.CrewId,
+            cancellationToken);
+        if (emergencyRequest is null)
         {
-            return new EmergencyRequestOperationResponse { Success = false, Message = "Emergency request not found." };
+            return new EmergencyRequestOperationResponse { Success = false, Message = accessError ?? "Emergency request not found." };
         }
 
         if (emergencyRequest.Status != EmergencyRequestStatus.Open)
@@ -48,6 +54,7 @@ public class SubmitEmergencySplitCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You cannot split your own emergency request." };
         }
 
+        // Split still requires membership + season cycles in the request's crew (ApplySplitAsync).
         var result = await splitService.ApplySplitAsync(
             emergencyRequest,
             currentUser.UserId.Value,

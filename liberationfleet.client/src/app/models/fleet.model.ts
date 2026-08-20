@@ -275,6 +275,8 @@ export interface FleetNextAidResponse {
 
 export interface FleetEmergencyListItem {
   id: number;
+  crewId?: number;
+  crewName?: string;
   requesterUserId: number;
   requesterUsername: string;
   purposePreview: string;

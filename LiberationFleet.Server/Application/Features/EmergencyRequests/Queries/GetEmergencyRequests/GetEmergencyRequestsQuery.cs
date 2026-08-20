@@ -29,12 +29,15 @@ public class GetEmergencyRequestsQueryHandler(
         }
 
         var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(membership.CrewId, cancellationToken);
+        var crewName = membership.Crew?.Name ?? string.Empty;
         var items = requests.Select(r =>
         {
             var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
             return new EmergencyRequestListItemDto
             {
                 Id = r.Id,
+                CrewId = membership.CrewId,
+                CrewName = crewName,
                 RequesterUserId = r.RequesterUserId,
                 RequesterUsername = r.RequesterUser.Username,
                 PurposePreview = r.Purpose.Length > 120 ? r.Purpose[..117] + "..." : r.Purpose,

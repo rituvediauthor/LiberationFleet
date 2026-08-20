@@ -5,6 +5,7 @@
 
     <div class="detail-card" *ngIf="!loading && request">
       <h1>{{ request.requesterUsername }}</h1>
+      <p class="crew-line" *ngIf="request.crewName">{{ request.crewName }}</p>
       <p class="amount-line">${{ request.amountRemaining }} remaining of ${{ request.amountNeeded }}</p>
       <section class="section">
         <h2>Purpose</h2>
