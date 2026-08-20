@@ -239,6 +239,7 @@ export class EditCrewComponent implements OnInit {
               this.joinCode = result.crew.joinCode;
               this.memberCount = result.crew.memberCount;
               this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
+              this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? this.monthlyGivingCapacity;
               this.patchFormFromCrew(result.crew);
               this.updateMemberCountValidators();
             }
@@ -252,6 +253,7 @@ export class EditCrewComponent implements OnInit {
           if (result.success && result.crew) {
             this.toastService.success(result.message);
             this.joinCode = result.crew.joinCode;
+            this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? this.monthlyGivingCapacity;
             this.patchFormFromCrew(result.crew);
             this.captureInitialState();
             this.images.invalidate(previousImageId, 'ImageAsset');

@@ -8,7 +8,7 @@ import { EmergencyRequestService } from '../../../services/emergency-request.ser
 import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
-import { EmergencyRequestDetail } from '../../../models/emergency-request.model';
+import { EmergencyMiddlemanOption, EmergencyRequestDetail } from '../../../models/emergency-request.model';
 import { PaymentPlatformOption } from '../../../models/gift.model';
 
 type ResponseMode = 'recordGift' | 'splitCycle';
@@ -97,6 +97,38 @@ export class EmergencyRequestDetailComponent implements OnInit {
     return this.platformOptions().length === 0 && (this.request?.middlemanOptions.length ?? 0) > 0;
   }
 
+  selectedMiddleman(): EmergencyMiddlemanOption | undefined {
+    if (!this.request) return undefined;
+    const middlemanId = Number(this.form.get('middlemanId')?.value);
+    if (!middlemanId) return undefined;
+    return this.request.middlemanOptions.find(mm => mm.userId === middlemanId);
+  }
+
+  middlemanPlatformOptions(): PaymentPlatformOption[] {
+    const option = this.selectedMiddleman();
+    if (!option?.commonPlatformIds?.length) {
+      return [];
+    }
+    return this.platforms.filter(p => option.commonPlatformIds.includes(p.id));
+  }
+
+  /** Platforms shown for gift recording: direct common platforms, or middleman commons. */
+  giftPlatformOptions(): PaymentPlatformOption[] {
+    const direct = this.platformOptions();
+    if (direct.length > 0) {
+      return direct;
+    }
+    return this.middlemanPlatformOptions();
+  }
+
+  onMiddlemanChange() {
+    const options = this.middlemanPlatformOptions();
+    const current = Number(this.form.get('paymentPlatformId')?.value);
+    const next = options.some(p => p.id === current) ? current : (options[0]?.id ?? '');
+    this.form.patchValue({ paymentPlatformId: next });
+    this.updateSubmitButton();
+  }
+
   onAlreadyLogged() {
     if (!this.request || this.submitting || this.request.isSelfRequest) return;
     const amount = Number(this.form.get('amount')?.value);
@@ -122,9 +154,10 @@ export class EmergencyRequestDetailComponent implements OnInit {
         } else {
           this.request = response.request;
           const defaultPlatform = this.platformOptions()[0]?.id ?? '';
-          this.form.patchValue({ paymentPlatformId: defaultPlatform });
+          this.form.patchValue({ paymentPlatformId: defaultPlatform, middlemanId: '' });
         }
         this.loading = false;
+        this.updateSubmitButton();
       },
       error: () => {
         this.loading = false;
@@ -156,11 +189,13 @@ export class EmergencyRequestDetailComponent implements OnInit {
       return amount <= this.request.viewerSplitMaxAmount;
     }
 
+    const platformId = Number(this.form.get('paymentPlatformId')?.value);
     if (this.needsMiddleman()) {
-      return Number(this.form.get('middlemanId')?.value) > 0;
+      const middlemanId = Number(this.form.get('middlemanId')?.value);
+      return middlemanId > 0 && platformId > 0;
     }
 
-    return Number(this.form.get('paymentPlatformId')?.value) > 0;
+    return platformId > 0;
   }
 
   private onSubmit() {

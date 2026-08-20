@@ -141,6 +141,7 @@
           <div class="readonly-item">
             <span class="readonly-label">Membership status</span>
             <span class="readonly-value">{{ stats.membershipStatus ? 'Active' : 'Inactive' }}</span>
+            <span class="hint-text">Based on your 3-month contribution average including Library of Things (and crew roles).</span>
           </div>
           <div class="readonly-item">
             <span class="readonly-label">Lifetime contributions</span>
@@ -179,7 +180,7 @@
 
         <div class="form-group checkbox-group">
           <label class="checkbox-label">
-            <input type="checkbox" formControlName="inNeedOfAid" [attr.disabled]="!canToggleInNeedOff ? '' : null">
+            <input type="checkbox" formControlName="inNeedOfAid">
             In need of aid
           </label>
           <span class="hint-text warning-text" *ngIf="!canToggleInNeedOff">

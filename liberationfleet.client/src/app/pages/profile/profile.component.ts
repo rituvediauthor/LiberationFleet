@@ -376,6 +376,7 @@ export class ProfileComponent implements OnInit {
           identityGroups: normalizeIdentityGroups(result.profile.identityGroups),
           needsSurvivalAid: result.profile.needsSurvivalAid
         });
+        this.syncInNeedControl(result.profile.inNeedOfAid);
         this.captureInitialState();
         void this.refreshAvatarPreview();
         this.authService.updateCurrentUser({
@@ -528,9 +529,26 @@ export class ProfileComponent implements OnInit {
       identityGroups: [normalizeIdentityGroups(profile.identityGroups)],
       needsSurvivalAid: [profile.needsSurvivalAid]
     });
+    this.syncInNeedControl(this.canToggleInNeedOff ? profile.inNeedOfAid : true);
 
     this.form.statusChanges.subscribe(() => this.updateSaveButton());
     this.updateSaveButton();
+  }
+
+  private syncInNeedControl(inNeedValue: boolean) {
+    const ctrl = this.form?.get('inNeedOfAid');
+    if (!ctrl) {
+      return;
+    }
+
+    if (!this.canToggleInNeedOff) {
+      ctrl.setValue(true, { emitEvent: false });
+      ctrl.disable({ emitEvent: false });
+      return;
+    }
+
+    ctrl.enable({ emitEvent: false });
+    ctrl.setValue(!!inNeedValue, { emitEvent: false });
   }
 
   private buildPasswordForm() {

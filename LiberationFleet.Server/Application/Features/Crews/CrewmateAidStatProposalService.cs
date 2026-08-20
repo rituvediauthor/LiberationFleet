@@ -409,7 +409,7 @@ public class CrewmateAidStatProposalService(
     private static string FormatFieldLabel(CrewmateAidStatField field) =>
         field switch
         {
-            CrewmateAidStatField.EstimatedMonthlyContribution => "Monthly giving capacity",
+            CrewmateAidStatField.EstimatedMonthlyContribution => "Estimated monthly contribution",
             CrewmateAidStatField.LifetimeContributions => "Lifetime contributions",
             CrewmateAidStatField.ReceptionThisYear => "Reception this year",
             CrewmateAidStatField.TotalReceptionAmount => "Total reception (season)",

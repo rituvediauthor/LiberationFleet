@@ -48,19 +48,19 @@
           </div>
 
           <ng-container *ngIf="responseMode === 'recordGift'">
-            <div class="form-group" *ngIf="platformOptions().length > 0">
-              <label>Platform</label>
-              <select formControlName="paymentPlatformId" class="form-input">
-                <option value="">Select platform</option>
-                <option *ngFor="let p of platformOptions()" [ngValue]="p.id">{{ p.name }}</option>
+            <div class="form-group" *ngIf="needsMiddleman()">
+              <label>Intermediary</label>
+              <select formControlName="middlemanId" class="form-input" (change)="onMiddlemanChange()">
+                <option value="">Select intermediary</option>
+                <option *ngFor="let mm of request.middlemanOptions" [ngValue]="mm.userId">{{ mm.username }}</option>
               </select>
             </div>
 
-            <div class="form-group" *ngIf="needsMiddleman()">
-              <label>Intermediary</label>
-              <select formControlName="middlemanId" class="form-input">
-                <option value="">Select intermediary</option>
-                <option *ngFor="let mm of request.middlemanOptions" [ngValue]="mm.userId">{{ mm.username }}</option>
+            <div class="form-group" *ngIf="giftPlatformOptions().length > 0">
+              <label>Platform</label>
+              <select formControlName="paymentPlatformId" class="form-input">
+                <option value="">Select platform</option>
+                <option *ngFor="let p of giftPlatformOptions()" [ngValue]="p.id">{{ p.name }}</option>
               </select>
             </div>
 

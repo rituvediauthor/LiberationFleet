@@ -222,7 +222,7 @@
               <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
               <input id="memberCycleCapMultiplier" type="number" formControlName="memberCycleCapMultiplier" class="form-input" min="0" step="0.01">
             </div>
-            <span class="hint-text">Current crew-wide monthly giving capacity total × multiplier.</span>
+            <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
           </div>
 
           <p class="preview-text">Effective member cycle cap preview: ${{ memberCycleCapPreview | number:'1.0-2' }}</p>
@@ -249,7 +249,7 @@
               <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
               <input id="nonMemberCycleCapMultiplier" type="number" formControlName="nonMemberCycleCapMultiplier" class="form-input" min="0" step="0.01">
             </div>
-            <span class="hint-text">Current crew-wide monthly giving capacity total × multiplier.</span>
+            <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
           </div>
 
           <p class="preview-text">Effective non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>

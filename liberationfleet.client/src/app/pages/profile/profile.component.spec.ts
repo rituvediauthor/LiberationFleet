@@ -128,4 +128,19 @@ describe('ProfileComponent', () => {
     });
     expect(toastService.success).toHaveBeenCalled();
   });
+
+  it('should disable in-need control when toggle is locked', () => {
+    profileService.getProfile.and.returnValue(of({
+      ...mockProfile,
+      canToggleInNeedOff: false,
+      inNeedOfAid: true
+    }));
+    fixture = TestBed.createComponent(ProfileComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const ctrl = component.form.get('inNeedOfAid');
+    expect(ctrl?.disabled).toBeTrue();
+    expect(ctrl?.value).toBeTrue();
+  });
 });
