@@ -21,6 +21,9 @@ public class EmergencySplitServiceTests
         await fx.Context.SaveChangesAsync();
 
         result.Success.Should().BeTrue();
+        request.AmountSplitCommitted.Should().Be(50m);
+        request.AmountReceived.Should().Be(0m);
+        request.Status.Should().Be(EmergencyRequestStatus.Open);
 
         var cycles = await fx.Context.SeasonCycles
             .Where(c => c.SeasonStartDate == fx.SeasonStart && !c.CycleCompleted)
@@ -234,7 +237,8 @@ public class EmergencySplitServiceTests
             RequesterUserId = requester.Id,
             Purpose = "Test emergency",
             AmountNeeded = amountNeeded,
-            AmountFulfilled = 0m,
+            AmountReceived = 0m,
+            AmountSplitCommitted = 0m,
             Status = EmergencyRequestStatus.Open,
             CreatedAt = DateTime.UtcNow,
             SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(eligibleIds)

@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
@@ -102,6 +103,8 @@ public class GetEmergencyRequestDetailQueryHandler(
             viewerId,
             cancellationToken);
 
+        var amounts = EmergencyRequestDtoMapper.MapAmounts(emergencyRequest);
+
         return new EmergencyRequestDetailResponse
         {
             Success = true,
@@ -113,8 +116,11 @@ public class GetEmergencyRequestDetailQueryHandler(
                 RequesterUsername = emergencyRequest.RequesterUser.Username,
                 Purpose = emergencyRequest.Purpose,
                 AmountNeeded = emergencyRequest.AmountNeeded,
-                AmountFulfilled = emergencyRequest.AmountFulfilled,
-                AmountRemaining = Math.Max(0m, emergencyRequest.AmountNeeded - emergencyRequest.AmountFulfilled),
+                AmountFulfilled = amounts.AmountReceived,
+                AmountReceived = amounts.AmountReceived,
+                AmountSplitCommitted = amounts.AmountSplitCommitted,
+                AmountUncovered = amounts.AmountUncovered,
+                AmountRemaining = amounts.AmountRemaining,
                 Status = emergencyRequest.Status.ToString(),
                 CreatedAt = emergencyRequest.CreatedAt,
                 CommonPlatforms = commonPlatforms,

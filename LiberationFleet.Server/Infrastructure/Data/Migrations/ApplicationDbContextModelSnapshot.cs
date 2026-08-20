@@ -926,7 +926,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("AmountFulfilled")
+                    b.Property<decimal>("AmountReceived")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AmountSplitCommitted")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -981,14 +985,30 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("EmergencyRequestId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("OffererPaybackCycleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OffererQueueRole")
+                        .HasColumnType("int");
+
                     b.Property<int>("OffererUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequesterEmergencyCycleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EmergencyRequestId");
 
+                    b.HasIndex("OffererPaybackCycleId");
+
                     b.HasIndex("OffererUserId");
+
+                    b.HasIndex("RequesterEmergencyCycleId");
 
                     b.ToTable("EmergencySplitOffers");
                 });
@@ -4238,15 +4258,29 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.SeasonCycle", "OffererPaybackCycle")
+                        .WithMany()
+                        .HasForeignKey("OffererPaybackCycleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "OffererUser")
                         .WithMany()
                         .HasForeignKey("OffererUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.SeasonCycle", "RequesterEmergencyCycle")
+                        .WithMany()
+                        .HasForeignKey("RequesterEmergencyCycleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("EmergencyRequest");
 
+                    b.Navigation("OffererPaybackCycle");
+
                     b.Navigation("OffererUser");
+
+                    b.Navigation("RequesterEmergencyCycle");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EncryptedContentEnvelope", b =>

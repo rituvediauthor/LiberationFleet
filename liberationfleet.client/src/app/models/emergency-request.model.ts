@@ -5,6 +5,9 @@ export interface EmergencyRequestListItem {
   purposePreview: string;
   amountNeeded: number;
   amountFulfilled: number;
+  amountReceived?: number;
+  amountSplitCommitted?: number;
+  amountUncovered?: number;
   amountRemaining: number;
   createdAt: string;
 }
@@ -36,6 +39,9 @@ export interface EmergencyRequestDetail {
   purpose: string;
   amountNeeded: number;
   amountFulfilled: number;
+  amountReceived?: number;
+  amountSplitCommitted?: number;
+  amountUncovered?: number;
   amountRemaining: number;
   status: string;
   createdAt: string;

@@ -21,6 +21,7 @@ public class RecordEmergencyGiftCommandHandler(
     IGiftRepository giftRepository,
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
+    EmergencyReconciliationService reconciliationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordEmergencyGiftCommand, EmergencyRequestOperationResponse>
 {
     public async Task<EmergencyRequestOperationResponse> Handle(
@@ -44,13 +45,13 @@ public class RecordEmergencyGiftCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You must be in an active season to record a gift." };
         }
 
-        var emergencyRequest = await emergencyRequestRepository.GetByIdAsync(request.RequestId, cancellationToken);
+        var emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(request.RequestId, cancellationToken);
         if (emergencyRequest is null || emergencyRequest.CrewId != membership.CrewId)
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "Emergency request not found." };
         }
 
-        if (emergencyRequest.Status != EmergencyRequestStatus.Open)
+        if (emergencyRequest.Status == EmergencyRequestStatus.Cancelled)
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "This emergency request is no longer open." };
         }
@@ -58,12 +59,6 @@ public class RecordEmergencyGiftCommandHandler(
         if (giverId == emergencyRequest.RequesterUserId)
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "You cannot give to your own emergency request." };
-        }
-
-        var remaining = emergencyRequest.AmountNeeded - emergencyRequest.AmountFulfilled;
-        if (request.Amount > remaining)
-        {
-            return new EmergencyRequestOperationResponse { Success = false, Message = "Gift amount exceeds the remaining emergency need." };
         }
 
         if (!await crewPaymentPlatformRepository.ExistsForCrewAsync(membership.CrewId, request.PaymentPlatformId, cancellationToken))
@@ -77,68 +72,125 @@ public class RecordEmergencyGiftCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "Middleman is not in your crew." };
         }
 
-        int? seasonCycleId = null;
-        var crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
-        if (crew?.CurrentSeasonStartDate is not null)
+        var reconciliation = await reconciliationService.ApplyDirectGiftAsync(
+            emergencyRequest,
+            request.Amount,
+            cancellationToken);
+
+        Gift? emergencyGift = null;
+        if (reconciliation.AmountAppliedToNeed > 0m)
         {
-            var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+            int? seasonCycleId = null;
+            var crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
+            if (crew?.CurrentSeasonStartDate is not null)
+            {
+                var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+                    membership.CrewId,
+                    crew.CurrentSeasonStartDate.Value,
+                    cancellationToken);
+                seasonCycleId = cycles
+                    .Where(c => c.EmergencyRequestId == emergencyRequest.Id && !c.CycleCompleted)
+                    .OrderBy(c => c.ReceptionOrderPosition)
+                    .FirstOrDefault()?.Id;
+            }
+
+            emergencyGift = CreateEmergencyGift(
                 membership.CrewId,
-                crew.CurrentSeasonStartDate.Value,
-                cancellationToken);
-            seasonCycleId = cycles
-                .Where(c => c.EmergencyRequestId == emergencyRequest.Id && !c.CycleCompleted)
-                .OrderBy(c => c.ReceptionOrderPosition)
-                .FirstOrDefault()?.Id;
+                giverId,
+                emergencyRequest.RequesterUserId,
+                reconciliation.AmountAppliedToNeed,
+                request.PaymentPlatformId,
+                request.MiddlemanId,
+                emergencyRequest.Id,
+                seasonCycleId);
+
+            await giftRepository.AddAsync(emergencyGift, cancellationToken);
+            await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
+            {
+                EmergencyRequest = emergencyRequest,
+                GiverUserId = giverId,
+                Gift = emergencyGift,
+                Amount = reconciliation.AmountAppliedToNeed,
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
         }
 
-        var gift = new Gift
+        if (reconciliation.OverflowAmount > 0m)
         {
-            CrewId = membership.CrewId,
-            GiverUserId = giverId,
-            RecipientUserId = emergencyRequest.RequesterUserId,
-            MiddlemanUserId = request.MiddlemanId,
-            Type = request.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
-            Amount = request.Amount,
-            CrewPaymentPlatformId = request.PaymentPlatformId,
-            IsSurvivalThreshold = false,
-            IsCustomGift = true,
-            CountsTowardReception = !request.MiddlemanId.HasValue,
-            CountsTowardContribution = true,
-            VerificationStatus = GiftVerificationStatus.Verified,
-            EmergencyRequestId = emergencyRequest.Id,
-            SeasonCycleId = seasonCycleId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await giftRepository.AddAsync(gift, cancellationToken);
-        await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
-        {
-            EmergencyRequest = emergencyRequest,
-            GiverUserId = giverId,
-            Gift = gift,
-            Amount = request.Amount,
-            CreatedAt = DateTime.UtcNow
-        }, cancellationToken);
-
-        emergencyRequest.AmountFulfilled += request.Amount;
-        if (emergencyRequest.AmountFulfilled >= emergencyRequest.AmountNeeded)
-        {
-            emergencyRequest.Status = EmergencyRequestStatus.Fulfilled;
+            var overflowGift = CreateUncategorizedGift(
+                membership.CrewId,
+                giverId,
+                emergencyRequest.RequesterUserId,
+                reconciliation.OverflowAmount,
+                request.PaymentPlatformId);
+            await giftRepository.AddAsync(overflowGift, cancellationToken);
         }
 
         await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (gift.CountsTowardReception)
+        if (emergencyGift?.CountsTowardReception == true)
         {
-            await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
+            await mutualAidService.ApplyGiftReceptionAsync(emergencyGift, cancellationToken);
         }
 
         return new EmergencyRequestOperationResponse
         {
             Success = true,
-            Message = "Emergency gift recorded.",
+            Message = reconciliation.OverflowAmount > 0m
+                ? "Emergency gift recorded; excess amount logged as an uncategorized gift."
+                : "Emergency gift recorded.",
             RequestId = emergencyRequest.Id
         };
     }
+
+    private static Gift CreateEmergencyGift(
+        int crewId,
+        int giverUserId,
+        int recipientUserId,
+        decimal amount,
+        int paymentPlatformId,
+        int? middlemanId,
+        int emergencyRequestId,
+        int? seasonCycleId) =>
+        new()
+        {
+            CrewId = crewId,
+            GiverUserId = giverUserId,
+            RecipientUserId = recipientUserId,
+            MiddlemanUserId = middlemanId,
+            Type = middlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
+            Amount = amount,
+            CrewPaymentPlatformId = paymentPlatformId,
+            IsSurvivalThreshold = false,
+            IsCustomGift = true,
+            CountsTowardReception = !middlemanId.HasValue,
+            CountsTowardContribution = true,
+            VerificationStatus = GiftVerificationStatus.Verified,
+            EmergencyRequestId = emergencyRequestId,
+            SeasonCycleId = seasonCycleId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+    private static Gift CreateUncategorizedGift(
+        int crewId,
+        int giverUserId,
+        int recipientUserId,
+        decimal amount,
+        int paymentPlatformId) =>
+        new()
+        {
+            CrewId = crewId,
+            GiverUserId = giverUserId,
+            RecipientUserId = recipientUserId,
+            Type = GiftType.Direct,
+            Amount = amount,
+            CrewPaymentPlatformId = paymentPlatformId,
+            IsSurvivalThreshold = false,
+            IsCustomGift = true,
+            CountsTowardReception = false,
+            CountsTowardContribution = false,
+            VerificationStatus = GiftVerificationStatus.Verified,
+            CreatedAt = DateTime.UtcNow
+        };
 }

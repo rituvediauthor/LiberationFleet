@@ -9,12 +9,15 @@ public class EmergencyRequest
     public int RequesterUserId { get; set; }
     public string Purpose { get; set; } = string.Empty;
     public decimal AmountNeeded { get; set; }
-    public decimal AmountFulfilled { get; set; }
+    /// <summary>Direct gifts and queue-funded receipts applied toward the need.</summary>
+    public decimal AmountReceived { get; set; }
+    /// <summary>Sum of active split commitments (denormalized; kept in sync with split offers).</summary>
+    public decimal AmountSplitCommitted { get; set; }
     public EmergencyRequestStatus Status { get; set; } = EmergencyRequestStatus.Open;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     /// <summary>
-    /// Comma-separated user IDs who had an incomplete primary ahead of the requester when this request was created.
-    /// Empty/null means legacy: evaluate ahead-of-requester using live queue order at split time.
+    /// Comma-separated user IDs who were locked leader/runner-up when this request was created.
+    /// Empty/null means legacy: evaluate using live queue order at split time.
     /// </summary>
     public string? SplitEligibleOffererUserIds { get; set; }
 
