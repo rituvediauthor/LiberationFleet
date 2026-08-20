@@ -30,12 +30,9 @@ public class LibraryContributionGiftService(
         string recipientUsername,
         CancellationToken cancellationToken = default)
     {
-        if (!LibraryOfferingRules.ShouldCreditCreatorForStockUse(offering, recipientUserId))
-        {
-            return null;
-        }
-
-        return await AwardCreatorContributionAsync(
+        // Stock use awards a single peer gift: creator gets contribution credit (financial membership),
+        // recipient gets reception credit toward their cycle.
+        return await TryAwardRecipientReceptionForStockUseAsync(
             crewId,
             offering,
             quantity,
@@ -136,7 +133,7 @@ public class LibraryContributionGiftService(
             offering.CreatorUserId,
             recipientUserId,
             amount,
-            countsTowardContribution: false,
+            countsTowardContribution: true,
             countsTowardReception: true,
             cancellationToken);
 

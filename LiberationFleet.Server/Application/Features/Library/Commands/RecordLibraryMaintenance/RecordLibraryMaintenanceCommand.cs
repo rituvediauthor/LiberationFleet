@@ -22,6 +22,7 @@ public class RecordLibraryMaintenanceCommandHandler(
     ICryptoRepository cryptoRepository,
     LibraryContributionGiftService contributionGiftService,
     CrewGiftRecipientService crewGiftRecipientService,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordLibraryMaintenanceCommand, LibraryMaintenanceOperationResponse>
 {
     public async Task<LibraryMaintenanceOperationResponse> Handle(
@@ -96,6 +97,8 @@ public class RecordLibraryMaintenanceCommandHandler(
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
 
         return new LibraryMaintenanceOperationResponse
         {

@@ -134,6 +134,11 @@ public class RecordEmergencyGiftCommandHandler(
             await mutualAidService.ApplyGiftReceptionAsync(emergencyGift, cancellationToken);
         }
 
+        if (reconciliation.AmountAppliedToNeed > 0m)
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+        }
+
         return new EmergencyRequestOperationResponse
         {
             Success = true,

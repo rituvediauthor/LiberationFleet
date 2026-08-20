@@ -58,6 +58,7 @@ public class RecordFleetGiftsCommandHandler(
 
         Gift? lastSaved = null;
         var notifiedRecipients = new HashSet<int>();
+        var crewsNeedingContributionRefresh = new HashSet<int>();
 
         foreach (var item in request.Gifts)
         {
@@ -92,6 +93,8 @@ public class RecordFleetGiftsCommandHandler(
             }
 
             var giftCrewId = recipientMembership.CrewId;
+            crewsNeedingContributionRefresh.Add(giftCrewId);
+            crewsNeedingContributionRefresh.Add(membership.CrewId);
 
             if (!await crewPaymentPlatformRepository.ExistsForCrewAsync(giftCrewId, item.PaymentPlatformId, cancellationToken)
                 && !await crewPaymentPlatformRepository.ExistsForCrewAsync(membership.CrewId, item.PaymentPlatformId, cancellationToken))
@@ -179,6 +182,11 @@ public class RecordFleetGiftsCommandHandler(
                     }, cancellationToken);
                 }
             }
+        }
+
+        foreach (var crewId in crewsNeedingContributionRefresh)
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(crewId, cancellationToken);
         }
 
         return new GiftOperationResponse

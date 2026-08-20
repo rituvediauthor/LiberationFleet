@@ -110,6 +110,11 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
         await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (reconciliation.AmountAppliedToNeed > 0m)
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+        }
+
         return new EmergencyRequestOperationResponse
         {
             Success = true,

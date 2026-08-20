@@ -79,8 +79,8 @@ public class CompleteLibraryRequestCommandHandler(
                 libraryRequest.Unit.Status = LibraryUnitStatus.Broken;
             }
 
-            // Single gift-log entry for the exchange (contribution + reception on one gift).
-            receptionGift = await contributionGiftService.TryAwardRecipientReceptionForStockUseAsync(
+            // Single gift-log entry: creator contribution (financial membership) + recipient reception.
+            receptionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
                 membership.CrewId,
                 offering,
                 libraryRequest.Quantity,
@@ -119,6 +119,11 @@ public class CompleteLibraryRequestCommandHandler(
 
         await ApplyReceptionIfNeededAsync(receptionGift, cancellationToken);
         await ApplyReceptionIfNeededAsync(completerGift, cancellationToken);
+
+        if (contributionGift is not null || completerGift is not null || receptionGift is not null)
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+        }
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
