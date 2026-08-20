@@ -14,7 +14,9 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    IGiftRepository giftRepository,
     IMutualAidService mutualAidService,
+    EmergencyReconciliationService reconciliationService,
     IUnitOfWork unitOfWork) : IRequestHandler<MarkEmergencyGiftAlreadyLoggedCommand, EmergencyRequestOperationResponse>
 {
     public async Task<EmergencyRequestOperationResponse> Handle(
@@ -38,13 +40,13 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You must be in an active season." };
         }
 
-        var emergencyRequest = await emergencyRequestRepository.GetByIdAsync(request.RequestId, cancellationToken);
+        var emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(request.RequestId, cancellationToken);
         if (emergencyRequest is null || emergencyRequest.CrewId != membership.CrewId)
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "Emergency request not found." };
         }
 
-        if (emergencyRequest.Status != EmergencyRequestStatus.Open)
+        if (emergencyRequest.Status == EmergencyRequestStatus.Cancelled)
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "This emergency request is no longer open." };
         }
@@ -54,25 +56,55 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You cannot respond to your own emergency request." };
         }
 
-        var remaining = emergencyRequest.AmountNeeded - emergencyRequest.AmountFulfilled;
-        if (request.Amount > remaining)
+        var reconciliation = await reconciliationService.ApplyDirectGiftAsync(
+            emergencyRequest,
+            request.Amount,
+            cancellationToken);
+
+        if (reconciliation.AmountAppliedToNeed > 0m)
         {
-            return new EmergencyRequestOperationResponse { Success = false, Message = "Amount exceeds the remaining emergency need." };
+            var loggedGift = new Gift
+            {
+                CrewId = membership.CrewId,
+                GiverUserId = giverId,
+                RecipientUserId = emergencyRequest.RequesterUserId,
+                Type = GiftType.Direct,
+                Amount = reconciliation.AmountAppliedToNeed,
+                IsSurvivalThreshold = false,
+                IsCustomGift = true,
+                CountsTowardReception = false,
+                CountsTowardContribution = true,
+                VerificationStatus = GiftVerificationStatus.Verified,
+                EmergencyRequestId = emergencyRequest.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+            await giftRepository.AddAsync(loggedGift, cancellationToken);
+            await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
+            {
+                EmergencyRequest = emergencyRequest,
+                GiverUserId = giverId,
+                Gift = loggedGift,
+                Amount = reconciliation.AmountAppliedToNeed,
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
         }
 
-        await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
+        if (reconciliation.OverflowAmount > 0m)
         {
-            EmergencyRequest = emergencyRequest,
-            GiverUserId = giverId,
-            GiftId = null,
-            Amount = request.Amount,
-            CreatedAt = DateTime.UtcNow
-        }, cancellationToken);
-
-        emergencyRequest.AmountFulfilled += request.Amount;
-        if (emergencyRequest.AmountFulfilled >= emergencyRequest.AmountNeeded)
-        {
-            emergencyRequest.Status = EmergencyRequestStatus.Fulfilled;
+            await giftRepository.AddAsync(new Gift
+            {
+                CrewId = membership.CrewId,
+                GiverUserId = giverId,
+                RecipientUserId = emergencyRequest.RequesterUserId,
+                Type = GiftType.Direct,
+                Amount = reconciliation.OverflowAmount,
+                IsSurvivalThreshold = false,
+                IsCustomGift = true,
+                CountsTowardReception = false,
+                CountsTowardContribution = false,
+                VerificationStatus = GiftVerificationStatus.Verified,
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
         }
 
         await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
@@ -81,7 +113,9 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
         return new EmergencyRequestOperationResponse
         {
             Success = true,
-            Message = "Logged prior gift toward this emergency request.",
+            Message = reconciliation.OverflowAmount > 0m
+                ? "Logged prior gift toward this emergency request; excess logged as uncategorized."
+                : "Logged prior gift toward this emergency request.",
             RequestId = emergencyRequest.Id
         };
     }

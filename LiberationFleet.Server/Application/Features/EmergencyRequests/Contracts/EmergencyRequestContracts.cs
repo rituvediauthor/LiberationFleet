@@ -7,7 +7,11 @@ public class EmergencyRequestListItemDto
     public string RequesterUsername { get; set; } = string.Empty;
     public string PurposePreview { get; set; } = string.Empty;
     public decimal AmountNeeded { get; set; }
+    /// <summary>Alias for <see cref="AmountReceived"/> (backward compatibility).</summary>
     public decimal AmountFulfilled { get; set; }
+    public decimal AmountReceived { get; set; }
+    public decimal AmountSplitCommitted { get; set; }
+    public decimal AmountUncovered { get; set; }
     public decimal AmountRemaining { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -42,7 +46,11 @@ public class EmergencyRequestDetailDto
     public string RequesterUsername { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;
     public decimal AmountNeeded { get; set; }
+    /// <summary>Alias for <see cref="AmountReceived"/> (backward compatibility).</summary>
     public decimal AmountFulfilled { get; set; }
+    public decimal AmountReceived { get; set; }
+    public decimal AmountSplitCommitted { get; set; }
+    public decimal AmountUncovered { get; set; }
     public decimal AmountRemaining { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

@@ -67,7 +67,8 @@ public class CreateEmergencyRequestCommandHandler(
             RequesterUserId = currentUser.UserId.Value,
             Purpose = purpose,
             AmountNeeded = request.AmountNeeded,
-            AmountFulfilled = 0m,
+            AmountReceived = 0m,
+            AmountSplitCommitted = 0m,
             Status = EmergencyRequestStatus.Open,
             CreatedAt = DateTime.UtcNow,
             SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(eligibleOfferers)

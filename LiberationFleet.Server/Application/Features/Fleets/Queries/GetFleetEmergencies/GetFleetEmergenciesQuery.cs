@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Contracts;
 using MediatR;
 
@@ -42,16 +43,23 @@ public class GetFleetEmergenciesQueryHandler(
         foreach (var crewId in crewIds)
         {
             var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(crewId, cancellationToken);
-            items.AddRange(requests.Select(r => new EmergencyRequestListItemDto
+            items.AddRange(requests.Select(r =>
             {
-                Id = r.Id,
-                RequesterUserId = r.RequesterUserId,
-                RequesterUsername = r.RequesterUser.Username,
-                PurposePreview = r.Purpose.Length > 120 ? r.Purpose[..117] + "..." : r.Purpose,
-                AmountNeeded = r.AmountNeeded,
-                AmountFulfilled = r.AmountFulfilled,
-                AmountRemaining = Math.Max(0m, r.AmountNeeded - r.AmountFulfilled),
-                CreatedAt = r.CreatedAt
+                var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
+                return new EmergencyRequestListItemDto
+                {
+                    Id = r.Id,
+                    RequesterUserId = r.RequesterUserId,
+                    RequesterUsername = r.RequesterUser.Username,
+                    PurposePreview = r.Purpose.Length > 120 ? r.Purpose[..117] + "..." : r.Purpose,
+                    AmountNeeded = r.AmountNeeded,
+                    AmountFulfilled = amounts.AmountReceived,
+                    AmountReceived = amounts.AmountReceived,
+                    AmountSplitCommitted = amounts.AmountSplitCommitted,
+                    AmountUncovered = amounts.AmountUncovered,
+                    AmountRemaining = amounts.AmountRemaining,
+                    CreatedAt = r.CreatedAt
+                };
             }));
         }
 

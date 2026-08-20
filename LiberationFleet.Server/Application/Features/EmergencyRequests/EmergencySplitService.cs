@@ -84,13 +84,13 @@ public class EmergencySplitService(
             }
         }
 
-        var remainingNeed = Math.Max(0m, request.AmountNeeded - request.AmountFulfilled);
-        if (remainingNeed <= 0m)
+        var uncovered = EmergencyRequestAccounting.GetAmountUncovered(request);
+        if (uncovered <= 0m)
         {
             return new EmergencySplitEligibility
             {
                 CanSplit = false,
-                Message = "This emergency request is already fully funded."
+                Message = "This emergency request has no uncovered need for additional cycle splits."
             };
         }
 
@@ -107,9 +107,55 @@ public class EmergencySplitService(
         return new EmergencySplitEligibility
         {
             CanSplit = true,
-            MaxSplitAmount = Math.Min(remainingNeed, offererRemaining),
+            MaxSplitAmount = Math.Min(uncovered, offererRemaining),
             EligibleOffererUserIds = ParseEligibleUserIds(request.SplitEligibleOffererUserIds)
         };
+    }
+
+    /// <summary>
+    /// Shrinks active splits by up to <paramref name="amount"/> (runner-up splits first).
+    /// Returns any amount that could not be applied to split reduction.
+    /// </summary>
+    public async Task<decimal> ShrinkActiveSplitsAsync(
+        EmergencyRequest request,
+        decimal amount,
+        CancellationToken cancellationToken)
+    {
+        if (amount <= 0m)
+        {
+            return 0m;
+        }
+
+        var remaining = amount;
+        foreach (var split in EmergencyRequestAccounting.OrderSplitOffersForShrink(request.SplitOffers))
+        {
+            if (remaining <= 0m)
+            {
+                break;
+            }
+
+            var shrinkBy = Math.Min(remaining, split.Amount);
+            var newAmount = split.Amount - shrinkBy;
+            await ResizeSplitOfferAsync(request, split, newAmount, cancellationToken);
+            request.AmountSplitCommitted -= shrinkBy;
+            remaining -= shrinkBy;
+        }
+
+        return remaining;
+    }
+
+    public async Task<EmergencyOffererQueueRole> ResolveOffererQueueRoleAsync(
+        int crewId,
+        int offererUserId,
+        CancellationToken cancellationToken)
+    {
+        var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(crewId, cancellationToken);
+        if (lockedUserIds.Count > 1 && lockedUserIds[1] == offererUserId)
+        {
+            return EmergencyOffererQueueRole.RunnerUp;
+        }
+
+        return EmergencyOffererQueueRole.ActiveCycle;
     }
 
     public async Task<EmergencySplitResult> ApplySplitAsync(
@@ -123,10 +169,10 @@ public class EmergencySplitService(
             return EmergencySplitResult.Failed("Split amount must be greater than zero.");
         }
 
-        var remaining = request.AmountNeeded - request.AmountFulfilled;
-        if (amount > remaining)
+        var uncovered = EmergencyRequestAccounting.GetAmountUncovered(request);
+        if (amount > uncovered)
         {
-            return EmergencySplitResult.Failed("Split amount exceeds the remaining emergency need.");
+            return EmergencySplitResult.Failed("Split amount exceeds the uncovered emergency need.");
         }
 
         var crew = await mutualAidRepository.GetCrewAsync(request.CrewId, cancellationToken);
@@ -248,11 +294,13 @@ public class EmergencySplitService(
             return EmergencySplitResult.Failed("The requester does not have enough cycle capacity for this split.");
         }
 
+        var offererQueueRole = await ResolveOffererQueueRoleAsync(request.CrewId, offererUserId, cancellationToken);
         var splitOffer = new EmergencySplitOffer
         {
             EmergencyRequest = request,
             OffererUserId = offererUserId,
             Amount = amount,
+            OffererQueueRole = offererQueueRole,
             CreatedAt = DateTime.UtcNow
         };
         await emergencyRequestRepository.AddSplitOfferAsync(splitOffer, cancellationToken);
@@ -307,16 +355,151 @@ public class EmergencySplitService(
         };
         await mutualAidRepository.AddSeasonCycleAsync(paybackSegment, cancellationToken);
 
-        request.AmountFulfilled += amount;
-        if (request.AmountFulfilled >= request.AmountNeeded)
-        {
-            request.Status = EmergencyRequestStatus.Fulfilled;
-        }
+        splitOffer.RequesterEmergencyCycle = emergencySegment;
+        splitOffer.OffererPaybackCycle = paybackSegment;
+
+        request.AmountSplitCommitted += amount;
+        EmergencyRequestAccounting.RefreshFulfilledStatus(request);
 
         await mutualAidService.RecordEmergencySacrificeAsync(request.CrewId, offererUserId, cancellationToken);
         await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
 
         return EmergencySplitResult.Succeeded("Cycle split recorded.");
+    }
+
+    private async Task ResizeSplitOfferAsync(
+        EmergencyRequest request,
+        EmergencySplitOffer split,
+        decimal newAmount,
+        CancellationToken cancellationToken)
+    {
+        if (newAmount < 0m || newAmount > split.Amount)
+        {
+            return;
+        }
+
+        var reduction = split.Amount - newAmount;
+        if (reduction <= 0m)
+        {
+            return;
+        }
+
+        var crew = await mutualAidRepository.GetCrewAsync(request.CrewId, cancellationToken);
+        if (crew is null || !crew.CurrentSeasonStartDate.HasValue)
+        {
+            return;
+        }
+
+        var offererMembership = await membershipRepository.GetMembershipAsync(
+            split.OffererUserId,
+            request.CrewId,
+            cancellationToken);
+        var requesterMembership = await membershipRepository.GetMembershipAsync(
+            request.RequesterUserId,
+            request.CrewId,
+            cancellationToken);
+        if (offererMembership is null || requesterMembership is null)
+        {
+            return;
+        }
+
+        var offererIsMember = await mutualAidService.IsFinancialMemberAsync(
+            split.OffererUserId,
+            request.CrewId,
+            offererMembership,
+            cancellationToken);
+        var requesterIsMember = await mutualAidService.IsFinancialMemberAsync(
+            request.RequesterUserId,
+            request.CrewId,
+            requesterMembership,
+            cancellationToken);
+
+        var frozenCapacity = await BuildCapacityContextAsync(crew, useFrozenSeasonCaps: true, cancellationToken);
+        var liveCapacity = await BuildCapacityContextAsync(crew, useFrozenSeasonCaps: false, cancellationToken);
+
+        SeasonCycle? emergencySegment = split.RequesterEmergencyCycle;
+        SeasonCycle? paybackSegment = split.OffererPaybackCycle;
+        if (emergencySegment is null && split.RequesterEmergencyCycleId.HasValue)
+        {
+            emergencySegment = await mutualAidRepository.GetSeasonCycleByIdAsync(
+                split.RequesterEmergencyCycleId.Value,
+                cancellationToken);
+        }
+
+        if (paybackSegment is null && split.OffererPaybackCycleId.HasValue)
+        {
+            paybackSegment = await mutualAidRepository.GetSeasonCycleByIdAsync(
+                split.OffererPaybackCycleId.Value,
+                cancellationToken);
+        }
+
+        if (newAmount == 0m)
+        {
+            CancelLinkedSegment(emergencySegment);
+            CancelLinkedSegment(paybackSegment);
+            split.IsCancelled = true;
+            split.Amount = 0m;
+        }
+        else
+        {
+            ResizeLinkedSegment(emergencySegment, newAmount);
+            ResizeLinkedSegment(paybackSegment, newAmount);
+            split.Amount = newAmount;
+        }
+
+        var cyclesBySeason = await LoadCyclesBySeasonAsync(
+            request.CrewId,
+            crew.CurrentSeasonStartDate.Value,
+            cancellationToken);
+
+        var (offererPrimary, _, offererCapacity) = FindPrimaryAcrossSeasons(
+            cyclesBySeason,
+            split.OffererUserId,
+            offererIsMember,
+            frozenCapacity,
+            liveCapacity);
+        var (requesterPrimary, _, requesterCapacity) = FindPrimaryAcrossSeasons(
+            cyclesBySeason,
+            request.RequesterUserId,
+            requesterIsMember,
+            frozenCapacity,
+            liveCapacity);
+
+        if (offererPrimary is not null && offererCapacity is not null)
+        {
+            RestoreSegmentCap(offererPrimary, reduction, offererCapacity, offererIsMember);
+        }
+
+        if (requesterPrimary is not null && requesterCapacity is not null)
+        {
+            RestoreSegmentCap(requesterPrimary, reduction, requesterCapacity, requesterIsMember);
+        }
+    }
+
+    private static void CancelLinkedSegment(SeasonCycle? segment)
+    {
+        if (segment is null || segment.CycleCompleted)
+        {
+            return;
+        }
+
+        segment.CycleCompleted = true;
+        segment.CycleCompletedAt = DateTime.UtcNow;
+    }
+
+    private static void ResizeLinkedSegment(SeasonCycle? segment, decimal newCap)
+    {
+        if (segment is null || segment.CycleCompleted)
+        {
+            return;
+        }
+
+        segment.CycleCapAtStart = Math.Max(segment.CycleReceived, newCap);
+        if (segment.CycleReceived >= segment.CycleCapAtStart)
+        {
+            segment.CycleCompleted = true;
+            segment.CycleCompletedAt = DateTime.UtcNow;
+        }
     }
 
     public static string FormatEligibleOffererUserIds(IEnumerable<int> userIds) =>
@@ -513,6 +696,55 @@ public class EmergencySplitService(
         {
             segment.CycleCompleted = true;
             segment.CycleCompletedAt = DateTime.UtcNow;
+        }
+    }
+
+    private static void RestoreSegmentCap(
+        SeasonCycle segment,
+        decimal amount,
+        EmergencyCapacityContext capacityContext,
+        bool isFinancialMember)
+    {
+        if (amount <= 0m)
+        {
+            return;
+        }
+
+        if (segment.CapIsProvisional && !segment.UsesSegmentCap)
+        {
+            segment.SplitReservedAmount = Math.Max(0m, segment.SplitReservedAmount - amount);
+            if (segment.CycleCompleted && GetSegmentRemaining(segment, capacityContext, isFinancialMember) > 0m)
+            {
+                segment.CycleCompleted = false;
+                segment.CycleCompletedAt = null;
+            }
+
+            return;
+        }
+
+        if (segment.UsesSegmentCap)
+        {
+            segment.CycleCapAtStart += amount;
+            if (segment.CycleCompleted && segment.CycleReceived < segment.CycleCapAtStart)
+            {
+                segment.CycleCompleted = false;
+                segment.CycleCompletedAt = null;
+            }
+
+            return;
+        }
+
+        var currentCap = ResolveSegmentCap(
+            segment,
+            isFinancialMember,
+            capacityContext.MemberCycleCap,
+            capacityContext.NonMemberCycleCap);
+        segment.UsesSegmentCap = true;
+        segment.CycleCapAtStart = currentCap + amount;
+        if (segment.CycleCompleted && segment.CycleReceived < segment.CycleCapAtStart)
+        {
+            segment.CycleCompleted = false;
+            segment.CycleCompletedAt = null;
         }
     }
 

@@ -446,7 +446,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Purpose).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.AmountNeeded).HasPrecision(18, 2);
-            entity.Property(e => e.AmountFulfilled).HasPrecision(18, 2);
+            entity.Property(e => e.AmountReceived).HasPrecision(18, 2);
+            entity.Property(e => e.AmountSplitCommitted).HasPrecision(18, 2);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -468,6 +469,14 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.OffererUser)
                 .WithMany()
                 .HasForeignKey(e => e.OffererUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.RequesterEmergencyCycle)
+                .WithMany()
+                .HasForeignKey(e => e.RequesterEmergencyCycleId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.OffererPaybackCycle)
+                .WithMany()
+                .HasForeignKey(e => e.OffererPaybackCycleId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
