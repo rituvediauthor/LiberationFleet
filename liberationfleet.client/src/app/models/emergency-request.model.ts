@@ -1,5 +1,7 @@
 export interface EmergencyRequestListItem {
   id: number;
+  crewId?: number;
+  crewName?: string;
   requesterUserId: number;
   requesterUsername: string;
   purposePreview: string;
@@ -34,6 +36,8 @@ export interface EmergencyMiddlemanOption {
 
 export interface EmergencyRequestDetail {
   id: number;
+  crewId?: number;
+  crewName?: string;
   requesterUserId: number;
   requesterUsername: string;
   purpose: string;

@@ -3,6 +3,8 @@ namespace LiberationFleet.Server.Application.Features.EmergencyRequests.Contract
 public class EmergencyRequestListItemDto
 {
     public int Id { get; set; }
+    public int CrewId { get; set; }
+    public string CrewName { get; set; } = string.Empty;
     public int RequesterUserId { get; set; }
     public string RequesterUsername { get; set; } = string.Empty;
     public string PurposePreview { get; set; } = string.Empty;
@@ -42,6 +44,8 @@ public class EmergencyMiddlemanOptionDto
 public class EmergencyRequestDetailDto
 {
     public int Id { get; set; }
+    public int CrewId { get; set; }
+    public string CrewName { get; set; } = string.Empty;
     public int RequesterUserId { get; set; }
     public string RequesterUsername { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;

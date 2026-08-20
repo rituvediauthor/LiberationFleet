@@ -35,20 +35,21 @@ public class GetFleetEmergenciesQueryHandler(
             return new EmergencyRequestListResponse { Success = false, Message = "Your crew is not in a fleet." };
         }
 
-        var crewIds = (await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken))
-            .Select(fc => fc.CrewId)
-            .ToList();
+        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
+        var crewNames = fleetCrews.ToDictionary(fc => fc.CrewId, fc => fc.Crew.Name);
 
         var items = new List<EmergencyRequestListItemDto>();
-        foreach (var crewId in crewIds)
+        foreach (var fleetCrew in fleetCrews)
         {
-            var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(crewId, cancellationToken);
+            var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(fleetCrew.CrewId, cancellationToken);
             items.AddRange(requests.Select(r =>
             {
                 var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
                 return new EmergencyRequestListItemDto
                 {
                     Id = r.Id,
+                    CrewId = fleetCrew.CrewId,
+                    CrewName = crewNames.GetValueOrDefault(fleetCrew.CrewId, string.Empty),
                     RequesterUserId = r.RequesterUserId,
                     RequesterUsername = r.RequesterUser.Username,
                     PurposePreview = r.Purpose.Length > 120 ? r.Purpose[..117] + "..." : r.Purpose,

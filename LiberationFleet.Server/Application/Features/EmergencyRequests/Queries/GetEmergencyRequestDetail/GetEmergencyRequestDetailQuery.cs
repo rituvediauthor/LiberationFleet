@@ -14,6 +14,7 @@ public class GetEmergencyRequestDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    IFleetRepository fleetRepository,
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
     EmergencySplitService emergencySplitService) : IRequestHandler<GetEmergencyRequestDetailQuery, EmergencyRequestDetailResponse>
@@ -34,12 +35,19 @@ public class GetEmergencyRequestDetailQueryHandler(
             return new EmergencyRequestDetailResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        var emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(request.RequestId, cancellationToken);
-        if (emergencyRequest is null || emergencyRequest.CrewId != membership.CrewId)
+        var (emergencyRequest, accessError) = await EmergencyRequestAccess.GetAccessibleRequestAsync(
+            emergencyRequestRepository,
+            fleetRepository,
+            request.RequestId,
+            membership.CrewId,
+            cancellationToken,
+            withDetails: true);
+        if (emergencyRequest is null)
         {
-            return new EmergencyRequestDetailResponse { Success = false, Message = "Emergency request not found." };
+            return new EmergencyRequestDetailResponse { Success = false, Message = accessError ?? "Emergency request not found." };
         }
 
+        var requestCrewId = emergencyRequest.CrewId;
         var viewer = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
         var viewerMember = viewer.FirstOrDefault(m => m.UserId == viewerId);
         var viewerPlatformIds = viewerMember?.User.PaymentPlatforms
@@ -79,7 +87,16 @@ public class GetEmergencyRequestDetailQueryHandler(
             }
         }
 
-        var allMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(membership.CrewId, cancellationToken);
+        // Middlemen from the request crew (and the viewer's crew when cross-crew).
+        var allMembers = (await mutualAidRepository.GetActiveMembersWithUsersAsync(requestCrewId, cancellationToken)).ToList();
+        if (membership.CrewId != requestCrewId)
+        {
+            var viewerCrewMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(
+                membership.CrewId,
+                cancellationToken);
+            allMembers.AddRange(viewerCrewMembers.Where(m => allMembers.All(existing => existing.UserId != m.UserId)));
+        }
+
         var memberPlatforms = allMembers.Select(CrewPaymentPlatformService.MapCrewMemberPlatforms).ToList();
         var middlemanIds = mutualAidService.FindMiddlemen(
             viewerId,
@@ -104,6 +121,7 @@ public class GetEmergencyRequestDetailQueryHandler(
             cancellationToken);
 
         var amounts = EmergencyRequestDtoMapper.MapAmounts(emergencyRequest);
+        var requestCrew = await mutualAidRepository.GetCrewAsync(requestCrewId, cancellationToken);
 
         return new EmergencyRequestDetailResponse
         {
@@ -112,6 +130,8 @@ public class GetEmergencyRequestDetailQueryHandler(
             Request = new EmergencyRequestDetailDto
             {
                 Id = emergencyRequest.Id,
+                CrewId = requestCrewId,
+                CrewName = requestCrew?.Name ?? string.Empty,
                 RequesterUserId = emergencyRequest.RequesterUserId,
                 RequesterUsername = emergencyRequest.RequesterUser.Username,
                 Purpose = emergencyRequest.Purpose,

@@ -13,7 +13,9 @@ public record MarkEmergencyGiftAlreadyLoggedCommand(int RequestId, decimal Amoun
 public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    ICrewRepository crewRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     IMutualAidService mutualAidService,
     EmergencyReconciliationService reconciliationService,
@@ -40,10 +42,16 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You must be in an active season." };
         }
 
-        var emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(request.RequestId, cancellationToken);
-        if (emergencyRequest is null || emergencyRequest.CrewId != membership.CrewId)
+        var (emergencyRequest, accessError) = await EmergencyRequestAccess.GetAccessibleRequestAsync(
+            emergencyRequestRepository,
+            fleetRepository,
+            request.RequestId,
+            membership.CrewId,
+            cancellationToken,
+            withDetails: true);
+        if (emergencyRequest is null)
         {
-            return new EmergencyRequestOperationResponse { Success = false, Message = "Emergency request not found." };
+            return new EmergencyRequestOperationResponse { Success = false, Message = accessError ?? "Emergency request not found." };
         }
 
         if (emergencyRequest.Status == EmergencyRequestStatus.Cancelled)
@@ -56,6 +64,20 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "You cannot respond to your own emergency request." };
         }
 
+        var requestCrewId = emergencyRequest.CrewId;
+        if (membership.CrewId != requestCrewId)
+        {
+            var giverCrew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+            if (giverCrew is null || !giverCrew.AllowCrossCrewGiving)
+            {
+                return new EmergencyRequestOperationResponse
+                {
+                    Success = false,
+                    Message = "Your crew does not allow giving aid to other crews in the fleet."
+                };
+            }
+        }
+
         var reconciliation = await reconciliationService.ApplyDirectGiftAsync(
             emergencyRequest,
             request.Amount,
@@ -65,7 +87,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
         {
             var loggedGift = new Gift
             {
-                CrewId = membership.CrewId,
+                CrewId = requestCrewId,
                 GiverUserId = giverId,
                 RecipientUserId = emergencyRequest.RequesterUserId,
                 Type = GiftType.Direct,
@@ -93,7 +115,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
         {
             await giftRepository.AddAsync(new Gift
             {
-                CrewId = membership.CrewId,
+                CrewId = requestCrewId,
                 GiverUserId = giverId,
                 RecipientUserId = emergencyRequest.RequesterUserId,
                 Type = GiftType.Direct,
@@ -112,7 +134,11 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
 
         if (reconciliation.AmountAppliedToNeed > 0m)
         {
-            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+            await mutualAidService.OnCrewContributionsChangedAsync(requestCrewId, cancellationToken);
+            if (membership.CrewId != requestCrewId)
+            {
+                await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+            }
         }
 
         return new EmergencyRequestOperationResponse

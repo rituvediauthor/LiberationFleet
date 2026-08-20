@@ -10,7 +10,10 @@
     <div class="request-list" *ngIf="!loading && items.length > 0">
       <article class="request-card" *ngFor="let item of items" (click)="openRequest(item)" role="button" tabindex="0">
         <h2 class="card-title">{{ item.purposePreview }}</h2>
-        <p class="card-meta">{{ item.requesterUsername }} · {{ formatCreatedAt(item.createdAt) }}</p>
+        <p class="card-meta">
+          <span *ngIf="item.crewName">{{ item.crewName }} · </span>
+          {{ item.requesterUsername }} · {{ formatCreatedAt(item.createdAt) }}
+        </p>
         <p class="card-status">
           ${{ item.amountFulfilled }} of ${{ item.amountNeeded }}
           <span *ngIf="item.amountRemaining > 0"> · ${{ item.amountRemaining }} remaining</span>
