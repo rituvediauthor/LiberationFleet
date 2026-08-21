@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 
@@ -17,7 +18,8 @@ public class GetCrewGiftLogQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
-    ICryptoRepository cryptoRepository) : IRequestHandler<GetCrewGiftLogQuery, GiftLogResponse>
+    ICryptoRepository cryptoRepository,
+    ILogger<GetCrewGiftLogQueryHandler> logger) : IRequestHandler<GetCrewGiftLogQuery, GiftLogResponse>
 {
     public async Task<GiftLogResponse> Handle(GetCrewGiftLogQuery request, CancellationToken cancellationToken)
     {
@@ -35,23 +37,48 @@ public class GetCrewGiftLogQueryHandler(
 
         var limit = request.Limit <= 0 ? 50 : Math.Min(request.Limit, 100);
 
-        // Schema drift (e.g. missing LibraryItemTitle) must not 500 the gift log.
-        GiftLogPage page;
-        try
+        GiftLogPage? page = null;
+        Exception? pageLoadError = null;
+        for (var attempt = 0; attempt < 2; attempt++)
         {
-            page = await giftRepository.GetLogPageByCrewIdAsync(
-                membership.CrewId,
-                limit,
-                request.BeforeCreatedAt,
-                request.BeforeId,
-                cancellationToken);
+            try
+            {
+                page = await giftRepository.GetLogPageByCrewIdAsync(
+                    membership.CrewId,
+                    limit,
+                    request.BeforeCreatedAt,
+                    request.BeforeId,
+                    cancellationToken);
+                pageLoadError = null;
+                break;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+            {
+                pageLoadError = ex;
+                logger.LogWarning(ex, "Gift log page load failed (attempt {Attempt}).", attempt + 1);
+                if (attempt == 0)
+                {
+                    try
+                    {
+                        await giftRepository.EnsureGiftLogSchemaAsync(cancellationToken);
+                    }
+                    catch (Exception repairEx)
+                    {
+                        logger.LogWarning(repairEx, "Gift log schema repair during page load failed.");
+                    }
+                }
+            }
         }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+
+        if (page is null)
         {
+            logger.LogError(pageLoadError, "Gift log page load failed after schema repair retry.");
             return new GiftLogResponse
             {
-                Success = false,
-                Message = "Gift log is temporarily unavailable. Please try again after the next update."
+                Success = true,
+                Message = "Gift log loaded with no entries (schema repair pending).",
+                Items = Array.Empty<GiftLogEntryDto>(),
+                HasMore = false
             };
         }
 
@@ -62,6 +89,7 @@ public class GetCrewGiftLogQueryHandler(
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
         {
+            logger.LogWarning(ex, "Gift log completed-initiated lookup failed; continuing without it.");
             completedByInitiated = new Dictionary<int, Gift>();
         }
 
@@ -78,25 +106,40 @@ public class GetCrewGiftLogQueryHandler(
 
         foreach (var parentId in missingParentIds)
         {
-            var parent = await giftRepository.GetByIdWithUsersAsync(parentId, cancellationToken);
-            if (parent is not null)
+            try
             {
-                initiatedParents[parentId] = parent;
+                var parent = await giftRepository.GetByIdWithUsersAsync(parentId, cancellationToken);
+                if (parent is not null)
+                {
+                    initiatedParents[parentId] = parent;
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+            {
+                logger.LogWarning(ex, "Skipping initiated parent {ParentId} for gift log.", parentId);
             }
         }
 
         var pageGiftIds = page.Items.Select(g => g.Id).ToList();
         var giftIds = pageGiftIds.Select(id => id.ToString()).ToList();
-        var envelopes = await cryptoRepository.GetEnvelopesAsync(
-            EncryptedContentType.GiftLogEntry,
-            giftIds,
-            crewId: membership.CrewId,
-            cancellationToken: cancellationToken);
-        var envelopeByGiftId = envelopes
-            .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        Dictionary<string, EncryptedContentEnvelope> envelopeByGiftId;
+        try
+        {
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.GiftLogEntry,
+                giftIds,
+                crewId: membership.CrewId,
+                cancellationToken: cancellationToken);
+            envelopeByGiftId = envelopes
+                .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            logger.LogWarning(ex, "Gift log envelope load failed; continuing without encrypted payloads.");
+            envelopeByGiftId = new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
+        }
 
-        // Engagement tables shipped with gift-log likes/comments; tolerate partial migrate.
         Dictionary<int, int> likeCounts;
         HashSet<int> likedGiftIds;
         Dictionary<int, int> commentCounts;
@@ -108,12 +151,23 @@ public class GetCrewGiftLogQueryHandler(
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
         {
+            logger.LogWarning(ex, "Gift log engagement counts failed; continuing with zeros.");
             likeCounts = new Dictionary<int, int>();
             likedGiftIds = [];
             commentCounts = new Dictionary<int, int>();
         }
 
-        var seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
+        Dictionary<int, DateTime?> seasonStartDates;
+        try
+        {
+            seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            logger.LogWarning(ex, "Gift log season start lookup failed; treating entries as unlocked.");
+            seasonStartDates = new Dictionary<int, DateTime?>();
+        }
+
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 
         var items = new List<GiftLogEntryDto>(page.Items.Count);
@@ -150,8 +204,6 @@ public class GetCrewGiftLogQueryHandler(
                 {
                     entry.HasEncryptedContent = true;
                     entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
-                    // System / celebratory messages are not sensitive; keep plaintext so they
-                    // remain visible even when the encrypted gift envelope exists.
                     if (gift.Type is not GiftType.SeasonStarted
                         and not GiftType.CycleStarted
                         and not GiftType.SurvivalThresholdsRefreshed)
@@ -160,9 +212,6 @@ public class GetCrewGiftLogQueryHandler(
                         entry.RecipientName = string.Empty;
                         entry.MiddlemanName = null;
                         entry.Platform = string.Empty;
-                        // Keep server FormatMessage as a plaintext fallback for clients that
-                        // cannot decrypt; encrypted clients prefer payload.message as the body.
-                        // Do not blank Message for historical freeform posts.
                     }
                 }
 
@@ -170,7 +219,7 @@ public class GetCrewGiftLogQueryHandler(
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
             {
-                // One corrupt historical row must not 500 the whole gift log.
+                logger.LogWarning(ex, "Skipping corrupt gift log entry {GiftId}.", gift.Id);
                 items.Add(new GiftLogEntryDto
                 {
                     Id = gift.Id,

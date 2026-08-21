@@ -155,6 +155,7 @@ static async Task ApplyMigrationsAsync(WebApplication app)
         try
         {
             await dbContext.Database.MigrateAsync();
+            await GiftLogSchemaRepair.EnsureAsync(dbContext, logger);
             logger.LogInformation("Database migrations applied successfully");
             return;
         }

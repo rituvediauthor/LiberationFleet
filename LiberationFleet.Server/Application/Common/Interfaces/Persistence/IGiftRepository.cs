@@ -88,6 +88,10 @@ public interface IGiftRepository
     Task<Dictionary<int, DateTime?>> GetSeasonStartDatesForGiftsAsync(
         IEnumerable<int> giftIds,
         CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Idempotently ensures LibraryItemTitle / GiftComments / GiftLikes exist (staging schema drift).
+    /// </summary>
+    Task EnsureGiftLogSchemaAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class GiftRecipientSummary
