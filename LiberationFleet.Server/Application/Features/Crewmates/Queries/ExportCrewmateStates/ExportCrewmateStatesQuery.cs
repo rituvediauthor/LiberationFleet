@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -78,7 +79,9 @@ public class ExportCrewmateStatesQueryHandler(
                 PeopleRepresentedCount = user.PeopleRepresentedCount,
                 DisabilityLevel = user.DisabilityLevel,
                 IdentityGroups = IdentityGroupKeys.Parse(user.IdentityGroups),
-                SacrificeCountLastSeason = member.EmergencySacrificesThisSeason,
+                SacrificeCountLastSeason = MutualAidCalculationService.GetSacrificeCountFromPercentBonus(
+                    user.PercentBonus),
+                SacrificeCountThisSeason = member.EmergencySacrificesThisSeason,
                 IsSurvivalThresholdRecipient = isSurvivalRecipient,
                 EstimatedMonthlyContribution = member.EstimatedMonthlyContribution,
                 PaymentPlatforms = CrewmateMapper.MapPaymentPlatforms(user),

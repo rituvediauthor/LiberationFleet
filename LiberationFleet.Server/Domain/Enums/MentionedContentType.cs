@@ -7,5 +7,6 @@ public enum MentionedContentType
     ForumComment = 3,
     Proposal = 4,
     ProposalComment = 5,
-    LibraryRequestMessage = 6
+    LibraryRequestMessage = 6,
+    GiftComment = 7
 }

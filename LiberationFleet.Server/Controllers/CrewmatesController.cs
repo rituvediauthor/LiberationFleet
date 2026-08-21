@@ -236,7 +236,7 @@ public class CrewmatesController : ControllerBase
     {
         var builder = new StringBuilder();
         builder.AppendLine(
-            "Username,LifetimeContributions,ReceptionThisYear,PriorityScore,EmergencyLevel,PeopleRepresented,DisabilityLevel,IdentityGroups,SacrificeCountLastSeason,SurvivalThresholdRecipient,EstimatedMonthlyContribution,PaymentPlatforms,Roles");
+            "Username,LifetimeContributions,ReceptionThisYear,PriorityScore,EmergencyLevel,PeopleRepresented,DisabilityLevel,IdentityGroups,SacrificeCountLastSeason,SacrificeCountThisSeason,SurvivalThresholdRecipient,EstimatedMonthlyContribution,PaymentPlatforms,Roles");
 
         foreach (var item in result.Items)
         {
@@ -254,6 +254,7 @@ public class CrewmatesController : ControllerBase
                 CsvText.Escape(item.DisabilityLevel.ToString()),
                 CsvText.Escape(identity),
                 CsvText.Escape(item.SacrificeCountLastSeason.ToString()),
+                CsvText.Escape(item.SacrificeCountThisSeason.ToString()),
                 CsvText.Escape(item.IsSurvivalThresholdRecipient ? "Yes" : "No"),
                 CsvText.Escape(item.EstimatedMonthlyContribution?.ToString() ?? ""),
                 CsvText.Escape(platforms),

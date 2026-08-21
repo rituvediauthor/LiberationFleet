@@ -10,6 +10,8 @@ public static class NotificationCategoryMapper
             or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked
             or NotificationKind.NewFleetForumComment or NotificationKind.NewFleetReply
             or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked
+            or NotificationKind.NewGiftComment or NotificationKind.NewGiftReply
+            or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked
             => NotificationFilterCategory.Comments,
         NotificationKind.Mention or NotificationKind.FleetMention => NotificationFilterCategory.Mentions,
         NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
@@ -35,7 +37,11 @@ public static class NotificationCategoryMapper
             NotificationKind.NewFleetForumComment,
             NotificationKind.NewFleetReply,
             NotificationKind.FleetForumPostLiked,
-            NotificationKind.FleetForumCommentLiked
+            NotificationKind.FleetForumCommentLiked,
+            NotificationKind.NewGiftComment,
+            NotificationKind.NewGiftReply,
+            NotificationKind.GiftEntryLiked,
+            NotificationKind.GiftCommentLiked
         ],
         NotificationFilterCategory.Mentions =>
         [

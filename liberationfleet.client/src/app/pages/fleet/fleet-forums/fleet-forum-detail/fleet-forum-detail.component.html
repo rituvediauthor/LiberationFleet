@@ -137,7 +137,8 @@
         [commentCount]="p.commentCount ?? 0"
         [commentClickable]="false"
         [likeBusy]="likingPost"
-        (likeClick)="togglePostLike()">
+        (likeClick)="togglePostLike()"
+        (viewLikesClick)="openPostLikers()">
       </app-forum-engagement-bar>
 
       <app-proposal-attachment-display
@@ -173,7 +174,8 @@
                 [likeCount]="comment.likeCount ?? 0"
                 [liked]="!!comment.likedByCurrentUser"
                 [busy]="likingCommentId === comment.id"
-                (likeClick)="toggleCommentLike(comment)">
+                (likeClick)="toggleCommentLike(comment)"
+                (viewLikesClick)="openCommentLikers(comment)">
               </app-forum-comment-like>
               <div class="menu-wrap">
               <button
@@ -238,7 +240,8 @@
                     [likeCount]="reply.likeCount ?? 0"
                     [liked]="!!reply.likedByCurrentUser"
                     [busy]="likingCommentId === reply.id"
-                    (likeClick)="toggleCommentLike(reply)">
+                    (likeClick)="toggleCommentLike(reply)"
+                    (viewLikesClick)="openCommentLikers(reply)">
                   </app-forum-comment-like>
                   <div class="menu-wrap">
                   <button
@@ -379,3 +382,12 @@
   (dismissed)="onReportDismissed()"
   (submitted)="onReportSubmitted()">
 </app-report-content-dialog>
+
+<app-content-likers-dialog
+  [open]="likersDialogOpen"
+  [items]="likersDialogItems"
+  [loading]="likersDialogLoading"
+  [title]="likersDialogTitle"
+  [fleetId]="fleetId || null"
+  (close)="closeLikersDialog()">
+</app-content-likers-dialog>

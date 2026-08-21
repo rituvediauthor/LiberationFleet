@@ -99,6 +99,7 @@ public class LibraryContributionGiftService(
             amount,
             countsTowardContribution: true,
             countsTowardReception: true,
+            offering.Title,
             cancellationToken);
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
@@ -135,6 +136,7 @@ public class LibraryContributionGiftService(
             amount,
             countsTowardContribution: true,
             countsTowardReception: true,
+            offering.Title,
             cancellationToken);
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
@@ -164,6 +166,7 @@ public class LibraryContributionGiftService(
             offering.CreatorUserId,
             crewRecipient.Id,
             amount,
+            offering.Title,
             cancellationToken);
 
         return new CreatorContributionGiftDetails(
@@ -189,6 +192,7 @@ public class LibraryContributionGiftService(
             contributorUserId,
             crewRecipient.Id,
             amount,
+            libraryItemTitle: null,
             cancellationToken);
     }
 
@@ -197,6 +201,21 @@ public class LibraryContributionGiftService(
         int contributorUserId,
         int crewRecipientUserId,
         decimal amount,
+        CancellationToken cancellationToken = default) =>
+        await CreateContributionGiftAsync(
+            crewId,
+            contributorUserId,
+            crewRecipientUserId,
+            amount,
+            libraryItemTitle: null,
+            cancellationToken);
+
+    public async Task<Gift> CreateContributionGiftAsync(
+        int crewId,
+        int contributorUserId,
+        int crewRecipientUserId,
+        decimal amount,
+        string? libraryItemTitle,
         CancellationToken cancellationToken = default)
     {
         var platform = await GetOrCreateInKindPlatformAsync(crewId, cancellationToken);
@@ -212,6 +231,7 @@ public class LibraryContributionGiftService(
             IsCustomGift = true,
             CountsTowardReception = false,
             CountsTowardContribution = true,
+            LibraryItemTitle = TruncateTitle(libraryItemTitle),
             VerificationStatus = GiftVerificationStatus.Verified,
             ReceptionApplied = false,
             CreatedAt = DateTime.UtcNow
@@ -228,6 +248,7 @@ public class LibraryContributionGiftService(
         decimal amount,
         bool countsTowardContribution,
         bool countsTowardReception,
+        string? libraryItemTitle,
         CancellationToken cancellationToken)
     {
         var platform = await GetOrCreateInKindPlatformAsync(crewId, cancellationToken);
@@ -243,6 +264,7 @@ public class LibraryContributionGiftService(
             IsCustomGift = false,
             CountsTowardReception = countsTowardReception,
             CountsTowardContribution = countsTowardContribution,
+            LibraryItemTitle = TruncateTitle(libraryItemTitle),
             VerificationStatus = GiftVerificationStatus.Verified,
             ReceptionApplied = false,
             CreatedAt = DateTime.UtcNow
@@ -250,6 +272,17 @@ public class LibraryContributionGiftService(
 
         await giftRepository.AddAsync(gift, cancellationToken);
         return gift;
+    }
+
+    private static string? TruncateTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return null;
+        }
+
+        var trimmed = title.Trim();
+        return trimmed.Length <= 200 ? trimmed : trimmed[..200];
     }
 
     private async Task<CrewPaymentPlatform> GetOrCreateInKindPlatformAsync(

@@ -1,4 +1,5 @@
 import { EncryptedPayload } from './crypto.model';
+import { PaymentPlatformAccount } from './profile.model';
 
 export type GiftLogType =
   | 'direct'
@@ -52,6 +53,110 @@ export interface GiftLogEntry {
   completionPlatformOptions?: PaymentPlatformOption[];
   hasEncryptedContent?: boolean;
   encryptedPayload?: EncryptedPayload | null;
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
+  commentCount?: number;
+  isSeasonLocked?: boolean;
+}
+
+export interface ContentLiker {
+  userId: number;
+  username: string;
+  avatarResourceId?: string | null;
+}
+
+export interface ContentLikersResponse {
+  success: boolean;
+  message: string;
+  items: ContentLiker[];
+}
+
+export interface GiftComment {
+  id: number;
+  authorUserId: number;
+  authorUsername: string;
+  authorAvatarResourceId?: string | null;
+  parentCommentId?: number | null;
+  replyToCommentId?: number | null;
+  replyToUsername?: string | null;
+  createdAt: Date;
+  replyCount: number;
+  hasEncryptedContent?: boolean;
+  encryptedPayload?: EncryptedPayload | null;
+  body?: string;
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
+  replies?: GiftComment[];
+  repliesExpanded?: boolean;
+}
+
+export interface GiftDetail extends GiftLogEntry {
+  comments: GiftComment[];
+}
+
+export interface GiftDetailResponse {
+  success: boolean;
+  message: string;
+  entry?: GiftDetail;
+}
+
+export interface GiftCommentRepliesResponse {
+  success: boolean;
+  message: string;
+  items: GiftComment[];
+}
+
+export interface GiftLikeToggleResponse {
+  success: boolean;
+  message: string;
+  liked: boolean;
+  likeCount: number;
+}
+
+export interface GiftEngagementOperationResponse {
+  success: boolean;
+  message: string;
+  commentId?: number;
+}
+
+export interface SeasonProfile {
+  paymentPlatforms: PaymentPlatformAccount[];
+  inNeedOfAid: boolean;
+  emergencyLevel: number;
+  peopleRepresentedCount: number;
+  disabilityLevel: number;
+  identityGroups: string[];
+  needsSurvivalAid: boolean;
+  canToggleInNeedOff: boolean;
+  inNeedToggleThreshold: number;
+  estimatedMonthlyContribution: number;
+  canEditEstimatedContribution: boolean;
+  givingSeasonJoinedAt?: string | null;
+  priorityScore: number;
+}
+
+export interface SeasonProfileResponse {
+  success: boolean;
+  message: string;
+  profile?: SeasonProfile;
+}
+
+export interface UpdateSeasonProfileRequest {
+  paymentPlatforms: Array<{
+    id: number;
+    platformId: number;
+    customPlatformName?: string;
+    platform: string;
+    handle: string;
+    isPreferred: boolean;
+  }>;
+  inNeedOfAid: boolean;
+  emergencyLevel: number;
+  peopleRepresentedCount: number;
+  disabilityLevel: number;
+  identityGroups: string[];
+  needsSurvivalAid: boolean;
+  estimatedMonthlyContribution: number;
 }
 
 export interface PendingMiddlemanGift {
@@ -198,6 +303,7 @@ export interface GiftHistoryEntry {
   platform: string;
   middlemanUsername?: string | null;
   statusLabel: string;
+  libraryItemTitle?: string | null;
 }
 
 export interface GiftHistoryDetailResponse {

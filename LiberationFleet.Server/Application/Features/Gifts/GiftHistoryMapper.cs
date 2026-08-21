@@ -14,7 +14,8 @@ public static class GiftHistoryMapper
         GiftType = gift.Type.ToString().ToLowerInvariant(),
         Platform = gift.CrewPaymentPlatform?.Name ?? string.Empty,
         MiddlemanUsername = gift.MiddlemanUser?.Username,
-        StatusLabel = BuildStatusLabel(gift)
+        StatusLabel = BuildStatusLabel(gift),
+        LibraryItemTitle = gift.LibraryItemTitle
     };
 
     private static string BuildStatusLabel(Gift gift)

@@ -52,4 +52,10 @@ public interface IForumRepository
     Task AddLikeAsync(ForumLike like, CancellationToken cancellationToken = default);
     Task AddPostAsync(ForumPost post, CancellationToken cancellationToken = default);
     Task AddCommentAsync(ForumComment comment, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActivePostLikersAsync(
+        int postId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveCommentLikersAsync(
+        int commentId,
+        CancellationToken cancellationToken = default);
 }

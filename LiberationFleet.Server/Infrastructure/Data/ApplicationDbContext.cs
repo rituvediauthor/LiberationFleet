@@ -28,6 +28,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<CrewPaymentPlatform> CrewPaymentPlatforms => Set<CrewPaymentPlatform>();
     public DbSet<PaymentPlatform> PaymentPlatforms => Set<PaymentPlatform>();
     public DbSet<Gift> Gifts => Set<Gift>();
+    public DbSet<GiftComment> GiftComments => Set<GiftComment>();
+    public DbSet<GiftLike> GiftLikes => Set<GiftLike>();
     public DbSet<SeasonCycle> SeasonCycles => Set<SeasonCycle>();
     public DbSet<EmergencyRequest> EmergencyRequests => Set<EmergencyRequest>();
     public DbSet<EmergencySplitOffer> EmergencySplitOffers => Set<EmergencySplitOffer>();
@@ -373,6 +375,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.CountsTowardReception).HasDefaultValue(true);
             entity.Property(e => e.IsCustomGift).HasDefaultValue(false);
             entity.Property(e => e.CustomGiftCategory);
+            entity.Property(e => e.LibraryItemTitle).HasMaxLength(200);
             entity.Property(e => e.CountsTowardContribution).HasDefaultValue(true);
             entity.Property(e => e.ReceptionApplied).HasDefaultValue(false);
             entity.Property(e => e.VerificationStatus).HasDefaultValue(GiftVerificationStatus.Pending);
@@ -405,10 +408,61 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.EmergencyRequestId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<SeasonCycle>()
+            entity.HasOne(e => e.SeasonCycle)
                 .WithMany()
                 .HasForeignKey(e => e.SeasonCycleId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GiftComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Body).HasMaxLength(4000);
+            entity.HasOne(e => e.Gift)
+                .WithMany(g => g.Comments)
+                .HasForeignKey(e => e.GiftId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(e => e.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ReplyToComment)
+                .WithMany()
+                .HasForeignKey(e => e.ReplyToCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GiftLike>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AuthorNotified).HasDefaultValue(false);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_GiftLikes_GiftOrComment",
+                "([GiftId] IS NOT NULL AND [GiftCommentId] IS NULL) OR ([GiftId] IS NULL AND [GiftCommentId] IS NOT NULL)"));
+            entity.HasIndex(e => new { e.UserId, e.GiftId })
+                .IsUnique()
+                .HasFilter("[GiftId] IS NOT NULL");
+            entity.HasIndex(e => new { e.UserId, e.GiftCommentId })
+                .IsUnique()
+                .HasFilter("[GiftCommentId] IS NOT NULL");
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Gift)
+                .WithMany(g => g.Likes)
+                .HasForeignKey(e => e.GiftId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+            entity.HasOne(e => e.GiftComment)
+                .WithMany()
+                .HasForeignKey(e => e.GiftCommentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
         });
         modelBuilder.Entity<SeasonCycle>(entity =>
         {

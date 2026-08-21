@@ -25,10 +25,49 @@
 }
 
 .page-title {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
   color: var(--lf-color-text-body);
+}
+
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.season-info-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--lf-color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.season-info-link:hover {
+  text-decoration: underline;
+}
+
+.log-entry-open {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.log-engagement-wrap {
+  margin-top: 4px;
 }
 
 .state-text {

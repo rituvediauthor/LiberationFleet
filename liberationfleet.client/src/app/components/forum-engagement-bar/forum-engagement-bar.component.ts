@@ -19,6 +19,13 @@ import { CommonModule } from '@angular/common';
         <span class="engagement-count">{{ likeCount }}</span>
       </button>
       <button
+        *ngIf="likeCount > 0"
+        type="button"
+        class="view-likes-btn"
+        (click)="onViewLikes($event)">
+        View
+      </button>
+      <button
         type="button"
         class="engagement-btn"
         [class.static]="!commentClickable"
@@ -78,6 +85,22 @@ import { CommonModule } from '@angular/common';
       cursor: wait;
     }
 
+    .view-likes-btn {
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--lf-color-text-subtle);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .view-likes-btn:hover {
+      color: var(--lf-color-text-body);
+      text-decoration: underline;
+    }
+
     .engagement-count {
       min-width: 1ch;
       font-variant-numeric: tabular-nums;
@@ -93,6 +116,7 @@ export class ForumEngagementBarComponent {
 
   @Output() likeClick = new EventEmitter<void>();
   @Output() commentClick = new EventEmitter<void>();
+  @Output() viewLikesClick = new EventEmitter<void>();
 
   onLike(event: Event) {
     event.stopPropagation();
@@ -101,6 +125,12 @@ export class ForumEngagementBarComponent {
       return;
     }
     this.likeClick.emit();
+  }
+
+  onViewLikes(event: Event) {
+    event.stopPropagation();
+    event.preventDefault();
+    this.viewLikesClick.emit();
   }
 
   onComment(event: Event) {

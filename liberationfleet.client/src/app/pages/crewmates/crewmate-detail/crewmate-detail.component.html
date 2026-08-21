@@ -127,6 +127,15 @@
         <div class="readonly-item">
           <span class="readonly-label">Sacrifices last season</span>
           <span class="readonly-value">{{ profile.sacrificeCountLastSeason }}</span>
+          <span class="hint-text">Explains percent boost this season (+10% per sacrifice).</span>
+        </div>
+        <div class="readonly-item">
+          <span class="readonly-label">Sacrifices this season</span>
+          <span class="readonly-value">{{ profile.sacrificeCountThisSeason }}</span>
+        </div>
+        <div class="readonly-item" *ngIf="profile.percentBoost != null">
+          <span class="readonly-label">Percent boost</span>
+          <span class="readonly-value">+{{ profile.percentBoost }}%</span>
         </div>
         <div class="readonly-item">
           <span class="readonly-label">Avg. monthly contributions (3 mo)</span>

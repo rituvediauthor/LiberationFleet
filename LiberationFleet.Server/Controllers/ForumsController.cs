@@ -7,8 +7,10 @@ using LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumCom
 using LiberationFleet.Server.Application.Features.Forums.Commands.UpdateForumPost;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetCrewForumPosts;
+using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumCommentLikers;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumCommentReplies;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumPostDetail;
+using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumPostLikers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -114,6 +116,20 @@ public class ForumsController : ControllerBase
     public async Task<IActionResult> ToggleCommentLike(int postId, int commentId)
     {
         var result = await _mediator.Send(new ToggleForumCommentLikeCommand(postId, commentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("{postId:int}/likers")]
+    public async Task<IActionResult> GetPostLikers(int postId)
+    {
+        var result = await _mediator.Send(new GetForumPostLikersQuery(postId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("{postId:int}/comments/{commentId:int}/likers")]
+    public async Task<IActionResult> GetCommentLikers(int postId, int commentId)
+    {
+        var result = await _mediator.Send(new GetForumCommentLikersQuery(postId, commentId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

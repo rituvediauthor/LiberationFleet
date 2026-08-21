@@ -403,4 +403,30 @@ export class FleetService {
       {}
     );
   }
+
+  getForumPostLikers(postId: number) {
+    return this.http.get<{ success: boolean; message: string; items: Array<{ userId: number; username: string; avatarResourceId?: string | null }> }>(
+      `${this.apiUrl}/current/forums/${postId}/likers`
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
+    );
+  }
+
+  getForumCommentLikers(postId: number, commentId: number) {
+    return this.http.get<{ success: boolean; message: string; items: Array<{ userId: number; username: string; avatarResourceId?: string | null }> }>(
+      `${this.apiUrl}/current/forums/${postId}/comments/${commentId}/likers`
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
+    );
+  }
 }

@@ -63,13 +63,36 @@ public class GetCrewGiftLogQueryHandler(
             }
         }
 
-        var giftIds = page.Items.Select(g => g.Id.ToString()).ToList();
+        var pageGiftIds = page.Items.Select(g => g.Id).ToList();
+        var giftIds = pageGiftIds.Select(id => id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.GiftLogEntry,
             giftIds,
             crewId: membership.CrewId,
             cancellationToken: cancellationToken);
-        var envelopeByGiftId = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var envelopeByGiftId = envelopes
+            .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+        // Engagement tables shipped with gift-log likes/comments; tolerate partial migrate.
+        Dictionary<int, int> likeCounts;
+        HashSet<int> likedGiftIds;
+        Dictionary<int, int> commentCounts;
+        try
+        {
+            likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken);
+            likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken);
+            commentCounts = await giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            likeCounts = new Dictionary<int, int>();
+            likedGiftIds = [];
+            commentCounts = new Dictionary<int, int>();
+        }
+
+        var seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
+        var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 
         var items = page.Items.Select(gift =>
         {
@@ -80,7 +103,24 @@ public class GetCrewGiftLogQueryHandler(
                 initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
             }
 
-            var entry = GiftMapper.MapGift(gift, userId, completedChild, initiatedParent);
+            seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
+            var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
+                gift,
+                currentSeasonStartDate,
+                giftSeasonStartDate ?? gift.SeasonCycle?.SeasonStartDate);
+            likeCounts.TryGetValue(gift.Id, out var likeCount);
+            commentCounts.TryGetValue(gift.Id, out var commentCount);
+
+            var entry = GiftMapper.MapGift(
+                gift,
+                userId,
+                completedChild,
+                initiatedParent,
+                likeCount: likeCount,
+                likedByCurrentUser: likedGiftIds.Contains(gift.Id),
+                commentCount: commentCount,
+                isSeasonLocked: isSeasonLocked,
+                isAccountant: membership.IsAccountant);
             if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
             {
                 entry.HasEncryptedContent = true;

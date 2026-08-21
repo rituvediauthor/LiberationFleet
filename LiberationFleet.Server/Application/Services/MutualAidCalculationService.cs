@@ -183,6 +183,12 @@ public static class MutualAidCalculationService
     public static int GetSacrificePercentBonus(int emergencySacrificeCount) =>
         Math.Max(0, emergencySacrificeCount) * 10;
 
+    /// <summary>
+    /// Inverse of <see cref="GetSacrificePercentBonus"/>: each emergency sacrifice is worth +10% for the following season.
+    /// </summary>
+    public static int GetSacrificeCountFromPercentBonus(int percentBonus) =>
+        Math.Max(0, percentBonus) / 10;
+
     public static bool IsSeasonComplete(IEnumerable<SeasonCycle> cycles, Func<SeasonCycle, decimal> effectiveCapResolver) =>
         cycles.All(c => IsCycleSatisfied(c, effectiveCapResolver(c)));
 }

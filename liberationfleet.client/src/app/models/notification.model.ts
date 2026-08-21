@@ -44,7 +44,11 @@ export type NotificationKind =
   | 'NewFleetReply'
   | 'FleetMention'
   | 'FleetForumPostLiked'
-  | 'FleetForumCommentLiked';
+  | 'FleetForumCommentLiked'
+  | 'NewGiftComment'
+  | 'GiftEntryLiked'
+  | 'GiftCommentLiked'
+  | 'NewGiftReply';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 

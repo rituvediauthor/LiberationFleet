@@ -47,5 +47,9 @@ public enum NotificationKind
     NewFleetReply = 45,
     FleetMention = 46,
     FleetForumPostLiked = 47,
-    FleetForumCommentLiked = 48
+    FleetForumCommentLiked = 48,
+    NewGiftComment = 49,
+    GiftEntryLiked = 50,
+    GiftCommentLiked = 51,
+    NewGiftReply = 52
 }

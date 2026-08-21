@@ -5,12 +5,6 @@
     </header>
 
     <nav class="user-menu" aria-label="User actions">
-      <button type="button" class="menu-link" (click)="goToInvitations()">
-        <i class="fa-solid fa-envelope-open-text menu-icon" aria-hidden="true"></i>
-        <span class="menu-label">My Invitations</span>
-        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-      </button>
-
       <button type="button" class="menu-link" (click)="goToUserProfile()">
         <i class="fa-solid fa-user menu-icon" aria-hidden="true"></i>
         <span class="menu-label">User Profile</span>
@@ -35,9 +29,21 @@
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
 
+      <button type="button" class="menu-link" (click)="goToInvitations()">
+        <i class="fa-solid fa-envelope-open-text menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">My Invitations</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
       <button type="button" class="menu-link" (click)="goToDonate()">
         <i class="fa-solid fa-heart menu-icon" aria-hidden="true"></i>
         <span class="menu-label">Donate</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="goToAiDisclosure()">
+        <i class="fa-solid fa-circle-info menu-icon" aria-hidden="true"></i>
+        <span class="menu-label">AI Disclosure</span>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
     </nav>

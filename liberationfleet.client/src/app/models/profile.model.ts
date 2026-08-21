@@ -40,6 +40,7 @@ export interface UserProfile {
 
 export interface UserProfileStats {
   sacrificeCountLastSeason: number;
+  sacrificeCountThisSeason: number;
   averageMonthlyContributions: number;
   membershipStatus: boolean;
   lifetimeContributions: number;

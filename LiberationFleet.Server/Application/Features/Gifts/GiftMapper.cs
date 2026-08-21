@@ -13,7 +13,12 @@ public static class GiftMapper
         Gift? completedChild = null,
         Gift? initiatedParent = null,
         string? status = null,
-        IReadOnlyList<PaymentPlatformOptionDto>? completionPlatformOptions = null)
+        IReadOnlyList<PaymentPlatformOptionDto>? completionPlatformOptions = null,
+        int likeCount = 0,
+        bool likedByCurrentUser = false,
+        int commentCount = 0,
+        bool isSeasonLocked = false,
+        bool isAccountant = false)
     {
         var relatedUserIds = new List<int> { gift.GiverUserId, gift.RecipientUserId };
         if (gift.MiddlemanUserId.HasValue)
@@ -34,6 +39,11 @@ public static class GiftMapper
                 initiatedParent);
         }
 
+        if (isSeasonLocked && !isAccountant)
+        {
+            availableActions = Array.Empty<string>();
+        }
+
         if (viewerUserId.HasValue
             && gift.Type == GiftType.Initiated
             && gift.MiddlemanUserId == viewerUserId
@@ -51,7 +61,7 @@ public static class GiftMapper
             Id = gift.Id,
             Type = gift.Type.ToString().ToLowerInvariant(),
             GiverId = gift.GiverUserId,
-            GiverName = gift.GiverUser.Username,
+            GiverName = gift.GiverUser?.Username ?? string.Empty,
             RecipientId = gift.RecipientUserId,
             RecipientName = gift.RecipientUser is null
                 ? "Unknown"
@@ -72,7 +82,11 @@ public static class GiftMapper
             AvailableActions = availableActions,
             CompletionPlatformOptions = completionPlatformOptions is null
                 ? Array.Empty<GiftPlatformOptionDto>()
-                : completionPlatformOptions.Select(p => new GiftPlatformOptionDto { Id = p.Id, Name = p.Name }).ToList()
+                : completionPlatformOptions.Select(p => new GiftPlatformOptionDto { Id = p.Id, Name = p.Name }).ToList(),
+            LikeCount = likeCount,
+            LikedByCurrentUser = likedByCurrentUser,
+            CommentCount = commentCount,
+            IsSeasonLocked = isSeasonLocked
         };
     }
 
@@ -147,18 +161,20 @@ public static class GiftMapper
 
         var amount = gift.Amount.ToString("0.##");
         var platform = gift.CrewPaymentPlatform?.Name ?? "unknown platform";
+        var middlemanName = gift.MiddlemanUser?.Username ?? "a middleman";
 
         var recipientName = gift.RecipientUser is null
             ? "Unknown"
             : GiftDisplayNames.GetRecipientName(gift.RecipientUser);
+        var giverName = gift.GiverUser?.Username ?? "Someone";
         var baseMessage = gift.Type switch
         {
             GiftType.Direct =>
-                $"{gift.GiverUser.Username} gave ${amount} to {recipientName} via {platform}",
+                $"{giverName} gave ${amount} to {recipientName} via {platform}",
             GiftType.Initiated =>
-                $"{gift.GiverUser.Username} initiated a ${amount} gift to {recipientName} through {gift.MiddlemanUser!.Username} via {platform}",
+                $"{giverName} initiated a ${amount} gift to {recipientName} through {middlemanName} via {platform}",
             GiftType.Completed =>
-                $"{gift.MiddlemanUser!.Username} completed {gift.GiverUser.Username}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
+                $"{middlemanName} completed {giverName}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
             _ => string.Empty
         };
 

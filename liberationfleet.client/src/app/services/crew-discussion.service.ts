@@ -13,6 +13,7 @@ import {
   DiscussionCommentRepliesResponse,
   ForumLikeToggleResponse
 } from '../models/crew-discussion.model';
+import { ContentLiker, ContentLikersResponse } from '../models/gift.model';
 
 @Injectable({
   providedIn: 'root'
@@ -143,6 +144,34 @@ export class CrewDiscussionService {
     return this.http.post<ForumLikeToggleResponse>(
       `${config.apiPath}/${postId}/comments/${commentId}/like`,
       {}
+    );
+  }
+
+  getPostLikers(config: DiscussionConfig, postId: number): Observable<ContentLiker[]> {
+    return this.http.get<ContentLikersResponse>(`${config.apiPath}/${postId}/likers`).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
+    );
+  }
+
+  getCommentLikers(
+    config: DiscussionConfig,
+    postId: number,
+    commentId: number
+  ): Observable<ContentLiker[]> {
+    return this.http.get<ContentLikersResponse>(
+      `${config.apiPath}/${postId}/comments/${commentId}/likers`
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
     );
   }
 

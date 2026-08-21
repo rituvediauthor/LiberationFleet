@@ -19,6 +19,8 @@ import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
 import { MyInvitationsComponent } from './pages/my-invitations/my-invitations.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
+import { GiftLogDetailComponent } from './pages/gift-log/gift-log-detail/gift-log-detail.component';
+import { SeasonInfoComponent } from './pages/gift-log/season-info/season-info.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
 import { EmergencyRequestsListComponent } from './pages/emergency-requests/emergency-requests-list/emergency-requests-list.component';
@@ -37,6 +39,7 @@ import { SecurityAlertsComponent } from './pages/security-alerts/security-alerts
 import { PasswordUpdateComponent } from './pages/password-update/password-update.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
 import { DonateComponent } from './pages/donate/donate.component';
+import { AiDisclosureComponent } from './pages/ai-disclosure/ai-disclosure.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
 import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
@@ -401,6 +404,14 @@ export const routes: Routes = [
     data: { parentTab: 'profile', locationHeader: 'Donate' }
   },
   {
+    path: 'app/ai-disclosure',
+    component: AiDisclosureComponent,
+    canActivate: [authGuard],
+    title: 'AI Disclosure'
+  ,
+    data: { parentTab: 'profile', locationHeader: 'AI Disclosure' }
+  },
+  {
     path: 'app/profile/gift-history',
     component: GiftHistoryListComponent,
     pathMatch: 'full',
@@ -553,10 +564,22 @@ export const routes: Routes = [
     data: { parentTab: 'crew', locationHeader: 'Add Non-Member' }
   },
   {
+    path: 'app/crew/gift-log/season-info',
+    component: SeasonInfoComponent,
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'My giving info' }
+  },
+  {
     path: 'app/crew/gift-log/record',
     component: RecordGiftComponent,
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Record Gift' }
+  },
+  {
+    path: 'app/crew/gift-log/:id',
+    component: GiftLogDetailComponent,
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Gift' }
   },
   {
     path: 'app/crew/chats',

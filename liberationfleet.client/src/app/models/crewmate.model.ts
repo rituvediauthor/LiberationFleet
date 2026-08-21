@@ -63,6 +63,8 @@ export interface CrewmateProfile {
   electedRoles: CrewmateElectedRole[];
   paymentPlatforms: CrewmatePaymentPlatform[];
   sacrificeCountLastSeason: number;
+  sacrificeCountThisSeason: number;
+  percentBoost?: number;
   averageMonthlyContributions: number;
   membershipStatus: boolean;
   lifetimeContributions: number;

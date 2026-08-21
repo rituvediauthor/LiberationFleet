@@ -255,4 +255,32 @@ public class ForumRepository : IForumRepository
 
     public async Task AddCommentAsync(ForumComment comment, CancellationToken cancellationToken = default) =>
         await _context.ForumComments.AddAsync(comment, cancellationToken);
+
+    public async Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActivePostLikersAsync(
+        int postId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.ForumLikes
+            .AsNoTracking()
+            .Where(l => l.ForumPostId == postId && l.RemovedAt == null)
+            .OrderBy(l => l.CreatedAt)
+            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+    }
+
+    public async Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveCommentLikersAsync(
+        int commentId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.ForumLikes
+            .AsNoTracking()
+            .Where(l => l.ForumCommentId == commentId && l.RemovedAt == null)
+            .OrderBy(l => l.CreatedAt)
+            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+    }
 }

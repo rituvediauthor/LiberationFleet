@@ -23,5 +23,6 @@ public enum EncryptedContentType
     LibraryRequestMessage = 16,
     LibraryBrokenReport = 17,
     LibraryMaintenanceRecord = 18,
-    ProfileAvatar = 19
+    ProfileAvatar = 19,
+    GiftComment = 20
 }

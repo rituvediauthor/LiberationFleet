@@ -12,6 +12,10 @@
   background: #1f2937;
   border-bottom: 2px solid #f59e0b;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .dev-toolbar.busy {
@@ -49,6 +53,7 @@
   letter-spacing: 0.08em;
   color: #f59e0b;
   margin-right: 4px;
+  flex-shrink: 0;
 }
 
 .dev-btn {
@@ -59,6 +64,8 @@
   padding: 4px 10px;
   font-size: 12px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dev-btn:hover:not(:disabled) {
@@ -83,4 +90,6 @@
   margin-left: auto;
   min-width: 32px;
   padding-inline: 8px;
+  position: sticky;
+  right: 0;
 }

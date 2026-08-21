@@ -37,6 +37,7 @@ public class GiftRepository : IGiftRepository
                 .ThenInclude(u => u!.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.CrewPaymentPlatform)
+            .Include(g => g.SeasonCycle)
             .Where(g => g.CrewId == crewId);
 
         if (beforeCreatedAt.HasValue && beforeId.HasValue)
@@ -142,6 +143,7 @@ public class GiftRepository : IGiftRepository
                 .ThenInclude(u => u!.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.CrewPaymentPlatform)
+            .Include(g => g.SeasonCycle)
             .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<Gift>> GetPendingMiddlemanGiftsAsync(
@@ -189,7 +191,12 @@ public class GiftRepository : IGiftRepository
             .Where(g => g.CrewId == crewId && g.Type == GiftType.Completed && g.InitiatedGiftId != null)
             .ToListAsync(cancellationToken);
 
-        return completed.ToDictionary(g => g.InitiatedGiftId!.Value);
+        return completed
+            .GroupBy(g => g.InitiatedGiftId!.Value)
+            .ToDictionary(
+                group => group.Key,
+                // Prefer the newest completion if historical duplicates exist.
+                group => group.OrderByDescending(g => g.Id).First());
     }
 
     public async Task AddAsync(Gift gift, CancellationToken cancellationToken = default)
@@ -387,9 +394,10 @@ public class GiftRepository : IGiftRepository
 
     public async Task<IReadOnlyList<PendingReceptionCredit>> GetPendingReceptionCreditsAsync(
         int crewId,
+        DateTime? currentSeasonStartDate,
         CancellationToken cancellationToken = default)
     {
-        var gifts = await _context.Gifts
+        var query = _context.Gifts
             .AsNoTracking()
             .Where(g => g.CrewId == crewId
                 && g.CountsTowardReception
@@ -397,7 +405,19 @@ public class GiftRepository : IGiftRepository
                 && (
                     (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)
                     || (g.Type == GiftType.Completed
-                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)))
+                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)));
+
+        if (currentSeasonStartDate.HasValue)
+        {
+            var seasonStart = currentSeasonStartDate.Value;
+            query = query.Where(g =>
+                (g.SeasonCycleId != null
+                    && g.SeasonCycle != null
+                    && g.SeasonCycle.SeasonStartDate == seasonStart)
+                || (g.SeasonCycleId == null && g.CreatedAt >= seasonStart));
+        }
+
+        return await query
             .Select(g => new PendingReceptionCredit
             {
                 RecipientUserId = g.RecipientUserId,
@@ -407,8 +427,6 @@ public class GiftRepository : IGiftRepository
                 Amount = g.Amount
             })
             .ToListAsync(cancellationToken);
-
-        return gifts;
     }
 
     public async Task<IReadOnlyList<Gift>> GetGiftsDueForAutoVerificationAsync(
@@ -421,6 +439,8 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
             .Include(g => g.CrewPaymentPlatform)
+            .Include(g => g.SeasonCycle)
+            .Include(g => g.Crew)
             .Where(g => g.CountsTowardReception
                 && !g.ReceptionApplied
                 && !g.IsCustomGift
@@ -428,10 +448,203 @@ public class GiftRepository : IGiftRepository
                 && (
                     (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)
                     || (g.Type == GiftType.Completed
-                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)))
+                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification))
+                && (g.Crew.CurrentSeasonStartDate == null
+                    || (g.SeasonCycle != null && g.SeasonCycle.SeasonStartDate == g.Crew.CurrentSeasonStartDate)
+                    || (g.SeasonCycle == null && g.CreatedAt >= g.Crew.CurrentSeasonStartDate)))
             .OrderBy(g => g.CreatedAt)
             .ThenBy(g => g.Id)
             .Take(limit)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<GiftComment>> GetCommentsByGiftIdAsync(
+        int giftId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.GiftComments
+            .Include(c => c.AuthorUser)
+            .Include(c => c.ReplyToComment!)
+                .ThenInclude(r => r.AuthorUser)
+            .Where(c => c.GiftId == giftId && !c.IsDeleted)
+            .OrderBy(c => c.CreatedAt)
+            .ThenBy(c => c.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<GiftComment>> GetRepliesByParentCommentIdAsync(
+        int giftId,
+        int parentCommentId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.GiftComments
+            .Include(c => c.AuthorUser)
+            .Include(c => c.ReplyToComment!)
+                .ThenInclude(r => r.AuthorUser)
+            .Where(c => c.GiftId == giftId && c.ParentCommentId == parentCommentId && !c.IsDeleted)
+            .OrderBy(c => c.CreatedAt)
+            .ThenBy(c => c.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<GiftComment?> GetCommentByIdAsync(int commentId, CancellationToken cancellationToken = default) =>
+        _context.GiftComments
+            .Include(c => c.AuthorUser)
+            .FirstOrDefaultAsync(c => c.Id == commentId && !c.IsDeleted, cancellationToken);
+
+    public async Task<Dictionary<int, int>> GetActiveLikeCountsForGiftsAsync(
+        IEnumerable<int> giftIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = giftIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        return await _context.GiftLikes
+            .Where(l => l.GiftId.HasValue && ids.Contains(l.GiftId.Value) && l.RemovedAt == null)
+            .GroupBy(l => l.GiftId!.Value)
+            .Select(g => new { GiftId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.GiftId, x => x.Count, cancellationToken);
+    }
+
+    public async Task<HashSet<int>> GetActiveLikedGiftIdsByUserAsync(
+        int userId,
+        IEnumerable<int> giftIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = giftIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var likedIds = await _context.GiftLikes
+            .Where(l => l.UserId == userId
+                && l.GiftId.HasValue
+                && ids.Contains(l.GiftId.Value)
+                && l.RemovedAt == null)
+            .Select(l => l.GiftId!.Value)
+            .ToListAsync(cancellationToken);
+
+        return likedIds.ToHashSet();
+    }
+
+    public async Task<Dictionary<int, int>> GetActiveLikeCountsForGiftCommentsAsync(
+        IEnumerable<int> commentIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = commentIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        return await _context.GiftLikes
+            .Where(l => l.GiftCommentId.HasValue && ids.Contains(l.GiftCommentId.Value) && l.RemovedAt == null)
+            .GroupBy(l => l.GiftCommentId!.Value)
+            .Select(g => new { CommentId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CommentId, x => x.Count, cancellationToken);
+    }
+
+    public async Task<HashSet<int>> GetActiveLikedGiftCommentIdsByUserAsync(
+        int userId,
+        IEnumerable<int> commentIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = commentIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var likedIds = await _context.GiftLikes
+            .Where(l => l.UserId == userId
+                && l.GiftCommentId.HasValue
+                && ids.Contains(l.GiftCommentId.Value)
+                && l.RemovedAt == null)
+            .Select(l => l.GiftCommentId!.Value)
+            .ToListAsync(cancellationToken);
+
+        return likedIds.ToHashSet();
+    }
+
+    public async Task<Dictionary<int, int>> GetCommentCountsForGiftsAsync(
+        IEnumerable<int> giftIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = giftIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        return await _context.GiftComments
+            .Where(c => ids.Contains(c.GiftId) && !c.IsDeleted)
+            .GroupBy(c => c.GiftId)
+            .Select(g => new { GiftId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.GiftId, x => x.Count, cancellationToken);
+    }
+
+    public Task<GiftLike?> GetGiftLikeAsync(int userId, int giftId, CancellationToken cancellationToken = default) =>
+        _context.GiftLikes.FirstOrDefaultAsync(l => l.UserId == userId && l.GiftId == giftId, cancellationToken);
+
+    public Task<GiftLike?> GetGiftCommentLikeAsync(int userId, int commentId, CancellationToken cancellationToken = default) =>
+        _context.GiftLikes.FirstOrDefaultAsync(l => l.UserId == userId && l.GiftCommentId == commentId, cancellationToken);
+
+    public async Task AddLikeAsync(GiftLike like, CancellationToken cancellationToken = default) =>
+        await _context.GiftLikes.AddAsync(like, cancellationToken);
+
+    public async Task AddCommentAsync(GiftComment comment, CancellationToken cancellationToken = default) =>
+        await _context.GiftComments.AddAsync(comment, cancellationToken);
+
+    public async Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveGiftLikersAsync(
+        int giftId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.GiftLikes
+            .AsNoTracking()
+            .Where(l => l.GiftId == giftId && l.RemovedAt == null)
+            .OrderBy(l => l.CreatedAt)
+            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+    }
+
+    public async Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveGiftCommentLikersAsync(
+        int commentId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.GiftLikes
+            .AsNoTracking()
+            .Where(l => l.GiftCommentId == commentId && l.RemovedAt == null)
+            .OrderBy(l => l.CreatedAt)
+            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+    }
+
+    public async Task<Dictionary<int, DateTime?>> GetSeasonStartDatesForGiftsAsync(
+        IEnumerable<int> giftIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = giftIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, DateTime?>();
+        }
+
+        return await _context.Gifts
+            .AsNoTracking()
+            .Where(g => ids.Contains(g.Id))
+            .Select(g => new
+            {
+                g.Id,
+                SeasonStartDate = g.SeasonCycle != null ? (DateTime?)g.SeasonCycle.SeasonStartDate : null
+            })
+            .ToDictionaryAsync(x => x.Id, x => x.SeasonStartDate, cancellationToken);
     }
 }

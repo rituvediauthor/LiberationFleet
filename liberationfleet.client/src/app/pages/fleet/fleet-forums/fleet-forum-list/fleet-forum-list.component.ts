@@ -16,6 +16,7 @@ import { AdultContentGateComponent } from '../../../../components/adult-content-
 import { LibraryImageCarouselComponent } from '../../../../components/library-image-carousel/library-image-carousel.component';
 import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
 import { ForumEngagementBarComponent } from '../../../../components/forum-engagement-bar/forum-engagement-bar.component';
+import { ContentLikersDialogComponent } from '../../../../components/content-likers-dialog/content-likers-dialog.component';
 import { FleetService } from '../../../../services/fleet.service';
 import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
 import { ToastService } from '../../../../components/toast/toast.component';
@@ -33,6 +34,7 @@ import {
   saveForumListScrollState
 } from '../../../../utils/forum-list-scroll.util';
 import { ForumListPrefetchService } from '../../../../services/forum-list-prefetch.service';
+import { ContentLiker } from '../../../../models/gift.model';
 
 @Component({
   selector: 'app-fleet-forum-list',
@@ -44,7 +46,8 @@ import { ForumListPrefetchService } from '../../../../services/forum-list-prefet
     ContentBadgeComponent,
     LibraryImageCarouselComponent,
     UserAvatarComponent,
-    ForumEngagementBarComponent
+    ForumEngagementBarComponent,
+    ContentLikersDialogComponent
   ],
   templateUrl: './fleet-forum-list.component.html',
   styleUrl: './fleet-forum-list.component.css'
@@ -71,6 +74,10 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   pullDistance = 0;
+  likersDialogOpen = false;
+  likersDialogLoading = false;
+  likersDialogItems: ContentLiker[] = [];
+  likersDialogTitle = 'Liked by';
 
   private readonly pageSize = 20;
   private readonly scrollStateKey = 'fleet';
@@ -318,6 +325,29 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
         this.toastService.error('Failed to update like');
       }
     });
+  }
+
+  openPostLikers(item: FleetForumListItem) {
+    this.likersDialogTitle = 'Liked by';
+    this.likersDialogOpen = true;
+    this.likersDialogLoading = true;
+    this.likersDialogItems = [];
+    this.fleetService.getForumPostLikers(item.id).subscribe({
+      next: items => {
+        this.likersDialogLoading = false;
+        this.likersDialogItems = items;
+      },
+      error: err => {
+        this.likersDialogLoading = false;
+        this.likersDialogOpen = false;
+        this.toastService.error(err?.message ?? 'Failed to load likers');
+      }
+    });
+  }
+
+  closeLikersDialog() {
+    this.likersDialogOpen = false;
+    this.likersDialogItems = [];
   }
 
   onAdultGateConfirmed() {

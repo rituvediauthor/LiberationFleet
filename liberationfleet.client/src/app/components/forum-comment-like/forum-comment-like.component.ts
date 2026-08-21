@@ -6,22 +6,37 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <button
-      type="button"
-      class="comment-like-btn"
-      [class.liked]="liked"
-      [disabled]="busy"
-      (click)="onToggle($event)"
-      [attr.aria-pressed]="liked"
-      aria-label="Like comment">
-      <i class="fa-solid fa-heart" aria-hidden="true"></i>
-      <span class="like-count">{{ likeCount }}</span>
-    </button>
+    <div class="comment-like-wrap">
+      <button
+        type="button"
+        class="comment-like-btn"
+        [class.liked]="liked"
+        [disabled]="busy"
+        (click)="onToggle($event)"
+        [attr.aria-pressed]="liked"
+        aria-label="Like comment">
+        <i class="fa-solid fa-heart" aria-hidden="true"></i>
+        <span class="like-count">{{ likeCount }}</span>
+      </button>
+      <button
+        *ngIf="likeCount > 0"
+        type="button"
+        class="view-likes-link"
+        (click)="onViewLikes($event)">
+        View
+      </button>
+    </div>
   `,
   styles: [`
     :host {
       display: inline-flex;
       flex-shrink: 0;
+    }
+
+    .comment-like-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .comment-like-btn {
@@ -56,6 +71,22 @@ import { CommonModule } from '@angular/common';
     .like-count {
       font-variant-numeric: tabular-nums;
     }
+
+    .view-likes-link {
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--lf-color-text-subtle);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .view-likes-link:hover {
+      color: var(--lf-color-text-body);
+      text-decoration: underline;
+    }
   `]
 })
 export class ForumCommentLikeComponent {
@@ -63,6 +94,7 @@ export class ForumCommentLikeComponent {
   @Input() liked = false;
   @Input() busy = false;
   @Output() likeClick = new EventEmitter<void>();
+  @Output() viewLikesClick = new EventEmitter<void>();
 
   onToggle(event: Event) {
     event.stopPropagation();
@@ -71,5 +103,11 @@ export class ForumCommentLikeComponent {
       return;
     }
     this.likeClick.emit();
+  }
+
+  onViewLikes(event: Event) {
+    event.stopPropagation();
+    event.preventDefault();
+    this.viewLikesClick.emit();
   }
 }

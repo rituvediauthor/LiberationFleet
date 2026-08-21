@@ -336,4 +336,13 @@ public class MutualAidCalculationServiceTests
 
         MutualAidCalculationService.IsSeasonComplete(cycles, _ => 600m).Should().BeFalse();
     }
+
+    [Fact]
+    public void GetSacrificeCountFromPercentBonus_InvertsTenPercentPerSacrifice()
+    {
+        MutualAidCalculationService.GetSacrificeCountFromPercentBonus(0).Should().Be(0);
+        MutualAidCalculationService.GetSacrificeCountFromPercentBonus(10).Should().Be(1);
+        MutualAidCalculationService.GetSacrificeCountFromPercentBonus(30).Should().Be(3);
+        MutualAidCalculationService.GetSacrificePercentBonus(3).Should().Be(30);
+    }
 }

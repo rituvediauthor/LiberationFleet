@@ -18,7 +18,7 @@ import { CrewmateService } from '../../services/crewmate.service';
 import { GiftLogCryptoService } from '../../services/crypto/gift-log-crypto.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { GiftLogEntry, GiftVerificationAction } from '../../models/gift.model';
+import { GiftLogEntry, GiftVerificationAction, ContentLiker } from '../../models/gift.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
 import { NavigationService } from '../../services/navigation.service';
 import { NotificationContentService } from '../../services/notification-content.service';
@@ -28,13 +28,15 @@ import {
   readNotificationHighlightId
 } from '../../utils/notification-deep-link.util';
 import { LocationHeaderComponent } from '../../components/location-header/location-header.component';
+import { ForumEngagementBarComponent } from '../../components/forum-engagement-bar/forum-engagement-bar.component';
+import { ContentLikersDialogComponent } from '../../components/content-likers-dialog/content-likers-dialog.component';
 import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../utils/location-header.util';
 
 @Component({
   selector: 'app-gift-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, LocationHeaderComponent, NotificationTargetDirective],
+  imports: [CommonModule, FormsModule, LocationHeaderComponent, NotificationTargetDirective, ForumEngagementBarComponent, ContentLikersDialogComponent],
   templateUrl: './gift-log.component.html',
   styleUrl: './gift-log.component.css'
 })
@@ -54,6 +56,11 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   userInSeason = false;
   seasonStarted = false;
   completionPlatformSelections: Record<number, number | ''> = {};
+  likingEntryId: number | null = null;
+  likersDialogOpen = false;
+  likersDialogLoading = false;
+  likersDialogItems: ContentLiker[] = [];
+  likersDialogTitle = 'Liked by';
   locationHeaderInfo: LocationHeaderInfo | null = injectLocationHeaderInfo();
   highlightId: number | null = null;
   readonly notifyPrefix = '/app/crew/gift-log';
@@ -183,6 +190,59 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   goToJoinSeason() {
     void this.router.navigate(['/app/crew/join-season']);
+  }
+
+  goToSeasonInfo() {
+    void this.router.navigate(['/app/crew/gift-log/season-info']);
+  }
+
+  openGiftDetail(entry: GiftLogEntry) {
+    void this.router.navigate(['/app/crew/gift-log', entry.id]);
+  }
+
+  toggleEntryLike(entry: GiftLogEntry) {
+    if (this.likingEntryId === entry.id) {
+      return;
+    }
+    this.likingEntryId = entry.id;
+    this.giftService.toggleGiftLike(entry.id).subscribe({
+      next: response => {
+        this.likingEntryId = null;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update like');
+          return;
+        }
+        entry.likedByCurrentUser = response.liked;
+        entry.likeCount = response.likeCount;
+      },
+      error: () => {
+        this.likingEntryId = null;
+        this.toastService.error('Failed to update like');
+      }
+    });
+  }
+
+  openEntryLikers(entry: GiftLogEntry) {
+    this.likersDialogTitle = 'Liked by';
+    this.likersDialogOpen = true;
+    this.likersDialogLoading = true;
+    this.likersDialogItems = [];
+    this.giftService.getGiftLikers(entry.id).subscribe({
+      next: items => {
+        this.likersDialogLoading = false;
+        this.likersDialogItems = items;
+      },
+      error: err => {
+        this.likersDialogLoading = false;
+        this.likersDialogOpen = false;
+        this.toastService.error(err?.message ?? 'Failed to load likers');
+      }
+    });
+  }
+
+  closeLikersDialog() {
+    this.likersDialogOpen = false;
+    this.likersDialogItems = [];
   }
 
   exportGiftLog() {

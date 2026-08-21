@@ -1,17 +1,26 @@
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGift;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.CompleteMiddlemanGift;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.CreateGiftComment;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.ToggleGiftCommentLike;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.ToggleGiftLike;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.UpdateSeasonProfile;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.ExportCrewGiftLog;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewGiftLog;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetCrewMembers;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetGiftCommentLikers;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetGiftCommentReplies;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetGiftDetail;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetGiftLikers;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetPendingMiddlemanGifts;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistory;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistoryForRecipient;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetNextAid;
-using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrder;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetSeasonProfile;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Application.Features.Gifts;
-using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrder;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -59,6 +68,77 @@ public class GiftsController : ControllerBase
         [FromQuery] int? beforeId = null)
     {
         var result = await _mediator.Send(new GetCrewGiftLogQuery(limit, beforeCreatedAt, beforeId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("log/{giftId:int}")]
+    public async Task<IActionResult> GetDetail(int giftId)
+    {
+        var result = await _mediator.Send(new GetGiftDetailQuery(giftId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("log/{giftId:int}/comments/{parentCommentId:int}/replies")]
+    public async Task<IActionResult> GetCommentReplies(int giftId, int parentCommentId)
+    {
+        var result = await _mediator.Send(new GetGiftCommentRepliesQuery(giftId, parentCommentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("log/{giftId:int}/likers")]
+    public async Task<IActionResult> GetGiftLikers(int giftId)
+    {
+        var result = await _mediator.Send(new GetGiftLikersQuery(giftId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("log/{giftId:int}/comments/{commentId:int}/likers")]
+    public async Task<IActionResult> GetGiftCommentLikers(int giftId, int commentId)
+    {
+        var result = await _mediator.Send(new GetGiftCommentLikersQuery(giftId, commentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("log/{giftId:int}/comments")]
+    public async Task<IActionResult> CreateComment(int giftId, [FromBody] CreateGiftCommentRequest body)
+    {
+        body ??= new CreateGiftCommentRequest();
+        var result = await _mediator.Send(new CreateGiftCommentCommand(
+            giftId,
+            body.ParentCommentId,
+            body.Nonce,
+            body.Ciphertext,
+            body.KeyVersion,
+            body.MentionedUserIds,
+            body.NotificationPreview));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("log/{giftId:int}/like")]
+    public async Task<IActionResult> ToggleGiftLike(int giftId)
+    {
+        var result = await _mediator.Send(new ToggleGiftLikeCommand(giftId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("log/{giftId:int}/comments/{commentId:int}/like")]
+    public async Task<IActionResult> ToggleGiftCommentLike(int giftId, int commentId)
+    {
+        var result = await _mediator.Send(new ToggleGiftCommentLikeCommand(giftId, commentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("season-profile")]
+    public async Task<IActionResult> GetSeasonProfile()
+    {
+        var result = await _mediator.Send(new GetSeasonProfileQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("season-profile")]
+    public async Task<IActionResult> UpdateSeasonProfile([FromBody] UpdateSeasonProfileCommand command)
+    {
+        var result = await _mediator.Send(command);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
