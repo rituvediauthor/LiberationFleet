@@ -67,7 +67,7 @@ public class GetMyProfileQueryHandlerTests
         var giftStats = new CrewmateGiftStatsDto
         {
             LifetimeContributions = 150,
-            SacrificeCountLastSeason = 99, // ignored when membership emergency counter is present
+            SacrificeCountLastSeason = 99, // ignored when PercentBonus / membership counter present
             AverageMonthlyContributions = 30,
             ReceptionThisYear = 40
         };
@@ -76,6 +76,8 @@ public class GetMyProfileQueryHandlerTests
         giftRepository
             .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(giftStats);
+
+        user.PercentBonus = 20; // 2 sacrifices last season → +20%
 
         var membership = HandlerTestFixture.CreateMembership(user, HandlerTestFixture.CreateCrew());
         membership.EmergencySacrificesThisSeason = 3;
@@ -96,7 +98,9 @@ public class GetMyProfileQueryHandlerTests
         result.Should().NotBeNull();
         result!.Stats.LifetimeContributions.Should().Be(150);
         result.Stats.AverageMonthlyContributions.Should().Be(30);
-        result.Stats.SacrificeCountLastSeason.Should().Be(3);
+        result.Stats.SacrificeCountLastSeason.Should().Be(2);
+        result.Stats.SacrificeCountThisSeason.Should().Be(3);
+        result.Stats.PercentBoost.Should().Be(20);
         result.Stats.ReceptionThisYear.Should().Be(40);
         result.Stats.MembershipStatus.Should().BeFalse();
     }

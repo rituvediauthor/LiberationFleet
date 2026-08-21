@@ -1602,6 +1602,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int?>("CustomGiftCategory")
                         .HasColumnType("int");
 
+                    b.Property<string>("LibraryItemTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<bool>("IsRepresentativeGift")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")

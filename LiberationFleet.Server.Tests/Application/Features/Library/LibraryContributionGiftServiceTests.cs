@@ -54,6 +54,7 @@ public class LibraryContributionGiftServiceTests
         gift.GiverUserId.Should().Be(fixture.Alice.Id);
         gift.RecipientUserId.Should().Be(fixture.Bob.Id);
         gift.CrewPaymentPlatform!.Name.Should().Be(LibraryContributionGiftService.InKindPlatformName);
+        gift.LibraryItemTitle.Should().Be("Eggs");
     }
 
     [Fact]

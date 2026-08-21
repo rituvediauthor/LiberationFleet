@@ -16,6 +16,9 @@
             <span class="gift-amount">${{ gift.amount }}</span>
             <span class="gift-platform" *ngIf="gift.platform">via {{ gift.platform }}</span>
           </div>
+          <p class="gift-detail" *ngIf="gift.libraryItemTitle">
+            {{ gift.libraryItemTitle }}
+          </p>
           <p class="gift-detail">
             {{ gift.statusLabel }}
             <span *ngIf="gift.middlemanUsername"> · middleman {{ gift.middlemanUsername }}</span>

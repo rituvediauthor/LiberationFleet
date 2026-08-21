@@ -84,6 +84,8 @@ public class GiftHistoryEntryDto
     public string Platform { get; set; } = string.Empty;
     public string? MiddlemanUsername { get; set; }
     public string StatusLabel { get; set; } = string.Empty;
+    /// <summary>Library of Things good/service name when this gift is a LoT contribution.</summary>
+    public string? LibraryItemTitle { get; set; }
 }
 
 public class GiftHistoryDetailResponse

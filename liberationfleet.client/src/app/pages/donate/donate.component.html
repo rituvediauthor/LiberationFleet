@@ -1,6 +1,9 @@
 <app-page-layout [backButton]="backButton">
   <div class="donate-page">
     <h1>Donate</h1>
+    <p class="staging-warning" role="alert" *ngIf="isStagingEnvironment">
+      You are on the staging environment. Donations will not work here — use production to give.
+    </p>
     <p class="lede" id="donate-lede">
       Support hosting and development of the Liberation Fleet app. This is separate from mutual-aid gifts to crewmates.
       Payment is processed by Stripe — Liberation Fleet does not store your card details.

@@ -373,6 +373,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.CountsTowardReception).HasDefaultValue(true);
             entity.Property(e => e.IsCustomGift).HasDefaultValue(false);
             entity.Property(e => e.CustomGiftCategory);
+            entity.Property(e => e.LibraryItemTitle).HasMaxLength(200);
             entity.Property(e => e.CountsTowardContribution).HasDefaultValue(true);
             entity.Property(e => e.ReceptionApplied).HasDefaultValue(false);
             entity.Property(e => e.VerificationStatus).HasDefaultValue(GiftVerificationStatus.Pending);

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -74,12 +75,18 @@ public static class ProfileMapper
         int previousTaxYear,
         int currentTaxYear)
     {
+        // Last season's sacrifices were converted into PercentBonus at season start.
+        var sacrificeCountLastSeason = MutualAidCalculationService.GetSacrificeCountFromPercentBonus(percentBoost);
+        if (sacrificeCountLastSeason == 0 && membership is null)
+        {
+            sacrificeCountLastSeason = giftStats.SacrificeCountLastSeason;
+        }
+
         return new UserProfileStatsDto
         {
-            // Prefer the membership counter: it increments only on emergency responses
-            // (recorded gift, already-logged, or cycle split), not every gift given.
-            SacrificeCountLastSeason = membership?.EmergencySacrificesThisSeason
-                ?? giftStats.SacrificeCountLastSeason,
+            SacrificeCountLastSeason = sacrificeCountLastSeason,
+            // Live counter: increments only on emergency responses this season.
+            SacrificeCountThisSeason = membership?.EmergencySacrificesThisSeason ?? 0,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = giftStats.LifetimeContributions,

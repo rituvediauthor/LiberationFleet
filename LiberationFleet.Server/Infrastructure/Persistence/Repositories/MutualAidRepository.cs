@@ -89,6 +89,50 @@ public class MutualAidRepository : IMutualAidRepository
         await _context.SeasonCycles.AddAsync(cycle, cancellationToken);
     }
 
+    public async Task ClearSeasonDataAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var giftsWithCycle = await _context.Gifts
+            .Where(g => g.CrewId == crewId && g.SeasonCycleId != null)
+            .ToListAsync(cancellationToken);
+        foreach (var gift in giftsWithCycle)
+        {
+            gift.SeasonCycleId = null;
+        }
+
+        // Emergency split offers Restrict-FK to season cycles; wipe crew emergencies with the season.
+        var emergencyRequestIds = await _context.EmergencyRequests
+            .Where(r => r.CrewId == crewId)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+        if (emergencyRequestIds.Count > 0)
+        {
+            var responses = await _context.EmergencyGiftResponses
+                .Where(r => emergencyRequestIds.Contains(r.EmergencyRequestId))
+                .ToListAsync(cancellationToken);
+            _context.EmergencyGiftResponses.RemoveRange(responses);
+
+            var offers = await _context.EmergencySplitOffers
+                .Where(o => emergencyRequestIds.Contains(o.EmergencyRequestId))
+                .ToListAsync(cancellationToken);
+            _context.EmergencySplitOffers.RemoveRange(offers);
+
+            var requests = await _context.EmergencyRequests
+                .Where(r => r.CrewId == crewId)
+                .ToListAsync(cancellationToken);
+            _context.EmergencyRequests.RemoveRange(requests);
+        }
+
+        var cycles = await _context.SeasonCycles
+            .Where(c => c.CrewId == crewId)
+            .ToListAsync(cancellationToken);
+        _context.SeasonCycles.RemoveRange(cycles);
+
+        var thresholds = await _context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == crewId)
+            .ToListAsync(cancellationToken);
+        _context.MonthlySurvivalThresholds.RemoveRange(thresholds);
+    }
+
     public async Task<IReadOnlyList<MonthlySurvivalThreshold>> GetUnsatisfiedThresholdsAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.MonthlySurvivalThresholds
             .Include(t => t.User)

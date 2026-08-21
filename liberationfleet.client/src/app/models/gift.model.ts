@@ -198,6 +198,7 @@ export interface GiftHistoryEntry {
   platform: string;
   middlemanUsername?: string | null;
   statusLabel: string;
+  libraryItemTitle?: string | null;
 }
 
 export interface GiftHistoryDetailResponse {

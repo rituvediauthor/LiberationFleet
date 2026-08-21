@@ -45,6 +45,12 @@
           </p>
         </section>
 
+        <div class="priority-score-banner" *ngIf="stats" aria-live="polite">
+          <span class="priority-score-label">Priority score</span>
+          <span class="priority-score-value">{{ stats.priorityScore }}</span>
+          <span class="hint-text">Live score used for reception order this season.</span>
+        </div>
+
         <div class="form-group">
           <label for="username">Username</label>
           <input
@@ -132,6 +138,12 @@
           <div class="readonly-item">
             <span class="readonly-label">Sacrifices last season</span>
             <span class="readonly-value">{{ stats.sacrificeCountLastSeason }}</span>
+            <span class="hint-text">Explains your percent boost this season (+10% per sacrifice).</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Sacrifices this season</span>
+            <span class="readonly-value">{{ stats.sacrificeCountThisSeason }}</span>
+            <span class="hint-text">Emergency responses this season; become next season’s percent boost.</span>
           </div>
           <div class="readonly-item">
             <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
@@ -154,10 +166,7 @@
           <div class="readonly-item">
             <span class="readonly-label">Percent boost</span>
             <span class="readonly-value">+{{ stats.percentBoost }}%</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Priority score</span>
-            <span class="readonly-value">{{ stats.priorityScore }}</span>
+            <span class="hint-text">From sacrifices last season; multiplies your priority score.</span>
           </div>
           <div class="readonly-item">
             <span class="readonly-label">Survival threshold recipient</span>

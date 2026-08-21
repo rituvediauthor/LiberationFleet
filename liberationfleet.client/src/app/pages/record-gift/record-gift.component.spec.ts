@@ -63,6 +63,7 @@ describe('RecordGiftComponent', () => {
       isSurvivalThresholdRecipient: false,
       stats: {
         sacrificeCountLastSeason: 0,
+        sacrificeCountThisSeason: 0,
         averageMonthlyContributions: 0,
         membershipStatus: true,
         lifetimeContributions: 0,
