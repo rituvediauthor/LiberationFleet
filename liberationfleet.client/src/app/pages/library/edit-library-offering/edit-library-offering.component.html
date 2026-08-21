@@ -3,8 +3,6 @@
   [primaryButton]="saveButton"
   [secondaryButton]="isStockBased ? deleteButton : null">
   <div class="edit-offering-page">
-    <h1 class="page-title">Edit Offering</h1>
-
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 

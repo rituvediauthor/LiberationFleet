@@ -13,20 +13,24 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "LibraryItemTitle",
-                table: "Gifts",
-                type: "nvarchar(200)",
-                maxLength: 200,
-                nullable: true);
+            // Idempotent: staging may have partially applied sibling migrations with the same timestamp.
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Gifts', 'LibraryItemTitle') IS NULL
+                BEGIN
+                    ALTER TABLE [Gifts] ADD [LibraryItemTitle] nvarchar(200) NULL;
+                END
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "LibraryItemTitle",
-                table: "Gifts");
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Gifts', 'LibraryItemTitle') IS NOT NULL
+                BEGIN
+                    ALTER TABLE [Gifts] DROP COLUMN [LibraryItemTitle];
+                END
+                """);
         }
     }
 }

@@ -4,8 +4,6 @@
     <p *ngIf="!loading && loadError" class="status-message error">{{ loadError }}</p>
 
     <div class="form-card" *ngIf="!loading && !loadError">
-      <h1>Edit Crew</h1>
-
       <form [formGroup]="form">
         <div class="form-group readonly-group">
           <label>Join code</label>

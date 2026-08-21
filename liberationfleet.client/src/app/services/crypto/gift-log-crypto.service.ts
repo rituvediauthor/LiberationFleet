@@ -45,38 +45,28 @@ export class GiftLogCryptoService {
         const middlemanName = payload.middlemanName ?? undefined;
         const platform = payload.platform;
         const isLibraryOfThings = (platform || entry.platform) === 'Library of Things';
-        const message = this.isCelebrationType(entry.type)
-          ? (payload.message || entry.message || this.buildDisplayMessage(
-              entry.type,
-              giverName || entry.giverName,
-              recipientName || entry.recipientName,
-              middlemanName ?? entry.middlemanName,
-              entry.amount,
-              platform || entry.platform,
-              entry.status,
-              entry.displayFlag
-            ))
-          : (isLibraryOfThings && payload.message)
-            ? payload.message
-            : this.buildDisplayMessage(
-                entry.type,
-                giverName,
-                recipientName,
-                middlemanName,
-                entry.amount,
-                platform,
-                entry.status,
-                entry.displayFlag
-              );
+        const rebuilt = this.buildDisplayMessage(
+          entry.type,
+          giverName || entry.giverName,
+          recipientName || entry.recipientName,
+          middlemanName ?? entry.middlemanName,
+          entry.amount,
+          platform || entry.platform,
+          entry.status,
+          entry.displayFlag
+        );
+        // Prefer the stored encrypted body (historical freeform posts / LoT / celebrations).
+        // Fall back to a rebuilt template when the payload has no message text.
+        const storedMessage = (payload.message || '').trim();
+        const message = storedMessage
+          ? storedMessage
+          : (this.isCelebrationType(entry.type) ? (entry.message || rebuilt) : rebuilt);
         return {
           ...entry,
           giverName,
           recipientName,
           middlemanName,
           platform,
-          // Rebuild from current verification state so stale encrypted text
-          // (e.g. still saying Unverified) does not stick after confirm.
-          // Celebrations keep the stored plaintext message.
           message
         };
       } catch {

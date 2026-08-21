@@ -4,7 +4,6 @@
   <div class="form-container" *ngIf="!isSubmitting">
     <div class="form-card">
       <ng-container *ngIf="joinStep === 'select'">
-        <h1>Join Fleet</h1>
         <p class="intro-text">
           Review a fleet's public rules and request to join. Joining requires your crew to approve a proposal first.
           <a routerLink="/app/crew/invitations" class="inline-link">View your invitations</a>
@@ -123,7 +122,6 @@
       </ng-container>
 
       <ng-container *ngIf="joinStep === 'rules'">
-        <h1>Join {{ targetFleetName }}</h1>
         <p class="intro-text">Accept each public rule below before requesting to join this fleet.</p>
 
         <p class="search-status" *ngIf="isLoadingRules">Loading rules...</p>

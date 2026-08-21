@@ -54,11 +54,23 @@ public class GetGiftDetailQueryHandler(
         var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
             gift,
             currentSeasonStartDate,
-            giftSeasonStartDate ?? gift.SeasonCycle?.SeasonStartDate);
+            giftSeasonStartDate);
 
-        var likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync([gift.Id], cancellationToken);
-        var likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, [gift.Id], cancellationToken);
-        var commentCounts = await giftRepository.GetCommentCountsForGiftsAsync([gift.Id], cancellationToken);
+        Dictionary<int, int> likeCounts;
+        HashSet<int> likedGiftIds;
+        Dictionary<int, int> commentCounts;
+        try
+        {
+            likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync([gift.Id], cancellationToken);
+            likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, [gift.Id], cancellationToken);
+            commentCounts = await giftRepository.GetCommentCountsForGiftsAsync([gift.Id], cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            likeCounts = new Dictionary<int, int>();
+            likedGiftIds = [];
+            commentCounts = new Dictionary<int, int>();
+        }
         likeCounts.TryGetValue(gift.Id, out var likeCount);
         commentCounts.TryGetValue(gift.Id, out var commentCount);
 
@@ -89,11 +101,19 @@ public class GetGiftDetailQueryHandler(
                 entry.RecipientName = string.Empty;
                 entry.MiddlemanName = null;
                 entry.Platform = string.Empty;
-                entry.Message = string.Empty;
+                // Keep FormatMessage as plaintext fallback; clients prefer payload.message.
             }
         }
 
-        var comments = await giftRepository.GetCommentsByGiftIdAsync(gift.Id, cancellationToken);
+        IReadOnlyList<GiftComment> comments;
+        try
+        {
+            comments = await giftRepository.GetCommentsByGiftIdAsync(gift.Id, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            comments = Array.Empty<GiftComment>();
+        }
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var visibleComments = comments.Where(c => !hiddenUserIds.Contains(c.AuthorUserId)).ToList();
         var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
