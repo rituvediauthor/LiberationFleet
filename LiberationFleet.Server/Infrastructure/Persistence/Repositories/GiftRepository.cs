@@ -646,4 +646,7 @@ public class GiftRepository : IGiftRepository
             })
             .ToDictionaryAsync(x => x.Id, x => x.SeasonStartDate, cancellationToken);
     }
+
+    public Task EnsureGiftLogSchemaAsync(CancellationToken cancellationToken = default) =>
+        GiftLogSchemaRepair.EnsureAsync(_context, cancellationToken: cancellationToken);
 }

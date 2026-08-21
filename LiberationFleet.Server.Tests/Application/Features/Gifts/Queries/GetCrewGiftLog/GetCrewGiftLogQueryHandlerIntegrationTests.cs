@@ -6,6 +6,7 @@ using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Queries.GetCrewGiftLog;
@@ -126,6 +127,9 @@ public class GetCrewGiftLogQueryHandlerIntegrationTests
         giftRepository
             .Setup(r => r.GetSeasonStartDatesForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, DateTime?>());
+        giftRepository
+            .Setup(r => r.EnsureGiftLogSchemaAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var cryptoRepository = new Mock<ICryptoRepository>();
         cryptoRepository
@@ -142,7 +146,8 @@ public class GetCrewGiftLogQueryHandlerIntegrationTests
             HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Alice.Id).Object,
             membershipRepository.Object,
             giftRepository.Object,
-            cryptoRepository.Object);
+            cryptoRepository.Object,
+            new Mock<ILogger<GetCrewGiftLogQueryHandler>>().Object);
 
         var result = await handler.Handle(new GetCrewGiftLogQuery(), CancellationToken.None);
 

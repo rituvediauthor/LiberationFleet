@@ -7,12 +7,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 {
     /// <summary>
-    /// Ensures gift-log engagement tables and LibraryItemTitle exist even when earlier
-    /// same-timestamp migrations were recorded without fully applying schema on staging.
+    /// Idempotent recreation of gift engagement tables. The original CreateTable migration
+    /// shared a timestamp with AddGiftLibraryItemTitle and left some environments with
+    /// incomplete schema while still recording a history row.
     /// </summary>
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260821190000_EnsureGiftLogSchema")]
-    public partial class EnsureGiftLogSchema : Migration
+    [Migration("20260821200000_RepairGiftLogSchemaIdempotent")]
+    public partial class RepairGiftLogSchemaIdempotent : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,7 +24,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Intentionally empty — this migration only repairs missing schema.
+            // Repair-only; do not drop columns/tables that may be in use.
         }
     }
 }
