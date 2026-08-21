@@ -50,6 +50,19 @@ public class CompleteMiddlemanGiftCommandHandler(
             return new GiftOperationResponse { Success = false, Message = "Pending gift not found." };
         }
 
+        var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
+            initiated,
+            membership.Crew?.CurrentSeasonStartDate,
+            initiated.SeasonCycle?.SeasonStartDate);
+        if (!GiftSeasonAccess.CanMutateVerification(membership.IsAccountant, isSeasonLocked))
+        {
+            return new GiftOperationResponse
+            {
+                Success = false,
+                Message = "This gift is from a past season and is locked. Only accountants can complete it."
+            };
+        }
+
         if (initiated.MiddlemanUserId != userId)
         {
             return new GiftOperationResponse { Success = false, Message = "You are not the middleman for this gift." };

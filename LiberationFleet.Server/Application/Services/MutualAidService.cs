@@ -146,7 +146,10 @@ public partial class MutualAidService(
 
         var entries = new List<ReceptionOrderEntryDto>();
 
-        var pendingCredits = await giftRepository.GetPendingReceptionCreditsAsync(crew.Id, cancellationToken);
+        var pendingCredits = await giftRepository.GetPendingReceptionCreditsAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate,
+            cancellationToken);
         var pendingByCycleId = new Dictionary<int, decimal>();
         var pendingThresholdByUserId = new Dictionary<int, decimal>();
         var pendingCycleByUserId = new Dictionary<int, decimal>();

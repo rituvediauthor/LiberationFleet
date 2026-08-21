@@ -18,6 +18,9 @@ using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetFor
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetForumPost;
 using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumCommentLike;
 using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumPostLike;
+using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumCommentLikers;
+using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumPostLikers;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetCurrentFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetChatRooms;
@@ -41,7 +44,6 @@ using LiberationFleet.Server.Application.Features.Fleets.Queries.GetMyFleetJoinR
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetPublicFleetRules;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.LookupCrewByJoinCode;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.SearchFleets;
-using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -444,6 +446,20 @@ public class FleetsController : ControllerBase
     public async Task<IActionResult> ToggleForumCommentLike(int postId, int commentId)
     {
         var result = await _mediator.Send(new ToggleForumCommentLikeCommand(postId, commentId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/forums/{postId:int}/likers")]
+    public async Task<IActionResult> GetForumPostLikers(int postId)
+    {
+        var result = await _mediator.Send(new GetForumPostLikersQuery(postId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/forums/{postId:int}/comments/{commentId:int}/likers")]
+    public async Task<IActionResult> GetForumCommentLikers(int postId, int commentId)
+    {
+        var result = await _mediator.Send(new GetForumCommentLikersQuery(postId, commentId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

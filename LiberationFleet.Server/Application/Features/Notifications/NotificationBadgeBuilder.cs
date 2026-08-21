@@ -275,6 +275,7 @@ public static class NotificationBadgeBuilder
         }
 
         if (path == "/app/crew/gift-log"
+            || path.StartsWith("/app/crew/gift-log/", StringComparison.Ordinal)
             || path.StartsWith("/app/crew/season-setup", StringComparison.Ordinal)
             || path.StartsWith("/app/crew/join-season", StringComparison.Ordinal)
             || path.StartsWith("/app/crew/emergency-requests", StringComparison.Ordinal))
@@ -308,7 +309,9 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted
                 or NotificationKind.FleetProposalRejected => "fleetProposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
-                or NotificationKind.SurvivalThresholdsRefreshed => "crewGiftLog",
+                or NotificationKind.SurvivalThresholdsRefreshed
+                or NotificationKind.NewGiftComment or NotificationKind.NewGiftReply
+                or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked => "crewGiftLog",
             NotificationKind.NewFleetGifts => "fleetGiftLog",
             NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "crewRules",
             NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted
