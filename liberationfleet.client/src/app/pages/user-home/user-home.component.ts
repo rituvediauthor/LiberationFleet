@@ -35,4 +35,8 @@ export class UserHomeComponent {
   goToDonate() {
     this.router.navigate(['/app/donate']);
   }
+
+  goToAiDisclosure() {
+    this.router.navigate(['/app/ai-disclosure']);
+  }
 }
