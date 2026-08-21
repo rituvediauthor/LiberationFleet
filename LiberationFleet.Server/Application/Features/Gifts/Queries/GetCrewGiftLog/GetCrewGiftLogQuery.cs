@@ -70,11 +70,27 @@ public class GetCrewGiftLogQueryHandler(
             giftIds,
             crewId: membership.CrewId,
             cancellationToken: cancellationToken);
-        var envelopeByGiftId = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var envelopeByGiftId = envelopes
+            .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
-        var likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken);
-        var likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken);
-        var commentCounts = await giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken);
+        // Engagement tables shipped with gift-log likes/comments; tolerate partial migrate.
+        Dictionary<int, int> likeCounts;
+        HashSet<int> likedGiftIds;
+        Dictionary<int, int> commentCounts;
+        try
+        {
+            likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken);
+            likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken);
+            commentCounts = await giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            likeCounts = new Dictionary<int, int>();
+            likedGiftIds = [];
+            commentCounts = new Dictionary<int, int>();
+        }
+
         var seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 

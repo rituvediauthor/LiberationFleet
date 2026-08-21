@@ -61,7 +61,7 @@ public static class GiftMapper
             Id = gift.Id,
             Type = gift.Type.ToString().ToLowerInvariant(),
             GiverId = gift.GiverUserId,
-            GiverName = gift.GiverUser.Username,
+            GiverName = gift.GiverUser?.Username ?? string.Empty,
             RecipientId = gift.RecipientUserId,
             RecipientName = gift.RecipientUser is null
                 ? "Unknown"
@@ -161,18 +161,20 @@ public static class GiftMapper
 
         var amount = gift.Amount.ToString("0.##");
         var platform = gift.CrewPaymentPlatform?.Name ?? "unknown platform";
+        var middlemanName = gift.MiddlemanUser?.Username ?? "a middleman";
 
         var recipientName = gift.RecipientUser is null
             ? "Unknown"
             : GiftDisplayNames.GetRecipientName(gift.RecipientUser);
+        var giverName = gift.GiverUser?.Username ?? "Someone";
         var baseMessage = gift.Type switch
         {
             GiftType.Direct =>
-                $"{gift.GiverUser.Username} gave ${amount} to {recipientName} via {platform}",
+                $"{giverName} gave ${amount} to {recipientName} via {platform}",
             GiftType.Initiated =>
-                $"{gift.GiverUser.Username} initiated a ${amount} gift to {recipientName} through {gift.MiddlemanUser!.Username} via {platform}",
+                $"{giverName} initiated a ${amount} gift to {recipientName} through {middlemanName} via {platform}",
             GiftType.Completed =>
-                $"{gift.MiddlemanUser!.Username} completed {gift.GiverUser.Username}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
+                $"{middlemanName} completed {giverName}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
             _ => string.Empty
         };
 

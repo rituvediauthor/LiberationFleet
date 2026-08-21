@@ -83,7 +83,9 @@ public class ExportCrewGiftLogQueryHandler(
                 giftIds,
                 crewId: membership.CrewId,
                 cancellationToken: cancellationToken);
-            var envelopeByGiftId = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+            var envelopeByGiftId = envelopes
+                .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
             foreach (var gift in page.Items)
             {
