@@ -9,7 +9,6 @@
 
       <ng-container *ngIf="!loading && invitation && !errorMessage">
         <ng-container *ngIf="step === 'invite'">
-          <h1>Crew invitation</h1>
           <p class="intro-text">
             <strong>{{ invitation.inviterUsername }}</strong> invited you to join
             <strong>{{ invitation.crewName }}</strong>.
@@ -20,7 +19,6 @@
         </ng-container>
 
         <ng-container *ngIf="step === 'rules'">
-          <h1>Join {{ invitation.crewName }}</h1>
           <p class="intro-text">Accept each public rule below before requesting to join this crew.</p>
 
           <p class="search-status" *ngIf="loadingRules">Loading rules...</p>

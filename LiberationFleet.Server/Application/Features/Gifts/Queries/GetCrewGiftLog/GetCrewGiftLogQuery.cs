@@ -34,14 +34,36 @@ public class GetCrewGiftLogQueryHandler(
         }
 
         var limit = request.Limit <= 0 ? 50 : Math.Min(request.Limit, 100);
-        var page = await giftRepository.GetLogPageByCrewIdAsync(
-            membership.CrewId,
-            limit,
-            request.BeforeCreatedAt,
-            request.BeforeId,
-            cancellationToken);
 
-        var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(membership.CrewId, cancellationToken);
+        // Schema drift (e.g. missing LibraryItemTitle) must not 500 the gift log.
+        GiftLogPage page;
+        try
+        {
+            page = await giftRepository.GetLogPageByCrewIdAsync(
+                membership.CrewId,
+                limit,
+                request.BeforeCreatedAt,
+                request.BeforeId,
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            return new GiftLogResponse
+            {
+                Success = false,
+                Message = "Gift log is temporarily unavailable. Please try again after the next update."
+            };
+        }
+
+        IReadOnlyDictionary<int, Gift> completedByInitiated;
+        try
+        {
+            completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(membership.CrewId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            completedByInitiated = new Dictionary<int, Gift>();
+        }
 
         var initiatedParents = page.Items
             .Where(g => g.Type == GiftType.Initiated)
@@ -94,53 +116,75 @@ public class GetCrewGiftLogQueryHandler(
         var seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 
-        var items = page.Items.Select(gift =>
+        var items = new List<GiftLogEntryDto>(page.Items.Count);
+        foreach (var gift in page.Items)
         {
-            completedByInitiated.TryGetValue(gift.Id, out var completedChild);
-            Gift? initiatedParent = null;
-            if (gift.Type == GiftType.Completed && gift.InitiatedGiftId.HasValue)
+            try
             {
-                initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
-            }
-
-            seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
-            var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
-                gift,
-                currentSeasonStartDate,
-                giftSeasonStartDate ?? gift.SeasonCycle?.SeasonStartDate);
-            likeCounts.TryGetValue(gift.Id, out var likeCount);
-            commentCounts.TryGetValue(gift.Id, out var commentCount);
-
-            var entry = GiftMapper.MapGift(
-                gift,
-                userId,
-                completedChild,
-                initiatedParent,
-                likeCount: likeCount,
-                likedByCurrentUser: likedGiftIds.Contains(gift.Id),
-                commentCount: commentCount,
-                isSeasonLocked: isSeasonLocked,
-                isAccountant: membership.IsAccountant);
-            if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
-            {
-                entry.HasEncryptedContent = true;
-                entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
-                // System / celebratory messages are not sensitive; keep plaintext so they
-                // remain visible even when the encrypted gift envelope exists.
-                if (gift.Type is not GiftType.SeasonStarted
-                    and not GiftType.CycleStarted
-                    and not GiftType.SurvivalThresholdsRefreshed)
+                completedByInitiated.TryGetValue(gift.Id, out var completedChild);
+                Gift? initiatedParent = null;
+                if (gift.Type == GiftType.Completed && gift.InitiatedGiftId.HasValue)
                 {
-                    entry.GiverName = string.Empty;
-                    entry.RecipientName = string.Empty;
-                    entry.MiddlemanName = null;
-                    entry.Platform = string.Empty;
-                    entry.Message = string.Empty;
+                    initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
                 }
-            }
 
-            return entry;
-        }).ToList();
+                seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
+                var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
+                    gift,
+                    currentSeasonStartDate,
+                    giftSeasonStartDate);
+                likeCounts.TryGetValue(gift.Id, out var likeCount);
+                commentCounts.TryGetValue(gift.Id, out var commentCount);
+
+                var entry = GiftMapper.MapGift(
+                    gift,
+                    userId,
+                    completedChild,
+                    initiatedParent,
+                    likeCount: likeCount,
+                    likedByCurrentUser: likedGiftIds.Contains(gift.Id),
+                    commentCount: commentCount,
+                    isSeasonLocked: isSeasonLocked,
+                    isAccountant: membership.IsAccountant);
+                if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
+                {
+                    entry.HasEncryptedContent = true;
+                    entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
+                    // System / celebratory messages are not sensitive; keep plaintext so they
+                    // remain visible even when the encrypted gift envelope exists.
+                    if (gift.Type is not GiftType.SeasonStarted
+                        and not GiftType.CycleStarted
+                        and not GiftType.SurvivalThresholdsRefreshed)
+                    {
+                        entry.GiverName = string.Empty;
+                        entry.RecipientName = string.Empty;
+                        entry.MiddlemanName = null;
+                        entry.Platform = string.Empty;
+                        // Keep server FormatMessage as a plaintext fallback for clients that
+                        // cannot decrypt; encrypted clients prefer payload.message as the body.
+                        // Do not blank Message for historical freeform posts.
+                    }
+                }
+
+                items.Add(entry);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+            {
+                // One corrupt historical row must not 500 the whole gift log.
+                items.Add(new GiftLogEntryDto
+                {
+                    Id = gift.Id,
+                    Type = gift.Type.ToString().ToLowerInvariant(),
+                    GiverId = gift.GiverUserId,
+                    RecipientId = gift.RecipientUserId,
+                    Amount = gift.Amount,
+                    Timestamp = gift.CreatedAt,
+                    Message = "Unable to display this gift entry.",
+                    VerificationStatus = gift.VerificationStatus.ToString(),
+                    RelatedUserIds = new[] { gift.GiverUserId, gift.RecipientUserId }
+                });
+            }
+        }
 
         return new GiftLogResponse
         {

@@ -8,8 +8,7 @@
 
     <ng-container *ngIf="!loading && detail">
       <div class="header-row">
-        <h1 class="page-title">{{ pageTitle }}</h1>
-        <span class="status-badge" [attr.data-status]="detail.status">{{ detail.status }}</span>
+<span class="status-badge" [attr.data-status]="detail.status">{{ detail.status }}</span>
       </div>
 
       <app-library-item-card *ngIf="cardItem" [item]="cardItem" [holderLabel]="holderLabel"></app-library-item-card>

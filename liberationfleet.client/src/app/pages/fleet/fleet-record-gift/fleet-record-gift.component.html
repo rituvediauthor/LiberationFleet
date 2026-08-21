@@ -1,7 +1,6 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="recordButton">
   <div class="form-container" *ngIf="gateChecked">
     <div class="form-card">
-      <h1>Record Fleet Gift</h1>
       <p *ngIf="loading" class="status-text">Loading fleet reception order…</p>
       <p *ngIf="!loading && receptionEntries.length === 0" class="status-text">
         No one in the fleet currently needs aid you can record.

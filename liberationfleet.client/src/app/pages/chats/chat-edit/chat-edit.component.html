@@ -1,7 +1,5 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="saveButton">
   <div class="chat-create-page">
-    <h1>Edit chat room</h1>
-
     <p class="state-text" *ngIf="loading">Loading chat room...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
 

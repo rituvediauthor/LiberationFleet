@@ -4,7 +4,6 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <div *ngIf="!loading && !errorMessage">
-      <h1 class="page-title">{{ recipientUsername }}</h1>
       <p class="page-subtitle">Gifts you gave to {{ recipientUsername }}</p>
       <p class="page-summary">{{ gifts.length }} {{ gifts.length === 1 ? 'gift' : 'gifts' }} · ${{ totalAmount }} total</p>
 

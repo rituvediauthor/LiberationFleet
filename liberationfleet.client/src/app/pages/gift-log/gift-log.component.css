@@ -24,21 +24,6 @@
   margin: 0 auto;
 }
 
-.page-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--lf-color-text-body);
-}
-
-.page-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
 .season-info-link {
   margin: 0;
   padding: 0;
@@ -278,9 +263,5 @@
   .log-scroll {
     padding: 16px;
     padding-bottom: 84px;
-  }
-
-  .page-title {
-    font-size: 18px;
   }
 }

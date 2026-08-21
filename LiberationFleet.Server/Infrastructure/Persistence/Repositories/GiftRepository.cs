@@ -37,7 +37,6 @@ public class GiftRepository : IGiftRepository
                 .ThenInclude(u => u!.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.CrewPaymentPlatform)
-            .Include(g => g.SeasonCycle)
             .Where(g => g.CrewId == crewId);
 
         if (beforeCreatedAt.HasValue && beforeId.HasValue)

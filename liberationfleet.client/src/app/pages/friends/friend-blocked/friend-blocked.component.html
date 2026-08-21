@@ -1,7 +1,5 @@
 <app-page-layout [backButton]="backButton">
   <div class="blocked-page">
-    <h1 class="page-title">Blocked</h1>
-
     <p *ngIf="loading" class="state-text">Loading blocked users...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && blockedUsers.length === 0" class="state-text">No blocked users.</p>
