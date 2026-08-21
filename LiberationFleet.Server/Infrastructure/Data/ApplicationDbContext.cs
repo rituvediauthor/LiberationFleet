@@ -412,6 +412,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.SeasonCycleId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.CrewId, e.CreatedAt, e.Id });
         });
 
         modelBuilder.Entity<GiftComment>(entity =>

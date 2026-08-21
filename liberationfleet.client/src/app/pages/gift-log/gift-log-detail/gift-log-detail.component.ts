@@ -23,6 +23,9 @@ import { ForumEngagementBarComponent } from '../../../components/forum-engagemen
 import { ForumCommentLikeComponent } from '../../../components/forum-comment-like/forum-comment-like.component';
 import { ContentLikersDialogComponent } from '../../../components/content-likers-dialog/content-likers-dialog.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
+import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import {
   clearNotificationHighlightParams,
@@ -31,6 +34,8 @@ import {
 import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
+import { PendingAttachment } from '../../../models/proposal.model';
+import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
 @Component({
   selector: 'app-gift-log-detail',
@@ -45,6 +50,9 @@ import { injectLocationHeaderInfo } from '../../../utils/inject-location-header'
     ForumCommentLikeComponent,
     ContentLikersDialogComponent,
     CharCounterComponent,
+    ProposalAttachmentDisplayComponent,
+    ProposalAttachmentPickerComponent,
+    AttachPermissionNoteComponent,
     LocationHeaderComponent,
     NotificationTargetDirective,
     ComposerFooterPadDirective
@@ -60,13 +68,16 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
   loading = true;
   loadError = '';
   crewId = 0;
+  canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
   readonly commentMaxLength = 10000;
   mentionedUserIds: number[] = [];
   commentFocused = false;
   commentUiMinimized = false;
+  pickingFile = false;
   replyParentId: number | null = null;
+  commentAttachments: PendingAttachment[] = [];
   posting = false;
   likingGift = false;
   likingCommentId: number | null = null;
@@ -114,6 +125,7 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
+        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
         await this.encryptionContent.whenReady();
         this.loadGift();
         this.encryptionReload?.markInitialLoadDone();
@@ -155,18 +167,46 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
 
   onCommentBlur() {
     setTimeout(() => {
-      if (!this.commentText.trim()) {
+      if (this.pickingFile) {
+        return;
+      }
+      if (!this.commentText.trim() && this.commentAttachments.length === 0) {
         this.commentFocused = false;
         this.replyParentId = null;
       }
     }, 150);
   }
 
+  onFileDialogOpenChange(open: boolean) {
+    this.pickingFile = open;
+    if (open) {
+      this.commentUiMinimized = false;
+      this.commentFocused = true;
+      return;
+    }
+    setTimeout(() => {
+      if (this.pickingFile) {
+        return;
+      }
+      if (this.commentAttachments.length > 0 || this.commentText.trim() || this.replyParentId != null) {
+        this.commentUiMinimized = false;
+        this.commentFocused = true;
+        return;
+      }
+      this.commentFocused = false;
+      this.replyParentId = null;
+    }, 150);
+  }
+
+  onAttachmentsChange() {
+    // Triggers change detection so post button gating updates during compress.
+  }
+
   get commentExpanded(): boolean {
     if (this.commentUiMinimized) {
       return false;
     }
-    return this.commentFocused || !!this.replyParentId;
+    return this.commentFocused || !!this.replyParentId || this.pickingFile || this.commentAttachments.length > 0;
   }
 
   minimizeCommentComposer() {
@@ -372,15 +412,24 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
   }
 
   canPostComment(): boolean {
-    return Boolean(this.commentText.trim()) && this.commentText.length <= this.commentMaxLength;
+    return Boolean(
+      (this.commentText.trim() || this.commentAttachments.length > 0)
+      && this.commentText.length <= this.commentMaxLength
+      && pendingAttachmentsAllowSubmit(this.commentAttachments)
+    );
   }
 
   async postComment() {
     if (!this.gift || !this.canPostComment() || this.posting || this.crewId <= 0) {
       return;
     }
+    if (!pendingAttachmentsAllowSubmit(this.commentAttachments)) {
+      this.toastService.error('Wait for attachments to finish processing, or cancel them.');
+      return;
+    }
 
     const body = this.commentText.trim();
+    const pendingAttachments = [...this.commentAttachments];
     const parentCommentId = this.replyParentId;
 
     this.posting = true;
@@ -390,7 +439,8 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
         {
           body,
           authorDisplayName: this.authorDisplayName
-        }
+        },
+        pendingAttachments
       );
 
       this.giftService.createGiftComment(this.gift.id, {
@@ -403,12 +453,13 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
           this.posting = false;
           if (result.success) {
             if (result.commentId) {
-              this.insertPostedComment(result.commentId, body, parentCommentId);
+              this.insertPostedComment(result.commentId, body, pendingAttachments, parentCommentId);
             } else {
               this.loadGift({ silent: true });
             }
             this.commentText = '';
             this.mentionedUserIds = [];
+            this.commentAttachments = [];
             this.commentFocused = false;
             this.replyParentId = null;
             this.toastService.success('Comment posted');
@@ -431,7 +482,12 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
     this.loadGift();
   }
 
-  private insertPostedComment(commentId: number, body: string, parentCommentId: number | null) {
+  private insertPostedComment(
+    commentId: number,
+    body: string,
+    pendingAttachments: PendingAttachment[],
+    parentCommentId: number | null
+  ) {
     if (!this.gift) {
       return;
     }
@@ -450,7 +506,14 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       createdAt: new Date(),
       replyCount: 0,
       hasEncryptedContent: true,
-      body
+      body,
+      resolvedAttachments: pendingAttachments.map(attachment => ({
+        resourceId: attachment.resourceId,
+        type: attachment.type,
+        fileName: attachment.file?.name,
+        mimeType: attachment.file?.type,
+        dataUrl: attachment.previewUrl
+      }))
     };
 
     if (!parentCommentId) {

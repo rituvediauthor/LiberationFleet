@@ -28,14 +28,8 @@ public class GiftRepository : IGiftRepository
     {
         var query = _context.Gifts
             .Include(g => g.GiverUser)
-                .ThenInclude(u => u.PaymentPlatforms)
-                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.RecipientUser)
-                .ThenInclude(u => u.PaymentPlatforms)
-                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.MiddlemanUser)
-                .ThenInclude(u => u!.PaymentPlatforms)
-                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.CrewPaymentPlatform)
             .Where(g => g.CrewId == crewId);
 
@@ -81,14 +75,8 @@ public class GiftRepository : IGiftRepository
 
         var query = _context.Gifts
             .Include(g => g.GiverUser)
-                .ThenInclude(u => u.PaymentPlatforms)
-                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.RecipientUser)
-                .ThenInclude(u => u.PaymentPlatforms)
-                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.MiddlemanUser)
-                .ThenInclude(u => u!.PaymentPlatforms)
-                    .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.CrewPaymentPlatform)
             .Where(g => crewIds.Contains(g.CrewId));
 
@@ -184,11 +172,24 @@ public class GiftRepository : IGiftRepository
 
     public async Task<IReadOnlyDictionary<int, Gift>> GetCompletedGiftsByInitiatedIdsAsync(
         int crewId,
+        IEnumerable<int>? initiatedGiftIds = null,
         CancellationToken cancellationToken = default)
     {
-        var completed = await _context.Gifts
-            .Where(g => g.CrewId == crewId && g.Type == GiftType.Completed && g.InitiatedGiftId != null)
-            .ToListAsync(cancellationToken);
+        var query = _context.Gifts
+            .Where(g => g.CrewId == crewId && g.Type == GiftType.Completed && g.InitiatedGiftId != null);
+
+        if (initiatedGiftIds is not null)
+        {
+            var ids = initiatedGiftIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, Gift>();
+            }
+
+            query = query.Where(g => ids.Contains(g.InitiatedGiftId!.Value));
+        }
+
+        var completed = await query.ToListAsync(cancellationToken);
 
         return completed
             .GroupBy(g => g.InitiatedGiftId!.Value)
@@ -196,6 +197,55 @@ public class GiftRepository : IGiftRepository
                 group => group.Key,
                 // Prefer the newest completion if historical duplicates exist.
                 group => group.OrderByDescending(g => g.Id).First());
+    }
+
+    public async Task<IReadOnlyList<Gift>> GetGiftsByIdsWithUsersAsync(
+        IEnumerable<int> giftIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = giftIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return Array.Empty<Gift>();
+        }
+
+        return await _context.Gifts
+            .Include(g => g.GiverUser)
+            .Include(g => g.RecipientUser)
+            .Include(g => g.MiddlemanUser)
+            .Include(g => g.CrewPaymentPlatform)
+            .Where(g => ids.Contains(g.Id))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task AttachPaymentPlatformsToUsersAsync(
+        IEnumerable<User> users,
+        CancellationToken cancellationToken = default)
+    {
+        var userList = users
+            .Where(u => u is not null)
+            .GroupBy(u => u.Id)
+            .Select(g => g.First())
+            .ToList();
+        if (userList.Count == 0)
+        {
+            return;
+        }
+
+        var userIds = userList.Select(u => u.Id).ToList();
+        var platforms = await _context.UserPaymentPlatforms
+            .Include(p => p.CrewPaymentPlatform)
+            .Where(p => userIds.Contains(p.UserId))
+            .ToListAsync(cancellationToken);
+
+        var byUser = platforms.GroupBy(p => p.UserId).ToDictionary(g => g.Key, g => (ICollection<UserPaymentPlatform>)g.ToList());
+        foreach (var user in userList)
+        {
+            if (byUser.TryGetValue(user.Id, out var list))
+            {
+                user.PaymentPlatforms = list;
+            }
+        }
     }
 
     public async Task AddAsync(Gift gift, CancellationToken cancellationToken = default)

@@ -1,5 +1,6 @@
 import { EncryptedPayload } from './crypto.model';
 import { PaymentPlatformAccount } from './profile.model';
+import { ProposalAttachment, ResolvedAttachment } from './proposal.model';
 
 export type GiftLogType =
   | 'direct'
@@ -84,6 +85,8 @@ export interface GiftComment {
   hasEncryptedContent?: boolean;
   encryptedPayload?: EncryptedPayload | null;
   body?: string;
+  attachments?: ProposalAttachment[];
+  resolvedAttachments?: ResolvedAttachment[];
   likeCount?: number;
   likedByCurrentUser?: boolean;
   replies?: GiftComment[];

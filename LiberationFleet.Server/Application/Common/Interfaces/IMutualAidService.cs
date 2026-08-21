@@ -19,6 +19,7 @@ public interface IMutualAidService
         bool forRecordGift = false,
         bool excludeSelfAsRecipient = true,
         IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen = null,
+        int? maxEntries = null,
         CancellationToken cancellationToken = default);
     Task<NextAidDto?> GetNextAidAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonReadyResultDto> MarkSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);

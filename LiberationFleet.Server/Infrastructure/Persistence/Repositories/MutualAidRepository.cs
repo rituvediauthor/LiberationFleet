@@ -210,6 +210,48 @@ public class MutualAidRepository : IMutualAidRepository
             .ToDictionary(group => group.Key, group => group.Sum(g => g.Amount));
     }
 
+    public async Task<IReadOnlyDictionary<int, IReadOnlyDictionary<(int Year, int Month), decimal>>> GetContributionsByMonthForCrewAsync(
+        int crewId,
+        DateTime rangeStartUtc,
+        DateTime rangeEndExclusiveUtc,
+        bool includeLibraryOfThings,
+        DateTime? createdBeforeUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string libraryOfThingsPlatformName = "Library of Things";
+        var query = _context.Gifts
+            .Include(g => g.CrewPaymentPlatform)
+            .Where(g => g.CrewId == crewId
+                && g.CountsTowardContribution
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated)
+                && g.CreatedAt >= rangeStartUtc
+                && g.CreatedAt < rangeEndExclusiveUtc);
+
+        if (createdBeforeUtc.HasValue)
+        {
+            query = query.Where(g => g.CreatedAt < createdBeforeUtc.Value);
+        }
+
+        if (!includeLibraryOfThings)
+        {
+            query = query.Where(g =>
+                g.CrewPaymentPlatform == null
+                || g.CrewPaymentPlatform.Name != libraryOfThingsPlatformName);
+        }
+
+        var gifts = await query
+            .Select(g => new { g.GiverUserId, g.CreatedAt, g.Amount })
+            .ToListAsync(cancellationToken);
+
+        return gifts
+            .GroupBy(g => g.GiverUserId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyDictionary<(int Year, int Month), decimal>)group
+                    .GroupBy(g => (g.CreatedAt.Year, g.CreatedAt.Month))
+                    .ToDictionary(month => month.Key, month => month.Sum(g => g.Amount)));
+    }
+
     public async Task<decimal> GetLifetimeContributionsAsync(
         int userId,
         int crewId,

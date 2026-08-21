@@ -68,16 +68,24 @@ public class GetFleetReceptionOrderQueryHandler(
         var survivalEntries = new List<FleetReceptionOrderEntryDto>();
         var representativeEntries = new List<FleetReceptionOrderEntryDto>();
         var cycleEntries = new List<FleetReceptionOrderEntryDto>();
+        var limit = request.Limit <= 0 ? 30 : request.Limit;
 
         foreach (var fleetCrew in fleetCrews)
         {
             var crewName = fleetCrew.Crew?.Name ?? "Crew";
+            var remaining = limit - (survivalEntries.Count + representativeEntries.Count + cycleEntries.Count);
+            if (remaining <= 0)
+            {
+                break;
+            }
+
             var entries = await mutualAidService.GetReceptionOrderForCrewAsGiverAsync(
                 fleetCrew.CrewId,
                 userId,
                 forRecordGift: request.ForRecordGift,
                 excludeSelfAsRecipient: request.ExcludeSelfAsRecipient,
                 additionalMembersForMiddlemen: fleetMembers,
+                maxEntries: remaining,
                 cancellationToken);
 
             foreach (var entry in entries.Where(e => e.IsUnlimitedNeed || e.AmountNeeded > 0))
@@ -96,9 +104,16 @@ public class GetFleetReceptionOrderQueryHandler(
                     cycleEntries.Add(mapped);
                 }
             }
+
+            // Survival / representative always outrank cycles fleet-wide; once we have enough
+            // prioritized entries for a small peek (e.g. next-aid), skip remaining crews.
+            if (!request.ForRecordGift
+                && survivalEntries.Count + representativeEntries.Count >= limit)
+            {
+                break;
+            }
         }
 
-        var limit = request.Limit <= 0 ? 30 : request.Limit;
         return survivalEntries
             .Concat(representativeEntries)
             .Concat(cycleEntries)

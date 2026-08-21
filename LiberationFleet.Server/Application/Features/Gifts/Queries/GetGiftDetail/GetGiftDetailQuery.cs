@@ -39,7 +39,10 @@ public class GetGiftDetailQueryHandler(
             return new GiftDetailResponse { Success = false, Message = "Gift not found." };
         }
 
-        var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(membership.CrewId, cancellationToken);
+        var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(
+            membership.CrewId,
+            gift.Type == GiftType.Initiated ? [gift.Id] : null,
+            cancellationToken);
         completedByInitiated.TryGetValue(gift.Id, out var completedChild);
 
         Gift? initiatedParent = null;

@@ -1656,6 +1656,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.HasIndex("SeasonCycleId");
 
+                    b.HasIndex("CrewId", "CreatedAt", "Id");
+
                     b.ToTable("Gifts");
                 });
 

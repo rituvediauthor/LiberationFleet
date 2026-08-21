@@ -83,7 +83,7 @@ public class GetCrewGiftLogQueryHandlerTests
             .Setup(r => r.GetCompletedInitiatedGiftIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<int>());
         giftRepository
-            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<IEnumerable<int>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, Gift>());
         giftRepository
             .Setup(r => r.GetActiveLikeCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
@@ -217,7 +217,7 @@ public class GetCrewGiftLogQueryHandlerTests
             .Setup(r => r.EnsureGiftLogSchemaAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         giftRepository
-            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<IEnumerable<int>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, Gift>());
         giftRepository
             .Setup(r => r.GetActiveLikeCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
