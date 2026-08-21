@@ -2,7 +2,10 @@
   <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo"></app-location-header>
   <div class="log-scroll" #logContainer>
     <div class="scroll-page-body log-channel-body">
-      <h1 class="page-title">Gift Log</h1>
+      <div class="page-header-row">
+        <h1 class="page-title">Gift Log</h1>
+        <button type="button" class="season-info-link" (click)="goToSeasonInfo()">My giving info</button>
+      </div>
       <p *ngIf="loading" class="state-text">Loading gift log…</p>
       <p *ngIf="errorMessage" class="state-text error">{{ errorMessage }}</p>
       <p *ngIf="loadingMore" class="state-text">Loading older gifts…</p>
@@ -28,9 +31,11 @@
             #loadMoreSentinel
             class="load-more-sentinel"
             aria-hidden="true"></div>
-          <p class="log-message">{{ entry.message }}</p>
-          <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>
-          <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
+          <button type="button" class="log-entry-open" (click)="openGiftDetail(entry)">
+            <p class="log-message">{{ entry.message }}</p>
+            <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>
+            <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
+          </button>
 
           <div *ngIf="entry.availableActions?.length" class="verification-row">
             <button
@@ -78,6 +83,18 @@
               </button>
             </div>
           </div>
+
+          <div class="log-engagement-wrap" (click)="$event.stopPropagation()">
+            <app-forum-engagement-bar
+              [likeCount]="entry.likeCount ?? 0"
+              [liked]="!!entry.likedByCurrentUser"
+              [commentCount]="entry.commentCount ?? 0"
+              [likeBusy]="likingEntryId === entry.id"
+              (likeClick)="toggleEntryLike(entry)"
+              (commentClick)="openGiftDetail(entry)"
+              (viewLikesClick)="openEntryLikers(entry)">
+            </app-forum-engagement-bar>
+          </div>
         </article>
       </div>
 
@@ -99,3 +116,12 @@
     <button *ngIf="seasonStarted && !userInSeason" type="button" class="record-btn" (click)="goToJoinSeason()">Join season</button>
   </div>
 </div>
+
+<app-content-likers-dialog
+  [open]="likersDialogOpen"
+  [items]="likersDialogItems"
+  [loading]="likersDialogLoading"
+  [title]="likersDialogTitle"
+  [crewId]="crewId || null"
+  (close)="closeLikersDialog()">
+</app-content-likers-dialog>

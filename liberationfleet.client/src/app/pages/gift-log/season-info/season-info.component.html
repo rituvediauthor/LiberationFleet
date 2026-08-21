@@ -1,0 +1,97 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="season-info-page">
+    <p *ngIf="loading" class="state-text">Loading…</p>
+
+    <div class="form-card" *ngIf="!loading">
+      <h1>My giving info</h1>
+      <p class="intro-text">Update the information used for this season's mutual aid.</p>
+
+      <form [formGroup]="form">
+        <section class="section">
+          <h2>Payment Platforms</h2>
+          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
+          <app-payment-platform-editor
+            [platforms]="paymentPlatforms"
+            [platformOptions]="platformOptions"
+            (changed)="onPaymentPlatformChange()"
+            (add)="addPaymentPlatform()"
+            (remove)="removePaymentPlatform($event)">
+          </app-payment-platform-editor>
+        </section>
+
+        <div class="form-group">
+          <label for="estimate">Estimated monthly contribution ($)</label>
+          <input
+            id="estimate"
+            type="number"
+            formControlName="estimatedMonthlyContribution"
+            class="form-input"
+            min="0"
+            step="0.01">
+          <span class="hint-text" *ngIf="!canEditEstimatedContribution">
+            You can change this after three months in the season.
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="emergencyLevel">Emergency level (0–3)</label>
+          <input
+            id="emergencyLevel"
+            type="number"
+            formControlName="emergencyLevel"
+            class="form-input"
+            min="0"
+            max="3"
+            step="1"
+            [attr.aria-invalid]="isInvalid('emergencyLevel')">
+        </div>
+
+        <div class="form-group">
+          <label for="peopleRepresentedCount">Number of people represented</label>
+          <input
+            id="peopleRepresentedCount"
+            type="number"
+            formControlName="peopleRepresentedCount"
+            class="form-input"
+            min="1"
+            max="99"
+            step="1"
+            [attr.aria-invalid]="isInvalid('peopleRepresentedCount')">
+          <span class="hint-text">Including yourself and anyone you provide for. Affects priority score.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="disabilityLevel">Level of disability (0–3)</label>
+          <input
+            id="disabilityLevel"
+            type="number"
+            formControlName="disabilityLevel"
+            class="form-input"
+            min="0"
+            max="3"
+            step="1"
+            [attr.aria-invalid]="isInvalid('disabilityLevel')">
+        </div>
+
+        <app-identity-groups-editor
+          [selected]="form.get('identityGroups')?.value || []"
+          (selectedChange)="onIdentityGroupsChange($event)">
+        </app-identity-groups-editor>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="inNeedOfAid">
+            <span>In need of aid</span>
+          </label>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="needsSurvivalAid">
+            <span>Needs survival aid</span>
+          </label>
+        </div>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

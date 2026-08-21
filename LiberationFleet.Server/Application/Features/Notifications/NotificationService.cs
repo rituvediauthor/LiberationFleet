@@ -174,6 +174,10 @@ public class NotificationService(
         NotificationKind.FleetMention => "Fleet mention",
         NotificationKind.FleetForumPostLiked => "Fleet post liked",
         NotificationKind.FleetForumCommentLiked => "Fleet comment liked",
+        NotificationKind.NewGiftComment => "New gift comment",
+        NotificationKind.GiftEntryLiked => "Gift liked",
+        NotificationKind.GiftCommentLiked => "Gift comment liked",
+        NotificationKind.NewGiftReply => "New gift reply",
         _ => kind.ToString()
     };
 

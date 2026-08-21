@@ -5,11 +5,17 @@ export interface IdentityGroupOption {
 
 /** Stable keys matching server IdentityGroupKeys. */
 export const IDENTITY_GROUP_OPTIONS: IdentityGroupOption[] = [
-  { key: 'NonWhite', label: 'Non-white' },
-  { key: 'Woman', label: 'Woman' },
+  { key: 'NonWhite', label: 'BIPOC / person of color' },
+  { key: 'Indigenous', label: 'Indigenous' },
+  { key: 'Woman', label: 'Woman / femme' },
   { key: 'Lgbtqia', label: 'LGBTQIA+' },
-  { key: 'NotConventionallyAttractive', label: 'Not conventionally attractive' },
-  { key: 'Homeless', label: 'Homeless' },
+  { key: 'TransOrNonbinary', label: 'Trans or nonbinary' },
+  { key: 'NotConventionallyAttractive', label: 'Fat or not conventionally attractive' },
+  { key: 'Homeless', label: 'Unhoused or housing insecure' },
+  { key: 'ImmigrantOrRefugee', label: 'Immigrant or refugee' },
+  { key: 'ReligiousMinority', label: 'Religious minority' },
+  { key: 'Neurodivergent', label: 'Neurodivergent' },
+  { key: 'PrimaryCaregiver', label: 'Primary caregiver' },
   { key: 'VisiblyOrAudiblyDisabled', label: 'Visibly or audibly disabled' }
 ];
 

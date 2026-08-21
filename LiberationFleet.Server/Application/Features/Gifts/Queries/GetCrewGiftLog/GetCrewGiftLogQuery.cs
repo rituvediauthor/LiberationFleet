@@ -63,13 +63,20 @@ public class GetCrewGiftLogQueryHandler(
             }
         }
 
-        var giftIds = page.Items.Select(g => g.Id.ToString()).ToList();
+        var pageGiftIds = page.Items.Select(g => g.Id).ToList();
+        var giftIds = pageGiftIds.Select(id => id.ToString()).ToList();
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.GiftLogEntry,
             giftIds,
             crewId: membership.CrewId,
             cancellationToken: cancellationToken);
         var envelopeByGiftId = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+
+        var likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken);
+        var likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken);
+        var commentCounts = await giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken);
+        var seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
+        var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 
         var items = page.Items.Select(gift =>
         {
@@ -80,7 +87,24 @@ public class GetCrewGiftLogQueryHandler(
                 initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
             }
 
-            var entry = GiftMapper.MapGift(gift, userId, completedChild, initiatedParent);
+            seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
+            var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
+                gift,
+                currentSeasonStartDate,
+                giftSeasonStartDate ?? gift.SeasonCycle?.SeasonStartDate);
+            likeCounts.TryGetValue(gift.Id, out var likeCount);
+            commentCounts.TryGetValue(gift.Id, out var commentCount);
+
+            var entry = GiftMapper.MapGift(
+                gift,
+                userId,
+                completedChild,
+                initiatedParent,
+                likeCount: likeCount,
+                likedByCurrentUser: likedGiftIds.Contains(gift.Id),
+                commentCount: commentCount,
+                isSeasonLocked: isSeasonLocked,
+                isAccountant: membership.IsAccountant);
             if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
             {
                 entry.HasEncryptedContent = true;

@@ -31,4 +31,7 @@ public class Gift
     public User? MiddlemanUser { get; set; }
     public Gift? InitiatedGift { get; set; }
     public CrewPaymentPlatform? CrewPaymentPlatform { get; set; }
+    public SeasonCycle? SeasonCycle { get; set; }
+    public ICollection<GiftComment> Comments { get; set; } = new List<GiftComment>();
+    public ICollection<GiftLike> Likes { get; set; } = new List<GiftLike>();
 }

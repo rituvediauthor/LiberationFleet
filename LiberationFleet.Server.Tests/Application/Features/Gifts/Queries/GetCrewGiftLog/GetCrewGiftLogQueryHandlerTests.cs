@@ -84,6 +84,18 @@ public class GetCrewGiftLogQueryHandlerTests
         giftRepository
             .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, Gift>());
+        giftRepository
+            .Setup(r => r.GetActiveLikeCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, int>());
+        giftRepository
+            .Setup(r => r.GetActiveLikedGiftIdsByUserAsync(user.Id, It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        giftRepository
+            .Setup(r => r.GetCommentCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, int>());
+        giftRepository
+            .Setup(r => r.GetSeasonStartDatesForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, DateTime?>());
 
         var cryptoRepository = new Mock<ICryptoRepository>();
         cryptoRepository

@@ -33,7 +33,9 @@ import { ReportContentDialogComponent } from '../../../../components/report-cont
 import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
 import { ForumEngagementBarComponent } from '../../../../components/forum-engagement-bar/forum-engagement-bar.component';
 import { ForumCommentLikeComponent } from '../../../../components/forum-comment-like/forum-comment-like.component';
+import { ContentLikersDialogComponent } from '../../../../components/content-likers-dialog/content-likers-dialog.component';
 import { ContentReportTargetType } from '../../../../models/content-report.model';
+import { ContentLiker } from '../../../../models/gift.model';
 import { CrewService } from '../../../../services/crew.service';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
 import { pendingAttachmentsAllowSubmit } from '../../../../utils/pending-attachment.util';
@@ -64,6 +66,7 @@ import { LocationHeaderInfo } from '../../../../utils/location-header.util';
     UserAvatarComponent,
     ForumEngagementBarComponent,
     ForumCommentLikeComponent,
+    ContentLikersDialogComponent,
     LocationHeaderComponent,
     NotificationTargetDirective,
     ComposerFooterPadDirective
@@ -127,6 +130,10 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   reportMediaIds: string[] = [];
   highlightId: number | null = null;
   notifyPrefix = '';
+  likersDialogOpen = false;
+  likersDialogLoading = false;
+  likersDialogItems: ContentLiker[] = [];
+  likersDialogTitle = 'Liked by';
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -572,6 +579,53 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
         this.toastService.error('Failed to update like');
       }
     });
+  }
+
+  openPostLikers() {
+    if (!this.post) {
+      return;
+    }
+    this.likersDialogTitle = 'Liked by';
+    this.likersDialogOpen = true;
+    this.likersDialogLoading = true;
+    this.likersDialogItems = [];
+    this.fleetService.getForumPostLikers(this.post.id).subscribe({
+      next: items => {
+        this.likersDialogLoading = false;
+        this.likersDialogItems = items;
+      },
+      error: err => {
+        this.likersDialogLoading = false;
+        this.likersDialogOpen = false;
+        this.toastService.error(err?.message ?? 'Failed to load likers');
+      }
+    });
+  }
+
+  openCommentLikers(comment: FleetForumComment) {
+    if (!this.post) {
+      return;
+    }
+    this.likersDialogTitle = 'Liked by';
+    this.likersDialogOpen = true;
+    this.likersDialogLoading = true;
+    this.likersDialogItems = [];
+    this.fleetService.getForumCommentLikers(this.post.id, comment.id).subscribe({
+      next: items => {
+        this.likersDialogLoading = false;
+        this.likersDialogItems = items;
+      },
+      error: err => {
+        this.likersDialogLoading = false;
+        this.likersDialogOpen = false;
+        this.toastService.error(err?.message ?? 'Failed to load likers');
+      }
+    });
+  }
+
+  closeLikersDialog() {
+    this.likersDialogOpen = false;
+    this.likersDialogItems = [];
   }
 
   toggleCommentLike(comment: FleetForumComment) {

@@ -19,6 +19,8 @@ import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
 import { MyInvitationsComponent } from './pages/my-invitations/my-invitations.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
+import { GiftLogDetailComponent } from './pages/gift-log/gift-log-detail/gift-log-detail.component';
+import { SeasonInfoComponent } from './pages/gift-log/season-info/season-info.component';
 import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
 import { EmergencyRequestsListComponent } from './pages/emergency-requests/emergency-requests-list/emergency-requests-list.component';
@@ -553,10 +555,22 @@ export const routes: Routes = [
     data: { parentTab: 'crew', locationHeader: 'Add Non-Member' }
   },
   {
+    path: 'app/crew/gift-log/season-info',
+    component: SeasonInfoComponent,
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'My giving info' }
+  },
+  {
     path: 'app/crew/gift-log/record',
     component: RecordGiftComponent,
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Record Gift' }
+  },
+  {
+    path: 'app/crew/gift-log/:id',
+    component: GiftLogDetailComponent,
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Gift' }
   },
   {
     path: 'app/crew/chats',

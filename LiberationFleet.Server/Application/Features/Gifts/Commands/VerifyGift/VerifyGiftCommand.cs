@@ -41,6 +41,19 @@ public class VerifyGiftCommandHandler(
             return new GiftOperationResponse { Success = false, Message = "Gift not found." };
         }
 
+        var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
+            gift,
+            membership.Crew?.CurrentSeasonStartDate,
+            gift.SeasonCycle?.SeasonStartDate);
+        if (!GiftSeasonAccess.CanMutateVerification(membership.IsAccountant, isSeasonLocked))
+        {
+            return new GiftOperationResponse
+            {
+                Success = false,
+                Message = "This gift is from a past season and is locked. Only accountants can verify it."
+            };
+        }
+
         if (gift.IsCustomGift)
         {
             return new GiftOperationResponse { Success = false, Message = "Custom gifts do not require verification." };

@@ -2,23 +2,36 @@ namespace LiberationFleet.Server.Domain;
 
 /// <summary>
 /// Stable keys stored in <see cref="Entities.User.IdentityGroups"/> (comma-separated).
+/// Labels are client-facing; keep keys stable for stored data.
 /// </summary>
 public static class IdentityGroupKeys
 {
     public const string NonWhite = "NonWhite";
     public const string Woman = "Woman";
     public const string Lgbtqia = "Lgbtqia";
+    public const string TransOrNonbinary = "TransOrNonbinary";
     public const string NotConventionallyAttractive = "NotConventionallyAttractive";
     public const string Homeless = "Homeless";
+    public const string ImmigrantOrRefugee = "ImmigrantOrRefugee";
+    public const string ReligiousMinority = "ReligiousMinority";
+    public const string Neurodivergent = "Neurodivergent";
+    public const string PrimaryCaregiver = "PrimaryCaregiver";
     public const string VisiblyOrAudiblyDisabled = "VisiblyOrAudiblyDisabled";
+    public const string Indigenous = "Indigenous";
 
     public static readonly string[] All =
     [
         NonWhite,
+        Indigenous,
         Woman,
         Lgbtqia,
+        TransOrNonbinary,
         NotConventionallyAttractive,
         Homeless,
+        ImmigrantOrRefugee,
+        ReligiousMinority,
+        Neurodivergent,
+        PrimaryCaregiver,
         VisiblyOrAudiblyDisabled
     ];
 

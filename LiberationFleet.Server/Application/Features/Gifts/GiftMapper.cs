@@ -13,7 +13,12 @@ public static class GiftMapper
         Gift? completedChild = null,
         Gift? initiatedParent = null,
         string? status = null,
-        IReadOnlyList<PaymentPlatformOptionDto>? completionPlatformOptions = null)
+        IReadOnlyList<PaymentPlatformOptionDto>? completionPlatformOptions = null,
+        int likeCount = 0,
+        bool likedByCurrentUser = false,
+        int commentCount = 0,
+        bool isSeasonLocked = false,
+        bool isAccountant = false)
     {
         var relatedUserIds = new List<int> { gift.GiverUserId, gift.RecipientUserId };
         if (gift.MiddlemanUserId.HasValue)
@@ -32,6 +37,11 @@ public static class GiftMapper
                 viewerUserId.Value,
                 completedChild,
                 initiatedParent);
+        }
+
+        if (isSeasonLocked && !isAccountant)
+        {
+            availableActions = Array.Empty<string>();
         }
 
         if (viewerUserId.HasValue
@@ -72,7 +82,11 @@ public static class GiftMapper
             AvailableActions = availableActions,
             CompletionPlatformOptions = completionPlatformOptions is null
                 ? Array.Empty<GiftPlatformOptionDto>()
-                : completionPlatformOptions.Select(p => new GiftPlatformOptionDto { Id = p.Id, Name = p.Name }).ToList()
+                : completionPlatformOptions.Select(p => new GiftPlatformOptionDto { Id = p.Id, Name = p.Name }).ToList(),
+            LikeCount = likeCount,
+            LikedByCurrentUser = likedByCurrentUser,
+            CommentCount = commentCount,
+            IsSeasonLocked = isSeasonLocked
         };
     }
 

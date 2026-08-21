@@ -16,6 +16,7 @@ import { AdultContentGateComponent } from '../../../components/adult-content-gat
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { ForumEngagementBarComponent } from '../../../components/forum-engagement-bar/forum-engagement-bar.component';
+import { ContentLikersDialogComponent } from '../../../components/content-likers-dialog/content-likers-dialog.component';
 import { CrewDiscussionService } from '../../../services/crew-discussion.service';
 import { ProposalCryptoService } from '../../../services/crypto/proposal-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -35,6 +36,7 @@ import {
   saveForumListScrollState
 } from '../../../utils/forum-list-scroll.util';
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
+import { ContentLiker } from '../../../models/gift.model';
 
 @Component({
   selector: 'app-discussion-list',
@@ -46,7 +48,8 @@ import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.
     ContentBadgeComponent,
     LibraryImageCarouselComponent,
     UserAvatarComponent,
-    ForumEngagementBarComponent
+    ForumEngagementBarComponent,
+    ContentLikersDialogComponent
   ],
   templateUrl: './discussion-list.component.html',
   styleUrl: './discussion-list.component.css'
@@ -74,6 +77,10 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   pullDistance = 0;
+  likersDialogOpen = false;
+  likersDialogLoading = false;
+  likersDialogItems: ContentLiker[] = [];
+  likersDialogTitle = 'Liked by';
 
   private readonly pageSize = 20;
   private readonly scrollStateKey = 'crew';
@@ -318,6 +325,29 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
         this.toastService.error('Failed to update like');
       }
     });
+  }
+
+  openPostLikers(item: DiscussionListItem) {
+    this.likersDialogTitle = 'Liked by';
+    this.likersDialogOpen = true;
+    this.likersDialogLoading = true;
+    this.likersDialogItems = [];
+    this.discussionService.getPostLikers(this.config, item.id).subscribe({
+      next: items => {
+        this.likersDialogLoading = false;
+        this.likersDialogItems = items;
+      },
+      error: err => {
+        this.likersDialogLoading = false;
+        this.likersDialogOpen = false;
+        this.toastService.error(err?.message ?? 'Failed to load likers');
+      }
+    });
+  }
+
+  closeLikersDialog() {
+    this.likersDialogOpen = false;
+    this.likersDialogItems = [];
   }
 
   onAdultGateConfirmed() {
