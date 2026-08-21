@@ -65,7 +65,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   highlightId: number | null = null;
   readonly notifyPrefix = '/app/crew/gift-log';
 
-  private readonly pageSize = 50;
+  private readonly pageSize = 25;
   private intersectionObserver?: IntersectionObserver;
   private sentinelChangesSubscription?: { unsubscribe(): void };
   private scrollToBottomOnNextRender = false;

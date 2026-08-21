@@ -82,10 +82,18 @@ public class GetCrewGiftLogQueryHandler(
             };
         }
 
+        var pageInitiatedIds = page.Items
+            .Where(g => g.Type == GiftType.Initiated)
+            .Select(g => g.Id)
+            .ToList();
+
         IReadOnlyDictionary<int, Gift> completedByInitiated;
         try
         {
-            completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(membership.CrewId, cancellationToken);
+            completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(
+                membership.CrewId,
+                pageInitiatedIds,
+                cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
         {
@@ -104,69 +112,74 @@ public class GetCrewGiftLogQueryHandler(
             .Distinct()
             .ToList();
 
-        foreach (var parentId in missingParentIds)
+        if (missingParentIds.Count > 0)
         {
             try
             {
-                var parent = await giftRepository.GetByIdWithUsersAsync(parentId, cancellationToken);
-                if (parent is not null)
+                var parents = await giftRepository.GetGiftsByIdsWithUsersAsync(missingParentIds, cancellationToken);
+                foreach (var parent in parents)
                 {
-                    initiatedParents[parentId] = parent;
+                    initiatedParents[parent.Id] = parent;
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
             {
-                logger.LogWarning(ex, "Skipping initiated parent {ParentId} for gift log.", parentId);
+                logger.LogWarning(ex, "Batch initiated-parent load failed for gift log.");
+            }
+        }
+
+        var needsCompletionPlatforms = page.Items
+            .Where(g =>
+                g.Type == GiftType.Initiated
+                && g.MiddlemanUserId == userId
+                && !completedByInitiated.ContainsKey(g.Id)
+                && g.VerificationStatus == GiftVerificationStatus.MiddlemanReceivedFunds
+                && g.MiddlemanUser is not null
+                && g.RecipientUser is not null)
+            .ToList();
+        if (needsCompletionPlatforms.Count > 0)
+        {
+            try
+            {
+                var usersNeedingPlatforms = needsCompletionPlatforms
+                    .SelectMany(g => new[] { g.MiddlemanUser!, g.RecipientUser! })
+                    .ToList();
+                await giftRepository.AttachPaymentPlatformsToUsersAsync(usersNeedingPlatforms, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+            {
+                logger.LogWarning(ex, "Gift log completion-platform attach failed; continuing without options.");
             }
         }
 
         var pageGiftIds = page.Items.Select(g => g.Id).ToList();
         var giftIds = pageGiftIds.Select(id => id.ToString()).ToList();
-        Dictionary<string, EncryptedContentEnvelope> envelopeByGiftId;
-        try
-        {
-            var envelopes = await cryptoRepository.GetEnvelopesAsync(
-                EncryptedContentType.GiftLogEntry,
-                giftIds,
-                crewId: membership.CrewId,
-                cancellationToken: cancellationToken);
-            envelopeByGiftId = envelopes
-                .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
-        {
-            logger.LogWarning(ex, "Gift log envelope load failed; continuing without encrypted payloads.");
-            envelopeByGiftId = new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
-        }
 
-        Dictionary<int, int> likeCounts;
-        HashSet<int> likedGiftIds;
-        Dictionary<int, int> commentCounts;
-        try
-        {
-            likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken);
-            likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken);
-            commentCounts = await giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
-        {
-            logger.LogWarning(ex, "Gift log engagement counts failed; continuing with zeros.");
-            likeCounts = new Dictionary<int, int>();
-            likedGiftIds = [];
-            commentCounts = new Dictionary<int, int>();
-        }
+        var envelopesTask = LoadEnvelopesAsync(membership.CrewId, giftIds, cancellationToken);
+        var likesTask = SafeEnrichAsync(
+            () => giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken),
+            new Dictionary<int, int>(),
+            "Gift log like counts failed; continuing with zeros.");
+        var likedTask = SafeEnrichAsync(
+            () => giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken),
+            new HashSet<int>(),
+            "Gift log liked-by-user lookup failed; continuing with none.");
+        var commentsTask = SafeEnrichAsync(
+            () => giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken),
+            new Dictionary<int, int>(),
+            "Gift log comment counts failed; continuing with zeros.");
+        var seasonDatesTask = SafeEnrichAsync(
+            () => giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken),
+            new Dictionary<int, DateTime?>(),
+            "Gift log season start lookup failed; treating entries as unlocked.");
 
-        Dictionary<int, DateTime?> seasonStartDates;
-        try
-        {
-            seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
-        {
-            logger.LogWarning(ex, "Gift log season start lookup failed; treating entries as unlocked.");
-            seasonStartDates = new Dictionary<int, DateTime?>();
-        }
+        await Task.WhenAll(envelopesTask, likesTask, likedTask, commentsTask, seasonDatesTask);
+
+        var envelopeByGiftId = await envelopesTask;
+        var likeCounts = await likesTask;
+        var likedGiftIds = await likedTask;
+        var commentCounts = await commentsTask;
+        var seasonStartDates = await seasonDatesTask;
 
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 
@@ -242,5 +255,41 @@ public class GetCrewGiftLogQueryHandler(
             Items = items,
             HasMore = page.HasMore
         };
+    }
+
+    private async Task<T> SafeEnrichAsync<T>(Func<Task<T>> load, T fallback, string warning)
+    {
+        try
+        {
+            return await load();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            logger.LogWarning(ex, warning);
+            return fallback;
+        }
+    }
+
+    private async Task<Dictionary<string, EncryptedContentEnvelope>> LoadEnvelopesAsync(
+        int crewId,
+        IReadOnlyList<string> giftIds,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var envelopes = await cryptoRepository.GetEnvelopesAsync(
+                EncryptedContentType.GiftLogEntry,
+                giftIds,
+                crewId: crewId,
+                cancellationToken: cancellationToken);
+            return envelopes
+                .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            logger.LogWarning(ex, "Gift log envelope load failed; continuing without encrypted payloads.");
+            return new Dictionary<string, EncryptedContentEnvelope>(StringComparer.Ordinal);
+        }
     }
 }

@@ -23,7 +23,16 @@ public interface IGiftRepository
     Task<IReadOnlyList<Gift>> GetPendingMiddlemanGiftsAsync(int middlemanUserId, int crewId, CancellationToken cancellationToken = default);
     Task<bool> HasCompletedInitiatedGiftAsync(int initiatedGiftId, CancellationToken cancellationToken = default);
     Task<Gift?> GetCompletedGiftForInitiatedAsync(int initiatedGiftId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyDictionary<int, Gift>> GetCompletedGiftsByInitiatedIdsAsync(int crewId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, Gift>> GetCompletedGiftsByInitiatedIdsAsync(
+        int crewId,
+        IEnumerable<int>? initiatedGiftIds = null,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Gift>> GetGiftsByIdsWithUsersAsync(
+        IEnumerable<int> giftIds,
+        CancellationToken cancellationToken = default);
+    Task AttachPaymentPlatformsToUsersAsync(
+        IEnumerable<User> users,
+        CancellationToken cancellationToken = default);
     Task AddAsync(Gift gift, CancellationToken cancellationToken = default);
     Task<UserGiftStats> GetUserGiftStatsAsync(int userId, CancellationToken cancellationToken = default);
     Task<CrewmateGiftStatsDto> GetCrewmateGiftStatsAsync(

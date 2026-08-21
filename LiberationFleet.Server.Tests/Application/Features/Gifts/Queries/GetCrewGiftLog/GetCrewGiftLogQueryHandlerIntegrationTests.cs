@@ -66,7 +66,7 @@ public class GetCrewGiftLogQueryHandlerIntegrationTests
         var giftRepository = new GiftRepository(fixture.Context);
         var act = async () => await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(
             fixture.Crew.Id,
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         var map = await act.Should().NotThrowAsync();
         map.Subject.Should().ContainKey(initiated.Id);
@@ -113,7 +113,7 @@ public class GetCrewGiftLogQueryHandlerIntegrationTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GiftLogPage { Items = new List<Gift> { gift }, HasMore = false });
         giftRepository
-            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(fixture.Crew.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(fixture.Crew.Id, It.IsAny<IEnumerable<int>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, Gift>());
         giftRepository
             .Setup(r => r.GetActiveLikeCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))

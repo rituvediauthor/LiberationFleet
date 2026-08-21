@@ -56,7 +56,9 @@ public class ExportCrewGiftLogQueryHandler(
                 break;
             }
 
-            var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(membership.CrewId, cancellationToken);
+            var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(
+                membership.CrewId,
+                cancellationToken: cancellationToken);
             var initiatedParents = page.Items
                 .Where(g => g.Type == GiftType.Initiated)
                 .ToDictionary(g => g.Id, g => g);

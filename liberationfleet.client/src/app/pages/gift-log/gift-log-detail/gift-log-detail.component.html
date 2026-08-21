@@ -111,9 +111,13 @@
                   </app-forum-comment-like>
                 </div>
               </div>
-              <p class="comment-body" *ngIf="comment.body"><app-mention-text [text]="comment.body" /></p>
-              <div class="comment-actions">
-                <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
+                  <p class="comment-body" *ngIf="comment.body"><app-mention-text [text]="comment.body" /></p>
+                  <app-proposal-attachment-display
+                    [attachments]="comment.resolvedAttachments ?? []"
+                    [compact]="true">
+                  </app-proposal-attachment-display>
+                  <div class="comment-actions">
+                    <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
                 <button
                   type="button"
                   class="link-btn"
@@ -154,6 +158,10 @@
                     </div>
                   </div>
                   <p class="comment-body" *ngIf="reply.body"><app-mention-text [text]="reply.body" /></p>
+                  <app-proposal-attachment-display
+                    [attachments]="reply.resolvedAttachments ?? []"
+                    [compact]="true">
+                  </app-proposal-attachment-display>
                   <div class="comment-actions">
                     <button type="button" class="link-btn" (click)="startReply(reply)">Reply</button>
                   </div>
@@ -207,10 +215,24 @@
       </div>
 
       <div class="composer-tools" [class.collapsed-tools]="!commentExpanded">
+        <app-proposal-attachment-picker
+          *ngIf="canAttachFiles"
+          class="comment-attachment-picker"
+          [class.collapsed]="!commentExpanded"
+          [attachments]="commentAttachments"
+          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+          (fileDialogOpenChange)="onFileDialogOpenChange($event)"
+          (attachmentsChange)="onAttachmentsChange()">
+        </app-proposal-attachment-picker>
         <app-char-counter
           [current]="commentText.length"
           [max]="commentMaxLength">
         </app-char-counter>
+        <app-attach-permission-note
+          *ngIf="!canAttachFiles"
+          class="composer-permission-note"
+          scope="crew">
+        </app-attach-permission-note>
       </div>
     </div>
   </div>

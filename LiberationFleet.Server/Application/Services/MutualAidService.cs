@@ -86,6 +86,7 @@ public partial class MutualAidService(
             excludeSelfAsRecipient,
             forRecordGift,
             additionalMembersForMiddlemen: null,
+            maxEntries: limit,
             cancellationToken);
 
         return entries.Take(limit).ToList();
@@ -97,6 +98,7 @@ public partial class MutualAidService(
         bool forRecordGift = false,
         bool excludeSelfAsRecipient = true,
         IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen = null,
+        int? maxEntries = null,
         CancellationToken cancellationToken = default)
     {
         var crew = await mutualAidRepository.GetCrewAsync(targetCrewId, cancellationToken);
@@ -111,6 +113,7 @@ public partial class MutualAidService(
             excludeSelfAsRecipient,
             forRecordGift,
             additionalMembersForMiddlemen,
+            maxEntries,
             cancellationToken);
     }
 
@@ -120,6 +123,7 @@ public partial class MutualAidService(
         bool excludeSelfAsRecipient,
         bool forRecordGift,
         IReadOnlyList<CrewMemberPlatforms>? additionalMembersForMiddlemen,
+        int? maxEntries,
         CancellationToken cancellationToken)
     {
         await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
@@ -247,14 +251,19 @@ public partial class MutualAidService(
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
+        if (maxEntries is int earlyLimit)
+        {
+            var early = TakePrioritizedEntries(entries, giverUserId, excludeSelfAsRecipient, earlyLimit);
+            if (early.Count >= earlyLimit)
+            {
+                return early;
+            }
+        }
+
         var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate!.Value, cancellationToken)).ToList();
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var seasonParticipants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
-        var memberStatus = new Dictionary<int, bool>();
-        foreach (var participant in seasonParticipants)
-        {
-            memberStatus[participant.UserId] = await IsFinancialMemberAsync(participant.UserId, crew.Id, participant, cancellationToken);
-        }
+        var memberStatus = await BuildFinancialMemberStatusAsync(crew, seasonParticipants, cancellationToken);
 
         var effectiveMemberCap = GetEffectiveCycleCap(true, crew, capacityContext);
         var effectiveNonMemberCap = GetEffectiveCycleCap(false, crew, capacityContext);
@@ -397,7 +406,27 @@ public partial class MutualAidService(
             result = result.Where(e => e.UserId != giverUserId);
         }
 
+        if (maxEntries is int limit)
+        {
+            return result.Take(limit).ToList();
+        }
+
         return result.ToList();
+    }
+
+    private static List<ReceptionOrderEntryDto> TakePrioritizedEntries(
+        IReadOnlyList<ReceptionOrderEntryDto> entries,
+        int giverUserId,
+        bool excludeSelfAsRecipient,
+        int limit)
+    {
+        IEnumerable<ReceptionOrderEntryDto> result = entries;
+        if (excludeSelfAsRecipient)
+        {
+            result = result.Where(e => e.UserId != giverUserId);
+        }
+
+        return result.Take(limit).ToList();
     }
 
     private static List<CrewMemberPlatforms> BuildMiddlemanPool(
@@ -2779,19 +2808,81 @@ public partial class MutualAidService(
             participants = await mutualAidRepository.GetSeasonReadyMembersAsync(crewId, cancellationToken);
         }
 
+        if (participants.Count == 0)
+        {
+            return 0m;
+        }
+
         var utcNow = DateTime.UtcNow;
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(utcNow);
+        var rangeStart = new DateTime(months[0].Year, months[0].Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var rangeEnd = rangeStart.AddMonths(3);
+        var contributionsByUser = await mutualAidRepository.GetContributionsByMonthForCrewAsync(
+            crewId,
+            rangeStart,
+            rangeEnd,
+            includeLibraryOfThings: false,
+            createdBeforeUtc: null,
+            cancellationToken);
+
         var total = 0m;
         foreach (var participant in participants)
         {
-            total += await GetCrewmateMonthlyContributionAverageAsync(
-                participant,
-                utcNow,
-                includeLibraryOfThings: false,
-                createdBeforeUtc: null,
-                cancellationToken);
+            contributionsByUser.TryGetValue(participant.UserId, out var byMonth);
+            byMonth ??= new Dictionary<(int Year, int Month), decimal>();
+            total += MutualAidCalculationService.CalculateThreeMonthContributionAverage(
+                months,
+                byMonth,
+                participant.GivingSeasonJoinedAt,
+                participant.EstimatedMonthlyContribution ?? 0m);
         }
 
         return total;
+    }
+
+    private async Task<Dictionary<int, bool>> BuildFinancialMemberStatusAsync(
+        Crew crew,
+        IReadOnlyList<CrewMembership> seasonParticipants,
+        CancellationToken cancellationToken)
+    {
+        var memberStatus = new Dictionary<int, bool>();
+        if (seasonParticipants.Count == 0)
+        {
+            return memberStatus;
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(utcNow);
+        var rangeStart = new DateTime(months[0].Year, months[0].Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var rangeEnd = rangeStart.AddMonths(3);
+        var contributionsByUser = await mutualAidRepository.GetContributionsByMonthForCrewAsync(
+            crew.Id,
+            rangeStart,
+            rangeEnd,
+            includeLibraryOfThings: true,
+            createdBeforeUtc: null,
+            cancellationToken);
+        var floor = crew.FinancialMembershipContributionFloor;
+
+        foreach (var participant in seasonParticipants)
+        {
+            if (CrewRoleMapper.HasAnyRole(participant))
+            {
+                memberStatus[participant.UserId] = true;
+                continue;
+            }
+
+            contributionsByUser.TryGetValue(participant.UserId, out var byMonth);
+            byMonth ??= new Dictionary<(int Year, int Month), decimal>();
+            var average = MutualAidCalculationService.CalculateThreeMonthContributionAverage(
+                months,
+                byMonth,
+                participant.GivingSeasonJoinedAt,
+                participant.EstimatedMonthlyContribution ?? 0m);
+            memberStatus[participant.UserId] = floor <= 0m ? average > 0m : average >= floor;
+        }
+
+        return memberStatus;
     }
 
     public async Task<decimal> GetMonthlyContributionExcludingLotAsync(

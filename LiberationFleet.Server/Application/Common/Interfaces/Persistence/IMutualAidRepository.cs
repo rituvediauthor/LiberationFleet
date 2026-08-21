@@ -40,6 +40,16 @@ public interface IMutualAidRepository
         bool includeLibraryOfThings,
         DateTime? createdBeforeUtc = null,
         CancellationToken cancellationToken = default);
+    /// <summary>
+    /// One query for all givers in a crew over a date range (avoids N+1 on capacity / membership checks).
+    /// </summary>
+    Task<IReadOnlyDictionary<int, IReadOnlyDictionary<(int Year, int Month), decimal>>> GetContributionsByMonthForCrewAsync(
+        int crewId,
+        DateTime rangeStartUtc,
+        DateTime rangeEndExclusiveUtc,
+        bool includeLibraryOfThings,
+        DateTime? createdBeforeUtc = null,
+        CancellationToken cancellationToken = default);
     Task<decimal> GetLifetimeContributionsAsync(int userId, int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<decimal> GetCrewLifetimeContributionsAsync(int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<bool> HasContributedSinceAsync(int userId, int crewId, DateTime since, DateTime? until = null, CancellationToken cancellationToken = default);
