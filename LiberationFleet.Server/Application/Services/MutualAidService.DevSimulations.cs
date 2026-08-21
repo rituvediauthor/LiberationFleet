@@ -100,7 +100,7 @@ public partial class MutualAidService
         var cycles = await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate.Value, cancellationToken);
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
 
-        foreach (var cycle in cycles)
+        foreach (var cycle in cycles.Where(c => !c.CycleCompleted))
         {
             var cap = await GetEffectiveCycleCapForUserAsync(cycle.UserId, crew, capacityContext, cancellationToken);
             cycle.HasCycleStarted = true;
@@ -136,16 +136,25 @@ public partial class MutualAidService
         crew.FollowingSeasonStartDate = null;
         crew.SeasonMemberCycleCap = 0m;
         crew.SeasonNonMemberCycleCap = 0m;
+        crew.CatchUpSnapshotYear = 0;
+        crew.CatchUpSnapshotMonth = 0;
 
         var members = await mutualAidRepository.GetActiveMembersWithUsersAsync(crew.Id, cancellationToken);
         foreach (var member in members)
         {
             member.IsInSeason = false;
             member.IsSeasonReady = false;
+            member.GivingSeasonJoinedAt = null;
+            member.CurrentPriorityScore = 0m;
+            member.EmergencySacrificesThisSeason = 0;
         }
 
+        // Drop cycles/thresholds so a fresh Mark Ready / season start does not collide
+        // with leftover primary unique indexes or stale catch-up rows.
+        await mutualAidRepository.ClearSeasonDataAsync(crew.Id, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return DevSuccess("Season reset. Ready states cleared.");
+        return DevSuccess("Season reset. Cycles, thresholds, and ready states cleared.");
     }
 
     public async Task<DevActionResultDto> RecalculateCapsAsync(int userId, CancellationToken cancellationToken = default)

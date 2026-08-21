@@ -17,6 +17,11 @@ public interface IMutualAidRepository
     Task<IReadOnlyList<SeasonCycle>> GetSeasonCyclesAsync(int crewId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DateTime>> GetSeasonStartDatesOnOrAfterAsync(int crewId, DateTime onOrAfter, CancellationToken cancellationToken = default);
     Task AddSeasonCycleAsync(SeasonCycle cycle, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Removes season cycles, monthly survival thresholds, and crew emergency requests/splits
+    /// for a full dev season reset. Clears <c>Gift.SeasonCycleId</c> FKs first.
+    /// </summary>
+    Task ClearSeasonDataAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MonthlySurvivalThreshold>> GetUnsatisfiedThresholdsAsync(int crewId, CancellationToken cancellationToken = default);
     Task<MonthlySurvivalThreshold?> GetThresholdByIdAsync(int thresholdId, CancellationToken cancellationToken = default);
     Task AddThresholdAsync(MonthlySurvivalThreshold threshold, CancellationToken cancellationToken = default);

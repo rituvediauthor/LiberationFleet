@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -128,7 +129,10 @@ public static class CrewmateMapper
             Roles = CrewRoleMapper.MapRoles(membership),
             ElectedRoles = CrewRoleMapper.MapElectedRoleDtos(membership),
             PaymentPlatforms = MapPaymentPlatforms(crewmate),
-            SacrificeCountLastSeason = membership.EmergencySacrificesThisSeason,
+            SacrificeCountLastSeason = MutualAidCalculationService.GetSacrificeCountFromPercentBonus(
+                crewmate.PercentBonus),
+            SacrificeCountThisSeason = membership.EmergencySacrificesThisSeason,
+            PercentBoost = crewmate.PercentBonus,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = lifetimeContributions,

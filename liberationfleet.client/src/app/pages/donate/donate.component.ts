@@ -23,6 +23,9 @@ export class DonateComponent implements OnInit {
   submitting = false;
   donationsEnabled = true;
   statusNote = '';
+  /** Staging hostnames cannot complete real donations; warn before checkout attempts. */
+  isStagingEnvironment =
+    typeof location !== 'undefined' && /staging/i.test(location.hostname);
 
   private navigation = inject(NavigationService);
   private donationService = inject(DonationService);
@@ -34,7 +37,7 @@ export class DonateComponent implements OnInit {
     this.donationService.getSummary().subscribe({
       next: summary => {
         this.donationsEnabled = summary.donationsEnabled;
-        if (!summary.donationsEnabled) {
+        if (!summary.donationsEnabled && !this.isStagingEnvironment) {
           this.statusNote = 'Donations are being set up. Please check back soon.';
         }
       }

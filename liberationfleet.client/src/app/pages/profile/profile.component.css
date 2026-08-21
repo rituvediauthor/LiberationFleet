@@ -55,6 +55,37 @@ h2 {
   background: var(--lf-color-bg-muted);
 }
 
+.avatar-section {
+  margin-bottom: 24px;
+}
+
+.priority-score-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0 0 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--lf-color-accent) 8%, var(--lf-color-bg-surface));
+}
+
+.priority-score-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lf-color-text-secondary);
+}
+
+.priority-score-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--lf-color-text-body);
+}
+
 .form-group {
   margin-bottom: 20px;
   display: flex;

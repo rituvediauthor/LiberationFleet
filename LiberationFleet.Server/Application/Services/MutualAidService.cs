@@ -199,7 +199,7 @@ public partial class MutualAidService(
                     threshold.UserId,
                     threshold.User.Username,
                     need,
-                    "survivalThreshold",
+                    ReceptionEntryType.SurvivalThreshold.ToApiValue(),
                     threshold.Id,
                     null,
                     null,
@@ -230,7 +230,7 @@ public partial class MutualAidService(
                 member.UserId,
                 member.User.Username,
                 need: 0m,
-                entryType: "representative",
+                entryType: ReceptionEntryType.Representative.ToApiValue(),
                 thresholdId: null,
                 cycleUserId: null,
                 seasonCycleId: null,
@@ -358,7 +358,7 @@ public partial class MutualAidService(
         {
             foreach (var cycle in unit.OrderBy(c => c.ReceptionOrderPosition))
             {
-                AddCycleEntry(cycle, "cycle", CapFor(cycle) - cycle.CycleReceived);
+                AddCycleEntry(cycle, ReceptionEntryType.Cycle.ToApiValue(), CapFor(cycle) - cycle.CycleReceived);
             }
         }
 
@@ -372,7 +372,7 @@ public partial class MutualAidService(
                 continue;
             }
 
-            AddCycleEntry(cycle, "catchUp", catchUp);
+            AddCycleEntry(cycle, ReceptionEntryType.CatchUp.ToApiValue(), catchUp);
         }
 
         if (!forRecordGift)
@@ -386,7 +386,7 @@ public partial class MutualAidService(
 
                 foreach (var cycle in unit.OrderBy(c => c.ReceptionOrderPosition))
                 {
-                    AddCycleEntry(cycle, "cycle", CapFor(cycle) - cycle.CycleReceived);
+                    AddCycleEntry(cycle, ReceptionEntryType.Cycle.ToApiValue(), CapFor(cycle) - cycle.CycleReceived);
                 }
             }
         }
@@ -1540,10 +1540,11 @@ public partial class MutualAidService(
         membership.CurrentPriorityScore = await GetPriorityScoreForUserAsync(membership.UserId, crew.Id, cancellationToken);
 
         var inNeedOfAid = await ResolveInNeedOfAidAsync(membership, cancellationToken);
-        if (inNeedOfAid)
-        {
-            await EnsureCurrentSeasonPrimaryCycleAsync(crew, membership, cancellationToken);
-        }
+        await EnsureCurrentSeasonPrimaryCycleAsync(
+            crew,
+            membership,
+            cancellationToken,
+            markCompleted: !inNeedOfAid);
 
         await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);
     }
@@ -1562,7 +1563,8 @@ public partial class MutualAidService(
     private async Task EnsureCurrentSeasonPrimaryCycleAsync(
         Crew crew,
         CrewMembership membership,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool markCompleted = false)
     {
         if (!crew.CurrentSeasonStartDate.HasValue)
         {
@@ -1576,6 +1578,13 @@ public partial class MutualAidService(
             cancellationToken);
         if (existingPrimary is not null)
         {
+            if (markCompleted && !existingPrimary.CycleCompleted)
+            {
+                existingPrimary.CycleCompleted = true;
+                existingPrimary.CycleCompletedAt ??= DateTime.UtcNow;
+                existingPrimary.HasCycleStarted = false;
+            }
+
             return;
         }
 
@@ -1592,6 +1601,7 @@ public partial class MutualAidService(
             cycle.ReceptionOrderPosition++;
         }
 
+        var now = DateTime.UtcNow;
         await mutualAidRepository.AddSeasonCycleAsync(new SeasonCycle
         {
             CrewId = crew.Id,
@@ -1601,7 +1611,8 @@ public partial class MutualAidService(
             TotalReceptionAmount = 0m,
             SurvivalThresholdReceived = 0m,
             CycleReceived = 0m,
-            CycleCompleted = false,
+            CycleCompleted = markCompleted,
+            CycleCompletedAt = markCompleted ? now : null,
             PriorityScoreAtSeasonStart = membership.CurrentPriorityScore,
             ReceptionOrderPosition = insertPosition,
             HasCycleStarted = false
@@ -1807,13 +1818,10 @@ public partial class MutualAidService(
         var position = 0;
         foreach (var (member, score) in ordered)
         {
-            if (member.User?.InNeedOfAid == false)
-            {
-                continue;
-            }
-
+            var inNeed = member.User?.InNeedOfAid != false;
             var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
             var cycleCap = isMember ? capacityContext.MemberCycleCap : capacityContext.NonMemberCycleCap;
+            var now = DateTime.UtcNow;
 
             await mutualAidRepository.AddSeasonCycleAsync(new SeasonCycle
             {
@@ -1824,7 +1832,9 @@ public partial class MutualAidService(
                 TotalReceptionAmount = 0m,
                 SurvivalThresholdReceived = 0m,
                 CycleReceived = 0m,
-                CycleCompleted = false,
+                // Non-needers still get a primary row so season accounting is complete from day one.
+                CycleCompleted = !inNeed,
+                CycleCompletedAt = inNeed ? null : now,
                 PriorityScoreAtSeasonStart = score,
                 ReceptionOrderPosition = position++,
                 HasCycleStarted = false
@@ -2326,8 +2336,10 @@ public partial class MutualAidService(
 
         scored = scored.OrderByDescending(x => x.Score).ToList();
         var position = 0;
+        var promoteNow = DateTime.UtcNow;
         foreach (var (member, score) in scored)
         {
+            var inNeed = member.User?.InNeedOfAid != false;
             var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
             var cycleCap = isMember ? capacityContextForNext.MemberCycleCap : capacityContextForNext.NonMemberCycleCap;
             var primary = promotedCycles.FirstOrDefault(c =>
@@ -2347,7 +2359,8 @@ public partial class MutualAidService(
                     TotalReceptionAmount = 0m,
                     SurvivalThresholdReceived = 0m,
                     CycleReceived = 0m,
-                    CycleCompleted = false,
+                    CycleCompleted = !inNeed,
+                    CycleCompletedAt = inNeed ? null : promoteNow,
                     PriorityScoreAtSeasonStart = score,
                     ReceptionOrderPosition = position++,
                     HasCycleStarted = false
@@ -2360,6 +2373,12 @@ public partial class MutualAidService(
             LockPrimaryCapAtSeasonStart(primary, cycleCap);
             primary.PriorityScoreAtSeasonStart = score;
             primary.HasCycleStarted = false;
+            if (!inNeed)
+            {
+                primary.CycleCompleted = true;
+                primary.CycleCompletedAt ??= promoteNow;
+            }
+
             if (!primary.CycleCompleted)
             {
                 primary.ReceptionOrderPosition = position++;
@@ -2547,8 +2566,7 @@ public partial class MutualAidService(
         {
             var hasPrimary = cycles.Any(c =>
                 c.UserId == member.UserId
-                && IsPrimaryCycle(c)
-                && !c.CycleCompleted);
+                && IsPrimaryCycle(c));
             if (hasPrimary)
             {
                 continue;

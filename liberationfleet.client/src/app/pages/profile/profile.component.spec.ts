@@ -38,6 +38,7 @@ describe('ProfileComponent', () => {
     inNeedToggleThreshold: 0,
     stats: {
       sacrificeCountLastSeason: 0,
+      sacrificeCountThisSeason: 0,
       averageMonthlyContributions: 0,
       membershipStatus: false,
       lifetimeContributions: 0,

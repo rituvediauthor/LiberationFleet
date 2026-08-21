@@ -18,6 +18,18 @@ h1 {
   font-size: 15px;
 }
 
+.staging-warning {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #b45309 45%, var(--lf-color-border));
+  background: color-mix(in srgb, #f59e0b 16%, var(--lf-color-bg-surface));
+  color: var(--lf-color-text-body);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .status-note {
   color: var(--lf-color-text-body);
   font-weight: 500;

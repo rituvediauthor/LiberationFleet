@@ -1231,6 +1231,56 @@ public class MutualAidServiceTests
         currentPrimaries.Should().OnlyContain(g => g.Count == 1);
     }
 
+    [Fact]
+    public async Task ResetSeasonAsync_ClearsCyclesThresholdsAndReadyState()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        await fixture.AddUnsatisfiedThresholdAsync(fixture.Bob, thresholdAmount: 25m);
+
+        var result = await fixture.Service.ResetSeasonAsync(fixture.Alice.Id, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        var crew = await fixture.Context.Crews.SingleAsync(c => c.Id == fixture.Crew.Id);
+        crew.SeasonStarted.Should().BeFalse();
+        crew.CurrentSeasonStartDate.Should().BeNull();
+        crew.CatchUpSnapshotYear.Should().Be(0);
+        (await fixture.Context.SeasonCycles.CountAsync(c => c.CrewId == fixture.Crew.Id)).Should().Be(0);
+        (await fixture.Context.MonthlySurvivalThresholds.CountAsync(t => t.CrewId == fixture.Crew.Id)).Should().Be(0);
+        (await fixture.Context.CrewMemberships.CountAsync(m => m.CrewId == fixture.Crew.Id && m.IsSeasonReady)).Should().Be(0);
+        (await fixture.Context.CrewMemberships.CountAsync(m => m.CrewId == fixture.Crew.Id && m.IsInSeason)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task MarkSeasonReady_WhenNonNeederJoinsFreshSeason_CreatesCompletedPrimary()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        await fixture.Service.ResetSeasonAsync(fixture.Alice.Id, CancellationToken.None);
+
+        fixture.Carol.InNeedOfAid = false;
+        await fixture.Context.SaveChangesAsync();
+
+        foreach (var user in new[] { fixture.Alice, fixture.Bob, fixture.Carol })
+        {
+            var ready = await fixture.Service.MarkSeasonReadyAsync(user.Id, CancellationToken.None);
+            ready.Success.Should().BeTrue();
+        }
+
+        var carolCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Carol.Id
+            && c.EmergencyRequestId == null
+            && c.EmergencySplitOfferId == null
+            && c.SeasonStartDate == fixture.Context.Crews.Single(crew => crew.Id == fixture.Crew.Id).CurrentSeasonStartDate);
+        carolCycle.CycleCompleted.Should().BeTrue();
+        carolCycle.HasCycleStarted.Should().BeFalse();
+
+        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id
+            && c.EmergencyRequestId == null
+            && c.EmergencySplitOfferId == null
+            && c.SeasonStartDate == carolCycle.SeasonStartDate);
+        bobCycle.CycleCompleted.Should().BeFalse();
+    }
+
     private static IReadOnlyList<CrewMemberPlatforms> CreateMemberPlatforms() =>
     [
         new CrewMemberPlatforms { UserId = 1, Username = "giver", PlatformIds = [1] },
@@ -1242,5 +1292,20 @@ public class MutualAidServiceTests
     {
         var context = TestDbContextFactory.Create();
         return HandlerTestFixture.CreateMutualAidService(context);
+    }
+}
+
+public class ReceptionEntryTypeTests
+{
+    [Theory]
+    [InlineData(ReceptionEntryType.SurvivalThreshold, "survivalThreshold")]
+    [InlineData(ReceptionEntryType.Cycle, "cycle")]
+    [InlineData(ReceptionEntryType.CatchUp, "catchUp")]
+    [InlineData(ReceptionEntryType.Representative, "representative")]
+    public void ToApiValue_ReturnsCamelCaseWireValues(ReceptionEntryType entryType, string expected)
+    {
+        entryType.ToApiValue().Should().Be(expected);
+        ReceptionEntryTypeExtensions.TryParseApiValue(expected, out var parsed).Should().BeTrue();
+        parsed.Should().Be(entryType);
     }
 }

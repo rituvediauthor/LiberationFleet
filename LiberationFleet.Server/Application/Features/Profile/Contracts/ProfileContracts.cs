@@ -12,7 +12,14 @@ public class PaymentPlatformAccountDto
 
 public class UserProfileStatsDto
 {
+    /// <summary>
+    /// Emergency sacrifices from the previous season; drives <see cref="PercentBoost"/> this season.
+    /// </summary>
     public int SacrificeCountLastSeason { get; set; }
+
+    /// <summary>Emergency sacrifices recorded during the active season (not yet converted to percent boost).</summary>
+    public int SacrificeCountThisSeason { get; set; }
+
     public decimal AverageMonthlyContributions { get; set; }
     public bool MembershipStatus { get; set; }
     public decimal LifetimeContributions { get; set; }

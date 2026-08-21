@@ -76,6 +76,8 @@ public class CrewmateProfileDto
     public IReadOnlyList<CrewmateElectedRoleDto> ElectedRoles { get; set; } = Array.Empty<CrewmateElectedRoleDto>();
     public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();
     public int SacrificeCountLastSeason { get; set; }
+    public int SacrificeCountThisSeason { get; set; }
+    public int PercentBoost { get; set; }
     public decimal AverageMonthlyContributions { get; set; }
     public bool MembershipStatus { get; set; }
     public decimal LifetimeContributions { get; set; }
@@ -179,6 +181,7 @@ public class CrewmateStateExportItemDto
     public int DisabilityLevel { get; set; }
     public IReadOnlyList<string> IdentityGroups { get; set; } = Array.Empty<string>();
     public int SacrificeCountLastSeason { get; set; }
+    public int SacrificeCountThisSeason { get; set; }
     public bool IsSurvivalThresholdRecipient { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
     public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();

@@ -121,7 +121,8 @@ Use a **separate** destination for staging vs production. Do not reuse a product
 
 ### C.3 Verify staging
 
-1. Open staging `/app/donate` → test card `4242…`.
+1. Open staging `/app/donate` → you should see a staging warning that donations will not work there.
+   For Stripe test-key verification on a non-production host that still has Checkout configured, use test card `4242…`.
 2. Destination / webhook delivery shows 2xx; profile totals update.
 3. EF migrations run on App Service startup — confirm the app starts cleanly after deploy.
 

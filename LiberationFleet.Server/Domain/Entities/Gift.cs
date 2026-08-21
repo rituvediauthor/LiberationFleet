@@ -24,6 +24,11 @@ public class Gift
     public GiftVerificationStatus VerificationStatus { get; set; } = GiftVerificationStatus.Pending;
     public int? EmergencyRequestId { get; set; }
     public int? SeasonCycleId { get; set; }
+    /// <summary>
+    /// Plaintext good/service title for Library of Things contribution gifts (gift history display).
+    /// Encrypted gift-log messages still carry the title separately for the crew gift log.
+    /// </summary>
+    public string? LibraryItemTitle { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User GiverUser { get; set; } = null!;
