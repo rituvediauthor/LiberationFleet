@@ -191,7 +191,12 @@ public class GiftRepository : IGiftRepository
             .Where(g => g.CrewId == crewId && g.Type == GiftType.Completed && g.InitiatedGiftId != null)
             .ToListAsync(cancellationToken);
 
-        return completed.ToDictionary(g => g.InitiatedGiftId!.Value);
+        return completed
+            .GroupBy(g => g.InitiatedGiftId!.Value)
+            .ToDictionary(
+                group => group.Key,
+                // Prefer the newest completion if historical duplicates exist.
+                group => group.OrderByDescending(g => g.Id).First());
     }
 
     public async Task AddAsync(Gift gift, CancellationToken cancellationToken = default)
