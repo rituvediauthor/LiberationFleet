@@ -54,6 +54,21 @@
   flex-shrink: 0;
 }
 
+.menu-icon-bot {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-color: var(--lf-color-danger);
+  -webkit-mask-image: url('assets/images/Boticon.png');
+  mask-image: url('assets/images/Boticon.png');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
 .menu-label {
   flex: 1;
   font-size: 16px;
