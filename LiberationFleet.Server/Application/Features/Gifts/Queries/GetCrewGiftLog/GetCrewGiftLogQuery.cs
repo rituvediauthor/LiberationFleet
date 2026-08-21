@@ -155,31 +155,25 @@ public class GetCrewGiftLogQueryHandler(
         var pageGiftIds = page.Items.Select(g => g.Id).ToList();
         var giftIds = pageGiftIds.Select(id => id.ToString()).ToList();
 
-        var envelopesTask = LoadEnvelopesAsync(membership.CrewId, giftIds, cancellationToken);
-        var likesTask = SafeEnrichAsync(
+        // Keep enrichment sequential: GiftRepository and CryptoRepository share one
+        // scoped ApplicationDbContext, which is not safe for concurrent queries.
+        var envelopeByGiftId = await LoadEnvelopesAsync(membership.CrewId, giftIds, cancellationToken);
+        var likeCounts = await SafeEnrichAsync(
             () => giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken),
             new Dictionary<int, int>(),
             "Gift log like counts failed; continuing with zeros.");
-        var likedTask = SafeEnrichAsync(
+        var likedGiftIds = await SafeEnrichAsync(
             () => giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken),
             new HashSet<int>(),
             "Gift log liked-by-user lookup failed; continuing with none.");
-        var commentsTask = SafeEnrichAsync(
+        var commentCounts = await SafeEnrichAsync(
             () => giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken),
             new Dictionary<int, int>(),
             "Gift log comment counts failed; continuing with zeros.");
-        var seasonDatesTask = SafeEnrichAsync(
+        var seasonStartDates = await SafeEnrichAsync(
             () => giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken),
             new Dictionary<int, DateTime?>(),
             "Gift log season start lookup failed; treating entries as unlocked.");
-
-        await Task.WhenAll(envelopesTask, likesTask, likedTask, commentsTask, seasonDatesTask);
-
-        var envelopeByGiftId = await envelopesTask;
-        var likeCounts = await likesTask;
-        var likedGiftIds = await likedTask;
-        var commentCounts = await commentsTask;
-        var seasonStartDates = await seasonDatesTask;
 
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 

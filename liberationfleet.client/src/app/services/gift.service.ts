@@ -62,34 +62,53 @@ export class GiftService {
     return this.http.post<SeasonSetupSaveResult>(`${this.seasonUrl}/clear-ready`, {});
   }
 
-  navigateToGiftLogEntry(router: Router): void {
+  /** Navigate immediately using known season state when available (avoids blocking on /api/season/status). */
+  navigateToGiftLogEntry(router: Router, seasonStarted?: boolean | null): void {
+    if (seasonStarted === false) {
+      void router.navigate(['/app/crew/season-setup']);
+      return;
+    }
+    if (seasonStarted === true) {
+      void router.navigate(['/app/crew/gift-log']);
+      return;
+    }
+
     this.getSeasonStatus().subscribe({
       next: status => {
         if (!status.seasonStarted) {
-          router.navigate(['/app/crew/season-setup']);
+          void router.navigate(['/app/crew/season-setup']);
         } else {
-          // Season members and non-members both land on the gift log.
-          // Non-members see Join season instead of Record gift.
-          router.navigate(['/app/crew/gift-log']);
+          void router.navigate(['/app/crew/gift-log']);
         }
       },
-      error: () => router.navigate(['/app/crew/gift-log'])
+      error: () => void router.navigate(['/app/crew/gift-log'])
     });
   }
 
   /** From the Next Aid widget: record gift if in season, otherwise join season. */
-  navigateToNextAidAction(router: Router, scope: 'crew' | 'fleet' = 'crew'): void {
+  navigateToNextAidAction(
+    router: Router,
+    scope: 'crew' | 'fleet' = 'crew',
+    known?: { seasonStarted?: boolean | null; userInSeason?: boolean | null }
+  ): void {
+    const go = (seasonStarted: boolean, userInSeason: boolean) => {
+      if (!seasonStarted || !userInSeason) {
+        void router.navigate(['/app/crew/join-season']);
+        return;
+      }
+      void router.navigate([
+        scope === 'fleet' ? '/app/fleet/gift-log/record' : '/app/crew/gift-log/record'
+      ]);
+    };
+
+    if (known && known.seasonStarted != null && known.userInSeason != null) {
+      go(!!known.seasonStarted, !!known.userInSeason);
+      return;
+    }
+
     this.getSeasonStatus().subscribe({
-      next: status => {
-        if (!status.seasonStarted || !status.userInSeason) {
-          router.navigate(['/app/crew/join-season']);
-          return;
-        }
-        router.navigate([
-          scope === 'fleet' ? '/app/fleet/gift-log/record' : '/app/crew/gift-log/record'
-        ]);
-      },
-      error: () => router.navigate(['/app/crew/join-season'])
+      next: status => go(!!status.seasonStarted, !!status.userInSeason),
+      error: () => void router.navigate(['/app/crew/join-season'])
     });
   }
 

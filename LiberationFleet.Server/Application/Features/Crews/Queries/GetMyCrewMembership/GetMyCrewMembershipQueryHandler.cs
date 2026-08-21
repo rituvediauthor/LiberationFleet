@@ -100,6 +100,7 @@ public class GetMyCrewMembershipQueryHandler(
             JoinCode = crew.JoinCode,
             LibraryOfThingsEnabled = crew.LibraryOfThingsEnabled,
             SeasonStarted = crew.SeasonStarted,
+            IsInSeason = membership.IsInSeason,
             IsOrganizer = membership.IsOrganizer,
             ImageResourceId = crew.ImageResourceId,
             CanAttachFilesToCrewContent = CrewContentPermissionService.CanAttachFilesToCrewContent(

@@ -99,33 +99,27 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activeUserId = user?.id ?? 0;
     });
 
-    this.giftService.getSeasonStatus().subscribe({
-      next: status => {
-        if (!status.seasonStarted) {
+    // Prefer membership (already cached on crew home) over season/status so the page
+    // can load without waiting on mutual-aid maintenance work.
+    this.crewService.getMembership().subscribe({
+      next: async membership => {
+        if (!membership.seasonStarted) {
           if (this.router.url.split('?')[0] === '/app/crew/gift-log') {
             void this.router.navigate(['/app/crew/season-setup'], { replaceUrl: true });
           }
           return;
         }
 
-        this.userInSeason = !!status.userInSeason;
+        this.userInSeason = !!membership.isInSeason;
         this.seasonStarted = true;
-        this.crewService.getMembership().subscribe({
-          next: async membership => {
-            this.crewId = membership.crewId ?? 0;
-            this.canExportCrewData = !!membership.canExportCrewData;
-            await this.encryptionContent.whenReady();
-            this.loadGiftLog();
-            this.encryptionReload?.markInitialLoadDone();
-          },
-          error: () => {
-            this.errorMessage = 'Failed to load crew membership';
-            this.loading = false;
-          }
-        });
+        this.crewId = membership.crewId ?? 0;
+        this.canExportCrewData = !!membership.canExportCrewData;
+        await this.encryptionContent.whenReady();
+        this.loadGiftLog();
+        this.encryptionReload?.markInitialLoadDone();
       },
       error: () => {
-        this.errorMessage = 'Failed to load season status';
+        this.errorMessage = 'Failed to load crew membership';
         this.loading = false;
       }
     });

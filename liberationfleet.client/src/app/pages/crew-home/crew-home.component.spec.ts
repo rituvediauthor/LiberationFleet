@@ -85,8 +85,14 @@ describe('CrewHomeComponent', () => {
   });
 
   it('should navigate to gift log', () => {
+    component.membership = {
+      hasCrew: true,
+      crewId: 1,
+      seasonStarted: true,
+      isInSeason: true
+    };
     component.goToGiftLog();
-    expect(giftService.navigateToGiftLogEntry).toHaveBeenCalledWith(router);
+    expect(giftService.navigateToGiftLogEntry).toHaveBeenCalledWith(router, true);
   });
 
   it('should navigate to create crew page', () => {

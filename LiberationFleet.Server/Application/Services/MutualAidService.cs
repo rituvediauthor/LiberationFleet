@@ -35,12 +35,8 @@ public partial class MutualAidService(
         membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken) ?? membership;
         crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken) ?? crew;
 
-        if (crew.SeasonStarted)
-        {
-            await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);
-            await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
-            crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken) ?? crew;
-        }
+        // Status reads must stay cheap: cycle/threshold maintenance belongs on
+        // reception / next-aid / gift-record paths, not every status poll or nav gate.
 
         var readyMembers = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
 

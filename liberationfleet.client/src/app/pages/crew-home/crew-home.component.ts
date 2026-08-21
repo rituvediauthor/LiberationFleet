@@ -211,11 +211,14 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   }
 
   goToGiftLog() {
-    this.giftService.navigateToGiftLogEntry(this.router);
+    this.giftService.navigateToGiftLogEntry(this.router, this.membership?.seasonStarted);
   }
 
   goToNextAidAction() {
-    this.giftService.navigateToNextAidAction(this.router, 'crew');
+    this.giftService.navigateToNextAidAction(this.router, 'crew', {
+      seasonStarted: this.membership?.seasonStarted,
+      userInSeason: this.membership?.isInSeason
+    });
   }
 
   goToEmergencyRequests() {
