@@ -2,8 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, map } from 'rxjs';
+import { EncryptedContentSendPayload } from '../models/encrypted-send.model';
+import { CUSTOM_PLATFORM_OPTION_ID } from '../models/profile.model';
 import {
+  ContentLiker,
+  ContentLikersResponse,
   CrewMember,
+  GiftComment,
+  GiftCommentRepliesResponse,
+  GiftDetail,
+  GiftDetailResponse,
+  GiftEngagementOperationResponse,
+  GiftLikeToggleResponse,
   GiftLogEntry,
   GiftLogPage,
   GiftLogQueryOptions,
@@ -18,9 +28,12 @@ import {
   PendingMiddlemanGift,
   ReceptionOrderEntry,
   RecordGiftRequest,
+  SeasonProfile,
+  SeasonProfileResponse,
   SeasonReadyResult,
   SeasonSetupSaveResult,
-  SeasonStatus
+  SeasonStatus,
+  UpdateSeasonProfileRequest
 } from '../models/gift.model';
 
 @Injectable({
@@ -181,5 +194,133 @@ export class GiftService {
     }
 
     return this.http.post<GiftOperationResponse>(this.apiUrl, body);
+  }
+
+  getGiftDetail(giftId: number): Observable<GiftDetail> {
+    return this.http.get<GiftDetailResponse>(`${this.apiUrl}/log/${giftId}`).pipe(
+      map(response => {
+        if (!response.success || !response.entry) {
+          throw new Error(response.message || 'Failed to load gift');
+        }
+        return this.mapGiftDetail(response.entry);
+      })
+    );
+  }
+
+  getGiftCommentReplies(giftId: number, parentCommentId: number): Observable<GiftComment[]> {
+    return this.http.get<GiftCommentRepliesResponse>(
+      `${this.apiUrl}/log/${giftId}/comments/${parentCommentId}/replies`
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load replies');
+        }
+        return response.items.map(comment => ({
+          ...comment,
+          createdAt: new Date(comment.createdAt)
+        }));
+      })
+    );
+  }
+
+  createGiftComment(
+    giftId: number,
+    payload: EncryptedContentSendPayload & { parentCommentId?: number | null }
+  ): Observable<GiftEngagementOperationResponse> {
+    return this.http.post<GiftEngagementOperationResponse>(`${this.apiUrl}/log/${giftId}/comments`, {
+      parentCommentId: payload.parentCommentId ?? null,
+      nonce: payload.nonce,
+      ciphertext: payload.ciphertext,
+      keyVersion: payload.keyVersion ?? 1,
+      mentionedUserIds: payload.mentionedUserIds ?? [],
+      notificationPreview: payload.notificationPreview ?? payload.body ?? null
+    });
+  }
+
+  toggleGiftLike(giftId: number): Observable<GiftLikeToggleResponse> {
+    return this.http.post<GiftLikeToggleResponse>(`${this.apiUrl}/log/${giftId}/like`, {});
+  }
+
+  toggleGiftCommentLike(giftId: number, commentId: number): Observable<GiftLikeToggleResponse> {
+    return this.http.post<GiftLikeToggleResponse>(
+      `${this.apiUrl}/log/${giftId}/comments/${commentId}/like`,
+      {}
+    );
+  }
+
+  getGiftLikers(giftId: number): Observable<ContentLiker[]> {
+    return this.http.get<ContentLikersResponse>(`${this.apiUrl}/log/${giftId}/likers`).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
+    );
+  }
+
+  getGiftCommentLikers(giftId: number, commentId: number): Observable<ContentLiker[]> {
+    return this.http.get<ContentLikersResponse>(
+      `${this.apiUrl}/log/${giftId}/comments/${commentId}/likers`
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
+    );
+  }
+
+  getSeasonProfile(): Observable<SeasonProfile> {
+    return this.http.get<SeasonProfileResponse>(`${this.apiUrl}/season-profile`).pipe(
+      map(response => {
+        if (!response.success || !response.profile) {
+          throw new Error(response.message || 'Failed to load season profile');
+        }
+        return response.profile;
+      })
+    );
+  }
+
+  updateSeasonProfile(profile: UpdateSeasonProfileRequest): Observable<SeasonProfileResponse> {
+    return this.http.put<SeasonProfileResponse>(`${this.apiUrl}/season-profile`, profile);
+  }
+
+  buildSeasonProfileRequest(
+    profile: SeasonProfile,
+    overrides?: Partial<UpdateSeasonProfileRequest>
+  ): UpdateSeasonProfileRequest {
+    return {
+      paymentPlatforms: profile.paymentPlatforms
+        .filter(p => p.handle.trim() && (p.platformId > 0 || p.customPlatformName?.trim()))
+        .map(p => ({
+          id: p.id > 0 ? p.id : 0,
+          platformId: p.platformId === CUSTOM_PLATFORM_OPTION_ID ? 0 : p.platformId,
+          customPlatformName: p.platformId === CUSTOM_PLATFORM_OPTION_ID ? p.customPlatformName?.trim() : undefined,
+          platform: p.platform,
+          handle: p.handle.trim(),
+          isPreferred: !!p.isPreferred
+        })),
+      inNeedOfAid: profile.inNeedOfAid,
+      emergencyLevel: profile.emergencyLevel,
+      peopleRepresentedCount: profile.peopleRepresentedCount,
+      disabilityLevel: profile.disabilityLevel,
+      identityGroups: profile.identityGroups ?? [],
+      needsSurvivalAid: profile.needsSurvivalAid,
+      estimatedMonthlyContribution: profile.estimatedMonthlyContribution,
+      ...overrides
+    };
+  }
+
+  private mapGiftDetail(entry: GiftDetail): GiftDetail {
+    return {
+      ...entry,
+      timestamp: entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp),
+      comments: (entry.comments ?? []).map(comment => ({
+        ...comment,
+        createdAt: comment.createdAt instanceof Date ? comment.createdAt : new Date(comment.createdAt)
+      }))
+    };
   }
 }

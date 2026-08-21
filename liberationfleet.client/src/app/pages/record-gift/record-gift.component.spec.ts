@@ -61,6 +61,8 @@ describe('RecordGiftComponent', () => {
       identityGroups: [],
       needsSurvivalAid: false,
       isSurvivalThresholdRecipient: false,
+      canToggleInNeedOff: true,
+      inNeedToggleThreshold: 0,
       stats: {
         sacrificeCountLastSeason: 0,
         averageMonthlyContributions: 0,

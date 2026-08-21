@@ -108,7 +108,8 @@
             [commentCount]="item.commentCount ?? 0"
             [likeBusy]="likingPostId === item.id"
             (likeClick)="togglePostLike(item)"
-            (commentClick)="openPost(item)">
+            (commentClick)="openPost(item)"
+            (viewLikesClick)="openPostLikers(item)">
           </app-forum-engagement-bar>
         </div>
       </article>
@@ -213,7 +214,8 @@
             [commentCount]="item.commentCount ?? 0"
             [likeBusy]="likingPostId === item.id"
             (likeClick)="togglePostLike(item)"
-            (commentClick)="openPost(item)">
+            (commentClick)="openPost(item)"
+            (viewLikesClick)="openPostLikers(item)">
           </app-forum-engagement-bar>
         </div>
       </article>
@@ -226,3 +228,12 @@
   (confirmed)="onAdultGateConfirmed()"
   (declined)="onAdultGateDeclined()">
 </app-adult-content-gate>
+
+<app-content-likers-dialog
+  [open]="likersDialogOpen"
+  [items]="likersDialogItems"
+  [loading]="likersDialogLoading"
+  [title]="likersDialogTitle"
+  [crewId]="crewId || null"
+  (close)="closeLikersDialog()">
+</app-content-likers-dialog>

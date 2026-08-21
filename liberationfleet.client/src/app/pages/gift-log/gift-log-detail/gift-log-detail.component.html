@@ -1,0 +1,226 @@
+<div class="gift-detail-page" *ngIf="loading || loadError">
+  <div class="detail-action-bar">
+    <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+    </button>
+  </div>
+  <p class="loading-text" *ngIf="loading">Loading gift…</p>
+  <div class="error-state" *ngIf="!loading && loadError">
+    <p>{{ loadError }}</p>
+    <button type="button" class="action-btn secondary" (click)="retryLoad()">Try again</button>
+  </div>
+</div>
+
+<div class="gift-detail-page" *ngIf="!loading && !loadError && gift as g">
+  <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo"></app-location-header>
+
+  <div class="detail-scroll" #detailScroll>
+    <div class="scroll-page-body">
+      <div class="detail-body">
+        <div class="gift-content-card"
+          [lfNotificationTarget]="g.id"
+          [lfNotificationPrefix]="notifyPrefix"
+          [lfHighlightId]="highlightId">
+          <p class="log-message">{{ g.message }}</p>
+          <span *ngIf="g.displayFlag === 'unverified' || g.status === 'unverified'" class="unverified-badge">Unverified</span>
+          <time class="log-time">{{ formatTimestamp(g.timestamp) }}</time>
+
+          <div *ngIf="g.availableActions?.length" class="verification-row">
+            <button
+              *ngIf="hasAction('confirmReceived')"
+              type="button"
+              class="verify-btn received-btn"
+              [disabled]="verifyingGiftId === g.id"
+              (click)="verifyGift('confirmReceived')">
+              Received
+            </button>
+            <button
+              *ngIf="hasAction('confirmNotReceived')"
+              type="button"
+              class="verify-btn not-received-btn"
+              [disabled]="verifyingGiftId === g.id"
+              (click)="verifyGift('confirmNotReceived')">
+              Not Received
+            </button>
+            <button
+              *ngIf="hasAction('cantComplete')"
+              type="button"
+              class="verify-btn cant-complete-btn"
+              [disabled]="verifyingGiftId === g.id"
+              (click)="verifyGift('cantComplete')">
+              Can't Complete
+            </button>
+
+            <div *ngIf="hasAction('completeTransfer')" class="complete-transfer-row">
+              <select class="platform-select" [(ngModel)]="completionPlatformSelection">
+                <option [ngValue]="''">Select payment platform</option>
+                <option *ngFor="let option of g.completionPlatformOptions" [ngValue]="option.id">
+                  {{ option.name }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="verify-btn complete-btn"
+                [disabled]="verifyingGiftId === g.id || !canCompleteTransfer()"
+                (click)="verifyGift('completeTransfer')">
+                Complete
+              </button>
+            </div>
+          </div>
+
+          <app-forum-engagement-bar
+            [likeCount]="g.likeCount ?? 0"
+            [liked]="!!g.likedByCurrentUser"
+            [commentCount]="g.commentCount ?? 0"
+            [commentClickable]="false"
+            [likeBusy]="likingGift"
+            (likeClick)="toggleGiftLike()"
+            (viewLikesClick)="openGiftLikers()">
+          </app-forum-engagement-bar>
+        </div>
+
+        <section class="comments-section">
+          <h2>Comments</h2>
+          <div class="comments-list">
+            <article
+              class="comment"
+              *ngFor="let comment of g.comments"
+              [lfNotificationTarget]="comment.id"
+              [lfNotificationPrefix]="notifyPrefix"
+              [lfHighlightId]="highlightId">
+              <div class="comment-header">
+                <p class="comment-meta">
+                  <app-user-avatar
+                    [resourceId]="comment.authorAvatarResourceId"
+                    [crewId]="crewId || null"
+                    [fallbackInitial]="comment.authorUsername"
+                    size="sm"
+                    [alt]="comment.authorUsername + ' avatar'">
+                  </app-user-avatar>
+                  <strong>{{ comment.authorUsername }}</strong>
+                  <span>·</span>
+                  <span>{{ comment.createdAt | date:'short' }}</span>
+                </p>
+                <div class="comment-header-actions">
+                  <app-forum-comment-like
+                    [likeCount]="comment.likeCount ?? 0"
+                    [liked]="!!comment.likedByCurrentUser"
+                    [busy]="likingCommentId === comment.id"
+                    (likeClick)="toggleCommentLike(comment)"
+                    (viewLikesClick)="openCommentLikers(comment)">
+                  </app-forum-comment-like>
+                </div>
+              </div>
+              <p class="comment-body" *ngIf="comment.body"><app-mention-text [text]="comment.body" /></p>
+              <div class="comment-actions">
+                <button type="button" class="link-btn" (click)="startReply(comment)">Reply</button>
+                <button
+                  type="button"
+                  class="link-btn"
+                  *ngIf="comment.replyCount > 0"
+                  (click)="toggleReplies(comment)">
+                  {{ comment.repliesExpanded ? 'Hide' : 'View' }} {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+                </button>
+              </div>
+
+              <div class="replies" *ngIf="comment.repliesExpanded && comment.replies?.length">
+                <article
+                  class="comment reply"
+                  *ngFor="let reply of comment.replies"
+                  [lfNotificationTarget]="reply.id"
+                  [lfNotificationPrefix]="notifyPrefix"
+                  [lfHighlightId]="highlightId">
+                  <div class="comment-header">
+                    <p class="comment-meta">
+                      <app-user-avatar
+                        [resourceId]="reply.authorAvatarResourceId"
+                        [crewId]="crewId || null"
+                        [fallbackInitial]="reply.authorUsername"
+                        size="sm"
+                        [alt]="reply.authorUsername + ' avatar'">
+                      </app-user-avatar>
+                      <strong>{{ formatCommentAuthor(reply, comment.replies) }}</strong>
+                      <span>·</span>
+                      <span>{{ reply.createdAt | date:'short' }}</span>
+                    </p>
+                    <div class="comment-header-actions">
+                      <app-forum-comment-like
+                        [likeCount]="reply.likeCount ?? 0"
+                        [liked]="!!reply.likedByCurrentUser"
+                        [busy]="likingCommentId === reply.id"
+                        (likeClick)="toggleCommentLike(reply)"
+                        (viewLikesClick)="openCommentLikers(reply)">
+                      </app-forum-comment-like>
+                    </div>
+                  </div>
+                  <p class="comment-body" *ngIf="reply.body"><app-mention-text [text]="reply.body" /></p>
+                  <div class="comment-actions">
+                    <button type="button" class="link-btn" (click)="startReply(reply)">Reply</button>
+                  </div>
+                </article>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-action-bar" [appComposerFooterPad]="detailScroll">
+    <button
+      type="button"
+      class="back-btn"
+      (click)="onBackAction()"
+      [attr.aria-label]="commentExpanded ? 'Minimize writing area' : 'Go back'">
+      <i
+        class="fa-solid"
+        [class.fa-angle-down]="commentExpanded"
+        [class.fa-angle-left]="!commentExpanded"
+        aria-hidden="true"></i>
+    </button>
+
+    <div class="comment-composer" [class.expanded]="commentExpanded">
+      <div class="composer-input-row">
+        <textarea
+          class="comment-input"
+          [class.expanded]="commentExpanded"
+          [(ngModel)]="commentText"
+          appMentionAutocomplete
+          [(mentionedUserIds)]="mentionedUserIds"
+          (focus)="onCommentFocus()"
+          (blur)="onCommentBlur()"
+          [placeholder]="replyParentId ? 'Write a reply...' : 'Comment...'"
+          [attr.aria-label]="replyParentId ? 'Write a reply' : 'Comment'"
+          [attr.maxlength]="commentMaxLength"
+          rows="1"></textarea>
+
+        <div class="composer-actions-col" *ngIf="commentExpanded">
+          <button
+            type="button"
+            class="composer-send-btn"
+            [disabled]="posting || !canPostComment()"
+            (click)="postComment()"
+            aria-label="Post">
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="composer-tools" [class.collapsed-tools]="!commentExpanded">
+        <app-char-counter
+          [current]="commentText.length"
+          [max]="commentMaxLength">
+        </app-char-counter>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-content-likers-dialog
+  [open]="likersDialogOpen"
+  [items]="likersDialogItems"
+  [loading]="likersDialogLoading"
+  [title]="likersDialogTitle"
+  [crewId]="crewId || null"
+  (close)="closeLikersDialog()">
+</app-content-likers-dialog>

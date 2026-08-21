@@ -90,6 +90,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   }
   if (
     path === '/app/crew/gift-log'
+    || path.startsWith('/app/crew/gift-log/')
     || path.startsWith('/app/crew/season-setup')
     || path.startsWith('/app/crew/join-season')
     || path.startsWith('/app/crew/emergency-requests')
@@ -135,6 +136,10 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewSeason':
     case 'SurvivalThresholdsRefreshed':
     case 'NewEmergencyRequest':
+    case 'NewGiftComment':
+    case 'GiftEntryLiked':
+    case 'GiftCommentLiked':
+    case 'NewGiftReply':
       return 'crewGiftLog';
     case 'NewFleetGifts':
       return 'fleetGiftLog';
