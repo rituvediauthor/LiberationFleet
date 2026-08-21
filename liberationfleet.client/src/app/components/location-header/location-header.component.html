@@ -1,7 +1,12 @@
 <header class="location-header" *ngIf="info" aria-label="Current location">
   <div class="location-header-inner">
-    <a class="location-tab" [routerLink]="info.parentPath">{{ info.parentLabel }}</a>
-    <span class="location-sep" aria-hidden="true">-</span>
-    <span class="location-page">{{ info.pageLabel }}</span>
+    <div class="location-header-trail">
+      <a class="location-tab" [routerLink]="info.parentPath">{{ info.parentLabel }}</a>
+      <span class="location-sep" aria-hidden="true">-</span>
+      <span class="location-page">{{ info.pageLabel }}</span>
+    </div>
+    <div class="location-header-actions">
+      <ng-content></ng-content>
+    </div>
   </div>
 </header>

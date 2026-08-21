@@ -1,7 +1,5 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="saveButton">
   <div class="rule-form-page">
-    <h1 class="page-title">Edit Rule</h1>
-
     <p class="state-text" *ngIf="loading">Loading rule...</p>
     <p class="state-text error" *ngIf="!loading && loadError">{{ loadError }}</p>
 

@@ -1,7 +1,6 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="recordButton">
   <div class="form-container">
     <div class="form-card">
-      <h1>Record Gift</h1>
       <p *ngIf="loading" class="status-text">Loading reception order…</p>
 
       <div class="add-non-member-row" *ngIf="!loading">

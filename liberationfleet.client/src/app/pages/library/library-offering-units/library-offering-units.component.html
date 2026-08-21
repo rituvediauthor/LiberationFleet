@@ -1,6 +1,5 @@
 <app-page-layout [backButton]="backButton" [fillHeight]="true">
   <div class="library-list-page">
-    <h1 class="page-title">{{ title }}</h1>
     <p class="page-subtitle" *ngIf="!loading && items.length > 0">
       {{ items.length }} item{{ items.length === 1 ? '' : 's' }} &middot; available first
     </p>

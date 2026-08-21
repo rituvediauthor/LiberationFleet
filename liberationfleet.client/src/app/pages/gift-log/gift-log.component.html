@@ -1,11 +1,9 @@
 <div class="gift-log-page">
-  <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo"></app-location-header>
+  <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo">
+    <button type="button" class="season-info-link" (click)="goToSeasonInfo()">My giving info</button>
+  </app-location-header>
   <div class="log-scroll" #logContainer>
     <div class="scroll-page-body log-channel-body">
-      <div class="page-header-row">
-        <h1 class="page-title">Gift Log</h1>
-        <button type="button" class="season-info-link" (click)="goToSeasonInfo()">My giving info</button>
-      </div>
       <p *ngIf="loading" class="state-text">Loading gift log…</p>
       <p *ngIf="errorMessage" class="state-text error">{{ errorMessage }}</p>
       <p *ngIf="loadingMore" class="state-text">Loading older gifts…</p>

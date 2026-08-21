@@ -5,6 +5,10 @@ namespace LiberationFleet.Server.Application.Features.Gifts;
 
 public static class GiftDisplayNames
 {
-    public static string GetRecipientName(User user) =>
-        user.IsCrewGiftRecipient ? CrewGiftRecipientService.DisplayName : user.Username;
+    public static string GetRecipientName(User? user) =>
+        user is null
+            ? "Unknown"
+            : user.IsCrewGiftRecipient
+                ? CrewGiftRecipientService.DisplayName
+                : user.Username;
 }

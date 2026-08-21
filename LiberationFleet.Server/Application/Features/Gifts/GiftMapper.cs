@@ -167,16 +167,25 @@ public static class GiftMapper
             ? "Unknown"
             : GiftDisplayNames.GetRecipientName(gift.RecipientUser);
         var giverName = gift.GiverUser?.Username ?? "Someone";
-        var baseMessage = gift.Type switch
+        string baseMessage;
+        if (string.Equals(platform, "Library of Things", StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(gift.LibraryItemTitle))
         {
-            GiftType.Direct =>
-                $"{giverName} gave ${amount} to {recipientName} via {platform}",
-            GiftType.Initiated =>
-                $"{giverName} initiated a ${amount} gift to {recipientName} through {middlemanName} via {platform}",
-            GiftType.Completed =>
-                $"{middlemanName} completed {giverName}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
-            _ => string.Empty
-        };
+            baseMessage = $"{giverName} gave ${amount} in {gift.LibraryItemTitle.Trim()} to {recipientName} via the Library of Things";
+        }
+        else
+        {
+            baseMessage = gift.Type switch
+            {
+                GiftType.Direct =>
+                    $"{giverName} gave ${amount} to {recipientName} via {platform}",
+                GiftType.Initiated =>
+                    $"{giverName} initiated a ${amount} gift to {recipientName} through {middlemanName} via {platform}",
+                GiftType.Completed =>
+                    $"{middlemanName} completed {giverName}'s ${amount} gift to {recipientName} via {platform.ToUpperInvariant()}",
+                _ => string.Empty
+            };
+        }
 
         if (gift.CustomGiftCategory.HasValue)
         {
