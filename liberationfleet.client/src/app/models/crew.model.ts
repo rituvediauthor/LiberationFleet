@@ -41,6 +41,7 @@ export interface CrewMembershipStatus {
   joinCode?: string;
   libraryOfThingsEnabled?: boolean;
   seasonStarted?: boolean;
+  isInSeason?: boolean;
   isOrganizer?: boolean;
   imageResourceId?: string | null;
   canAttachFilesToCrewContent?: boolean;
