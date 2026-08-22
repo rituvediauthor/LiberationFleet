@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Domain.Entities;
@@ -17,6 +18,7 @@ public class UpdateNotificationPreferencesCommandHandler(
     INotificationRepository notificationRepository,
     ISecurityRepository securityRepository,
     IPasswordHasher passwordHasher,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateNotificationPreferencesCommand, NotificationOperationResponse>
 {
     public async Task<NotificationOperationResponse> Handle(UpdateNotificationPreferencesCommand request, CancellationToken cancellationToken)
@@ -57,12 +59,12 @@ public class UpdateNotificationPreferencesCommandHandler(
             unitOfWork,
             cancellationToken);
 
-        var unreadCount = await notificationRepository.GetUnreadCountAsync(userId, cancellationToken);
+        var summary = await notificationService.PushBadgeSummaryAndGetAsync(userId, cancellationToken);
         return new NotificationOperationResponse
         {
             Success = true,
             Message = "Notification preferences saved.",
-            UnreadCount = unreadCount
+            UnreadCount = summary.UnreadCount
         };
     }
 }

@@ -7,4 +7,9 @@ public interface INotificationRealtimeNotifier
     Task NotifyReceivedAsync(int userId, NotificationDto notification, CancellationToken cancellationToken = default);
 
     Task NotifyUnreadCountUpdatedAsync(int userId, int unreadCount, CancellationToken cancellationToken = default);
+
+    Task NotifyBadgeSummaryUpdatedAsync(
+        int userId,
+        NotificationBadgeSummaryResponse summary,
+        CancellationToken cancellationToken = default);
 }

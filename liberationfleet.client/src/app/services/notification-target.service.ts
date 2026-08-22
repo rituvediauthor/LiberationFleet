@@ -4,6 +4,8 @@ import { FORUM_DISCUSSION_CONFIG } from '../config/discussion.config';
 import { ChatService } from './chat.service';
 import { CrewDiscussionService } from './crew-discussion.service';
 import { CrewmateService } from './crewmate.service';
+import { CrewService } from './crew.service';
+import { FleetService } from './fleet.service';
 import { LibraryService } from './library.service';
 import { ProposalService } from './proposal.service';
 import { RuleService } from './rule.service';
@@ -16,6 +18,7 @@ const STATIC_ROUTES = new Set([
   '/app/crew/edit',
   '/app/crew/library-of-things/mine',
   '/app/crew/library-of-things/requests/mine',
+  '/app/crew/invitations',
   '/app/fleet',
   '/app/fleet/gift-log',
   '/app/fleet/rules',
@@ -32,6 +35,8 @@ export class NotificationTargetService {
   private libraryService = inject(LibraryService);
   private ruleService = inject(RuleService);
   private crewmateService = inject(CrewmateService);
+  private fleetService = inject(FleetService);
+  private crewService = inject(CrewService);
 
   isTargetAvailable(actionUrl: string): Observable<boolean> {
     const path = actionUrl.split('?')[0];
@@ -40,6 +45,8 @@ export class NotificationTargetService {
       STATIC_ROUTES.has(path)
       || path.startsWith('/app/crew/proposals/list')
       || path.startsWith('/app/fleet/proposals/list')
+      || path.startsWith('/app/crew/emergency-requests')
+      || path.startsWith('/app/fleet/emergency')
     ) {
       return of(true);
     }
@@ -56,9 +63,9 @@ export class NotificationTargetService {
       );
     }
 
-    // Fleet forums: treat as available (fleet forum fetch is scoped differently).
-    if (/^\/app\/fleet\/forums\/\d+/.test(path)) {
-      return of(true);
+    const fleetForumMatch = path.match(/^\/app\/fleet\/forums\/(\d+)/);
+    if (fleetForumMatch) {
+      return this.exists(this.fleetService.getForum(Number(fleetForumMatch[1])));
     }
 
     const proposalMatch = path.match(/^\/app\/(?:crew|fleet)\/proposals\/(\d+)/);
@@ -78,6 +85,11 @@ export class NotificationTargetService {
 
     if (/^\/app\/fleet\/rules\/\d+\/edit$/.test(path)) {
       return of(true);
+    }
+
+    const invitationMatch = path.match(/^\/app\/crew\/invitations\/(\d+)$/);
+    if (invitationMatch) {
+      return this.exists(this.crewService.getInvitation(Number(invitationMatch[1])));
     }
 
     const crewmateMatch = path.match(/^\/app\/crew\/crewmates\/(\d+)/);

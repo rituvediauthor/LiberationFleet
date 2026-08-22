@@ -11,6 +11,7 @@ public interface INotificationRepository
         NotificationFilterCategory? category,
         int limit,
         int? beforeId,
+        IReadOnlySet<NotificationKind>? excludeKinds = null,
         CancellationToken cancellationToken = default);
 
     Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default);

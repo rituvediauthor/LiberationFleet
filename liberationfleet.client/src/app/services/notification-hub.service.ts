@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { Subject } from 'rxjs';
-import { NotificationItem } from '../models/notification.model';
+import { NotificationBadgeSummaryResponse, NotificationItem } from '../models/notification.model';
 import { AuthService } from './auth.service';
 import { ApiUrlService } from './api-url.service';
 import { NotificationService } from './notification.service';
@@ -15,6 +15,7 @@ export class NotificationHubService implements OnDestroy {
 
   readonly notificationReceived$ = new Subject<NotificationItem>();
   readonly unreadCountUpdated$ = new Subject<number>();
+  readonly badgeSummaryUpdated$ = new Subject<NotificationBadgeSummaryResponse>();
 
   constructor(
     private authService: AuthService,
@@ -79,7 +80,31 @@ export class NotificationHubService implements OnDestroy {
       this.unreadCountUpdated$.next(count);
     });
 
+    this.connection.on('BadgeSummaryUpdated', (summary: NotificationBadgeSummaryResponse) => {
+      // SignalR may camelCase or leave PascalCase depending on server config.
+      const normalized = this.normalizeBadgeSummary(summary);
+      this.notificationService.applyBadgeSummary(normalized);
+      this.badgeSummaryUpdated$.next(normalized);
+    });
+
     await this.connection.start();
+  }
+
+  private normalizeBadgeSummary(summary: NotificationBadgeSummaryResponse | Record<string, unknown>): NotificationBadgeSummaryResponse {
+    const raw = summary as Record<string, unknown>;
+    const unreadCount = (raw['unreadCount'] ?? raw['UnreadCount'] ?? 0) as number;
+    const areaCounts = (raw['areaCounts'] ?? raw['AreaCounts'] ?? {}) as Record<string, number>;
+    const resourceCounts = (raw['resourceCounts'] ?? raw['ResourceCounts'] ?? {}) as Record<string, number>;
+    const success = (raw['success'] ?? raw['Success'] ?? true) as boolean;
+    const message = (raw['message'] ?? raw['Message'] ?? '') as string;
+
+    return {
+      success,
+      message,
+      unreadCount,
+      areaCounts,
+      resourceCounts
+    };
   }
 
   private showBrowserNotification(notification: NotificationItem) {

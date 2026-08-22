@@ -7,6 +7,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { CrewInvitation, PublicCrewRule } from '../../../models/crew.model';
+import { NotificationContentService } from '../../../services/notification-content.service';
 
 type InviteStep = 'invite' | 'rules';
 
@@ -39,6 +40,7 @@ export class CrewInvitationComponent implements OnInit {
   private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
 
   ngOnInit() {
     this.backButton = {
@@ -54,6 +56,8 @@ export class CrewInvitationComponent implements OnInit {
       this.errorMessage = 'Invitation not found.';
       return;
     }
+
+    this.notificationContent.markVisited(`/app/crew/invitations/${this.invitationId}`, this.invitationId);
 
     this.crewService.getInvitation(this.invitationId).subscribe({
       next: result => {

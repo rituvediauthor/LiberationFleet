@@ -26,7 +26,10 @@
       </button>
 
       <button type="button" class="menu-link" (click)="goToInvitations()">
-        <i class="fa-solid fa-envelope-open-text menu-icon" aria-hidden="true"></i>
+        <span class="menu-icon-wrap">
+          <i class="fa-solid fa-envelope-open-text menu-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="areaCounts.userInvitations"></app-content-badge>
+        </span>
         <span class="menu-label">My Invitations</span>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>

@@ -16,4 +16,12 @@ public class NotificationRealtimeNotifier(IHubContext<NotificationHub> hubContex
         hubContext.Clients
             .Group(NotificationHub.UserGroup(userId))
             .SendAsync("UnreadCountUpdated", unreadCount, cancellationToken);
+
+    public Task NotifyBadgeSummaryUpdatedAsync(
+        int userId,
+        NotificationBadgeSummaryResponse summary,
+        CancellationToken cancellationToken = default) =>
+        hubContext.Clients
+            .Group(NotificationHub.UserGroup(userId))
+            .SendAsync("BadgeSummaryUpdated", summary, cancellationToken);
 }

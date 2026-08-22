@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
 import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { NotificationService } from '../../../services/notification.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -37,6 +38,7 @@ export class LibraryIncomingRequestsComponent implements OnInit {
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private notificationService = inject(NotificationService);
+  private notificationContent = inject(NotificationContentService);
   private encryptionContent = inject(EncryptionContentService);
 
   constructor() {
@@ -44,6 +46,7 @@ export class LibraryIncomingRequestsComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.notificationContent.markVisited('/app/crew/library-of-things/requests/');
     this.notificationService.refreshBadges();
     this.notificationService.resourceCounts$.subscribe(counts => {
       this.resourceCounts = counts;

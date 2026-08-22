@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -13,6 +14,7 @@ public record SetHiddenContentCommand(MutedContentType ContentType, int Resource
 public class SetHiddenContentCommandHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<SetHiddenContentCommand, NotificationOperationResponse>
 {
     public async Task<NotificationOperationResponse> Handle(SetHiddenContentCommand request, CancellationToken cancellationToken)
@@ -81,10 +83,12 @@ public class SetHiddenContentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var summary = await notificationService.PushBadgeSummaryAndGetAsync(userId, cancellationToken);
         return new NotificationOperationResponse
         {
             Success = true,
-            Message = request.Hidden ? "Content hidden." : "Content unhidden."
+            Message = request.Hidden ? "Content hidden." : "Content unhidden.",
+            UnreadCount = summary.UnreadCount
         };
     }
 }

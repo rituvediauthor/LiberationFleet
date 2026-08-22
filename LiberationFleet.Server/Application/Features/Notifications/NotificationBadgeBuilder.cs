@@ -14,8 +14,9 @@ public static class NotificationBadgeBuilder
         "crewGiftLog", "fleetGiftLog",
         "crewRules", "fleetRules",
         "crewSettings", "fleetSettings",
-        "crewLibrary", "fleetLibrary",
+        "crewLibrary",
         "crewCrewmates", "fleetCrewmates",
+        "userInvitations",
         "fleet"
     ];
 
@@ -128,6 +129,13 @@ public static class NotificationBadgeBuilder
             return true;
         }
 
+        if (IsMentionKind(notification.Kind)
+            && IsForumPath(notification.ActionUrl)
+            && IsMutedOrHiddenForum(notification, mutedForumIds, hiddenForumIds))
+        {
+            return true;
+        }
+
         if (notification.ActorUserId.HasValue && mutedFriendIds.Contains(notification.ActorUserId.Value))
         {
             return true;
@@ -174,6 +182,13 @@ public static class NotificationBadgeBuilder
             return true;
         }
 
+        // Only match entity ids against forum mutes when the URL is a forum path,
+        // to avoid colliding proposal/chat ids with muted forum post ids.
+        if (!IsForumPath(notification.ActionUrl))
+        {
+            return false;
+        }
+
         if (notification.SecondaryEntityId.HasValue
             && (mutedForumIds.Contains(notification.SecondaryEntityId.Value)
                 || hiddenForumIds.Contains(notification.SecondaryEntityId.Value)))
@@ -186,23 +201,37 @@ public static class NotificationBadgeBuilder
                 || hiddenForumIds.Contains(notification.RelatedEntityId.Value));
     }
 
+    private static bool IsForumPath(string actionUrl)
+    {
+        var path = actionUrl.Split('?')[0];
+        return path.StartsWith("/app/crew/forums/", StringComparison.Ordinal)
+            || path.StartsWith("/app/fleet/forums/", StringComparison.Ordinal);
+    }
+
+    /// <summary>True forum activity kinds (not mentions or proposal replies).</summary>
     private static bool IsForumKind(NotificationKind kind) =>
         kind is NotificationKind.NewForumPost
             or NotificationKind.NewForumComment
             or NotificationKind.NewReply
-            or NotificationKind.Mention
             or NotificationKind.NewFleetForumPost
             or NotificationKind.NewFleetForumComment
             or NotificationKind.NewFleetReply
-            or NotificationKind.FleetMention
             or NotificationKind.ForumPostLiked
             or NotificationKind.ForumCommentLiked
             or NotificationKind.FleetForumPostLiked
             or NotificationKind.FleetForumCommentLiked;
 
+    private static bool IsMentionKind(NotificationKind kind) =>
+        kind is NotificationKind.Mention or NotificationKind.FleetMention;
+
     private static string? ResolveArea(Notification notification)
     {
         var path = notification.ActionUrl.Split('?')[0];
+
+        if (path.StartsWith("/app/crew/invitations", StringComparison.Ordinal))
+        {
+            return "userInvitations";
+        }
 
         if (path.StartsWith("/app/crew/chats/", StringComparison.Ordinal))
         {
@@ -237,11 +266,6 @@ public static class NotificationBadgeBuilder
         if (path.StartsWith("/app/crew/library-of-things", StringComparison.Ordinal))
         {
             return "crewLibrary";
-        }
-
-        if (path.StartsWith("/app/fleet/library", StringComparison.Ordinal))
-        {
-            return "fleetLibrary";
         }
 
         if (path.StartsWith("/app/crew/rules", StringComparison.Ordinal))
@@ -299,19 +323,21 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewChatMessage => "crewChats",
             NotificationKind.NewFleetChatMessage => "fleetChats",
             NotificationKind.NewForumPost or NotificationKind.NewForumComment or NotificationKind.NewReply
-                or NotificationKind.Mention
                 or NotificationKind.ForumPostLiked or NotificationKind.ForumCommentLiked => "crewForums",
+            NotificationKind.Mention when IsForumPath(notification.ActionUrl) => "crewForums",
             NotificationKind.NewFleetForumPost or NotificationKind.NewFleetForumComment
-                or NotificationKind.NewFleetReply or NotificationKind.FleetMention
+                or NotificationKind.NewFleetReply
                 or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked => "fleetForums",
+            NotificationKind.FleetMention when IsForumPath(notification.ActionUrl) => "fleetForums",
             NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
-                => "crewProposals",
+                or NotificationKind.NewProposalReply => "crewProposals",
             NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted
-                or NotificationKind.FleetProposalRejected => "fleetProposals",
+                or NotificationKind.FleetProposalRejected or NotificationKind.NewFleetProposalReply => "fleetProposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
                 or NotificationKind.SurvivalThresholdsRefreshed
                 or NotificationKind.NewGiftComment or NotificationKind.NewGiftReply
-                or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked => "crewGiftLog",
+                or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked
+                or NotificationKind.NewEmergencyRequest => "crewGiftLog",
             NotificationKind.NewFleetGifts => "fleetGiftLog",
             NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "crewRules",
             NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted
@@ -320,7 +346,7 @@ public static class NotificationBadgeBuilder
             NotificationKind.FleetSettingChanged => "fleetSettings",
             NotificationKind.NewCrewmate or NotificationKind.CrewmateKicked or NotificationKind.CrewmateRejoinAllowed
                 or NotificationKind.JoinRequestFromPerson => "crewCrewmates",
-            NotificationKind.JoinRequestFromCrew => "fleetCrewmates",
+            NotificationKind.JoinRequestFromCrew => "userInvitations",
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
                 or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "crewLibrary",
@@ -428,8 +454,8 @@ public static class NotificationBadgeBuilder
             or NotificationKind.ProposalAccepted
             or NotificationKind.FleetProposalAccepted
             or NotificationKind.FleetProposalRejected
-            or NotificationKind.NewReply
-            or NotificationKind.NewFleetReply;
+            or NotificationKind.NewProposalReply
+            or NotificationKind.NewFleetProposalReply;
 
     private static bool TryExtractPathId(string path, string prefix, out int id)
     {

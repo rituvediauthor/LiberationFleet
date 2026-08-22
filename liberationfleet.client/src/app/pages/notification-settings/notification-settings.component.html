@@ -1,6 +1,6 @@
 <app-page-layout [backButton]="backButton" [primaryButton]="saveButton">
   <div class="notification-settings-page">
-    <p class="intro">Choose which notifications you want to receive.</p>
+    <p class="intro">Choose which notifications you want to receive. Disabled kinds are hidden from the inbox and badges (existing unread of those kinds no longer count).</p>
 
     <p *ngIf="loading" class="state-text">Loading preferences...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>

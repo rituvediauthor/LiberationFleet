@@ -98,7 +98,10 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
         }
 
         this.roomId = nextRoomId;
-        this.notificationContent.markVisited(`/app/crew/chats/${this.roomId}`, this.roomId);
+        const isFleetScope = this.route.snapshot.data['scope'] === 'fleet'
+          || this.router.url.startsWith('/app/fleet/chats');
+        const prefix = isFleetScope ? '/app/fleet/chats' : '/app/crew/chats';
+        this.notificationContent.markVisited(`${prefix}/${this.roomId}`, this.roomId);
       }),
       this.voicePresence.presence$.subscribe(rooms => {
         this.participants = rooms.find(room => room.chatRoomId === this.roomId)?.participants ?? [];

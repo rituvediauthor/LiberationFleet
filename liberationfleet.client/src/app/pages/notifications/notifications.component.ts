@@ -1,10 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { ToastService } from '../../components/toast/toast.component';
 import { NotificationService } from '../../services/notification.service';
+import { NotificationHubService } from '../../services/notification-hub.service';
 import { NotificationTargetService } from '../../services/notification-target.service';
 import {
   NOTIFICATION_FILTER_OPTIONS,
@@ -13,6 +14,7 @@ import {
 } from '../../models/notification.model';
 import { CrewService } from '../../services/crew.service';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
+import { NotificationCategoryMapperMatches } from '../../utils/notification-filter.util';
 
 @Component({
   selector: 'app-notifications',
@@ -21,7 +23,7 @@ import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.co
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css'
 })
-export class NotificationsComponent implements OnInit {
+export class NotificationsComponent implements OnInit, OnDestroy {
   items: NotificationItem[] = [];
   loading = true;
   errorMessage = '';
@@ -30,10 +32,12 @@ export class NotificationsComponent implements OnInit {
   crewId = 0;
 
   private notificationService = inject(NotificationService);
+  private notificationHub = inject(NotificationHubService);
   private notificationTargetService = inject(NotificationTargetService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private router = inject(Router);
+  private subscription = new Subscription();
 
   ngOnInit() {
     this.crewService.getMembership().subscribe({
@@ -42,6 +46,15 @@ export class NotificationsComponent implements OnInit {
       }
     });
     this.loadNotifications();
+    this.subscription.add(
+      this.notificationHub.notificationReceived$.subscribe(notification => {
+        this.onNotificationReceived(notification);
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 
   /** Avatars only for notifications that have a known non-anonymous actor picture. */
@@ -88,6 +101,26 @@ export class NotificationsComponent implements OnInit {
 
   formatWhen(value: string): string {
     return new Date(value).toLocaleString();
+  }
+
+  private onNotificationReceived(notification: NotificationItem) {
+    if (!NotificationCategoryMapperMatches(notification.kind, this.selectedFilter)) {
+      return;
+    }
+
+    if (this.items.some(item => item.id === notification.id)) {
+      return;
+    }
+
+    this.items = [notification, ...this.items];
+    this.notificationTargetService.isTargetAvailable(notification.actionUrl).subscribe({
+      next: available => {
+        notification.isTargetAvailable = available;
+      },
+      error: () => {
+        notification.isTargetAvailable = false;
+      }
+    });
   }
 
   private loadNotifications() {

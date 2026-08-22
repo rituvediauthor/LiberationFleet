@@ -12,6 +12,7 @@ import { LibraryCryptoService } from '../../../services/crypto/library-crypto.se
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import {
   LibraryCategory,
   LibraryOfferingListItem,
@@ -56,6 +57,7 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
+  private notificationContent = inject(NotificationContentService);
   private searchChanges$ = new Subject<string>();
   private destroy$ = new Subject<void>();
   private listObserver?: IntersectionObserver;
@@ -66,6 +68,7 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   }
 
   ngOnInit() {
+    this.notificationContent.markVisited('/app/crew/library-of-things/mine');
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;

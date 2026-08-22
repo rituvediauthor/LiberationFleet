@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using MediatR;
 
@@ -10,6 +11,7 @@ public record MarkNotificationReadCommand(int NotificationId) : IRequest<Notific
 public class MarkNotificationReadCommandHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<MarkNotificationReadCommand, NotificationOperationResponse>
 {
     public async Task<NotificationOperationResponse> Handle(MarkNotificationReadCommand request, CancellationToken cancellationToken)
@@ -29,12 +31,12 @@ public class MarkNotificationReadCommandHandler(
         await notificationRepository.MarkReadAsync(request.NotificationId, userId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var unreadCount = await notificationRepository.GetUnreadCountAsync(userId, cancellationToken);
+        var summary = await notificationService.PushBadgeSummaryAndGetAsync(userId, cancellationToken);
         return new NotificationOperationResponse
         {
             Success = true,
             Message = "Notification marked as read.",
-            UnreadCount = unreadCount
+            UnreadCount = summary.UnreadCount
         };
     }
 }

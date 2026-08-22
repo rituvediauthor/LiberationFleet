@@ -201,10 +201,26 @@ public static class HandlerTestFixture
         realtimeNotifier
             .Setup(n => n.NotifyUnreadCountUpdatedAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        realtimeNotifier
+            .Setup(n => n.NotifyBadgeSummaryUpdatedAsync(
+                It.IsAny<int>(),
+                It.IsAny<NotificationBadgeSummaryResponse>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var blockRepository = new Mock<IUserBlockRepository>(MockBehavior.Loose);
+        blockRepository
+            .Setup(r => r.GetHiddenUserIdsForViewerAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
+
+        var badgeSummaryService = new NotificationBadgeSummaryService(
+            new NotificationRepository(context),
+            blockRepository.Object);
 
         return new NotificationService(
             new NotificationRepository(context),
             realtimeNotifier.Object,
+            badgeSummaryService,
             context);
     }
 
@@ -213,16 +229,49 @@ public static class HandlerTestFixture
         Mock<INotificationRealtimeNotifier>? realtimeNotifier = null,
         Mock<IUnitOfWork>? unitOfWork = null)
     {
-        notificationRepository ??= new Mock<INotificationRepository>(MockBehavior.Loose);
+        if (notificationRepository is null)
+        {
+            notificationRepository = new Mock<INotificationRepository>(MockBehavior.Loose);
+            notificationRepository
+                .Setup(r => r.IsKindEnabledAsync(It.IsAny<int>(), It.IsAny<NotificationKind>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+        }
+
         notificationRepository
-            .Setup(r => r.IsKindEnabledAsync(It.IsAny<int>(), It.IsAny<NotificationKind>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .Setup(r => r.GetUnreadForUserAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Notification>());
+        notificationRepository
+            .Setup(r => r.GetPreferencesAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserNotificationPreference>());
+        notificationRepository
+            .Setup(r => r.GetMutedContentsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserMutedContent>());
+        notificationRepository
+            .Setup(r => r.GetHiddenContentsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserHiddenContent>());
+
         realtimeNotifier ??= new Mock<INotificationRealtimeNotifier>(MockBehavior.Loose);
+        realtimeNotifier
+            .Setup(n => n.NotifyBadgeSummaryUpdatedAsync(
+                It.IsAny<int>(),
+                It.IsAny<NotificationBadgeSummaryResponse>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         unitOfWork ??= CreateUnitOfWorkMock();
+
+        var blockRepository = new Mock<IUserBlockRepository>(MockBehavior.Loose);
+        blockRepository
+            .Setup(r => r.GetHiddenUserIdsForViewerAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
+
+        var badgeSummaryService = new NotificationBadgeSummaryService(
+            notificationRepository.Object,
+            blockRepository.Object);
 
         return new NotificationService(
             notificationRepository.Object,
             realtimeNotifier.Object,
+            badgeSummaryService,
             unitOfWork.Object);
     }
 
