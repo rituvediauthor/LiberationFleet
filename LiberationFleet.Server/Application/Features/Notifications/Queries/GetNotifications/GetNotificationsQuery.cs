@@ -12,6 +12,7 @@ public record GetNotificationsQuery(string? Category, int Limit = 50, int? Befor
 public class GetNotificationsQueryHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
+    NotificationBadgeSummaryService badgeSummaryService,
     IUserRepository userRepository) : IRequestHandler<GetNotificationsQuery, NotificationListResponse>
 {
     public async Task<NotificationListResponse> Handle(GetNotificationsQuery request, CancellationToken cancellationToken)
@@ -23,13 +24,20 @@ public class GetNotificationsQueryHandler(
 
         var category = ParseCategory(request.Category);
         var userId = currentUser.UserId.Value;
+        var preferences = await notificationRepository.GetPreferencesAsync(userId, cancellationToken);
+        var disabledKinds = preferences
+            .Where(p => !p.IsEnabled)
+            .Select(p => p.Kind)
+            .ToHashSet();
+
         var notifications = await notificationRepository.GetForUserAsync(
             userId,
             category,
             request.Limit,
             request.BeforeId,
+            disabledKinds,
             cancellationToken);
-        var unreadCount = await notificationRepository.GetUnreadCountAsync(userId, cancellationToken);
+        var badgeSummary = await badgeSummaryService.GetForUserAsync(userId, cancellationToken);
 
         var actorIds = notifications
             .Where(n => n.ActorUserId.HasValue)
@@ -53,7 +61,7 @@ public class GetNotificationsQueryHandler(
         {
             Success = true,
             Message = "Notifications loaded.",
-            UnreadCount = unreadCount,
+            UnreadCount = badgeSummary.UnreadCount,
             Items = items
         };
     }

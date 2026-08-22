@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EmergencyRequestListItem } from '../../../models/emergency-request.model';
+import { NotificationContentService } from '../../../services/notification-content.service';
 
 @Component({
   selector: 'app-emergency-requests-list',
@@ -27,6 +28,7 @@ export class EmergencyRequestsListComponent implements OnInit {
   private navigation = inject(NavigationService);
   private emergencyRequestService = inject(EmergencyRequestService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
 
   ngOnInit() {
     this.backButton = this.navigation.createBackButton(['/app/crew']);
@@ -37,6 +39,7 @@ export class EmergencyRequestsListComponent implements OnInit {
       onClick: () => this.router.navigate(['/app/crew/emergency-requests/create'])
     };
 
+    this.notificationContent.markVisited('/app/crew/emergency-requests');
     this.loadItems();
   }
 

@@ -48,7 +48,9 @@ export type NotificationKind =
   | 'NewGiftComment'
   | 'GiftEntryLiked'
   | 'GiftCommentLiked'
-  | 'NewGiftReply';
+  | 'NewGiftReply'
+  | 'NewProposalReply'
+  | 'NewFleetProposalReply';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
 

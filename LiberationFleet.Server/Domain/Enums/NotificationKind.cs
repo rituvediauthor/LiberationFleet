@@ -11,7 +11,9 @@ public enum NotificationKind
     NewChatMessage = 7,
     NewReply = 8,
     NewForumPost = 9,
+    // 10 reserved (removed kind)
     NewForumComment = 11,
+    // 12 reserved (removed kind)
     NewCrewmate = 13,
     JoinRequestFromPerson = 14,
     JoinRequestFromCrew = 15,
@@ -51,5 +53,7 @@ public enum NotificationKind
     NewGiftComment = 49,
     GiftEntryLiked = 50,
     GiftCommentLiked = 51,
-    NewGiftReply = 52
+    NewGiftReply = 52,
+    NewProposalReply = 53,
+    NewFleetProposalReply = 54
 }

@@ -16,6 +16,7 @@ public static class NotificationCategoryMapper
         NotificationKind.Mention or NotificationKind.FleetMention => NotificationFilterCategory.Mentions,
         NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
             or NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted or NotificationKind.FleetProposalRejected
+            or NotificationKind.NewProposalReply or NotificationKind.NewFleetProposalReply
             => NotificationFilterCategory.Proposals,
         NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited
             or NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted or NotificationKind.FleetRuleEdited
@@ -55,7 +56,9 @@ public static class NotificationCategoryMapper
             NotificationKind.ProposalAccepted,
             NotificationKind.NewFleetProposal,
             NotificationKind.FleetProposalAccepted,
-            NotificationKind.FleetProposalRejected
+            NotificationKind.FleetProposalRejected,
+            NotificationKind.NewProposalReply,
+            NotificationKind.NewFleetProposalReply
         ],
         NotificationFilterCategory.Rules =>
         [

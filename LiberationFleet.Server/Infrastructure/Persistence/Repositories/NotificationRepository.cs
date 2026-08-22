@@ -14,6 +14,7 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         NotificationFilterCategory? category,
         int limit,
         int? beforeId,
+        IReadOnlySet<NotificationKind>? excludeKinds = null,
         CancellationToken cancellationToken = default)
     {
         var query = context.Notifications
@@ -29,6 +30,12 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         {
             var kinds = NotificationCategoryMapper.GetKindsForCategory(categoryValue);
             query = query.Where(n => kinds.Contains(n.Kind));
+        }
+
+        if (excludeKinds is { Count: > 0 })
+        {
+            var excluded = excludeKinds.ToArray();
+            query = query.Where(n => !excluded.Contains(n.Kind));
         }
 
         return await query

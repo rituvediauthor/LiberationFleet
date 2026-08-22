@@ -9,6 +9,7 @@ namespace LiberationFleet.Server.Application.Features.Notifications;
 public class NotificationService(
     INotificationRepository notificationRepository,
     INotificationRealtimeNotifier realtimeNotifier,
+    NotificationBadgeSummaryService badgeSummaryService,
     IUnitOfWork unitOfWork)
 {
     public async Task NotifyUserAsync(CreateNotificationRequest request, CancellationToken cancellationToken = default)
@@ -24,7 +25,7 @@ public class NotificationService(
 
         var dto = NotificationMapper.Map(notification);
         await realtimeNotifier.NotifyReceivedAsync(request.UserId, dto, cancellationToken);
-        await PushUnreadCountAsync(request.UserId, cancellationToken);
+        await PushBadgeSummaryAsync(request.UserId, cancellationToken);
     }
 
     public async Task NotifyUsersAsync(
@@ -54,7 +55,11 @@ public class NotificationService(
         {
             var dto = NotificationMapper.Map(notification);
             await realtimeNotifier.NotifyReceivedAsync(notification.UserId, dto, cancellationToken);
-            await PushUnreadCountAsync(notification.UserId, cancellationToken);
+        }
+
+        foreach (var userId in notifications.Select(n => n.UserId).Distinct())
+        {
+            await PushBadgeSummaryAsync(userId, cancellationToken);
         }
     }
 
@@ -126,6 +131,21 @@ public class NotificationService(
         await NotifyUsersAsync(requests, cancellationToken);
     }
 
+    public async Task PushBadgeSummaryAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        _ = await PushBadgeSummaryAndGetAsync(userId, cancellationToken);
+    }
+
+    public async Task<NotificationBadgeSummaryResponse> PushBadgeSummaryAndGetAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var summary = await badgeSummaryService.GetForUserAsync(userId, cancellationToken);
+        await realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, summary.UnreadCount, cancellationToken);
+        await realtimeNotifier.NotifyBadgeSummaryUpdatedAsync(userId, summary, cancellationToken);
+        return summary;
+    }
+
     public static string GetKindLabel(NotificationKind kind) => kind switch
     {
         NotificationKind.NewProposal => "New proposal",
@@ -178,13 +198,14 @@ public class NotificationService(
         NotificationKind.GiftEntryLiked => "Gift liked",
         NotificationKind.GiftCommentLiked => "Gift comment liked",
         NotificationKind.NewGiftReply => "New gift reply",
+        NotificationKind.NewProposalReply => "New proposal reply",
+        NotificationKind.NewFleetProposalReply => "New fleet proposal reply",
         _ => kind.ToString()
     };
 
     public static string GetKindCategory(NotificationKind kind) => kind switch
     {
-        NotificationKind.JoinRequestFromCrew
-            or NotificationKind.NewFleetGifts
+        NotificationKind.NewFleetGifts
             or NotificationKind.NewFleetProposal
             or NotificationKind.FleetSettingChanged
             or NotificationKind.NewFleetChatMessage
@@ -196,6 +217,7 @@ public class NotificationService(
             or NotificationKind.FleetProposalAccepted
             or NotificationKind.FleetProposalRejected
             or NotificationKind.NewFleetReply
+            or NotificationKind.NewFleetProposalReply
             or NotificationKind.FleetMention
             or NotificationKind.FleetForumPostLiked
             or NotificationKind.FleetForumCommentLiked => "Fleet",
@@ -216,10 +238,4 @@ public class NotificationService(
         IsRead = false,
         CreatedAt = DateTime.UtcNow
     };
-
-    private async Task PushUnreadCountAsync(int userId, CancellationToken cancellationToken)
-    {
-        var unreadCount = await notificationRepository.GetUnreadCountAsync(userId, cancellationToken);
-        await realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, unreadCount, cancellationToken);
-    }
 }

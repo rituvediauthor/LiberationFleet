@@ -1,4 +1,4 @@
-import { NotificationItem } from '../models/notification.model';
+import { NotificationItem, NotificationKind } from '../models/notification.model';
 
 export type CrewNotificationArea =
   | 'crewChats'
@@ -14,9 +14,9 @@ export type CrewNotificationArea =
   | 'crewSettings'
   | 'fleetSettings'
   | 'crewLibrary'
-  | 'fleetLibrary'
   | 'crewCrewmates'
   | 'fleetCrewmates'
+  | 'userInvitations'
   | 'fleet';
 
 export type CrewNotificationAreaCounts = Record<CrewNotificationArea, number>;
@@ -36,16 +36,24 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
     crewSettings: 0,
     fleetSettings: 0,
     crewLibrary: 0,
-    fleetLibrary: 0,
     crewCrewmates: 0,
     fleetCrewmates: 0,
+    userInvitations: 0,
     fleet: 0
   };
 }
 
+function isForumPath(path: string): boolean {
+  return path.startsWith('/app/crew/forums/') || path.startsWith('/app/fleet/forums/');
+}
+
+/** Mirrors server NotificationBadgeBuilder.ResolveArea — keep in sync. */
 export function resolveNotificationArea(item: NotificationItem): CrewNotificationArea | null {
   const path = item.actionUrl.split('?')[0];
 
+  if (path.startsWith('/app/crew/invitations')) {
+    return 'userInvitations';
+  }
   if (path.startsWith('/app/crew/chats/')) {
     return 'crewChats';
   }
@@ -66,9 +74,6 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   }
   if (path.startsWith('/app/crew/library-of-things')) {
     return 'crewLibrary';
-  }
-  if (path.startsWith('/app/fleet/library')) {
-    return 'fleetLibrary';
   }
   if (path.startsWith('/app/crew/rules')) {
     return 'crewRules';
@@ -104,7 +109,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     return 'fleet';
   }
 
-  switch (item.kind) {
+  switch (item.kind as NotificationKind) {
     case 'NewChatMessage':
       return 'crewChats';
     case 'NewFleetChatMessage':
@@ -114,22 +119,26 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'ForumPostLiked':
     case 'ForumCommentLiked':
     case 'NewReply':
-    case 'Mention':
       return 'crewForums';
+    case 'Mention':
+      return isForumPath(path) ? 'crewForums' : null;
     case 'NewFleetForumPost':
     case 'NewFleetForumComment':
     case 'NewFleetReply':
-    case 'FleetMention':
     case 'FleetForumPostLiked':
     case 'FleetForumCommentLiked':
       return 'fleetForums';
+    case 'FleetMention':
+      return isForumPath(path) ? 'fleetForums' : null;
     case 'NewProposal':
     case 'ProposalRejected':
     case 'ProposalAccepted':
+    case 'NewProposalReply':
       return 'crewProposals';
     case 'NewFleetProposal':
     case 'FleetProposalAccepted':
     case 'FleetProposalRejected':
+    case 'NewFleetProposalReply':
       return 'fleetProposals';
     case 'NewGifts':
     case 'NewCycle':
@@ -161,7 +170,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'JoinRequestFromPerson':
       return 'crewCrewmates';
     case 'JoinRequestFromCrew':
-      return 'fleetCrewmates';
+      return 'userInvitations';
     case 'NewLibraryRequest':
     case 'LibraryRequestDenied':
     case 'LibraryRequestCompleted':

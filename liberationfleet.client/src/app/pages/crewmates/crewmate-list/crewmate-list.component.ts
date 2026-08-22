@@ -12,6 +12,7 @@ import {
   formatPlatformDisplay
 } from '../../../models/crewmate.model';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { NotificationContentService } from '../../../services/notification-content.service';
 
 @Component({
   selector: 'app-crewmate-list',
@@ -36,6 +37,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
   private crewmateService = inject(CrewmateService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
   private activityIntervalId?: ReturnType<typeof setInterval>;
   activityTick = 0;
 
@@ -47,6 +49,8 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
       type: 'primary',
       onClick: () => this.router.navigate(['/app/crew/crewmates/invite'])
     };
+
+    this.notificationContent.markVisited('/app/crew/crewmates');
 
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;

@@ -67,10 +67,10 @@ public class ToggleGiftLikeCommandHandlerTests
 
         var realtimeNotifier = new Mock<LiberationFleet.Server.Application.Common.Interfaces.INotificationRealtimeNotifier>(MockBehavior.Loose);
         var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
-        var notificationService = new LiberationFleet.Server.Application.Features.Notifications.NotificationService(
-            notificationRepository.Object,
-            realtimeNotifier.Object,
-            unitOfWork.Object);
+        var notificationService = HandlerTestFixture.CreateNotificationService(
+            notificationRepository,
+            realtimeNotifier,
+            unitOfWork);
 
         var handler = new ToggleGiftLikeCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(actor.Id).Object,

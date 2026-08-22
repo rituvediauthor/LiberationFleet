@@ -70,13 +70,7 @@ export class NotificationService {
       next: response => {
         this.badgeInFlight = false;
         this.lastBadgeRefreshAt = Date.now();
-        if (!response.success) {
-          return;
-        }
-
-        this.unreadCountSubject.next(response.unreadCount);
-        this.areaCountsSubject.next(this.toAreaCounts(response.areaCounts));
-        this.resourceCountsSubject.next(response.resourceCounts ?? {});
+        this.applyBadgeSummary(response);
       },
       error: () => {
         this.badgeInFlight = false;
@@ -151,13 +145,6 @@ export class NotificationService {
     this.unreadCountSubject.next(count);
   }
 
-  handleIncoming(notification: NotificationItem) {
-    this.unreadCountSubject.next(this.unreadCountSubject.value + (notification.isRead ? 0 : 1));
-    if (!notification.isRead) {
-      this.refreshBadges(true);
-    }
-  }
-
   resourceCount(key: string): number {
     return this.resourceCountsSubject.value[key] ?? 0;
   }
@@ -221,10 +208,28 @@ export class NotificationService {
       crewSettings: counts['crewSettings'] ?? 0,
       fleetSettings: counts['fleetSettings'] ?? 0,
       crewLibrary: counts['crewLibrary'] ?? 0,
-      fleetLibrary: counts['fleetLibrary'] ?? 0,
       crewCrewmates: counts['crewCrewmates'] ?? 0,
       fleetCrewmates: counts['fleetCrewmates'] ?? 0,
+      userInvitations: counts['userInvitations'] ?? 0,
       fleet: counts['fleet'] ?? 0
     };
+  }
+
+  applyBadgeSummary(summary: NotificationBadgeSummaryResponse): void {
+    if (!summary.success) {
+      return;
+    }
+
+    this.unreadCountSubject.next(summary.unreadCount);
+    this.areaCountsSubject.next(this.toAreaCounts(summary.areaCounts ?? {}));
+    this.resourceCountsSubject.next(summary.resourceCounts ?? {});
+    this.lastBadgeRefreshAt = Date.now();
+  }
+
+  handleIncoming(notification: NotificationItem) {
+    // Prefer badge summary from hub; fall back to forced refresh for race windows.
+    if (!notification.isRead) {
+      this.refreshBadges(true);
+    }
   }
 }

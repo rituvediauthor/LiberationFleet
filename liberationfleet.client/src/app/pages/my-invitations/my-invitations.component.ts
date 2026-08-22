@@ -8,6 +8,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { CrewService } from '../../services/crew.service';
 import { FleetService } from '../../services/fleet.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { NotificationContentService } from '../../services/notification-content.service';
 import { CrewInvitation } from '../../models/crew.model';
 import { FleetJoinRequestListItem } from '../../models/fleet.model';
 
@@ -41,12 +42,14 @@ export class MyInvitationsComponent implements OnInit {
   private crewService = inject(CrewService);
   private fleetService = inject(FleetService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
 
   constructor() {
     this.backButton = this.navigation.createBackButton(['/app/crew']);
   }
 
   ngOnInit() {
+    this.notificationContent.markVisited('/app/crew/invitations');
     this.loadInvitations();
   }
 
