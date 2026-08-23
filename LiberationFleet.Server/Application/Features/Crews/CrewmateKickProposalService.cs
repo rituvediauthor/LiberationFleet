@@ -206,7 +206,7 @@ public class CrewmateKickProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             notifyBody,
-            ProposalRouting.PendingListUrl(proposal),
+            ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
@@ -295,7 +295,7 @@ public class CrewmateKickProposalService(
                 NotificationKind.CrewmateKicked,
                 notificationTitle,
                 notificationBody,
-                ProposalRouting.ApprovedListUrl(proposal),
+                ProposalRouting.StatusListUrl(proposal),
                 relatedEntityId: kick.TargetUserId,
                 cancellationToken: cancellationToken);
         }

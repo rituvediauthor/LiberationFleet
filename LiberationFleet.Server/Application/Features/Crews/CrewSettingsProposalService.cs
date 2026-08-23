@@ -72,7 +72,7 @@ public class CrewSettingsProposalService(
                 NotificationKind.NewProposal,
                 "New proposal",
                 NotificationPreview.BodyOrFallback(description, "A crew setting change was proposed."),
-            ProposalRouting.PendingListUrl(proposal),
+            ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);

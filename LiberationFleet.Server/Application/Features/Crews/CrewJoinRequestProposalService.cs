@@ -108,7 +108,7 @@ public class CrewJoinRequestProposalService(
             NotificationKind.JoinRequestFromPerson,
             "Join request",
             $"{applicant.Username} requested to join the crew.",
-            ProposalRouting.PendingListUrl(proposal),
+            ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: applicantUserId,
             cancellationToken: cancellationToken);
@@ -198,7 +198,8 @@ public class CrewJoinRequestProposalService(
             Kind = NotificationKind.ProposalAccepted,
             Title = "Join request approved",
             Body = $"You were approved to join {crew.Name}.",
-            ActionUrl = "/app/crew"
+            ActionUrl = ProposalRouting.StatusListUrl(proposal),
+            RelatedEntityId = proposal.Id
         }, cancellationToken);
 
         await notificationService.NotifyCrewAsync(

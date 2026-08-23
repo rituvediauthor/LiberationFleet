@@ -203,6 +203,7 @@ export class NotificationService {
       fleetProposals: counts['fleetProposals'] ?? 0,
       crewGiftLog: counts['crewGiftLog'] ?? 0,
       fleetGiftLog: counts['fleetGiftLog'] ?? 0,
+      crewEmergency: counts['crewEmergency'] ?? 0,
       crewRules: counts['crewRules'] ?? 0,
       fleetRules: counts['fleetRules'] ?? 0,
       crewSettings: counts['crewSettings'] ?? 0,

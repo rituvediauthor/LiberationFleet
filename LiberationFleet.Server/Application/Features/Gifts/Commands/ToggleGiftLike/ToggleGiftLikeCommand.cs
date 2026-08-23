@@ -40,7 +40,7 @@ public class ToggleGiftLikeCommandHandler(
             return new GiftLikeToggleResponse { Success = false, Message = "Gift not found." };
         }
 
-        var actionUrl = $"/app/crew/gift-log/{gift.Id}";
+        var actionUrl = $"/app/crew/gift-log/{gift.Id}?highlightId={gift.Id}";
         var existing = await giftRepository.GetGiftLikeAsync(userId, gift.Id, cancellationToken);
         bool liked;
         var utcNow = DateTime.UtcNow;

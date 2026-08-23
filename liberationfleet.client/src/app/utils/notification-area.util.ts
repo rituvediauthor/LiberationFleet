@@ -9,6 +9,7 @@ export type CrewNotificationArea =
   | 'fleetProposals'
   | 'crewGiftLog'
   | 'fleetGiftLog'
+  | 'crewEmergency'
   | 'crewRules'
   | 'fleetRules'
   | 'crewSettings'
@@ -31,6 +32,7 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
     fleetProposals: 0,
     crewGiftLog: 0,
     fleetGiftLog: 0,
+    crewEmergency: 0,
     crewRules: 0,
     fleetRules: 0,
     crewSettings: 0,
@@ -93,12 +95,14 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   if (path.startsWith('/app/fleet/crews')) {
     return 'fleetCrewmates';
   }
+  if (path.startsWith('/app/crew/emergency-requests')) {
+    return 'crewEmergency';
+  }
   if (
     path === '/app/crew/gift-log'
     || path.startsWith('/app/crew/gift-log/')
     || path.startsWith('/app/crew/season-setup')
     || path.startsWith('/app/crew/join-season')
-    || path.startsWith('/app/crew/emergency-requests')
   ) {
     return 'crewGiftLog';
   }
@@ -144,12 +148,13 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewCycle':
     case 'NewSeason':
     case 'SurvivalThresholdsRefreshed':
-    case 'NewEmergencyRequest':
     case 'NewGiftComment':
     case 'GiftEntryLiked':
     case 'GiftCommentLiked':
     case 'NewGiftReply':
       return 'crewGiftLog';
+    case 'NewEmergencyRequest':
+      return 'crewEmergency';
     case 'NewFleetGifts':
       return 'fleetGiftLog';
     case 'NewRule':

@@ -100,7 +100,7 @@ public class ContentMentionService(
             ? validMentionIds.Except(previousMentionIds).ToList()
             : validMentionIds;
 
-        if (notifyUserIds.Count == 0)
+        if (notifyUserIds.Count == 0 || !SendsMentionNotifications(context.ContentType))
         {
             return;
         }
@@ -130,4 +130,11 @@ public class ContentMentionService(
             }),
             cancellationToken);
     }
+
+    /// <summary>
+    /// Private two-party contexts (library request chat, DMs) persist mentions for rendering
+    /// but must not emit mention notifications.
+    /// </summary>
+    private static bool SendsMentionNotifications(MentionedContentType contentType) =>
+        contentType != MentionedContentType.LibraryRequestMessage;
 }

@@ -10,13 +10,19 @@ import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EmergencyMiddlemanOption, EmergencyRequestDetail } from '../../../models/emergency-request.model';
 import { PaymentPlatformOption } from '../../../models/gift.model';
+import { NotificationContentService } from '../../../services/notification-content.service';
+import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
+import {
+  clearNotificationHighlightParams,
+  readNotificationHighlightId
+} from '../../../utils/notification-deep-link.util';
 
 type ResponseMode = 'recordGift' | 'splitCycle';
 
 @Component({
   selector: 'app-emergency-request-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, NotificationTargetDirective],
   templateUrl: './emergency-request-detail.component.html',
   styleUrl: './emergency-request-detail.component.css'
 })
@@ -31,17 +37,20 @@ export class EmergencyRequestDetailComponent implements OnInit {
   backButton!: ActionBarButton;
   submitButton!: ActionBarButton;
   form!: FormGroup;
+  highlightId: number | null = null;
+  notifyPrefix = '';
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private fb = inject(FormBuilder);
   private emergencyRequestService = inject(EmergencyRequestService);
   private crewService = inject(CrewService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
-  private requestId = 0;
+  requestId = 0;
 
   ngOnInit() {
     this.form = this.fb.group({
@@ -61,6 +70,14 @@ export class EmergencyRequestDetailComponent implements OnInit {
       this.errorMessage = 'Invalid emergency request.';
       return;
     }
+
+    this.highlightId = readNotificationHighlightId(this.route);
+    clearNotificationHighlightParams(this.router, this.route);
+    if (this.highlightId == null && this.navigation.cameFromNotifications()) {
+      this.highlightId = this.requestId;
+    }
+    this.notifyPrefix = `/app/crew/emergency-requests/${this.requestId}`;
+    this.notificationContent.markVisited(this.notifyPrefix, this.requestId);
 
     this.crewService.getPaymentPlatforms().subscribe({
       next: platforms => {

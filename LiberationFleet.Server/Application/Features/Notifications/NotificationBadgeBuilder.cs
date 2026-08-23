@@ -12,6 +12,7 @@ public static class NotificationBadgeBuilder
         "crewForums", "fleetForums",
         "crewProposals", "fleetProposals",
         "crewGiftLog", "fleetGiftLog",
+        "crewEmergency",
         "crewRules", "fleetRules",
         "crewSettings", "fleetSettings",
         "crewLibrary",
@@ -298,11 +299,15 @@ public static class NotificationBadgeBuilder
             return "fleetCrewmates";
         }
 
+        if (path.StartsWith("/app/crew/emergency-requests", StringComparison.Ordinal))
+        {
+            return "crewEmergency";
+        }
+
         if (path == "/app/crew/gift-log"
             || path.StartsWith("/app/crew/gift-log/", StringComparison.Ordinal)
             || path.StartsWith("/app/crew/season-setup", StringComparison.Ordinal)
-            || path.StartsWith("/app/crew/join-season", StringComparison.Ordinal)
-            || path.StartsWith("/app/crew/emergency-requests", StringComparison.Ordinal))
+            || path.StartsWith("/app/crew/join-season", StringComparison.Ordinal))
         {
             return "crewGiftLog";
         }
@@ -336,8 +341,8 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
                 or NotificationKind.SurvivalThresholdsRefreshed
                 or NotificationKind.NewGiftComment or NotificationKind.NewGiftReply
-                or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked
-                or NotificationKind.NewEmergencyRequest => "crewGiftLog",
+                or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked => "crewGiftLog",
+            NotificationKind.NewEmergencyRequest => "crewEmergency",
             NotificationKind.NewFleetGifts => "fleetGiftLog",
             NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "crewRules",
             NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted

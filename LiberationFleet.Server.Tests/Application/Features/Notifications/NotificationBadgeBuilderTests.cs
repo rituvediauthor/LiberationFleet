@@ -126,6 +126,54 @@ public class NotificationBadgeBuilderTests
             .Should().Be(NotificationFilterCategory.Comments);
     }
 
+    [Fact]
+    public void Build_MapsEmergencyRequestToCrewEmergencyArea()
+    {
+        var notifications = new[]
+        {
+            Notification(
+                1,
+                NotificationKind.NewEmergencyRequest,
+                "/app/crew/emergency-requests/9?highlightId=9",
+                relatedEntityId: 9)
+        };
+
+        var summary = NotificationBadgeBuilder.Build(
+            notifications,
+            Array.Empty<UserNotificationPreference>(),
+            Array.Empty<UserMutedContent>(),
+            Array.Empty<UserHiddenContent>(),
+            new HashSet<int>());
+
+        summary.UnreadCount.Should().Be(1);
+        summary.AreaCounts["crewEmergency"].Should().Be(1);
+        summary.AreaCounts["crewGiftLog"].Should().Be(0);
+    }
+
+    [Fact]
+    public void Build_MapsProposalAcceptedToApprovedStatusBadge()
+    {
+        var notifications = new[]
+        {
+            Notification(
+                1,
+                NotificationKind.ProposalAccepted,
+                "/app/crew/proposals/list/approved?highlightId=42",
+                relatedEntityId: 42)
+        };
+
+        var summary = NotificationBadgeBuilder.Build(
+            notifications,
+            Array.Empty<UserNotificationPreference>(),
+            Array.Empty<UserMutedContent>(),
+            Array.Empty<UserHiddenContent>(),
+            new HashSet<int>());
+
+        summary.AreaCounts["crewProposals"].Should().Be(1);
+        summary.ResourceCounts["proposal-status:approved"].Should().Be(1);
+        summary.ResourceCounts["proposal:42"].Should().Be(1);
+    }
+
     private static Notification Notification(
         int id,
         NotificationKind kind,

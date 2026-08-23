@@ -56,4 +56,14 @@ describe('resolveNotificationArea', () => {
       )
     ).toBe('crewForums');
   });
+  it('maps emergency requests to crewEmergency', () => {
+    expect(
+      resolveNotificationArea(
+        item({
+          kind: 'NewEmergencyRequest',
+          actionUrl: '/app/crew/emergency-requests/3?highlightId=3'
+        })
+      )
+    ).toBe('crewEmergency');
+  });
 });

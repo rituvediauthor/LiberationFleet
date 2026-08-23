@@ -139,7 +139,7 @@ public class CreateFleetProposalCommandHandler(
                 NotificationKind.NewFleetProposal,
                 "New fleet proposal",
                 NotificationPreview.BodyOrFallback(request.Description, "A new fleet proposal was submitted."),
-                ProposalRouting.PendingListUrl(proposal),
+                ProposalRouting.StatusListUrl(proposal),
                 relatedEntityId: proposal.Id,
                 excludeUserId: userId,
                 cancellationToken: cancellationToken);
@@ -152,7 +152,7 @@ public class CreateFleetProposalCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
-            ActionUrl = ProposalRouting.DetailUrl(proposal),
+            ActionUrl = ProposalRouting.StatusListUrl(proposal),
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             Preview = request.Description
         }, cancellationToken);

@@ -89,7 +89,7 @@ public class ToggleGiftLikeCommandHandlerTests
         created.Should().HaveCount(2);
         created.Select(n => n.UserId).Should().BeEquivalentTo([giver.Id, recipient.Id]);
         created.Should().OnlyContain(n => n.Kind == NotificationKind.GiftEntryLiked);
-        created.Should().OnlyContain(n => n.ActionUrl == $"/app/crew/gift-log/{gift.Id}");
+        created.Should().OnlyContain(n => n.ActionUrl == $"/app/crew/gift-log/{gift.Id}?highlightId={gift.Id}");
     }
 
     [Fact]

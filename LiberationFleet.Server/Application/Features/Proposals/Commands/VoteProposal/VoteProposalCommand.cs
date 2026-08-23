@@ -178,7 +178,7 @@ public class VoteProposalCommandHandler(
                     Body = isFleet
                         ? "Your fleet proposal was approved."
                         : "Your crew proposal was approved.",
-                    ActionUrl = ProposalRouting.ApprovedListUrl(proposal),
+                    ActionUrl = ProposalRouting.StatusListUrl(proposal),
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
             }
@@ -194,7 +194,7 @@ public class VoteProposalCommandHandler(
                     Body = isFleet
                         ? "Your fleet proposal was rejected."
                         : "Your crew proposal was rejected.",
-                    ActionUrl = ProposalRouting.RejectedListUrl(proposal),
+                    ActionUrl = ProposalRouting.StatusListUrl(proposal),
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
             }

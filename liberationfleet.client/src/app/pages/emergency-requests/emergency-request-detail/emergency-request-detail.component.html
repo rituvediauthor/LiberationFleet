@@ -3,7 +3,12 @@
     <p *ngIf="loading" class="state-text">Loading request…</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
-    <div class="detail-card" *ngIf="!loading && request">
+    <div
+      class="detail-card"
+      *ngIf="!loading && request"
+      [lfNotificationTarget]="requestId"
+      [lfNotificationPrefix]="notifyPrefix"
+      [lfHighlightId]="highlightId">
       <h1>{{ request.requesterUsername }}</h1>
       <p class="crew-line" *ngIf="request.crewName">{{ request.crewName }}</p>
       <p class="amount-line">${{ request.amountRemaining }} remaining of ${{ request.amountNeeded }}</p>

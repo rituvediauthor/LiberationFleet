@@ -17,6 +17,7 @@ import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../../../services/profile.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { extractHttpErrorMessage } from '../../../utils/http-error.util';
 
 type ConfirmAction = 'confirmBroken' | 'reportFixed' | 'reportLost' | null;
@@ -57,6 +58,7 @@ export class LibraryUnitDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private navigation = inject(NavigationService);
+  private notificationContent = inject(NotificationContentService);
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private giftLogCrypto = inject(GiftLogCryptoService);
@@ -99,6 +101,11 @@ export class LibraryUnitDetailComponent implements OnInit {
       this.errorMessage = 'Invalid item.';
       return;
     }
+
+    this.notificationContent.markVisited(
+      `/app/crew/library-of-things/units/${this.unitId}`,
+      this.unitId
+    );
 
     this.profileService.getProfile().subscribe({
       next: profile => {

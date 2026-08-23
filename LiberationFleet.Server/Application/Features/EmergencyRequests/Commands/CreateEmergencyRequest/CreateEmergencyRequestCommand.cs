@@ -83,7 +83,7 @@ public class CreateEmergencyRequestCommandHandler(
             NotificationKind.NewEmergencyRequest,
             "Emergency request",
             $"{requesterName} needs ${request.AmountNeeded:0.##} for: {purposePreview}",
-            $"/app/crew/emergency-requests/{emergencyRequest.Id}",
+            $"/app/crew/emergency-requests/{emergencyRequest.Id}?highlightId={emergencyRequest.Id}",
             relatedEntityId: emergencyRequest.Id,
             excludeUserId: currentUser.UserId.Value,
             cancellationToken: cancellationToken);

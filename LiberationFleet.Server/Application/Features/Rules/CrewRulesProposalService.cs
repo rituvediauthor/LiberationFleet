@@ -77,7 +77,7 @@ public class CrewRulesProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             NotificationPreview.BodyOrFallback(proposalDescription, "A crew rule change was proposed."),
-            ProposalRouting.PendingListUrl(proposal),
+            ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
             cancellationToken: cancellationToken);
