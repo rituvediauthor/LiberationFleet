@@ -195,6 +195,16 @@
           </span>
         </div>
 
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="needsSurvivalAid">
+            Needs survival aid
+          </label>
+          <span class="hint-text">
+            Survival aid is a small monthly gift to help cover basic needs. Turning this on can place you in the survival-threshold reception queue for your crew.
+          </span>
+        </div>
+
         <div class="form-group">
           <label for="emergencyLevel">Emergency level (0–3)</label>
           <input
@@ -255,16 +265,6 @@
           [selected]="form.get('identityGroups')?.value || []"
           (selectedChange)="onIdentityGroupsChange($event)">
         </app-identity-groups-editor>
-
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="needsSurvivalAid">
-            Needs survival aid
-          </label>
-          <span class="hint-text">
-            Survival aid is a small monthly gift to help cover basic needs. Turning this on can place you in the survival-threshold reception queue for your crew.
-          </span>
-        </div>
       </form>
 
       <section class="section password-section" [formGroup]="passwordForm">

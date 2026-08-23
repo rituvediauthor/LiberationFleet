@@ -1340,7 +1340,8 @@ public partial class MutualAidService(
         int userId,
         int crewId,
         CancellationToken cancellationToken = default,
-        bool excludeActiveSeasonContributions = false)
+        bool excludeActiveSeasonContributions = false,
+        bool applyLotCommerceModifiers = false)
     {
         var members = await mutualAidRepository.GetActiveMembersWithUsersAsync(crewId, cancellationToken);
         var membership = members.FirstOrDefault(m => m.UserId == userId);
@@ -1382,7 +1383,8 @@ public partial class MutualAidService(
                 excludeActiveSeasonContributions),
             crewLifetime,
             userLifetime,
-            capacityContext.SurvivalThresholdAmount);
+            capacityContext.SurvivalThresholdAmount,
+            applyLotCommerceModifiers);
     }
 
     public async Task<bool> IsFinancialMemberAsync(

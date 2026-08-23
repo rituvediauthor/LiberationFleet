@@ -5,18 +5,20 @@ export interface IdentityGroupOption {
 
 /** Stable keys matching server IdentityGroupKeys. */
 export const IDENTITY_GROUP_OPTIONS: IdentityGroupOption[] = [
-  { key: 'NonWhite', label: 'BIPOC / person of color' },
-  { key: 'Indigenous', label: 'Indigenous' },
-  { key: 'Woman', label: 'Woman / femme' },
-  { key: 'Lgbtqia', label: 'LGBTQIA+' },
-  { key: 'TransOrNonbinary', label: 'Trans or nonbinary' },
-  { key: 'NotConventionallyAttractive', label: 'Fat or not conventionally attractive' },
-  { key: 'Homeless', label: 'Unhoused or housing insecure' },
-  { key: 'ImmigrantOrRefugee', label: 'Immigrant or refugee' },
-  { key: 'ReligiousMinority', label: 'Religious minority' },
+  { key: 'PhysicallyDisfigured', label: 'Physically disfigured' },
+  { key: 'PhysicallyDisabledOrUnaccommodated', label: 'Physically disabled or unaccommodated' },
+  { key: 'CognitivelyDisabledOrUnaccommodated', label: 'Cognitively disabled or unaccommodated' },
+  { key: 'Bipoc', label: 'BIPOC / person of color' },
+  { key: 'Woman', label: 'Woman/femme' },
+  { key: 'NotHeterosexual', label: 'Not heterosexual' },
+  { key: 'Trans', label: 'Trans' },
+  { key: 'Intersex', label: 'Intersex' },
+  { key: 'UnhousedOrHousingInsecure', label: 'Unhoused / housing insecure' },
+  { key: 'ImmigrantOrRefugee', label: 'Immigrant/refugee' },
+  { key: 'ReligiousOrAreligiousMinority', label: 'Religious/a-religious minority' },
   { key: 'Neurodivergent', label: 'Neurodivergent' },
-  { key: 'PrimaryCaregiver', label: 'Primary caregiver' },
-  { key: 'VisiblyOrAudiblyDisabled', label: 'Visibly or audibly disabled' }
+  { key: 'VisiblyOrAudiblyDisabled', label: 'Visibly or audibly disabled' },
+  { key: 'OtherTargetedMinority', label: 'Other targeted minority' }
 ];
 
 export function normalizeIdentityGroups(keys: string[] | null | undefined): string[] {

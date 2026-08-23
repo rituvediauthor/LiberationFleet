@@ -133,7 +133,8 @@ public class LibraryRequestPriorityService(
             userId,
             crewId,
             cancellationToken,
-            excludeActiveSeasonContributions: excludeActiveSeason);
+            excludeActiveSeasonContributions: excludeActiveSeason,
+            applyLotCommerceModifiers: true);
         // Match profile/crewmate display rounding ((int)Math.Round(...)).
         return Math.Round(score, MidpointRounding.AwayFromZero);
     }
