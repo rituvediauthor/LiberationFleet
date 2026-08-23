@@ -20,6 +20,7 @@ public class LibraryRequestPriorityServiceTests
                 7,
                 3,
                 It.IsAny<CancellationToken>(),
+                true,
                 true))
             .ReturnsAsync(42.4m);
 
@@ -56,6 +57,7 @@ public class LibraryRequestPriorityServiceTests
             7,
             3,
             It.IsAny<CancellationToken>(),
+            true,
             true), Times.Once);
     }
 
@@ -68,7 +70,8 @@ public class LibraryRequestPriorityServiceTests
                 7,
                 3,
                 It.IsAny<CancellationToken>(),
-                false))
+                false,
+                true))
             .ReturnsAsync(10.6m);
 
         var membershipRepository = new Mock<ICrewMembershipRepository>(MockBehavior.Strict);
@@ -92,6 +95,7 @@ public class LibraryRequestPriorityServiceTests
             7,
             3,
             It.IsAny<CancellationToken>(),
-            false), Times.Once);
+            false,
+            true), Times.Once);
     }
 }

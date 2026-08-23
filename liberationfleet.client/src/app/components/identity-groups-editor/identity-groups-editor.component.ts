@@ -16,7 +16,7 @@ import {
 export class IdentityGroupsEditorComponent {
   @Input() selected: string[] = [];
   @Input() hint =
-    'Select any that apply. Used for mutual-aid priority context within your crew.';
+    'These groups are more likely to be the target of discrimination and hate crimes, increasing the frequency and severity of hardships they are likely to face. Thus we must prioritize preventing and getting them out of situations of dangerous vulnerability. Select all that apply to you and the people you represent.';
   @Output() selectedChange = new EventEmitter<string[]>();
 
   readonly options: IdentityGroupOption[] = IDENTITY_GROUP_OPTIONS;

@@ -168,7 +168,47 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
-    public void CalculatePriorityScore_ReturnsNegativeOneForOrganizer()
+    public void CalculatePriorityScore_DoesNotApplyOrganizerModifierByDefault()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        user.EmergencyLevel = 1;
+        var membership = new CrewMembership { IsOrganizer = true, User = user };
+
+        var score = MutualAidCalculationService.CalculatePriorityScore(
+            user,
+            membership,
+            isFinancialMember: true,
+            crewLifetimeContributions: 1000m,
+            userLifetimeContributions: 500m,
+            survivalThresholdAmount: 75m);
+
+        // multiplier = 1 + 0 + 1 = 2
+        var baseScore = (1000m * 1m) + 1m + 500m + 75m;
+        score.Should().Be(baseScore * 2m);
+    }
+
+    [Fact]
+    public void CalculatePriorityScore_DoesNotApplyNotInNeedModifierByDefault()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        user.InNeedOfAid = false;
+        user.EmergencyLevel = 1;
+        var membership = new CrewMembership { User = user };
+
+        var score = MutualAidCalculationService.CalculatePriorityScore(
+            user,
+            membership,
+            isFinancialMember: true,
+            crewLifetimeContributions: 1000m,
+            userLifetimeContributions: 500m,
+            survivalThresholdAmount: 75m);
+
+        var baseScore = (1000m * 1m) + 1m + 500m + 75m;
+        score.Should().Be(baseScore * 2m);
+    }
+
+    [Fact]
+    public void CalculatePriorityScore_WhenLotCommerceModifiers_ReturnsNegativeOneForOrganizer()
     {
         var user = HandlerTestFixture.CreateUser();
         var membership = new CrewMembership { IsOrganizer = true, User = user };
@@ -179,11 +219,12 @@ public class MutualAidCalculationServiceTests
             isFinancialMember: true,
             crewLifetimeContributions: 1000m,
             userLifetimeContributions: 500m,
-            survivalThresholdAmount: 75m).Should().Be(-1m);
+            survivalThresholdAmount: 75m,
+            applyLotCommerceModifiers: true).Should().Be(-1m);
     }
 
     [Fact]
-    public void CalculatePriorityScore_ReturnsNegativeTwoWhenNotInNeedOfAid()
+    public void CalculatePriorityScore_WhenLotCommerceModifiers_ReturnsNegativeTwoWhenNotInNeedOfAid()
     {
         var user = HandlerTestFixture.CreateUser();
         user.InNeedOfAid = false;
@@ -195,7 +236,8 @@ public class MutualAidCalculationServiceTests
             isFinancialMember: true,
             crewLifetimeContributions: 1000m,
             userLifetimeContributions: 500m,
-            survivalThresholdAmount: 75m).Should().Be(-2m);
+            survivalThresholdAmount: 75m,
+            applyLotCommerceModifiers: true).Should().Be(-2m);
     }
 
     [Fact]

@@ -175,7 +175,12 @@ public static class HandlerTestFixture
         mock.Setup(m => m.EnsurePrimarySeasonCycleExistsAsync(
                 It.IsAny<int>(), It.IsAny<CrewMembership>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mock.Setup(m => m.GetPriorityScoreForUserAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        mock.Setup(m => m.GetPriorityScoreForUserAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>()))
             .ReturnsAsync(0m);
         mock.Setup(m => m.GetMonthlyContributionExcludingLotAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);

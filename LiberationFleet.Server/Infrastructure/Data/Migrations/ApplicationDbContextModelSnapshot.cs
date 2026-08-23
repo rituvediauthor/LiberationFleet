@@ -3472,8 +3472,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<string>("IdentityGroups")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
 
                     b.Property<bool>("InNeedOfAid")
                         .ValueGeneratedOnAdd()

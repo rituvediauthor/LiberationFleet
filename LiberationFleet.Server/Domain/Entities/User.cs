@@ -18,7 +18,7 @@ public class User
     public int PeopleRepresentedCount { get; set; } = 1;
     public int DisabilityLevel { get; set; }
     /// <summary>
-    /// Comma-separated <see cref="IdentityGroupKeys"/> values (e.g. NonWhite,Woman).
+    /// Comma-separated <see cref="IdentityGroupKeys"/> values (e.g. Bipoc,Woman).
     /// </summary>
     public string? IdentityGroups { get; set; }
     public bool NeedsSurvivalAid { get; set; }

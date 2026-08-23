@@ -6,33 +6,37 @@ namespace LiberationFleet.Server.Domain;
 /// </summary>
 public static class IdentityGroupKeys
 {
-    public const string NonWhite = "NonWhite";
+    public const string PhysicallyDisfigured = "PhysicallyDisfigured";
+    public const string PhysicallyDisabledOrUnaccommodated = "PhysicallyDisabledOrUnaccommodated";
+    public const string CognitivelyDisabledOrUnaccommodated = "CognitivelyDisabledOrUnaccommodated";
+    public const string Bipoc = "Bipoc";
     public const string Woman = "Woman";
-    public const string Lgbtqia = "Lgbtqia";
-    public const string TransOrNonbinary = "TransOrNonbinary";
-    public const string NotConventionallyAttractive = "NotConventionallyAttractive";
-    public const string Homeless = "Homeless";
+    public const string NotHeterosexual = "NotHeterosexual";
+    public const string Trans = "Trans";
+    public const string Intersex = "Intersex";
+    public const string UnhousedOrHousingInsecure = "UnhousedOrHousingInsecure";
     public const string ImmigrantOrRefugee = "ImmigrantOrRefugee";
-    public const string ReligiousMinority = "ReligiousMinority";
+    public const string ReligiousOrAreligiousMinority = "ReligiousOrAreligiousMinority";
     public const string Neurodivergent = "Neurodivergent";
-    public const string PrimaryCaregiver = "PrimaryCaregiver";
     public const string VisiblyOrAudiblyDisabled = "VisiblyOrAudiblyDisabled";
-    public const string Indigenous = "Indigenous";
+    public const string OtherTargetedMinority = "OtherTargetedMinority";
 
     public static readonly string[] All =
     [
-        NonWhite,
-        Indigenous,
+        PhysicallyDisfigured,
+        PhysicallyDisabledOrUnaccommodated,
+        CognitivelyDisabledOrUnaccommodated,
+        Bipoc,
         Woman,
-        Lgbtqia,
-        TransOrNonbinary,
-        NotConventionallyAttractive,
-        Homeless,
+        NotHeterosexual,
+        Trans,
+        Intersex,
+        UnhousedOrHousingInsecure,
         ImmigrantOrRefugee,
-        ReligiousMinority,
+        ReligiousOrAreligiousMinority,
         Neurodivergent,
-        PrimaryCaregiver,
-        VisiblyOrAudiblyDisabled
+        VisiblyOrAudiblyDisabled,
+        OtherTargetedMinority
     ];
 
     private static readonly HashSet<string> Allowed = new(All, StringComparer.Ordinal);

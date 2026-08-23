@@ -110,7 +110,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
             entity.Property(e => e.PeopleRepresentedCount).HasDefaultValue(1);
             entity.Property(e => e.DisabilityLevel).HasDefaultValue(0);
-            entity.Property(e => e.IdentityGroups).HasMaxLength(256);
+            entity.Property(e => e.IdentityGroups).HasMaxLength(512);
             entity.Property(e => e.AdultContentPreference).HasDefaultValue(AdultContentPreference.Block);
             entity.Property(e => e.TwoFactorEnabled).HasDefaultValue(false);
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
