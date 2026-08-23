@@ -71,7 +71,7 @@ public class UpdateProposalCommandHandler(
             AuthorUserId = userId,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
-            ActionUrl = ProposalRouting.DetailUrl(proposal),
+            ActionUrl = ProposalRouting.StatusListUrl(proposal),
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
             IsUpdate = true
         }, cancellationToken);

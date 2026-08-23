@@ -72,7 +72,7 @@ public class FleetSettingsProposalService(
                     NotificationKind.NewFleetProposal,
                     "New fleet proposal",
                     NotificationPreview.BodyOrFallback(description, "A fleet setting change was proposed."),
-                    ProposalRouting.PendingListUrl(proposal),
+                    ProposalRouting.StatusListUrl(proposal),
                     relatedEntityId: proposal.Id,
                     excludeUserId: authorUserId,
                     cancellationToken: cancellationToken);

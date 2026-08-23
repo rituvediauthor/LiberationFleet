@@ -121,7 +121,7 @@ public class ClaimPlaceholderIdentityProposalService(
             NotificationKind.NewProposal,
             "New proposal",
             $"A proposal was submitted to claim the identity of {placeholderUser.Username}.",
-            ProposalRouting.PendingListUrl(proposal),
+            ProposalRouting.StatusListUrl(proposal),
             excludeUserId: claimantUserId,
             cancellationToken: cancellationToken);
 
@@ -170,7 +170,7 @@ public class ClaimPlaceholderIdentityProposalService(
                 Kind = NotificationKind.ProposalAccepted,
                 Title = "Identity claim approved",
                 Body = $"Your claim for {claim.PlaceholderDisplayName} was approved.",
-                ActionUrl = ProposalRouting.ApprovedListUrl(proposal),
+                ActionUrl = ProposalRouting.StatusListUrl(proposal),
                 RelatedEntityId = proposal.Id
             },
             cancellationToken);
@@ -180,7 +180,7 @@ public class ClaimPlaceholderIdentityProposalService(
             NotificationKind.ProposalAccepted,
             "Identity claim approved",
             $"{claimant?.Username ?? "A crewmate"} is now linked to {claim.PlaceholderDisplayName}'s reception history.",
-            ProposalRouting.ApprovedListUrl(proposal),
+            ProposalRouting.StatusListUrl(proposal),
             excludeUserId: claim.ClaimantUserId,
             cancellationToken: cancellationToken);
     }

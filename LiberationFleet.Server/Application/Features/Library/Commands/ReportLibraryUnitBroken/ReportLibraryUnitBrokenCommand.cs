@@ -82,7 +82,7 @@ public class ReportLibraryUnitBrokenCommandHandler(
             NotificationKind.LibraryUnitBrokenReported,
             "Library item reported broken",
             $"{trackedUnit.Offering.Title} was reported broken and needs confirmation.",
-            $"/app/crew/library-of-things/units/{trackedUnit.Id}",
+            $"/app/crew/library-of-things/units/{trackedUnit.Id}?highlightId={trackedUnit.Id}",
             relatedEntityId: trackedUnit.Id,
             cancellationToken: cancellationToken);
 

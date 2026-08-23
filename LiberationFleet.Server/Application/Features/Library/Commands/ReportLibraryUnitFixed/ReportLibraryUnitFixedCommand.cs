@@ -61,7 +61,7 @@ public class ReportLibraryUnitFixedCommandHandler(
             NotificationKind.LibraryUnitReportedFixed,
             "Library item reported fixed",
             $"{trackedUnit.Offering.Title} was reported fixed and is available again.",
-            $"/app/crew/library-of-things/units/{trackedUnit.Id}",
+            $"/app/crew/library-of-things/units/{trackedUnit.Id}?highlightId={trackedUnit.Id}",
             relatedEntityId: trackedUnit.Id,
             cancellationToken: cancellationToken);
 

@@ -89,6 +89,7 @@
           <button type="button" class="menu-link" (click)="goToEmergencyRequests()">
             <span class="menu-icon-wrap">
               <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
+              <app-content-badge [count]="areaCounts.crewEmergency"></app-content-badge>
             </span>
             <span class="menu-label">Emergency Requests</span>
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
