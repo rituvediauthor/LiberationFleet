@@ -76,7 +76,7 @@ public static class NotificationBadgeBuilder
             visibleUnread++;
 
             var area = ResolveArea(notification);
-            if (area is not null)
+            if (area is not null && areaCounts.ContainsKey(area))
             {
                 areaCounts[area]++;
             }
@@ -150,7 +150,7 @@ public static class NotificationBadgeBuilder
         HashSet<int> mutedChatRoomIds,
         HashSet<int> hiddenChatRoomIds)
     {
-        var path = notification.ActionUrl.Split('?')[0];
+        var path = NotificationLegacySupport.PathPrefix(notification.ActionUrl);
         if ((TryExtractPathId(path, "/app/crew/chats/", out var roomId)
                 || TryExtractPathId(path, "/app/fleet/chats/", out roomId))
             && (mutedChatRoomIds.Contains(roomId) || hiddenChatRoomIds.Contains(roomId)))
@@ -175,7 +175,7 @@ public static class NotificationBadgeBuilder
         HashSet<int> mutedForumIds,
         HashSet<int> hiddenForumIds)
     {
-        var path = notification.ActionUrl.Split('?')[0];
+        var path = NotificationLegacySupport.PathPrefix(notification.ActionUrl);
         if ((TryExtractPathId(path, "/app/crew/forums/", out var forumId)
                 || TryExtractPathId(path, "/app/fleet/forums/", out forumId))
             && (mutedForumIds.Contains(forumId) || hiddenForumIds.Contains(forumId)))
@@ -204,7 +204,7 @@ public static class NotificationBadgeBuilder
 
     private static bool IsForumPath(string actionUrl)
     {
-        var path = actionUrl.Split('?')[0];
+        var path = NotificationLegacySupport.PathPrefix(actionUrl);
         return path.StartsWith("/app/crew/forums/", StringComparison.Ordinal)
             || path.StartsWith("/app/fleet/forums/", StringComparison.Ordinal);
     }
@@ -227,7 +227,7 @@ public static class NotificationBadgeBuilder
 
     private static string? ResolveArea(Notification notification)
     {
-        var path = notification.ActionUrl.Split('?')[0];
+        var path = NotificationLegacySupport.PathPrefix(notification.ActionUrl);
 
         if (path.StartsWith("/app/crew/invitations", StringComparison.Ordinal))
         {
@@ -361,7 +361,7 @@ public static class NotificationBadgeBuilder
 
     private static IEnumerable<string> ResolveResourceKeys(Notification notification)
     {
-        var path = notification.ActionUrl.Split('?')[0];
+        var path = NotificationLegacySupport.PathPrefix(notification.ActionUrl);
         var keys = new List<string>();
 
         if (TryExtractPathId(path, "/app/crew/chats/", out var chatRoomId)
@@ -388,7 +388,9 @@ public static class NotificationBadgeBuilder
                 keys.Add($"proposal:{proposalId}");
             }
         }
-        else if (notification.RelatedEntityId.HasValue && IsProposalKind(notification.Kind))
+        else if (notification.RelatedEntityId.HasValue
+                 && (IsProposalKind(notification.Kind)
+                     || NotificationLegacySupport.IsProposalReplyNotification(notification)))
         {
             keys.Add($"proposal:{notification.RelatedEntityId.Value}");
         }

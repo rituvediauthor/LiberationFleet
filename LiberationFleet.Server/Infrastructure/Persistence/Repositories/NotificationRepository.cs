@@ -29,7 +29,24 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         if (category is NotificationFilterCategory categoryValue && categoryValue != NotificationFilterCategory.All)
         {
             var kinds = NotificationCategoryMapper.GetKindsForCategory(categoryValue);
-            query = query.Where(n => kinds.Contains(n.Kind));
+            if (categoryValue == NotificationFilterCategory.Proposals)
+            {
+                query = query.Where(n =>
+                    kinds.Contains(n.Kind)
+                    || ((n.Kind == NotificationKind.NewReply || n.Kind == NotificationKind.NewFleetReply)
+                        && (n.ActionUrl.Contains("/proposals/") || n.ActionUrl.Contains("/proposals?"))));
+            }
+            else if (categoryValue == NotificationFilterCategory.Comments)
+            {
+                query = query.Where(n =>
+                    kinds.Contains(n.Kind)
+                    && !((n.Kind == NotificationKind.NewReply || n.Kind == NotificationKind.NewFleetReply)
+                        && (n.ActionUrl.Contains("/proposals/") || n.ActionUrl.Contains("/proposals?"))));
+            }
+            else
+            {
+                query = query.Where(n => kinds.Contains(n.Kind));
+            }
         }
 
         if (excludeKinds is { Count: > 0 })

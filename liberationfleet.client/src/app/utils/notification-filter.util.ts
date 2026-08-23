@@ -40,19 +40,24 @@ const RULE_KINDS = new Set<NotificationKind>([
 /** Mirrors server NotificationCategoryMapper.MatchesCategory. */
 export function NotificationCategoryMapperMatches(
   kind: NotificationKind,
-  category: NotificationFilterCategory
+  category: NotificationFilterCategory,
+  actionUrl = ''
 ): boolean {
   if (category === 'All') {
     return true;
   }
 
+  const path = actionUrl.split('?')[0];
+  const isProposalReply =
+    (kind === 'NewReply' || kind === 'NewFleetReply') && path.includes('/proposals');
+
   switch (category) {
     case 'Comments':
-      return COMMENT_KINDS.has(kind);
+      return COMMENT_KINDS.has(kind) && !isProposalReply;
     case 'Mentions':
       return MENTION_KINDS.has(kind);
     case 'Proposals':
-      return PROPOSAL_KINDS.has(kind);
+      return PROPOSAL_KINDS.has(kind) || isProposalReply;
     case 'Rules':
       return RULE_KINDS.has(kind);
     default:
