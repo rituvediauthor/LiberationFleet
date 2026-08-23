@@ -39,6 +39,10 @@ export class NotificationTargetService {
   private crewService = inject(CrewService);
 
   isTargetAvailable(actionUrl: string): Observable<boolean> {
+    if (!actionUrl?.trim()) {
+      return of(false);
+    }
+
     const path = actionUrl.split('?')[0];
 
     if (

@@ -174,6 +174,31 @@ public class NotificationBadgeBuilderTests
         summary.ResourceCounts["proposal:42"].Should().Be(1);
     }
 
+    [Fact]
+    public void CategoryMapper_MapsLegacyProposalReplyByUrlToProposals()
+    {
+        var notification = new Notification
+        {
+            Kind = NotificationKind.NewReply,
+            ActionUrl = "/app/crew/proposals/7?commentId=3"
+        };
+
+        NotificationCategoryMapper.MatchesCategory(notification, NotificationFilterCategory.Proposals)
+            .Should().BeTrue();
+        NotificationCategoryMapper.MatchesCategory(notification, NotificationFilterCategory.Comments)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void LegacySupport_ExpandDisabledKinds_LinksSplitReplyPreferences()
+    {
+        var expanded = NotificationLegacySupport.ExpandDisabledKinds([NotificationKind.NewReply]);
+        expanded.Should().Contain(NotificationKind.NewProposalReply);
+
+        expanded = NotificationLegacySupport.ExpandDisabledKinds([NotificationKind.NewFleetProposalReply]);
+        expanded.Should().Contain(NotificationKind.NewFleetReply);
+    }
+
     private static Notification Notification(
         int id,
         NotificationKind kind,

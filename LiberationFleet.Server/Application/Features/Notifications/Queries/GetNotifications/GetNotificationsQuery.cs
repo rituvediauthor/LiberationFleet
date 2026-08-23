@@ -25,10 +25,8 @@ public class GetNotificationsQueryHandler(
         var category = ParseCategory(request.Category);
         var userId = currentUser.UserId.Value;
         var preferences = await notificationRepository.GetPreferencesAsync(userId, cancellationToken);
-        var disabledKinds = preferences
-            .Where(p => !p.IsEnabled)
-            .Select(p => p.Kind)
-            .ToHashSet();
+        var disabledKinds = NotificationLegacySupport.ExpandDisabledKinds(
+            preferences.Where(p => !p.IsEnabled).Select(p => p.Kind));
 
         var notifications = await notificationRepository.GetForUserAsync(
             userId,
@@ -37,7 +35,8 @@ public class GetNotificationsQueryHandler(
             request.BeforeId,
             disabledKinds,
             cancellationToken);
-        var badgeSummary = await badgeSummaryService.GetForUserAsync(userId, cancellationToken);
+
+        var unreadCount = await ResolveUnreadCountAsync(userId, cancellationToken);
 
         var actorIds = notifications
             .Where(n => n.ActorUserId.HasValue)
@@ -61,9 +60,22 @@ public class GetNotificationsQueryHandler(
         {
             Success = true,
             Message = "Notifications loaded.",
-            UnreadCount = badgeSummary.UnreadCount,
+            UnreadCount = unreadCount,
             Items = items
         };
+    }
+
+    private async Task<int> ResolveUnreadCountAsync(int userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var badgeSummary = await badgeSummaryService.GetForUserAsync(userId, cancellationToken);
+            return badgeSummary.UnreadCount;
+        }
+        catch
+        {
+            return await notificationRepository.GetUnreadCountAsync(userId, cancellationToken);
+        }
     }
 
     private static NotificationFilterCategory? ParseCategory(string? category)

@@ -104,7 +104,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   }
 
   private onNotificationReceived(notification: NotificationItem) {
-    if (!NotificationCategoryMapperMatches(notification.kind, this.selectedFilter)) {
+    if (!NotificationCategoryMapperMatches(notification.kind, this.selectedFilter, notification.actionUrl)) {
       return;
     }
 

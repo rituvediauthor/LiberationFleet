@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Notifications;
@@ -26,6 +27,30 @@ public static class NotificationCategoryMapper
 
     public static bool MatchesCategory(NotificationKind kind, NotificationFilterCategory category) =>
         category == NotificationFilterCategory.All || ToFilterCategory(kind) == category;
+
+    public static bool MatchesCategory(Notification notification, NotificationFilterCategory category)
+    {
+        if (category == NotificationFilterCategory.All)
+        {
+            return true;
+        }
+
+        if (IsProposalReplyNotification(notification))
+        {
+            return category == NotificationFilterCategory.Proposals;
+        }
+
+        if (category == NotificationFilterCategory.Comments
+            && NotificationLegacySupport.IsLegacyProposalReplyKind(notification.Kind))
+        {
+            return false;
+        }
+
+        return ToFilterCategory(notification.Kind) == category;
+    }
+
+    private static bool IsProposalReplyNotification(Notification notification) =>
+        NotificationLegacySupport.IsProposalReplyNotification(notification);
 
     public static IReadOnlyList<NotificationKind> GetKindsForCategory(NotificationFilterCategory category) => category switch
     {
