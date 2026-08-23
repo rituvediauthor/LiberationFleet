@@ -56,7 +56,6 @@ describe('resolveNotificationArea', () => {
       )
     ).toBe('crewForums');
   });
-
   it('maps emergency requests to crewEmergency', () => {
     expect(
       resolveNotificationArea(
