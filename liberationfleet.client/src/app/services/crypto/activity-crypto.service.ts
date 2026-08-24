@@ -59,9 +59,8 @@ export class ActivityCryptoService {
         crewId
       );
       const envelopeByResourceId = new Map(envelopes.map(envelope => [envelope.resourceId, envelope]));
-      let crewKey: CryptoKey;
       try {
-        crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+        await this.cryptoSession.warmCrewKeys(crewId);
       } catch {
         for (const item of groupItems) {
           item.previewText = item.previewText ?? '[Unable to decrypt]';
@@ -78,7 +77,7 @@ export class ActivityCryptoService {
         try {
           const extracted = await this.extractPreview(
             contentType as EncryptedContentType,
-            crewKey,
+            crewId,
             envelope
           );
           if (extracted.text) {
@@ -102,9 +101,8 @@ export class ActivityCryptoService {
     }
 
     for (const [crewId, crewItems] of thumbnailByCrew) {
-      let crewKey: CryptoKey;
       try {
-        crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+        await this.cryptoSession.warmCrewKeys(crewId);
       } catch {
         continue;
       }
@@ -127,10 +125,14 @@ export class ActivityCryptoService {
         }
 
         try {
-          const url = await this.cryptoService.decryptMediaToObjectUrl(
-            crewKey,
-            envelope.nonce,
-            envelope.ciphertext
+          const url = await this.cryptoSession.decryptWithCrewKeyFallback(
+            crewId,
+            envelope.keyVersion,
+            key => this.cryptoService.decryptMediaToObjectUrl(
+              key,
+              envelope.nonce,
+              envelope.ciphertext
+            )
           );
           item.thumbnailUrl = url;
         } catch {
@@ -168,7 +170,7 @@ export class ActivityCryptoService {
 
   private async extractPreview(
     contentType: EncryptedContentType,
-    crewKey: CryptoKey,
+    crewId: number,
     envelope: EncryptedContentEnvelope
   ): Promise<{ text?: string; thumbnailResourceId?: string | null }> {
     switch (contentType) {
@@ -176,10 +178,14 @@ export class ActivityCryptoService {
       case 'ForumComment':
       case 'ProposalComment':
       case 'LibraryRequestMessage': {
-        const payload = await this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-          crewKey,
-          envelope.nonce,
-          envelope.ciphertext
+        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+          crewId,
+          envelope.keyVersion,
+          key => this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
+            key,
+            envelope.nonce,
+            envelope.ciphertext
+          )
         );
         return {
           text: payload.body,
@@ -189,10 +195,14 @@ export class ActivityCryptoService {
       case 'ForumPost':
       case 'Proposal':
       case 'LibraryItem': {
-        const payload = await this.cryptoService.decryptJson<DiscussionEncryptedPayload | ProposalEncryptedPayload>(
-          crewKey,
-          envelope.nonce,
-          envelope.ciphertext
+        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+          crewId,
+          envelope.keyVersion,
+          key => this.cryptoService.decryptJson<DiscussionEncryptedPayload | ProposalEncryptedPayload>(
+            key,
+            envelope.nonce,
+            envelope.ciphertext
+          )
         );
         const text = payload.description?.trim() || payload.title?.trim();
         return {
@@ -203,18 +213,26 @@ export class ActivityCryptoService {
         };
       }
       case 'GiftLogEntry': {
-        const payload = await this.cryptoService.decryptJson<GiftLogEncryptedPayload>(
-          crewKey,
-          envelope.nonce,
-          envelope.ciphertext
+        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+          crewId,
+          envelope.keyVersion,
+          key => this.cryptoService.decryptJson<GiftLogEncryptedPayload>(
+            key,
+            envelope.nonce,
+            envelope.ciphertext
+          )
         );
         return { text: payload.message };
       }
       case 'LibraryMaintenanceRecord': {
-        const payload = await this.cryptoService.decryptJson<{ note: string }>(
-          crewKey,
-          envelope.nonce,
-          envelope.ciphertext
+        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+          crewId,
+          envelope.keyVersion,
+          key => this.cryptoService.decryptJson<{ note: string }>(
+            key,
+            envelope.nonce,
+            envelope.ciphertext
+          )
         );
         return { text: payload.note };
       }

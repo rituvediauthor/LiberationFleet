@@ -90,6 +90,15 @@ public class CryptoRepository : ICryptoRepository
             .Where(d => d.CrewId == crewId && d.KeyVersion == keyVersion)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CrewKeyDistribution>> GetCrewKeyDistributionsForUserAsync(
+        int crewId,
+        int userId,
+        CancellationToken cancellationToken = default) =>
+        await _context.CrewKeyDistributions
+            .Where(d => d.CrewId == crewId && d.UserId == userId)
+            .OrderByDescending(d => d.KeyVersion)
+            .ToListAsync(cancellationToken);
+
     public async Task UpsertCrewKeyDistributionAsync(CrewKeyDistribution distribution, CancellationToken cancellationToken = default)
     {
         var existing = await _context.CrewKeyDistributions.FirstOrDefaultAsync(
@@ -132,6 +141,15 @@ public class CryptoRepository : ICryptoRepository
         CancellationToken cancellationToken = default) =>
         await _context.FleetKeyDistributions
             .Where(d => d.FleetId == fleetId && d.KeyVersion == keyVersion)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<FleetKeyDistribution>> GetFleetKeyDistributionsForUserAsync(
+        int fleetId,
+        int userId,
+        CancellationToken cancellationToken = default) =>
+        await _context.FleetKeyDistributions
+            .Where(d => d.FleetId == fleetId && d.UserId == userId)
+            .OrderByDescending(d => d.KeyVersion)
             .ToListAsync(cancellationToken);
 
     public async Task UpsertFleetKeyDistributionAsync(FleetKeyDistribution distribution, CancellationToken cancellationToken = default)

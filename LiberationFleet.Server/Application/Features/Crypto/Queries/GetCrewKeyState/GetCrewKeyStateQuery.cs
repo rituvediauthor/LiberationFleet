@@ -10,6 +10,12 @@ public class CrewKeyStateDto
 {
     public int? LatestKeyVersion { get; set; }
     public CrewKeyDistributionDto? MyDistribution { get; set; }
+    /// <summary>
+    /// Every crew-key wrap for the current user across versions.
+    /// Lets clients decrypt ciphertext encrypted before a key-version bump
+    /// (e.g. accidental rotation) without minting a replacement key.
+    /// </summary>
+    public IReadOnlyList<CrewKeyDistributionDto> MyHistoricalDistributions { get; set; } = Array.Empty<CrewKeyDistributionDto>();
     public IReadOnlyList<CrewKeyDistributionDto> Distributions { get; set; } = Array.Empty<CrewKeyDistributionDto>();
 }
 
@@ -44,13 +50,25 @@ public class GetCrewKeyStateQueryHandler(
             latestVersion.Value,
             cancellationToken);
 
+        var myHistorical = await cryptoRepository.GetCrewKeyDistributionsForUserAsync(
+            request.CrewId,
+            userId,
+            cancellationToken);
+
+        var myLatest = distributions
+            .Where(d => d.UserId == userId)
+            .Select(CryptoMapper.MapCrewKeyDistribution)
+            .FirstOrDefault()
+            ?? myHistorical
+                .Where(d => d.KeyVersion == latestVersion.Value)
+                .Select(CryptoMapper.MapCrewKeyDistribution)
+                .FirstOrDefault();
+
         return new CrewKeyStateDto
         {
             LatestKeyVersion = latestVersion,
-            MyDistribution = distributions
-                .Where(d => d.UserId == userId)
-                .Select(CryptoMapper.MapCrewKeyDistribution)
-                .FirstOrDefault(),
+            MyDistribution = myLatest,
+            MyHistoricalDistributions = myHistorical.Select(CryptoMapper.MapCrewKeyDistribution).ToList(),
             Distributions = distributions.Select(CryptoMapper.MapCrewKeyDistribution).ToList()
         };
     }

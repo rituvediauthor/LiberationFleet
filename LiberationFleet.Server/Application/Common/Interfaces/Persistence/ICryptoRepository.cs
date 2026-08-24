@@ -15,11 +15,15 @@ public interface ICryptoRepository
     Task<CrewKeyDistribution?> GetCrewKeyDistributionAsync(int crewId, int userId, int keyVersion, CancellationToken cancellationToken = default);
     Task<int?> GetLatestCrewKeyVersionAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewKeyDistribution>> GetCrewKeyDistributionsAsync(int crewId, int keyVersion, CancellationToken cancellationToken = default);
+    /// <summary>All key versions wrapped for a specific crew member (including superseded versions).</summary>
+    Task<IReadOnlyList<CrewKeyDistribution>> GetCrewKeyDistributionsForUserAsync(int crewId, int userId, CancellationToken cancellationToken = default);
     Task UpsertCrewKeyDistributionAsync(CrewKeyDistribution distribution, CancellationToken cancellationToken = default);
 
     Task<FleetKeyDistribution?> GetFleetKeyDistributionAsync(int fleetId, int userId, int keyVersion, CancellationToken cancellationToken = default);
     Task<int?> GetLatestFleetKeyVersionAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FleetKeyDistribution>> GetFleetKeyDistributionsAsync(int fleetId, int keyVersion, CancellationToken cancellationToken = default);
+    /// <summary>All key versions wrapped for a specific fleet member (including superseded versions).</summary>
+    Task<IReadOnlyList<FleetKeyDistribution>> GetFleetKeyDistributionsForUserAsync(int fleetId, int userId, CancellationToken cancellationToken = default);
     Task UpsertFleetKeyDistributionAsync(FleetKeyDistribution distribution, CancellationToken cancellationToken = default);
 
     Task<EncryptedContentEnvelope?> GetEnvelopeAsync(
