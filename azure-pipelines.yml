@@ -29,15 +29,17 @@ trigger:
       - docs/**
       - "**/*.md"
 
-pr:
-  branches:
-    include:
-      - master
+# PR validation runs on GitHub Actions (.github/workflows/build-test.yml).
+# Azure Pipelines PR builds have been failing in ~0s with no step logs on this
+# org (likely agent/auth), which blocks review while master deploy still works.
+# Re-enable the block below once Azure PR builds start again:
+# pr:
+#   branches:
+#     include:
+#       - master
 
 # Keep Build free of variable-group authorization. Shared/staging/production
 # groups are declared on the Terraform/Deploy stages that actually need them.
-# A root-level group auth failure aborts the pipeline before any job starts
-# (GitHub then shows Build-and-test failing in ~0s with no step logs).
 variables:
   - name: imageRepository
     value: liberationfleet
