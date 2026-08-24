@@ -35,9 +35,8 @@ export class RuleCryptoService {
       ];
     }
 
-    let crewKey: CryptoKey;
     try {
-      crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      await this.cryptoSession.warmCrewKeys(crewId);
     } catch {
       return [
         ...publicRules,
@@ -48,7 +47,10 @@ export class RuleCryptoService {
         }))
       ];
     }
-    const decryptedEncrypted = await Promise.all(encryptedRules.map(rule => this.decryptRuleItem(rule, crewKey)));
+
+    const decryptedEncrypted = await Promise.all(
+      encryptedRules.map(rule => this.decryptRuleItem(rule, crewId))
+    );
     return [...publicRules, ...decryptedEncrypted];
   }
 
@@ -66,8 +68,7 @@ export class RuleCryptoService {
     }
 
     try {
-      const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-      return await this.decryptRuleItem(rule, crewKey);
+      return await this.decryptRuleItem(rule, crewId);
     } catch {
       return {
         ...rule,
@@ -84,7 +85,7 @@ export class RuleCryptoService {
     return this.proposalCrypto.encryptProposalPayload(crewId, payload);
   }
 
-  private async decryptRuleItem(rule: RuleListItem, crewKey: CryptoKey): Promise<RuleListItem> {
+  private async decryptRuleItem(rule: RuleListItem, crewId: number): Promise<RuleListItem> {
     if (rule.isPublic) {
       const description = rule.description ?? '';
       return {
@@ -98,10 +99,14 @@ export class RuleCryptoService {
     }
 
     try {
-      const payload = await this.cryptoService.decryptJson<RuleEncryptedPayload>(
-        crewKey,
-        rule.encryptedPayload.nonce,
-        rule.encryptedPayload.ciphertext
+      const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+        crewId,
+        rule.encryptedPayload.keyVersion,
+        key => this.cryptoService.decryptJson<RuleEncryptedPayload>(
+          key,
+          rule.encryptedPayload!.nonce,
+          rule.encryptedPayload!.ciphertext
+        )
       );
       const description = payload.description ?? '';
       return {

@@ -27,6 +27,16 @@ interface FleetKeyMaterial {
   keyVersion: number;
 }
 
+interface CrewKeyCache {
+  latestVersion: number;
+  byVersion: Map<number, CrewKeyMaterial>;
+}
+
+interface FleetKeyCache {
+  latestVersion: number;
+  byVersion: Map<number, FleetKeyMaterial>;
+}
+
 const CREW_KEY_POLL_ATTEMPTS = 30;
 const CREW_KEY_POLL_INTERVAL_MS = 2000;
 
@@ -36,8 +46,8 @@ const CREW_KEY_POLL_INTERVAL_MS = 2000;
 export class CryptoSessionService {
   private identityPrivateKey: CryptoKey | null = null;
   private identityPublicKeySpki: string | null = null;
-  private readonly crewKeyMaterial = new Map<number, CrewKeyMaterial>();
-  private readonly fleetKeyMaterial = new Map<number, FleetKeyMaterial>();
+  private readonly crewKeyCaches = new Map<number, CrewKeyCache>();
+  private readonly fleetKeyCaches = new Map<number, FleetKeyCache>();
   private userContentKey: CryptoKey | null = null;
   private readonly unlockedSubject = new BehaviorSubject(false);
   private backupWrapVersion: number | null = null;
@@ -59,14 +69,14 @@ export class CryptoSessionService {
     return this.backupWrapVersion === BACKUP_WRAP_LEGACY_PASSWORD;
   }
 
-  /** Current crew AES key version after ensureCrewKeyReady (null if not cached). */
+  /** Current (latest) crew AES key version after ensureCrewKeyReady (null if not cached). */
   getCrewKeyVersion(crewId: number): number | null {
-    return this.crewKeyMaterial.get(crewId)?.keyVersion ?? null;
+    return this.crewKeyCaches.get(crewId)?.latestVersion ?? null;
   }
 
-  /** Current fleet AES key version after ensureFleetKeyReady (null if not cached). */
+  /** Current (latest) fleet AES key version after ensureFleetKeyReady (null if not cached). */
   getFleetKeyVersion(fleetId: number): number | null {
-    return this.fleetKeyMaterial.get(fleetId)?.keyVersion ?? null;
+    return this.fleetKeyCaches.get(fleetId)?.latestVersion ?? null;
   }
 
   async ensureUserContentKeyReady(): Promise<CryptoKey> {
@@ -96,8 +106,8 @@ export class CryptoSessionService {
     this.identityPrivateKey = null;
     this.identityPublicKeySpki = null;
     this.backupWrapVersion = null;
-    this.crewKeyMaterial.clear();
-    this.fleetKeyMaterial.clear();
+    this.crewKeyCaches.clear();
+    this.fleetKeyCaches.clear();
     this.userContentKey = null;
     this.unlockedSubject.next(false);
     void this.mediaBlobCache.clear();
@@ -172,7 +182,9 @@ export class CryptoSessionService {
       return;
     }
 
-    const cached = this.crewKeyMaterial.get(crewId);
+    const cached = this.crewKeyCaches.get(crewId)?.byVersion.get(
+      this.crewKeyCaches.get(crewId)!.latestVersion
+    );
     if (cached) {
       await this.provisionMissingDistributionsForCrew(crewId, cached);
       return;
@@ -217,7 +229,8 @@ export class CryptoSessionService {
       return;
     }
 
-    const cached = this.fleetKeyMaterial.get(fleetId);
+    const cache = this.fleetKeyCaches.get(fleetId);
+    const cached = cache?.byVersion.get(cache.latestVersion);
     if (cached) {
       await this.provisionMissingDistributionsForFleet(fleetId, cached);
       return;
@@ -230,10 +243,166 @@ export class CryptoSessionService {
     }
   }
 
+  /**
+   * Decrypt using the preferred key version when available, then fall back across
+   * every historical crew key we can unwrap. Recovers pre-rotation ciphertext after
+   * accidental key-version bumps that left older wraps intact.
+   */
+  async decryptWithCrewKeyFallback<T>(
+    crewId: number,
+    preferredKeyVersion: number | null | undefined,
+    decrypt: (key: CryptoKey) => Promise<T>
+  ): Promise<T> {
+    const keys = await this.getCrewDecryptKeys(crewId, preferredKeyVersion);
+    return this.tryDecryptWithKeys(keys, decrypt);
+  }
+
+  async decryptWithFleetKeyFallback<T>(
+    fleetId: number,
+    preferredKeyVersion: number | null | undefined,
+    decrypt: (key: CryptoKey) => Promise<T>
+  ): Promise<T> {
+    const keys = await this.getFleetDecryptKeys(fleetId, preferredKeyVersion);
+    return this.tryDecryptWithKeys(keys, decrypt);
+  }
+
+  /** Load latest + historical crew keys into cache without performing a decrypt. */
+  async warmCrewKeys(crewId: number): Promise<void> {
+    try {
+      await this.ensureCrewKeyReady(crewId);
+    } catch {
+      await this.loadHistoricalCrewKeysForDecrypt(crewId);
+    }
+
+    if ((this.crewKeyCaches.get(crewId)?.byVersion.size ?? 0) === 0) {
+      throw new Error('Crew encryption key is not available.');
+    }
+  }
+
+  /** Load latest + historical fleet keys into cache without performing a decrypt. */
+  async warmFleetKeys(fleetId: number): Promise<void> {
+    try {
+      await this.ensureFleetKeyReady(fleetId);
+    } catch {
+      await this.loadHistoricalFleetKeysForDecrypt(fleetId);
+    }
+
+    if ((this.fleetKeyCaches.get(fleetId)?.byVersion.size ?? 0) === 0) {
+      throw new Error('Fleet encryption key is not available.');
+    }
+  }
+
+  private async getCrewDecryptKeys(
+    crewId: number,
+    preferredKeyVersion: number | null | undefined
+  ): Promise<CryptoKey[]> {
+    try {
+      await this.ensureCrewKeyReady(crewId);
+    } catch {
+      await this.loadHistoricalCrewKeysForDecrypt(crewId);
+    }
+
+    const cache = this.crewKeyCaches.get(crewId);
+    if (!cache || cache.byVersion.size === 0) {
+      throw new Error('Crew encryption key is not available.');
+    }
+
+    return this.orderKeysForDecrypt(
+      [...cache.byVersion.values()],
+      preferredKeyVersion,
+      cache.latestVersion
+    ).map(material => material.key);
+  }
+
+  private async getFleetDecryptKeys(
+    fleetId: number,
+    preferredKeyVersion: number | null | undefined
+  ): Promise<CryptoKey[]> {
+    try {
+      await this.ensureFleetKeyReady(fleetId);
+    } catch {
+      await this.loadHistoricalFleetKeysForDecrypt(fleetId);
+    }
+
+    const cache = this.fleetKeyCaches.get(fleetId);
+    if (!cache || cache.byVersion.size === 0) {
+      throw new Error('Fleet encryption key is not available.');
+    }
+
+    return this.orderKeysForDecrypt(
+      [...cache.byVersion.values()],
+      preferredKeyVersion,
+      cache.latestVersion
+    ).map(material => material.key);
+  }
+
+  private async loadHistoricalCrewKeysForDecrypt(crewId: number): Promise<void> {
+    if (!this.identityPrivateKey) {
+      throw new Error('Encryption keys are locked.');
+    }
+
+    const state = await firstValueFrom(this.cryptoApi.getCrewKeyState(crewId));
+    const publicKeys = await firstValueFrom(this.cryptoApi.getCrewPublicKeys(crewId));
+    const publicKeyByUserId = new Map(publicKeys.map(key => [key.userId, key]));
+    await this.tryLoadHistoricalCrewKeysOnly(crewId, state, publicKeyByUserId);
+  }
+
+  private async loadHistoricalFleetKeysForDecrypt(fleetId: number): Promise<void> {
+    if (!this.identityPrivateKey) {
+      throw new Error('Encryption keys are locked.');
+    }
+
+    const state = await firstValueFrom(this.cryptoApi.getFleetKeyState(fleetId));
+    const publicKeys = await firstValueFrom(this.cryptoApi.getFleetPublicKeys(fleetId));
+    const publicKeyByUserId = new Map(publicKeys.map(key => [key.userId, key]));
+    await this.tryLoadHistoricalFleetKeysOnly(fleetId, state, publicKeyByUserId);
+  }
+
+  private orderKeysForDecrypt<T extends { keyVersion: number; key: CryptoKey }>(
+    materials: T[],
+    preferredKeyVersion: number | null | undefined,
+    latestVersion: number
+  ): T[] {
+    const preferred = preferredKeyVersion && preferredKeyVersion > 0
+      ? preferredKeyVersion
+      : null;
+    return [...materials].sort((a, b) => {
+      const score = (m: T): number => {
+        if (preferred != null && m.keyVersion === preferred) {
+          return 0;
+        }
+        if (m.keyVersion === latestVersion) {
+          return 1;
+        }
+        // Prefer older versions next — pre-audit content usually lives there.
+        return 1000 - m.keyVersion;
+      };
+      return score(a) - score(b);
+    });
+  }
+
+  private async tryDecryptWithKeys<T>(
+    keys: CryptoKey[],
+    decrypt: (key: CryptoKey) => Promise<T>
+  ): Promise<T> {
+    let lastError: unknown;
+    for (const key of keys) {
+      try {
+        return await decrypt(key);
+      } catch (error: unknown) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('Unable to decrypt with any available key version.');
+  }
+
   private async resolveCrewKeyMaterial(crewId: number, waitForDistribution: boolean): Promise<CrewKeyMaterial> {
-    const cached = this.crewKeyMaterial.get(crewId);
-    if (cached) {
-      return cached;
+    const existing = this.crewKeyCaches.get(crewId);
+    if (existing?.byVersion.has(existing.latestVersion)) {
+      return existing.byVersion.get(existing.latestVersion)!;
     }
 
     const state = waitForDistribution
@@ -244,11 +413,14 @@ export class CryptoSessionService {
 
     if (state.myDistribution) {
       try {
-        return await this.unwrapDistribution(
+        const latest = await this.unwrapDistribution(
           crewId,
           state.myDistribution,
-          publicKeyByUserId
+          publicKeyByUserId,
+          state.latestKeyVersion ?? state.myDistribution.keyVersion
         );
+        await this.cacheHistoricalCrewDistributions(crewId, state, publicKeyByUserId, latest.keyVersion);
+        return latest;
       } catch (error: unknown) {
         // Never mint a replacement crew key when a distribution already exists —
         // that permanently orphans all prior ciphertext. Surface identity mismatch instead.
@@ -267,6 +439,12 @@ export class CryptoSessionService {
       return soloRecovery;
     }
 
+    // Latest wrap missing for this user, but older wraps may still decrypt history.
+    const historical = await this.tryLoadHistoricalCrewKeysOnly(crewId, state, publicKeyByUserId);
+    if (historical) {
+      return historical;
+    }
+
     if ((state.latestKeyVersion ?? 0) > 0) {
       throw new Error(
         'Crew encryption key is not yet available for your account. Ask a crewmate to open the app, then try again.'
@@ -276,13 +454,13 @@ export class CryptoSessionService {
     const keyVersion = 1;
     const crewKeyBytes = this.cryptoService.generateCrewKeyBytes();
     await this.uploadCrewKeyDistributions(crewId, keyVersion, crewKeyBytes, publicKeys);
-    return await this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes);
+    return await this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes, keyVersion);
   }
 
   private async resolveFleetKeyMaterial(fleetId: number, waitForDistribution: boolean): Promise<FleetKeyMaterial> {
-    const cached = this.fleetKeyMaterial.get(fleetId);
-    if (cached) {
-      return cached;
+    const existing = this.fleetKeyCaches.get(fleetId);
+    if (existing?.byVersion.has(existing.latestVersion)) {
+      return existing.byVersion.get(existing.latestVersion)!;
     }
 
     const state = waitForDistribution
@@ -293,11 +471,14 @@ export class CryptoSessionService {
 
     if (state.myDistribution) {
       try {
-        return await this.unwrapFleetDistribution(
+        const latest = await this.unwrapFleetDistribution(
           fleetId,
           state.myDistribution,
-          publicKeyByUserId
+          publicKeyByUserId,
+          state.latestKeyVersion ?? state.myDistribution.keyVersion
         );
+        await this.cacheHistoricalFleetDistributions(fleetId, state, publicKeyByUserId, latest.keyVersion);
+        return latest;
       } catch (error: unknown) {
         const detail = error instanceof Error ? error.message : 'unwrap failed';
         throw new Error(
@@ -312,6 +493,11 @@ export class CryptoSessionService {
       return soloRecovery;
     }
 
+    const historical = await this.tryLoadHistoricalFleetKeysOnly(fleetId, state, publicKeyByUserId);
+    if (historical) {
+      return historical;
+    }
+
     if ((state.latestKeyVersion ?? 0) > 0) {
       throw new Error(
         'Fleet encryption key is not yet available for your account. Ask a fleet member to open the app, then try again.'
@@ -321,14 +507,132 @@ export class CryptoSessionService {
     const keyVersion = 1;
     const fleetKeyBytes = this.cryptoService.generateFleetKeyBytes();
     await this.uploadFleetKeyDistributions(fleetId, keyVersion, fleetKeyBytes, publicKeys);
-    return await this.cacheFleetKeyMaterial(fleetId, keyVersion, fleetKeyBytes);
+    return await this.cacheFleetKeyMaterial(fleetId, keyVersion, fleetKeyBytes, keyVersion);
+  }
+
+  private async tryLoadHistoricalCrewKeysOnly(
+    crewId: number,
+    state: CrewKeyState,
+    publicKeyByUserId: Map<number, UserKeyBundle>
+  ): Promise<CrewKeyMaterial | null> {
+    const historical = this.collectHistoricalCrewDistributions(state);
+    if (historical.length === 0) {
+      return null;
+    }
+
+    let first: CrewKeyMaterial | null = null;
+    for (const distribution of historical) {
+      try {
+        const material = await this.unwrapDistribution(
+          crewId,
+          distribution,
+          publicKeyByUserId,
+          state.latestKeyVersion ?? distribution.keyVersion
+        );
+        first ??= material;
+      } catch {
+        // Keep trying older wraps.
+      }
+    }
+
+    return first;
+  }
+
+  private async tryLoadHistoricalFleetKeysOnly(
+    fleetId: number,
+    state: FleetKeyState,
+    publicKeyByUserId: Map<number, UserKeyBundle>
+  ): Promise<FleetKeyMaterial | null> {
+    const historical = this.collectHistoricalFleetDistributions(state);
+    if (historical.length === 0) {
+      return null;
+    }
+
+    let first: FleetKeyMaterial | null = null;
+    for (const distribution of historical) {
+      try {
+        const material = await this.unwrapFleetDistribution(
+          fleetId,
+          distribution,
+          publicKeyByUserId,
+          state.latestKeyVersion ?? distribution.keyVersion
+        );
+        first ??= material;
+      } catch {
+        // Keep trying older wraps.
+      }
+    }
+
+    return first;
+  }
+
+  private collectHistoricalCrewDistributions(state: CrewKeyState): CrewKeyDistribution[] {
+    const byVersion = new Map<number, CrewKeyDistribution>();
+    for (const distribution of state.myHistoricalDistributions ?? []) {
+      byVersion.set(distribution.keyVersion, distribution);
+    }
+    if (state.myDistribution) {
+      byVersion.set(state.myDistribution.keyVersion, state.myDistribution);
+    }
+    return [...byVersion.values()].sort((a, b) => b.keyVersion - a.keyVersion);
+  }
+
+  private collectHistoricalFleetDistributions(state: FleetKeyState): FleetKeyDistribution[] {
+    const byVersion = new Map<number, FleetKeyDistribution>();
+    for (const distribution of state.myHistoricalDistributions ?? []) {
+      byVersion.set(distribution.keyVersion, distribution);
+    }
+    if (state.myDistribution) {
+      byVersion.set(state.myDistribution.keyVersion, state.myDistribution);
+    }
+    return [...byVersion.values()].sort((a, b) => b.keyVersion - a.keyVersion);
+  }
+
+  private async cacheHistoricalCrewDistributions(
+    crewId: number,
+    state: CrewKeyState,
+    publicKeyByUserId: Map<number, UserKeyBundle>,
+    latestKeyVersion: number
+  ): Promise<void> {
+    for (const distribution of this.collectHistoricalCrewDistributions(state)) {
+      if (distribution.keyVersion === latestKeyVersion) {
+        continue;
+      }
+      try {
+        await this.unwrapDistribution(crewId, distribution, publicKeyByUserId, latestKeyVersion);
+      } catch {
+        // Historical wrap may belong to a prior identity; skip without failing the session.
+      }
+    }
+  }
+
+  private async cacheHistoricalFleetDistributions(
+    fleetId: number,
+    state: FleetKeyState,
+    publicKeyByUserId: Map<number, UserKeyBundle>,
+    latestKeyVersion: number
+  ): Promise<void> {
+    for (const distribution of this.collectHistoricalFleetDistributions(state)) {
+      if (distribution.keyVersion === latestKeyVersion) {
+        continue;
+      }
+      try {
+        await this.unwrapFleetDistribution(fleetId, distribution, publicKeyByUserId, latestKeyVersion);
+      } catch {
+        // Historical wrap may belong to a prior identity; skip without failing the session.
+      }
+    }
   }
 
   private async waitForFleetKeyState(fleetId: number): Promise<FleetKeyState> {
     for (let attempt = 0; attempt < CREW_KEY_POLL_ATTEMPTS; attempt++) {
       const state = await firstValueFrom(this.cryptoApi.getFleetKeyState(fleetId));
 
-      if (state.myDistribution || (state.latestKeyVersion ?? 0) === 0) {
+      if (
+        state.myDistribution
+        || (state.myHistoricalDistributions?.length ?? 0) > 0
+        || (state.latestKeyVersion ?? 0) === 0
+      ) {
         return state;
       }
 
@@ -360,11 +664,21 @@ export class CryptoSessionService {
   private async cacheFleetKeyMaterial(
     fleetId: number,
     keyVersion: number,
-    fleetKeyBytes: Uint8Array
+    fleetKeyBytes: Uint8Array,
+    serverLatestVersion: number
   ): Promise<FleetKeyMaterial> {
     const key = await this.cryptoService.importFleetAesKey(fleetKeyBytes);
     const material: FleetKeyMaterial = { key, bytes: fleetKeyBytes, keyVersion };
-    this.fleetKeyMaterial.set(fleetId, material);
+    let cache = this.fleetKeyCaches.get(fleetId);
+    if (!cache) {
+      cache = { latestVersion: keyVersion, byVersion: new Map() };
+      this.fleetKeyCaches.set(fleetId, cache);
+    }
+    cache.byVersion.set(keyVersion, material);
+    // Only advertise a version as "latest" when we actually hold that key.
+    cache.latestVersion = cache.byVersion.has(serverLatestVersion)
+      ? serverLatestVersion
+      : Math.max(...cache.byVersion.keys());
     return material;
   }
 
@@ -372,7 +686,11 @@ export class CryptoSessionService {
     for (let attempt = 0; attempt < CREW_KEY_POLL_ATTEMPTS; attempt++) {
       const state = await firstValueFrom(this.cryptoApi.getCrewKeyState(crewId));
 
-      if (state.myDistribution || (state.latestKeyVersion ?? 0) === 0) {
+      if (
+        state.myDistribution
+        || (state.myHistoricalDistributions?.length ?? 0) > 0
+        || (state.latestKeyVersion ?? 0) === 0
+      ) {
         return state;
       }
 
@@ -404,11 +722,21 @@ export class CryptoSessionService {
   private async cacheCrewKeyMaterial(
     crewId: number,
     keyVersion: number,
-    crewKeyBytes: Uint8Array
+    crewKeyBytes: Uint8Array,
+    serverLatestVersion: number
   ): Promise<CrewKeyMaterial> {
     const key = await this.cryptoService.importCrewAesKey(crewKeyBytes);
     const material: CrewKeyMaterial = { key, bytes: crewKeyBytes, keyVersion };
-    this.crewKeyMaterial.set(crewId, material);
+    let cache = this.crewKeyCaches.get(crewId);
+    if (!cache) {
+      cache = { latestVersion: keyVersion, byVersion: new Map() };
+      this.crewKeyCaches.set(crewId, cache);
+    }
+    cache.byVersion.set(keyVersion, material);
+    // Only advertise a version as "latest" when we actually hold that key.
+    cache.latestVersion = cache.byVersion.has(serverLatestVersion)
+      ? serverLatestVersion
+      : Math.max(...cache.byVersion.keys());
     return material;
   }
 
@@ -455,7 +783,8 @@ export class CryptoSessionService {
   private async unwrapDistribution(
     crewId: number,
     distribution: CrewKeyDistribution,
-    publicKeyByUserId: Map<number, UserKeyBundle>
+    publicKeyByUserId: Map<number, UserKeyBundle>,
+    latestVersion: number
   ): Promise<CrewKeyMaterial> {
     const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId)
       ?? await this.fetchPublicKey(distribution.wrappedByUserId);
@@ -469,15 +798,17 @@ export class CryptoSessionService {
       wrapperPublicKey.identityPublicKey,
       this.identityPrivateKey!
     );
-    return this.cacheCrewKeyMaterial(crewId, distribution.keyVersion, crewKeyBytes);
+    return this.cacheCrewKeyMaterial(crewId, distribution.keyVersion, crewKeyBytes, latestVersion);
   }
 
   private async unwrapFleetDistribution(
     fleetId: number,
     distribution: FleetKeyDistribution,
-    publicKeyByUserId: Map<number, UserKeyBundle>
+    publicKeyByUserId: Map<number, UserKeyBundle>,
+    latestVersion: number
   ): Promise<FleetKeyMaterial> {
-    const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId);
+    const wrapperPublicKey = publicKeyByUserId.get(distribution.wrappedByUserId)
+      ?? await this.fetchPublicKey(distribution.wrappedByUserId);
     if (!wrapperPublicKey) {
       throw new Error('Missing public key for fleet key author.');
     }
@@ -488,7 +819,7 @@ export class CryptoSessionService {
       wrapperPublicKey.identityPublicKey,
       this.identityPrivateKey!
     );
-    return this.cacheFleetKeyMaterial(fleetId, distribution.keyVersion, fleetKeyBytes);
+    return this.cacheFleetKeyMaterial(fleetId, distribution.keyVersion, fleetKeyBytes, latestVersion);
   }
 
   private async tryRecoverSoloCrewKey(
@@ -510,7 +841,7 @@ export class CryptoSessionService {
     const keyVersion = 1;
     const crewKeyBytes = this.cryptoService.generateCrewKeyBytes();
     await this.uploadCrewKeyDistributions(crewId, keyVersion, crewKeyBytes, publicKeys);
-    return this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes);
+    return this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes, keyVersion);
   }
 
   private async tryRecoverSoloFleetKey(
@@ -530,7 +861,7 @@ export class CryptoSessionService {
     const keyVersion = 1;
     const fleetKeyBytes = this.cryptoService.generateFleetKeyBytes();
     await this.uploadFleetKeyDistributions(fleetId, keyVersion, fleetKeyBytes, publicKeys);
-    return this.cacheFleetKeyMaterial(fleetId, keyVersion, fleetKeyBytes);
+    return this.cacheFleetKeyMaterial(fleetId, keyVersion, fleetKeyBytes, keyVersion);
   }
 
   private getCurrentUserId(): number | null {

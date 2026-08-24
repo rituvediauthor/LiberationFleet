@@ -43,6 +43,8 @@ export interface CrewKeyDistribution {
 export interface CrewKeyState {
   latestKeyVersion?: number | null;
   myDistribution?: CrewKeyDistribution | null;
+  /** All wraps for the current user across key versions (includes superseded versions). */
+  myHistoricalDistributions?: CrewKeyDistribution[];
   distributions: CrewKeyDistribution[];
 }
 
@@ -58,6 +60,8 @@ export interface FleetKeyDistribution {
 export interface FleetKeyState {
   latestKeyVersion?: number | null;
   myDistribution?: FleetKeyDistribution | null;
+  /** All wraps for the current user across key versions (includes superseded versions). */
+  myHistoricalDistributions?: FleetKeyDistribution[];
   distributions: FleetKeyDistribution[];
 }
 

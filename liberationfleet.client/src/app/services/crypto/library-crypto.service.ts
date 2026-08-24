@@ -279,17 +279,21 @@ export class LibraryCryptoService {
       }));
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    await this.cryptoSession.warmCrewKeys(crewId);
     return Promise.all(messages.map(async message => {
       if (!message.hasEncryptedContent || !message.encryptedPayload) {
         return message;
       }
 
       try {
-        const payload = await this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-          crewKey,
-          message.encryptedPayload.nonce,
-          message.encryptedPayload.ciphertext
+        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+          crewId,
+          message.encryptedPayload.keyVersion,
+          key => this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
+            key,
+            message.encryptedPayload!.nonce,
+            message.encryptedPayload!.ciphertext
+          )
         );
         const resolvedAttachments: ResolvedAttachment[] = await this.proposalCrypto.decryptAttachments(
           { crewId },
@@ -310,7 +314,7 @@ export class LibraryCryptoService {
   private async decryptOfferingPayload(
     offeringId: number,
     crewId: number,
-    crewKey: CryptoKey
+    _crewKey: CryptoKey
   ): Promise<ProposalEncryptedPayload | null> {
     try {
       const envelopes = await firstValueFrom(
@@ -321,10 +325,14 @@ export class LibraryCryptoService {
         return null;
       }
 
-      return await this.cryptoService.decryptJson<ProposalEncryptedPayload>(
-        crewKey,
-        envelope.nonce,
-        envelope.ciphertext
+      return await this.cryptoSession.decryptWithCrewKeyFallback(
+        crewId,
+        envelope.keyVersion,
+        key => this.cryptoService.decryptJson<ProposalEncryptedPayload>(
+          key,
+          envelope.nonce,
+          envelope.ciphertext
+        )
       );
     } catch {
       return null;
@@ -334,7 +342,7 @@ export class LibraryCryptoService {
   private async resolveThumbnailsBatch(
     resourceIds: string[],
     crewId: number,
-    crewKey: CryptoKey
+    _crewKey: CryptoKey
   ): Promise<Map<string, string>> {
     const results = new Map<string, string>();
     if (resourceIds.length === 0) {
@@ -347,10 +355,14 @@ export class LibraryCryptoService {
       );
       for (const envelope of envelopes) {
         try {
-          const url = await this.cryptoService.decryptMediaToObjectUrl(
-            crewKey,
-            envelope.nonce,
-            envelope.ciphertext
+          const url = await this.cryptoSession.decryptWithCrewKeyFallback(
+            crewId,
+            envelope.keyVersion,
+            key => this.cryptoService.decryptMediaToObjectUrl(
+              key,
+              envelope.nonce,
+              envelope.ciphertext
+            )
           );
           results.set(envelope.resourceId, url);
         } catch {
@@ -367,7 +379,7 @@ export class LibraryCryptoService {
   private async decryptRequestPurposesBatch(
     requestIds: string[],
     crewId: number,
-    crewKey: CryptoKey
+    _crewKey: CryptoKey
   ): Promise<Map<string, string>> {
     const results = new Map<string, string>();
     if (requestIds.length === 0) {
@@ -380,10 +392,14 @@ export class LibraryCryptoService {
       );
       for (const envelope of envelopes) {
         try {
-          const payload = await this.cryptoService.decryptJson<LibraryRequestEncryptedPayload>(
-            crewKey,
-            envelope.nonce,
-            envelope.ciphertext
+          const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+            crewId,
+            envelope.keyVersion,
+            key => this.cryptoService.decryptJson<LibraryRequestEncryptedPayload>(
+              key,
+              envelope.nonce,
+              envelope.ciphertext
+            )
           );
           results.set(envelope.resourceId, payload.purpose);
         } catch {
@@ -400,7 +416,7 @@ export class LibraryCryptoService {
   private async resolveThumbnail(
     thumbnailResourceId: string | null | undefined,
     crewId: number,
-    crewKey: CryptoKey
+    _crewKey: CryptoKey
   ): Promise<string | null> {
     if (!thumbnailResourceId) {
       return null;
@@ -415,12 +431,15 @@ export class LibraryCryptoService {
         return null;
       }
 
-      const url = await this.cryptoService.decryptMediaToObjectUrl(
-        crewKey,
-        envelope.nonce,
-        envelope.ciphertext
+      return await this.cryptoSession.decryptWithCrewKeyFallback(
+        crewId,
+        envelope.keyVersion,
+        key => this.cryptoService.decryptMediaToObjectUrl(
+          key,
+          envelope.nonce,
+          envelope.ciphertext
+        )
       );
-      return url;
     } catch {
       return null;
     }

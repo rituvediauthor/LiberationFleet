@@ -28,25 +28,30 @@ export class GiftLogCryptoService {
       return entries.map(entry => this.maskEncryptedEntry(entry));
     }
 
-    let crewKey: CryptoKey;
     try {
-      crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      // Warm multi-version key cache once for the list.
+      await this.cryptoSession.warmCrewKeys(crewId);
     } catch {
       return entries.map(entry => ({
         ...entry,
         message: entry.hasEncryptedContent ? '[Unable to decrypt gift entry]' : entry.message
       }));
     }
+
     const decrypted = await Promise.all(entries.map(async entry => {
       if (!entry.hasEncryptedContent || !entry.encryptedPayload) {
         return entry;
       }
 
       try {
-        const payload = await this.cryptoService.decryptJson<GiftLogEncryptedPayload>(
-          crewKey,
-          entry.encryptedPayload.nonce,
-          entry.encryptedPayload.ciphertext
+        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
+          crewId,
+          entry.encryptedPayload.keyVersion,
+          key => this.cryptoService.decryptJson<GiftLogEncryptedPayload>(
+            key,
+            entry.encryptedPayload!.nonce,
+            entry.encryptedPayload!.ciphertext
+          )
         );
         const giverName = payload.giverName;
         const recipientName = payload.recipientName;
@@ -88,12 +93,15 @@ export class GiftLogCryptoService {
     return decrypted;
   }
 
-  async encryptAndStoreEntry(entry: GiftLogEntry, crewId: number, keyVersion = 1): Promise<void> {
+  async encryptAndStoreEntry(entry: GiftLogEntry, crewId: number, keyVersion?: number): Promise<void> {
     if (!this.cryptoSession.isUnlocked()) {
       return;
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    const resolvedKeyVersion = keyVersion
+      ?? this.cryptoSession.getCrewKeyVersion(crewId)
+      ?? 1;
     const payload: GiftLogEncryptedPayload = {
       message: entry.message,
       giverName: entry.giverName,
@@ -106,7 +114,7 @@ export class GiftLogCryptoService {
       contentType: 'GiftLogEntry',
       resourceId: entry.id.toString(),
       crewId,
-      keyVersion,
+      keyVersion: resolvedKeyVersion,
       nonce: encrypted.nonce,
       ciphertext: encrypted.ciphertext
     }));

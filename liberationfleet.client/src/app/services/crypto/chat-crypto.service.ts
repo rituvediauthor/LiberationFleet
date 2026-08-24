@@ -28,16 +28,17 @@ export class ChatCryptoService {
       }));
     }
 
-    let scopeKey: CryptoKey;
     try {
-      scopeKey = await this.resolveScopeKey(scope);
+      // Warm key cache (including historical versions) once for the list.
+      await this.warmScopeKeys(scope);
     } catch {
       return rooms.map(room => ({
         ...room,
         name: room.hasEncryptedContent ? '[Unable to decrypt]' : room.name
       }));
     }
-    return Promise.all(rooms.map(room => this.decryptRoomWithKey(room, scopeKey)));
+
+    return Promise.all(rooms.map(room => this.decryptRoomWithFallback(room, scope)));
   }
 
   async decryptRoom(room: ChatRoomListItem, scope: ChatCryptoScope): Promise<ChatRoomListItem> {
@@ -48,16 +49,7 @@ export class ChatCryptoService {
       };
     }
 
-    let scopeKey: CryptoKey;
-    try {
-      scopeKey = await this.resolveScopeKey(scope);
-    } catch {
-      return {
-        ...room,
-        name: room.hasEncryptedContent ? '[Unable to decrypt]' : room.name
-      };
-    }
-    return this.decryptRoomWithKey(room, scopeKey);
+    return this.decryptRoomWithFallback(room, scope);
   }
 
   async encryptRoomName(scope: ChatCryptoScope, name: string): Promise<{ nonce: string; ciphertext: string }> {
@@ -120,8 +112,7 @@ export class ChatCryptoService {
     }
 
     try {
-      const scopeKey = await this.resolveScopeKey(scope);
-      return await this.decryptMessage(message, scopeKey, scope, options);
+      return await this.decryptMessage(message, scope, options);
     } catch {
       return { ...message, body: '[Unable to decrypt]' };
     }
@@ -151,6 +142,20 @@ export class ChatCryptoService {
     );
   }
 
+  private async warmScopeKeys(scope: ChatCryptoScope): Promise<void> {
+    if (scope.fleetId) {
+      await this.cryptoSession.warmFleetKeys(scope.fleetId);
+      return;
+    }
+
+    if (scope.crewId) {
+      await this.cryptoSession.warmCrewKeys(scope.crewId);
+      return;
+    }
+
+    throw new Error('Encryption scope is required.');
+  }
+
   private async resolveScopeKey(scope: ChatCryptoScope): Promise<CryptoKey> {
     if (scope.fleetId) {
       return this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
@@ -163,14 +168,15 @@ export class ChatCryptoService {
     throw new Error('Encryption scope is required.');
   }
 
-  private async decryptRoomWithKey(room: ChatRoomListItem, scopeKey: CryptoKey): Promise<ChatRoomListItem> {
+  private async decryptRoomWithFallback(room: ChatRoomListItem, scope: ChatCryptoScope): Promise<ChatRoomListItem> {
     if (!room.hasEncryptedContent || !room.encryptedPayload) {
       return room;
     }
 
     try {
-      const payload = await this.cryptoService.decryptJson<ChatRoomNamePayload>(
-        scopeKey,
+      const payload = await this.decryptJsonWithScopeFallback<ChatRoomNamePayload>(
+        scope,
+        room.encryptedPayload.keyVersion,
         room.encryptedPayload.nonce,
         room.encryptedPayload.ciphertext
       );
@@ -182,7 +188,6 @@ export class ChatCryptoService {
 
   private async decryptMessage(
     message: ChatMessage,
-    scopeKey: CryptoKey,
     scope: ChatCryptoScope,
     options?: { resolveAttachments?: boolean }
   ): Promise<ChatMessage> {
@@ -190,31 +195,49 @@ export class ChatCryptoService {
       return message;
     }
 
-    try {
-      const payload = await this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-        scopeKey,
-        message.encryptedPayload.nonce,
-        message.encryptedPayload.ciphertext
+    const payload = await this.decryptJsonWithScopeFallback<ProposalCommentEncryptedPayload>(
+      scope,
+      message.encryptedPayload.keyVersion,
+      message.encryptedPayload.nonce,
+      message.encryptedPayload.ciphertext
+    );
+    const attachments = payload.attachments ?? [];
+    const resolveAttachments = options?.resolveAttachments !== false;
+    const resolvedAttachments = resolveAttachments && (scope.crewId || scope.fleetId)
+      ? await this.proposalCrypto.decryptAttachments(
+        scope.crewId ? { crewId: scope.crewId } : { fleetId: scope.fleetId },
+        attachments
+      )
+      : attachments;
+    return {
+      ...message,
+      body: payload.body,
+      authorUsername: message.isAnonymous
+        ? 'Anonymous'
+        : (payload.authorDisplayName ?? message.authorUsername),
+      authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
+      resolvedAttachments
+    };
+  }
+
+  private async decryptJsonWithScopeFallback<T>(
+    scope: ChatCryptoScope,
+    keyVersion: number | null | undefined,
+    nonce: string,
+    ciphertext: string
+  ): Promise<T> {
+    if (scope.fleetId) {
+      return this.cryptoSession.decryptWithFleetKeyFallback(scope.fleetId, keyVersion, key =>
+        this.cryptoService.decryptJson<T>(key, nonce, ciphertext)
       );
-      const attachments = payload.attachments ?? [];
-      const resolveAttachments = options?.resolveAttachments !== false;
-      const resolvedAttachments = resolveAttachments && (scope.crewId || scope.fleetId)
-        ? await this.proposalCrypto.decryptAttachments(
-          scope.crewId ? { crewId: scope.crewId } : { fleetId: scope.fleetId },
-          attachments
-        )
-        : attachments;
-      return {
-        ...message,
-        body: payload.body,
-        authorUsername: message.isAnonymous
-          ? 'Anonymous'
-          : (payload.authorDisplayName ?? message.authorUsername),
-        authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
-        resolvedAttachments
-      };
-    } catch {
-      return { ...message, body: '[Unable to decrypt]' };
     }
+
+    if (scope.crewId) {
+      return this.cryptoSession.decryptWithCrewKeyFallback(scope.crewId, keyVersion, key =>
+        this.cryptoService.decryptJson<T>(key, nonce, ciphertext)
+      );
+    }
+
+    throw new Error('Encryption scope is required.');
   }
 }

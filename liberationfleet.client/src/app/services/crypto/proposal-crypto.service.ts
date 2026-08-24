@@ -67,8 +67,9 @@ export class ProposalCryptoService {
       });
     }
 
-    let scopeKey: CryptoKey;
+    let scopeKey: CryptoKey | null = null;
     try {
+      await this.warmScopeKeys(normalizedScope);
       scopeKey = await this.resolveScopeKey(normalizedScope);
     } catch {
       return items.map(item => {
@@ -86,7 +87,7 @@ export class ProposalCryptoService {
     const decryptedRows = await Promise.all(
       items.map(async (item, index) => {
         const localVideos: ProposalAttachment[] = [];
-        const decrypted = await this.decryptListItem(item, scopeKey, normalizedScope, localVideos);
+        const decrypted = await this.decryptListItem(item, scopeKey!, normalizedScope, localVideos);
         return { index, decrypted, localVideos };
       })
     );
@@ -135,7 +136,7 @@ export class ProposalCryptoService {
     const decrypted = await this.decryptListItem(proposal, scopeKey, normalizedScope);
     let payload: ProposalEncryptedPayload | null = null;
     try {
-      payload = await this.decryptProposalPayload(proposal, scopeKey);
+      payload = await this.decryptProposalPayload(proposal, normalizedScope);
     } catch {
       payload = null;
     }
@@ -261,8 +262,9 @@ export class ProposalCryptoService {
     }
 
     try {
-      const payload = await this.cryptoService.decryptJson<ProposalEncryptedPayload>(
-        scopeKey,
+      const payload = await this.decryptJsonWithScopeFallback<ProposalEncryptedPayload>(
+        scope,
+        item.encryptedPayload.keyVersion,
         item.encryptedPayload.nonce,
         item.encryptedPayload.ciphertext
       );
@@ -413,13 +415,14 @@ export class ProposalCryptoService {
 
   private async decryptProposalPayload(
     item: ProposalListItem,
-    crewKey: CryptoKey
+    scope: ProposalCryptoScope
   ): Promise<ProposalEncryptedPayload | null> {
     if (!item.encryptedPayload) {
       return null;
     }
-    return this.cryptoService.decryptJson<ProposalEncryptedPayload>(
-      crewKey,
+    return this.decryptJsonWithScopeFallback<ProposalEncryptedPayload>(
+      scope,
+      item.encryptedPayload.keyVersion,
       item.encryptedPayload.nonce,
       item.encryptedPayload.ciphertext
     );
@@ -454,8 +457,9 @@ export class ProposalCryptoService {
     }
 
     try {
-      const payload = await this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-        scopeKey,
+      const payload = await this.decryptJsonWithScopeFallback<ProposalCommentEncryptedPayload>(
+        scope,
+        comment.encryptedPayload.keyVersion,
         comment.encryptedPayload.nonce,
         comment.encryptedPayload.ciphertext
       );
@@ -932,6 +936,11 @@ export class ProposalCryptoService {
     return 1;
   }
 
+  /** Key version to stamp on newly encrypted uploads (must match the AES key used). */
+  private resolveUploadKeyVersion(scope: ProposalCryptoScope): number {
+    return this.resolveScopeKeyVersion(scope);
+  }
+
   private async tryCachedMediaUrl(
     scope: ProposalCryptoScope,
     resourceId: string,
@@ -982,7 +991,7 @@ export class ProposalCryptoService {
   }
 
   private async decryptMediaCached(
-    scopeKey: CryptoKey,
+    _scopeKey: CryptoKey,
     scope: ProposalCryptoScope,
     resourceId: string,
     keyVersion: number,
@@ -995,13 +1004,15 @@ export class ProposalCryptoService {
       return URL.createObjectURL(cached);
     }
 
-    const blob = await this.cryptoService.decryptMediaToBlob(scopeKey, nonce, ciphertext);
+    const blob = await this.decryptMediaWithScopeFallback(scope, keyVersion, key =>
+      this.cryptoService.decryptMediaToBlob(key, nonce, ciphertext)
+    );
     void this.mediaBlobCache.put(cacheKey, blob);
     return URL.createObjectURL(blob);
   }
 
   private async decryptMediaBytesCached(
-    scopeKey: CryptoKey | null,
+    _scopeKey: CryptoKey | null,
     scope: ProposalCryptoScope,
     resourceId: string,
     keyVersion: number,
@@ -1014,9 +1025,28 @@ export class ProposalCryptoService {
       return URL.createObjectURL(cached);
     }
 
-    const blob = await this.cryptoService.decryptMediaBytesToBlob(scopeKey, nonce, ciphertext);
+    const blob = await this.decryptMediaWithScopeFallback(scope, keyVersion, key =>
+      this.cryptoService.decryptMediaBytesToBlob(key, nonce, ciphertext)
+    );
     void this.mediaBlobCache.put(cacheKey, blob);
     return URL.createObjectURL(blob);
+  }
+
+  private async decryptMediaWithScopeFallback<T>(
+    scope: ProposalCryptoScope,
+    keyVersion: number | null | undefined,
+    decrypt: (key: CryptoKey) => Promise<T>
+  ): Promise<T> {
+    if (scope.fleetId) {
+      return this.cryptoSession.decryptWithFleetKeyFallback(scope.fleetId, keyVersion, decrypt);
+    }
+
+    if (scope.crewId) {
+      return this.cryptoSession.decryptWithCrewKeyFallback(scope.crewId, keyVersion, decrypt);
+    }
+
+    const personalKey = await this.cryptoSession.ensureUserContentKeyReady();
+    return decrypt(personalKey);
   }
 
   /**
@@ -1182,7 +1212,7 @@ export class ProposalCryptoService {
             resourceId: attachment.resourceId,
             crewId: scope.crewId,
             fleetId: scope.fleetId,
-            keyVersion: 1,
+            keyVersion: this.resolveUploadKeyVersion(scope),
             nonce: MEDIA_PLAIN_NONCE,
             ciphertext: new Blob([plainPayload], { type: 'application/octet-stream' })
           },
@@ -1227,7 +1257,7 @@ export class ProposalCryptoService {
             resourceId: attachment.resourceId,
             crewId: scope.crewId,
             fleetId: scope.fleetId,
-            keyVersion: 1,
+            keyVersion: this.resolveUploadKeyVersion(scope),
             nonce: encrypted.nonce,
             ciphertext: encrypted.ciphertext
           },
@@ -1265,7 +1295,7 @@ export class ProposalCryptoService {
           resourceId: attachment.resourceId,
           crewId: scope.crewId,
           fleetId: scope.fleetId,
-          keyVersion: 1,
+          keyVersion: this.resolveUploadKeyVersion(scope),
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
         },
@@ -1348,6 +1378,39 @@ export class ProposalCryptoService {
     return typeof scope === 'number' ? { crewId: scope } : scope;
   }
 
+  private async warmScopeKeys(scope: ProposalCryptoScope): Promise<void> {
+    if (scope.fleetId) {
+      await this.cryptoSession.warmFleetKeys(scope.fleetId);
+      return;
+    }
+
+    if (scope.crewId) {
+      await this.cryptoSession.warmCrewKeys(scope.crewId);
+    }
+  }
+
+  private async decryptJsonWithScopeFallback<T>(
+    scope: ProposalCryptoScope,
+    keyVersion: number | null | undefined,
+    nonce: string,
+    ciphertext: string
+  ): Promise<T> {
+    if (scope.fleetId) {
+      return this.cryptoSession.decryptWithFleetKeyFallback(scope.fleetId, keyVersion, key =>
+        this.cryptoService.decryptJson<T>(key, nonce, ciphertext)
+      );
+    }
+
+    if (scope.crewId) {
+      return this.cryptoSession.decryptWithCrewKeyFallback(scope.crewId, keyVersion, key =>
+        this.cryptoService.decryptJson<T>(key, nonce, ciphertext)
+      );
+    }
+
+    const personalKey = await this.cryptoSession.ensureUserContentKeyReady();
+    return this.cryptoService.decryptJson<T>(personalKey, nonce, ciphertext);
+  }
+
   private async resolveScopeKey(scope: ProposalCryptoScope): Promise<CryptoKey> {
     if (scope.fleetId) {
       return this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
@@ -1413,7 +1476,7 @@ export class ProposalCryptoService {
       resourceId: attachment.resourceId,
       crewId: normalizedScope.crewId && normalizedScope.crewId > 0 ? normalizedScope.crewId : undefined,
       fleetId: normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined,
-      keyVersion: 1,
+      keyVersion: this.resolveUploadKeyVersion(normalizedScope),
       nonce: encrypted.nonce,
       ciphertext: encrypted.ciphertext
     }));
@@ -1444,6 +1507,7 @@ export class ProposalCryptoService {
         normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined
       )
     );
+    let usePersonalKey = !normalizedScope.crewId && !normalizedScope.fleetId;
     if (
       !envelopes[0]
       && contentType === 'ProfileAvatar'
@@ -1454,6 +1518,7 @@ export class ProposalCryptoService {
       );
       if (envelopes[0]) {
         scopeKey = await this.cryptoSession.ensureUserContentKeyReady();
+        usePersonalKey = true;
       }
     }
     const envelope = envelopes[0];
@@ -1462,10 +1527,19 @@ export class ProposalCryptoService {
     }
 
     try {
-      return await this.cryptoService.decryptMediaToObjectUrl(
-        scopeKey,
-        envelope.nonce,
-        envelope.ciphertext
+      // Personal avatars use the user content key; crew/fleet media use version fallback.
+      if (usePersonalKey) {
+        return await this.cryptoService.decryptMediaToObjectUrl(
+          scopeKey,
+          envelope.nonce,
+          envelope.ciphertext
+        );
+      }
+
+      return await this.decryptMediaWithScopeFallback(
+        normalizedScope,
+        envelope.keyVersion,
+        key => this.cryptoService.decryptMediaToObjectUrl(key, envelope.nonce, envelope.ciphertext)
       );
     } catch {
       return null;
