@@ -24,14 +24,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
-          dotnet-quality: "ga"
 
       - name: Restore
-        run: dotnet restore "**/*.csproj" /p:SkipSpaProjectReference=true
+        run: dotnet restore LiberationFleet.slnx /p:SkipSpaProjectReference=true
 
       - name: Build
         run: >
-          dotnet build "**/*.csproj"
+          dotnet build LiberationFleet.slnx
           --configuration Release
           --no-restore
           /p:SkipSpaProjectReference=true
