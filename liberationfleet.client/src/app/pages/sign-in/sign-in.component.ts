@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { NavigationService } from '../../services/navigation.service';
 import { DeviceIdentityService } from '../../services/device-identity.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { describeLoadError } from '../../utils/http-error.util';
 
 @Component({
   selector: 'app-sign-in',
@@ -68,6 +69,7 @@ export class SignInComponent {
 
     this.isLoading = true;
     this.signInButton.disabled = true;
+    this.signInButton.label = 'Signing in…';
 
     const credentials = {
       ...this.form.value,
@@ -78,12 +80,13 @@ export class SignInComponent {
 
     this.authService.login(credentials).subscribe({
       next: () => {
-        this.router.navigate(['/app/crew']);
+        void this.router.navigate(['/app/crew']);
       },
       error: (error) => {
-        this.toastService.error(error.error?.message || 'Sign in failed');
+        this.toastService.error(describeLoadError(error, 'Sign in failed'));
         this.isLoading = false;
         this.signInButton.disabled = false;
+        this.signInButton.label = 'Sign In';
       }
     });
   }

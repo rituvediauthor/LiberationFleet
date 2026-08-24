@@ -23,7 +23,10 @@
 
   <div class="chat-list-page">
     <p *ngIf="loading" class="state-text">Loading...</p>
-    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <div class="state-block" *ngIf="!loading && errorMessage">
+      <p class="state-text error">{{ errorMessage }}</p>
+      <button type="button" class="retry-btn" (click)="retryLoadRooms()">Try again</button>
+    </div>
     <p *ngIf="!loading && !errorMessage && rooms.length === 0" class="state-text">No chat rooms yet.</p>
     <p *ngIf="!loading && !errorMessage && rooms.length > 0 && visibleRooms.length === 0 && hiddenRooms.length > 0" class="state-text">
       All chat rooms are hidden.

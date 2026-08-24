@@ -16,6 +16,8 @@
         [lfNotificationPrefix]="notifyPrefix"
         [lfHighlightId]="highlightId"
         [class.own]="isOwnMessage(message)"
+        [class.pending-send]="message.sendStatus === 'sending'"
+        [class.failed-send]="message.sendStatus === 'failed'"
         [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">
           <p class="message-meta">
@@ -32,7 +34,7 @@
             <span>·</span>
             <span>{{ message.createdAt | date:'short' }}</span>
           </p>
-          <div class="message-actions">
+          <div class="message-actions" *ngIf="message.id > 0">
             <button
               type="button"
               class="kebab-btn"
@@ -74,44 +76,19 @@
           [attachments]="message.resolvedAttachments ?? []"
           [compact]="true">
         </app-proposal-attachment-display>
+        <div class="message-send-status" *ngIf="message.sendStatus === 'failed'">
+          <p class="message-send-error">Couldn't send</p>
+          <div class="message-send-actions">
+            <button type="button" class="link-btn" (click)="retryFailedMessage(message, $event)">Retry</button>
+            <button type="button" class="link-btn" (click)="dismissFailedMessage(message, $event)">Dismiss</button>
+          </div>
+        </div>
       </article>
     </div>
     </div>
   </div>
 
   <div class="chat-action-bar" *ngIf="contentRevealed" [appComposerFooterPad]="messageScroll">
-    <div class="chat-outbox" *ngIf="outbox.length > 0">
-      <div
-        class="outbox-item"
-        *ngFor="let entry of outbox"
-        [class.is-failed]="entry.status === 'failed'"
-        [class.is-sending]="entry.status === 'sending' || entry.status === 'queued'">
-        <div class="outbox-main">
-          <p class="outbox-preview">{{ outboxPreview(entry) }}</p>
-          <p class="outbox-status" *ngIf="entry.status === 'queued' || entry.status === 'sending'">
-            {{ entry.status === 'sending' ? 'Sending…' : 'Waiting for upload…' }}
-          </p>
-          <p class="outbox-status error" *ngIf="entry.status === 'failed'">
-            {{ entry.error || 'Failed to send' }}
-          </p>
-        </div>
-        <div class="outbox-actions">
-          <button type="button" class="link-btn" [disabled]="entry.status === 'sending'" (click)="editOutboxEntry(entry)">
-            Edit
-          </button>
-          <button
-            type="button"
-            class="link-btn"
-            *ngIf="entry.status === 'failed'"
-            (click)="retryOutboxEntry(entry)">
-            Retry
-          </button>
-          <button type="button" class="link-btn" [disabled]="entry.status === 'sending'" (click)="dismissOutboxEntry(entry)">
-            Dismiss
-          </button>
-        </div>
-      </div>
-    </div>
     <div class="chat-action-bar-inner">
     <button
       type="button"

@@ -58,6 +58,28 @@
   color: var(--lf-color-danger);
 }
 
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.retry-btn {
+  border: 1px solid var(--lf-color-border-subtle);
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-accent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.retry-btn:hover {
+  background: var(--lf-color-bg-hover);
+}
+
 .room-list {
   display: flex;
   flex-direction: column;
