@@ -31,6 +31,8 @@ public class CrewMembershipRepository : ICrewMembershipRepository
 
     public async Task<IReadOnlyList<CrewMembership>> GetActiveMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.CrewMemberships
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(m => m.Crew)
             .Include(m => m.User)
                 .ThenInclude(u => u.PaymentPlatforms)
@@ -42,6 +44,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
         int crewId,
         CancellationToken cancellationToken = default) =>
         await _context.CrewMemberships
+            .AsNoTracking()
             .Include(m => m.User)
             .Where(m => m.CrewId == crewId && m.IsBanned)
             .OrderBy(m => m.User.Username)

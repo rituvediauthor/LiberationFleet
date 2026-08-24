@@ -36,7 +36,9 @@ export class NotificationService {
   readonly resourceCounts$ = this.resourceCountsSubject.asObservable();
   private lastBadgeRefreshAt = 0;
   private badgeInFlight = false;
+  private badgeFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly badgeMinIntervalMs = 12_000;
+  private readonly badgeFallbackDelayMs = 1_500;
 
   constructor(private http: HttpClient) {}
 
@@ -79,6 +81,7 @@ export class NotificationService {
   }
 
   clearSessionCache(): void {
+    this.clearBadgeFallback();
     this.lastBadgeRefreshAt = 0;
     this.badgeInFlight = false;
     this.unreadCountSubject.next(0);
@@ -112,7 +115,8 @@ export class NotificationService {
       tap(response => {
         if (response.success) {
           this.unreadCountSubject.next(response.unreadCount);
-          this.refreshBadges(true);
+          // Server pushes BadgeSummaryUpdated over SignalR; fall back if hub is down.
+          this.scheduleBadgeFallbackRefresh();
         }
       })
     );
@@ -123,7 +127,7 @@ export class NotificationService {
       tap(response => {
         if (response.success) {
           this.unreadCountSubject.next(response.unreadCount);
-          this.refreshBadges(true);
+          this.scheduleBadgeFallbackRefresh();
         }
       })
     );
@@ -161,7 +165,7 @@ export class NotificationService {
     }).pipe(
       tap(response => {
         if (response.success) {
-          this.refreshBadges(true);
+          this.scheduleBadgeFallbackRefresh();
         }
       })
     );
@@ -183,7 +187,7 @@ export class NotificationService {
     }).pipe(
       tap(response => {
         if (response.success) {
-          this.refreshBadges(true);
+          this.scheduleBadgeFallbackRefresh();
         }
       })
     );
@@ -225,12 +229,31 @@ export class NotificationService {
     this.areaCountsSubject.next(this.toAreaCounts(summary.areaCounts ?? {}));
     this.resourceCountsSubject.next(summary.resourceCounts ?? {});
     this.lastBadgeRefreshAt = Date.now();
+    this.clearBadgeFallback();
   }
 
   handleIncoming(notification: NotificationItem) {
-    // Prefer badge summary from hub; fall back to forced refresh for race windows.
+    // NotifyUser(s) already push BadgeSummaryUpdated on the hub. Avoid an immediate
+    // HTTP badges round-trip per notification; only refresh if the summary never arrives.
     if (!notification.isRead) {
-      this.refreshBadges(true);
+      this.scheduleBadgeFallbackRefresh();
+    }
+  }
+
+  private scheduleBadgeFallbackRefresh(): void {
+    this.clearBadgeFallback();
+    this.badgeFallbackTimer = setTimeout(() => {
+      this.badgeFallbackTimer = null;
+      if (Date.now() - this.lastBadgeRefreshAt >= this.badgeFallbackDelayMs) {
+        this.refreshBadges(true);
+      }
+    }, this.badgeFallbackDelayMs);
+  }
+
+  private clearBadgeFallback(): void {
+    if (this.badgeFallbackTimer !== null) {
+      clearTimeout(this.badgeFallbackTimer);
+      this.badgeFallbackTimer = null;
     }
   }
 }

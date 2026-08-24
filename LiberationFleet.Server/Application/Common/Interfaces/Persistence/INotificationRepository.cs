@@ -16,7 +16,31 @@ public interface INotificationRepository
 
     Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Notification>> GetUnreadForUserAsync(int userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Unread rows for badge building. Optionally excludes disabled kinds in SQL.
+    /// Not ordered — badge aggregation does not need creation order.
+    /// </summary>
+    Task<IReadOnlyList<Notification>> GetUnreadForUserAsync(
+        int userId,
+        IReadOnlySet<NotificationKind>? excludeKinds = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Users in <paramref name="userIds"/> who have explicitly disabled <paramref name="kind"/>.
+    /// </summary>
+    Task<IReadOnlySet<int>> GetUserIdsWithKindDisabledAsync(
+        IReadOnlyCollection<int> userIds,
+        NotificationKind kind,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Users in <paramref name="userIds"/> who muted the given content.
+    /// </summary>
+    Task<IReadOnlySet<int>> GetUserIdsWithContentMutedAsync(
+        IReadOnlyCollection<int> userIds,
+        MutedContentType contentType,
+        int resourceId,
+        CancellationToken cancellationToken = default);
 
     Task<int> MarkReadByContentAsync(
         int userId,

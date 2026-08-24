@@ -11,7 +11,6 @@ import { HubLoadingComponent } from '../../../components/hub-loading/hub-loading
 import { FleetService } from '../../../services/fleet.service';
 import { GiftService } from '../../../services/gift.service';
 import { NotificationService } from '../../../services/notification.service';
-import { NotificationHubService } from '../../../services/notification-hub.service';
 import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
 import { EncryptedImageCacheService } from '../../../services/encrypted-image-cache.service';
 import { FleetStatus } from '../../../models/fleet.model';
@@ -50,7 +49,6 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private fleetService = inject(FleetService);
   private giftService = inject(GiftService);
   private notificationService = inject(NotificationService);
-  private notificationHub = inject(NotificationHubService);
   private cryptoSession = inject(CryptoSessionService);
   private images = inject(EncryptedImageCacheService);
   private forumPrefetch = inject(ForumListPrefetchService);
@@ -126,11 +124,6 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.notificationService.areaCounts$.subscribe(counts => {
         this.areaCounts = counts;
-      })
-    );
-    this.subscriptions.add(
-      this.notificationHub.notificationReceived$.subscribe(() => {
-        this.notificationService.refreshBadges(true);
       })
     );
   }

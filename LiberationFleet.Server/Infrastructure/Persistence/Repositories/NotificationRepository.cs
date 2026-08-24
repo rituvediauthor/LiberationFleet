@@ -63,15 +63,88 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
     }
 
     public Task<int> GetUnreadCountAsync(int userId, CancellationToken cancellationToken = default) =>
-        context.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
-
-    public async Task<IReadOnlyList<Notification>> GetUnreadForUserAsync(int userId, CancellationToken cancellationToken = default) =>
-        await context.Notifications
+        context.Notifications
             .AsNoTracking()
-            .Where(n => n.UserId == userId && !n.IsRead)
-            .OrderByDescending(n => n.CreatedAt)
-            .ThenByDescending(n => n.Id)
+            .CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
+
+    public async Task<IReadOnlyList<Notification>> GetUnreadForUserAsync(
+        int userId,
+        IReadOnlySet<NotificationKind>? excludeKinds = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Project only badge-relevant columns; skip ORDER BY (badge builder does not need it).
+        var query = context.Notifications
+            .AsNoTracking()
+            .Where(n => n.UserId == userId && !n.IsRead);
+
+        if (excludeKinds is { Count: > 0 })
+        {
+            var excluded = excludeKinds.ToArray();
+            query = query.Where(n => !excluded.Contains(n.Kind));
+        }
+
+        return await query
+            .Select(n => new Notification
+            {
+                Id = n.Id,
+                UserId = n.UserId,
+                CrewId = n.CrewId,
+                Kind = n.Kind,
+                Title = n.Title,
+                Body = n.Body,
+                ActionUrl = n.ActionUrl,
+                RelatedEntityId = n.RelatedEntityId,
+                SecondaryEntityId = n.SecondaryEntityId,
+                ActorUserId = n.ActorUserId,
+                IsRead = n.IsRead,
+                CreatedAt = n.CreatedAt
+            })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlySet<int>> GetUserIdsWithKindDisabledAsync(
+        IReadOnlyCollection<int> userIds,
+        NotificationKind kind,
+        CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var ids = userIds as IList<int> ?? userIds.ToList();
+        var disabled = await context.UserNotificationPreferences
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId) && p.Kind == kind && !p.IsEnabled)
+            .Select(p => p.UserId)
+            .ToListAsync(cancellationToken);
+
+        return disabled.ToHashSet();
+    }
+
+    public async Task<IReadOnlySet<int>> GetUserIdsWithContentMutedAsync(
+        IReadOnlyCollection<int> userIds,
+        MutedContentType contentType,
+        int resourceId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var ids = userIds as IList<int> ?? userIds.ToList();
+        var muted = await context.UserMutedContents
+            .AsNoTracking()
+            .Where(m =>
+                ids.Contains(m.UserId)
+                && m.ContentType == contentType
+                && m.ResourceId == resourceId)
+            .Select(m => m.UserId)
+            .ToListAsync(cancellationToken);
+
+        return muted.ToHashSet();
+    }
 
     public async Task<int> MarkReadByContentAsync(
         int userId,
@@ -139,6 +212,7 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
 
     public async Task<IReadOnlyList<UserNotificationPreference>> GetPreferencesAsync(int userId, CancellationToken cancellationToken = default) =>
         await context.UserNotificationPreferences
+            .AsNoTracking()
             .Where(p => p.UserId == userId)
             .ToListAsync(cancellationToken);
 

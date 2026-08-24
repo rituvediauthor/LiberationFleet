@@ -61,14 +61,8 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
       })
     );
     this.subscriptions.add(
-      this.notificationHub.notificationReceived$.subscribe(() => {
-        this.notificationService.refreshBadges(true);
-      })
-    );
-    this.subscriptions.add(
       this.notificationHub.unreadCountUpdated$.subscribe(count => {
         this.notificationService.setUnreadCount(count);
-        this.notificationService.refreshBadges(true);
       })
     );
     this.subscriptions.add(

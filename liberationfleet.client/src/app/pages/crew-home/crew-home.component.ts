@@ -15,7 +15,6 @@ import { CryptoSessionService } from '../../services/crypto/crypto-session.servi
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { LibraryAccessService } from '../../services/library-access.service';
 import { NotificationService } from '../../services/notification.service';
-import { NotificationHubService } from '../../services/notification-hub.service';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { NextAidInfo } from '../../models/gift.model';
 import {
@@ -58,7 +57,6 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private cryptoSession = inject(CryptoSessionService);
   private images = inject(EncryptedImageCacheService);
   private notificationService = inject(NotificationService);
-  private notificationHub = inject(NotificationHubService);
   private forumPrefetch = inject(ForumListPrefetchService);
   private subscriptions = new Subscription();
 
@@ -120,11 +118,6 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.notificationService.areaCounts$.subscribe(counts => {
         this.areaCounts = counts;
-      })
-    );
-    this.subscriptions.add(
-      this.notificationHub.notificationReceived$.subscribe(() => {
-        this.notificationService.refreshBadges(true);
       })
     );
   }

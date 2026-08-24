@@ -332,6 +332,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.UserId, e.CrewId }).IsUnique();
+            entity.HasIndex(e => new { e.CrewId, e.IsBanned, e.IsInSeason });
+            entity.HasIndex(e => new { e.CrewId, e.IsBanned, e.IsSeasonReady });
             entity.Property(e => e.IsOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsHonoraryMember).HasDefaultValue(false);
             entity.Property(e => e.IsAdvocate).HasDefaultValue(false);
@@ -413,6 +415,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .HasForeignKey(e => e.SeasonCycleId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.CrewId, e.CreatedAt, e.Id });
+            entity.HasIndex(e => new { e.CrewId, e.GiverUserId, e.CreatedAt });
         });
 
         modelBuilder.Entity<GiftComment>(entity =>
@@ -1279,6 +1282,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.ActionUrl).IsRequired().HasMaxLength(500);
             entity.HasIndex(e => new { e.UserId, e.CreatedAt });
             entity.HasIndex(e => new { e.UserId, e.IsRead });
+            // Unread badge scans filter UserId + IsRead and may filter Kind.
+            entity.HasIndex(e => new { e.UserId, e.IsRead, e.Kind });
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)

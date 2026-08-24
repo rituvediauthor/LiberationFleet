@@ -38,15 +38,15 @@ public partial class MutualAidService(
         // Status reads must stay cheap: cycle/threshold maintenance belongs on
         // reception / next-aid / gift-record paths, not every status poll or nav gate.
 
-        var readyMembers = await mutualAidRepository.GetSeasonReadyMembersAsync(crew.Id, cancellationToken);
+        var readyCount = await mutualAidRepository.CountSeasonReadyMembersAsync(crew.Id, cancellationToken);
 
         return new SeasonStatusDto
         {
             SeasonStarted = crew.SeasonStarted,
             UserInSeason = membership.IsInSeason,
             UserSeasonReady = membership.IsSeasonReady,
-            ReadyCount = readyMembers.Count,
-            CanStartSeason = !crew.SeasonStarted && readyMembers.Count >= 3,
+            ReadyCount = readyCount,
+            CanStartSeason = !crew.SeasonStarted && readyCount >= 3,
             EstimatedMonthlyContribution = membership.EstimatedMonthlyContribution
         };
     }
@@ -922,13 +922,31 @@ public partial class MutualAidService(
         var currentSeasonStart = crew.CurrentSeasonStartDate.Value;
 
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
-        foreach (var participant in participants)
+        if (participants.Count > 0)
         {
-            participant.CurrentPriorityScore = await GetPriorityScoreForUserAsync(
-                participant.UserId,
+            var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+            var crewLifetime = await mutualAidRepository.GetCrewLifetimeContributionsAsync(
                 crewId,
-                cancellationToken,
-                excludeActiveSeasonContributions: false);
+                before: null,
+                cancellationToken);
+            var lifetimes = await mutualAidRepository.GetLifetimeContributionsForUsersAsync(
+                crewId,
+                participants.Select(p => p.UserId).ToList(),
+                before: null,
+                cancellationToken);
+            var memberStatus = await BuildFinancialMemberStatusAsync(crew, participants, cancellationToken);
+
+            foreach (var participant in participants)
+            {
+                participant.CurrentPriorityScore = MutualAidCalculationService.CalculatePriorityScore(
+                    participant.User,
+                    participant,
+                    memberStatus.GetValueOrDefault(participant.UserId),
+                    crewLifetime,
+                    lifetimes.GetValueOrDefault(participant.UserId),
+                    capacityContext.SurvivalThresholdAmount,
+                    applyLotCommerceModifiers: false);
+            }
         }
 
         await ReorderUnlockedUnitsForSeasonAsync(
@@ -1343,8 +1361,7 @@ public partial class MutualAidService(
         bool excludeActiveSeasonContributions = false,
         bool applyLotCommerceModifiers = false)
     {
-        var members = await mutualAidRepository.GetActiveMembersWithUsersAsync(crewId, cancellationToken);
-        var membership = members.FirstOrDefault(m => m.UserId == userId);
+        var membership = await mutualAidRepository.GetMembershipWithUserAsync(userId, crewId, cancellationToken);
         if (membership is null)
         {
             return 0m;
@@ -2800,12 +2817,7 @@ public partial class MutualAidService(
 
     public async Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default)
     {
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
-        if (participants.Count == 0)
-        {
-            participants = await mutualAidRepository.GetSeasonReadyMembersAsync(crewId, cancellationToken);
-        }
-
+        var participants = await mutualAidRepository.GetSeasonContributionMembersAsync(crewId, cancellationToken);
         if (participants.Count == 0)
         {
             return 0m;
@@ -2967,7 +2979,7 @@ public partial class MutualAidService(
         var totalContributions = await GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken);
 
         var thresholdRecipients = AreSurvivalThresholdsEnabled(crew)
-            ? (await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken)).Count(m => m.User.NeedsSurvivalAid)
+            ? await mutualAidRepository.CountSeasonParticipantsNeedingSurvivalAidAsync(crew.Id, cancellationToken)
             : 0;
         var survivalThreshold = MutualAidCalculationService.GetSurvivalThresholdAmount(totalContributions, thresholdRecipients);
         var memberCap = MutualAidCalculationService.GetMemberCycleCap(crew, totalContributions);
