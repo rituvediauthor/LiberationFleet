@@ -28,9 +28,11 @@ public class ProposalRepository : IProposalRepository
         ProposalStatus status,
         CancellationToken cancellationToken = default) =>
         await _context.Proposals
+            .AsNoTracking()
             .Include(p => p.AuthorUser)
             .Where(p => p.CrewId == crewId && !p.IsDeleted && p.Status == status)
             .OrderByDescending(p => p.LastActivityAt)
+            .Take(500)
             .ToListAsync(cancellationToken);
 
     public Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default) =>
@@ -44,9 +46,11 @@ public class ProposalRepository : IProposalRepository
         int proposalId,
         CancellationToken cancellationToken = default) =>
         await _context.ProposalComments
+            .AsNoTracking()
             .Include(c => c.AuthorUser)
             .Where(c => c.ProposalId == proposalId && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
+            .Take(1000)
             .ToListAsync(cancellationToken);
 
     public Task<ProposalComment?> GetCommentByIdAsync(int commentId, CancellationToken cancellationToken = default) =>

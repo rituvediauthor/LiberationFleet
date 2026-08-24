@@ -105,7 +105,7 @@ public class UpdateSeasonProfileCommandHandler(
             else
             {
                 var existing = await crewPaymentPlatformRepository.GetByIdAsync(platform.PlatformId, cancellationToken);
-                if (existing is null || existing.CrewId != membership.CrewId)
+                if (existing is null || existing.CrewId != membership.CrewId || existing.IsLibraryOfThings)
                 {
                     return new SeasonProfileResponse { Success = false, Message = "Invalid payment platform for your crew." };
                 }

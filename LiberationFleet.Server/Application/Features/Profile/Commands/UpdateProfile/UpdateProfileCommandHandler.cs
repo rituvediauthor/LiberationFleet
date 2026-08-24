@@ -128,7 +128,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             else
             {
                 var existing = await _crewPaymentPlatformRepository.GetByIdAsync(platform.PlatformId, cancellationToken);
-                if (existing is null || existing.CrewId != membership.CrewId)
+                if (existing is null || existing.CrewId != membership.CrewId || existing.IsLibraryOfThings)
                 {
                     return new ProfileOperationResponse { Success = false, Message = "Invalid payment platform for your crew." };
                 }

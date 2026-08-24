@@ -164,7 +164,13 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.IsLibraryOfThings).HasDefaultValue(false);
             entity.HasIndex(e => new { e.CrewId, e.Name }).IsUnique();
+            // At most one LoT system platform per crew (filtered unique).
+            entity.HasIndex(e => e.CrewId)
+                .IsUnique()
+                .HasFilter("[IsLibraryOfThings] = 1")
+                .HasDatabaseName("IX_CrewPaymentPlatforms_CrewId_LibraryOfThings");
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -1263,7 +1269,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Currency).HasMaxLength(8).IsRequired();
-            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Status).HasConversion<int>().IsRequired();
             entity.Property(e => e.StripeCheckoutSessionId).HasMaxLength(256);
             entity.Property(e => e.StripePaymentIntentId).HasMaxLength(256);
             entity.HasIndex(e => e.StripeCheckoutSessionId);

@@ -33,9 +33,11 @@ public class SecurityRepository(ApplicationDbContext context) : ISecurityReposit
 
     public async Task<IReadOnlyList<SecurityAlert>> GetAlertsForUserAsync(int userId, CancellationToken cancellationToken = default) =>
         await context.SecurityAlerts
+            .AsNoTracking()
             .Include(a => a.RelatedDevice)
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.OccurredAt)
+            .Take(100)
             .ToListAsync(cancellationToken);
 
     public Task<SecurityAlert?> GetAlertByIdAsync(int userId, int alertId, CancellationToken cancellationToken = default) =>

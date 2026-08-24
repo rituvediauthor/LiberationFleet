@@ -617,7 +617,8 @@ public class MutualAidServiceTests
         var lotPlatform = new CrewPaymentPlatform
         {
             CrewId = fixture.Crew.Id,
-            Name = "Library of Things"
+            Name = "Library of Things",
+            IsLibraryOfThings = true
         };
         fixture.Context.CrewPaymentPlatforms.Add(lotPlatform);
         await fixture.Context.SaveChangesAsync();
@@ -960,7 +961,8 @@ public class MutualAidServiceTests
         var lotPlatform = new CrewPaymentPlatform
         {
             CrewId = fixture.Crew.Id,
-            Name = "Library of Things"
+            Name = "Library of Things",
+            IsLibraryOfThings = true
         };
         fixture.Context.CrewPaymentPlatforms.Add(lotPlatform);
         await fixture.Context.SaveChangesAsync();

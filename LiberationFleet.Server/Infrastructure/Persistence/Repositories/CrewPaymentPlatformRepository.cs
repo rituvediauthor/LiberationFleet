@@ -20,6 +20,7 @@ public class CrewPaymentPlatformRepository : ICrewPaymentPlatformRepository
         CancellationToken cancellationToken = default)
     {
         var platformIds = await _context.UserPaymentPlatforms
+            .AsNoTracking()
             .Where(upp => upp.UserId != userId)
             .Where(upp => _context.CrewMemberships.Any(m =>
                 m.UserId == upp.UserId && m.CrewId == crewId && !m.IsBanned))
@@ -28,14 +29,18 @@ public class CrewPaymentPlatformRepository : ICrewPaymentPlatformRepository
             .ToListAsync(cancellationToken);
 
         return await _context.CrewPaymentPlatforms
-            .Where(p => p.CrewId == crewId && platformIds.Contains(p.Id))
+            .AsNoTracking()
+            .Where(p => p.CrewId == crewId
+                && !p.IsLibraryOfThings
+                && platformIds.Contains(p.Id))
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<CrewPaymentPlatform>> GetByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.CrewPaymentPlatforms
-            .Where(p => p.CrewId == crewId)
+            .AsNoTracking()
+            .Where(p => p.CrewId == crewId && !p.IsLibraryOfThings)
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
 
@@ -54,6 +59,20 @@ public class CrewPaymentPlatformRepository : ICrewPaymentPlatformRepository
 
         return _context.CrewPaymentPlatforms.FirstOrDefaultAsync(
             p => p.CrewId == crewId && p.Name == name,
+            cancellationToken);
+    }
+
+    public Task<CrewPaymentPlatform?> GetLibraryOfThingsPlatformAsync(int crewId, CancellationToken cancellationToken = default)
+    {
+        var local = _context.CrewPaymentPlatforms.Local
+            .FirstOrDefault(p => p.CrewId == crewId && p.IsLibraryOfThings);
+        if (local is not null)
+        {
+            return Task.FromResult<CrewPaymentPlatform?>(local);
+        }
+
+        return _context.CrewPaymentPlatforms.FirstOrDefaultAsync(
+            p => p.CrewId == crewId && p.IsLibraryOfThings,
             cancellationToken);
     }
 

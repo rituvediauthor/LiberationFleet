@@ -24,6 +24,7 @@ public class ChatRepository : IChatRepository
 
     public async Task<IReadOnlyList<ChatRoom>> GetRoomsByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.ChatRooms
+            .AsNoTracking()
             .Include(r => r.CreatedByUser)
             .Where(r => r.CrewId == crewId && !r.IsDeleted)
             .OrderBy(r => r.SortOrder)
@@ -32,6 +33,7 @@ public class ChatRepository : IChatRepository
 
     public async Task<IReadOnlyList<ChatRoom>> GetRoomsByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default) =>
         await _context.ChatRooms
+            .AsNoTracking()
             .Include(r => r.CreatedByUser)
             .Where(r => r.FleetId == fleetId && !r.IsDeleted)
             .OrderBy(r => r.SortOrder)
@@ -117,6 +119,7 @@ public class ChatRepository : IChatRepository
         CancellationToken cancellationToken = default)
     {
         var messages = await _context.ChatRoomMessages
+            .AsNoTracking()
             .Include(m => m.AuthorUser)
             .Where(m => m.ChatRoomId == roomId && !m.IsDeleted)
             .OrderByDescending(m => m.Id)
@@ -134,6 +137,7 @@ public class ChatRepository : IChatRepository
         CancellationToken cancellationToken = default)
     {
         var messages = await _context.ChatRoomMessages
+            .AsNoTracking()
             .Include(m => m.AuthorUser)
             .Where(m => m.ChatRoomId == roomId && !m.IsDeleted && m.Id < beforeMessageId)
             .OrderByDescending(m => m.Id)

@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Domain.Entities;
 
 namespace LiberationFleet.Server.Application.Services;
@@ -14,9 +15,21 @@ public static class CrewPaymentPlatformService
         CancellationToken cancellationToken = default)
     {
         var trimmed = name.Trim();
+        if (string.Equals(trimmed, LibraryContributionGiftService.InKindPlatformName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "Library of Things is a system platform and cannot be added as a payment method.");
+        }
+
         var existing = await repository.GetByCrewAndNameAsync(crewId, trimmed, cancellationToken);
         if (existing is not null)
         {
+            if (existing.IsLibraryOfThings)
+            {
+                throw new InvalidOperationException(
+                    "Library of Things is a system platform and cannot be added as a payment method.");
+            }
+
             return existing;
         }
 
@@ -34,9 +47,12 @@ public static class CrewPaymentPlatformService
         User first,
         User second)
     {
-        var firstPlatforms = first.PaymentPlatforms.ToDictionary(p => p.CrewPaymentPlatformId);
+        var firstPlatforms = first.PaymentPlatforms
+            .Where(p => p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
+            .ToDictionary(p => p.CrewPaymentPlatformId);
         return second.PaymentPlatforms
-            .Where(p => firstPlatforms.ContainsKey(p.CrewPaymentPlatformId))
+            .Where(p => (p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
+                && firstPlatforms.ContainsKey(p.CrewPaymentPlatformId))
             .Select(p => new PaymentPlatformOptionDto
             {
                 Id = p.CrewPaymentPlatformId,
@@ -48,16 +64,19 @@ public static class CrewPaymentPlatformService
 
     public static CrewMemberPlatforms MapCrewMemberPlatforms(CrewMembership membership)
     {
-        var preferred = membership.User.PaymentPlatforms.FirstOrDefault(p => p.IsPreferred)
-            ?? membership.User.PaymentPlatforms.FirstOrDefault();
+        var accounts = membership.User.PaymentPlatforms
+            .Where(p => p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
+            .ToList();
+        var preferred = accounts.FirstOrDefault(p => p.IsPreferred)
+            ?? accounts.FirstOrDefault();
 
         return new CrewMemberPlatforms
         {
             UserId = membership.UserId,
             Username = membership.User.Username,
             IsIntermediary = membership.IsIntermediary,
-            PlatformIds = membership.User.PaymentPlatforms.Select(p => p.CrewPaymentPlatformId).ToList(),
-            PlatformAccounts = membership.User.PaymentPlatforms
+            PlatformIds = accounts.Select(p => p.CrewPaymentPlatformId).ToList(),
+            PlatformAccounts = accounts
                 .Select(p => new PlatformAccountDto
                 {
                     PlatformId = p.CrewPaymentPlatformId,

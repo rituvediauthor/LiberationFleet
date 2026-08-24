@@ -119,7 +119,7 @@ public class PlaceholderCrewmateService(
             else
             {
                 var existing = await crewPaymentPlatformRepository.GetByIdAsync(platform.PlatformId, cancellationToken);
-                if (existing is null || existing.CrewId != crewId)
+                if (existing is null || existing.CrewId != crewId || existing.IsLibraryOfThings)
                 {
                     return PlaceholderCrewmateResult.Failed("Invalid payment platform for your crew.");
                 }

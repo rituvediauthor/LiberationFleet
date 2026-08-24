@@ -22,22 +22,6 @@ public class ForumRepository : IForumRepository
             .Include(p => p.AuthorUser)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
 
-    public async Task<IReadOnlyList<ForumPost>> GetByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
-        await _context.ForumPosts
-            .Include(p => p.AuthorUser)
-            .Where(p => p.CrewId == crewId && !p.IsDeleted)
-            .OrderByDescending(p => p.LastActivityAt)
-            .ThenByDescending(p => p.Id)
-            .ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<ForumPost>> GetByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default) =>
-        await _context.ForumPosts
-            .Include(p => p.AuthorUser)
-            .Where(p => p.FleetId == fleetId && !p.IsDeleted)
-            .OrderByDescending(p => p.LastActivityAt)
-            .ThenByDescending(p => p.Id)
-            .ToListAsync(cancellationToken);
-
     public async Task<ForumPostPage> GetByCrewIdPageAsync(
         int crewId,
         int offset,
@@ -47,6 +31,7 @@ public class ForumRepository : IForumRepository
         CancellationToken cancellationToken = default)
     {
         var query = _context.ForumPosts
+            .AsNoTracking()
             .Include(p => p.AuthorUser)
             .Where(p => p.CrewId == crewId && !p.IsDeleted);
 
@@ -85,6 +70,7 @@ public class ForumRepository : IForumRepository
         CancellationToken cancellationToken = default)
     {
         var query = _context.ForumPosts
+            .AsNoTracking()
             .Include(p => p.AuthorUser)
             .Where(p => p.FleetId == fleetId && !p.IsDeleted);
 
@@ -118,6 +104,7 @@ public class ForumRepository : IForumRepository
         int postId,
         CancellationToken cancellationToken = default) =>
         await _context.ForumComments
+            .AsNoTracking()
             .Include(c => c.AuthorUser)
             .Where(c => c.ForumPostId == postId && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
@@ -128,6 +115,7 @@ public class ForumRepository : IForumRepository
         int parentCommentId,
         CancellationToken cancellationToken = default) =>
         await _context.ForumComments
+            .AsNoTracking()
             .Include(c => c.AuthorUser)
             .Where(c => c.ForumPostId == postId
                 && c.ParentCommentId == parentCommentId

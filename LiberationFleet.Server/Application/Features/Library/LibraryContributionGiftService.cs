@@ -289,9 +289,8 @@ public class LibraryContributionGiftService(
         int crewId,
         CancellationToken cancellationToken)
     {
-        var platform = await crewPaymentPlatformRepository.GetByCrewAndNameAsync(
+        var platform = await crewPaymentPlatformRepository.GetLibraryOfThingsPlatformAsync(
             crewId,
-            InKindPlatformName,
             cancellationToken);
 
         if (platform is not null)
@@ -299,10 +298,23 @@ public class LibraryContributionGiftService(
             return platform;
         }
 
+        // Legacy rows may exist by name without the flag until migration backfill runs.
+        platform = await crewPaymentPlatformRepository.GetByCrewAndNameAsync(
+            crewId,
+            InKindPlatformName,
+            cancellationToken);
+
+        if (platform is not null)
+        {
+            platform.IsLibraryOfThings = true;
+            return platform;
+        }
+
         return await crewPaymentPlatformRepository.AddAsync(new CrewPaymentPlatform
         {
             CrewId = crewId,
-            Name = InKindPlatformName
+            Name = InKindPlatformName,
+            IsLibraryOfThings = true
         }, cancellationToken);
     }
 }
