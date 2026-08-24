@@ -384,4 +384,4 @@ appsettings.*.local.json
 **/secrets.json
 
 # Fody - auto-generated XML schema
-FodyWeavers.xsd
+FodyWeavers.xsdobj/
