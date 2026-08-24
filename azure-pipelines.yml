@@ -73,14 +73,18 @@ stages:
             displayName: Restore
             inputs:
               command: restore
-              projects: "**/*.csproj"
+              projects: |
+                LiberationFleet.Server/LiberationFleet.Server.csproj
+                LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
               arguments: "/p:SkipSpaProjectReference=true"
 
           - task: DotNetCoreCLI@2
             displayName: Build
             inputs:
               command: build
-              projects: "**/*.csproj"
+              projects: |
+                LiberationFleet.Server/LiberationFleet.Server.csproj
+                LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
               arguments: "--configuration Release --no-restore /p:SkipSpaProjectReference=true"
 
           - task: DotNetCoreCLI@2
