@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.Extensions.Options;
 using Stripe;
@@ -88,12 +89,12 @@ public class HandleStripeDonationWebhookCommandHandler(
             return;
         }
 
-        if (donation.Status == "completed")
+        if (donation.Status == AppDonationStatus.Completed)
         {
             return;
         }
 
-        donation.Status = "completed";
+        donation.Status = AppDonationStatus.Completed;
         donation.CompletedAt = DateTime.UtcNow;
         donation.StripePaymentIntentId = session.PaymentIntentId;
         if (session.AmountTotal is long amount && amount > 0)

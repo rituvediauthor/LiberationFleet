@@ -8,8 +8,6 @@ public interface IForumRepository
 {
     Task<ForumPost?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ForumPost?> GetByIdWithAuthorAsync(int id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ForumPost>> GetByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ForumPost>> GetByFleetIdAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<ForumPostPage> GetByCrewIdPageAsync(
         int crewId,
         int offset,

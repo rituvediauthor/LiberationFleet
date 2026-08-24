@@ -168,7 +168,7 @@ public static class GiftMapper
             : GiftDisplayNames.GetRecipientName(gift.RecipientUser);
         var giverName = gift.GiverUser?.Username ?? "Someone";
         string baseMessage;
-        if (string.Equals(platform, "Library of Things", StringComparison.Ordinal)
+        if (gift.CrewPaymentPlatform?.IsLibraryOfThings == true
             && !string.IsNullOrWhiteSpace(gift.LibraryItemTitle))
         {
             baseMessage = $"{giverName} gave ${amount} in {gift.LibraryItemTitle.Trim()} to {recipientName} via the Library of Things";

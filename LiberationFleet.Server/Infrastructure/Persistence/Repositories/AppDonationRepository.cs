@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +23,7 @@ public class AppDonationRepository(ApplicationDbContext context) : IAppDonationR
         var cents = await context.AppDonations
             .AsNoTracking()
             .Where(d => d.UserId == userId
-                && d.Status == "completed"
+                && d.Status == AppDonationStatus.Completed
                 && d.CompletedAt != null
                 && d.CompletedAt >= fromUtcInclusive
                 && d.CompletedAt < toUtcExclusive)

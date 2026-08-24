@@ -44,10 +44,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("StripeCheckoutSessionId")
                         .HasMaxLength(256)
@@ -778,12 +776,22 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("CrewId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsLibraryOfThings")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CrewId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CrewPaymentPlatforms_CrewId_LibraryOfThings")
+                        .HasFilter("[IsLibraryOfThings] = 1");
 
                     b.HasIndex("CrewId", "Name")
                         .IsUnique();

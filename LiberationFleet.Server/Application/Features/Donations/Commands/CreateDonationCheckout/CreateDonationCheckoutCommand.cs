@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.Extensions.Options;
 using Stripe;
@@ -61,7 +62,7 @@ public class CreateDonationCheckoutCommandHandler(
             UserId = userId,
             AmountCents = request.AmountCents,
             Currency = "usd",
-            Status = "pending",
+            Status = AppDonationStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
         await donationRepository.AddAsync(donation, cancellationToken);
@@ -111,7 +112,7 @@ public class CreateDonationCheckoutCommandHandler(
         }
         catch (StripeException ex)
         {
-            donation.Status = "failed";
+            donation.Status = AppDonationStatus.Failed;
             await unitOfWork.SaveChangesAsync(cancellationToken);
             return Fail(ex.Message);
         }

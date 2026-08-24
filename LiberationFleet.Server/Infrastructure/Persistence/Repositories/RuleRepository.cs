@@ -24,6 +24,7 @@ public class RuleRepository : IRuleRepository
 
     public async Task<IReadOnlyList<CrewRule>> GetByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.CrewRules
+            .AsNoTracking()
             .Include(r => r.CreatedByUser)
             .Where(r => r.CrewId == crewId && !r.IsDeleted)
             .OrderBy(r => r.CreatedAt)
@@ -31,6 +32,7 @@ public class RuleRepository : IRuleRepository
 
     public async Task<IReadOnlyList<CrewRule>> GetPublicByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
         await _context.CrewRules
+            .AsNoTracking()
             .Where(r => r.CrewId == crewId && !r.IsDeleted && r.IsPublic)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);

@@ -224,7 +224,6 @@ public class MutualAidRepository : IMutualAidRepository
         DateTime? createdBeforeUtc = null,
         CancellationToken cancellationToken = default)
     {
-        const string libraryOfThingsPlatformName = "Library of Things";
         var query = _context.Gifts
             .AsNoTracking()
             .Where(g => g.CrewId == crewId
@@ -243,7 +242,7 @@ public class MutualAidRepository : IMutualAidRepository
         {
             query = query.Where(g =>
                 g.CrewPaymentPlatform == null
-                || g.CrewPaymentPlatform.Name != libraryOfThingsPlatformName);
+                || !g.CrewPaymentPlatform.IsLibraryOfThings);
         }
 
         var gifts = await query
@@ -263,7 +262,6 @@ public class MutualAidRepository : IMutualAidRepository
         DateTime? createdBeforeUtc = null,
         CancellationToken cancellationToken = default)
     {
-        const string libraryOfThingsPlatformName = "Library of Things";
         var query = _context.Gifts
             .AsNoTracking()
             .Where(g => g.CrewId == crewId
@@ -281,7 +279,7 @@ public class MutualAidRepository : IMutualAidRepository
         {
             query = query.Where(g =>
                 g.CrewPaymentPlatform == null
-                || g.CrewPaymentPlatform.Name != libraryOfThingsPlatformName);
+                || !g.CrewPaymentPlatform.IsLibraryOfThings);
         }
 
         var gifts = await query
@@ -519,17 +517,20 @@ public class MutualAidRepository : IMutualAidRepository
             .Where(t => t.CrewId == crewId && t.UserId == placeholderUserId)
             .ToListAsync(cancellationToken);
 
+        if (thresholds.Count == 0)
+        {
+            return;
+        }
+
+        var claimantThresholds = await _context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == crewId && t.UserId == claimantUserId)
+            .ToListAsync(cancellationToken);
+        var claimantByMonth = claimantThresholds
+            .ToDictionary(t => (t.Year, t.Month));
+
         foreach (var threshold in thresholds)
         {
-            var claimantThreshold = await _context.MonthlySurvivalThresholds
-                .FirstOrDefaultAsync(
-                    t => t.CrewId == crewId
-                        && t.UserId == claimantUserId
-                        && t.Year == threshold.Year
-                        && t.Month == threshold.Month,
-                    cancellationToken);
-
-            if (claimantThreshold is not null)
+            if (claimantByMonth.TryGetValue((threshold.Year, threshold.Month), out var claimantThreshold))
             {
                 claimantThreshold.ReceivedAmount += threshold.ReceivedAmount;
                 claimantThreshold.Satisfied = claimantThreshold.ReceivedAmount >= claimantThreshold.ThresholdAmount;
@@ -538,6 +539,7 @@ public class MutualAidRepository : IMutualAidRepository
             else
             {
                 threshold.UserId = claimantUserId;
+                claimantByMonth[(threshold.Year, threshold.Month)] = threshold;
             }
         }
     }

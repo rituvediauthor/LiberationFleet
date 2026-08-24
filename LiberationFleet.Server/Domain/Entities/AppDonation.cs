@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Domain.Enums;
+
 namespace LiberationFleet.Server.Domain.Entities;
 
 /// <summary>
@@ -12,7 +14,7 @@ public class AppDonation
     /// <summary>Amount in USD cents.</summary>
     public long AmountCents { get; set; }
     public string Currency { get; set; } = "usd";
-    public string Status { get; set; } = "pending";
+    public AppDonationStatus Status { get; set; } = AppDonationStatus.Pending;
     public string? StripeCheckoutSessionId { get; set; }
     public string? StripePaymentIntentId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

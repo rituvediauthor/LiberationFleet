@@ -320,7 +320,7 @@ public class GiftRepository : IGiftRepository
         var rangeStart = new DateTime(months[0].Year, months[0].Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var rangeEnd = rangeStart.AddMonths(3);
         var contributionGifts = await _context.Gifts
-            .Include(g => g.CrewPaymentPlatform)
+            .AsNoTracking()
             .Where(g => g.CrewId == crewId
                 && g.GiverUserId == userId
                 && g.CountsTowardContribution
@@ -328,7 +328,7 @@ public class GiftRepository : IGiftRepository
                 && g.CreatedAt >= rangeStart
                 && g.CreatedAt < rangeEnd
                 && (g.CrewPaymentPlatform == null
-                    || g.CrewPaymentPlatform.Name != "Library of Things"))
+                    || !g.CrewPaymentPlatform.IsLibraryOfThings))
             .Select(g => new { g.CreatedAt, g.Amount })
             .ToListAsync(cancellationToken);
         var byMonth = contributionGifts
