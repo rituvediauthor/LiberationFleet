@@ -34,8 +34,11 @@ pr:
     include:
       - master
 
+# Keep Build free of variable-group authorization. Shared/staging/production
+# groups are declared on the Terraform/Deploy stages that actually need them.
+# A root-level group auth failure aborts the pipeline before any job starts
+# (GitHub then shows Build-and-test failing in ~0s with no step logs).
 variables:
-  - group: liberationfleet-shared
   - name: imageRepository
     value: liberationfleet
   - name: dockerfilePath

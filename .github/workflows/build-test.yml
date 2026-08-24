@@ -1,0 +1,52 @@
+# Visible CI logs on GitHub while Azure Pipelines is the deploy path.
+# Mirrors the Azure "Restore, build, test" job (without Docker image build).
+name: Build and test
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+concurrency:
+  group: build-test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Restore, build, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          dotnet-quality: "ga"
+
+      - name: Restore
+        run: dotnet restore "**/*.csproj" /p:SkipSpaProjectReference=true
+
+      - name: Build
+        run: >
+          dotnet build "**/*.csproj"
+          --configuration Release
+          --no-restore
+          /p:SkipSpaProjectReference=true
+
+      - name: Test
+        run: >
+          dotnet test LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: ignore
