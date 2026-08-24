@@ -1,6 +1,6 @@
 # LiberationFleet — Azure DevOps CI/CD
 #
-# Stages: Build → (master only) Terraform → Deploy
+# Stages: Build → Test → Publish image → Terraform → Deploy
 #
 # Setup (once):
 # 1. Create service connections:
@@ -18,9 +18,11 @@
 # 3. Environments: `staging`, `production` (add approval checks on production)
 # 4. Pipeline variables (secret): none required if using service connections + Key Vault
 #
-# PR builds compile ONLY the Build stage (no variable groups / Azure service
-# connections). Deploy stages are inserted at compile time for non-PR runs so
-# library/auth failures cannot abort PR validation in ~0s before any job starts.
+# PR validation (compile + test) runs on GitHub Actions (.github/workflows/build-test.yml).
+# Azure PR builds use an agentless gate so they do not consume Microsoft-hosted parallel
+# jobs (recent PR runs were failing in ~0s with no step logs when the hosted pool
+# could not start jobs). Master pushes still run the full hosted Build + Deploy path.
+#
 # Triggers on master for staging; production is manual or via environment approval on master.
 
 trigger:
@@ -37,91 +39,98 @@ pr:
     include:
       - master
 
-# No root-level variable groups — keeps PR compile free of Library authorization.
-variables:
-  - name: imageRepository
-    value: liberationfleet
-  - name: dockerfilePath
-    value: LiberationFleet.Server/Dockerfile
-  - name: terraformWorkingDirectory
-    value: $(Build.SourcesDirectory)/infrastructure/terraform
-  - name: dotnetVersion
-    value: "10.0.x"
-  - name: vmImage
-    value: ubuntu-latest
-
 stages:
-  - stage: Build
-    displayName: Build and test
-    jobs:
-      - job: BuildTest
-        displayName: Restore, build, test
-        pool:
-          vmImage: $(vmImage)
-        steps:
-          - checkout: self
-            fetchDepth: 0
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    - stage: PRGate
+      displayName: PR gate
+      jobs:
+        - job: Acknowledge
+          displayName: PR validation is on GitHub Actions
+          # Agentless: does not require Microsoft-hosted parallel jobs.
+          pool: server
+          steps:
+            - task: Delay@1
+              displayName: Acknowledge (see workflow Build and test)
+              inputs:
+                delayForMinutes: "0"
 
-          - task: UseDotNet@2
-            displayName: Use .NET SDK
-            inputs:
-              packageType: sdk
-              version: $(dotnetVersion)
-              includePreviewVersions: true
-
-          - task: DotNetCoreCLI@2
-            displayName: Restore
-            inputs:
-              command: restore
-              projects: |
-                LiberationFleet.Server/LiberationFleet.Server.csproj
-                LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
-              arguments: "/p:SkipSpaProjectReference=true"
-
-          - task: DotNetCoreCLI@2
-            displayName: Build
-            inputs:
-              command: build
-              projects: |
-                LiberationFleet.Server/LiberationFleet.Server.csproj
-                LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
-              arguments: "--configuration Release --no-restore /p:SkipSpaProjectReference=true"
-
-          - task: DotNetCoreCLI@2
-            displayName: Test
-            inputs:
-              command: test
-              projects: "LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj"
-              arguments: "--configuration Release --no-build --collect:\"XPlat Code Coverage\""
-              publishTestResults: true
-
-          # Image tag + Docker are only needed for master deploy; skip on PRs to
-          # keep validation lean and avoid free-tier agent starvation.
-          - script: |
-              set -euo pipefail
-              IMAGE_TAG="$(Build.SourceVersion)"
-              echo "##vso[task.setvariable variable=ImageTag;isOutput=true]${IMAGE_TAG:0:12}"
-              echo "##vso[task.setvariable variable=ImageTag]${IMAGE_TAG:0:12}"
-            name: setTag
-            displayName: Compute image tag
-            condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-          - task: Docker@2
-            displayName: Build image (no push)
-            condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-            inputs:
-              command: build
-              repository: $(imageRepository)
-              dockerfile: $(dockerfilePath)
-              buildContext: $(Build.SourcesDirectory)
-              tags: |
-                $(ImageTag)
-                latest
-              arguments: --pull
-
-  # Compile-time exclusion for PRs: variable groups and AzureCLI service connections
-  # must not appear in the PR pipeline graph or authorization aborts before jobs start.
   - ${{ if ne(variables['Build.Reason'], 'PullRequest') }}:
+    - stage: Build
+      displayName: Build and test
+      variables:
+        - group: liberationfleet-shared
+        - name: imageRepository
+          value: liberationfleet
+        - name: dockerfilePath
+          value: LiberationFleet.Server/Dockerfile
+        - name: terraformWorkingDirectory
+          value: $(Build.SourcesDirectory)/infrastructure/terraform
+        - name: dotnetVersion
+          value: "10.0.x"
+        - name: vmImage
+          value: ubuntu-latest
+      jobs:
+        - job: BuildTest
+          displayName: Restore, build, test
+          pool:
+            vmImage: $(vmImage)
+          steps:
+            - checkout: self
+              fetchDepth: 0
+
+            - task: UseDotNet@2
+              displayName: Use .NET SDK
+              inputs:
+                packageType: sdk
+                version: $(dotnetVersion)
+                includePreviewVersions: true
+
+            - task: DotNetCoreCLI@2
+              displayName: Restore
+              inputs:
+                command: restore
+                projects: |
+                  LiberationFleet.Server/LiberationFleet.Server.csproj
+                  LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
+                arguments: "/p:SkipSpaProjectReference=true"
+
+            - task: DotNetCoreCLI@2
+              displayName: Build
+              inputs:
+                command: build
+                projects: |
+                  LiberationFleet.Server/LiberationFleet.Server.csproj
+                  LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj
+                arguments: "--configuration Release --no-restore /p:SkipSpaProjectReference=true"
+
+            - task: DotNetCoreCLI@2
+              displayName: Test
+              inputs:
+                command: test
+                projects: "LiberationFleet.Server.Tests/LiberationFleet.Server.Tests.csproj"
+                arguments: "--configuration Release --no-build --collect:\"XPlat Code Coverage\""
+                publishTestResults: true
+
+            - script: |
+                set -euo pipefail
+                IMAGE_TAG="$(Build.SourceVersion)"
+                echo "##vso[task.setvariable variable=ImageTag;isOutput=true]${IMAGE_TAG:0:12}"
+                echo "##vso[task.setvariable variable=ImageTag]${IMAGE_TAG:0:12}"
+              name: setTag
+              displayName: Compute image tag
+
+            - task: Docker@2
+              displayName: Build image (no push)
+              inputs:
+                command: build
+                repository: $(imageRepository)
+                dockerfile: $(dockerfilePath)
+                buildContext: $(Build.SourcesDirectory)
+                tags: |
+                  $(ImageTag)
+                  latest
+                arguments: --pull
+
     - stage: DeployStaging
       displayName: Deploy staging
       dependsOn: Build
@@ -129,6 +138,14 @@ stages:
       variables:
         - group: liberationfleet-shared
         - group: liberationfleet-staging
+        - name: imageRepository
+          value: liberationfleet
+        - name: dockerfilePath
+          value: LiberationFleet.Server/Dockerfile
+        - name: terraformWorkingDirectory
+          value: $(Build.SourcesDirectory)/infrastructure/terraform
+        - name: vmImage
+          value: ubuntu-latest
         - name: ImageTag
           value: $[ stageDependencies.Build.BuildTest.outputs['setTag.ImageTag'] ]
       jobs:
@@ -176,6 +193,14 @@ stages:
       variables:
         - group: liberationfleet-shared
         - group: liberationfleet-production
+        - name: imageRepository
+          value: liberationfleet
+        - name: dockerfilePath
+          value: LiberationFleet.Server/Dockerfile
+        - name: terraformWorkingDirectory
+          value: $(Build.SourcesDirectory)/infrastructure/terraform
+        - name: vmImage
+          value: ubuntu-latest
         - name: ImageTag
           value: $[ stageDependencies.Build.BuildTest.outputs['setTag.ImageTag'] ]
       jobs:
