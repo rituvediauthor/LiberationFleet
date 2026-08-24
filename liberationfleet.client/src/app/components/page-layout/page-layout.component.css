@@ -26,6 +26,7 @@
   padding-bottom: 24px;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
+  --lf-hub-loading-padding: 44px;
 }
 
 .page-content.scope-fleet {

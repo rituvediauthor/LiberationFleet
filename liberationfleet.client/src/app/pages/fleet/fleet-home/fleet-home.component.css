@@ -9,6 +9,18 @@
   min-height: 100%;
 }
 
+/* While the hub logo is showing, fill the content shell and center it. */
+.fleet-home:has(> app-hub-loading) {
+  align-self: stretch;
+  max-width: none;
+  justify-content: center;
+}
+
+.fleet-home:has(> app-hub-loading) > app-hub-loading {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
 .loading-text {
   color: var(--lf-color-text-secondary);
   font-size: 14px;
