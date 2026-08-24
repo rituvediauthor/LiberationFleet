@@ -384,4 +384,7 @@ appsettings.*.local.json
 **/secrets.json
 
 # Fody - auto-generated XML schema
-FodyWeavers.xsdobj/
+FodyWeavers.xsd
+
+# Angular/MSBuild intermediate output
+obj/
