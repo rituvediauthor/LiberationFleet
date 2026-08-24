@@ -9,6 +9,18 @@
   min-height: 100%;
 }
 
+/* While the hub logo is showing, fill the content shell and center it. */
+.crew-home:has(> app-hub-loading) {
+  align-self: stretch;
+  max-width: none;
+  justify-content: center;
+}
+
+.crew-home:has(> app-hub-loading) > app-hub-loading {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
 .crew-dashboard {
   width: 100%;
   display: flex;

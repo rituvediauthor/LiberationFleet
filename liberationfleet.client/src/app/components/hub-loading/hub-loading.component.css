@@ -1,3 +1,22 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  /*
+   * Fill the visible content shell above the bottom tab bar (and safe area).
+   * Padding compensation matches nav-content / page-content vertical padding.
+   */
+  min-height: calc(
+    100dvh
+    - var(--bottom-nav-height, var(--action-bar-height, 0px))
+    - env(safe-area-inset-bottom, 0px)
+    - var(--lf-hub-loading-padding, 40px)
+  );
+}
+
 .hub-loading {
   display: flex;
   flex-direction: column;

@@ -25,6 +25,9 @@
   padding: 20px;
   padding-bottom: 24px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  --lf-hub-loading-padding: 44px;
 }
 
 .nav-content.scope-fleet {
@@ -35,11 +38,18 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  flex: 1 1 auto;
   min-height: 100%;
+  width: 100%;
 }
 
 .nav-content-inner app-fallible-footer {
   margin-top: auto;
+}
+
+/* Keep the pulsing hub logo centered in the content viewport (no footer pull). */
+.nav-content-inner:has(app-hub-loading) > app-fallible-footer {
+  display: none;
 }
 
 .bottom-nav {
