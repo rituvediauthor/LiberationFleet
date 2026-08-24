@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 using LiberationFleet.Server.Tests.TestHelpers;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Crews.Queries.GetMyCrewMembership;
@@ -67,19 +68,88 @@ public class GetMyCrewMembershipQueryHandlerTests
         result.CanAttachFilesToFleetContent.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Handle_WhenGiftStatsFail_StillReturnsHasCrewTrue()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew(name: "Fleet Bravo", joinCode: "BRAVO123");
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
+
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(membership);
+
+        var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, crew.Id, It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Invalid column name 'IsLibraryOfThings'."));
+
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            membershipRepository: membershipRepository,
+            giftRepository: giftRepository);
+
+        var result = await handler.Handle(new GetMyCrewMembershipQuery(), CancellationToken.None);
+
+        result.HasCrew.Should().BeTrue();
+        result.CrewId.Should().Be(crew.Id);
+        result.CrewName.Should().Be("Fleet Bravo");
+    }
+
+    [Fact]
+    public async Task Handle_WhenCrewNavigationMissing_LoadsCrewById()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew(name: "Fleet Bravo", joinCode: "BRAVO123");
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
+        membership.Crew = null!;
+
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(membership);
+
+        var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
+        crewRepository
+            .Setup(r => r.GetByIdAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(crew);
+
+        var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, crew.Id, It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CrewmateGiftStatsDto());
+
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            membershipRepository: membershipRepository,
+            crewRepository: crewRepository,
+            giftRepository: giftRepository);
+
+        var result = await handler.Handle(new GetMyCrewMembershipQuery(), CancellationToken.None);
+
+        result.HasCrew.Should().BeTrue();
+        result.CrewId.Should().Be(crew.Id);
+        result.CrewName.Should().Be("Fleet Bravo");
+    }
+
     private static GetMyCrewMembershipQueryHandler CreateHandler(
         int? currentUserId = 1,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
+        Mock<ICrewRepository>? crewRepository = null,
         Mock<IGiftRepository>? giftRepository = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        crewRepository ??= HandlerTestFixture.CreateCrewRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
 
         return new GetMyCrewMembershipQueryHandler(
             membershipRepository.Object,
+            crewRepository.Object,
             giftRepository.Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
             HandlerTestFixture.CreateContentTenureService(),
-            HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
+            HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
+            NullLogger<GetMyCrewMembershipQueryHandler>.Instance);
     }
 }

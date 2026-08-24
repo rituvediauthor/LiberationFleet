@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, Subject, map, of, shareReplay, tap } from 'rxjs';
+import { Observable, Subject, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import {
   CreateFleetRequest,
   CrewLookupResponse,
@@ -65,6 +66,7 @@ export class FleetService {
   /**
    * Session-cached fleet status. Concurrent callers share one in-flight request.
    * Pass forceRefresh after join/leave/settings changes.
+   * Errors are not sticky-cached — a later call can retry.
    */
   getStatus(forceRefresh = false): Observable<FleetStatus> {
     if (forceRefresh) {
@@ -72,6 +74,10 @@ export class FleetService {
     }
     if (!this.statusRequest$) {
       this.statusRequest$ = this.http.get<FleetStatus>(`${this.apiUrl}/status`).pipe(
+        catchError(err => {
+          this.statusRequest$ = null;
+          return throwError(() => err);
+        }),
         shareReplay({ bufferSize: 1, refCount: false })
       );
     }

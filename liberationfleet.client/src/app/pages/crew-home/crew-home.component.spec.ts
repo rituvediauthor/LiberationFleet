@@ -1,12 +1,61 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { provideRouter } from '@angular/router';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { of } from 'rxjs';
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, RouterLink, provideRouter } from '@angular/router';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { CrewHomeComponent } from './crew-home.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
+import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
+import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
+import { LibraryAccessService } from '../../services/library-access.service';
+import { NotificationService } from '../../services/notification.service';
+import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
+import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { createCrewServiceMock, createGiftServiceMock } from '../../testing/test-helpers';
+import { emptyAreaCounts } from '../../utils/notification-area.util';
+
+@Component({
+  selector: 'app-nav-layout',
+  standalone: true,
+  template: '<ng-content></ng-content>'
+})
+class StubNavLayoutComponent {
+  @Input() activeTab = 'crew';
+}
+
+@Component({
+  selector: 'app-donation-campaign-widget',
+  standalone: true,
+  template: ''
+})
+class StubDonationCampaignWidgetComponent {
+  @Input() variant: string | null = null;
+  @Input() enabled = false;
+}
+
+@Component({
+  selector: 'app-brand-logo',
+  standalone: true,
+  template: ''
+})
+class StubBrandLogoComponent {
+  @Input() variant: string | null = null;
+  @Input() size: string | null = null;
+  @Input() alt = '';
+  @Input() customSrc: string | null = null;
+}
+
+@Component({
+  selector: 'app-hub-loading',
+  standalone: true,
+  template: ''
+})
+class StubHubLoadingComponent {
+  @Input() variant: string | null = null;
+  @Input() label: string | null = null;
+}
 
 describe('CrewHomeComponent', () => {
   let fixture: ComponentFixture<CrewHomeComponent>;
@@ -34,14 +83,69 @@ describe('CrewHomeComponent', () => {
       platformHandle: '@ritu'
     }));
 
+    const unlocked$ = new BehaviorSubject(false);
+    const areaCounts$ = new BehaviorSubject(emptyAreaCounts());
+
     await TestBed.configureTestingModule({
-      imports: [CrewHomeComponent, HttpClientTestingModule],
+      imports: [CrewHomeComponent],
       providers: [
         provideRouter([]),
         { provide: CrewService, useValue: crewService },
-        { provide: GiftService, useValue: giftService }
+        { provide: GiftService, useValue: giftService },
+        {
+          provide: CrewCryptoSyncService,
+          useValue: jasmine.createSpyObj<CrewCryptoSyncService>('CrewCryptoSyncService', [
+            'syncActiveCrewKeyDistributions'
+          ])
+        },
+        {
+          provide: CryptoSessionService,
+          useValue: {
+            unlocked$,
+            isUnlocked: () => false
+          }
+        },
+        {
+          provide: EncryptedImageCacheService,
+          useValue: jasmine.createSpyObj<EncryptedImageCacheService>('EncryptedImageCacheService', [
+            'getDataUrl'
+          ])
+        },
+        {
+          provide: LibraryAccessService,
+          useValue: jasmine.createSpyObj<LibraryAccessService>('LibraryAccessService', [
+            'navigateToLibrary'
+          ])
+        },
+        {
+          provide: NotificationService,
+          useValue: {
+            areaCounts$,
+            refreshBadges: jasmine.createSpy('refreshBadges')
+          }
+        },
+        {
+          provide: ForumListPrefetchService,
+          useValue: jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
+            'prefetchCrewSpace'
+          ])
+        }
       ]
-    }).compileComponents();
+    })
+      .overrideComponent(CrewHomeComponent, {
+        set: {
+          imports: [
+            CommonModule,
+            RouterLink,
+            StubNavLayoutComponent,
+            ContentBadgeComponent,
+            StubDonationCampaignWidgetComponent,
+            StubBrandLogoComponent,
+            StubHubLoadingComponent
+          ]
+        }
+      })
+      .compileComponents();
 
     router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
@@ -65,6 +169,30 @@ describe('CrewHomeComponent', () => {
     expect(buttons[1].textContent).toContain('Join Crew');
     expect(buttons[2].textContent).toContain('My Invitations');
     expect(buttons[3].textContent).toContain('My Join Requests');
+  });
+
+  it('should show retry instead of create/join when membership fails to load', () => {
+    crewService.getMembership.and.returnValue(throwError(() => new Error('membership failed')));
+
+    fixture = TestBed.createComponent(CrewHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.loadError).toBeTrue();
+    expect(component.membership).toBeNull();
+    const buttons = fixture.nativeElement.querySelectorAll('.action-btn');
+    expect(buttons.length).toBe(1);
+    expect(buttons[0].textContent).toContain('Try again');
+    expect(fixture.nativeElement.textContent).toContain("Couldn't load your crew");
+  });
+
+  it('should retry membership by clearing the session cache', () => {
+    component.loadError = true;
+    component.loading = false;
+    component.retryMembership();
+    expect(component.loading).toBeTrue();
+    expect(component.loadError).toBeFalse();
+    expect(crewService.clearMembershipCache).toHaveBeenCalled();
   });
 
   it('should show crew dashboard when user has a crew', () => {
