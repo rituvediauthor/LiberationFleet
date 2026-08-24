@@ -81,9 +81,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
             }
         }
 
+        // Reset failure counters with LastLoginAt so RecordLoginAttempt can persist
+        // everything (including device upsert) in a single SaveChanges.
         user!.LastLoginAt = DateTime.UtcNow;
+        user.FailedLoginAttempts = 0;
+        user.LastFailedLoginAt = null;
         await _userRepository.UpdateAsync(user, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _mediator.Send(new RecordLoginAttemptCommand(
             user.Id,

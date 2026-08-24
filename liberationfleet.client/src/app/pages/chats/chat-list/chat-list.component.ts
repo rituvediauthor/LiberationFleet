@@ -2,7 +2,7 @@ import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ContentBadgeComponent } from '../../../components/content-badge/content-badge.component';
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
@@ -19,6 +19,7 @@ import { AdultContentService } from '../../../services/adult-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { VoicePresenceService } from '../../../services/voice-presence.service';
 import { VoiceParticipant, VoiceRoomPresence } from '../../../models/voice.model';
+import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError } from '../../../utils/http-error.util';
 
 @Component({
   selector: 'app-chat-list',
@@ -84,9 +85,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
     );
 
     this.crewService.getMembership().subscribe({
-      next: async membership => {
+      next: membership => {
         this.crewId = membership.crewId ?? 0;
-        await this.encryptionContent.whenReady();
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);
           void this.voicePresence.ensureCrewSubscribed(this.crewId);
@@ -94,11 +94,14 @@ export class ChatListComponent implements OnInit, OnDestroy {
         this.contentPreferenceService.ensureLoaded().subscribe();
         this.loadMutes();
         this.loadHidden();
-        this.loadRooms();
+        void this.loadRooms();
       },
-      error: () => {
+      error: (error: unknown) => {
         this.loading = false;
-        this.errorMessage = 'Failed to load crew membership';
+        this.errorMessage = describeLoadError(error, 'Failed to load crew membership');
+        if (isConnectivityError(error)) {
+          this.toastService.error(this.errorMessage);
+        }
       }
     });
   }
@@ -240,7 +243,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
           this.toastService.success('Chat room unmuted');
         }
       },
-      error: () => this.toastService.error('Failed to update mute setting')
+      error: (error: unknown) => this.toastService.error(describeLoadError(error, 'Failed to update mute setting'))
     });
   }
 
@@ -259,7 +262,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
         }
         this.toastService.success('Chat room hidden');
       },
-      error: () => this.toastService.error('Failed to hide chat room')
+      error: (error: unknown) => this.toastService.error(describeLoadError(error, 'Failed to hide chat room'))
     });
   }
 
@@ -277,12 +280,16 @@ export class ChatListComponent implements OnInit, OnDestroy {
         );
         this.toastService.success('Chat room unhidden');
       },
-      error: () => this.toastService.error('Failed to unhide chat room')
+      error: (error: unknown) => this.toastService.error(describeLoadError(error, 'Failed to unhide chat room'))
     });
   }
 
   toggleShowHidden() {
     this.showHiddenExpanded = !this.showHiddenExpanded;
+  }
+
+  retryLoadRooms() {
+    void this.loadRooms();
   }
 
   private loadMutes() {
@@ -305,32 +312,44 @@ export class ChatListComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadRooms() {
+  private async loadRooms(attempt = 0): Promise<void> {
     this.loading = true;
     this.errorMessage = '';
-    this.chatService.getRooms().subscribe({
-      next: async response => {
-        try {
-          if (!response.success) {
-            this.errorMessage = response.message || 'Failed to load chat rooms';
-            return;
-          }
-          const items = response.items ?? [];
-          this.rooms = this.crewId > 0
-            ? await this.chatCrypto.decryptRooms(items, { crewId: this.crewId })
-            : items;
-        } catch {
-          this.rooms = response.items ?? [];
-        } finally {
-          this.loading = false;
-        }
-      },
-      error: () => {
-        this.loading = false;
-        this.errorMessage = 'Failed to load chat rooms';
-        this.toastService.error(this.errorMessage);
+    try {
+      // Fetch rooms while encryption bootstrap finishes — decrypt once both are ready.
+      const [, response] = await Promise.all([
+        this.encryptionContent.whenReady(),
+        firstValueFrom(this.chatService.getRooms())
+      ]);
+
+      if (!response.success) {
+        this.errorMessage = response.message || 'Failed to load chat rooms';
+        this.rooms = [];
+        return;
       }
-    });
+
+      const items = response.items ?? [];
+      try {
+        this.rooms = this.crewId > 0
+          ? await this.chatCrypto.decryptRooms(items, { crewId: this.crewId })
+          : items;
+      } catch {
+        this.rooms = items;
+      }
+    } catch (error: unknown) {
+      if (attempt < 1 && isConnectivityError(error)) {
+        // One quick retry for flaky mobile radios / brief blips after sign-in.
+        await new Promise(resolve => setTimeout(resolve, 400));
+        return this.loadRooms(attempt + 1);
+      }
+      this.rooms = [];
+      this.errorMessage = describeLoadError(error, 'Failed to load chat rooms');
+      this.toastService.error(
+        isConnectivityError(error) ? CONNECTIVITY_ERROR_MESSAGE : this.errorMessage
+      );
+    } finally {
+      this.loading = false;
+    }
   }
 
   private async onRoomCreated(room: ChatRoomListItem) {

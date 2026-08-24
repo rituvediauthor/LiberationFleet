@@ -1,6 +1,7 @@
 import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { NavigationService } from '../../../services/navigation.service';
 import { FleetService } from '../../../services/fleet.service';
@@ -8,6 +9,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomListItem } from '../../../models/chat.model';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
+import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError } from '../../../utils/http-error.util';
 
 @Component({
   selector: 'app-fleet-chat-list',
@@ -79,41 +81,43 @@ export class FleetChatListComponent implements OnInit {
     void this.router.navigate(['/app/fleet/chats', room.id]);
   }
 
-  private async loadRooms() {
+  retryLoadRooms() {
+    void this.loadRooms();
+  }
+
+  private async loadRooms(attempt = 0): Promise<void> {
     this.loading = true;
     this.errorMessage = '';
     try {
-      await this.encryptionContent.whenReady();
-      const status = await new Promise<{ fleetId?: number }>((resolve, reject) => {
-        this.fleetService.getStatus().subscribe({
-          next: value => resolve(value),
-          error: err => reject(err)
-        });
-      });
+      const [, status] = await Promise.all([
+        this.encryptionContent.whenReady(),
+        firstValueFrom(this.fleetService.getStatus())
+      ]);
       this.fleetId = status.fleetId ?? 0;
 
-      this.fleetService.getChats().subscribe({
-        next: async result => {
-          this.loading = false;
-          if (!result.success) {
-            this.errorMessage = result.message || 'Failed to load fleet chats';
-            this.rooms = [];
-            return;
-          }
-          const items = result.items ?? [];
-          this.rooms = this.fleetId > 0
-            ? await this.chatCrypto.decryptRooms(items, { fleetId: this.fleetId })
-            : items;
-        },
-        error: error => {
-          this.loading = false;
-          this.errorMessage = error.error?.message || 'Failed to load fleet chats';
-          this.toastService.error(this.errorMessage);
-        }
-      });
-    } catch {
+      const result = await firstValueFrom(this.fleetService.getChats());
+      if (!result.success) {
+        this.errorMessage = result.message || 'Failed to load fleet chats';
+        this.rooms = [];
+        return;
+      }
+
+      const items = result.items ?? [];
+      this.rooms = this.fleetId > 0
+        ? await this.chatCrypto.decryptRooms(items, { fleetId: this.fleetId })
+        : items;
+    } catch (error: unknown) {
+      if (attempt < 1 && isConnectivityError(error)) {
+        await new Promise(resolve => setTimeout(resolve, 400));
+        return this.loadRooms(attempt + 1);
+      }
+      this.rooms = [];
+      this.errorMessage = describeLoadError(error, 'Failed to load fleet chats');
+      this.toastService.error(
+        isConnectivityError(error) ? CONNECTIVITY_ERROR_MESSAGE : this.errorMessage
+      );
+    } finally {
       this.loading = false;
-      this.errorMessage = 'Failed to load fleet chats';
     }
   }
 }

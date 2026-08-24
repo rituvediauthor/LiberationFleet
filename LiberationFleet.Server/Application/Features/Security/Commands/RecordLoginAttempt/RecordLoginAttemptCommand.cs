@@ -25,8 +25,9 @@ public class RecordLoginAttemptCommandHandler(
 
     public async Task Handle(RecordLoginAttemptCommand request, CancellationToken cancellationToken)
     {
+        // Prefer the lightweight lookup so successful logins do not pull payment platforms.
         var user = request.UserId.HasValue
-            ? await userRepository.GetByIdWithProfileAsync(request.UserId.Value, cancellationToken)
+            ? await userRepository.GetByIdAsync(request.UserId.Value, cancellationToken)
             : await userRepository.GetByEmailOrUsernameAsync(request.UsernameOrEmail, cancellationToken);
 
         if (user is null)

@@ -50,6 +50,7 @@
 
 .page-content-inner-fill {
   flex: 1 1 auto;
+  width: 100%;
 }
 
 .action-bar {

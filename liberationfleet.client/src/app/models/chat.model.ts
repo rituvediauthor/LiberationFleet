@@ -33,6 +33,10 @@ export interface ChatMessage {
   resolvedAttachments?: ResolvedAttachment[];
   isAnonymous?: boolean;
   canKick?: boolean;
+  /** Client-only: correlates optimistic bubbles with outbox / hub echoes. */
+  clientLocalId?: string;
+  /** Client-only send state for optimistic posts. */
+  sendStatus?: 'sending' | 'failed';
 }
 
 export interface ChatRoomListResponse {

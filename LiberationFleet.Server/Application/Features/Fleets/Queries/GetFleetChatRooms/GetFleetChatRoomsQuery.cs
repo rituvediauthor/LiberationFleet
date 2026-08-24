@@ -42,7 +42,7 @@ public class GetFleetChatRoomsQueryHandler(
             fleet.Id,
             cancellationToken);
         rooms = ApplyPersonalOrder(rooms, personalOrder?.OrderedRoomIdsJson);
-        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
         var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
         rooms = rooms
             .Where(room => !AdultContentAccess.IsBlocked(preference, room.IsAdultContent))

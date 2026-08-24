@@ -29,7 +29,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { ChatMessage } from '../../../models/chat.model';
-import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
+import { PendingAttachment, ProposalAttachment, ResolvedAttachment } from '../../../models/proposal.model';
 import { waitForPendingAttachmentsReady } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { AdultContentService } from '../../../services/adult-content.service';
@@ -54,6 +54,7 @@ import { ComposerFooterPadDirective } from '../../../directives/composer-footer-
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
+import { describeLoadError } from '../../../utils/http-error.util';
 
 interface ChatOutboxEntry {
   localId: string;
@@ -172,6 +173,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private bottomStickObserver?: ResizeObserver;
   private preferStickToBottom = true;
   private outboxPumpRunning = false;
+  private nextOptimisticId = -1;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
   private hubDeleteSubscription?: Subscription;
@@ -445,8 +447,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const entry: ChatOutboxEntry = {
-      localId: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      localId,
       body: this.messageText.trim(),
       attachments: [...this.messageAttachments],
       keptAttachments: [...this.keptEditAttachments],
@@ -456,6 +459,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       status: 'queued'
     };
 
+    this.insertOptimisticMessage(entry);
     this.outbox = [...this.outbox, entry];
     this.messageText = '';
     this.mentionedUserIds = [];
@@ -468,20 +472,40 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     void this.pumpOutbox();
   }
 
-  editOutboxEntry(entry: ChatOutboxEntry) {
-    if (entry.status === 'sending') {
+  retryFailedMessage(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    if (!message.clientLocalId || message.sendStatus !== 'failed') {
       return;
     }
+    const entry = this.outbox.find(item => item.localId === message.clientLocalId);
+    if (!entry) {
+      this.messages = this.messages.filter(item => item.clientLocalId !== message.clientLocalId);
+      return;
+    }
+    this.messages = this.messages.map(item =>
+      item.clientLocalId === message.clientLocalId
+        ? { ...item, sendStatus: 'sending' }
+        : item
+    );
+    this.retryOutboxEntry(entry);
+  }
 
-    this.outbox = this.outbox.filter(item => item.localId !== entry.localId);
-    this.editingMessageId = entry.editingMessageId;
-    this.messageText = entry.body;
-    this.messageAttachments = [...entry.attachments];
-    this.keptEditAttachments = [...entry.keptAttachments];
-    this.mentionedUserIds = [...entry.mentionedUserIds];
-    this.composeAnonymously = entry.isAnonymous;
-    this.composerUiMinimized = false;
-    this.composerFocused = true;
+  dismissFailedMessage(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    if (!message.clientLocalId) {
+      return;
+    }
+    const entry = this.outbox.find(item => item.localId === message.clientLocalId);
+    this.outbox = this.outbox.filter(item => item.localId !== message.clientLocalId);
+    if (entry?.editingMessageId != null || message.id > 0) {
+      this.messages = this.messages.map(item =>
+        item.clientLocalId === message.clientLocalId
+          ? { ...item, clientLocalId: undefined, sendStatus: undefined }
+          : item
+      );
+      return;
+    }
+    this.messages = this.messages.filter(item => item.clientLocalId !== message.clientLocalId);
   }
 
   retryOutboxEntry(entry: ChatOutboxEntry) {
@@ -491,26 +515,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     entry.status = 'queued';
     entry.error = undefined;
     this.outbox = [...this.outbox];
+    this.markOptimisticStatus(entry.localId, 'sending');
     void this.pumpOutbox();
-  }
-
-  dismissOutboxEntry(entry: ChatOutboxEntry) {
-    if (entry.status === 'sending') {
-      return;
-    }
-    this.outbox = this.outbox.filter(item => item.localId !== entry.localId);
-  }
-
-  outboxPreview(entry: ChatOutboxEntry): string {
-    const text = entry.body.trim();
-    if (text) {
-      return text.length > 120 ? `${text.slice(0, 117)}…` : text;
-    }
-    const count = entry.attachments.length + entry.keptAttachments.length;
-    if (count > 0) {
-      return count === 1 ? 'Attachment' : `${count} attachments`;
-    }
-    return 'Empty message';
   }
 
   isOwnMessage(message: ChatMessage): boolean {
@@ -646,7 +652,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async onMessageReceived(message: ChatMessage) {
-    if (message.id <= 0 || this.messages.some(existing => existing.id === message.id)) {
+    if (message.id <= 0) {
       return;
     }
 
@@ -654,7 +660,38 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     const decrypted = this.crewId > 0
       ? await this.chatCrypto.decryptSingleMessage(message, this.getCryptoScope())
       : message;
-    this.messages = [...this.messages, decrypted];
+
+    const existingById = this.messages.findIndex(existing => existing.id === decrypted.id);
+    if (existingById >= 0) {
+      const previous = this.messages[existingById];
+      this.messages = this.messages.map((existing, index) =>
+        index === existingById
+          ? {
+              ...decrypted,
+              clientLocalId: previous.clientLocalId,
+              sendStatus: undefined
+            }
+          : existing
+      );
+      return;
+    }
+
+    const optimisticIndex = this.messages.findIndex(existing =>
+      !!existing.clientLocalId
+      && existing.id < 0
+      && this.isOptimisticMatch(existing, decrypted)
+    );
+    if (optimisticIndex >= 0) {
+      const localId = this.messages[optimisticIndex].clientLocalId;
+      this.outbox = this.outbox.filter(item => item.localId !== localId);
+      this.messages = this.messages.map((existing, index) =>
+        index === optimisticIndex
+          ? { ...decrypted, clientLocalId: localId, sendStatus: undefined }
+          : existing
+      );
+    } else {
+      this.messages = [...this.messages, decrypted];
+    }
 
     const ownMessage = this.isOwnMessage(decrypted);
     if (shouldStickToBottom || ownMessage) {
@@ -673,27 +710,29 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         try {
           if (!response.success) {
             this.loadError = response.message || 'Failed to load messages';
+            this.loading = false;
             return;
           }
           this.hasMore = response.hasMore;
           this.messages = this.crewId > 0
             ? await this.chatCrypto.decryptMessages(response.items ?? [], this.getCryptoScope())
             : response.items ?? [];
+          // Keep the channel behind the loading state until media URLs are ready.
+          await this.resolveLoadedMessageAttachments(false);
           this.loading = false;
           if (scrollToBottom && !this.highlightSeekActive) {
             this.preferStickToBottom = true;
             setTimeout(() => this.scrollToBottom(), 0);
           }
           this.continueHighlightSeek();
-          void this.resolveLoadedMessageAttachments(scrollToBottom && !this.highlightSeekActive);
         } catch (error: unknown) {
           this.loadError = error instanceof Error ? error.message : 'Failed to decrypt messages';
           this.loading = false;
         }
       },
-      error: () => {
+      error: (error: unknown) => {
         this.loading = false;
-        this.loadError = 'Failed to load messages';
+        this.loadError = describeLoadError(error, 'Failed to load messages');
       }
     });
   }
@@ -717,6 +756,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
               this.toastService.error(response.message || 'Failed to load older messages');
             }
             this.highlightSeekActive = false;
+            this.loadingOlder = false;
             return;
           }
           this.hasMore = response.hasMore;
@@ -810,6 +850,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     entry.error = undefined;
     this.sending = true;
     this.outbox = [...this.outbox];
+    this.markOptimisticStatus(entry.localId, 'sending');
 
     try {
       await waitForPendingAttachmentsReady(entry.attachments);
@@ -843,12 +884,19 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         entry.status = 'failed';
         entry.error = response.message || 'Failed to send message';
         this.outbox = [...this.outbox];
+        this.markOptimisticStatus(entry.localId, 'failed');
         this.toastService.error(entry.error);
         return;
       }
 
       if (response.messageId && entry.isAnonymous) {
         this.recentOwnMessageIds.add(response.messageId);
+      }
+
+      if (response.messageId) {
+        this.promoteOptimisticMessage(entry, response.messageId);
+      } else {
+        this.markOptimisticStatus(entry.localId, undefined);
       }
 
       this.outbox = this.outbox.filter(item => item.localId !== entry.localId);
@@ -858,8 +906,99 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       entry.status = 'failed';
       entry.error = error instanceof Error ? error.message : 'Failed to send message';
       this.outbox = [...this.outbox];
+      this.markOptimisticStatus(entry.localId, 'failed');
       this.toastService.error(entry.error);
     }
+  }
+
+  private insertOptimisticMessage(entry: ChatOutboxEntry): void {
+    const resolvedAttachments = this.buildOptimisticAttachments(entry.attachments, entry.keptAttachments);
+
+    if (entry.editingMessageId != null) {
+      this.messages = this.messages.map(message =>
+        message.id === entry.editingMessageId
+          ? {
+              ...message,
+              body: entry.body,
+              resolvedAttachments,
+              isAnonymous: entry.isAnonymous,
+              authorUsername: entry.isAnonymous ? 'Anonymous' : (this.authorDisplayName || message.authorUsername),
+              clientLocalId: entry.localId,
+              sendStatus: 'sending'
+            }
+          : message
+      );
+      return;
+    }
+
+    const optimistic: ChatMessage = {
+      id: this.nextOptimisticId--,
+      authorUserId: this.currentUserId ?? 0,
+      authorUsername: entry.isAnonymous ? 'Anonymous' : (this.authorDisplayName || 'You'),
+      authorAvatarResourceId: entry.isAnonymous ? null : undefined,
+      createdAt: new Date().toISOString(),
+      hasEncryptedContent: true,
+      body: entry.body,
+      resolvedAttachments,
+      isAnonymous: entry.isAnonymous,
+      clientLocalId: entry.localId,
+      sendStatus: 'sending'
+    };
+    this.messages = [...this.messages, optimistic];
+  }
+
+  private buildOptimisticAttachments(
+    pending: PendingAttachment[],
+    kept: ProposalAttachment[]
+  ): ResolvedAttachment[] {
+    const fromKept: ResolvedAttachment[] = kept.map(attachment => ({ ...attachment }));
+    const fromPending: ResolvedAttachment[] = pending.map(attachment => ({
+      resourceId: attachment.resourceId,
+      type: attachment.type,
+      fileName: attachment.fileName,
+      encrypted: attachment.encrypted,
+      dataUrl: attachment.previewUrl,
+      posterUrl: attachment.thumbnailUrl
+    }));
+    return [...fromKept, ...fromPending];
+  }
+
+  private promoteOptimisticMessage(entry: ChatOutboxEntry, messageId: number): void {
+    this.messages = this.messages.map(message => {
+      if (message.clientLocalId !== entry.localId) {
+        return message;
+      }
+      return {
+        ...message,
+        id: entry.editingMessageId ?? messageId,
+        sendStatus: undefined
+      };
+    });
+  }
+
+  private markOptimisticStatus(localId: string, status: 'sending' | 'failed' | undefined): void {
+    this.messages = this.messages.map(message =>
+      message.clientLocalId === localId
+        ? { ...message, sendStatus: status }
+        : message
+    );
+  }
+
+  private isOptimisticMatch(optimistic: ChatMessage, incoming: ChatMessage): boolean {
+    if (!this.isOwnMessage(optimistic)) {
+      return false;
+    }
+    if (!!optimistic.isAnonymous !== !!incoming.isAnonymous) {
+      return false;
+    }
+    const optimisticBody = (optimistic.body ?? '').trim();
+    const incomingBody = (incoming.body ?? '').trim();
+    if (optimisticBody || incomingBody) {
+      return optimisticBody === incomingBody;
+    }
+    const optimisticCount = optimistic.resolvedAttachments?.length ?? 0;
+    const incomingCount = incoming.resolvedAttachments?.length ?? 0;
+    return optimisticCount > 0 && optimisticCount === incomingCount;
   }
 
   private continueHighlightSeek() {

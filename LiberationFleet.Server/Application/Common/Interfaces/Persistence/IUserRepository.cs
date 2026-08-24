@@ -7,6 +7,8 @@ public interface IUserRepository
     Task<bool> ExistsByEmailOrUsernameAsync(string email, string username, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailOrUsernameAsync(string emailOrUsername, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+    /// <summary>Lightweight lookup without payment-platform includes (uses local tracker when possible).</summary>
+    Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<User?> GetByIdWithProfileAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<int, string?>> GetAvatarResourceIdsAsync(
         IReadOnlyList<int> userIds,
