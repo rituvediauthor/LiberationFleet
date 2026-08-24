@@ -19,7 +19,7 @@ import { AdultContentService } from '../../../services/adult-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { VoicePresenceService } from '../../../services/voice-presence.service';
 import { VoiceParticipant, VoiceRoomPresence } from '../../../models/voice.model';
-import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError } from '../../../utils/http-error.util';
+import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError, isRetryableLoadError } from '../../../utils/http-error.util';
 
 @Component({
   selector: 'app-chat-list',
@@ -337,8 +337,9 @@ export class ChatListComponent implements OnInit, OnDestroy {
         this.rooms = items;
       }
     } catch (error: unknown) {
-      if (attempt < 1 && isConnectivityError(error)) {
-        // One quick retry for flaky mobile radios / brief blips after sign-in.
+      if (attempt < 1 && isRetryableLoadError(error)) {
+        // One quick retry for flaky mobile radios / brief blips after sign-in,
+        // or 503 while the API finishes applying migrations.
         await new Promise(resolve => setTimeout(resolve, 400));
         return this.loadRooms(attempt + 1);
       }

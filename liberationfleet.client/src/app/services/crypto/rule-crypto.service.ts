@@ -35,7 +35,19 @@ export class RuleCryptoService {
       ];
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    let crewKey: CryptoKey;
+    try {
+      crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    } catch {
+      return [
+        ...publicRules,
+        ...encryptedRules.map(rule => ({
+          ...rule,
+          title: '[Unable to decrypt]',
+          descriptionPreview: '[Unable to decrypt]'
+        }))
+      ];
+    }
     const decryptedEncrypted = await Promise.all(encryptedRules.map(rule => this.decryptRuleItem(rule, crewKey)));
     return [...publicRules, ...decryptedEncrypted];
   }
@@ -53,8 +65,16 @@ export class RuleCryptoService {
       };
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    return this.decryptRuleItem(rule, crewKey);
+    try {
+      const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      return await this.decryptRuleItem(rule, crewKey);
+    } catch {
+      return {
+        ...rule,
+        title: '[Unable to decrypt]',
+        description: '[Unable to decrypt]'
+      };
+    }
   }
 
   encryptRulePayload(

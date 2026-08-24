@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Services;
@@ -161,11 +162,19 @@ public class UpsertEncryptedContentCommandHandler(
                 return new CryptoOperationResponse { Success = false, Message = "You are not allowed to attach files in this crew." };
             }
 
-            var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
-                userId,
-                request.CrewId.Value,
-                crew.CurrentSeasonStartDate,
-                cancellationToken);
+            var giftStats = new CrewmateGiftStatsDto();
+            try
+            {
+                giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+                    userId,
+                    request.CrewId.Value,
+                    crew.CurrentSeasonStartDate,
+                    cancellationToken);
+            }
+            catch
+            {
+                // Schema drift / transient gift-stats failures should not block media uploads.
+            }
             var crewTenureDays = await contentTenureService.GetCrewTenureDaysAsync(
                 userId,
                 request.CrewId.Value,
@@ -195,11 +204,19 @@ public class UpsertEncryptedContentCommandHandler(
                 return new CryptoOperationResponse { Success = false, Message = "You are not allowed to attach files in this fleet." };
             }
 
-            var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
-                userId,
-                membership.CrewId,
-                membership.Crew?.CurrentSeasonStartDate,
-                cancellationToken);
+            var giftStats = new CrewmateGiftStatsDto();
+            try
+            {
+                giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+                    userId,
+                    membership.CrewId,
+                    membership.Crew?.CurrentSeasonStartDate,
+                    cancellationToken);
+            }
+            catch
+            {
+                // Schema drift / transient gift-stats failures should not block media uploads.
+            }
             var fleetTenureDays = await contentTenureService.GetFleetTenureDaysAsync(
                 userId,
                 request.FleetId.Value,

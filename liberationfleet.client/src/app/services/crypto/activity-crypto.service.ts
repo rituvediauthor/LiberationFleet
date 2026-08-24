@@ -59,7 +59,15 @@ export class ActivityCryptoService {
         crewId
       );
       const envelopeByResourceId = new Map(envelopes.map(envelope => [envelope.resourceId, envelope]));
-      const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      let crewKey: CryptoKey;
+      try {
+        crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      } catch {
+        for (const item of groupItems) {
+          item.previewText = item.previewText ?? '[Unable to decrypt]';
+        }
+        continue;
+      }
 
       for (const item of groupItems) {
         const envelope = envelopeByResourceId.get(item.resourceId.toString());
@@ -94,7 +102,12 @@ export class ActivityCryptoService {
     }
 
     for (const [crewId, crewItems] of thumbnailByCrew) {
-      const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      let crewKey: CryptoKey;
+      try {
+        crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+      } catch {
+        continue;
+      }
       const resourceIds = [...new Set(
         crewItems
           .map(item => item.thumbnailResourceId)

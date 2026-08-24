@@ -28,7 +28,15 @@ export class ChatCryptoService {
       }));
     }
 
-    const scopeKey = await this.resolveScopeKey(scope);
+    let scopeKey: CryptoKey;
+    try {
+      scopeKey = await this.resolveScopeKey(scope);
+    } catch {
+      return rooms.map(room => ({
+        ...room,
+        name: room.hasEncryptedContent ? '[Unable to decrypt]' : room.name
+      }));
+    }
     return Promise.all(rooms.map(room => this.decryptRoomWithKey(room, scopeKey)));
   }
 
@@ -40,7 +48,15 @@ export class ChatCryptoService {
       };
     }
 
-    const scopeKey = await this.resolveScopeKey(scope);
+    let scopeKey: CryptoKey;
+    try {
+      scopeKey = await this.resolveScopeKey(scope);
+    } catch {
+      return {
+        ...room,
+        name: room.hasEncryptedContent ? '[Unable to decrypt]' : room.name
+      };
+    }
     return this.decryptRoomWithKey(room, scopeKey);
   }
 
@@ -103,8 +119,12 @@ export class ChatCryptoService {
       };
     }
 
-    const scopeKey = await this.resolveScopeKey(scope);
-    return this.decryptMessage(message, scopeKey, scope, options);
+    try {
+      const scopeKey = await this.resolveScopeKey(scope);
+      return await this.decryptMessage(message, scopeKey, scope, options);
+    } catch {
+      return { ...message, body: '[Unable to decrypt]' };
+    }
   }
 
   async encryptMessagePayload(

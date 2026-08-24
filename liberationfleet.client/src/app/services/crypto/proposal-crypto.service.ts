@@ -67,7 +67,22 @@ export class ProposalCryptoService {
       });
     }
 
-    const scopeKey = await this.resolveScopeKey(normalizedScope);
+    let scopeKey: CryptoKey;
+    try {
+      scopeKey = await this.resolveScopeKey(normalizedScope);
+    } catch {
+      return items.map(item => {
+        if (item.hasPlaintextContent) {
+          return mapPlaintext(item);
+        }
+        return {
+          ...item,
+          title: '[Unable to decrypt]',
+          descriptionPreview: '[Unable to decrypt]',
+          authorUsername: this.isAnonymousAuthor(item) ? 'Anonymous' : (item.authorUsername || '[Encrypted]')
+        };
+      });
+    }
     const decryptedRows = await Promise.all(
       items.map(async (item, index) => {
         const localVideos: ProposalAttachment[] = [];

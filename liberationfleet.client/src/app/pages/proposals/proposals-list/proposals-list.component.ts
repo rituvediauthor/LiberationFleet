@@ -160,11 +160,15 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
 
     this.proposalService.getProposals(this.status, this.isFleetScope ? 'fleet' : 'crew').subscribe({
       next: async items => {
-        if (this.isFleetScope && this.fleetId > 0) {
-          this.items = await this.proposalCrypto.decryptListItems(items, { fleetId: this.fleetId });
-        } else if (!this.isFleetScope && this.crewId > 0) {
-          this.items = await this.proposalCrypto.decryptListItems(items, this.crewId);
-        } else {
+        try {
+          if (this.isFleetScope && this.fleetId > 0) {
+            this.items = await this.proposalCrypto.decryptListItems(items, { fleetId: this.fleetId });
+          } else if (!this.isFleetScope && this.crewId > 0) {
+            this.items = await this.proposalCrypto.decryptListItems(items, this.crewId);
+          } else {
+            this.items = items;
+          }
+        } catch {
           this.items = items;
         }
         this.loading = false;

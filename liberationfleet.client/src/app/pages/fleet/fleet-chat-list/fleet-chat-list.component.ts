@@ -9,7 +9,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomListItem } from '../../../models/chat.model';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
-import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError } from '../../../utils/http-error.util';
+import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError, isRetryableLoadError } from '../../../utils/http-error.util';
 
 @Component({
   selector: 'app-fleet-chat-list',
@@ -103,11 +103,15 @@ export class FleetChatListComponent implements OnInit {
       }
 
       const items = result.items ?? [];
-      this.rooms = this.fleetId > 0
-        ? await this.chatCrypto.decryptRooms(items, { fleetId: this.fleetId })
-        : items;
+      try {
+        this.rooms = this.fleetId > 0
+          ? await this.chatCrypto.decryptRooms(items, { fleetId: this.fleetId })
+          : items;
+      } catch {
+        this.rooms = items;
+      }
     } catch (error: unknown) {
-      if (attempt < 1 && isConnectivityError(error)) {
+      if (attempt < 1 && isRetryableLoadError(error)) {
         await new Promise(resolve => setTimeout(resolve, 400));
         return this.loadRooms(attempt + 1);
       }

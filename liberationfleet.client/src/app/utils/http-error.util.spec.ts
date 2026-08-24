@@ -2,7 +2,8 @@ import {
   CONNECTIVITY_ERROR_MESSAGE,
   describeLoadError,
   extractHttpErrorMessage,
-  isConnectivityError
+  isConnectivityError,
+  isRetryableLoadError
 } from './http-error.util';
 
 describe('http-error.util', () => {
@@ -30,6 +31,23 @@ describe('http-error.util', () => {
 
     it('does not treat normal API errors as connectivity issues', () => {
       expect(isConnectivityError({ status: 500, error: { message: 'Server exploded' } })).toBeFalse();
+    });
+  });
+
+  describe('isRetryableLoadError', () => {
+    it('retries connectivity failures', () => {
+      expect(isRetryableLoadError({ status: 0 })).toBeTrue();
+    });
+
+    it('retries migration warm-up 503s', () => {
+      expect(isRetryableLoadError({
+        status: 503,
+        error: { message: 'Server is still applying database updates. Please retry in a moment.' }
+      })).toBeTrue();
+    });
+
+    it('does not retry ordinary 500s', () => {
+      expect(isRetryableLoadError({ status: 500, error: { message: 'boom' } })).toBeFalse();
     });
   });
 

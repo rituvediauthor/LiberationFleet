@@ -23,6 +23,8 @@ Audit of the EF Core schema, lookup usage, redundancy, and query patterns. Remed
 
 Migration: `20260824160000_NormalizeDonationStatusAndLotPlatformFlag`.
 
+Startup also runs `LotPlatformSchemaRepair` (idempotent) and keeps `/api` + hubs on **503** until migrate+repair finish, so clients are not served against a half-updated schema.
+
 ## Schema health (current assessment)
 
 ### Good practices already in place

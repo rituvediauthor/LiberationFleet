@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
+import { CryptoSessionService } from './crypto/crypto-session.service';
 import { clearAuthStorage } from '../testing/test-helpers';
 import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
 
@@ -59,6 +60,19 @@ describe('AuthService', () => {
     expect(service.getToken()).toBe('jwt-token');
     expect(service.isAuthenticated()).toBeTrue();
     expect(latestUser).toEqual({ id: 1, username: 'user', email: 'user@example.com' });
+  });
+
+  it('establishSession should clear prior crypto keys before unlocking the new session', () => {
+    const cryptoSession = TestBed.inject(CryptoSessionService);
+    spyOn(cryptoSession, 'clearSession');
+
+    service.establishSession({
+      success: true,
+      token: 'jwt-token',
+      user: { id: 1, username: 'user', email: 'user@example.com' }
+    });
+
+    expect(cryptoSession.clearSession).toHaveBeenCalled();
   });
 
   it('establishSession should not store token when response has no token', () => {

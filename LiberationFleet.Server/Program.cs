@@ -101,6 +101,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+builder.Services.AddSingleton<LiberationFleet.Server.Infrastructure.Data.DatabaseReadyState>();
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
@@ -127,6 +128,35 @@ if (!app.Environment.IsEnvironment("Docker"))
     app.UseHttpsRedirection();
 }
 
+// Block API/hub traffic until migrations finish. Liveness (/healthz) stays available.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    if (path.StartsWithSegments("/healthz")
+        || path.StartsWithSegments("/openapi")
+        || !path.StartsWithSegments("/api") && !path.StartsWithSegments("/hubs"))
+    {
+        await next();
+        return;
+    }
+
+    var ready = context.RequestServices
+        .GetRequiredService<LiberationFleet.Server.Infrastructure.Data.DatabaseReadyState>();
+    if (!ready.IsReady)
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        context.Response.Headers.RetryAfter = "5";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            success = false,
+            message = "Server is still applying database updates. Please retry in a moment."
+        });
+        return;
+    }
+
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 // Liveness for Azure App Service / Docker before (and while) migrations run.
@@ -147,6 +177,7 @@ static async Task ApplyMigrationsAsync(WebApplication app)
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseMigrations");
+    var readyState = scope.ServiceProvider.GetRequiredService<LiberationFleet.Server.Infrastructure.Data.DatabaseReadyState>();
 
     const int maxAttempts = 15;
     Exception? lastError = null;
@@ -156,6 +187,8 @@ static async Task ApplyMigrationsAsync(WebApplication app)
         {
             await dbContext.Database.MigrateAsync();
             await GiftLogSchemaRepair.EnsureAsync(dbContext, logger);
+            await LotPlatformSchemaRepair.EnsureAsync(dbContext, logger);
+            readyState.MarkReady();
             logger.LogInformation("Database migrations applied successfully");
             return;
         }
