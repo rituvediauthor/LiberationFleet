@@ -7,7 +7,15 @@ public interface IMutualAidRepository
     Task<Crew?> GetCrewAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetSeasonParticipantsAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default);
+    /// <summary>Cheap ready-count for season status polls (no User/platform graph).</summary>
+    Task<int> CountSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default);
+    /// <summary>Count of in-season members with NeedsSurvivalAid (no payment-platform graph).</summary>
+    Task<int> CountSeasonParticipantsNeedingSurvivalAidAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetActiveMembersWithUsersAsync(int crewId, CancellationToken cancellationToken = default);
+    /// <summary>Single membership + user for priority scoring (avoids loading the full crew graph).</summary>
+    Task<CrewMembership?> GetMembershipWithUserAsync(int userId, int crewId, CancellationToken cancellationToken = default);
+    /// <summary>In-season (or ready) memberships without User/platform graph — for capacity math.</summary>
+    Task<IReadOnlyList<CrewMembership>> GetSeasonContributionMembersAsync(int crewId, CancellationToken cancellationToken = default);
     Task<SeasonCycle?> GetSeasonCycleAsync(int crewId, int userId, DateTime seasonStartDate, CancellationToken cancellationToken = default);
     /// <summary>
     /// Primary cycle only (no emergency request / split-offer binding), ordered by reception position.
@@ -51,6 +59,12 @@ public interface IMutualAidRepository
         DateTime? createdBeforeUtc = null,
         CancellationToken cancellationToken = default);
     Task<decimal> GetLifetimeContributionsAsync(int userId, int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
+    /// <summary>Lifetime totals for many users in one pass (overrides + gift sums).</summary>
+    Task<IReadOnlyDictionary<int, decimal>> GetLifetimeContributionsForUsersAsync(
+        int crewId,
+        IReadOnlyCollection<int> userIds,
+        DateTime? before = null,
+        CancellationToken cancellationToken = default);
     Task<decimal> GetCrewLifetimeContributionsAsync(int crewId, DateTime? before = null, CancellationToken cancellationToken = default);
     Task<bool> HasContributedSinceAsync(int userId, int crewId, DateTime since, DateTime? until = null, CancellationToken cancellationToken = default);
     Task<DateTime?> GetPreviousSeasonStartDateAsync(int crewId, DateTime currentSeasonStart, CancellationToken cancellationToken = default);

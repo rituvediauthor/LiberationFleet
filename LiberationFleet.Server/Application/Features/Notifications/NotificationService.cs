@@ -32,22 +32,37 @@ public class NotificationService(
         IEnumerable<CreateNotificationRequest> requests,
         CancellationToken cancellationToken = default)
     {
-        var notifications = new List<Notification>();
-        foreach (var request in requests)
-        {
-            if (!await notificationRepository.IsKindEnabledAsync(request.UserId, request.Kind, cancellationToken))
-            {
-                continue;
-            }
-
-            notifications.Add(MapToEntity(request));
-        }
-
-        if (notifications.Count == 0)
+        var requestList = requests as IList<CreateNotificationRequest> ?? requests.ToList();
+        if (requestList.Count == 0)
         {
             return;
         }
 
+        // Batch preference lookups per kind instead of one query per recipient.
+        var enabledRequests = new List<CreateNotificationRequest>(requestList.Count);
+        foreach (var kindGroup in requestList.GroupBy(r => r.Kind))
+        {
+            var userIds = kindGroup.Select(r => r.UserId).Distinct().ToList();
+            var disabledUserIds = await notificationRepository.GetUserIdsWithKindDisabledAsync(
+                userIds,
+                kindGroup.Key,
+                cancellationToken);
+
+            foreach (var request in kindGroup)
+            {
+                if (!disabledUserIds.Contains(request.UserId))
+                {
+                    enabledRequests.Add(request);
+                }
+            }
+        }
+
+        if (enabledRequests.Count == 0)
+        {
+            return;
+        }
+
+        var notifications = enabledRequests.Select(MapToEntity).ToList();
         await notificationRepository.AddRangeAsync(notifications, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -105,16 +120,15 @@ public class NotificationService(
         CancellationToken cancellationToken = default)
     {
         var userIds = await notificationRepository.GetCrewMemberUserIdsAsync(crewId, excludeUserId, cancellationToken);
-        var requests = new List<CreateNotificationRequest>();
+        var mutedUserIds = await notificationRepository.GetUserIdsWithContentMutedAsync(
+            userIds,
+            muteType,
+            resourceId,
+            cancellationToken);
 
-        foreach (var userId in userIds)
-        {
-            if (await notificationRepository.IsContentMutedAsync(userId, muteType, resourceId, cancellationToken))
-            {
-                continue;
-            }
-
-            requests.Add(new CreateNotificationRequest
+        var requests = userIds
+            .Where(userId => !mutedUserIds.Contains(userId))
+            .Select(userId => new CreateNotificationRequest
             {
                 UserId = userId,
                 CrewId = crewId,
@@ -126,7 +140,6 @@ public class NotificationService(
                 SecondaryEntityId = secondaryEntityId,
                 ActorUserId = excludeUserId
             });
-        }
 
         await NotifyUsersAsync(requests, cancellationToken);
     }

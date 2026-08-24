@@ -243,8 +243,24 @@ public static class HandlerTestFixture
         }
 
         notificationRepository
-            .Setup(r => r.GetUnreadForUserAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetUnreadForUserAsync(
+                It.IsAny<int>(),
+                It.IsAny<IReadOnlySet<NotificationKind>>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Notification>());
+        notificationRepository
+            .Setup(r => r.GetUserIdsWithKindDisabledAsync(
+                It.IsAny<IReadOnlyCollection<int>>(),
+                It.IsAny<NotificationKind>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
+        notificationRepository
+            .Setup(r => r.GetUserIdsWithContentMutedAsync(
+                It.IsAny<IReadOnlyCollection<int>>(),
+                It.IsAny<MutedContentType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
         notificationRepository
             .Setup(r => r.GetPreferencesAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<UserNotificationPreference>());

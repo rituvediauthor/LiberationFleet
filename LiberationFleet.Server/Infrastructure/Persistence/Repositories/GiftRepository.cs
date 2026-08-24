@@ -27,6 +27,8 @@ public class GiftRepository : IGiftRepository
         CancellationToken cancellationToken = default)
     {
         var query = _context.Gifts
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(g => g.GiverUser)
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
@@ -74,6 +76,8 @@ public class GiftRepository : IGiftRepository
         }
 
         var query = _context.Gifts
+            .AsNoTracking()
+            .AsSplitQuery()
             .Include(g => g.GiverUser)
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)

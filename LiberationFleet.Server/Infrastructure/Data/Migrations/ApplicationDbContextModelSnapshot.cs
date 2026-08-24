@@ -757,6 +757,10 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.HasIndex("CrewId");
 
+                    b.HasIndex("CrewId", "IsBanned", "IsInSeason");
+
+                    b.HasIndex("CrewId", "IsBanned", "IsSeasonReady");
+
                     b.HasIndex("UserId", "CrewId")
                         .IsUnique();
 
@@ -1658,6 +1662,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.HasIndex("CrewId", "CreatedAt", "Id");
 
+                    b.HasIndex("CrewId", "GiverUserId", "CreatedAt");
+
                     b.ToTable("Gifts");
                 });
 
@@ -2289,6 +2295,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasIndex("UserId", "CreatedAt");
 
                     b.HasIndex("UserId", "IsRead");
+
+                    b.HasIndex("UserId", "IsRead", "Kind");
 
                     b.ToTable("Notifications");
                 });
