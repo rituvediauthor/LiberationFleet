@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, of, shareReplay, tap } from 'rxjs';
+import { Observable, Subject, of, shareReplay, tap, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import {
   CreateCrewRequest,
   CrewInvitationDetailResponse,
@@ -34,6 +35,7 @@ export class CrewService {
   /**
    * Session-cached membership. Concurrent callers share one in-flight request.
    * Pass forceRefresh after join/leave/create/settings changes.
+   * Errors are not sticky-cached — a later call can retry.
    */
   getMembership(forceRefresh = false): Observable<CrewMembershipStatus> {
     if (forceRefresh) {
@@ -41,6 +43,10 @@ export class CrewService {
     }
     if (!this.membershipRequest$) {
       this.membershipRequest$ = this.http.get<CrewMembershipStatus>(`${this.apiUrl}/membership`).pipe(
+        catchError(err => {
+          this.membershipRequest$ = null;
+          return throwError(() => err);
+        }),
         shareReplay({ bufferSize: 1, refCount: false })
       );
     }

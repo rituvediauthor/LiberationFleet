@@ -70,6 +70,9 @@ export class AuthService {
 
   establishSession(response: AuthResult): void {
     if (response.token) {
+      // Drop any prior session caches so membership/fleet status cannot stick
+      // across accounts or survive a failed pre-login probe as "not in a crew".
+      this.clearSessionCaches();
       this.setToken(response.token);
       this.currentUserSubject.next(response.user ?? null);
       this.resetEncryptionReady();

@@ -130,7 +130,17 @@
 
     <ng-template #noCrew>
 
-      <ng-container *ngIf="!loading">
+      <ng-container *ngIf="!loading && loadError">
+        <div class="hero">
+          <h1>Couldn't load your crew</h1>
+          <p class="subtitle">We couldn't confirm your crew membership. Try again before creating or joining another crew.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="action-btn primary" (click)="retryMembership()">Try again</button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="!loading && !loadError">
       <div class="hero">
         <h1>Welcome to LiberationFleet</h1>
 

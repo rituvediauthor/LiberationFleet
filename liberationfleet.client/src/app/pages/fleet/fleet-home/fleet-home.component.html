@@ -128,19 +128,30 @@
     </ng-container>
 
     <ng-template #noFleet>
-      <div class="hero" *ngIf="!loading">
-        <h1>Welcome to your Fleet</h1>
-        <p class="subtitle">
-          Fleets are collections of associated crews where crewmates can interact like one giant crew
-          while still belonging to their crews with unique rules and cultures.
-        </p>
-      </div>
-      <div class="actions" *ngIf="!loading">
-        <button type="button" class="action-btn primary" (click)="goToCreateFleet()">Create fleet</button>
-        <button type="button" class="action-btn secondary" (click)="goToJoinFleet()">Join Fleet</button>
-        <button type="button" class="action-btn secondary" (click)="goToInvitations()">My Invitations</button>
-        <button type="button" class="action-btn secondary" (click)="goToJoinRequests()">Our Join Requests</button>
-      </div>
+      <ng-container *ngIf="!loading && loadError">
+        <div class="hero">
+          <h1>Couldn't load your fleet</h1>
+          <p class="subtitle">We couldn't confirm your fleet membership. Try again before creating or joining another fleet.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="action-btn primary" (click)="retryStatus()">Try again</button>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="!loading && !loadError">
+        <div class="hero">
+          <h1>Welcome to your Fleet</h1>
+          <p class="subtitle">
+            Fleets are collections of associated crews where crewmates can interact like one giant crew
+            while still belonging to their crews with unique rules and cultures.
+          </p>
+        </div>
+        <div class="actions">
+          <button type="button" class="action-btn primary" (click)="goToCreateFleet()">Create fleet</button>
+          <button type="button" class="action-btn secondary" (click)="goToJoinFleet()">Join Fleet</button>
+          <button type="button" class="action-btn secondary" (click)="goToInvitations()">My Invitations</button>
+          <button type="button" class="action-btn secondary" (click)="goToJoinRequests()">Our Join Requests</button>
+        </div>
+      </ng-container>
     </ng-template>
   </div>
 </app-nav-layout>

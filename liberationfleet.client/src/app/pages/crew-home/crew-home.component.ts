@@ -1,8 +1,8 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { startWith, switchMap } from 'rxjs/operators';
+import { Subscription, of } from 'rxjs';
+import { catchError, startWith, switchMap } from 'rxjs/operators';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { DonationCampaignWidgetComponent } from '../../components/donation-campaign-widget/donation-campaign-widget.component';
@@ -41,6 +41,7 @@ import { ForumListPrefetchService } from '../../services/forum-list-prefetch.ser
 export class CrewHomeComponent implements OnInit, OnDestroy {
   membership: CrewMembershipStatus | null = null;
   loading = true;
+  loadError = false;
   nextAid: NextAidInfo | null = null;
   /** True only when season has started — known from membership before the menu paints. */
   showNextAidWidget = false;
@@ -78,38 +79,47 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.crewService.membershipChanged$.pipe(
         startWith(undefined),
-        switchMap(() => this.crewService.getMembership())
-      ).subscribe({
-        next: status => {
-          this.membership = status;
-          this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
-          this.showNextAidWidget = !!status.hasCrew && !!status.seasonStarted;
-          this.nextAid = null;
-          this.nextAidLoaded = !this.showNextAidWidget;
-          this.loading = false;
-          void this.refreshCrewImage();
-          if (status.hasCrew && status.crewId) {
-            this.forumPrefetch.prefetchCrewSpace(status.crewId);
-          }
-          if (this.showNextAidWidget) {
-            this.giftService.getNextAidInfo().subscribe({
-              next: info => {
-                this.nextAid = info;
-                this.nextAidLoaded = true;
-              },
-              error: () => {
-                this.nextAid = null;
-                this.nextAidLoaded = true;
-              }
-            });
-          }
-        },
-        error: () => {
-          this.membership = { hasCrew: false };
-          this.showNextAidWidget = false;
-          this.nextAidLoaded = true;
-          this.crewImageSrc = null;
-          this.loading = false;
+        switchMap(() =>
+          this.crewService.getMembership().pipe(
+            catchError(() => {
+              // Keep the outer subscription alive so retry via membershipChanged$ works.
+              // Never map probe failures to hasCrew:false (that shows Create/Join incorrectly).
+              this.membership = null;
+              this.loadError = true;
+              this.showNextAidWidget = false;
+              this.nextAidLoaded = true;
+              this.crewImageSrc = null;
+              this.loading = false;
+              return of(null);
+            })
+          )
+        )
+      ).subscribe(status => {
+        if (!status) {
+          return;
+        }
+        this.membership = status;
+        this.loadError = false;
+        this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+        this.showNextAidWidget = !!status.hasCrew && !!status.seasonStarted;
+        this.nextAid = null;
+        this.nextAidLoaded = !this.showNextAidWidget;
+        this.loading = false;
+        void this.refreshCrewImage();
+        if (status.hasCrew && status.crewId) {
+          this.forumPrefetch.prefetchCrewSpace(status.crewId);
+        }
+        if (this.showNextAidWidget) {
+          this.giftService.getNextAidInfo().subscribe({
+            next: info => {
+              this.nextAid = info;
+              this.nextAidLoaded = true;
+            },
+            error: () => {
+              this.nextAid = null;
+              this.nextAidLoaded = true;
+            }
+          });
         }
       })
     );
@@ -124,6 +134,12 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
+  }
+
+  retryMembership() {
+    this.loading = true;
+    this.loadError = false;
+    this.crewService.clearMembershipCache();
   }
 
   private async refreshCrewImage() {

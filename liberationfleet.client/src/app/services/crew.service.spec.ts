@@ -35,6 +35,27 @@ describe('CrewService', () => {
     req.flush({ hasCrew: true, crewId: 1, crewName: 'Alpha Fleet' });
   });
 
+  it('getMembership should not sticky-cache errors so a retry can succeed', () => {
+    let sawError = false;
+    service.getMembership().subscribe({
+      next: () => fail('expected error'),
+      error: () => {
+        sawError = true;
+      }
+    });
+
+    const failed = httpMock.expectOne('/api/crews/membership');
+    failed.flush({ message: 'boom' }, { status: 500, statusText: 'Server Error' });
+    expect(sawError).toBeTrue();
+
+    service.getMembership().subscribe(status => {
+      expect(status.hasCrew).toBeTrue();
+    });
+
+    const retry = httpMock.expectOne('/api/crews/membership');
+    retry.flush({ hasCrew: true, crewId: 1, crewName: 'Alpha Fleet' });
+  });
+
   it('create should POST crew payload', () => {
     const payload = {
       name: 'New Crew',

@@ -1,4 +1,4 @@
-import { of } from 'rxjs';
+import { of, EMPTY } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../services/user.service';
 import { CrewService } from '../services/crew.service';
@@ -60,8 +60,13 @@ export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {
     'getMyJoinRequests',
     'getMyInvitations',
     'getInvitation',
-    'getPaymentPlatforms'
-  ]);
+    'getPaymentPlatforms',
+    'clearMembershipCache',
+    'clearSessionCache',
+    'setCachedMembership'
+  ], {
+    membershipChanged$: EMPTY
+  });
 }
 
 export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {

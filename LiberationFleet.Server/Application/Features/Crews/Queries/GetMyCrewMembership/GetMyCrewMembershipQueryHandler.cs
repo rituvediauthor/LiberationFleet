@@ -1,18 +1,22 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Services;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
 
 public class GetMyCrewMembershipQueryHandler(
     ICrewMembershipRepository membershipRepository,
+    ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IFleetRepository fleetRepository,
     ContentTenureService contentTenureService,
-    ICurrentUserService currentUserService) : IRequestHandler<GetMyCrewMembershipQuery, CrewMembershipStatusDto>
+    ICurrentUserService currentUserService,
+    ILogger<GetMyCrewMembershipQueryHandler> logger) : IRequestHandler<GetMyCrewMembershipQuery, CrewMembershipStatusDto>
 {
     public async Task<CrewMembershipStatusDto> Handle(GetMyCrewMembershipQuery request, CancellationToken cancellationToken)
     {
@@ -28,13 +32,23 @@ public class GetMyCrewMembershipQueryHandler(
             return new CrewMembershipStatusDto { HasCrew = false };
         }
 
-        var crew = membership.Crew;
+        // Prefer the included navigation, but never treat a missing nav as "not in a crew"
+        // when an active membership row exists.
+        var crew = membership.Crew
+            ?? await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
         if (crew is null)
         {
+            logger.LogWarning(
+                "Active crew membership {MembershipId} for user {UserId} references missing crew {CrewId}.",
+                membership.Id,
+                userId.Value,
+                membership.CrewId);
             return new CrewMembershipStatusDto { HasCrew = false };
         }
 
-        var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+        // Gift stats power contribution-gated permissions only. Membership itself must not
+        // fail closed to HasCrew=false when this query breaks (e.g. schema drift after audits).
+        var giftStats = await TryGetGiftStatsAsync(
             userId.Value,
             membership.CrewId,
             crew.CurrentSeasonStartDate,
@@ -119,5 +133,30 @@ public class GetMyCrewMembershipQueryHandler(
             FleetProposalDaysRemaining = fleetProposalDaysRemaining,
             FleetProposalContributionShortfall = fleetProposalContributionShortfall
         };
+    }
+
+    private async Task<CrewmateGiftStatsDto> TryGetGiftStatsAsync(
+        int userId,
+        int crewId,
+        DateTime? seasonStartDate,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await giftRepository.GetCrewmateGiftStatsAsync(
+                userId,
+                crewId,
+                seasonStartDate,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Failed to load gift stats for membership status (user {UserId}, crew {CrewId}). Returning HasCrew with conservative contribution defaults.",
+                userId,
+                crewId);
+            return new CrewmateGiftStatsDto();
+        }
     }
 }
