@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
+import { CryptoSessionService } from './crypto/crypto-session.service';
+import { APP_ENVIRONMENT } from '../config/app-environment';
 import { clearAuthStorage } from '../testing/test-helpers';
 import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
 
@@ -13,7 +15,10 @@ describe('AuthService', () => {
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [AuthService]
+      providers: [
+        AuthService,
+        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } }
+      ]
     });
 
     service = TestBed.inject(AuthService);
@@ -61,6 +66,19 @@ describe('AuthService', () => {
     expect(latestUser).toEqual({ id: 1, username: 'user', email: 'user@example.com' });
   });
 
+  it('establishSession should clear prior crypto keys before unlocking the new session', () => {
+    const cryptoSession = TestBed.inject(CryptoSessionService);
+    spyOn(cryptoSession, 'clearSession');
+
+    service.establishSession({
+      success: true,
+      token: 'jwt-token',
+      user: { id: 1, username: 'user', email: 'user@example.com' }
+    });
+
+    expect(cryptoSession.clearSession).toHaveBeenCalled();
+  });
+
   it('establishSession should not store token when response has no token', () => {
     service.establishSession({ success: false, message: 'Failed' });
     expect(service.getToken()).toBeNull();
@@ -90,14 +108,22 @@ describe('AuthService', () => {
 describe('AuthService token loading', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
+  const validToken = [
+    btoa(JSON.stringify({ alg: 'none', typ: 'JWT' })),
+    btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600, sub: '1' })),
+    'sig'
+  ].join('.');
 
   beforeEach(() => {
     clearAuthStorage();
-    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, 'stored-token');
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, validToken);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [AuthService]
+      providers: [
+        AuthService,
+        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } }
+      ]
     });
 
     service = TestBed.inject(AuthService);
@@ -110,7 +136,7 @@ describe('AuthService token loading', () => {
   });
 
   it('should recognize existing token from localStorage on init', () => {
-    expect(service.getToken()).toBe('stored-token');
+    expect(service.getToken()).toBe(validToken);
     expect(service.isAuthenticated()).toBeTrue();
   });
 });

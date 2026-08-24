@@ -249,11 +249,19 @@ export class CryptoSessionService {
           state.myDistribution,
           publicKeyByUserId
         );
-      } catch {
-        // Distribution may have been wrapped for a previous identity key pair.
+      } catch (error: unknown) {
+        // Never mint a replacement crew key when a distribution already exists —
+        // that permanently orphans all prior ciphertext. Surface identity mismatch instead.
+        const detail = error instanceof Error ? error.message : 'unwrap failed';
+        throw new Error(
+          `Could not unlock the crew encryption key (${detail}). ` +
+          'Confirm you unlocked with the same recovery phrase used when this crew key was created, then try again.'
+        );
       }
     }
 
+    // Only mint a fresh key when this crew has never distributed one (or this solo
+    // member has no wrap yet and is allowed to bootstrap). Never after a failed unwrap.
     const soloRecovery = await this.tryRecoverSoloCrewKey(crewId, state, publicKeys);
     if (soloRecovery) {
       return soloRecovery;
@@ -290,8 +298,12 @@ export class CryptoSessionService {
           state.myDistribution,
           publicKeyByUserId
         );
-      } catch {
-        // Distribution may have been wrapped for a previous identity key pair.
+      } catch (error: unknown) {
+        const detail = error instanceof Error ? error.message : 'unwrap failed';
+        throw new Error(
+          `Could not unlock the fleet encryption key (${detail}). ` +
+          'Confirm you unlocked with the same recovery phrase used when this fleet key was created, then try again.'
+        );
       }
     }
 
@@ -489,10 +501,16 @@ export class CryptoSessionService {
       return null;
     }
 
-    const nextVersion = Math.max(state.latestKeyVersion ?? 0, 0) + 1;
+    // A prior key version means ciphertext already exists. Minting a replacement
+    // would make that history permanently undecryptable.
+    if ((state.latestKeyVersion ?? 0) > 0) {
+      return null;
+    }
+
+    const keyVersion = 1;
     const crewKeyBytes = this.cryptoService.generateCrewKeyBytes();
-    await this.uploadCrewKeyDistributions(crewId, nextVersion, crewKeyBytes, publicKeys);
-    return this.cacheCrewKeyMaterial(crewId, nextVersion, crewKeyBytes);
+    await this.uploadCrewKeyDistributions(crewId, keyVersion, crewKeyBytes, publicKeys);
+    return this.cacheCrewKeyMaterial(crewId, keyVersion, crewKeyBytes);
   }
 
   private async tryRecoverSoloFleetKey(
@@ -505,14 +523,20 @@ export class CryptoSessionService {
       return null;
     }
 
-    const nextVersion = Math.max(state.latestKeyVersion ?? 0, 0) + 1;
+    if ((state.latestKeyVersion ?? 0) > 0) {
+      return null;
+    }
+
+    const keyVersion = 1;
     const fleetKeyBytes = this.cryptoService.generateFleetKeyBytes();
-    await this.uploadFleetKeyDistributions(fleetId, nextVersion, fleetKeyBytes, publicKeys);
-    return this.cacheFleetKeyMaterial(fleetId, nextVersion, fleetKeyBytes);
+    await this.uploadFleetKeyDistributions(fleetId, keyVersion, fleetKeyBytes, publicKeys);
+    return this.cacheFleetKeyMaterial(fleetId, keyVersion, fleetKeyBytes);
   }
 
   private getCurrentUserId(): number | null {
-    const token = this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
+    // Auth may store the JWT in session (remember-login off) or persistent storage.
+    const token = this.storage.get(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY)
+      ?? this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY);
     return token ? getUserIdFromToken(token) : null;
   }
 

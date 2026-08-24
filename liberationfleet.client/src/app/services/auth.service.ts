@@ -72,6 +72,9 @@ export class AuthService {
     if (response.token) {
       // Drop any prior session caches so membership/fleet status cannot stick
       // across accounts or survive a failed pre-login probe as "not in a crew".
+      // Also clear in-memory crypto keys so a prior account's identity cannot
+      // decrypt (or silently corrupt) the new session's content.
+      this.cryptoSession.clearSession();
       this.clearSessionCaches();
       this.setToken(response.token);
       this.currentUserSubject.next(response.user ?? null);

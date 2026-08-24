@@ -28,7 +28,15 @@ export class GiftLogCryptoService {
       return entries.map(entry => this.maskEncryptedEntry(entry));
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    let crewKey: CryptoKey;
+    try {
+      crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    } catch {
+      return entries.map(entry => ({
+        ...entry,
+        message: entry.hasEncryptedContent ? '[Unable to decrypt gift entry]' : entry.message
+      }));
+    }
     const decrypted = await Promise.all(entries.map(async entry => {
       if (!entry.hasEncryptedContent || !entry.encryptedPayload) {
         return entry;

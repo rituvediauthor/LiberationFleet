@@ -65,6 +65,20 @@ export function isConnectivityError(error: unknown): boolean {
   return false;
 }
 
+/** True for transient failures worth a short automatic retry (offline or server warming up). */
+export function isRetryableLoadError(error: unknown): boolean {
+  if (isConnectivityError(error)) {
+    return true;
+  }
+
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const status = (error as { status?: unknown }).status;
+  return status === 503;
+}
+
 /** User-facing copy when a load failed because of the device's connection. */
 export const CONNECTIVITY_ERROR_MESSAGE =
   'Unable to reach Liberation Fleet. Check your internet connection — this is a communication problem on your device, not an app bug.';

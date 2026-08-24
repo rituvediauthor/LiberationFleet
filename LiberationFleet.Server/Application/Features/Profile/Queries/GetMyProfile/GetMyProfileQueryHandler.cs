@@ -84,11 +84,18 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 }
             }
 
-            giftStats = await _giftRepository.GetCrewmateGiftStatsAsync(
-                userId.Value,
-                membership.CrewId,
-                membership.Crew?.CurrentSeasonStartDate,
-                cancellationToken);
+            try
+            {
+                giftStats = await _giftRepository.GetCrewmateGiftStatsAsync(
+                    userId.Value,
+                    membership.CrewId,
+                    membership.Crew?.CurrentSeasonStartDate,
+                    cancellationToken);
+            }
+            catch
+            {
+                giftStats = new CrewmateGiftStatsDto();
+            }
 
             isFinancialMember = await _mutualAidService.IsFinancialMemberAsync(
                 userId.Value,
