@@ -39,7 +39,6 @@ import { SecurityAlertsComponent } from './pages/security-alerts/security-alerts
 import { PasswordUpdateComponent } from './pages/password-update/password-update.component';
 import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
 import { DonateComponent } from './pages/donate/donate.component';
-import { AiDisclosureComponent } from './pages/ai-disclosure/ai-disclosure.component';
 import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
 import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
 import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
@@ -402,14 +401,6 @@ export const routes: Routes = [
     title: 'Donate'
   ,
     data: { parentTab: 'profile', locationHeader: 'Donate' }
-  },
-  {
-    path: 'app/ai-disclosure',
-    component: AiDisclosureComponent,
-    canActivate: [authGuard],
-    title: 'AI Disclosure'
-  ,
-    data: { parentTab: 'profile', locationHeader: 'AI Disclosure' }
   },
   {
     path: 'app/profile/gift-history',
