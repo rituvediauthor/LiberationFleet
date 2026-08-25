@@ -92,7 +92,12 @@ app-root {
   flex-direction: column;
 }
 
+.scroll-page-body > :not(app-fallible-footer) {
+  flex: 1 0 auto;
+}
+
 .scroll-page-body app-fallible-footer {
+  flex-shrink: 0;
   margin-top: auto;
 }
 
