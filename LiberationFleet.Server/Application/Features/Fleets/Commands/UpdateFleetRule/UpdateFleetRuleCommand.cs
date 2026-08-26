@@ -1,6 +1,8 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -16,6 +18,8 @@ public class UpdateFleetRuleCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     FleetRulesProposalService fleetRulesProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateFleetRuleCommand, FleetRuleOperationResponse>
 {
@@ -55,6 +59,22 @@ public class UpdateFleetRuleCommandHandler(
 
         if (fleet.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureFleetMemberCanCreateAsync(
+                fleet,
+                membership,
+                membership.Crew,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new FleetRuleOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create fleet proposals yet."
+                };
+            }
+
             var proposalId = await fleetRulesProposalService.CreateProposalAsync(
                 fleet.Id,
                 userId,

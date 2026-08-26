@@ -16,6 +16,8 @@ public record GetCrewProposalsQuery(string Status) : IRequest<ProposalListRespon
 public class GetCrewProposalsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    ICrewRepository crewRepository,
+    IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     CrewSettingsProposalService crewSettingsProposalService,
@@ -57,7 +59,11 @@ public class GetCrewProposalsQueryHandler(
         foreach (var proposal in proposals)
         {
             var statusBefore = proposal.Status;
-            ProposalVotingService.TryResolveOnTimer(proposal, utcNow);
+            var eligible = await ProposalEligibility.GetEligibleVoterCountAsync(
+                proposal, proposalRepository, fleetRepository, cancellationToken);
+            var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
+                proposal, crewRepository, fleetRepository, cancellationToken);
+            ProposalVotingService.TryResolveOnTimer(proposal, utcNow, duoMode, eligible);
             await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
                 proposal,
                 statusBefore,

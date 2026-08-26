@@ -10,6 +10,7 @@ public class ProposalListItemDto
     public string? AuthorAvatarResourceId { get; set; }
     public DateTime LastActivityAt { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string Kind { get; set; } = string.Empty;
     public int ApproveCount { get; set; }
     public int DisapproveCount { get; set; }
     public DateTime? ApprovalTimerEndsAt { get; set; }

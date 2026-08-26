@@ -86,6 +86,7 @@ public class FleetRepository : IFleetRepository
     {
         var crewMemberCount = await _context.CrewMemberships.CountAsync(
             m => !m.IsBanned
+                 && !m.IsPlaceholderMember
                  && _context.FleetCrews.Any(fc => fc.FleetId == fleetId && fc.CrewId == m.CrewId),
             cancellationToken);
         var noCrewCount = await CountNoCrewMembersAsync(fleetId, cancellationToken);

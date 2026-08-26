@@ -18,6 +18,7 @@ public static class CrewMapper
         JoinCode = crew.JoinCode,
         AllowSurvivalThresholds = crew.AllowSurvivalThresholds,
         RequireApprovalForEdits = crew.RequireApprovalForEdits,
+        DuoVoteTimeoutMode = crew.DuoVoteTimeoutMode.ToString(),
         InNeedDefaultThreshold = crew.InNeedDefaultThreshold,
         FinancialMembershipContributionFloor = crew.FinancialMembershipContributionFloor,
         LibraryOfThingsEnabled = crew.LibraryOfThingsEnabled,

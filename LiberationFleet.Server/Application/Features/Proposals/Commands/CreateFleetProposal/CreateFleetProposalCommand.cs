@@ -127,6 +127,7 @@ public class CreateFleetProposalCommandHandler(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

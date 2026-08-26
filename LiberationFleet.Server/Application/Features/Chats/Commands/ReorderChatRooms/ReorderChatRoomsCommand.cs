@@ -2,6 +2,8 @@ using System.Text.Json;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -18,6 +20,8 @@ public class ReorderChatRoomsCommandHandler(
     ICrewRepository crewRepository,
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     CrewChatsProposalService crewChatsProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<ReorderChatRoomsCommand, ChatOperationResponse>
 {
@@ -56,10 +60,12 @@ public class ReorderChatRoomsCommandHandler(
         int? crewId = null;
         int? fleetId = null;
         bool requiresApproval;
+        Domain.Entities.Crew? crew = null;
+        Domain.Entities.Fleet? fleet = null;
 
         if (isFleetScope)
         {
-            var fleet = await fleetRepository.GetFleetForUserAsync(userId, cancellationToken);
+            fleet = await fleetRepository.GetFleetForUserAsync(userId, cancellationToken);
             if (fleet is null)
             {
                 return Failure("You are not in a fleet.");
@@ -70,7 +76,7 @@ public class ReorderChatRoomsCommandHandler(
         }
         else
         {
-            var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
+            crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
             if (crew is null)
             {
                 return Failure("Crew not found.");
@@ -104,6 +110,34 @@ public class ReorderChatRoomsCommandHandler(
 
         if (requiresApproval)
         {
+            if (isFleetScope)
+            {
+                var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureFleetMemberCanCreateAsync(
+                    fleet!,
+                    membership,
+                    membership.Crew,
+                    giftRepository,
+                    contentTenureService,
+                    cancellationToken);
+                if (!canPropose)
+                {
+                    return Failure(proposeError ?? "You are not allowed to create fleet proposals yet.");
+                }
+            }
+            else
+            {
+                var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+                    crew!,
+                    membership,
+                    giftRepository,
+                    contentTenureService,
+                    cancellationToken);
+                if (!canPropose)
+                {
+                    return Failure(proposeError ?? "You are not allowed to create proposals yet.");
+                }
+            }
+
             var proposalId = isFleetScope
                 ? await crewChatsProposalService.CreateFleetProposalAsync(
                     fleetId!.Value,

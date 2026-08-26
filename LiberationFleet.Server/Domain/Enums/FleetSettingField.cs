@@ -14,5 +14,6 @@ public enum FleetSettingField
     MinimumContributionForAttachments = 9,
     MinimumCrewmateTenureDaysForProposals = 10,
     MinimumContributionForProposals = 11,
-    ImageResourceId = 12
+    ImageResourceId = 12,
+    DuoVoteTimeoutMode = 13
 }

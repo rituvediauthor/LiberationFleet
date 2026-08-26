@@ -19,6 +19,7 @@ public class VoteProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     IProposalRepository proposalRepository,
     CrewSettingsProposalService crewSettingsProposalService,
     CrewRulesProposalService crewRulesProposalService,
@@ -131,8 +132,13 @@ public class VoteProposalCommandHandler(
             proposalRepository,
             fleetRepository,
             cancellationToken);
+        var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
+            proposal,
+            crewRepository,
+            fleetRepository,
+            cancellationToken);
         var statusBefore = proposal.Status;
-        ProposalVotingService.RecalculateStatus(proposal, eligibleCount, utcNow);
+        ProposalVotingService.RecalculateStatus(proposal, eligibleCount, utcNow, duoMode);
         await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
             proposal,
             statusBefore,

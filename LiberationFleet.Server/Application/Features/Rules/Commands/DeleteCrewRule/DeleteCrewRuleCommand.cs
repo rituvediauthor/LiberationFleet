@@ -1,7 +1,9 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -17,6 +19,8 @@ public class DeleteCrewRuleCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     CrewRulesProposalService crewRulesProposalService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteCrewRuleCommand, RuleOperationResponse>
@@ -35,7 +39,8 @@ public class DeleteCrewRuleCommandHandler(
             return new RuleOperationResponse { Success = false, Message = "Rule not found." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, rule.CrewId, cancellationToken))
+        var membership = await membershipRepository.GetMembershipAsync(userId, rule.CrewId, cancellationToken);
+        if (membership is null || membership.IsBanned)
         {
             return new RuleOperationResponse { Success = false, Message = "You are not in this crew." };
         }
@@ -48,6 +53,21 @@ public class DeleteCrewRuleCommandHandler(
 
         if (crew.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+                crew,
+                membership,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new RuleOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create proposals yet."
+                };
+            }
+
             var proposalId = await crewRulesProposalService.CreateProposalAsync(
                 crew.Id,
                 userId,

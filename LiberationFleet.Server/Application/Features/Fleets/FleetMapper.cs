@@ -16,6 +16,7 @@ public static class FleetMapper
         RadiusMiles = fleet.RadiusMiles,
         JoinCode = fleet.JoinCode,
         RequireApprovalForEdits = fleet.RequireApprovalForEdits,
+        DuoVoteTimeoutMode = fleet.DuoVoteTimeoutMode.ToString(),
         LibraryOfThingsEnabled = fleet.LibraryOfThingsEnabled,
         AllowCrewmateFileAttachments = fleet.AllowCrewmateFileAttachments,
         MinimumCrewmateTenureDaysForAttachments = fleet.MinimumCrewmateTenureDaysForAttachments,

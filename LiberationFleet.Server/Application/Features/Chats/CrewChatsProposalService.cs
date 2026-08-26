@@ -16,6 +16,7 @@ public class CrewChatsProposalService(
     IChatRealtimeNotifier chatRealtimeNotifier,
     NotificationService notificationService,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<int> CreateProposalAsync(
@@ -73,6 +74,7 @@ public class CrewChatsProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
@@ -146,6 +148,7 @@ public class CrewChatsProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
@@ -186,63 +189,50 @@ public class CrewChatsProposalService(
         }
 
         var utcNow = DateTime.UtcNow;
+        bool applied;
 
         if (proposal.Kind == ProposalKind.FleetChatChange)
         {
-            switch (change.Action)
+            applied = change.Action switch
             {
-                case CrewChatProposalAction.Create:
-                    await ApplyFleetCreateAsync(proposal, change, utcNow, cancellationToken);
-                    break;
-                case CrewChatProposalAction.Update:
-                    await ApplyFleetUpdateAsync(change, utcNow, cancellationToken);
-                    break;
-                case CrewChatProposalAction.Delete:
-                    await ApplyDeleteAsync(change, utcNow, cancellationToken);
-                    if (change.RoomId.HasValue)
-                    {
-                        await proposalRepository.CancelPendingChatUpdateProposalsForRoomAsync(
-                            change.RoomId.Value,
-                            proposal.Id,
-                            cancellationToken);
-                    }
-                    break;
-                case CrewChatProposalAction.Reorder:
-                    await ApplyReorderAsync(change, crewId: null, proposal.FleetId, cancellationToken);
-                    break;
-            }
-
-            change.IsApplied = true;
-            return;
+                CrewChatProposalAction.Create => await ApplyFleetCreateAsync(proposal, change, utcNow, cancellationToken),
+                CrewChatProposalAction.Update => await ApplyFleetUpdateAsync(change, utcNow, cancellationToken),
+                CrewChatProposalAction.Delete => await ApplyDeleteAsync(change, utcNow, cancellationToken),
+                CrewChatProposalAction.Reorder => await ApplyReorderAsync(change, crewId: null, proposal.FleetId, cancellationToken),
+                _ => false
+            };
+        }
+        else
+        {
+            applied = change.Action switch
+            {
+                CrewChatProposalAction.Create => await ApplyCreateAsync(proposal, change, proposal.AuthorUserId, utcNow, cancellationToken),
+                CrewChatProposalAction.Update => await ApplyUpdateAsync(change, utcNow, cancellationToken),
+                CrewChatProposalAction.Delete => await ApplyDeleteAsync(change, utcNow, cancellationToken),
+                CrewChatProposalAction.Reorder => await ApplyReorderAsync(change, proposal.CrewId, fleetId: null, cancellationToken),
+                _ => false
+            };
         }
 
-        switch (change.Action)
+        if (change.Action == CrewChatProposalAction.Delete && change.RoomId.HasValue && applied)
         {
-            case CrewChatProposalAction.Create:
-                await ApplyCreateAsync(proposal, change, proposal.AuthorUserId, utcNow, cancellationToken);
-                break;
-            case CrewChatProposalAction.Update:
-                await ApplyUpdateAsync(change, utcNow, cancellationToken);
-                break;
-            case CrewChatProposalAction.Delete:
-                await ApplyDeleteAsync(change, utcNow, cancellationToken);
-                if (change.RoomId.HasValue)
-                {
-                    await proposalRepository.CancelPendingChatUpdateProposalsForRoomAsync(
-                        change.RoomId.Value,
-                        proposal.Id,
-                        cancellationToken);
-                }
-                break;
-            case CrewChatProposalAction.Reorder:
-                await ApplyReorderAsync(change, proposal.CrewId, fleetId: null, cancellationToken);
-                break;
+            await proposalRepository.CancelPendingChatUpdateProposalsForRoomAsync(
+                change.RoomId.Value,
+                proposal.Id,
+                cancellationToken);
+        }
+
+        if (!applied)
+        {
+            change.Description = string.IsNullOrWhiteSpace(change.Description)
+                ? "Apply failed: incomplete chat change payload."
+                : change.Description + " Apply failed: incomplete chat change payload.";
         }
 
         change.IsApplied = true;
     }
 
-    private async Task ApplyCreateAsync(
+    private async Task<bool> ApplyCreateAsync(
         Proposal proposal,
         ProposalCrewChatChange change,
         int authorUserId,
@@ -251,7 +241,7 @@ public class CrewChatsProposalService(
     {
         if (string.IsNullOrWhiteSpace(change.NameNonce) || string.IsNullOrWhiteSpace(change.NameCiphertext))
         {
-            return;
+            return false;
         }
 
         var room = new ChatRoom
@@ -295,9 +285,11 @@ public class CrewChatsProposalService(
             var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope);
             await chatRealtimeNotifier.NotifyRoomCreatedAsync(proposal.CrewId!.Value, dto, cancellationToken);
         }
+
+        return true;
     }
 
-    private async Task ApplyFleetCreateAsync(
+    private async Task<bool> ApplyFleetCreateAsync(
         Proposal proposal,
         ProposalCrewChatChange change,
         DateTime utcNow,
@@ -305,7 +297,7 @@ public class CrewChatsProposalService(
     {
         if (!proposal.FleetId.HasValue || string.IsNullOrWhiteSpace(change.PlaintextName))
         {
-            return;
+            return false;
         }
 
         var room = new ChatRoom
@@ -324,9 +316,10 @@ public class CrewChatsProposalService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         change.RoomId = room.Id;
+        return true;
     }
 
-    private async Task ApplyUpdateAsync(
+    private async Task<bool> ApplyUpdateAsync(
         ProposalCrewChatChange change,
         DateTime utcNow,
         CancellationToken cancellationToken)
@@ -335,13 +328,13 @@ public class CrewChatsProposalService(
             || string.IsNullOrWhiteSpace(change.NameNonce)
             || string.IsNullOrWhiteSpace(change.NameCiphertext))
         {
-            return;
+            return false;
         }
 
         var room = await chatRepository.GetRoomByIdAsync(change.RoomId.Value, cancellationToken);
-        if (room is null)
+        if (room is null || !room.CrewId.HasValue)
         {
-            return;
+            return false;
         }
 
         room.Purpose = change.Purpose;
@@ -351,7 +344,7 @@ public class CrewChatsProposalService(
         {
             ContentType = EncryptedContentType.ChatRoomName,
             ResourceId = room.Id.ToString(),
-            CrewId = room.CrewId!.Value,
+            CrewId = room.CrewId.Value,
             AuthorUserId = room.CreatedByUserId,
             KeyVersion = change.KeyVersion,
             Nonce = change.NameNonce.Trim(),
@@ -359,50 +352,53 @@ public class CrewChatsProposalService(
             CreatedAt = utcNow,
             UpdatedAt = utcNow
         }, cancellationToken);
+        return true;
     }
 
-    private async Task ApplyFleetUpdateAsync(
+    private async Task<bool> ApplyFleetUpdateAsync(
         ProposalCrewChatChange change,
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
         if (!change.RoomId.HasValue || string.IsNullOrWhiteSpace(change.PlaintextName))
         {
-            return;
+            return false;
         }
 
         var room = await chatRepository.GetRoomByIdAsync(change.RoomId.Value, cancellationToken);
         if (room is null)
         {
-            return;
+            return false;
         }
 
         room.Name = change.PlaintextName.Trim();
         room.Purpose = change.Purpose;
         room.LastActivityAt = utcNow;
+        return true;
     }
 
-    private async Task ApplyDeleteAsync(
+    private async Task<bool> ApplyDeleteAsync(
         ProposalCrewChatChange change,
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
         if (!change.RoomId.HasValue)
         {
-            return;
+            return false;
         }
 
         var room = await chatRepository.GetRoomByIdAsync(change.RoomId.Value, cancellationToken);
         if (room is null)
         {
-            return;
+            return false;
         }
 
         room.IsDeleted = true;
         room.LastActivityAt = utcNow;
+        return true;
     }
 
-    private async Task ApplyReorderAsync(
+    private async Task<bool> ApplyReorderAsync(
         ProposalCrewChatChange change,
         int? crewId,
         int? fleetId,
@@ -410,7 +406,7 @@ public class CrewChatsProposalService(
     {
         if (string.IsNullOrWhiteSpace(change.OrderedRoomIdsJson))
         {
-            return;
+            return false;
         }
 
         int[]? roomIds;
@@ -420,12 +416,12 @@ public class CrewChatsProposalService(
         }
         catch (JsonException)
         {
-            return;
+            return false;
         }
 
         if (roomIds is null)
         {
-            return;
+            return false;
         }
 
         await chatRepository.UpdateRoomSortOrdersAsync(
@@ -433,5 +429,6 @@ public class CrewChatsProposalService(
             crewId,
             fleetId,
             cancellationToken);
+        return true;
     }
 }

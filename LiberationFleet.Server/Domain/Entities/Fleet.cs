@@ -14,6 +14,8 @@ public class Fleet
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool RequireApprovalForEdits { get; set; } = true;
+    /// <summary>How 1:1 (exactly two eligible voters) proposals resolve when still incomplete at timer expiry.</summary>
+    public DuoVoteTimeoutMode DuoVoteTimeoutMode { get; set; } = DuoVoteTimeoutMode.AutoReject;
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }

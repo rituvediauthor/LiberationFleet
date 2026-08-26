@@ -36,6 +36,7 @@ public class GetProposalDetailQueryHandler(
     ProposalAnonymousAliasService aliasService,
     IUserBlockRepository blockRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -71,7 +72,11 @@ public class GetProposalDetailQueryHandler(
 
         var utcNow = DateTime.UtcNow;
         var statusBefore = proposal.Status;
-        ProposalVotingService.TryResolveOnTimer(proposal, utcNow);
+        var eligible = await ProposalEligibility.GetEligibleVoterCountAsync(
+            proposal, proposalRepository, fleetRepository, cancellationToken);
+        var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
+            proposal, crewRepository, fleetRepository, cancellationToken);
+        ProposalVotingService.TryResolveOnTimer(proposal, utcNow, duoMode, eligible);
         await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
             proposal,
             statusBefore,
@@ -110,7 +115,7 @@ public class GetProposalDetailQueryHandler(
             ? await proposalRepository.GetCrewRuleChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
-        var crewChatChange = proposal.Kind == ProposalKind.CrewChatChange
+        var crewChatChange = proposal.Kind is ProposalKind.CrewChatChange or ProposalKind.FleetChatChange
             ? await proposalRepository.GetCrewChatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 

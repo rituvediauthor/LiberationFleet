@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Proposals;
 
@@ -41,16 +42,51 @@ public static class ProposalEligibility
         IFleetRepository fleetRepository,
         CancellationToken cancellationToken)
     {
+        int count;
         if (proposal.FleetId.HasValue)
         {
-            return await fleetRepository.CountActiveFleetMembersAsync(proposal.FleetId.Value, cancellationToken);
+            count = await fleetRepository.CountActiveFleetMembersAsync(proposal.FleetId.Value, cancellationToken);
         }
-
-        if (!proposal.CrewId.HasValue)
+        else if (proposal.CrewId.HasValue)
+        {
+            count = await proposalRepository.GetActiveCrewMemberCountAsync(proposal.CrewId.Value, cancellationToken);
+        }
+        else
         {
             return 0;
         }
 
-        return await proposalRepository.GetActiveCrewMemberCountAsync(proposal.CrewId.Value, cancellationToken);
+        if (proposal.Kind is ProposalKind.CrewmateKick or ProposalKind.CrewmateSeasonKick)
+        {
+            var kick = await proposalRepository.GetCrewmateKickByProposalIdAsync(proposal.Id, cancellationToken);
+            if (kick is not null && count > 0)
+            {
+                // Target cannot vote; do not include them in N.
+                count = Math.Max(0, count - 1);
+            }
+        }
+
+        return count;
+    }
+
+    public static async Task<DuoVoteTimeoutMode> GetDuoVoteTimeoutModeAsync(
+        Proposal proposal,
+        ICrewRepository crewRepository,
+        IFleetRepository fleetRepository,
+        CancellationToken cancellationToken)
+    {
+        if (proposal.FleetId.HasValue)
+        {
+            var fleet = await fleetRepository.GetByIdAsync(proposal.FleetId.Value, cancellationToken);
+            return fleet?.DuoVoteTimeoutMode ?? DuoVoteTimeoutMode.AutoReject;
+        }
+
+        if (proposal.CrewId.HasValue)
+        {
+            var crew = await crewRepository.GetByIdAsync(proposal.CrewId.Value, cancellationToken);
+            return crew?.DuoVoteTimeoutMode ?? DuoVoteTimeoutMode.AutoReject;
+        }
+
+        return DuoVoteTimeoutMode.AutoReject;
     }
 }

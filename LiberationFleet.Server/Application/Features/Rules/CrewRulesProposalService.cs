@@ -12,6 +12,7 @@ public class CrewRulesProposalService(
     IRuleRepository ruleRepository,
     ICryptoRepository cryptoRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -64,6 +65,7 @@ public class CrewRulesProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
@@ -103,20 +105,31 @@ public class CrewRulesProposalService(
         switch (change.Action)
         {
             case CrewRuleProposalAction.Create:
-                await ApplyCreateAsync(proposal, change, authorUserId: proposal.AuthorUserId, utcNow, cancellationToken);
-                if (change.RuleId.HasValue)
+                if (!await ApplyCreateAsync(proposal, change, authorUserId: proposal.AuthorUserId, utcNow, cancellationToken))
                 {
-                    await NotifyRuleChangeAsync(
-                        proposal.CrewId!.Value,
-                        NotificationKind.NewRule,
-                        change.RuleId.Value,
-                        "New rule",
-                        "A new crew rule was added via approved proposal.",
-                        cancellationToken);
+                    change.Description = string.IsNullOrWhiteSpace(change.Description)
+                        ? "Apply failed: missing encrypted rule content."
+                        : change.Description + " Apply failed: missing encrypted rule content.";
+                    change.IsApplied = true;
+                    return;
                 }
+                await NotifyRuleChangeAsync(
+                    proposal.CrewId!.Value,
+                    NotificationKind.NewRule,
+                    change.RuleId!.Value,
+                    "New rule",
+                    "A new crew rule was added via approved proposal.",
+                    cancellationToken);
                 break;
             case CrewRuleProposalAction.Update:
-                await ApplyUpdateAsync(change, utcNow, cancellationToken);
+                if (!await ApplyUpdateAsync(change, utcNow, cancellationToken))
+                {
+                    change.Description = string.IsNullOrWhiteSpace(change.Description)
+                        ? "Apply failed: rule missing or encrypted content incomplete."
+                        : change.Description + " Apply failed: rule missing or encrypted content incomplete.";
+                    change.IsApplied = true;
+                    return;
+                }
                 if (change.RuleId.HasValue)
                 {
                     await NotifyRuleChangeAsync(
@@ -166,13 +179,19 @@ public class CrewRulesProposalService(
             relatedEntityId: ruleId,
             cancellationToken: cancellationToken);
 
-    private async Task ApplyCreateAsync(
+    private async Task<bool> ApplyCreateAsync(
         Proposal proposal,
         ProposalCrewRuleChange change,
         int authorUserId,
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
+        if (!change.IsPublic
+            && (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext)))
+        {
+            return false;
+        }
+
         var rule = new CrewRule
         {
             CrewId = proposal.CrewId!.Value,
@@ -188,11 +207,6 @@ public class CrewRulesProposalService(
 
         if (!change.IsPublic)
         {
-            if (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext))
-            {
-                return;
-            }
-
             await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
             {
                 ContentType = EncryptedContentType.RulesDocument,
@@ -200,30 +214,31 @@ public class CrewRulesProposalService(
                 CrewId = proposal.CrewId!.Value,
                 AuthorUserId = authorUserId,
                 KeyVersion = change.KeyVersion,
-                Nonce = change.Nonce.Trim(),
-                Ciphertext = change.Ciphertext.Trim(),
+                Nonce = change.Nonce!.Trim(),
+                Ciphertext = change.Ciphertext!.Trim(),
                 CreatedAt = utcNow,
                 UpdatedAt = utcNow
             }, cancellationToken);
         }
 
         change.RuleId = rule.Id;
+        return true;
     }
 
-    private async Task ApplyUpdateAsync(
+    private async Task<bool> ApplyUpdateAsync(
         ProposalCrewRuleChange change,
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
         if (!change.RuleId.HasValue)
         {
-            return;
+            return false;
         }
 
         var rule = await ruleRepository.GetByIdAsync(change.RuleId.Value, cancellationToken);
         if (rule is null)
         {
-            return;
+            return false;
         }
 
         rule.UpdatedAt = utcNow;
@@ -232,12 +247,12 @@ public class CrewRulesProposalService(
         {
             rule.Title = change.Title;
             rule.Description = change.Description;
-            return;
+            return true;
         }
 
         if (string.IsNullOrWhiteSpace(change.Nonce) || string.IsNullOrWhiteSpace(change.Ciphertext))
         {
-            return;
+            return false;
         }
 
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
@@ -252,6 +267,7 @@ public class CrewRulesProposalService(
             CreatedAt = utcNow,
             UpdatedAt = utcNow
         }, cancellationToken);
+        return true;
     }
 
     private async Task ApplyDeleteAsync(

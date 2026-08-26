@@ -9,6 +9,7 @@ namespace LiberationFleet.Server.Application.Features.Fleets;
 public class FleetRulesProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -59,6 +60,7 @@ public class FleetRulesProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

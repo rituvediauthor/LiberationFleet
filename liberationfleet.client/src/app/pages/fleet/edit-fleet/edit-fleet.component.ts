@@ -74,6 +74,7 @@ export class EditFleetComponent implements OnInit {
       zipCode: [''],
       radiusMiles: [25],
       requireApprovalForEdits: [true],
+      duoVoteTimeoutMode: ['AutoReject'],
       libraryOfThingsEnabled: [true],
       allowCrewmateFileAttachments: [false],
       minimumCrewmateTenureDaysForAttachments: [0, [Validators.min(0)]],
@@ -336,6 +337,7 @@ export class EditFleetComponent implements OnInit {
     zipCode?: string;
     radiusMiles?: number;
     requireApprovalForEdits?: boolean;
+    duoVoteTimeoutMode?: string;
     libraryOfThingsEnabled?: boolean;
     allowCrewmateFileAttachments?: boolean;
     minimumCrewmateTenureDaysForAttachments?: number;
@@ -352,6 +354,7 @@ export class EditFleetComponent implements OnInit {
       zipCode: fleet.zipCode ?? '',
       radiusMiles: fleet.radiusMiles ?? 25,
       requireApprovalForEdits: fleet.requireApprovalForEdits ?? true,
+      duoVoteTimeoutMode: fleet.duoVoteTimeoutMode ?? 'AutoReject',
       libraryOfThingsEnabled: fleet.libraryOfThingsEnabled ?? true,
       allowCrewmateFileAttachments: fleet.allowCrewmateFileAttachments ?? false,
       minimumCrewmateTenureDaysForAttachments: fleet.minimumCrewmateTenureDaysForAttachments ?? 0,
@@ -375,6 +378,7 @@ export class EditFleetComponent implements OnInit {
       zipCode: scope === 'Local' ? String(this.form.get('zipCode')?.value).trim() : undefined,
       radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
+      duoVoteTimeoutMode: String(this.form.get('duoVoteTimeoutMode')?.value || 'AutoReject'),
       libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,
       allowCrewmateFileAttachments: !!this.form.get('allowCrewmateFileAttachments')?.value,
       minimumCrewmateTenureDaysForAttachments: Number(this.form.get('minimumCrewmateTenureDaysForAttachments')?.value),

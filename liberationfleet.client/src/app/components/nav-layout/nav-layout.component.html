@@ -8,80 +8,82 @@
     </div>
   </div>
 
-  <nav class="bottom-nav" aria-label="Main navigation">    
-    <a
-      routerLink="/app/notifications"
-      routerLinkActive="active"
-      class="nav-item"
-      #notificationsNav="routerLinkActive"
-      [attr.aria-current]="notificationsNav.isActive ? 'page' : null">
-      <span class="nav-icon-wrap">
-        <i class="fa-solid fa-bell nav-icon" aria-hidden="true"></i>
-        <app-content-badge [count]="unreadCount"></app-content-badge>
-      </span>
-      <span class="nav-label">Notifications</span>
-    </a>
-    <a
-      routerLink="/app/fleet"
-      routerLinkActive="active"
-      class="nav-item"
-      #fleetNav="routerLinkActive"
-      [attr.aria-current]="fleetNav.isActive ? 'page' : null"
-      style="padding-bottom: 10px; gap:0px;">
-      <app-brand-logo
-        class="nav-logo"
-        [class.nav-logo-custom]="!!fleetImageSrc"
-        variant="fleet"
-        size="sm"
-        [monochrome]="!fleetNav.isActive"
-        [customSrc]="fleetImageSrc"
-        alt="">
-      </app-brand-logo>
-      <span class="nav-label">Fleet</span>
-    </a>
-    <a
-      routerLink="/app/crew"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      class="nav-item"
-      #crewNav="routerLinkActive"
-      [attr.aria-current]="crewNav.isActive ? 'page' : null"
-      style="padding-bottom: 10px; gap:0px;">
-      <app-brand-logo
-        class="nav-logo"
-        [class.nav-logo-custom]="!!crewImageSrc"
-        variant="crew"
-        size="sm"
-        [monochrome]="!crewNav.isActive"
-        [customSrc]="crewImageSrc"
-        alt="">
-      </app-brand-logo>
-      <span class="nav-label">Crew</span>
-    </a>
-    <a
-      routerLink="/app/friends"
-      routerLinkActive="active"
-      class="nav-item"
-      #friendsNav="routerLinkActive"
-      [attr.aria-current]="friendsNav.isActive ? 'page' : null">
-      <i class="fa-solid fa-user-group nav-icon" aria-hidden="true"></i>
-      <span class="nav-label">Friends</span>
-    </a>
-    <a
-      routerLink="/app/profile"
-      routerLinkActive="active"
-      class="nav-item"
-      #profileNav="routerLinkActive"
-      [attr.aria-current]="profileNav.isActive ? 'page' : null">
-      <app-user-avatar
-        class="nav-avatar"
-        [resourceId]="profileAvatarResourceId"
-        [crewId]="crewId || null"
-        size="xs"
-        alt="">
-      </app-user-avatar>
-      <span class="nav-label">Profile</span>
-    </a>
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <div class="bottom-nav-inner">
+      <a
+        routerLink="/app/notifications"
+        routerLinkActive="active"
+        class="nav-item"
+        #notificationsNav="routerLinkActive"
+        [attr.aria-current]="notificationsNav.isActive ? 'page' : null">
+        <span class="nav-icon-wrap">
+          <i class="fa-solid fa-bell nav-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="unreadCount"></app-content-badge>
+        </span>
+        <span class="nav-label">Notifications</span>
+      </a>
+      <a
+        routerLink="/app/fleet"
+        routerLinkActive="active"
+        class="nav-item"
+        #fleetNav="routerLinkActive"
+        [attr.aria-current]="fleetNav.isActive ? 'page' : null"
+        style="padding-bottom: 10px; gap:0px;">
+        <app-brand-logo
+          class="nav-logo"
+          [class.nav-logo-custom]="!!fleetImageSrc"
+          variant="fleet"
+          size="sm"
+          [monochrome]="!fleetNav.isActive"
+          [customSrc]="fleetImageSrc"
+          alt="">
+        </app-brand-logo>
+        <span class="nav-label">Fleet</span>
+      </a>
+      <a
+        routerLink="/app/crew"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item"
+        #crewNav="routerLinkActive"
+        [attr.aria-current]="crewNav.isActive ? 'page' : null"
+        style="padding-bottom: 10px; gap:0px;">
+        <app-brand-logo
+          class="nav-logo"
+          [class.nav-logo-custom]="!!crewImageSrc"
+          variant="crew"
+          size="sm"
+          [monochrome]="!crewNav.isActive"
+          [customSrc]="crewImageSrc"
+          alt="">
+        </app-brand-logo>
+        <span class="nav-label">Crew</span>
+      </a>
+      <a
+        routerLink="/app/friends"
+        routerLinkActive="active"
+        class="nav-item"
+        #friendsNav="routerLinkActive"
+        [attr.aria-current]="friendsNav.isActive ? 'page' : null">
+        <i class="fa-solid fa-user-group nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Friends</span>
+      </a>
+      <a
+        routerLink="/app/profile"
+        routerLinkActive="active"
+        class="nav-item"
+        #profileNav="routerLinkActive"
+        [attr.aria-current]="profileNav.isActive ? 'page' : null">
+        <app-user-avatar
+          class="nav-avatar"
+          [resourceId]="profileAvatarResourceId"
+          [crewId]="crewId || null"
+          size="xs"
+          alt="">
+        </app-user-avatar>
+        <span class="nav-label">Profile</span>
+      </a>
+    </div>
   </nav>
   <div class="lf-safe-bottom" aria-hidden="true"></div>
 </div>

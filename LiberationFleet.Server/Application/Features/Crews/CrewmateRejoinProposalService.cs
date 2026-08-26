@@ -23,7 +23,9 @@ public sealed class CrewmateRejoinProposalResult
 public class CrewmateRejoinProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     ICrewMembershipRepository membershipRepository,
+    IGiftRepository giftRepository,
     NotificationService notificationService,
     ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork)
@@ -35,6 +37,30 @@ public class CrewmateRejoinProposalService(
         string username,
         CancellationToken cancellationToken)
     {
+        var crew = await crewRepository.GetByIdAsync(crewId, cancellationToken);
+        if (crew is null)
+        {
+            return CrewmateRejoinProposalResult.Failed("Crew not found.");
+        }
+
+        var authorMembership = await membershipRepository.GetMembershipAsync(authorUserId, crewId, cancellationToken);
+        if (authorMembership is null || authorMembership.IsBanned)
+        {
+            return CrewmateRejoinProposalResult.Failed("You are not an active member of this crew.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+            crew,
+            authorMembership,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return CrewmateRejoinProposalResult.Failed(
+                proposeError ?? "You are not allowed to create proposals yet.");
+        }
+
         var pendingRejoin = await proposalRepository.GetPendingCrewmateRejoinForTargetAsync(
             crewId,
             targetUserId,
@@ -85,6 +111,7 @@ public class CrewmateRejoinProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

@@ -23,6 +23,8 @@ public class FleetKickCrewProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
     ICrewRepository crewRepository,
+    ICrewMembershipRepository membershipRepository,
+    IGiftRepository giftRepository,
     ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork)
 {
@@ -33,6 +35,36 @@ public class FleetKickCrewProposalService(
         string? reason,
         CancellationToken cancellationToken)
     {
+        var fleet = await fleetRepository.GetByIdAsync(fleetId, cancellationToken);
+        if (fleet is null)
+        {
+            return FleetKickCrewResult.Failed("Fleet not found.");
+        }
+
+        var authorMembership = await membershipRepository.GetActiveMembershipAsync(authorUserId, cancellationToken);
+        if (authorMembership is null)
+        {
+            return FleetKickCrewResult.Failed("You are not in a crew.");
+        }
+
+        if (!await fleetRepository.IsCrewInFleetAsync(authorMembership.CrewId, fleetId, cancellationToken))
+        {
+            return FleetKickCrewResult.Failed("Your crew is not in this fleet.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureFleetMemberCanCreateAsync(
+            fleet,
+            authorMembership,
+            authorMembership.Crew,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return FleetKickCrewResult.Failed(
+                proposeError ?? "You are not allowed to create fleet proposals yet.");
+        }
+
         if (!await fleetRepository.IsCrewInFleetAsync(targetCrewId, fleetId, cancellationToken))
         {
             return FleetKickCrewResult.Failed("That crew is not in this fleet.");
@@ -84,6 +116,7 @@ public class FleetKickCrewProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

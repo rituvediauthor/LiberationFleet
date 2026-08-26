@@ -490,6 +490,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<int>("DuoVoteTimeoutMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("Scope")
                         .HasColumnType("int");
 
@@ -1221,6 +1226,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
+
+                    b.Property<int>("DuoVoteTimeoutMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("Scope")
                         .HasColumnType("int");

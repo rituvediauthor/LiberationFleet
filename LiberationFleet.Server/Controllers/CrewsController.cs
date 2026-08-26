@@ -58,6 +58,7 @@ public class CrewsController : ControllerBase
             body.RadiusMiles,
             body.AllowSurvivalThresholds,
             body.RequireApprovalForEdits,
+            body.DuoVoteTimeoutMode,
             body.InNeedDefaultThreshold,
             body.FinancialMembershipContributionFloor,
             body.LibraryOfThingsEnabled,

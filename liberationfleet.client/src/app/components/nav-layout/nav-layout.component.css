@@ -22,8 +22,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px;
-  padding-bottom: 24px;
+  padding: 20px var(--lf-content-gutter, 20px) 24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -38,20 +37,35 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  /* Grow with page content so the Fallible footer scrolls below buttons,
-     instead of locking to the viewport and letting content paint over it. */
-  flex: 1 0 auto;
-  min-height: 100%;
+  /* Height follows content so the Fallible footer sits just below the page
+     actions, not pinned to the bottom of the viewport. */
+  flex: 0 0 auto;
   width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .nav-content-inner > :not(app-fallible-footer) {
-  flex: 1 0 auto;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .nav-content-inner app-fallible-footer {
   flex-shrink: 0;
-  margin-top: auto;
+}
+
+/* Hub loading needs the content shell to fill the viewport for centering. */
+.nav-content-inner:has(app-hub-loading) {
+  flex: 1 0 auto;
+  min-height: 100%;
+}
+
+.nav-content-inner:has(app-hub-loading) > :not(app-fallible-footer) {
+  flex: 1 0 auto;
 }
 
 /* Keep the pulsing hub logo centered in the content viewport (no footer pull). */
@@ -62,12 +76,23 @@
 .bottom-nav {
   flex-shrink: 0;
   display: flex;
+  justify-content: center;
   align-items: stretch;
   height: var(--bottom-nav-height);
+  padding: 0 var(--lf-content-gutter, 20px);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);
   z-index: 100;
+  box-sizing: border-box;
+}
+
+.bottom-nav-inner {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  height: 100%;
 }
 
 .nav-item {
@@ -140,8 +165,7 @@
   }
 
   .nav-content {
-    padding: 16px;
-    padding-bottom: 20px;
+    padding: 16px var(--lf-content-gutter, 16px) 20px;
   }
 
   .nav-icon {

@@ -193,6 +193,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.notifyPrefix = `${prefix}/${this.roomId}`;
     if (this.roomId) {
       this.notificationContent.markVisited(this.notifyPrefix, this.roomId);
+      this.restoreComposeAnonymously();
     }
     if (this.highlightId) {
       this.highlightSeekPagesLeft = 5;
@@ -436,6 +437,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.messageAttachments = [];
     this.keptEditAttachments = [];
     this.composerFocused = false;
+    this.restoreComposeAnonymously();
   }
 
   removeKeptAttachment(index: number) {
@@ -467,6 +469,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.keptEditAttachments = [];
     this.editingMessageId = null;
     this.composerFocused = false;
+    this.restoreComposeAnonymously();
     this.preferStickToBottom = true;
     this.scrollToBottom();
     void this.pumpOutbox();
@@ -545,6 +548,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   toggleComposeAnonymously() {
     const enabling = !this.composeAnonymously;
     this.composeAnonymously = enabling;
+    this.persistComposeAnonymously();
     if (enabling && !this.isAnonymousReminderDismissed()) {
       this.dontRemindAnonymousMode = false;
       this.showAnonymousReminderDialog = true;
@@ -566,6 +570,30 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private isAnonymousReminderDismissed(): boolean {
     return this.storage.get(StorageScope.Persistent, ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY) === 'true';
+  }
+
+  private composeAnonymouslyStorageKey(): string {
+    return `lf.chat.anonymous.${this.roomId}`;
+  }
+
+  private restoreComposeAnonymously() {
+    if (!this.roomId) {
+      this.composeAnonymously = false;
+      return;
+    }
+    this.composeAnonymously =
+      this.storage.get(StorageScope.Persistent, this.composeAnonymouslyStorageKey()) === 'true';
+  }
+
+  private persistComposeAnonymously() {
+    if (!this.roomId) {
+      return;
+    }
+    this.storage.set(
+      StorageScope.Persistent,
+      this.composeAnonymouslyStorageKey(),
+      this.composeAnonymously ? 'true' : 'false'
+    );
   }
 
   openKickFromMessage(message: ChatMessage, event: Event) {

@@ -1,7 +1,9 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -22,6 +24,8 @@ public class CreateCrewRuleCommandHandler(
     ICrewRepository crewRepository,
     IRuleRepository ruleRepository,
     ICryptoRepository cryptoRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     CrewRulesProposalService crewRulesProposalService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateCrewRuleCommand, RuleOperationResponse>
@@ -58,6 +62,21 @@ public class CreateCrewRuleCommandHandler(
 
         if (crew.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+                crew,
+                membership,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new RuleOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create proposals yet."
+                };
+            }
+
             var proposalId = await crewRulesProposalService.CreateProposalAsync(
                 crew.Id,
                 userId,

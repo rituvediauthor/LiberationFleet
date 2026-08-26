@@ -25,6 +25,8 @@ public class CrewApplyToFleetProposalService(
     IFleetRepository fleetRepository,
     ICrewRepository crewRepository,
     IChatRepository chatRepository,
+    ICrewMembershipRepository membershipRepository,
+    IGiftRepository giftRepository,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork)
@@ -60,6 +62,47 @@ public class CrewApplyToFleetProposalService(
         if (crew is null)
         {
             return CrewApplyToFleetResult.Failed("Crew not found.");
+        }
+
+        var authorMembership = await membershipRepository.GetActiveMembershipAsync(authorUserId, cancellationToken);
+        if (authorMembership is null)
+        {
+            return CrewApplyToFleetResult.Failed("You are not in a crew.");
+        }
+
+        if (initiatedByFleetInvite)
+        {
+            var (canProposeFleet, proposeErrorFleet) = await ProposalCreationAuthorization.EnsureFleetMemberCanCreateAsync(
+                fleet,
+                authorMembership,
+                authorMembership.Crew,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canProposeFleet)
+            {
+                return CrewApplyToFleetResult.Failed(
+                    proposeErrorFleet ?? "You are not allowed to create fleet proposals yet.");
+            }
+        }
+        else
+        {
+            if (authorMembership.CrewId != applicantCrewId)
+            {
+                return CrewApplyToFleetResult.Failed("You are not a member of this crew.");
+            }
+
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+                crew,
+                authorMembership,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return CrewApplyToFleetResult.Failed(
+                    proposeError ?? "You are not allowed to create proposals yet.");
+            }
         }
 
         var utcNow = DateTime.UtcNow;
@@ -100,6 +143,7 @@ public class CrewApplyToFleetProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

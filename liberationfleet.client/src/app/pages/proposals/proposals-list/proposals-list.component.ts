@@ -19,6 +19,31 @@ import {
   readNotificationHighlightId
 } from '../../../utils/notification-deep-link.util';
 
+const CREW_KIND_OPTIONS: { value: string; label: string }[] = [
+  { value: 'General', label: 'General' },
+  { value: 'CrewSettingChange', label: 'Crew setting' },
+  { value: 'CrewRuleChange', label: 'Crew rule' },
+  { value: 'CrewChatChange', label: 'Chat change' },
+  { value: 'CrewmateKick', label: 'Kick crewmate' },
+  { value: 'CrewmateSeasonKick', label: 'Season kick' },
+  { value: 'CrewmateRejoin', label: 'Rejoin' },
+  { value: 'CrewJoinRequest', label: 'Join request' },
+  { value: 'CrewRoleChange', label: 'Role change' },
+  { value: 'ClaimPlaceholderIdentity', label: 'Claim identity' },
+  { value: 'CrewmatePermissionGrant', label: 'Permission grant' },
+  { value: 'CrewmateAidStatChange', label: 'Aid stat' },
+  { value: 'CrewApplyToFleet', label: 'Apply to fleet' }
+];
+
+const FLEET_KIND_OPTIONS: { value: string; label: string }[] = [
+  { value: 'General', label: 'General' },
+  { value: 'FleetSettingChange', label: 'Fleet setting' },
+  { value: 'FleetRuleChange', label: 'Fleet rule' },
+  { value: 'FleetChatChange', label: 'Chat change' },
+  { value: 'FleetJoinRequest', label: 'Join request' },
+  { value: 'FleetKickCrew', label: 'Kick crew' }
+];
+
 @Component({
   selector: 'app-proposals-list',
   standalone: true,
@@ -29,6 +54,7 @@ import {
 export class ProposalsListComponent implements OnInit, OnDestroy {
   status: ProposalStatus = 'Pending';
   items: ProposalListItem[] = [];
+  selectedKind = '';
   loading = true;
   errorMessage = '';
   crewId = 0;
@@ -122,6 +148,29 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     return this.status;
   }
 
+  get kindOptions(): { value: string; label: string }[] {
+    return this.isFleetScope ? FLEET_KIND_OPTIONS : CREW_KIND_OPTIONS;
+  }
+
+  get filteredItems(): ProposalListItem[] {
+    if (!this.selectedKind) {
+      return this.items;
+    }
+    return this.items.filter(item => item.kind === this.selectedKind);
+  }
+
+  onKindFilterChange(value: string) {
+    this.selectedKind = value;
+  }
+
+  kindLabel(kind?: string): string | null {
+    if (!kind) {
+      return null;
+    }
+    const match = [...CREW_KIND_OPTIONS, ...FLEET_KIND_OPTIONS].find(option => option.value === kind);
+    return match?.label ?? kind;
+  }
+
   proposalBadgeCount(proposalId: number): number {
     return this.resourceCounts[`proposal:${proposalId}`] ?? 0;
   }
@@ -181,4 +230,3 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     });
   }
 }
-

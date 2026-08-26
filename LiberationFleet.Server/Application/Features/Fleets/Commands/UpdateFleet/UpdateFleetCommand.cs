@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -15,6 +16,7 @@ public record UpdateFleetCommand(
     string? ZipCode,
     int? RadiusMiles,
     bool RequireApprovalForEdits,
+    string DuoVoteTimeoutMode,
     bool LibraryOfThingsEnabled,
     bool AllowCrewmateFileAttachments,
     int MinimumCrewmateTenureDaysForAttachments,
@@ -118,6 +120,22 @@ public class UpdateFleetCommandHandler(
 
         if (fleet.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureFleetMemberCanCreateAsync(
+                fleet,
+                membership,
+                membership.Crew,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new FleetOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create fleet proposals yet."
+                };
+            }
+
             var proposalsCreated = await fleetSettingsProposalService.CreateProposalsAsync(
                 fleet,
                 currentUser.UserId.Value,

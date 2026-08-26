@@ -13,13 +13,16 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 public class CrewmateKickProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
+    IGiftRepository giftRepository,
     IMutualAidService mutualAidService,
     NotificationService notificationService,
     LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService,
     FleetMembershipService fleetMembershipService,
+    ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
@@ -117,6 +120,29 @@ public class CrewmateKickProposalService(
         ProposalKind kind,
         CancellationToken cancellationToken)
     {
+        var crew = await crewRepository.GetByIdAsync(crewId, cancellationToken);
+        if (crew is null)
+        {
+            return CrewmateKickProposalResult.Failed("Crew not found.");
+        }
+
+        var authorMembership = await membershipRepository.GetMembershipAsync(authorUserId, crewId, cancellationToken);
+        if (authorMembership is null || authorMembership.IsBanned)
+        {
+            return CrewmateKickProposalResult.Failed("You are not an active member of this crew.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+            crew,
+            authorMembership,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return CrewmateKickProposalResult.Failed(proposeError ?? "You are not allowed to create proposals yet.");
+        }
+
         var isSeasonKick = kind == ProposalKind.CrewmateSeasonKick;
         var pendingKick = isSeasonKick
             ? await proposalRepository.GetPendingSeasonKickForTargetAsync(crewId, targetUserId, cancellationToken)
@@ -193,6 +219,7 @@ public class CrewmateKickProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

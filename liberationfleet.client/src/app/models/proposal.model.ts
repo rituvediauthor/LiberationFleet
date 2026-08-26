@@ -45,6 +45,7 @@ export interface ProposalListItem {
   approveCount: number;
   disapproveCount: number;
   approvalTimerEndsAt?: Date | null;
+  kind?: string;
   hasEncryptedContent?: boolean;
   hasPlaintextContent?: boolean;
   encryptedPayload?: EncryptedPayload | null;

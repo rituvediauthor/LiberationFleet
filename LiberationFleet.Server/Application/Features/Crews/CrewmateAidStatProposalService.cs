@@ -7,6 +7,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -34,10 +35,13 @@ public sealed class CrewmateAidStatProposalResult
 public class CrewmateAidStatProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -64,6 +68,24 @@ public class CrewmateAidStatProposalService(
         {
             return CrewmateAidStatProposalResult.Failed(
                 "Only organizers and accountants can propose aid statistic edits.");
+        }
+
+        var crewForAuth = await crewRepository.GetByIdAsync(crewId, cancellationToken);
+        if (crewForAuth is null)
+        {
+            return CrewmateAidStatProposalResult.Failed("Crew not found.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+            crewForAuth,
+            authorMembership,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return CrewmateAidStatProposalResult.Failed(
+                proposeError ?? "You are not allowed to create proposals yet.");
         }
 
         var targetUser = await userRepository.GetByIdWithProfileAsync(targetUserId, cancellationToken);
@@ -182,6 +204,7 @@ public class CrewmateAidStatProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

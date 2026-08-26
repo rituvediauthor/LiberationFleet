@@ -12,6 +12,7 @@ public class FleetDto
     public string JoinCode { get; set; } = string.Empty;
     public double? DistanceMiles { get; set; }
     public bool RequireApprovalForEdits { get; set; } = true;
+    public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }
@@ -29,6 +30,7 @@ public class UpdateFleetRequest
     public string? ZipCode { get; set; }
     public int? RadiusMiles { get; set; }
     public bool RequireApprovalForEdits { get; set; } = true;
+    public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }

@@ -77,6 +77,7 @@ export class EditCrewComponent implements OnInit {
       allowSurvivalThresholds: [true],
       allowCrossCrewGiving: [false],
       requireApprovalForEdits: [true],
+      duoVoteTimeoutMode: ['AutoReject'],
       inNeedDefaultThreshold: [20, [Validators.required, Validators.min(0)]],
       financialMembershipContributionFloor: [0, [Validators.required, Validators.min(0)]],
       libraryOfThingsEnabled: [true],
@@ -381,6 +382,7 @@ export class EditCrewComponent implements OnInit {
     allowSurvivalThresholds?: boolean;
     allowCrossCrewGiving?: boolean;
     requireApprovalForEdits?: boolean;
+    duoVoteTimeoutMode?: string;
     inNeedDefaultThreshold?: number;
     financialMembershipContributionFloor?: number;
     libraryOfThingsEnabled?: boolean;
@@ -408,6 +410,7 @@ export class EditCrewComponent implements OnInit {
       allowSurvivalThresholds: crew.allowSurvivalThresholds ?? true,
       allowCrossCrewGiving: crew.allowCrossCrewGiving ?? false,
       requireApprovalForEdits: crew.requireApprovalForEdits ?? true,
+      duoVoteTimeoutMode: crew.duoVoteTimeoutMode ?? 'AutoReject',
       inNeedDefaultThreshold: crew.inNeedDefaultThreshold ?? 20,
       financialMembershipContributionFloor: crew.financialMembershipContributionFloor ?? 0,
       libraryOfThingsEnabled: crew.libraryOfThingsEnabled ?? true,
@@ -442,6 +445,7 @@ export class EditCrewComponent implements OnInit {
       allowSurvivalThresholds: !!this.form.get('allowSurvivalThresholds')?.value,
       allowCrossCrewGiving: !!this.form.get('allowCrossCrewGiving')?.value,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
+      duoVoteTimeoutMode: String(this.form.get('duoVoteTimeoutMode')?.value || 'AutoReject'),
       inNeedDefaultThreshold: Number(this.form.get('inNeedDefaultThreshold')?.value),
       financialMembershipContributionFloor: Number(this.form.get('financialMembershipContributionFloor')?.value),
       libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,

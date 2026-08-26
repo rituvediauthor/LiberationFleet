@@ -28,16 +28,31 @@ public class ProposalRepository : IProposalRepository
         ProposalStatus status,
         CancellationToken cancellationToken = default) =>
         await _context.Proposals
-            .AsNoTracking()
             .Include(p => p.AuthorUser)
             .Where(p => p.CrewId == crewId && !p.IsDeleted && p.Status == status)
             .OrderByDescending(p => p.LastActivityAt)
             .Take(500)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Proposal>> GetPendingExpiredAsync(
+        DateTime utcNow,
+        int limit,
+        CancellationToken cancellationToken = default) =>
+        await _context.Proposals
+            .Include(p => p.AuthorUser)
+            .Where(p => !p.IsDeleted
+                        && p.Status == ProposalStatus.Pending
+                        && p.ApprovalTimerEndsAt != null
+                        && p.ApprovalTimerEndsAt <= utcNow)
+            .OrderBy(p => p.ApprovalTimerEndsAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
     public Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
-            .CountAsync(m => m.CrewId == crewId && !m.IsBanned, cancellationToken);
+            .CountAsync(
+                m => m.CrewId == crewId && !m.IsBanned && !m.IsPlaceholderMember,
+                cancellationToken);
 
     public Task<ProposalVote?> GetVoteAsync(int proposalId, int userId, CancellationToken cancellationToken = default) =>
         _context.ProposalVotes.FirstOrDefaultAsync(v => v.ProposalId == proposalId && v.UserId == userId, cancellationToken);

@@ -59,6 +59,7 @@ public class CrewSettingsProposalService(
                 proposal,
                 proposalRepository,
                 fleetRepository,
+                crewRepository,
                 utcNow,
                 cancellationToken);
             if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
@@ -132,6 +133,10 @@ public class CrewSettingsProposalService(
         crew.RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null;
         crew.AllowSurvivalThresholds = request.AllowSurvivalThresholds;
         crew.RequireApprovalForEdits = request.RequireApprovalForEdits;
+        crew.DuoVoteTimeoutMode = Enum.TryParse<DuoVoteTimeoutMode>(request.DuoVoteTimeoutMode, true, out var duo)
+            && Enum.IsDefined(duo)
+            ? duo
+            : DuoVoteTimeoutMode.AutoReject;
         crew.InNeedDefaultThreshold = request.InNeedDefaultThreshold;
         crew.FinancialMembershipContributionFloor = request.FinancialMembershipContributionFloor;
         crew.LibraryOfThingsEnabled = request.LibraryOfThingsEnabled;
@@ -189,6 +194,9 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.RequireApprovalForEdits:
                 crew.RequireApprovalForEdits = bool.Parse(change.NewValue);
+                break;
+            case CrewSettingField.DuoVoteTimeoutMode:
+                crew.DuoVoteTimeoutMode = Enum.Parse<DuoVoteTimeoutMode>(change.NewValue);
                 break;
             case CrewSettingField.InNeedDefaultThreshold:
                 crew.InNeedDefaultThreshold = decimal.Parse(change.NewValue);

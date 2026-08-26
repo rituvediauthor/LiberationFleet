@@ -14,6 +14,8 @@ public class CrewDto
     public double? DistanceMiles { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
+    /// <summary>AutoApprove | AutoReject | ResolveOnFirstVote</summary>
+    public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
     public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
@@ -43,6 +45,7 @@ public class UpdateCrewRequest
     public int? RadiusMiles { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
+    public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
     public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;

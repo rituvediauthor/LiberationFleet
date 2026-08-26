@@ -11,6 +11,10 @@ public interface IProposalRepository
         int crewId,
         ProposalStatus status,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Proposal>> GetPendingExpiredAsync(
+        DateTime utcNow,
+        int limit,
+        CancellationToken cancellationToken = default);
     Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default);
     Task<ProposalVote?> GetVoteAsync(int proposalId, int userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProposalComment>> GetCommentsByProposalIdAsync(

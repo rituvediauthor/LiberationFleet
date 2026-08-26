@@ -16,6 +16,7 @@ export interface Crew {
   allowSurvivalThresholds?: boolean;
   allowCrossCrewGiving?: boolean;
   requireApprovalForEdits?: boolean;
+  duoVoteTimeoutMode?: string;
   inNeedDefaultThreshold?: number;
   financialMembershipContributionFloor?: number;
   libraryOfThingsEnabled?: boolean;
@@ -102,6 +103,7 @@ export interface UpdateCrewRequest {
   allowSurvivalThresholds: boolean;
   allowCrossCrewGiving: boolean;
   requireApprovalForEdits: boolean;
+  duoVoteTimeoutMode: string;
   inNeedDefaultThreshold: number;
   financialMembershipContributionFloor: number;
   libraryOfThingsEnabled: boolean;

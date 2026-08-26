@@ -1,14 +1,27 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [fillHeight]="true">
   <div class="proposals-list-page">
+    <label class="filter-label" for="proposal-kind-filter">Filter</label>
+    <select
+      id="proposal-kind-filter"
+      class="filter-select"
+      [value]="selectedKind"
+      (change)="onKindFilterChange($any($event.target).value)">
+      <option value="">All types</option>
+      <option *ngFor="let option of kindOptions" [value]="option.value">{{ option.label }}</option>
+    </select>
+
     <p *ngIf="loading" class="state-text">Loading proposals...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No proposals yet.</p>
+    <p *ngIf="!loading && !errorMessage && items.length > 0 && filteredItems.length === 0" class="state-text">
+      No proposals match this type.
+    </p>
 
-    <div class="proposal-cards" *ngIf="!loading && items.length > 0">
+    <div class="proposal-cards" *ngIf="!loading && filteredItems.length > 0">
       <button
         type="button"
         class="proposal-card"
-        *ngFor="let item of items"
+        *ngFor="let item of filteredItems"
         [lfNotificationTarget]="item.id"
         [lfNotificationPrefix]="notifyPrefix"
         [lfHighlightId]="highlightId"
@@ -22,6 +35,10 @@
               <span class="author">{{ item.authorUsername }}</span>
               <span class="dot">·</span>
               <span>{{ formatActivity(item.lastActivityAt) }}</span>
+              <ng-container *ngIf="kindLabel(item.kind) as label">
+                <span class="dot">·</span>
+                <span class="kind-label">{{ label }}</span>
+              </ng-container>
             </p>
             <h2 class="card-title">{{ item.title || 'Untitled proposal' }}</h2>
             <p class="card-preview">{{ item.descriptionPreview || '' }}</p>

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -22,8 +23,11 @@ public sealed class CrewmatePermissionProposalResult
 public class CrewmatePermissionProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -48,6 +52,30 @@ public class CrewmatePermissionProposalService(
         CrewmatePermissionGrantType grantType,
         CancellationToken cancellationToken)
     {
+        var crew = await crewRepository.GetByIdAsync(crewId, cancellationToken);
+        if (crew is null)
+        {
+            return CrewmatePermissionProposalResult.Failed("Crew not found.");
+        }
+
+        var authorMembership = await membershipRepository.GetMembershipAsync(authorUserId, crewId, cancellationToken);
+        if (authorMembership is null || authorMembership.IsBanned)
+        {
+            return CrewmatePermissionProposalResult.Failed("You are not an active member of this crew.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+            crew,
+            authorMembership,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return CrewmatePermissionProposalResult.Failed(
+                proposeError ?? "You are not allowed to create proposals yet.");
+        }
+
         var targetUser = await userRepository.GetByIdWithProfileAsync(targetUserId, cancellationToken);
         if (targetUser is null)
         {
@@ -128,6 +156,7 @@ public class CrewmatePermissionProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

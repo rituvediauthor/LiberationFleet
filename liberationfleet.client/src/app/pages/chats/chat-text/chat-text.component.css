@@ -15,7 +15,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px var(--lf-content-gutter, 20px);
   padding-bottom: 88px;
   display: flex;
   flex-direction: column;
@@ -29,7 +29,7 @@
 
 .chat-channel-body {
   width: 100%;
-  max-width: 560px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
   flex: 1 0 auto;
   display: flex;
@@ -212,7 +212,12 @@
   z-index: 100;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  padding: 12px var(--lf-content-gutter, 20px);
   background: var(--lf-color-bg-surface);
+  border-top: 1px solid var(--lf-color-border);
+  box-shadow: var(--lf-shadow-bar);
+  box-sizing: border-box;
 }
 
 .chat-action-bar-inner {
@@ -220,12 +225,9 @@
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  max-width: 560px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
-  padding: 12px 20px;
-  border-top: 1px solid var(--lf-color-border);
-  background: var(--lf-color-bg-surface);
-  box-shadow: var(--lf-shadow-bar);
+  box-sizing: border-box;
 }
 
 .back-btn {

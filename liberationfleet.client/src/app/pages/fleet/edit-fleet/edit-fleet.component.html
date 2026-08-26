@@ -120,6 +120,16 @@
           </label>
         </div>
 
+        <div class="form-group">
+          <label for="duoVoteTimeoutMode">1:1 vote timeout</label>
+          <select id="duoVoteTimeoutMode" formControlName="duoVoteTimeoutMode" class="form-input">
+            <option value="AutoApprove">Auto approve</option>
+            <option value="AutoReject">Auto reject</option>
+            <option value="ResolveOnFirstVote">Resolve on first vote</option>
+          </select>
+          <span class="hint-text">When exactly two eligible voters are involved: what happens if the approval timer ends without a decisive outcome, or how 1:1 votes resolve.</span>
+        </div>
+
         <section class="settings-section">
           <h2 class="section-title">Library of Things</h2>
           <div class="form-group checkbox-group">

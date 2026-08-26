@@ -38,6 +38,7 @@ public static class ProposalMapper
             AuthorUsername = AnonymousAuthor,
             LastActivityAt = proposal.LastActivityAt,
             Status = proposal.Status.ToString(),
+            Kind = proposal.Kind.ToString(),
             ApproveCount = proposal.ApproveCount,
             DisapproveCount = proposal.DisapproveCount,
             ApprovalTimerEndsAt = proposal.ApprovalTimerEndsAt,

@@ -6,7 +6,7 @@
 
 .form-card {
   width: 100%;
-  max-width: 640px;
+  max-width: var(--lf-content-max-width, 560px);
   background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;

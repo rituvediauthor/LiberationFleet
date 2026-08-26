@@ -10,6 +10,7 @@ namespace LiberationFleet.Server.Application.Features.Fleets;
 public class FleetSettingsProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -57,6 +58,7 @@ public class FleetSettingsProposalService(
                 proposal,
                 proposalRepository,
                 fleetRepository,
+                crewRepository,
                 utcNow,
                 cancellationToken);
             if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
@@ -141,6 +143,10 @@ public class FleetSettingsProposalService(
         fleet.ZipCode = scope == CrewScope.Local ? request.ZipCode?.Trim() : null;
         fleet.RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null;
         fleet.RequireApprovalForEdits = request.RequireApprovalForEdits;
+        fleet.DuoVoteTimeoutMode = Enum.TryParse<DuoVoteTimeoutMode>(request.DuoVoteTimeoutMode, true, out var duo)
+            && Enum.IsDefined(duo)
+            ? duo
+            : DuoVoteTimeoutMode.AutoReject;
         fleet.LibraryOfThingsEnabled = request.LibraryOfThingsEnabled;
         fleet.AllowCrewmateFileAttachments = request.AllowCrewmateFileAttachments;
         fleet.MinimumCrewmateTenureDaysForAttachments = request.MinimumCrewmateTenureDaysForAttachments;
@@ -179,6 +185,9 @@ public class FleetSettingsProposalService(
                 break;
             case FleetSettingField.RequireApprovalForEdits:
                 fleet.RequireApprovalForEdits = bool.Parse(change.NewValue);
+                break;
+            case FleetSettingField.DuoVoteTimeoutMode:
+                fleet.DuoVoteTimeoutMode = Enum.Parse<DuoVoteTimeoutMode>(change.NewValue);
                 break;
             case FleetSettingField.LibraryOfThingsEnabled:
                 fleet.LibraryOfThingsEnabled = bool.Parse(change.NewValue);

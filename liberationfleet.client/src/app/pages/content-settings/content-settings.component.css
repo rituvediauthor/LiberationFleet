@@ -1,6 +1,6 @@
 .content-settings-page {
   width: 100%;
-  max-width: 560px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
 }
 

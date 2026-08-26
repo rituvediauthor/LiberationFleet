@@ -107,11 +107,13 @@
   </div>
 
   <div class="gift-action-bar">
+    <div class="gift-action-bar-inner">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
     <button *ngIf="seasonStarted && userInSeason" type="button" class="record-btn" (click)="goToRecordGift()">Record Gift</button>
     <button *ngIf="seasonStarted && !userInSeason" type="button" class="record-btn" (click)="goToJoinSeason()">Join season</button>
+    </div>
   </div>
 </div>
 

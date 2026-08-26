@@ -28,6 +28,8 @@ public class Crew
     public int CatchUpSnapshotMonth { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
+    /// <summary>How 1:1 (exactly two eligible voters) proposals resolve when still incomplete at timer expiry.</summary>
+    public DuoVoteTimeoutMode DuoVoteTimeoutMode { get; set; } = DuoVoteTimeoutMode.AutoReject;
     /// <summary>
     /// Minimum 3-month average contribution (including LoT) to retain financial membership (roles exempt).
     /// </summary>

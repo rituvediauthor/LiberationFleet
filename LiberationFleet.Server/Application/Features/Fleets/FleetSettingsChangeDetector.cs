@@ -58,6 +58,18 @@ public static class FleetSettingsChangeDetector
                 request.RequireApprovalForEdits.ToString()));
         }
 
+        var duoMode = Enum.TryParse<DuoVoteTimeoutMode>(request.DuoVoteTimeoutMode, true, out var parsedDuo)
+            && Enum.IsDefined(parsedDuo)
+            ? parsedDuo
+            : DuoVoteTimeoutMode.AutoReject;
+        if (fleet.DuoVoteTimeoutMode != duoMode)
+        {
+            changes.Add(new FleetSettingChangeItem(
+                FleetSettingField.DuoVoteTimeoutMode,
+                fleet.DuoVoteTimeoutMode.ToString(),
+                duoMode.ToString()));
+        }
+
         if (fleet.LibraryOfThingsEnabled != request.LibraryOfThingsEnabled)
         {
             changes.Add(new FleetSettingChangeItem(
@@ -142,6 +154,8 @@ public static class FleetSettingsChangeDescriber
                 $"Proposal to change distance from {change.OldValue} to {change.NewValue} miles.",
             FleetSettingField.RequireApprovalForEdits =>
                 $"Proposal to set \"Require approval for fleet edits\" to \"{change.NewValue}\".",
+            FleetSettingField.DuoVoteTimeoutMode =>
+                $"Proposal to set \"1:1 vote timeout\" to \"{change.NewValue}\".",
             FleetSettingField.LibraryOfThingsEnabled =>
                 $"Proposal to set \"Library of Things\" to \"{change.NewValue}\".",
             FleetSettingField.AllowCrewmateFileAttachments =>

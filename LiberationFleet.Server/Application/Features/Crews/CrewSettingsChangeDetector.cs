@@ -87,6 +87,18 @@ public static class CrewSettingsChangeDetector
                 request.RequireApprovalForEdits.ToString()));
         }
 
+        var duoMode = Enum.TryParse<DuoVoteTimeoutMode>(request.DuoVoteTimeoutMode, true, out var parsedDuo)
+            && Enum.IsDefined(parsedDuo)
+            ? parsedDuo
+            : DuoVoteTimeoutMode.AutoReject;
+        if (crew.DuoVoteTimeoutMode != duoMode)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.DuoVoteTimeoutMode,
+                crew.DuoVoteTimeoutMode.ToString(),
+                duoMode.ToString()));
+        }
+
         if (crew.InNeedDefaultThreshold != request.InNeedDefaultThreshold)
         {
             changes.Add(new CrewSettingChangeItem(
@@ -249,6 +261,8 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to set \"Allow survival thresholds\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.RequireApprovalForEdits =>
                 $"Proposal to set \"Require approval for crew edits\" to \"{FormatBool(change.NewValue)}\".",
+            CrewSettingField.DuoVoteTimeoutMode =>
+                $"Proposal to set \"1:1 vote timeout\" to \"{FormatDuoMode(change.NewValue)}\".",
             CrewSettingField.InNeedDefaultThreshold =>
                 $"Proposal to change in-need threshold from ${change.OldValue} to ${change.NewValue}. " +
                 "Crewmates whose 3-month average (excluding Library of Things) is at or below this cannot opt out of in-need.",
@@ -290,4 +304,12 @@ public static class CrewSettingsChangeDescriber
 
     private static string FormatBool(string value) =>
         bool.TryParse(value, out var parsed) && parsed ? "True" : "False";
+
+    private static string FormatDuoMode(string value) =>
+        value switch
+        {
+            nameof(DuoVoteTimeoutMode.AutoApprove) => "Auto approve",
+            nameof(DuoVoteTimeoutMode.ResolveOnFirstVote) => "Resolve on first vote",
+            _ => "Auto reject"
+        };
 }

@@ -39,6 +39,7 @@ export interface Fleet {
   distanceMiles?: number;
   crewCount?: number;
   requireApprovalForEdits?: boolean;
+  duoVoteTimeoutMode?: string;
   libraryOfThingsEnabled?: boolean;
   allowCrewmateFileAttachments?: boolean;
   minimumCrewmateTenureDaysForAttachments?: number;
@@ -89,6 +90,7 @@ export interface UpdateFleetRequest {
   zipCode?: string;
   radiusMiles?: number;
   requireApprovalForEdits: boolean;
+  duoVoteTimeoutMode: string;
   libraryOfThingsEnabled: boolean;
   allowCrewmateFileAttachments: boolean;
   minimumCrewmateTenureDaysForAttachments: number;

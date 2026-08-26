@@ -173,6 +173,7 @@ export class ProposalService {
   private mapListItem(item: ProposalListItem): ProposalListItem {
     return {
       ...item,
+      kind: item.kind,
       lastActivityAt: new Date(item.lastActivityAt),
       approvalTimerEndsAt: item.approvalTimerEndsAt ? new Date(item.approvalTimerEndsAt) : null
     };

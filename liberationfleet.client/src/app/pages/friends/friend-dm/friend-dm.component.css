@@ -14,7 +14,7 @@
 .message-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px var(--lf-content-gutter, 20px);
   padding-bottom: 88px;
   display: flex;
   flex-direction: column;
@@ -22,7 +22,7 @@
 
 .chat-channel-body {
   width: 100%;
-  max-width: 560px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
   flex: 1 0 auto;
   display: flex;
@@ -164,11 +164,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 12px 20px;
+  padding: 12px var(--lf-content-gutter, 20px);
   border-top: 1px solid var(--lf-color-border);
   background: var(--lf-color-bg-surface);
   box-shadow: var(--lf-shadow-bar);
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .chat-action-bar-inner {
@@ -176,7 +177,7 @@
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  max-width: 560px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
 }
 

@@ -159,6 +159,7 @@ public class FleetsController : ControllerBase
             body.ZipCode,
             body.RadiusMiles,
             body.RequireApprovalForEdits,
+            body.DuoVoteTimeoutMode,
             body.LibraryOfThingsEnabled,
             body.AllowCrewmateFileAttachments,
             body.MinimumCrewmateTenureDaysForAttachments,

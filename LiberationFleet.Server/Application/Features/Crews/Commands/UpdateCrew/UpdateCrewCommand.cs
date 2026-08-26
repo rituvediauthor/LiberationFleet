@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -19,6 +20,7 @@ public record UpdateCrewCommand(
     int? RadiusMiles,
     bool AllowSurvivalThresholds,
     bool RequireApprovalForEdits,
+    string DuoVoteTimeoutMode,
     decimal InNeedDefaultThreshold,
     decimal FinancialMembershipContributionFloor,
     bool LibraryOfThingsEnabled,
@@ -114,6 +116,21 @@ public class UpdateCrewCommandHandler(
 
         if (crew.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+                crew,
+                membership,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new CrewOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create proposals yet."
+                };
+            }
+
             var proposalsCreated = await crewSettingsProposalService.CreateProposalsAsync(
                 crew,
                 currentUser.UserId.Value,

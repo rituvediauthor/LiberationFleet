@@ -17,6 +17,7 @@ public class GetFleetProposalsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     CrewSettingsProposalService crewSettingsProposalService,
@@ -64,7 +65,11 @@ public class GetFleetProposalsQueryHandler(
         foreach (var proposal in proposals)
         {
             var statusBefore = proposal.Status;
-            ProposalVotingService.TryResolveOnTimer(proposal, utcNow);
+            var eligible = await ProposalEligibility.GetEligibleVoterCountAsync(
+                proposal, proposalRepository, fleetRepository, cancellationToken);
+            var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
+                proposal, crewRepository, fleetRepository, cancellationToken);
+            ProposalVotingService.TryResolveOnTimer(proposal, utcNow, duoMode, eligible);
             await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
                 proposal,
                 statusBefore,
@@ -105,6 +110,9 @@ public class GetFleetProposalsQueryHandler(
         var fleetRuleChanges = await proposalRepository.GetFleetRuleChangesByProposalIdsAsync(
             proposals.Where(p => p.Kind == ProposalKind.FleetRuleChange).Select(p => p.Id),
             cancellationToken);
+        var fleetChatChanges = await proposalRepository.GetCrewChatChangesByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.FleetChatChange).Select(p => p.Id),
+            cancellationToken);
         var fleetNotices = await proposalRepository.GetFleetNoticesByProposalIdsAsync(
             proposals.Where(p => p.Kind == ProposalKind.General).Select(p => p.Id),
             cancellationToken);
@@ -127,6 +135,7 @@ public class GetFleetProposalsQueryHandler(
             fleetJoinRequests.TryGetValue(proposal.Id, out var fleetJoinRequest);
             fleetKickCrews.TryGetValue(proposal.Id, out var fleetKickCrew);
             fleetRuleChanges.TryGetValue(proposal.Id, out var fleetRuleChange);
+            fleetChatChanges.TryGetValue(proposal.Id, out var fleetChatChange);
             fleetNotices.TryGetValue(proposal.Id, out var fleetNotice);
             EncryptedContentEnvelope? envelope = null;
             if (proposal.Kind == ProposalKind.General)
@@ -139,6 +148,7 @@ public class GetFleetProposalsQueryHandler(
                 proposal,
                 envelope,
                 currentUserVote: currentUserVote,
+                crewChatChange: fleetChatChange,
                 fleetRuleChange: fleetRuleChange,
                 fleetSettingChange: fleetSettingChange,
                 fleetJoinRequest: fleetJoinRequest,

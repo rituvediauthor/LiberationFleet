@@ -22,9 +22,8 @@ public static class ChatMapper
             CreatedByUsername = room.CreatedByUser?.Username ?? string.Empty,
             CreatedAt = room.CreatedAt,
             LastActivityAt = room.LastActivityAt,
-            AnonymousModeEnabled = room.AnonymousModeEnabled,
-            CanToggleAnonymousMode = viewerMembership is not null
-                && CrewRoleAuthorizationService.CanToggleAnonymousChat(viewerMembership),
+            AnonymousModeEnabled = false,
+            CanToggleAnonymousMode = false,
             IsAdultContent = room.IsAdultContent
         };
 
@@ -60,7 +59,7 @@ public static class ChatMapper
             CreatedByUsername = item.CreatedByUsername,
             CreatedAt = item.CreatedAt,
             LastActivityAt = item.LastActivityAt,
-            AnonymousModeEnabled = item.AnonymousModeEnabled,
+            AnonymousModeEnabled = false,
             CanToggleAnonymousMode = item.CanToggleAnonymousMode,
             IsAdultContent = item.IsAdultContent
         };

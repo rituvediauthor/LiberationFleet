@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -23,8 +24,11 @@ public sealed class CrewRoleProposalResult
 public class CrewRoleProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -75,6 +79,29 @@ public class CrewRoleProposalService(
         if (roles.Count == 0)
         {
             return CrewRoleProposalResult.Failed("Select at least one role.");
+        }
+
+        var crew = await crewRepository.GetByIdAsync(crewId, cancellationToken);
+        if (crew is null)
+        {
+            return CrewRoleProposalResult.Failed("Crew not found.");
+        }
+
+        var authorMembership = await membershipRepository.GetMembershipAsync(authorUserId, crewId, cancellationToken);
+        if (authorMembership is null || authorMembership.IsBanned)
+        {
+            return CrewRoleProposalResult.Failed("You are not an active member of this crew.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+            crew,
+            authorMembership,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return CrewRoleProposalResult.Failed(proposeError ?? "You are not allowed to create proposals yet.");
         }
 
         var targetUser = await userRepository.GetByIdWithProfileAsync(targetUserId, cancellationToken);
@@ -181,6 +208,7 @@ public class CrewRoleProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

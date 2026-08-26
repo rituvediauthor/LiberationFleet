@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -22,8 +23,11 @@ public sealed class ClaimPlaceholderIdentityProposalResult
 public class ClaimPlaceholderIdentityProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
+    ICrewRepository crewRepository,
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     PlaceholderCrewmateService placeholderCrewmateService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
@@ -60,6 +64,24 @@ public class ClaimPlaceholderIdentityProposalService(
         if (claimantMembership is null || claimantMembership.IsBanned)
         {
             return ClaimPlaceholderIdentityProposalResult.Failed("You are not an active member of this crew.");
+        }
+
+        var crew = await crewRepository.GetByIdAsync(crewId, cancellationToken);
+        if (crew is null)
+        {
+            return ClaimPlaceholderIdentityProposalResult.Failed("Crew not found.");
+        }
+
+        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+            crew,
+            claimantMembership,
+            giftRepository,
+            contentTenureService,
+            cancellationToken);
+        if (!canPropose)
+        {
+            return ClaimPlaceholderIdentityProposalResult.Failed(
+                proposeError ?? "You are not allowed to create proposals yet.");
         }
 
         var pending = await proposalRepository.GetPendingClaimPlaceholderIdentityForPlaceholderAsync(
@@ -108,6 +130,7 @@ public class ClaimPlaceholderIdentityProposalService(
             proposal,
             proposalRepository,
             fleetRepository,
+            crewRepository,
             utcNow,
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)

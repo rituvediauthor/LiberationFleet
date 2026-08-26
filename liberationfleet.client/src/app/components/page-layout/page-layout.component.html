@@ -13,36 +13,38 @@
   </div>
 
   <div class="action-bar" role="toolbar" aria-label="Page actions">
-    <button
-      *ngIf="backButton"
-      class="action-button back-button"
-      (click)="backButton.onClick && backButton.onClick()"
-      [disabled]="backButton.disabled"
-      type="button"
-      aria-label="Go back">
-      <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
-    </button>
+    <div class="action-bar-inner">
+      <button
+        *ngIf="backButton"
+        class="action-button back-button"
+        (click)="backButton.onClick && backButton.onClick()"
+        [disabled]="backButton.disabled"
+        type="button"
+        aria-label="Go back">
+        <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+      </button>
 
-    <ng-content select="[actionBar]"></ng-content>
+      <ng-content select="[actionBar]"></ng-content>
 
-    <button
-      *ngIf="primaryButton"
-      class="action-button primary-button"
-      [class.has-secondary]="secondaryButton"
-      (click)="primaryButton.onClick && primaryButton.onClick()"
-      [disabled]="primaryButton.disabled"
-      type="button">
-      {{ primaryButton.label }}
-    </button>
+      <button
+        *ngIf="primaryButton"
+        class="action-button primary-button"
+        [class.has-secondary]="secondaryButton"
+        (click)="primaryButton.onClick && primaryButton.onClick()"
+        [disabled]="primaryButton.disabled"
+        type="button">
+        {{ primaryButton.label }}
+      </button>
 
-    <button
-      *ngIf="secondaryButton"
-      class="action-button secondary-button"
-      (click)="secondaryButton.onClick && secondaryButton.onClick()"
-      [disabled]="secondaryButton.disabled"
-      type="button">
-      {{ secondaryButton.label }}
-    </button>
+      <button
+        *ngIf="secondaryButton"
+        class="action-button secondary-button"
+        (click)="secondaryButton.onClick && secondaryButton.onClick()"
+        [disabled]="secondaryButton.disabled"
+        type="button">
+        {{ secondaryButton.label }}
+      </button>
+    </div>
   </div>
   <div class="lf-safe-bottom" aria-hidden="true"></div>
 </div>

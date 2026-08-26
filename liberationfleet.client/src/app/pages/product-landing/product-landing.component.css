@@ -11,7 +11,7 @@
 }
 
 .hero-section {
-  max-width: 600px;
+  max-width: var(--lf-content-max-width, 560px);
   display: flex;
   flex-direction: column;
   align-items: center;

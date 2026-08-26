@@ -2,6 +2,8 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
+using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -25,6 +27,8 @@ public class CreateChatRoomCommandHandler(
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
+    IGiftRepository giftRepository,
+    ContentTenureService contentTenureService,
     CrewChatsProposalService crewChatsProposalService,
     IChatRealtimeNotifier chatRealtimeNotifier,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateChatRoomCommand, ChatOperationResponse>
@@ -55,7 +59,7 @@ public class CreateChatRoomCommandHandler(
 
         if (request.IsFleetScope)
         {
-            return await HandleFleetCreateAsync(request, userId, membership.CrewId, cancellationToken);
+            return await HandleFleetCreateAsync(request, userId, membership, cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
@@ -71,6 +75,21 @@ public class CreateChatRoomCommandHandler(
 
         if (crew.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
+                crew,
+                membership,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new ChatOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create proposals yet."
+                };
+            }
+
             var proposalId = await crewChatsProposalService.CreateProposalAsync(
                 crew.Id,
                 userId,
@@ -151,7 +170,7 @@ public class CreateChatRoomCommandHandler(
     private async Task<ChatOperationResponse> HandleFleetCreateAsync(
         CreateChatRoomCommand request,
         int userId,
-        int crewId,
+        CrewMembership membership,
         CancellationToken cancellationToken)
     {
         if (request.RoomType != ChatRoomType.Text)
@@ -159,7 +178,7 @@ public class CreateChatRoomCommandHandler(
             return new ChatOperationResponse { Success = false, Message = "Fleet chat rooms only support text chat." };
         }
 
-        var fleet = await fleetRepository.GetFleetForCrewAsync(crewId, cancellationToken);
+        var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
         if (fleet is null)
         {
             return new ChatOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
@@ -167,6 +186,22 @@ public class CreateChatRoomCommandHandler(
 
         if (fleet.RequireApprovalForEdits)
         {
+            var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureFleetMemberCanCreateAsync(
+                fleet,
+                membership,
+                membership.Crew,
+                giftRepository,
+                contentTenureService,
+                cancellationToken);
+            if (!canPropose)
+            {
+                return new ChatOperationResponse
+                {
+                    Success = false,
+                    Message = proposeError ?? "You are not allowed to create fleet proposals yet."
+                };
+            }
+
             var proposalId = await crewChatsProposalService.CreateFleetProposalAsync(
                 fleet.Id,
                 userId,

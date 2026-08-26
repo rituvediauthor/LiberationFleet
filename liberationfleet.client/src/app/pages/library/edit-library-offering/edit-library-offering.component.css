@@ -1,5 +1,5 @@
 .edit-offering-page {
-  max-width: 640px;
+  max-width: var(--lf-content-max-width, 560px);
 }
 
 .offering-title {

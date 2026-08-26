@@ -216,6 +216,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.CatchUpSnapshotMonth).HasDefaultValue(0);
             entity.Property(e => e.AllowSurvivalThresholds).HasDefaultValue(true);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
+            entity.Property(e => e.DuoVoteTimeoutMode).HasDefaultValue(DuoVoteTimeoutMode.AutoReject);
             entity.Property(e => e.InNeedDefaultThreshold).HasPrecision(18, 2).HasDefaultValue(20m);
             entity.Property(e => e.FinancialMembershipContributionFloor).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
@@ -246,6 +247,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.JoinCode).IsRequired().HasMaxLength(32);
             entity.Property(e => e.ZipCode).HasMaxLength(10);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
+            entity.Property(e => e.DuoVoteTimeoutMode).HasDefaultValue(DuoVoteTimeoutMode.AutoReject);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
             entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
             entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);

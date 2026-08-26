@@ -25,5 +25,6 @@ public enum CrewSettingField
     MinimumContributionForProposals = 20,
     AllowCrossCrewGiving = 21,
     ImageResourceId = 22,
-    FinancialMembershipContributionFloor = 23
+    FinancialMembershipContributionFloor = 23,
+    DuoVoteTimeoutMode = 24
 }

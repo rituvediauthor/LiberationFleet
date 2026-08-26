@@ -5,7 +5,7 @@
 
 .proposals-list-page {
   width: 100%;
-  max-width: 560px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
 }
 
@@ -23,6 +23,23 @@
 
 .state-text.error {
   color: var(--lf-color-danger);
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.filter-select {
+  width: 100%;
+  max-width: 240px;
+  margin-bottom: 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 6px;
+  font-size: 14px;
 }
 
 .proposal-cards {
@@ -78,6 +95,10 @@
 
 .dot {
   margin: 0 4px;
+}
+
+.kind-label {
+  color: var(--lf-color-text-muted);
 }
 
 .card-title {

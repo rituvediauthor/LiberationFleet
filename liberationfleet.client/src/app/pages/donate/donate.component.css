@@ -1,5 +1,5 @@
 .donate-page {
-  max-width: 480px;
+  max-width: var(--lf-content-max-width, 560px);
   margin: 0 auto;
   padding: 8px 4px 32px;
 }

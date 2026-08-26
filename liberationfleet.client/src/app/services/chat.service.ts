@@ -110,10 +110,6 @@ export class ChatService {
     return this.http.delete<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`);
   }
 
-  toggleAnonymousMode(roomId: number, enabled: boolean): Observable<ChatOperationResponse> {
-    return this.http.put<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/anonymous-mode`, { enabled });
-  }
-
   kickFromMessage(roomId: number, messageId: number, reason: string): Observable<ChatOperationResponse> {
     return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/kick`, {
       reason
