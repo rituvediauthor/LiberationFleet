@@ -42,6 +42,7 @@ public class UpdateCrewCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
+    IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     IMutualAidService mutualAidService,
     ContentTenureService contentTenureService,
@@ -74,6 +75,16 @@ public class UpdateCrewCommandHandler(
         if (validationError is not null)
         {
             return validationError;
+        }
+
+        if (privacy == CrewPrivacy.FleetMembersOnly
+            && await fleetRepository.GetFleetForCrewAsync(crew.Id, cancellationToken) is null)
+        {
+            return new CrewOperationResponse
+            {
+                Success = false,
+                Message = "Fleet members only privacy requires your crew to belong to a fleet."
+            };
         }
 
         var imageResourceId = CrewSettingsChangeDetector.NormalizeResourceId(request.ImageResourceId);

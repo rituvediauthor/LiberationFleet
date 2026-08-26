@@ -36,6 +36,7 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
   @Input() activeTab: NavTab = 'crew';
 
   unreadCount = 0;
+  friendsUnreadCount = 0;
   crewId = 0;
   fleetId = 0;
   crewImageSrc: string | null = null;
@@ -58,6 +59,11 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.notificationService.unreadCount$.subscribe(count => {
         this.unreadCount = count;
+      })
+    );
+    this.subscriptions.add(
+      this.notificationService.areaCounts$.subscribe(counts => {
+        this.friendsUnreadCount = counts.friends ?? 0;
       })
     );
     this.subscriptions.add(

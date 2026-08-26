@@ -216,7 +216,8 @@ export class NotificationService {
       crewCrewmates: counts['crewCrewmates'] ?? 0,
       fleetCrewmates: counts['fleetCrewmates'] ?? 0,
       userInvitations: counts['userInvitations'] ?? 0,
-      fleet: counts['fleet'] ?? 0
+      fleet: counts['fleet'] ?? 0,
+      friends: counts['friends'] ?? 0
     };
   }
 

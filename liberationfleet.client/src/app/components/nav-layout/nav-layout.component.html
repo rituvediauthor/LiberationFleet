@@ -65,7 +65,10 @@
         class="nav-item"
         #friendsNav="routerLinkActive"
         [attr.aria-current]="friendsNav.isActive ? 'page' : null">
-        <i class="fa-solid fa-user-group nav-icon" aria-hidden="true"></i>
+        <span class="nav-icon-wrap">
+          <i class="fa-solid fa-user-group nav-icon" aria-hidden="true"></i>
+          <app-content-badge [count]="friendsUnreadCount"></app-content-badge>
+        </span>
         <span class="nav-label">Friends</span>
       </a>
       <a

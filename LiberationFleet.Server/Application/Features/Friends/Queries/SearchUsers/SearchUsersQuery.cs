@@ -2,7 +2,6 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
-using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Friends.Queries.SearchUsers;
@@ -11,7 +10,7 @@ public record SearchUsersQuery(string Username) : IRequest<UserSearchResponse>;
 
 public class SearchUsersQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository) : IRequestHandler<SearchUsersQuery, UserSearchResponse>
 {
@@ -36,40 +35,38 @@ public class SearchUsersQueryHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
-        {
-            return new UserSearchResponse { Success = false, Message = "You are not in a crew." };
-        }
-
-        var members = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
+        var users = await userRepository.SearchByUsernameAsync(query, MaxResults, cancellationToken);
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var friendships = await friendshipRepository.GetForUserAsync(userId, cancellationToken);
         var friendshipByUserId = friendships.ToDictionary(
             f => f.RequesterUserId == userId ? f.AddresseeUserId : f.RequesterUserId,
             f => f);
 
         var items = new List<UserSearchResultDto>();
-        foreach (var member in members
-                     .Where(m => m.UserId != userId)
-                     .Where(m => m.User.Username.Contains(query, StringComparison.OrdinalIgnoreCase))
-                     .OrderBy(m => m.User.Username)
-                     .Take(MaxResults))
+        foreach (var user in users)
         {
-            friendshipByUserId.TryGetValue(member.UserId, out var friendship);
-            var viewerBlockedTarget = await blockRepository.IsBlockedAsync(userId, member.UserId, cancellationToken);
-            var targetBlockedViewer = await blockRepository.IsBlockedAsync(member.UserId, userId, cancellationToken);
+            if (user.Id == userId || hiddenUserIds.Contains(user.Id))
+            {
+                continue;
+            }
 
+            friendshipByUserId.TryGetValue(user.Id, out var friendship);
             items.Add(new UserSearchResultDto
             {
-                UserId = member.UserId,
-                Username = member.User.Username,
+                UserId = user.Id,
+                Username = user.Username,
                 FriendshipState = CrewmateMapper.MapFriendshipState(
                     userId,
-                    member.UserId,
+                    user.Id,
                     friendship,
-                    viewerBlockedTarget,
-                    targetBlockedViewer)
+                    false,
+                    false)
             });
+
+            if (items.Count >= MaxResults)
+            {
+                break;
+            }
         }
 
         return new UserSearchResponse

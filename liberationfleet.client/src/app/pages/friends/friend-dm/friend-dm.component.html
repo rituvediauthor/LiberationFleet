@@ -18,7 +18,7 @@
           <p class="message-meta">
             <app-user-avatar
               [resourceId]="message.authorAvatarResourceId"
-              [crewId]="crewId || null"
+              [crewId]="null"
               [fallbackInitial]="message.authorUsername"
               size="sm"
               [alt]="message.authorUsername + ' avatar'">
@@ -103,7 +103,7 @@
           *ngIf="canAttachFiles"
           [class.collapsed]="!composerExpanded"
           [attachments]="messageAttachments"
-          [cryptoScope]="crewId > 0 ? { crewId: crewId } : null"
+          [cryptoScope]="{ friendUserId: friendUserId }"
           (fileDialogOpenChange)="onFileDialogOpenChange($event)"
           (attachmentsChange)="onAttachmentsChange()">
         </app-proposal-attachment-picker>
@@ -119,11 +119,6 @@
           (click)="cancelEditMessage()">
           Cancel
         </button>
-        <app-attach-permission-note
-          *ngIf="!canAttachFiles"
-          class="composer-permission-note"
-          scope="crew">
-        </app-attach-permission-note>
       </div>
 
       <div class="kept-attachments" *ngIf="composerExpanded && keptEditAttachments.length > 0">

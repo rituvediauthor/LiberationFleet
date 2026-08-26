@@ -80,7 +80,8 @@ public class UpsertEncryptedContentBytesCommandHandler(
 
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
-        if (hasCrewScope == hasFleetScope)
+        var isPersonalMedia = !hasCrewScope && !hasFleetScope;
+        if (!isPersonalMedia && hasCrewScope == hasFleetScope)
         {
             return new CryptoOperationResponse { Success = false, Message = "Exactly one of crew or fleet scope is required." };
         }
@@ -94,7 +95,7 @@ public class UpsertEncryptedContentBytesCommandHandler(
                 return new CryptoOperationResponse { Success = false, Message = "You are not in this crew." };
             }
         }
-        else if (!await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
+        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
         {
             return new CryptoOperationResponse { Success = false, Message = "You are not in this fleet." };
         }
@@ -112,9 +113,14 @@ public class UpsertEncryptedContentBytesCommandHandler(
                     return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this crew." };
                 }
             }
-            else if (existing.FleetId != request.FleetId!.Value)
+            else if (hasFleetScope && existing.FleetId != request.FleetId!.Value)
             {
                 return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this fleet." };
+            }
+            else if (isPersonalMedia
+                && (existing.CrewId.HasValue || existing.FleetId.HasValue || existing.AuthorUserId != userId))
+            {
+                return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found." };
             }
 
             if (existing.AuthorUserId != userId)

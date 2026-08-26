@@ -43,6 +43,7 @@ interface LegacyMediaCacheRecord {
 export interface MediaCacheScope {
   crewId?: number;
   fleetId?: number;
+  friendUserId?: number;
 }
 
 export function buildMediaCacheKey(
@@ -52,7 +53,9 @@ export function buildMediaCacheKey(
 ): string {
   const scopePart = scope.fleetId != null && scope.fleetId > 0
     ? `fleet:${scope.fleetId}`
-    : `crew:${scope.crewId ?? 0}`;
+    : scope.friendUserId != null && scope.friendUserId > 0
+      ? `friend:${scope.friendUserId}`
+      : `crew:${scope.crewId ?? 0}`;
   return `${scopePart}:${resourceId}:v${keyVersion}`;
 }
 

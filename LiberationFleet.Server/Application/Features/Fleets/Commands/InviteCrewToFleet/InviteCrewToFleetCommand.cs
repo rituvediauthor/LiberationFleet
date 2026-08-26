@@ -62,12 +62,15 @@ public class InviteCrewToFleetCommandHandler(
             return new InviteCrewToFleetResponse { Success = false, Message = "That crew already belongs to a fleet." };
         }
 
+        var publicRules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);
+        var acceptedRuleIds = publicRules.Select(r => r.Id).ToList();
+
         var result = await crewApplyToFleetProposalService.CreateAsync(
             currentUser.UserId.Value,
             crew.Id,
             fleet,
             fleet.JoinCode,
-            Array.Empty<int>(),
+            acceptedRuleIds,
             cancellationToken,
             initiatedByFleetInvite: true);
 

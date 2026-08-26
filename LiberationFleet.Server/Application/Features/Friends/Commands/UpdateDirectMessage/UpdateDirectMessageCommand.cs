@@ -17,7 +17,6 @@ public record UpdateDirectMessageCommand(
 
 public class UpdateDirectMessageCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUserRepository userRepository,
@@ -35,7 +34,6 @@ public class UpdateDirectMessageCommandHandler(
 
         var access = await FriendAccessHelper.ValidateFriendMessagingAsync(
             currentUser,
-            membershipRepository,
             friendshipRepository,
             blockRepository,
             userRepository,
@@ -71,7 +69,7 @@ public class UpdateDirectMessageCommandHandler(
         {
             ContentType = EncryptedContentType.DirectMessage,
             ResourceId = message.Id.ToString(),
-            CrewId = access.CrewId,
+            CrewId = null,
             AuthorUserId = access.ViewerId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),

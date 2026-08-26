@@ -16,18 +16,17 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
-import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FriendService } from '../../../services/friend.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
-import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
-import { CrewService } from '../../../services/crew.service';
+import { FriendDmCryptoService } from '../../../services/crypto/friend-dm-crypto.service';
 import { ProfileService } from '../../../services/profile.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { NavigationService } from '../../../services/navigation.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
@@ -46,7 +45,6 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     FormsModule,
     ProposalAttachmentDisplayComponent,
     ProposalAttachmentPickerComponent,
-    AttachPermissionNoteComponent,
     CharCounterComponent,
     ReportContentDialogComponent,
     UserAvatarComponent,
@@ -73,8 +71,6 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     return { ...this.baseLocationHeader, pageLabel };
   }
   messages: DirectMessage[] = [];
-  crewId = 0;
-  canAttachFiles = false;
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
@@ -93,18 +89,19 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   loadError = '';
   showReportDialog = false;
   reportTarget: DirectMessage | null = null;
+  readonly canAttachFiles = true;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private navigation = inject(NavigationService);
   private friendService = inject(FriendService);
   private chatHub = inject(ChatHubService);
-  private chatCrypto = inject(ChatCryptoService);
-  private crewService = inject(CrewService);
+  private friendDmCrypto = inject(FriendDmCryptoService);
   private profileService = inject(ProfileService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
@@ -118,6 +115,8 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     this.friendUserId = Number(this.route.snapshot.paramMap.get('userId'));
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
+
+    this.notificationContent.markVisited(`/app/friends/messages/${this.friendUserId}`);
 
     this.hubSubscription = this.chatHub.directMessageReceived$.subscribe(event => {
       if (event.friendUserId === this.friendUserId) {
@@ -137,21 +136,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    this.crewService.getMembership().subscribe({
-      next: async membership => {
-        this.crewId = membership.crewId ?? 0;
-        this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
-        await this.encryptionContent.whenReady();
-        if (this.crewId > 0) {
-          void this.chatHub.joinCrew(this.crewId);
-        }
-        this.loadLatestMessages(true);
-      },
-      error: () => {
-        this.loading = false;
-        this.loadError = 'Failed to load crew membership';
-      }
-    });
+    void this.bootstrap();
   }
 
   ngAfterViewInit() {
@@ -297,14 +282,14 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async sendMessage() {
-    if (!this.canSend() || this.sending || this.crewId <= 0) {
+    if (!this.canSend() || this.sending || this.friendUserId <= 0) {
       return;
     }
 
     this.sending = true;
     try {
-      const encrypted = await this.chatCrypto.encryptMessagePayload(
-        { crewId: this.crewId },
+      const encrypted = await this.friendDmCrypto.encryptMessagePayload(
+        this.friendUserId,
         this.messageText.trim(),
         this.authorDisplayName,
         this.messageAttachments,
@@ -343,10 +328,19 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.currentUserId != null && message.authorUserId === this.currentUserId;
   }
 
+  private async bootstrap(): Promise<void> {
+    try {
+      await this.encryptionContent.whenReady();
+      await this.chatHub.ensureConnected();
+      this.loadLatestMessages(true);
+    } catch {
+      this.loading = false;
+      this.loadError = 'Failed to prepare messaging';
+    }
+  }
+
   private async onMessageUpdated(message: DirectMessage) {
-    const decrypted = this.crewId > 0
-      ? await this.decryptMessage(message)
-      : message;
+    const decrypted = await this.decryptMessage(message);
     this.messages = this.messages.map(existing =>
       existing.id === decrypted.id ? decrypted : existing
     );
@@ -362,9 +356,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
       ? scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 80
       : true;
 
-    const decrypted = this.crewId > 0
-      ? await this.decryptMessage(message)
-      : message;
+    const decrypted = await this.decryptMessage(message);
     this.messages = [...this.messages, decrypted];
 
     if (shouldStickToBottom) {
@@ -385,9 +377,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
           this.friendUsername = response.friendUsername || 'Friend';
           this.friendAvatarResourceId = response.friendAvatarResourceId ?? null;
           this.hasMore = response.hasMore;
-          this.messages = this.crewId > 0
-            ? await this.decryptMessages(response.items ?? [])
-            : response.items ?? [];
+          this.messages = await this.decryptMessages(response.items ?? []);
           this.loading = false;
           if (scrollToBottom) {
             setTimeout(() => this.scrollToBottom(), 0);
@@ -423,9 +413,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
           }
           this.hasMore = response.hasMore;
-          const older = this.crewId > 0
-            ? await this.decryptMessages(response.items ?? [])
-            : response.items ?? [];
+          const older = await this.decryptMessages(response.items ?? []);
           this.messages = [...older, ...this.messages];
           this.loadingOlder = false;
           setTimeout(() => {
@@ -446,32 +434,22 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async resolveLoadedMessageAttachments(): Promise<void> {
-    if (this.crewId <= 0) {
-      return;
-    }
     try {
-      const resolved = await this.chatCrypto.resolveMessageAttachments(
+      this.messages = await this.friendDmCrypto.resolveMessageAttachments(
         this.messages,
-        { crewId: this.crewId }
+        this.friendUserId
       );
-      this.messages = resolved as DirectMessage[];
     } catch {
       // Media resolve is best-effort; text already rendered.
     }
   }
 
   private async decryptMessages(messages: DirectMessage[]): Promise<DirectMessage[]> {
-    const chatMessages = messages.map(message => ({
-      ...message,
-      authorUsername: message.authorUsername
-    }));
-    const decrypted = await this.chatCrypto.decryptMessages(chatMessages, { crewId: this.crewId });
-    return decrypted as DirectMessage[];
+    return this.friendDmCrypto.decryptMessages(messages, this.friendUserId);
   }
 
   private async decryptMessage(message: DirectMessage): Promise<DirectMessage> {
-    const decrypted = await this.chatCrypto.decryptSingleMessage(message, { crewId: this.crewId });
-    return decrypted as DirectMessage;
+    return this.friendDmCrypto.decryptSingleMessage(message, this.friendUserId);
   }
 
   private setupLazyLoadObserver() {

@@ -5,19 +5,20 @@ import { Router } from '@angular/router';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
+import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { FriendService } from '../../services/friend.service';
 import { CrewmateService } from '../../services/crewmate.service';
 import { NotificationService } from '../../services/notification.service';
+import { NotificationContentService } from '../../services/notification-content.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { FriendListItem } from '../../models/friend.model';
 import { formatLastActive } from '../../models/crewmate.model';
-import { CrewService } from '../../services/crew.service';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-friends',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent],
+  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent, ContentBadgeComponent],
   templateUrl: './friends.component.html',
   styleUrl: './friends.component.css'
 })
@@ -30,14 +31,14 @@ export class FriendsComponent implements OnInit, OnDestroy {
   actionLoading = false;
   showBlockDialog = false;
   blockTarget: FriendListItem | null = null;
-  crewId = 0;
   activityTick = 0;
+  resourceCounts: Record<string, number> = {};
 
   private router = inject(Router);
   private friendService = inject(FriendService);
   private crewmateService = inject(CrewmateService);
-  private crewService = inject(CrewService);
   private notificationService = inject(NotificationService);
+  private notificationContent = inject(NotificationContentService);
   private toastService = inject(ToastService);
   private searchChanged$ = new Subject<string>();
   private subscriptions: Subscription[] = [];
@@ -47,17 +48,18 @@ export class FriendsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.searchChanged$.pipe(debounceTime(250)).subscribe(query => this.loadFriends(query))
     );
+    this.subscriptions.push(
+      this.notificationService.resourceCounts$.subscribe(counts => {
+        this.resourceCounts = counts;
+      })
+    );
 
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;
     }, 60000);
 
-    this.crewService.getMembership().subscribe({
-      next: membership => {
-        this.crewId = membership.crewId ?? 0;
-      }
-    });
-
+    this.notificationService.refreshBadges();
+    this.notificationContent.markVisited('/app/friends/accepted');
     this.loadFriends();
   }
 
@@ -80,6 +82,10 @@ export class FriendsComponent implements OnInit, OnDestroy {
   formatActivity(friend: FriendListItem): string {
     void this.activityTick;
     return formatLastActive(friend.lastLoginAt, false);
+  }
+
+  friendUnread(friend: FriendListItem): number {
+    return this.resourceCounts[`friend:${friend.userId}`] ?? 0;
   }
 
   openRequests() {

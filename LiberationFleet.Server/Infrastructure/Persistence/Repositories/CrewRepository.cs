@@ -34,5 +34,7 @@ public class CrewRepository : ICrewRepository
     }
 
     public Task<int> CountMembersAsync(int crewId, CancellationToken cancellationToken = default) =>
-        _context.CrewMemberships.CountAsync(m => m.CrewId == crewId && !m.IsBanned, cancellationToken);
+        _context.CrewMemberships.CountAsync(
+            m => m.CrewId == crewId && !m.IsBanned && !m.IsPlaceholderMember,
+            cancellationToken);
 }

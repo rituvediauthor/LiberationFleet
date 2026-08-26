@@ -90,7 +90,8 @@ public class UpsertEncryptedContentCommandHandler(
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
         var isPersonalAvatar = domainType == EncryptedContentType.ProfileAvatar && !hasCrewScope && !hasFleetScope;
-        if (!isPersonalAvatar && hasCrewScope == hasFleetScope)
+        var isPersonalMedia = AttachmentTypes.Contains(domainType) && !hasCrewScope && !hasFleetScope;
+        if (!isPersonalAvatar && !isPersonalMedia && hasCrewScope == hasFleetScope)
         {
             return new CryptoOperationResponse { Success = false, Message = "Exactly one of crew or fleet scope is required." };
         }
@@ -140,7 +141,8 @@ public class UpsertEncryptedContentCommandHandler(
             {
                 return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this fleet." };
             }
-            else if (isPersonalAvatar && (existing.CrewId.HasValue || existing.FleetId.HasValue || existing.AuthorUserId != userId))
+            else if ((isPersonalAvatar || isPersonalMedia)
+                && (existing.CrewId.HasValue || existing.FleetId.HasValue || existing.AuthorUserId != userId))
             {
                 return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found." };
             }

@@ -1,6 +1,9 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Friends;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -15,13 +18,14 @@ public record SendDirectMessageCommand(
 
 public class SendDirectMessageCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUserRepository userRepository,
     IDirectMessageRepository directMessageRepository,
     ICryptoRepository cryptoRepository,
+    INotificationRepository notificationRepository,
     IDirectMessageRealtimeNotifier directMessageRealtimeNotifier,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<SendDirectMessageCommand, DirectMessageOperationResponse>
 {
     public async Task<DirectMessageOperationResponse> Handle(SendDirectMessageCommand request, CancellationToken cancellationToken)
@@ -33,7 +37,6 @@ public class SendDirectMessageCommandHandler(
 
         var access = await FriendAccessHelper.ValidateFriendMessagingAsync(
             currentUser,
-            membershipRepository,
             friendshipRepository,
             blockRepository,
             userRepository,
@@ -65,7 +68,7 @@ public class SendDirectMessageCommandHandler(
         {
             ContentType = EncryptedContentType.DirectMessage,
             ResourceId = message.Id.ToString(),
-            CrewId = access.CrewId,
+            CrewId = null,
             AuthorUserId = access.ViewerId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -86,6 +89,25 @@ public class SendDirectMessageCommandHandler(
                 request.FriendUserId,
                 messageDto,
                 cancellationToken);
+        }
+
+        var recipientMutedSender = await notificationRepository.IsContentMutedAsync(
+            request.FriendUserId,
+            MutedContentType.Friend,
+            access.ViewerId,
+            cancellationToken);
+        if (!recipientMutedSender)
+        {
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
+            {
+                UserId = request.FriendUserId,
+                Kind = NotificationKind.NewDirectMessage,
+                Title = NotificationService.GetKindLabel(NotificationKind.NewDirectMessage),
+                Body = "New message",
+                ActionUrl = $"/app/friends/messages/{access.ViewerId}",
+                RelatedEntityId = message.Id,
+                ActorUserId = access.ViewerId
+            }, cancellationToken);
         }
 
         return new DirectMessageOperationResponse

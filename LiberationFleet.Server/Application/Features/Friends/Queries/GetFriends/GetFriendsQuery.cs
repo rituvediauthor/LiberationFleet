@@ -10,7 +10,6 @@ public record GetFriendsQuery(string? Search) : IRequest<FriendListResponse>;
 
 public class GetFriendsQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFriendshipRepository friendshipRepository,
     IUserRepository userRepository,
     IDirectMessageRepository directMessageRepository,
@@ -24,12 +23,6 @@ public class GetFriendsQueryHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
-        {
-            return new FriendListResponse { Success = false, Message = "You are not in a crew." };
-        }
-
         var friendships = await friendshipRepository.GetForUserAsync(userId, cancellationToken);
         var acceptedFriendships = friendships
             .Where(f => f.Status == FriendshipStatus.Accepted)

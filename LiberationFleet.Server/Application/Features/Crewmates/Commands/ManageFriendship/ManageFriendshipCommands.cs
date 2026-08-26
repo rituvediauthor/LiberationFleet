@@ -2,6 +2,9 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Friends;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -18,25 +21,26 @@ public record UnblockCrewmateCommand(int TargetUserId) : IRequest<CrewmateOperat
 
 public class RequestFriendshipCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RequestFriendshipCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(RequestFriendshipCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+        var access = await FriendAccessHelper.ValidateSocialTargetAsync(
             currentUser,
-            membershipRepository,
+            userRepository,
             blockRepository,
             request.TargetUserId,
             cancellationToken);
-        if (!context.Success)
+        if (!access.Success)
         {
-            return context.ToOperationResponse();
+            return ManageFriendshipAccessMapping.Fail(access);
         }
 
-        var existing = await friendshipRepository.GetBetweenUsersAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var existing = await friendshipRepository.GetBetweenUsersAsync(access.ViewerId, request.TargetUserId, cancellationToken);
         if (existing is not null)
         {
             return new CrewmateOperationResponse
@@ -46,7 +50,7 @@ public class RequestFriendshipCommandHandler(
                     ? "You are already friends."
                     : "A friendship request already exists.",
                 FriendshipState = CrewmateMapper.MapFriendshipState(
-                    context.ViewerId,
+                    access.ViewerId,
                     request.TargetUserId,
                     existing,
                     false,
@@ -56,7 +60,7 @@ public class RequestFriendshipCommandHandler(
 
         var friendship = new Friendship
         {
-            RequesterUserId = context.ViewerId,
+            RequesterUserId = access.ViewerId,
             AddresseeUserId = request.TargetUserId,
             Status = FriendshipStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -64,6 +68,16 @@ public class RequestFriendshipCommandHandler(
 
         await friendshipRepository.AddAsync(friendship, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationService.NotifyUserAsync(new CreateNotificationRequest
+        {
+            UserId = request.TargetUserId,
+            Kind = NotificationKind.FriendRequest,
+            Title = NotificationService.GetKindLabel(NotificationKind.FriendRequest),
+            Body = "You have a new friend request.",
+            ActionUrl = "/app/friends/requests",
+            ActorUserId = access.ViewerId
+        }, cancellationToken);
 
         return new CrewmateOperationResponse
         {
@@ -76,28 +90,28 @@ public class RequestFriendshipCommandHandler(
 
 public class CancelFriendshipRequestCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<CancelFriendshipRequestCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(CancelFriendshipRequestCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+        var access = await FriendAccessHelper.ValidateSocialTargetAsync(
             currentUser,
-            membershipRepository,
+            userRepository,
             blockRepository,
             request.TargetUserId,
             cancellationToken);
-        if (!context.Success)
+        if (!access.Success)
         {
-            return context.ToOperationResponse();
+            return ManageFriendshipAccessMapping.Fail(access);
         }
 
-        var friendship = await friendshipRepository.GetBetweenUsersAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var friendship = await friendshipRepository.GetBetweenUsersAsync(access.ViewerId, request.TargetUserId, cancellationToken);
         if (friendship is null
             || friendship.Status != FriendshipStatus.Pending
-            || friendship.RequesterUserId != context.ViewerId)
+            || friendship.RequesterUserId != access.ViewerId)
         {
             return new CrewmateOperationResponse
             {
@@ -121,28 +135,29 @@ public class CancelFriendshipRequestCommandHandler(
 
 public class AcceptFriendshipCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<AcceptFriendshipCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(AcceptFriendshipCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+        var access = await FriendAccessHelper.ValidateSocialTargetAsync(
             currentUser,
-            membershipRepository,
+            userRepository,
             blockRepository,
             request.TargetUserId,
             cancellationToken);
-        if (!context.Success)
+        if (!access.Success)
         {
-            return context.ToOperationResponse();
+            return ManageFriendshipAccessMapping.Fail(access);
         }
 
-        var friendship = await friendshipRepository.GetBetweenUsersAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var friendship = await friendshipRepository.GetBetweenUsersAsync(access.ViewerId, request.TargetUserId, cancellationToken);
         if (friendship is null
             || friendship.Status != FriendshipStatus.Pending
-            || friendship.AddresseeUserId != context.ViewerId)
+            || friendship.AddresseeUserId != access.ViewerId)
         {
             return new CrewmateOperationResponse
             {
@@ -156,6 +171,16 @@ public class AcceptFriendshipCommandHandler(
         friendship.RespondedAt = DateTime.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await notificationService.NotifyUserAsync(new CreateNotificationRequest
+        {
+            UserId = request.TargetUserId,
+            Kind = NotificationKind.FriendRequestAccepted,
+            Title = NotificationService.GetKindLabel(NotificationKind.FriendRequestAccepted),
+            Body = "Your friend request was accepted.",
+            ActionUrl = "/app/friends/accepted",
+            ActorUserId = access.ViewerId
+        }, cancellationToken);
+
         return new CrewmateOperationResponse
         {
             Success = true,
@@ -167,28 +192,28 @@ public class AcceptFriendshipCommandHandler(
 
 public class RejectFriendshipCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<RejectFriendshipCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(RejectFriendshipCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+        var access = await FriendAccessHelper.ValidateSocialTargetAsync(
             currentUser,
-            membershipRepository,
+            userRepository,
             blockRepository,
             request.TargetUserId,
             cancellationToken);
-        if (!context.Success)
+        if (!access.Success)
         {
-            return context.ToOperationResponse();
+            return ManageFriendshipAccessMapping.Fail(access);
         }
 
-        var friendship = await friendshipRepository.GetBetweenUsersAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var friendship = await friendshipRepository.GetBetweenUsersAsync(access.ViewerId, request.TargetUserId, cancellationToken);
         if (friendship is null
             || friendship.Status != FriendshipStatus.Pending
-            || friendship.AddresseeUserId != context.ViewerId)
+            || friendship.AddresseeUserId != access.ViewerId)
         {
             return new CrewmateOperationResponse
             {
@@ -212,31 +237,31 @@ public class RejectFriendshipCommandHandler(
 
 public class UnfriendCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<UnfriendCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(UnfriendCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+        var access = await FriendAccessHelper.ValidateSocialTargetAsync(
             currentUser,
-            membershipRepository,
+            userRepository,
             blockRepository,
             request.TargetUserId,
             cancellationToken);
-        if (!context.Success)
+        if (!access.Success)
         {
-            return context.ToOperationResponse();
+            return ManageFriendshipAccessMapping.Fail(access);
         }
 
-        var friendship = await friendshipRepository.GetBetweenUsersAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var friendship = await friendshipRepository.GetBetweenUsersAsync(access.ViewerId, request.TargetUserId, cancellationToken);
         if (friendship is null || friendship.Status != FriendshipStatus.Accepted)
         {
             return new CrewmateOperationResponse
             {
                 Success = false,
-                Message = "You are not friends with this crewmate.",
+                Message = "You are not friends with this user.",
                 FriendshipState = CrewmateFriendshipStateDto.None
             };
         }
@@ -255,36 +280,36 @@ public class UnfriendCommandHandler(
 
 public class BlockCrewmateCommandHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<BlockCrewmateCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(BlockCrewmateCommand request, CancellationToken cancellationToken)
     {
-        var context = await CrewmateCommandHelper.ValidateCrewmateTargetAsync(
+        var access = await FriendAccessHelper.ValidateSocialTargetAsync(
             currentUser,
-            membershipRepository,
+            userRepository,
             blockRepository,
             request.TargetUserId,
             cancellationToken,
             allowBlocked: true);
-        if (!context.Success)
+        if (!access.Success)
         {
-            return context.ToOperationResponse();
+            return ManageFriendshipAccessMapping.Fail(access);
         }
 
-        if (await blockRepository.IsBlockedAsync(context.ViewerId, request.TargetUserId, cancellationToken))
+        if (await blockRepository.IsBlockedAsync(access.ViewerId, request.TargetUserId, cancellationToken))
         {
             return new CrewmateOperationResponse
             {
                 Success = false,
-                Message = "Crewmate is already blocked.",
+                Message = "User is already blocked.",
                 FriendshipState = CrewmateFriendshipStateDto.Blocked
             };
         }
 
-        var friendship = await friendshipRepository.GetBetweenUsersAsync(context.ViewerId, request.TargetUserId, cancellationToken);
+        var friendship = await friendshipRepository.GetBetweenUsersAsync(access.ViewerId, request.TargetUserId, cancellationToken);
         if (friendship is not null)
         {
             friendshipRepository.Remove(friendship);
@@ -292,7 +317,7 @@ public class BlockCrewmateCommandHandler(
 
         await blockRepository.AddAsync(new UserBlock
         {
-            BlockerUserId = context.ViewerId,
+            BlockerUserId = access.ViewerId,
             BlockedUserId = request.TargetUserId,
             CreatedAt = DateTime.UtcNow
         }, cancellationToken);
@@ -302,7 +327,7 @@ public class BlockCrewmateCommandHandler(
         return new CrewmateOperationResponse
         {
             Success = true,
-            Message = "Crewmate blocked.",
+            Message = "User blocked.",
             FriendshipState = CrewmateFriendshipStateDto.Blocked
         };
     }
@@ -348,59 +373,8 @@ public class UnblockCrewmateCommandHandler(
     }
 }
 
-internal static class CrewmateCommandHelper
+file static class ManageFriendshipAccessMapping
 {
-    public static async Task<CrewmateCommandContext> ValidateCrewmateTargetAsync(
-        ICurrentUserService currentUser,
-        ICrewMembershipRepository membershipRepository,
-        IUserBlockRepository blockRepository,
-        int targetUserId,
-        CancellationToken cancellationToken,
-        bool allowBlocked = false)
-    {
-        if (!currentUser.UserId.HasValue)
-        {
-            return CrewmateCommandContext.Fail("Unauthorized.");
-        }
-
-        var viewerId = currentUser.UserId.Value;
-        if (viewerId == targetUserId)
-        {
-            return CrewmateCommandContext.Fail("You cannot perform this action on yourself.");
-        }
-
-        var membership = await membershipRepository.GetActiveMembershipAsync(viewerId, cancellationToken);
-        if (membership is null)
-        {
-            return CrewmateCommandContext.Fail("You are not in a crew.");
-        }
-
-        if (!await membershipRepository.IsUserInCrewAsync(targetUserId, membership.CrewId, cancellationToken))
-        {
-            return CrewmateCommandContext.Fail("Crewmate not found.");
-        }
-
-        if (!allowBlocked && await blockRepository.IsBlockedAsync(viewerId, targetUserId, cancellationToken))
-        {
-            return CrewmateCommandContext.Fail("You have blocked this crewmate.");
-        }
-
-        return CrewmateCommandContext.Ok(viewerId);
-    }
-}
-
-internal sealed class CrewmateCommandContext
-{
-    public bool Success { get; init; }
-    public string Message { get; init; } = string.Empty;
-    public int ViewerId { get; init; }
-
-    public static CrewmateCommandContext Ok(int viewerId) =>
-        new() { Success = true, ViewerId = viewerId };
-
-    public static CrewmateCommandContext Fail(string message) =>
-        new() { Success = false, Message = message };
-
-    public CrewmateOperationResponse ToOperationResponse() =>
-        new() { Success = false, Message = Message };
+    public static CrewmateOperationResponse Fail(FriendAccessResult access) =>
+        new() { Success = false, Message = access.Message };
 }

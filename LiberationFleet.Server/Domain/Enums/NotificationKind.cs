@@ -55,5 +55,8 @@ public enum NotificationKind
     GiftCommentLiked = 51,
     NewGiftReply = 52,
     NewProposalReply = 53,
-    NewFleetProposalReply = 54
+    NewFleetProposalReply = 54,
+    FriendRequest = 55,
+    FriendRequestAccepted = 56,
+    NewDirectMessage = 57
 }

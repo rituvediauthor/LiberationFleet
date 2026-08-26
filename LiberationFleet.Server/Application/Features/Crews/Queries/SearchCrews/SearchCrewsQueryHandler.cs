@@ -34,6 +34,16 @@ public class SearchCrewsQueryHandler : IRequestHandler<SearchCrewsQuery, CrewSea
         }
 
         var scope = Enum.Parse<CrewScope>(request.Scope, ignoreCase: true);
+        if (scope == CrewScope.Local
+            && !_zipCodeDistanceService.TryGetDistanceMiles(request.ZipCode!, request.ZipCode!, out _))
+        {
+            return new CrewSearchResponse
+            {
+                Success = false,
+                Message = "That zip code is not in the geocoding table yet. Local discovery currently supports a limited set of US zip codes."
+            };
+        }
+
         var candidates = await _crewRepository.SearchPublicAsync(scope, cancellationToken);
         var results = new List<CrewDto>();
 

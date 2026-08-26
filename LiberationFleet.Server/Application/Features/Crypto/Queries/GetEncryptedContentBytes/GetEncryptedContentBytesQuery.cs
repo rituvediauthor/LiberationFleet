@@ -26,6 +26,8 @@ public class GetEncryptedContentBytesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    IFriendshipRepository friendshipRepository,
+    IUserBlockRepository blockRepository,
     ICryptoRepository cryptoRepository,
     IMediaDeepFreezeService deepFreezeService) : IRequestHandler<GetEncryptedContentBytesQuery, EncryptedContentBytesResult?>
 {
@@ -40,7 +42,9 @@ public class GetEncryptedContentBytesQueryHandler(
 
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
-        if (hasCrewScope == hasFleetScope)
+        var isPersonalMedia = PersonalEncryptedMediaAccess.IsAttachmentType(request.ContentType)
+            && PersonalEncryptedMediaAccess.IsPersonalScope(request.CrewId, request.FleetId);
+        if (!isPersonalMedia && hasCrewScope == hasFleetScope)
         {
             return null;
         }
@@ -53,7 +57,7 @@ public class GetEncryptedContentBytesQueryHandler(
                 return null;
             }
         }
-        else if (!await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
+        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
         {
             return null;
         }
@@ -63,6 +67,7 @@ public class GetEncryptedContentBytesQueryHandler(
             new[] { request.ResourceId.Trim() },
             crewId: request.CrewId,
             fleetId: request.FleetId,
+            personalScopeOnly: isPersonalMedia,
             cancellationToken: cancellationToken);
 
         if (envelopes.Count == 0)
@@ -71,6 +76,17 @@ public class GetEncryptedContentBytesQueryHandler(
         }
 
         var envelope = envelopes[0];
+        if (isPersonalMedia
+            && !await PersonalEncryptedMediaAccess.CanAccessAsync(
+                userId,
+                envelope,
+                friendshipRepository,
+                blockRepository,
+                cancellationToken))
+        {
+            return null;
+        }
+
         if (string.IsNullOrWhiteSpace(envelope.Nonce))
         {
             return null;

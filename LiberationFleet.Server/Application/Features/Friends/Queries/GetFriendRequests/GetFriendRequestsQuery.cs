@@ -10,7 +10,6 @@ public record GetFriendRequestsQuery : IRequest<FriendRequestListResponse>;
 
 public class GetFriendRequestsQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFriendshipRepository friendshipRepository,
     IUserRepository userRepository) : IRequestHandler<GetFriendRequestsQuery, FriendRequestListResponse>
 {
@@ -22,12 +21,6 @@ public class GetFriendRequestsQueryHandler(
         }
 
         var userId = currentUser.UserId.Value;
-        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-        if (membership is null)
-        {
-            return new FriendRequestListResponse { Success = false, Message = "You are not in a crew." };
-        }
-
         var friendships = await friendshipRepository.GetForUserAsync(userId, cancellationToken);
         var pending = friendships
             .Where(f => f.Status == FriendshipStatus.Pending)
@@ -40,11 +33,6 @@ public class GetFriendRequestsQueryHandler(
             var otherUserId = friendship.RequesterUserId == userId
                 ? friendship.AddresseeUserId
                 : friendship.RequesterUserId;
-
-            if (!await membershipRepository.IsUserInCrewAsync(otherUserId, membership.CrewId, cancellationToken))
-            {
-                continue;
-            }
 
             var otherUser = await userRepository.GetByIdWithProfileAsync(otherUserId, cancellationToken);
             if (otherUser is null)

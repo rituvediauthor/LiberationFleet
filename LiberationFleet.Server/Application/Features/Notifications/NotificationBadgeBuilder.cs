@@ -18,6 +18,7 @@ public static class NotificationBadgeBuilder
         "crewLibrary",
         "crewCrewmates", "fleetCrewmates",
         "userInvitations",
+        "friends",
         "fleet"
     ];
 
@@ -234,6 +235,11 @@ public static class NotificationBadgeBuilder
             return "userInvitations";
         }
 
+        if (path.StartsWith("/app/friends", StringComparison.Ordinal))
+        {
+            return "friends";
+        }
+
         if (path.StartsWith("/app/crew/chats/", StringComparison.Ordinal))
         {
             return "crewChats";
@@ -355,6 +361,8 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
                 or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "crewLibrary",
+            NotificationKind.FriendRequest or NotificationKind.FriendRequestAccepted
+                or NotificationKind.NewDirectMessage => "friends",
             _ => null
         };
     }
@@ -448,6 +456,13 @@ public static class NotificationBadgeBuilder
             case NotificationKind.LibraryUnitBrokenConfirmed:
             case NotificationKind.LibraryUnitReportedFixed:
                 keys.Add("library-section:mine");
+                break;
+            case NotificationKind.NewDirectMessage:
+            case NotificationKind.FriendRequest:
+                if (notification.ActorUserId.HasValue)
+                {
+                    keys.Add($"friend:{notification.ActorUserId.Value}");
+                }
                 break;
         }
 

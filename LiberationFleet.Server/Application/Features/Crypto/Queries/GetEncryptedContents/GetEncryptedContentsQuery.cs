@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crypto.Queries.GetEncryptedContents;
@@ -17,6 +18,8 @@ public class GetEncryptedContentsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    IFriendshipRepository friendshipRepository,
+    IUserBlockRepository blockRepository,
     ICryptoRepository cryptoRepository,
     IMediaDeepFreezeService deepFreezeService) : IRequestHandler<GetEncryptedContentsQuery, IReadOnlyList<EncryptedContentEnvelopeDto>>
 {
@@ -32,9 +35,10 @@ public class GetEncryptedContentsQueryHandler(
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
         var isPersonalAvatar = request.ContentType == EncryptedContentTypeDto.ProfileAvatar
-            && !hasCrewScope
-            && !hasFleetScope;
-        if (!isPersonalAvatar && hasCrewScope == hasFleetScope)
+            && PersonalEncryptedMediaAccess.IsPersonalScope(request.CrewId, request.FleetId);
+        var isPersonalMedia = PersonalEncryptedMediaAccess.IsAttachmentType(request.ContentType)
+            && PersonalEncryptedMediaAccess.IsPersonalScope(request.CrewId, request.FleetId);
+        if (!isPersonalAvatar && !isPersonalMedia && hasCrewScope == hasFleetScope)
         {
             return Array.Empty<EncryptedContentEnvelopeDto>();
         }
@@ -58,7 +62,18 @@ public class GetEncryptedContentsQueryHandler(
             crewId: request.CrewId,
             fleetId: request.FleetId,
             authorUserId: isPersonalAvatar ? userId : null,
+            personalScopeOnly: isPersonalMedia,
             cancellationToken: cancellationToken);
+
+        if (isPersonalMedia)
+        {
+            envelopes = await PersonalEncryptedMediaAccess.FilterAccessibleAsync(
+                userId,
+                envelopes,
+                friendshipRepository,
+                blockRepository,
+                cancellationToken);
+        }
 
         await deepFreezeService.HydrateAsync(envelopes, cancellationToken);
 

@@ -5,10 +5,10 @@ import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { FriendService } from '../../../services/friend.service';
 import { CrewmateService } from '../../../services/crewmate.service';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FriendRequestListItem } from '../../../models/friend.model';
 import { formatLastActive } from '../../../models/crewmate.model';
-import { CrewService } from '../../../services/crew.service';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 
 @Component({
@@ -25,7 +25,6 @@ export class FriendRequestsComponent implements OnInit, OnDestroy {
   actionLoading = false;
   backButton!: ActionBarButton;
   activityTick = 0;
-  crewId = 0;
 
   private router = inject(Router);
 
@@ -33,22 +32,17 @@ export class FriendRequestsComponent implements OnInit, OnDestroy {
   private navigation = inject(NavigationService);
   private friendService = inject(FriendService);
   private crewmateService = inject(CrewmateService);
-  private crewService = inject(CrewService);
+  private notificationContent = inject(NotificationContentService);
   private toastService = inject(ToastService);
   private activityIntervalId?: ReturnType<typeof setInterval>;
 
   ngOnInit() {
     this.backButton = this.navigation.createBackButton(['/app/friends']);
+    this.notificationContent.markVisited('/app/friends/requests');
 
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;
     }, 60000);
-
-    this.crewService.getMembership().subscribe({
-      next: membership => {
-        this.crewId = membership.crewId ?? 0;
-      }
-    });
 
     this.loadRequests();
   }

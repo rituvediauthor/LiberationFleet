@@ -25,6 +25,15 @@
           (click)="activeTab = 'Fleet'">
           Fleet
         </button>
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab"
+          [class.active]="activeTab === 'Friends'"
+          [attr.aria-selected]="activeTab === 'Friends'"
+          (click)="activeTab = 'Friends'">
+          Friends
+        </button>
       </div>
 
       <section class="preference-section" *ngIf="visiblePreferences.length > 0">

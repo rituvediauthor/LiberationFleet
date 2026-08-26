@@ -116,12 +116,7 @@ public class SubmitJoinRequestCommandHandler(
             acceptedRuleIds,
             cancellationToken);
 
-        if (result.Success && invitation is not null)
-        {
-            invitation.Status = CrewInvitationStatus.Accepted;
-            invitation.RespondedAt = DateTime.UtcNow;
-        }
-
+        // Do not mark the invitation Accepted here — wait until the join proposal is applied.
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new JoinRequestOperationResponse

@@ -23,9 +23,11 @@ public static class DirectMessageMapper
 
 public static class FriendAccessHelper
 {
+    /// <summary>
+    /// Friendship and DMs are global (not crew-scoped). Blocks are checked both ways.
+    /// </summary>
     public static async Task<FriendAccessResult> ValidateFriendMessagingAsync(
         ICurrentUserService currentUser,
-        ICrewMembershipRepository membershipRepository,
         IFriendshipRepository friendshipRepository,
         IUserBlockRepository blockRepository,
         IUserRepository userRepository,
@@ -41,17 +43,6 @@ public static class FriendAccessHelper
         if (viewerId == friendUserId)
         {
             return FriendAccessResult.Fail("You cannot message yourself.");
-        }
-
-        var membership = await membershipRepository.GetActiveMembershipAsync(viewerId, cancellationToken);
-        if (membership is null)
-        {
-            return FriendAccessResult.Fail("You are not in a crew.");
-        }
-
-        if (!await membershipRepository.IsUserInCrewAsync(friendUserId, membership.CrewId, cancellationToken))
-        {
-            return FriendAccessResult.Fail("Friend not found.");
         }
 
         if (await blockRepository.IsBlockedAsync(viewerId, friendUserId, cancellationToken)
@@ -72,7 +63,48 @@ public static class FriendAccessHelper
             return FriendAccessResult.Fail("Friend not found.");
         }
 
-        return FriendAccessResult.Ok(viewerId, membership.CrewId, friend.Username, friend.AvatarResourceId);
+        return FriendAccessResult.Ok(viewerId, friend.Username, friend.AvatarResourceId);
+    }
+
+    public static async Task<FriendAccessResult> ValidateSocialTargetAsync(
+        ICurrentUserService currentUser,
+        IUserRepository userRepository,
+        IUserBlockRepository blockRepository,
+        int targetUserId,
+        CancellationToken cancellationToken,
+        bool allowBlocked = false)
+    {
+        if (!currentUser.UserId.HasValue)
+        {
+            return FriendAccessResult.Fail("Unauthorized.");
+        }
+
+        var viewerId = currentUser.UserId.Value;
+        if (viewerId == targetUserId)
+        {
+            return FriendAccessResult.Fail("You cannot perform this action on yourself.");
+        }
+
+        var target = await userRepository.GetByIdAsync(targetUserId, cancellationToken);
+        if (target is null)
+        {
+            return FriendAccessResult.Fail("User not found.");
+        }
+
+        if (!allowBlocked)
+        {
+            if (await blockRepository.IsBlockedAsync(viewerId, targetUserId, cancellationToken))
+            {
+                return FriendAccessResult.Fail("You have blocked this user.");
+            }
+
+            if (await blockRepository.IsBlockedAsync(targetUserId, viewerId, cancellationToken))
+            {
+                return FriendAccessResult.Fail("You cannot interact with this user.");
+            }
+        }
+
+        return FriendAccessResult.Ok(viewerId, target.Username, target.AvatarResourceId);
     }
 }
 
@@ -81,20 +113,17 @@ public sealed class FriendAccessResult
     public bool Success { get; init; }
     public string Message { get; init; } = string.Empty;
     public int ViewerId { get; init; }
-    public int CrewId { get; init; }
     public string FriendUsername { get; init; } = string.Empty;
     public string? FriendAvatarResourceId { get; init; }
 
     public static FriendAccessResult Ok(
         int viewerId,
-        int crewId,
         string friendUsername,
         string? friendAvatarResourceId = null) =>
         new()
         {
             Success = true,
             ViewerId = viewerId,
-            CrewId = crewId,
             FriendUsername = friendUsername,
             FriendAvatarResourceId = friendAvatarResourceId
         };

@@ -56,14 +56,23 @@ describe('resolveNotificationArea', () => {
       )
     ).toBe('crewForums');
   });
-  it('maps emergency requests to crewEmergency', () => {
+  it('maps friend notifications to friends', () => {
     expect(
       resolveNotificationArea(
         item({
-          kind: 'NewEmergencyRequest',
-          actionUrl: '/app/crew/emergency-requests/3?highlightId=3'
+          kind: 'FriendRequest',
+          actionUrl: '/app/friends/requests'
         })
       )
-    ).toBe('crewEmergency');
+    ).toBe('friends');
+
+    expect(
+      resolveNotificationArea(
+        item({
+          kind: 'NewDirectMessage',
+          actionUrl: '/app/friends/messages/42'
+        })
+      )
+    ).toBe('friends');
   });
 });

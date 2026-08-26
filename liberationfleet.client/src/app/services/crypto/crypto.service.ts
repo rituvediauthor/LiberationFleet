@@ -364,6 +364,11 @@ export class CryptoService {
     return this.deriveSecretKey(password, salt, BACKUP_WRAP_LEGACY_PASSWORD);
   }
 
+  async deriveFriendDmAesKey(privateKey: CryptoKey, friendPublicKeySpki: string): Promise<CryptoKey> {
+    const publicKey = await this.importPublicKeySpki(friendPublicKeySpki);
+    return this.deriveSharedAesKey(privateKey, publicKey, 'dm-content-key-v1');
+  }
+
   async deriveUserContentAesKey(privateKey: CryptoKey, identityPublicKeySpki: string): Promise<CryptoKey> {
     const publicKey = await this.importPublicKeySpki(identityPublicKeySpki);
     return this.deriveSharedAesKey(privateKey, publicKey, 'user-content-key-v1');

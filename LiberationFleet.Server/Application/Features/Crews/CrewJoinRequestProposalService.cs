@@ -26,6 +26,7 @@ public class CrewJoinRequestProposalService(
     IFleetRepository fleetRepository,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
+    ICrewInvitationRepository invitationRepository,
     IUserRepository userRepository,
     NotificationService notificationService,
     ContentTenureService contentTenureService,
@@ -190,6 +191,16 @@ public class CrewJoinRequestProposalService(
 
         joinRequest.IsApplied = true;
         joinRequest.Description = $"{joinRequest.ApplicantUsername} was approved and joined the crew.";
+
+        var pendingInvitation = await invitationRepository.GetPendingAsync(
+            proposal.CrewId!.Value,
+            joinRequest.ApplicantUserId,
+            cancellationToken);
+        if (pendingInvitation is not null)
+        {
+            pendingInvitation.Status = CrewInvitationStatus.Accepted;
+            pendingInvitation.RespondedAt = DateTime.UtcNow;
+        }
 
         await notificationService.NotifyUserAsync(new Application.Features.Notifications.Contracts.CreateNotificationRequest
         {

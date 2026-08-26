@@ -133,23 +133,29 @@ public class CrewApplyToFleetProposalService(
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
-            proposalRepository,
-            proposal,
-            utcNow,
-            cancellationToken);
-        var statusBefore = proposal.Status;
-        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
-            proposal,
-            proposalRepository,
-            fleetRepository,
-            crewRepository,
-            utcNow,
-            cancellationToken);
-        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+        // Fleet inviter is not a member of the invitee crew — skip author auto-approve.
+        // Self-apply author is in the applying crew — keep the usual auto-approve.
+        if (!initiatedByFleetInvite)
         {
-            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+            await ProposalVotingService.EnsureAuthorApproveVoteAsync(
+                proposalRepository,
+                proposal,
+                utcNow,
+                cancellationToken);
+            var statusBefore = proposal.Status;
+            await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
+                proposal,
+                proposalRepository,
+                fleetRepository,
+                crewRepository,
+                utcNow,
+                cancellationToken);
+            if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
+            {
+                await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+            }
         }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return CrewApplyToFleetResult.Succeeded(

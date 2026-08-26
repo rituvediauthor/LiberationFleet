@@ -50,9 +50,12 @@ export type NotificationKind =
   | 'GiftCommentLiked'
   | 'NewGiftReply'
   | 'NewProposalReply'
-  | 'NewFleetProposalReply';
+  | 'NewFleetProposalReply'
+  | 'FriendRequest'
+  | 'FriendRequestAccepted'
+  | 'NewDirectMessage';
 
-export type NotificationPreferenceCategory = 'Crew' | 'Fleet';
+export type NotificationPreferenceCategory = 'Crew' | 'Fleet' | 'Friends';
 
 export type NotificationFilterCategory = 'All' | 'Comments' | 'Mentions' | 'Proposals' | 'Rules';
 

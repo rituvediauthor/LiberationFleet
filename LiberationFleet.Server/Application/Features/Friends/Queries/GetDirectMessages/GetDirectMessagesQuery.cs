@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Friends;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -10,7 +11,6 @@ public record GetDirectMessagesQuery(int FriendUserId, int Limit, int? BeforeMes
 
 public class GetDirectMessagesQueryHandler(
     ICurrentUserService currentUser,
-    ICrewMembershipRepository membershipRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IUserRepository userRepository,
@@ -23,7 +23,6 @@ public class GetDirectMessagesQueryHandler(
     {
         var access = await FriendAccessHelper.ValidateFriendMessagingAsync(
             currentUser,
-            membershipRepository,
             friendshipRepository,
             blockRepository,
             userRepository,
@@ -61,7 +60,7 @@ public class GetDirectMessagesQueryHandler(
         var envelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.DirectMessage,
             resourceIds,
-            crewId: access.CrewId,
+            crewId: null,
             cancellationToken: cancellationToken);
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 

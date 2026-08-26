@@ -41,13 +41,14 @@
             <p class="friend-name">
               <app-user-avatar
                 [resourceId]="friend.avatarResourceId"
-                [crewId]="crewId || null"
+                [crewId]="null"
                 [fallbackInitial]="friend.username"
                 size="sm"
                 [alt]="friend.username + ' avatar'">
               </app-user-avatar>
               {{ friend.username }}
               <span *ngIf="friend.isMuted" class="muted-badge">Muted</span>
+              <app-content-badge [count]="friendUnread(friend)"></app-content-badge>
             </p>
             <p class="friend-activity">{{ formatActivity(friend) }}</p>
           </div>

@@ -55,24 +55,8 @@ public class FleetJoinRequestProposalService(
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await ProposalVotingService.EnsureAuthorApproveVoteAsync(
-            proposalRepository,
-            proposal,
-            utcNow,
-            cancellationToken);
-        var statusBefore = proposal.Status;
-        await ProposalVotingService.RecalculateAfterAuthorVoteAsync(
-            proposal,
-            proposalRepository,
-            fleetRepository,
-            crewRepository,
-            utcNow,
-            cancellationToken);
-        if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
-        {
-            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        }
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        // Applicant is outside the fleet — do not cast an author approve vote.
+        // Fleet members must approve through normal voting / timer rules.
     }
 
     public async Task TryApplyApprovedProposalAsync(Proposal proposal, CancellationToken cancellationToken)

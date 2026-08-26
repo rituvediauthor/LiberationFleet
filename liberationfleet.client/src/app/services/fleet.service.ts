@@ -201,8 +201,10 @@ export class FleetService {
     return this.http.post<FleetCrewOperationResponse>(`${this.apiUrl}/current/crews/${crewId}/kick`, { reason });
   }
 
-  joinCrew(crewId: number): Observable<FleetCrewOperationResponse> {
-    return this.http.post<FleetCrewOperationResponse>(`${this.apiUrl}/current/crews/${crewId}/join`, {});
+  joinCrew(crewId: number, acceptedRuleIds: number[] = []): Observable<FleetCrewOperationResponse> {
+    return this.http.post<FleetCrewOperationResponse>(`${this.apiUrl}/current/crews/${crewId}/join`, {
+      acceptedRuleIds
+    });
   }
 
   getGiftLog(options?: GiftLogQueryOptions): Observable<FleetGiftLogResponse> {

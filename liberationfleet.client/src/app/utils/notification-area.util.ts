@@ -18,7 +18,8 @@ export type CrewNotificationArea =
   | 'crewCrewmates'
   | 'fleetCrewmates'
   | 'userInvitations'
-  | 'fleet';
+  | 'fleet'
+  | 'friends';
 
 export type CrewNotificationAreaCounts = Record<CrewNotificationArea, number>;
 
@@ -41,7 +42,8 @@ export function emptyAreaCounts(): CrewNotificationAreaCounts {
     crewCrewmates: 0,
     fleetCrewmates: 0,
     userInvitations: 0,
-    fleet: 0
+    fleet: 0,
+    friends: 0
   };
 }
 
@@ -111,6 +113,9 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
   }
   if (path.startsWith('/app/fleet/')) {
     return 'fleet';
+  }
+  if (path.startsWith('/app/friends')) {
+    return 'friends';
   }
 
   switch (item.kind as NotificationKind) {
@@ -184,6 +189,10 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'LibraryUnitBrokenConfirmed':
     case 'LibraryUnitReportedFixed':
       return 'crewLibrary';
+    case 'FriendRequest':
+    case 'FriendRequestAccepted':
+    case 'NewDirectMessage':
+      return 'friends';
     default:
       return null;
   }

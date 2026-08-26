@@ -230,7 +230,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
           void this.refreshVideoThumbnail(pending, prepared, controller.signal);
         }
 
-        if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId)) {
+        if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId || this.cryptoScope.friendUserId)) {
           pending.status = 'uploading';
           pending.progress = 0;
           pending.progressLabel = 'Uploading…';
@@ -475,7 +475,7 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
       pending.abort = undefined;
       this.abortControllers.delete(resourceId);
 
-      if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId)) {
+      if (this.cryptoScope && (this.cryptoScope.crewId || this.cryptoScope.fleetId || this.cryptoScope.friendUserId)) {
         pending.status = 'uploading';
         pending.progress = 0;
         pending.progressLabel = 'Uploading…';

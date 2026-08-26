@@ -55,8 +55,13 @@ export class ChatHubService implements OnDestroy {
     this.joinedCrewId = crewId;
   }
 
+  /** Connect to the chat hub (user group) without joining a crew room — used for DMs. */
+  async ensureConnected(): Promise<HubConnection> {
+    return this.ensureConnectedInternal();
+  }
+
   async joinRoom(roomId: number): Promise<void> {
-    const connection = await this.ensureConnected();
+    const connection = await this.ensureConnectedInternal();
     if (this.joinedRoomId === roomId) {
       return;
     }
@@ -92,7 +97,7 @@ export class ChatHubService implements OnDestroy {
     this.connection = null;
   }
 
-  private async ensureConnected(): Promise<HubConnection> {
+  private async ensureConnectedInternal(): Promise<HubConnection> {
     if (this.connection?.state === HubConnectionState.Connected) {
       return this.connection;
     }

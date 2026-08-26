@@ -15,6 +15,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
 {
     private readonly ICrewRepository _crewRepository;
     private readonly ICrewMembershipRepository _membershipRepository;
+    private readonly IFleetRepository _fleetRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ContentTenureService _contentTenureService;
     private readonly FleetMembershipService _fleetMembershipService;
@@ -23,6 +24,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
     public CreateCrewCommandHandler(
         ICrewRepository crewRepository,
         ICrewMembershipRepository membershipRepository,
+        IFleetRepository fleetRepository,
         ICurrentUserService currentUserService,
         ContentTenureService contentTenureService,
         FleetMembershipService fleetMembershipService,
@@ -30,6 +32,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
     {
         _crewRepository = crewRepository;
         _membershipRepository = membershipRepository;
+        _fleetRepository = fleetRepository;
         _currentUserService = currentUserService;
         _contentTenureService = contentTenureService;
         _fleetMembershipService = fleetMembershipService;
@@ -52,6 +55,19 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
 
         var privacy = Enum.Parse<CrewPrivacy>(request.Privacy, ignoreCase: true);
         var scope = Enum.Parse<CrewScope>(request.Scope, ignoreCase: true);
+
+        if (privacy == CrewPrivacy.FleetMembersOnly)
+        {
+            var noCrewFleet = await _fleetRepository.GetFleetMembershipForUserAsync(userId.Value, cancellationToken);
+            if (noCrewFleet is null)
+            {
+                return new CrewOperationResponse
+                {
+                    Success = false,
+                    Message = "Fleet members only is available when you already belong to a fleet (for example after leaving a fleeted crew). Create the crew in that fleet first, or choose a different privacy setting."
+                };
+            }
+        }
 
         var crew = new Crew
         {

@@ -68,7 +68,8 @@ public class UpdateFleetCommandHandler(
         }
 
         if (scope == CrewScope.Local
-            && (string.IsNullOrWhiteSpace(request.ZipCode) || request.ZipCode.Trim().Length != 5
+            && (string.IsNullOrWhiteSpace(request.ZipCode)
+                || !System.Text.RegularExpressions.Regex.IsMatch(request.ZipCode.Trim(), @"^\d{5}$")
                 || request.RadiusMiles is null or < 1 or > 500))
         {
             return new FleetOperationResponse

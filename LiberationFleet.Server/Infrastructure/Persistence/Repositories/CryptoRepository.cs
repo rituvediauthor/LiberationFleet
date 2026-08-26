@@ -185,6 +185,7 @@ public class CryptoRepository : ICryptoRepository
         int? crewId = null,
         int? fleetId = null,
         int? authorUserId = null,
+        bool personalScopeOnly = false,
         CancellationToken cancellationToken = default)
     {
         if (resourceIds.Count == 0)
@@ -205,11 +206,14 @@ public class CryptoRepository : ICryptoRepository
             query = query.Where(e => e.FleetId == fleetId);
         }
 
+        if (personalScopeOnly || authorUserId.HasValue)
+        {
+            query = query.Where(e => e.CrewId == null && e.FleetId == null);
+        }
+
         if (authorUserId.HasValue)
         {
-            query = query.Where(e => e.AuthorUserId == authorUserId
-                && e.CrewId == null
-                && e.FleetId == null);
+            query = query.Where(e => e.AuthorUserId == authorUserId);
         }
 
         return await query.ToListAsync(cancellationToken);

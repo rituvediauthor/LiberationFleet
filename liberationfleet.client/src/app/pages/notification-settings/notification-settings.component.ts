@@ -19,7 +19,7 @@ import { NotificationPreference } from '../../models/notification.model';
 export class NotificationSettingsComponent implements OnInit {
   preferences: NotificationPreference[] = [];
   loading = true;
-  activeTab: 'Crew' | 'Fleet' = 'Crew';
+  activeTab: 'Crew' | 'Fleet' | 'Friends' = 'Crew';
 
   get crewPreferences(): NotificationPreference[] {
     return this.preferences.filter(p => (p.category || 'Crew') === 'Crew');
@@ -29,8 +29,18 @@ export class NotificationSettingsComponent implements OnInit {
     return this.preferences.filter(p => p.category === 'Fleet');
   }
 
+  get friendsPreferences(): NotificationPreference[] {
+    return this.preferences.filter(p => p.category === 'Friends');
+  }
+
   get visiblePreferences(): NotificationPreference[] {
-    return this.activeTab === 'Fleet' ? this.fleetPreferences : this.crewPreferences;
+    if (this.activeTab === 'Fleet') {
+      return this.fleetPreferences;
+    }
+    if (this.activeTab === 'Friends') {
+      return this.friendsPreferences;
+    }
+    return this.crewPreferences;
   }
 
   saving = false;

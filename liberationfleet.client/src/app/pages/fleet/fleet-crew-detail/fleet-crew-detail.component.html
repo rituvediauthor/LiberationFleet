@@ -3,7 +3,7 @@
     <p *ngIf="loading" class="state-text">Loading crew...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
-    <div *ngIf="!loading && crew">
+    <div *ngIf="!loading && crew && joinStep === 'detail'">
       <div class="header-row">
         <button
           type="button"
@@ -41,6 +41,29 @@
           <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
         </button>
       </div>
+    </div>
+
+    <div *ngIf="!loading && crew && joinStep === 'rules'" class="join-rules">
+      <h2 class="section-title">Join {{ crew.crewName }}</h2>
+      <p class="intro-text">Accept each public rule below before requesting to join this crew.</p>
+      <p class="search-status" *ngIf="isLoadingRules">Loading rules...</p>
+      <p class="state-text error" *ngIf="rulesError">{{ rulesError }}</p>
+      <p class="state-text" *ngIf="!isLoadingRules && publicRules.length === 0">
+        This crew has no public rules. You can request to join without accepting any rules.
+      </p>
+      <ul class="rules-list" *ngIf="!isLoadingRules && publicRules.length > 0">
+        <li class="rule-card" *ngFor="let rule of publicRules">
+          <h3 class="rule-title">{{ rule.title }}</h3>
+          <p class="rule-description">{{ rule.description }}</p>
+          <label class="accept-option">
+            <input
+              type="checkbox"
+              [checked]="isRuleAccepted(rule.id)"
+              (change)="toggleRuleAcceptance(rule.id, $any($event.target).checked)">
+            Accept
+          </label>
+        </li>
+      </ul>
     </div>
   </div>
 </app-page-layout>

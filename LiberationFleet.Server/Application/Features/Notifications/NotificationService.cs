@@ -213,6 +213,9 @@ public class NotificationService(
         NotificationKind.NewGiftReply => "New gift reply",
         NotificationKind.NewProposalReply => "New proposal reply",
         NotificationKind.NewFleetProposalReply => "New fleet proposal reply",
+        NotificationKind.FriendRequest => "Friend request",
+        NotificationKind.FriendRequestAccepted => "Friend request accepted",
+        NotificationKind.NewDirectMessage => "New direct message",
         _ => kind.ToString()
     };
 
@@ -234,6 +237,9 @@ public class NotificationService(
             or NotificationKind.FleetMention
             or NotificationKind.FleetForumPostLiked
             or NotificationKind.FleetForumCommentLiked => "Fleet",
+        NotificationKind.FriendRequest
+            or NotificationKind.FriendRequestAccepted
+            or NotificationKind.NewDirectMessage => "Friends",
         _ => "Crew"
     };
 

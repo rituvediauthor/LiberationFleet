@@ -26,6 +26,8 @@ import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from '../storage/s
 export interface ProposalCryptoScope {
   crewId?: number;
   fleetId?: number;
+  /** Friend DMs: ECDH shared key (no crew/fleet). */
+  friendUserId?: number;
 }
 
 /** Cap eager video downloads after a list decrypt (crew/fleet feed). */
@@ -1045,6 +1047,11 @@ export class ProposalCryptoService {
       return this.cryptoSession.decryptWithCrewKeyFallback(scope.crewId, keyVersion, decrypt);
     }
 
+    if (scope.friendUserId) {
+      const friendKey = await this.cryptoSession.ensureFriendDmKeyReady(scope.friendUserId);
+      return decrypt(friendKey);
+    }
+
     const personalKey = await this.cryptoSession.ensureUserContentKeyReady();
     return decrypt(personalKey);
   }
@@ -1386,6 +1393,11 @@ export class ProposalCryptoService {
 
     if (scope.crewId) {
       await this.cryptoSession.warmCrewKeys(scope.crewId);
+      return;
+    }
+
+    if (scope.friendUserId) {
+      await this.cryptoSession.ensureFriendDmKeyReady(scope.friendUserId);
     }
   }
 
@@ -1407,6 +1419,11 @@ export class ProposalCryptoService {
       );
     }
 
+    if (scope.friendUserId) {
+      const friendKey = await this.cryptoSession.ensureFriendDmKeyReady(scope.friendUserId);
+      return this.cryptoService.decryptJson<T>(friendKey, nonce, ciphertext);
+    }
+
     const personalKey = await this.cryptoSession.ensureUserContentKeyReady();
     return this.cryptoService.decryptJson<T>(personalKey, nonce, ciphertext);
   }
@@ -1418,6 +1435,10 @@ export class ProposalCryptoService {
 
     if (scope.crewId) {
       return this.cryptoSession.ensureCrewKeyReady(scope.crewId);
+    }
+
+    if (scope.friendUserId) {
+      return this.cryptoSession.ensureFriendDmKeyReady(scope.friendUserId);
     }
 
     return this.cryptoSession.ensureUserContentKeyReady();
@@ -1507,7 +1528,7 @@ export class ProposalCryptoService {
         normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined
       )
     );
-    let usePersonalKey = !normalizedScope.crewId && !normalizedScope.fleetId;
+    let usePersonalKey = !normalizedScope.crewId && !normalizedScope.fleetId && !normalizedScope.friendUserId;
     if (
       !envelopes[0]
       && contentType === 'ProfileAvatar'

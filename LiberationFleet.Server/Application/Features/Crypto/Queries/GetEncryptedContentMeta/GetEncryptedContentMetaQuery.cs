@@ -25,6 +25,8 @@ public class GetEncryptedContentMetaQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
+    IFriendshipRepository friendshipRepository,
+    IUserBlockRepository blockRepository,
     ICryptoRepository cryptoRepository) : IRequestHandler<GetEncryptedContentMetaQuery, EncryptedContentMetaDto?>
 {
     public async Task<EncryptedContentMetaDto?> Handle(
@@ -38,7 +40,9 @@ public class GetEncryptedContentMetaQueryHandler(
 
         var hasCrewScope = request.CrewId.HasValue;
         var hasFleetScope = request.FleetId.HasValue;
-        if (hasCrewScope == hasFleetScope)
+        var isPersonalMedia = PersonalEncryptedMediaAccess.IsAttachmentType(request.ContentType)
+            && PersonalEncryptedMediaAccess.IsPersonalScope(request.CrewId, request.FleetId);
+        if (!isPersonalMedia && hasCrewScope == hasFleetScope)
         {
             return null;
         }
@@ -51,7 +55,7 @@ public class GetEncryptedContentMetaQueryHandler(
                 return null;
             }
         }
-        else if (!await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
+        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
         {
             return null;
         }
@@ -61,6 +65,7 @@ public class GetEncryptedContentMetaQueryHandler(
             new[] { request.ResourceId.Trim() },
             crewId: request.CrewId,
             fleetId: request.FleetId,
+            personalScopeOnly: isPersonalMedia,
             cancellationToken: cancellationToken);
 
         if (envelopes.Count == 0 || string.IsNullOrWhiteSpace(envelopes[0].Nonce))
@@ -69,6 +74,17 @@ public class GetEncryptedContentMetaQueryHandler(
         }
 
         var envelope = envelopes[0];
+        if (isPersonalMedia
+            && !await PersonalEncryptedMediaAccess.CanAccessAsync(
+                userId,
+                envelope,
+                friendshipRepository,
+                blockRepository,
+                cancellationToken))
+        {
+            return null;
+        }
+
         return new EncryptedContentMetaDto(
             envelope.ResourceId,
             envelope.KeyVersion,

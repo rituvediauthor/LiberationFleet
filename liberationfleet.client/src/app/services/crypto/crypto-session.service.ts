@@ -48,6 +48,7 @@ export class CryptoSessionService {
   private identityPublicKeySpki: string | null = null;
   private readonly crewKeyCaches = new Map<number, CrewKeyCache>();
   private readonly fleetKeyCaches = new Map<number, FleetKeyCache>();
+  private readonly friendDmKeyCache = new Map<number, CryptoKey>();
   private userContentKey: CryptoKey | null = null;
   private readonly unlockedSubject = new BehaviorSubject(false);
   private backupWrapVersion: number | null = null;
@@ -94,6 +95,24 @@ export class CryptoSessionService {
     return this.userContentKey;
   }
 
+  /** ECDH shared AES key for DMs with a friend (independent of crew keys). */
+  async ensureFriendDmKeyReady(friendUserId: number): Promise<CryptoKey> {
+    const cached = this.friendDmKeyCache.get(friendUserId);
+    if (cached) {
+      return cached;
+    }
+
+    const privateKey = this.requireIdentityPrivateKey();
+    const friendKey = await this.fetchPublicKey(friendUserId);
+    if (!friendKey?.identityPublicKey) {
+      throw new Error('Friend encryption keys are not available.');
+    }
+
+    const dmKey = await this.cryptoService.deriveFriendDmAesKey(privateKey, friendKey.identityPublicKey);
+    this.friendDmKeyCache.set(friendUserId, dmKey);
+    return dmKey;
+  }
+
   private requireIdentityPrivateKey(): CryptoKey {
     if (!this.identityPrivateKey) {
       throw new Error('Encryption is not unlocked.');
@@ -108,6 +127,7 @@ export class CryptoSessionService {
     this.backupWrapVersion = null;
     this.crewKeyCaches.clear();
     this.fleetKeyCaches.clear();
+    this.friendDmKeyCache.clear();
     this.userContentKey = null;
     this.unlockedSubject.next(false);
     void this.mediaBlobCache.clear();
