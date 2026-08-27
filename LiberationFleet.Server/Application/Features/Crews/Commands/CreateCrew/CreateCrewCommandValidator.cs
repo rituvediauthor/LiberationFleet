@@ -1,4 +1,5 @@
 using FluentValidation;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
 
@@ -8,7 +9,8 @@ public class CreateCrewCommandValidator : AbstractValidator<CreateCrewCommand>
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Crew name is required")
-            .MaximumLength(100).WithMessage("Crew name must be 100 characters or fewer");
+            .MaximumLength(TextFieldLimits.OrgName)
+            .WithMessage($"Crew name must be {TextFieldLimits.OrgName} characters or fewer");
 
         RuleFor(x => x.MaxSize)
             .InclusiveBetween(2, 50).WithMessage("Crew size must be between 2 and 50");

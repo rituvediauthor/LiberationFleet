@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Commands.ReorderChatRooms;
 using LiberationFleet.Server.Application.Features.Chats.Commands.SendChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleAnonymousMode;
+using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleChatMessageLike;
 using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
@@ -150,6 +151,13 @@ public class ChatsController : ControllerBase
     public async Task<IActionResult> DeleteMessage(int roomId, int messageId)
     {
         var result = await _mediator.Send(new DeleteChatMessageCommand(roomId, messageId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/messages/{messageId:int}/like")]
+    public async Task<IActionResult> ToggleMessageLike(int roomId, int messageId)
+    {
+        var result = await _mediator.Send(new ToggleChatMessageLikeCommand(roomId, messageId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

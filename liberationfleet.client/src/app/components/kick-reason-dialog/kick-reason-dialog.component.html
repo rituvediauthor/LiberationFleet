@@ -14,10 +14,10 @@
       id="kickReason"
       class="reason-input"
       rows="4"
-      maxlength="1000"
+      [maxlength]="reasonMaxLength"
       [(ngModel)]="reason"
       placeholder="Explain why this crewmate should be removed"></textarea>
-    <app-char-counter [current]="reason.length || 0" [max]="1000"></app-char-counter>
+    <app-char-counter [current]="reason.length || 0" [max]="reasonMaxLength"></app-char-counter>
 
     <div class="dialog-actions">
       <button type="button" class="dialog-button cancel" (click)="onCancel()">Cancel</button>

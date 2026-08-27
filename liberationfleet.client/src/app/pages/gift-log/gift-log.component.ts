@@ -162,6 +162,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     const type = (entry.type || '').toLowerCase();
     return type === 'seasonstarted'
       || type === 'cyclestarted'
+      || type === 'cyclecompleted'
       || type === 'survivalthresholdsrefreshed';
   }
 

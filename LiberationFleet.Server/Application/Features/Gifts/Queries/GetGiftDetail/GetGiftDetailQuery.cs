@@ -98,6 +98,7 @@ public class GetGiftDetailQueryHandler(
             entry.EncryptedPayload = CryptoMapper.MapPayload(giftEnvelope);
             if (gift.Type is not GiftType.SeasonStarted
                 and not GiftType.CycleStarted
+                and not GiftType.CycleCompleted
                 and not GiftType.SurvivalThresholdsRefreshed)
             {
                 entry.GiverName = string.Empty;

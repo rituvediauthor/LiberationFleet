@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Domain.Enums;
@@ -18,6 +19,11 @@ public static class CrewUpdateValidator
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return Failure("Crew name is required.");
+        }
+
+        if (request.Name.Trim().Length > TextFieldLimits.OrgName)
+        {
+            return Failure($"Crew name must be {TextFieldLimits.OrgName} characters or fewer.");
         }
 
         if (request.MaxSize < 2 || request.MaxSize > 50)

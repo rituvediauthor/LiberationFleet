@@ -8,6 +8,7 @@ import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetRuleOperationResponse } from '../../../models/fleet.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
@@ -23,8 +24,8 @@ export class FleetRuleCreateComponent implements OnInit {
   createButton!: ActionBarButton;
   isSubmitting = false;
   requireApprovalForEdits = true;
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 4000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.fleetRuleDescription;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -108,3 +109,4 @@ export class FleetRuleCreateComponent implements OnInit {
     };
   }
 }
+

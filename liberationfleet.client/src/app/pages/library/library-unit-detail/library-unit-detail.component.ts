@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { LibraryImageCarouselComponent } from '../../../components/library-image-carousel/library-image-carousel.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { GiftLogCryptoService } from '../../../services/crypto/gift-log-crypto.service';
@@ -30,6 +31,8 @@ type ConfirmAction = 'confirmBroken' | 'reportFixed' | 'reportLost' | null;
   styleUrl: './library-unit-detail.component.css'
 })
 export class LibraryUnitDetailComponent implements OnInit {
+  readonly purposeMaxLength = TextFieldLimits.shortPurpose;
+  readonly notesMaxLength = TextFieldLimits.shortPurpose;
   backButton!: ActionBarButton;
   primaryButton!: ActionBarButton;
   secondaryButton: ActionBarButton | null = null;
@@ -76,18 +79,18 @@ export class LibraryUnitDetailComponent implements OnInit {
 
     this.form = this.fb.group({
       quantity: [1, [Validators.required, Validators.min(1)]],
-      purpose: ['', [Validators.required, Validators.maxLength(5000)]],
+      purpose: ['', [Validators.required, Validators.maxLength(this.notesMaxLength)]],
       neededByStart: ['', Validators.required],
       neededByEnd: ['', Validators.required]
     });
 
     this.maintenanceForm = this.fb.group({
       cost: [null, [Validators.required, Validators.min(0.01)]],
-      notes: ['', [Validators.required, Validators.maxLength(5000)]]
+      notes: ['', [Validators.required, Validators.maxLength(this.notesMaxLength)]]
     });
 
     this.brokenForm = this.fb.group({
-      explanation: ['', [Validators.required, Validators.maxLength(5000)]]
+      explanation: ['', [Validators.required, Validators.maxLength(this.notesMaxLength)]]
     });
 
     this.form.valueChanges.subscribe(() => this.updateActionButtons());
@@ -489,10 +492,10 @@ export class LibraryUnitDetailComponent implements OnInit {
     const purposeControl = this.form.get('purpose');
     purposeControl?.setValidators(
       this.showAcquisitionForm && !this.isDigital
-        ? [Validators.maxLength(5000)]
+        ? [Validators.maxLength(this.notesMaxLength)]
         : this.isDigital
-          ? [Validators.maxLength(5000)]
-          : [Validators.required, Validators.maxLength(5000)]
+          ? [Validators.maxLength(this.notesMaxLength)]
+          : [Validators.required, Validators.maxLength(this.notesMaxLength)]
     );
     purposeControl?.updateValueAndValidity({ emitEvent: false });
 
@@ -783,3 +786,4 @@ export class LibraryUnitDetailComponent implements OnInit {
     return new Date(`${value}T00:00:00.000Z`).toISOString();
   }
 }
+

@@ -16,6 +16,7 @@ import { DiscussionConfig, DiscussionKind, getDiscussionConfig } from '../../../
 import { PendingAttachment } from '../../../models/crew-discussion.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
@@ -38,8 +39,8 @@ export class DiscussionCreateComponent implements OnInit {
   canAttachFiles = false;
   mentionedUserIds: number[] = [];
   authorDisplayName = '';
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 10000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.longBody;
 
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
@@ -152,3 +153,4 @@ export class DiscussionCreateComponent implements OnInit {
     };
   }
 }
+

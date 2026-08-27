@@ -216,6 +216,7 @@ public class NotificationService(
         NotificationKind.FriendRequest => "Friend request",
         NotificationKind.FriendRequestAccepted => "Friend request accepted",
         NotificationKind.NewDirectMessage => "New direct message",
+        NotificationKind.ChatMessageLiked => "Message liked",
         _ => kind.ToString()
     };
 

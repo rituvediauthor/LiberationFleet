@@ -13,6 +13,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomType } from '../../../models/chat.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 
 @Component({
   selector: 'app-chat-create',
@@ -30,6 +31,9 @@ export class ChatCreateComponent implements OnInit {
   requireApprovalForEdits = true;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
+
+  readonly nameMaxLength = TextFieldLimits.chatRoomName;
+  readonly purposeMaxLength = TextFieldLimits.chatRoomPurpose;
 
   readonly roomTypes: { value: ChatRoomType; label: string }[] = [
     { value: 'Text', label: 'Text chat' },
@@ -50,8 +54,8 @@ export class ChatCreateComponent implements OnInit {
 
   constructor() {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(120)]],
-      purpose: ['', [Validators.required, Validators.maxLength(2000)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
+      purpose: ['', [Validators.required, Validators.maxLength(this.purposeMaxLength)]],
       roomType: ['Text', Validators.required],
       isAdultContent: [false]
     });

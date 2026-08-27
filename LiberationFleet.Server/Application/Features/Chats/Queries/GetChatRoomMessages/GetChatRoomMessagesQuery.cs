@@ -91,10 +91,22 @@ public class GetChatRoomMessagesQueryHandler(
                 cancellationToken);
         }
 
+        var messageIds = messages.Select(m => m.Id).ToList();
+        var likeCounts = await chatRepository.GetActiveLikeCountsForMessagesAsync(messageIds, cancellationToken);
+        var likedIds = await chatRepository.GetActiveLikedMessageIdsByUserAsync(userId, messageIds, cancellationToken);
+
         var items = messages.Select(message =>
         {
             envelopeById.TryGetValue(message.Id.ToString(), out var envelope);
-            return ChatMapper.MapMessage(message, envelope, userId, allowKick, avatarAllowed);
+            likeCounts.TryGetValue(message.Id, out var likeCount);
+            return ChatMapper.MapMessage(
+                message,
+                envelope,
+                userId,
+                allowKick,
+                avatarAllowed,
+                likeCount,
+                likedIds.Contains(message.Id));
         }).ToList();
 
         return new ChatMessageListResponse

@@ -701,6 +701,36 @@ public class GiftRepository : IGiftRepository
             .ToDictionaryAsync(x => x.Id, x => x.SeasonStartDate, cancellationToken);
     }
 
+    public async Task<int?> GetPendingCycleThankYouGiftIdAsync(
+        int crewId,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var latest = await _context.Gifts
+            .AsNoTracking()
+            .Where(g =>
+                g.CrewId == crewId
+                && g.Type == GiftType.CycleCompleted
+                && g.RecipientUserId == userId)
+            .OrderByDescending(g => g.CreatedAt)
+            .ThenByDescending(g => g.Id)
+            .Select(g => new { g.Id })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latest is null)
+        {
+            return null;
+        }
+
+        var hasComment = await _context.GiftComments
+            .AsNoTracking()
+            .AnyAsync(
+                c => c.GiftId == latest.Id && c.AuthorUserId == userId,
+                cancellationToken);
+
+        return hasComment ? null : latest.Id;
+    }
+
     public Task EnsureGiftLogSchemaAsync(CancellationToken cancellationToken = default) =>
         GiftLogSchemaRepair.EnsureAsync(_context, cancellationToken: cancellationToken);
 }

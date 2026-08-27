@@ -138,7 +138,10 @@ public static class GiftMapper
     }
 
     private static bool IsCelebratory(GiftType type) =>
-        type is GiftType.SeasonStarted or GiftType.CycleStarted or GiftType.SurvivalThresholdsRefreshed;
+        type is GiftType.SeasonStarted
+            or GiftType.CycleStarted
+            or GiftType.CycleCompleted
+            or GiftType.SurvivalThresholdsRefreshed;
 
     private static string FormatMessage(Gift gift, string status, string? displayFlag)
     {
@@ -150,6 +153,10 @@ public static class GiftMapper
                 gift.RecipientUser is null
                     ? "A new reception cycle has started!"
                     : $"A new reception cycle has started for {GiftDisplayNames.GetRecipientName(gift.RecipientUser)}!",
+            GiftType.CycleCompleted =>
+                gift.RecipientUser is null
+                    ? "A reception cycle has concluded!"
+                    : $"{GiftDisplayNames.GetRecipientName(gift.RecipientUser)}'s reception cycle has concluded!",
             GiftType.SurvivalThresholdsRefreshed =>
                 "Survival thresholds have refreshed for the new month!",
             _ => null

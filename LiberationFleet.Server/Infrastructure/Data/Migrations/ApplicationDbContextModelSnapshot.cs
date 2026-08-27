@@ -182,6 +182,41 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ChatRoomMessages");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatMessageLike", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AuthorNotified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("ChatRoomMessageId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RemovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatRoomMessageId");
+
+                    b.HasIndex("UserId", "ChatRoomMessageId")
+                        .IsUnique();
+
+                    b.ToTable("ChatMessageLikes");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentMention", b =>
                 {
                     b.Property<int>("Id")
@@ -4151,6 +4186,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("AuthorUser");
 
                     b.Navigation("ChatRoom");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatMessageLike", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.ChatRoomMessage", "ChatRoomMessage")
+                        .WithMany()
+                        .HasForeignKey("ChatRoomMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatRoomMessage");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ContentMention", b =>

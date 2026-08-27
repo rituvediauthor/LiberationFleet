@@ -13,6 +13,7 @@
             type="text"
             formControlName="username"
             class="form-input"
+            [maxlength]="usernameMaxLength"
             placeholder="Search username"
             aria-describedby="username-hint">
           <span id="username-hint" class="hint-text sr-only">Search by exact or partial username</span>

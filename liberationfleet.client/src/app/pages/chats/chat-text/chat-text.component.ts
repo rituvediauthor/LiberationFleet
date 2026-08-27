@@ -32,6 +32,7 @@ import { ChatMessage } from '../../../models/chat.model';
 import { PendingAttachment, ProposalAttachment, ResolvedAttachment } from '../../../models/proposal.model';
 import { waitForPendingAttachmentsReady } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
@@ -120,7 +121,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
-  readonly messageMaxLength = 5000;
+  readonly messageMaxLength = TextFieldLimits.message;
   mentionedUserIds: number[] = [];
   messageAttachments: PendingAttachment[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
@@ -366,6 +367,25 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   toggleMessageMenu(messageId: number, event: Event) {
     event.stopPropagation();
     this.openMessageMenuId = this.openMessageMenuId === messageId ? null : messageId;
+  }
+
+  toggleMessageLike(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    if (!this.roomId || message.id <= 0) {
+      return;
+    }
+
+    this.chatService.toggleMessageLike(this.roomId, message.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to update like');
+          return;
+        }
+        message.likedByCurrentUser = !!result.liked;
+        message.likeCount = result.likeCount ?? 0;
+      },
+      error: () => this.toastService.error('Failed to update like')
+    });
   }
 
   startEditMessage(message: ChatMessage, event?: Event) {
@@ -670,11 +690,37 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async onMessageUpdated(message: ChatMessage) {
+    // Like-only hub payloads omit body/ciphertext — merge counts without wiping content.
+    const isLikeOnlyUpdate = !message.body
+      && !message.encryptedPayload
+      && !message.hasEncryptedContent
+      && (message.likeCount != null || message.likedByCurrentUser != null);
+
+    if (isLikeOnlyUpdate) {
+      this.messages = this.messages.map(existing =>
+        existing.id === message.id
+          ? {
+              ...existing,
+              likeCount: message.likeCount ?? existing.likeCount ?? 0,
+              // Keep viewer's own liked state; hub payload uses false as placeholder.
+              likedByCurrentUser: existing.likedByCurrentUser
+            }
+          : existing
+      );
+      return;
+    }
+
     const decrypted = this.crewId > 0
       ? await this.chatCrypto.decryptSingleMessage(message, this.getCryptoScope())
       : message;
     this.messages = this.messages.map(existing =>
-      existing.id === decrypted.id ? decrypted : existing
+      existing.id === decrypted.id
+        ? {
+            ...decrypted,
+            likeCount: decrypted.likeCount ?? existing.likeCount,
+            likedByCurrentUser: decrypted.likedByCurrentUser ?? existing.likedByCurrentUser
+          }
+        : existing
     );
   }
 

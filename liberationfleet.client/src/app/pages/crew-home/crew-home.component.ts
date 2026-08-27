@@ -1,20 +1,26 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Subscription, of } from 'rxjs';
+import { Subscription, of, firstValueFrom } from 'rxjs';
 import { catchError, startWith, switchMap } from 'rxjs/operators';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
 import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { DonationCampaignWidgetComponent } from '../../components/donation-campaign-widget/donation-campaign-widget.component';
 import { BrandLogoComponent } from '../../components/brand-logo/brand-logo.component';
 import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
+import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
+import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { LibraryAccessService } from '../../services/library-access.service';
 import { NotificationService } from '../../services/notification.service';
+import { ProfileService } from '../../services/profile.service';
+import { ToastService } from '../../components/toast/toast.component';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { NextAidInfo } from '../../models/gift.model';
 import {
@@ -22,18 +28,25 @@ import {
   emptyAreaCounts
 } from '../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
+import { truncateNotificationPreview } from '../../utils/notification-preview.util';
+import { TextFieldLimits } from '../../utils/text-field-limits';
+
+const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
 
 @Component({
   selector: 'app-crew-home',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterLink,
     NavLayoutComponent,
     ContentBadgeComponent,
     DonationCampaignWidgetComponent,
     BrandLogoComponent,
-    HubLoadingComponent
+    HubLoadingComponent,
+    ConfirmDialogComponent,
+    CharCounterComponent
   ],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
@@ -50,15 +63,25 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
   crewImageSrc: string | null = null;
 
+  showCycleThankYouPrompt = false;
+  showCycleThankYouCompose = false;
+  cycleThankYouGiftId: number | null = null;
+  cycleThankYouText = '';
+  postingCycleThankYou = false;
+  readonly cycleThankYouMaxLength = TextFieldLimits.message;
+
   private router = inject(Router);
   private crewService = inject(CrewService);
   private giftService = inject(GiftService);
   private libraryAccess = inject(LibraryAccessService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private cryptoSession = inject(CryptoSessionService);
+  private proposalCrypto = inject(ProposalCryptoService);
   private images = inject(EncryptedImageCacheService);
   private notificationService = inject(NotificationService);
   private forumPrefetch = inject(ForumListPrefetchService);
+  private profileService = inject(ProfileService);
+  private toastService = inject(ToastService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
@@ -106,6 +129,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         this.nextAidLoaded = !this.showNextAidWidget;
         this.loading = false;
         void this.refreshCrewImage();
+        this.maybeShowCycleThankYou(status);
         if (status.hasCrew && status.crewId) {
           this.forumPrefetch.prefetchCrewSpace(status.crewId);
         }
@@ -252,5 +276,114 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
 
   goToLibraryOfThings() {
     this.libraryAccess.navigateToLibrary(this.router);
+  }
+
+  private maybeShowCycleThankYou(status: CrewMembershipStatus) {
+    const giftId = status.pendingCycleThankYouGiftId ?? null;
+    if (!giftId || this.isCycleThankYouDismissed(giftId)) {
+      this.showCycleThankYouPrompt = false;
+      this.showCycleThankYouCompose = false;
+      this.cycleThankYouGiftId = null;
+      return;
+    }
+
+    this.cycleThankYouGiftId = giftId;
+    this.showCycleThankYouPrompt = true;
+    this.showCycleThankYouCompose = false;
+  }
+
+  onCycleThankYouSure() {
+    this.showCycleThankYouPrompt = false;
+    this.showCycleThankYouCompose = true;
+    this.cycleThankYouText = '';
+  }
+
+  onCycleThankYouDismiss() {
+    if (this.cycleThankYouGiftId) {
+      this.dismissCycleThankYou(this.cycleThankYouGiftId);
+    }
+    this.showCycleThankYouPrompt = false;
+    this.showCycleThankYouCompose = false;
+    this.cycleThankYouGiftId = null;
+    this.cycleThankYouText = '';
+  }
+
+  onCycleThankYouComposeCancel() {
+    this.onCycleThankYouDismiss();
+  }
+
+  onCycleComposeBackdrop(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('dialog-backdrop')) {
+      this.onCycleThankYouDismiss();
+    }
+  }
+
+  async postCycleThankYou() {
+    const giftId = this.cycleThankYouGiftId;
+    const crewId = this.membership?.crewId;
+    const body = this.cycleThankYouText.trim();
+    if (!giftId || !crewId || !body || this.postingCycleThankYou) {
+      return;
+    }
+    if (!this.cryptoSession.isUnlocked()) {
+      this.toastService.error('Unlock encryption to post your message.');
+      return;
+    }
+
+    this.postingCycleThankYou = true;
+    try {
+      const profile = await firstValueFrom(this.profileService.getProfile());
+      const encrypted = await this.proposalCrypto.encryptCommentPayload(
+        crewId,
+        {
+          body,
+          authorDisplayName: profile.username
+        }
+      );
+      this.giftService.createGiftComment(giftId, {
+        ...encrypted,
+        notificationPreview: truncateNotificationPreview(body),
+        mentionedUserIds: []
+      }).subscribe({
+        next: result => {
+          this.postingCycleThankYou = false;
+          if (result.success) {
+            this.dismissCycleThankYou(giftId);
+            this.showCycleThankYouCompose = false;
+            this.cycleThankYouGiftId = null;
+            this.cycleThankYouText = '';
+            if (this.membership) {
+              this.membership = { ...this.membership, pendingCycleThankYouGiftId: null };
+            }
+            this.toastService.success('Message posted to the Giving log');
+            return;
+          }
+          this.toastService.error(result.message || 'Failed to post message');
+        },
+        error: () => {
+          this.postingCycleThankYou = false;
+          this.toastService.error('Failed to post message');
+        }
+      });
+    } catch {
+      this.postingCycleThankYou = false;
+      this.toastService.error('Failed to encrypt message');
+    }
+  }
+
+  private isCycleThankYouDismissed(giftId: number): boolean {
+    try {
+      return localStorage.getItem(`${CYCLE_THANKYOU_DISMISS_PREFIX}${giftId}`) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private dismissCycleThankYou(giftId: number) {
+    try {
+      localStorage.setItem(`${CYCLE_THANKYOU_DISMISS_PREFIX}${giftId}`, '1');
+    } catch {
+      // Ignore storage failures.
+    }
   }
 }

@@ -16,6 +16,7 @@ import { ToastService } from '../../../components/toast/toast.component';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
@@ -41,8 +42,8 @@ export class CreateProposalComponent implements OnInit {
   mentionedUserIds: number[] = [];
   authorDisplayName = '';
   isFleetScope = false;
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 10000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.longBody;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -249,3 +250,4 @@ export class CreateProposalComponent implements OnInit {
     };
   }
 }
+

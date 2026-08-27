@@ -33,6 +33,7 @@ import { LibraryRequestMessage } from '../../../models/library.model';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
@@ -76,7 +77,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   authorDisplayName = '';
   messages: LibraryRequestMessage[] = [];
   messageText = '';
-  readonly messageMaxLength = 5000;
+  readonly messageMaxLength = TextFieldLimits.message;
   mentionedUserIds: number[] = [];
   messageAttachments: PendingAttachment[] = [];
   canAttachFiles = false;

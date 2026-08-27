@@ -69,6 +69,8 @@ export interface EncryptedPayload {
   keyVersion: number;
   nonce: string;
   ciphertext: string;
+  /** Legacy friend-DM envelopes stamped with a crew content key. */
+  crewId?: number | null;
 }
 
 export interface EncryptedContentEnvelope {

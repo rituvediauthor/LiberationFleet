@@ -110,6 +110,20 @@ export class ChatService {
     return this.http.delete<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`);
   }
 
+  toggleMessageLike(roomId: number, messageId: number): Observable<{
+    success: boolean;
+    message: string;
+    liked?: boolean;
+    likeCount?: number;
+  }> {
+    return this.http.post<{
+      success: boolean;
+      message: string;
+      liked?: boolean;
+      likeCount?: number;
+    }>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/like`, {});
+  }
+
   kickFromMessage(roomId: number, messageId: number, reason: string): Observable<ChatOperationResponse> {
     return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/kick`, {
       reason

@@ -32,10 +32,10 @@
       <span>Optional details</span>
       <textarea
         rows="3"
-        maxlength="1000"
+        [maxlength]="noteMaxLength"
         [(ngModel)]="note"
         placeholder="Add context (optional)"></textarea>
-      <app-char-counter [current]="note.length || 0" [max]="1000"></app-char-counter>
+      <app-char-counter [current]="note.length || 0" [max]="noteMaxLength"></app-char-counter>
     </label>
 
     <label class="field confirm-field" *ngIf="allowBlock && targetAuthorUserId">

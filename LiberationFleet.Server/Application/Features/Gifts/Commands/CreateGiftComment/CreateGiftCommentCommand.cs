@@ -118,33 +118,58 @@ public class CreateGiftCommentCommandHandler(
         }
         else if (parentComment is null)
         {
-            var notifyUserIds = new List<int>();
-            if (gift.GiverUserId != userId)
-            {
-                notifyUserIds.Add(gift.GiverUserId);
-            }
+            var isCelebratoryThankYou = gift.Type is GiftType.CycleCompleted
+                or GiftType.CycleStarted
+                or GiftType.SeasonStarted
+                or GiftType.SurvivalThresholdsRefreshed;
 
-            if (gift.RecipientUserId != userId && !notifyUserIds.Contains(gift.RecipientUserId))
+            if (isCelebratoryThankYou)
             {
-                notifyUserIds.Add(gift.RecipientUserId);
+                // Cycle thank-you (and other celebration) comments go to the whole crew.
+                // Blocked actors are filtered when recipients load their inbox.
+                await notificationService.NotifyCrewAsync(
+                    membership.CrewId,
+                    NotificationKind.NewGiftComment,
+                    "New gift comment",
+                    NotificationPreview.BodyOrFallback(
+                        request.Preview,
+                        "A crewmate shared a message on a gift log entry."),
+                    actionUrl,
+                    relatedEntityId: gift.Id,
+                    secondaryEntityId: comment.Id,
+                    excludeUserId: userId,
+                    cancellationToken: cancellationToken);
             }
-
-            if (notifyUserIds.Count > 0)
+            else
             {
-                await notificationService.NotifyUsersAsync(
-                    notifyUserIds.Select(targetUserId => new CreateNotificationRequest
-                    {
-                        UserId = targetUserId,
-                        CrewId = membership.CrewId,
-                        Kind = NotificationKind.NewGiftComment,
-                        Title = "New gift comment",
-                        Body = NotificationPreview.BodyOrFallback(request.Preview, "A new comment was posted on a gift log entry."),
-                        ActionUrl = actionUrl,
-                        RelatedEntityId = gift.Id,
-                        SecondaryEntityId = comment.Id,
-                        ActorUserId = userId
-                    }),
-                    cancellationToken);
+                var notifyUserIds = new List<int>();
+                if (gift.GiverUserId != userId)
+                {
+                    notifyUserIds.Add(gift.GiverUserId);
+                }
+
+                if (gift.RecipientUserId != userId && !notifyUserIds.Contains(gift.RecipientUserId))
+                {
+                    notifyUserIds.Add(gift.RecipientUserId);
+                }
+
+                if (notifyUserIds.Count > 0)
+                {
+                    await notificationService.NotifyUsersAsync(
+                        notifyUserIds.Select(targetUserId => new CreateNotificationRequest
+                        {
+                            UserId = targetUserId,
+                            CrewId = membership.CrewId,
+                            Kind = NotificationKind.NewGiftComment,
+                            Title = "New gift comment",
+                            Body = NotificationPreview.BodyOrFallback(request.Preview, "A new comment was posted on a gift log entry."),
+                            ActionUrl = actionUrl,
+                            RelatedEntityId = gift.Id,
+                            SecondaryEntityId = comment.Id,
+                            ActorUserId = userId
+                        }),
+                        cancellationToken);
+                }
             }
         }
 

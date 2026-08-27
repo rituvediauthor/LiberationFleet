@@ -58,5 +58,6 @@ public enum NotificationKind
     NewFleetProposalReply = 54,
     FriendRequest = 55,
     FriendRequestAccepted = 56,
-    NewDirectMessage = 57
+    NewDirectMessage = 57,
+    ChatMessageLiked = 58
 }

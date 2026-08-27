@@ -86,6 +86,8 @@ public class CrewMembershipStatusDto
     public decimal CrewProposalContributionShortfall { get; set; }
     public int FleetProposalDaysRemaining { get; set; }
     public decimal FleetProposalContributionShortfall { get; set; }
+    /// <summary>Cycle-completed gift log entry awaiting an optional thank-you comment from this user.</summary>
+    public int? PendingCycleThankYouGiftId { get; set; }
 }
 
 public class CrewOperationResponse

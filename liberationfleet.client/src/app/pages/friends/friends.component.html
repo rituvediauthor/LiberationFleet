@@ -26,6 +26,7 @@
         class="search-input"
         [(ngModel)]="searchQuery"
         (ngModelChange)="onSearchChange()"
+        [maxlength]="usernameMaxLength"
         placeholder="Search friends by username"
         aria-label="Search friends by username" />
     </div>

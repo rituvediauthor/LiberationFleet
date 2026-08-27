@@ -31,6 +31,7 @@ import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
@@ -74,7 +75,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   currentUserId: number | null = null;
   authorDisplayName = '';
   messageText = '';
-  readonly messageMaxLength = 5000;
+  readonly messageMaxLength = TextFieldLimits.message;
   messageAttachments: PendingAttachment[] = [];
   keptEditAttachments: ProposalAttachment[] = [];
   editingMessageId: number | null = null;

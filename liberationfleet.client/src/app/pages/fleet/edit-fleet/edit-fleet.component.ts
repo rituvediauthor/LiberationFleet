@@ -17,6 +17,7 @@ import { NotificationContentService } from '../../../services/notification-conte
 import { FleetPrivacy, FleetScope, FleetStatus, UpdateFleetRequest } from '../../../models/fleet.model';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { formValuesChanged } from '../../../utils/save-button.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
@@ -36,7 +37,7 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
 })
 export class EditFleetComponent implements OnInit {
   form!: FormGroup;
-  readonly nameMaxLength = 100;
+  readonly nameMaxLength = TextFieldLimits.orgName;
   joinCode = '';
   requireApprovalForEdits = true;
   loading = true;
@@ -415,3 +416,4 @@ export class EditFleetComponent implements OnInit {
     };
   }
 }
+

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
@@ -54,9 +55,13 @@ public class CreateFleetCommandHandler(
         }
 
         var name = request.Name.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 100)
+        if (string.IsNullOrWhiteSpace(name) || name.Length > TextFieldLimits.OrgName)
         {
-            return new FleetOperationResponse { Success = false, Message = "Fleet name is required (max 100 characters)." };
+            return new FleetOperationResponse
+            {
+                Success = false,
+                Message = $"Fleet name is required (max {TextFieldLimits.OrgName} characters)."
+            };
         }
 
         if (scope == CrewScope.Local)

@@ -25,6 +25,7 @@ import {
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../services/encryption-content.service';
 import { AuthService } from '../../../services/auth.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
@@ -90,7 +91,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
-  readonly commentMaxLength = 10000;
+  readonly commentMaxLength = TextFieldLimits.message;
   mentionedUserIds: number[] = [];
   commentFocused = false;
   commentUiMinimized = false;

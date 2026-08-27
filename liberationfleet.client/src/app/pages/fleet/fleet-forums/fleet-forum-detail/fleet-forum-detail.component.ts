@@ -20,6 +20,7 @@ import {
 import { ProposalComment, ProposalDetail, ResolvedAttachment } from '../../../../models/proposal.model';
 import { AuthService } from '../../../../services/auth.service';
 import { getUserIdFromToken } from '../../../../utils/jwt.util';
+import { TextFieldLimits } from '../../../../utils/text-field-limits';
 import { AdultContentService } from '../../../../services/adult-content.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { NotificationContentService } from '../../../../services/notification-content.service';
@@ -94,7 +95,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   commentText = '';
-  readonly commentMaxLength = 10000;
+  readonly commentMaxLength = TextFieldLimits.message;
   mentionedUserIds: number[] = [];
   commentFocused = false;
   commentUiMinimized = false;

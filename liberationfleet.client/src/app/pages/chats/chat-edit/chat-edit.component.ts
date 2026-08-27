@@ -13,6 +13,7 @@ import { ChatRoomType } from '../../../models/chat.model';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 
 @Component({
   selector: 'app-chat-edit',
@@ -34,6 +35,9 @@ export class ChatEditComponent implements OnInit {
   saveButton!: ActionBarButton;
   private initialFormValues: { name: string; purpose: string; roomType: ChatRoomType } | null = null;
 
+  readonly nameMaxLength = TextFieldLimits.chatRoomName;
+  readonly purposeMaxLength = TextFieldLimits.chatRoomPurpose;
+
   readonly roomTypes: { value: ChatRoomType; label: string }[] = [
     { value: 'Text', label: 'Text chat' },
     { value: 'Voice', label: 'Voice chat' }
@@ -54,8 +58,8 @@ export class ChatEditComponent implements OnInit {
     this.roomId = Number(this.route.snapshot.paramMap.get('id'));
 
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(120)]],
-      purpose: ['', [Validators.required, Validators.maxLength(2000)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
+      purpose: ['', [Validators.required, Validators.maxLength(this.purposeMaxLength)]],
       roomType: ['Text', Validators.required]
     });
 

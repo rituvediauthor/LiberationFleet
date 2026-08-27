@@ -43,7 +43,7 @@ export class FleetCrewmateDetailComponent implements OnInit {
     this.backCrewId = Number.isFinite(fromCrewId) && fromCrewId >= 0 ? fromCrewId : null;
     this.backButton = this.navigation.createBackButton(
       this.backCrewId != null
-        ? ['/app/fleet/crews', this.backCrewId]
+        ? ['/app/fleet/crews', String(this.backCrewId)]
         : ['/app/fleet/crews']
     );
 

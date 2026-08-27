@@ -10,6 +10,7 @@ import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { UserSearchResult } from '../../../models/friend.model';
 import { CrewmateFriendshipState } from '../../../models/crewmate.model';
+import { USERNAME_MAX_LENGTH } from '../../../utils/username.util';
 
 @Component({
   selector: 'app-find-friend',
@@ -27,6 +28,7 @@ export class FindFriendComponent implements OnInit, OnDestroy {
   actionLoading = false;
   backButton!: ActionBarButton;
   primaryButton!: ActionBarButton;
+  readonly usernameMaxLength = USERNAME_MAX_LENGTH;
 
   private router = inject(Router);
 
@@ -40,7 +42,7 @@ export class FindFriendComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.form = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(2)]]
+      username: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(USERNAME_MAX_LENGTH)]]
     });
   }
 

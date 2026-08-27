@@ -11,6 +11,7 @@ import { ContentReportService } from '../../services/content-report.service';
 import { ToastService } from '../toast/toast.component';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 import { CharCounterComponent } from '../char-counter/char-counter.component';
+import { TextFieldLimits } from '../../utils/text-field-limits';
 
 @Component({
   selector: 'app-report-content-dialog',
@@ -37,6 +38,7 @@ export class ReportContentDialogComponent {
   @Output() submitted = new EventEmitter<{ reason: ContentReportReason; blocked: boolean }>();
 
   readonly reasons = CONTENT_REPORT_REASONS;
+  readonly noteMaxLength = TextFieldLimits.note;
   reason: ContentReportReason | '' = '';
   note = '';
   alsoBlockAuthor = true;

@@ -6,6 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { LibraryItemCardComponent } from '../../../components/library-item-card/library-item-card.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { GiftLogCryptoService } from '../../../services/crypto/gift-log-crypto.service';
@@ -25,6 +26,7 @@ import { extractHttpErrorMessage } from '../../../utils/http-error.util';
   styleUrl: './library-request-detail.component.css'
 })
 export class LibraryRequestDetailComponent implements OnInit {
+  readonly purposeMaxLength = TextFieldLimits.shortPurpose;
   backButton!: ActionBarButton;
   primaryButton!: ActionBarButton;
   secondaryButton: ActionBarButton | null = null;
@@ -52,7 +54,7 @@ export class LibraryRequestDetailComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      purpose: ['', [Validators.required, Validators.maxLength(5000)]],
+      purpose: ['', [Validators.required, Validators.maxLength(this.purposeMaxLength)]],
       neededByStart: ['', Validators.required],
       neededByEnd: ['', Validators.required]
     });
@@ -488,3 +490,4 @@ export class LibraryRequestDetailComponent implements OnInit {
     return new Date(`${value}T00:00:00.000Z`).toISOString();
   }
 }
+

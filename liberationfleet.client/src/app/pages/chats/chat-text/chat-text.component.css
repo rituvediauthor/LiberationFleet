@@ -129,6 +129,26 @@
   flex-shrink: 0;
 }
 
+.message-engagement {
+  margin-top: 6px;
+}
+
+.message-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  font-size: 13px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.message-like-btn.liked {
+  color: var(--lf-color-danger, #dc2626);
+}
+
 .kebab-btn {
   border: none;
   background: transparent;

@@ -20,7 +20,12 @@
         class="form-input"
         type="text"
         autocomplete="off"
+        [maxlength]="platformNameMaxLength"
         (ngModelChange)="onFieldChange()">
+      <app-char-counter
+        [current]="(account.customPlatformName || '').length"
+        [max]="platformNameMaxLength">
+      </app-char-counter>
     </div>
 
     <div class="platform-field">
@@ -31,7 +36,12 @@
         class="form-input"
         type="text"
         autocomplete="off"
+        [maxlength]="handleMaxLength"
         (ngModelChange)="onFieldChange()">
+      <app-char-counter
+        [current]="(account.handle || '').length"
+        [max]="handleMaxLength">
+      </app-char-counter>
     </div>
 
     <div class="platform-entry-actions">

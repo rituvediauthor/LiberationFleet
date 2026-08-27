@@ -155,4 +155,48 @@ public class ChatRepository : IChatRepository
 
     public Task<bool> RoomBelongsToCrewAsync(int roomId, int crewId, CancellationToken cancellationToken = default) =>
         _context.ChatRooms.AnyAsync(r => r.Id == roomId && r.CrewId == crewId && !r.IsDeleted, cancellationToken);
+
+    public Task<ChatMessageLike?> GetMessageLikeAsync(int userId, int messageId, CancellationToken cancellationToken = default) =>
+        _context.ChatMessageLikes
+            .FirstOrDefaultAsync(l => l.UserId == userId && l.ChatRoomMessageId == messageId, cancellationToken);
+
+    public async Task AddMessageLikeAsync(ChatMessageLike like, CancellationToken cancellationToken = default) =>
+        await _context.ChatMessageLikes.AddAsync(like, cancellationToken);
+
+    public async Task<Dictionary<int, int>> GetActiveLikeCountsForMessagesAsync(
+        IEnumerable<int> messageIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = messageIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        return await _context.ChatMessageLikes
+            .AsNoTracking()
+            .Where(l => ids.Contains(l.ChatRoomMessageId) && l.RemovedAt == null)
+            .GroupBy(l => l.ChatRoomMessageId)
+            .Select(g => new { MessageId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MessageId, x => x.Count, cancellationToken);
+    }
+
+    public async Task<HashSet<int>> GetActiveLikedMessageIdsByUserAsync(
+        int userId,
+        IEnumerable<int> messageIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = messageIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var liked = await _context.ChatMessageLikes
+            .AsNoTracking()
+            .Where(l => l.UserId == userId && ids.Contains(l.ChatRoomMessageId) && l.RemovedAt == null)
+            .Select(l => l.ChatRoomMessageId)
+            .ToListAsync(cancellationToken);
+        return liked.ToHashSet();
+    }
 }

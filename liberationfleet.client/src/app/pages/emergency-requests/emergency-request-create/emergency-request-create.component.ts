@@ -8,6 +8,7 @@ import { EmergencyRequestService } from '../../../services/emergency-request.ser
 import { ToastService } from '../../../components/toast/toast.component';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 
 @Component({
   selector: 'app-emergency-request-create',
@@ -22,6 +23,8 @@ export class EmergencyRequestCreateComponent implements OnInit {
   backButton!: ActionBarButton;
   submitButton!: ActionBarButton;
 
+  readonly purposeMaxLength = TextFieldLimits.shortPurpose;
+
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
@@ -31,7 +34,7 @@ export class EmergencyRequestCreateComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      purpose: ['', [Validators.required, Validators.maxLength(2000)]],
+      purpose: ['', [Validators.required, Validators.maxLength(this.purposeMaxLength)]],
       amountNeeded: ['', [Validators.required, Validators.min(0.01)]]
     });
 

@@ -8,6 +8,7 @@ import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetRuleOperationResponse } from '../../../models/fleet.model';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
@@ -28,8 +29,8 @@ export class FleetRuleEditComponent implements OnInit {
   loadError = '';
   ruleId = 0;
   requireApprovalForEdits = true;
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 4000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.fleetRuleDescription;
   private initialFormValues: { title: string; description: string; isPublic: boolean } | null = null;
 
   private fb = inject(FormBuilder);
@@ -183,3 +184,4 @@ export class FleetRuleEditComponent implements OnInit {
     };
   }
 }
+

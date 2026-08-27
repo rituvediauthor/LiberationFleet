@@ -14,6 +14,7 @@ import { ToastService } from '../../components/toast/toast.component';
 import { FriendListItem } from '../../models/friend.model';
 import { formatLastActive } from '../../models/crewmate.model';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
+import { USERNAME_MAX_LENGTH } from '../../utils/username.util';
 
 @Component({
   selector: 'app-friends',
@@ -33,6 +34,7 @@ export class FriendsComponent implements OnInit, OnDestroy {
   blockTarget: FriendListItem | null = null;
   activityTick = 0;
   resourceCounts: Record<string, number> = {};
+  readonly usernameMaxLength = USERNAME_MAX_LENGTH;
 
   private router = inject(Router);
   private friendService = inject(FriendService);

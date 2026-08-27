@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
 import { CharCounterComponent } from '../char-counter/char-counter.component';
+import { TextFieldLimits } from '../../utils/text-field-limits';
 
 @Component({
   selector: 'app-kick-reason-dialog',
@@ -22,6 +23,7 @@ export class KickReasonDialogComponent {
   @Output() dismissed = new EventEmitter<void>();
 
   reason = '';
+  readonly reasonMaxLength = TextFieldLimits.note;
 
   readonly onEscape = () => this.onCancel();
 

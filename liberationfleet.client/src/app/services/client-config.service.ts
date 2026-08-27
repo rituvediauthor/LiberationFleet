@@ -12,9 +12,8 @@ export interface ClientConfig {
 export class ClientConfigService {
   private http = inject(HttpClient);
 
-  /** Optimistic: hide immediately on staging hostnames before the API responds. */
-  private readonly initialShow =
-    typeof location === 'undefined' || !/staging/i.test(location.hostname);
+  /** Optimistic: hide Fallible attribution until/unless API says otherwise. */
+  private readonly initialShow = false;
 
   private readonly showFallibleAttributionSubject = new BehaviorSubject<boolean>(this.initialShow);
   readonly showFallibleAttribution$ = this.showFallibleAttributionSubject.asObservable();

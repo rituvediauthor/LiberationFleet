@@ -1,4 +1,5 @@
 using FluentValidation;
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Domain;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Commands.UpdateSeasonProfile;
@@ -31,12 +32,12 @@ public class UpdateSeasonProfileCommandValidator : AbstractValidator<UpdateSeaso
                 .WithMessage("Payment platform is required");
 
             platform.RuleFor(p => p.CustomPlatformName)
-                .MaximumLength(128)
+                .MaximumLength(TextFieldLimits.PaymentPlatformName)
                 .When(p => !string.IsNullOrWhiteSpace(p.CustomPlatformName));
 
             platform.RuleFor(p => p.Handle)
                 .NotEmpty().WithMessage("Platform handle is required")
-                .MaximumLength(128);
+                .MaximumLength(TextFieldLimits.PaymentHandle);
         });
     }
 }

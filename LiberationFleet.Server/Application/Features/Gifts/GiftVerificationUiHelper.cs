@@ -34,7 +34,10 @@ public static class GiftVerificationUiHelper
         Gift? initiatedParent)
     {
         if (gift.IsCustomGift
-            || gift.Type is GiftType.SeasonStarted or GiftType.CycleStarted or GiftType.SurvivalThresholdsRefreshed
+            || gift.Type is GiftType.SeasonStarted
+                or GiftType.CycleStarted
+                or GiftType.CycleCompleted
+                or GiftType.SurvivalThresholdsRefreshed
             || gift.VerificationStatus is GiftVerificationStatus.Verified
                 or GiftVerificationStatus.MiddlemanCannotComplete)
         {

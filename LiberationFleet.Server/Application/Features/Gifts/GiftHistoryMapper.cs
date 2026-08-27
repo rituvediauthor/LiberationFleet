@@ -30,6 +30,7 @@ public static class GiftHistoryMapper
             GiftType.Completed => "Awaiting recipient confirmation",
             GiftType.SeasonStarted => "New season",
             GiftType.CycleStarted => "New cycle",
+            GiftType.CycleCompleted => "Cycle concluded",
             GiftType.SurvivalThresholdsRefreshed => "Survival thresholds refreshed",
             _ => "Recorded"
         };

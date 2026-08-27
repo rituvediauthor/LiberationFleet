@@ -37,4 +37,13 @@ public interface IChatRepository
         CancellationToken cancellationToken = default);
     Task<ChatRoomMessage?> GetMessageByIdWithAuthorAsync(int messageId, CancellationToken cancellationToken = default);
     Task<bool> RoomBelongsToCrewAsync(int roomId, int crewId, CancellationToken cancellationToken = default);
+    Task<ChatMessageLike?> GetMessageLikeAsync(int userId, int messageId, CancellationToken cancellationToken = default);
+    Task AddMessageLikeAsync(ChatMessageLike like, CancellationToken cancellationToken = default);
+    Task<Dictionary<int, int>> GetActiveLikeCountsForMessagesAsync(
+        IEnumerable<int> messageIds,
+        CancellationToken cancellationToken = default);
+    Task<HashSet<int>> GetActiveLikedMessageIdsByUserAsync(
+        int userId,
+        IEnumerable<int> messageIds,
+        CancellationToken cancellationToken = default);
 }

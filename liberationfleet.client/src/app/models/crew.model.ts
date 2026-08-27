@@ -56,6 +56,8 @@ export interface CrewMembershipStatus {
   crewProposalContributionShortfall?: number;
   fleetProposalDaysRemaining?: number;
   fleetProposalContributionShortfall?: number;
+  /** Cycle-completed gift awaiting optional thank-you comment from this user. */
+  pendingCycleThankYouGiftId?: number | null;
 }
 
 export interface CreateCrewRequest {

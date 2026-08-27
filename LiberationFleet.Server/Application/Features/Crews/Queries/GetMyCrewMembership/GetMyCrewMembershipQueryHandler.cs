@@ -106,6 +106,11 @@ public class GetMyCrewMembershipQueryHandler(
                 crew.MinimumContributionForProposals - lifetimeContributions);
         }
 
+        var pendingCycleThankYouGiftId = await giftRepository.GetPendingCycleThankYouGiftIdAsync(
+            membership.CrewId,
+            userId.Value,
+            cancellationToken);
+
         return new CrewMembershipStatusDto
         {
             HasCrew = true,
@@ -131,7 +136,8 @@ public class GetMyCrewMembershipQueryHandler(
             CrewProposalDaysRemaining = crewProposalDaysRemaining,
             CrewProposalContributionShortfall = crewProposalContributionShortfall,
             FleetProposalDaysRemaining = fleetProposalDaysRemaining,
-            FleetProposalContributionShortfall = fleetProposalContributionShortfall
+            FleetProposalContributionShortfall = fleetProposalContributionShortfall,
+            PendingCycleThankYouGiftId = pendingCycleThankYouGiftId
         };
     }
 

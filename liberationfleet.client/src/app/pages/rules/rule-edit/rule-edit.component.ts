@@ -10,6 +10,7 @@ import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { isSaveActionDisabled } from '../../../utils/save-button.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
@@ -31,8 +32,8 @@ export class RuleEditComponent implements OnInit {
   crewId = 0;
   ruleId = 0;
   requireApprovalForEdits = true;
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 10000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.longBody;
   private initialFormValues: { title: string; description: string; isPublic: boolean } | null = null;
 
   private fb = inject(FormBuilder);
@@ -244,3 +245,4 @@ export class RuleEditComponent implements OnInit {
     };
   }
 }
+

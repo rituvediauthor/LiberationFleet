@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../../../components/page-layout/page-layout.component';
 import { ProposalAttachmentPickerComponent } from '../../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { AttachPermissionNoteComponent } from '../../../../components/attach-permission-note/attach-permission-note.component';
+import { TextFieldLimits } from '../../../../utils/text-field-limits';
 import { CharCounterComponent } from '../../../../components/char-counter/char-counter.component';
 import { FleetService } from '../../../../services/fleet.service';
 import { ProposalCryptoService } from '../../../../services/crypto/proposal-crypto.service';
@@ -44,8 +45,8 @@ export class FleetForumCreateComponent implements OnInit {
   canAttachFiles = false;
   mentionedUserIds: number[] = [];
   authorDisplayName = '';
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 10000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.longBody;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -158,3 +159,4 @@ export class FleetForumCreateComponent implements OnInit {
     };
   }
 }
+

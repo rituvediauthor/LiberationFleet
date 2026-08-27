@@ -9,6 +9,7 @@ import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewPrivacy, CrewScope } from '../../models/crew.model';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { TextFieldLimits } from '../../utils/text-field-limits';
 import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 
 @Component({
@@ -23,7 +24,7 @@ export class CreateCrewComponent {
   backButton: ActionBarButton;
   createButton: ActionBarButton;
   isLoading = false;
-  readonly nameMaxLength = 100;
+  readonly nameMaxLength = TextFieldLimits.orgName;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -123,3 +124,4 @@ export class CreateCrewComponent {
     });
   }
 }
+

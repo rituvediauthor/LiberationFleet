@@ -70,7 +70,9 @@ public static class ChatMapper
         EncryptedContentEnvelope? envelope,
         int? viewerUserId = null,
         bool allowKick = false,
-        IReadOnlySet<int>? crewAvatarAllowedUserIds = null)
+        IReadOnlySet<int>? crewAvatarAllowedUserIds = null,
+        int likeCount = 0,
+        bool likedByCurrentUser = false)
     {
         var isOwn = viewerUserId.HasValue && message.AuthorUserId == viewerUserId.Value;
         var hideIdentity = message.IsAnonymous && !isOwn;
@@ -97,7 +99,9 @@ public static class ChatMapper
             EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope),
             Body = envelope is null ? message.Body : null,
             IsAnonymous = message.IsAnonymous,
-            CanKick = allowKick && message.IsAnonymous && !isOwn
+            CanKick = allowKick && message.IsAnonymous && !isOwn,
+            LikeCount = likeCount,
+            LikedByCurrentUser = likedByCurrentUser
         };
     }
 }

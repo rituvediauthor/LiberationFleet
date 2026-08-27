@@ -823,7 +823,11 @@ public partial class MutualAidService(
                 cycle.CycleReceived += Math.Min(gift.Amount, cycleRoom);
             }
 
-            UpdateCycleCompletion(cycle, effectiveCap);
+            var newlyCompleted = TryMarkCycleCompleted(cycle, effectiveCap);
+            if (newlyCompleted)
+            {
+                await AnnounceCycleCompletedAsync(crew, cycle, cancellationToken);
+            }
         }
 
         await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
@@ -2174,7 +2178,11 @@ public partial class MutualAidService(
 
         var applied = Math.Min(gift.Amount, room);
         target.CycleReceived += applied;
-        UpdateCycleCompletion(target, effectiveCap);
+        var newlyCompleted = TryMarkCycleCompleted(target, effectiveCap);
+        if (newlyCompleted)
+        {
+            await AnnounceCycleCompletedAsync(crew, target, cancellationToken);
+        }
     }
 
     private async Task ApplyCustomGiftWaterfallAsync(
@@ -2264,28 +2272,67 @@ public partial class MutualAidService(
         {
             var applied = Math.Min(remaining, room);
             activeCycle.CycleReceived += applied;
-            UpdateCycleCompletion(activeCycle, effectiveCap);
+            var newlyCompleted = TryMarkCycleCompleted(activeCycle, effectiveCap);
+            if (newlyCompleted)
+            {
+                await AnnounceCycleCompletedAsync(crew, activeCycle, cancellationToken);
+            }
         }
     }
 
-    private static void UpdateCycleCompletion(SeasonCycle cycle, decimal effectiveCap)
+    /// <summary>Returns true when this call newly marks the cycle completed.</summary>
+    private static bool TryMarkCycleCompleted(SeasonCycle cycle, decimal effectiveCap)
     {
         if (MutualAidCalculationService.IsCycleSatisfied(cycle, effectiveCap))
         {
+            var newlyCompleted = !cycle.CycleCompleted;
             cycle.CycleCompleted = true;
             cycle.CycleCompletedAt ??= DateTime.UtcNow;
             cycle.CycleCapAtCompletion = effectiveCap;
-            return;
+            return newlyCompleted;
         }
 
         // Keep completed cycles completed so catch-up stays virtual via GetCatchUpAmount.
         if (cycle.CycleCompleted)
         {
-            return;
+            return false;
         }
 
         cycle.CycleCompleted = false;
         cycle.CycleCompletedAt = null;
+        return false;
+    }
+
+    private async Task AnnounceCycleCompletedAsync(
+        Crew crew,
+        SeasonCycle cycle,
+        CancellationToken cancellationToken)
+    {
+        if (!IsPrimaryCycle(cycle))
+        {
+            return;
+        }
+
+        var cycleGift = await AddCelebratoryGiftLogEntryAndSaveAsync(
+            crew,
+            GiftType.CycleCompleted,
+            actorUserId: cycle.UserId,
+            cancellationToken);
+
+        await notificationService.NotifyCrewAsync(
+            crew.Id,
+            NotificationKind.NewCycle,
+            "Cycle concluded",
+            "A crewmate's reception cycle has concluded.",
+            GiftLogActionUrl(cycleGift.Id),
+            relatedEntityId: cycleGift.Id,
+            excludeUserId: cycle.UserId,
+            cancellationToken: cancellationToken);
+    }
+
+    private static void UpdateCycleCompletion(SeasonCycle cycle, decimal effectiveCap)
+    {
+        _ = TryMarkCycleCompleted(cycle, effectiveCap);
     }
 
     private async Task TryEndSeasonAsync(Crew crew, CancellationToken cancellationToken, bool force = false)

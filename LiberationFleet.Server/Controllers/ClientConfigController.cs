@@ -11,7 +11,7 @@ public class ClientConfigController(IConfiguration configuration) : ControllerBa
     [AllowAnonymous]
     public ActionResult<object> Get()
     {
-        var showFallibleAttribution = configuration.GetValue("Client:ShowFallibleAttribution", true);
+        var showFallibleAttribution = configuration.GetValue("Client:ShowFallibleAttribution", false);
         return Ok(new { showFallibleAttribution });
     }
 }

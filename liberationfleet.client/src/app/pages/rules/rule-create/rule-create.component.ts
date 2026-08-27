@@ -10,6 +10,7 @@ import { CrewService } from '../../../services/crew.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 
 @Component({
@@ -26,8 +27,8 @@ export class RuleCreateComponent implements OnInit {
   isSubmitting = false;
   crewId = 0;
   requireApprovalForEdits = true;
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 10000;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.longBody;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -152,3 +153,4 @@ export class RuleCreateComponent implements OnInit {
     };
   }
 }
+

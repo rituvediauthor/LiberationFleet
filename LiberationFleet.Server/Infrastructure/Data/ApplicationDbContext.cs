@@ -65,6 +65,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ForumLike> ForumLikes => Set<ForumLike>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMessage> ChatRoomMessages => Set<ChatRoomMessage>();
+    public DbSet<ChatMessageLike> ChatMessageLikes => Set<ChatMessageLike>();
     public DbSet<UserChatChannelOrder> UserChatChannelOrders => Set<UserChatChannelOrder>();
     public DbSet<VoiceParticipantSession> VoiceParticipantSessions => Set<VoiceParticipantSession>();
     public DbSet<UserRegisteredDevice> UserRegisteredDevices => Set<UserRegisteredDevice>();
@@ -1178,6 +1179,22 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ChatMessageLike>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AuthorNotified).HasDefaultValue(false);
+            entity.HasIndex(e => new { e.UserId, e.ChatRoomMessageId }).IsUnique();
+            entity.HasIndex(e => e.ChatRoomMessageId);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ChatRoomMessage)
+                .WithMany()
+                .HasForeignKey(e => e.ChatRoomMessageId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<VoiceParticipantSession>(entity =>

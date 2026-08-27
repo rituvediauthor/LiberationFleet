@@ -76,6 +76,18 @@
           [attachments]="message.resolvedAttachments ?? []"
           [compact]="true">
         </app-proposal-attachment-display>
+        <div class="message-engagement" *ngIf="message.id > 0">
+          <button
+            type="button"
+            class="message-like-btn"
+            [class.liked]="message.likedByCurrentUser"
+            [attr.aria-pressed]="!!message.likedByCurrentUser"
+            [attr.aria-label]="message.likedByCurrentUser ? 'Unlike message' : 'Like message'"
+            (click)="toggleMessageLike(message, $event)">
+            <i class="fa-solid fa-heart" aria-hidden="true"></i>
+            <span *ngIf="(message.likeCount ?? 0) > 0">{{ message.likeCount }}</span>
+          </button>
+        </div>
         <div class="message-send-status" *ngIf="message.sendStatus === 'failed'">
           <p class="message-send-error">Couldn't send</p>
           <div class="message-send-actions">

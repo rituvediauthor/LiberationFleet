@@ -98,6 +98,13 @@ public interface IGiftRepository
         IEnumerable<int> giftIds,
         CancellationToken cancellationToken = default);
     /// <summary>
+    /// Latest cycle-completed celebration gift for the user that they have not yet commented on.
+    /// </summary>
+    Task<int?> GetPendingCycleThankYouGiftIdAsync(
+        int crewId,
+        int userId,
+        CancellationToken cancellationToken = default);
+    /// <summary>
     /// Idempotently ensures LibraryItemTitle / GiftComments / GiftLikes exist (staging schema drift).
     /// </summary>
     Task EnsureGiftLogSchemaAsync(CancellationToken cancellationToken = default);

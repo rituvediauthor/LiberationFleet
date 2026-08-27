@@ -18,6 +18,7 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { PendingAttachment } from '../../../models/proposal.model';
 import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind, LibraryOfferingVisibility } from '../../../models/library.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 
 @Component({
@@ -52,9 +53,9 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   private durableNoticeShown = false;
   readonly durableNoticeMessage =
     'Listing a durable item does not count as a gift to the crew until another crewmate requests and acquires it. This prevents inflating priority scores by listing items nobody needs.';
-  readonly titleMaxLength = 200;
-  readonly descriptionMaxLength = 10000;
-  readonly unitLabelMaxLength = 64;
+  readonly titleMaxLength = TextFieldLimits.title;
+  readonly descriptionMaxLength = TextFieldLimits.longBody;
+  readonly unitLabelMaxLength = TextFieldLimits.shortLabel;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -388,3 +389,4 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     };
   }
 }
+

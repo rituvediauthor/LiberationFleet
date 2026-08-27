@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { ProfileService } from '../../services/profile.service';
+import { CharCounterComponent } from '../char-counter/char-counter.component';
+import { TextFieldLimits } from '../../utils/text-field-limits';
 
 @Component({
   selector: 'app-payment-platform-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CharCounterComponent],
   templateUrl: './payment-platform-editor.component.html',
   styleUrl: './payment-platform-editor.component.css'
 })
@@ -22,6 +24,8 @@ export class PaymentPlatformEditorComponent {
   @Output() preferredChange = new EventEmitter<number>();
 
   readonly customPlatformOptionId = CUSTOM_PLATFORM_OPTION_ID;
+  readonly platformNameMaxLength = TextFieldLimits.paymentPlatformName;
+  readonly handleMaxLength = TextFieldLimits.paymentHandle;
 
   private profileService = inject(ProfileService);
 

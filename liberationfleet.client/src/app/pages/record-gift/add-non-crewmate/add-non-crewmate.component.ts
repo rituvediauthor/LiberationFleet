@@ -15,6 +15,7 @@ import { PaymentPlatformOption } from '../../../models/gift.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { TextFieldLimits } from '../../../utils/text-field-limits';
 
 @Component({
   selector: 'app-add-non-crewmate',
@@ -37,6 +38,7 @@ export class AddNonCrewmateComponent implements OnInit {
   saving = false;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
+  readonly nameMaxLength = TextFieldLimits.placeholderDisplayName;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -49,7 +51,7 @@ export class AddNonCrewmateComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(256)]],
+      name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
       emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],

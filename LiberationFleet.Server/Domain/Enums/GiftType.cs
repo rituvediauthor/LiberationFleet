@@ -7,5 +7,6 @@ public enum GiftType
     Completed = 2,
     SeasonStarted = 3,
     CycleStarted = 4,
-    SurvivalThresholdsRefreshed = 5
+    SurvivalThresholdsRefreshed = 5,
+    CycleCompleted = 6
 }

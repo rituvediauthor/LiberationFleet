@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -10,6 +10,7 @@ import { CrewService } from '../../../services/crew.service';
 import { CryptoSessionService } from '../../../services/crypto/crypto-session.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { InviteCandidate } from '../../../models/crew.model';
+import { USERNAME_MAX_LENGTH } from '../../../utils/username.util';
 
 @Component({
   selector: 'app-invite-crewmate',
@@ -20,9 +21,11 @@ import { InviteCandidate } from '../../../models/crew.model';
 })
 export class InviteCrewmateComponent implements OnInit {
   form = inject(FormBuilder).group({
-    username: [''],
+    username: ['', [Validators.maxLength(USERNAME_MAX_LENGTH)]],
     friendsOnly: [false]
   });
+
+  readonly usernameMaxLength = USERNAME_MAX_LENGTH;
 
   candidates: InviteCandidate[] = [];
   selected: InviteCandidate | null = null;

@@ -163,6 +163,59 @@
 
     </ng-template>
 
+    <app-confirm-dialog
+      [visible]="showCycleThankYouPrompt"
+      title="Reception cycle concluded"
+      message="Your reception cycle has concluded! Would you like to leave a message letting the crew know how the aid you have received has or will help you? Sharing our successes can boost morale and motivate further contributions."
+      confirmLabel="Sure!"
+      cancelLabel="No thank you"
+      (confirmed)="onCycleThankYouSure()"
+      (cancelled)="onCycleThankYouDismiss()"
+      (dismissed)="onCycleThankYouDismiss()">
+    </app-confirm-dialog>
+
+    <div
+      class="dialog-backdrop"
+      *ngIf="showCycleThankYouCompose"
+      (click)="onCycleComposeBackdrop($event)">
+      <div
+        class="dialog-card cycle-thankyou-compose"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cycle-thankyou-title"
+        (click)="$event.stopPropagation()">
+        <h2 id="cycle-thankyou-title" class="dialog-title">Share with your crew</h2>
+        <p class="dialog-message">
+          Type your message to the crew below and post when ready. This will be added as a comment on the Cycle conclusion message in the Giving log.
+        </p>
+        <textarea
+          class="cycle-thankyou-input"
+          rows="5"
+          [maxlength]="cycleThankYouMaxLength"
+          [(ngModel)]="cycleThankYouText"
+          [disabled]="postingCycleThankYou"
+          aria-label="Thank-you message">
+        </textarea>
+        <app-char-counter [current]="cycleThankYouText.length" [max]="cycleThankYouMaxLength"></app-char-counter>
+        <div class="dialog-actions has-cancel">
+          <button
+            type="button"
+            class="dialog-button cancel"
+            [disabled]="postingCycleThankYou"
+            (click)="onCycleThankYouComposeCancel()">
+            Never mind
+          </button>
+          <button
+            type="button"
+            class="dialog-button"
+            [disabled]="postingCycleThankYou || !cycleThankYouText.trim() || cycleThankYouText.length > cycleThankYouMaxLength"
+            (click)="postCycleThankYou()">
+            {{ postingCycleThankYou ? 'Posting…' : 'Post' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 </app-nav-layout>

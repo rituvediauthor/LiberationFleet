@@ -1,19 +1,18 @@
-<footer
-  *ngIf="showAttribution$ | async"
-  class="fallible-footer"
-  aria-label="Fallible attribution">
-  <button
-    type="button"
-    class="fallible-box-btn"
-    aria-label="Open Fallible documentation"
-    (click)="onImageClick()">
-    <img
-      class="fallible-image"
-      src="assets/images/FallibianBox.png"
-      alt=""
-      width="48"
-      height="48" />
-  </button>
-  <p class="fallible-caption">Brought to you by the Fallible</p>
-  <a routerLink="/app/donate" class="fallible-donate">Donate</a>
+<footer class="fallible-footer" aria-label="Liberation Fleet footer">
+  <ng-container *ngIf="showAttribution$ | async">
+    <button
+      type="button"
+      class="fallible-box-btn"
+      aria-label="Open Fallible documentation"
+      (click)="onImageClick()">
+      <img
+        class="fallible-image"
+        src="assets/images/FallibianBox.png"
+        alt=""
+        width="48"
+        height="48" />
+    </button>
+    <p class="fallible-caption">Brought to you by the Fallible</p>
+  </ng-container>
+  <a routerLink="/app/donate" class="fallible-donate">Donate to Liberation Fleet Co.</a>
 </footer>

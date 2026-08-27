@@ -52,6 +52,13 @@ public class GetDonationCampaignPromptQueryHandler(
             return Hidden(variant, message, donationsEnabled, user is null ? "normal" : MapUrgency(user.DonationCampaignUrgencyPhase));
         }
 
+        // Banner solicitation only after ~1 month of account age; donate pages stay available.
+        var accountAge = DateTime.UtcNow - user.CreatedAt;
+        if (accountAge < TimeSpan.FromDays(30))
+        {
+            return Hidden(variant, message, donationsEnabled, MapUrgency(user.DonationCampaignUrgencyPhase));
+        }
+
         var membership = await membershipRepository.GetActiveMembershipAsync(user.Id, cancellationToken);
         var avgContributions = 0m;
         var isFinancialMember = false;

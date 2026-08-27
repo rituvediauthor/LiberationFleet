@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MentionAutocompleteDirective } from '../../directives/mention-autocomplete.directive';
 import { CharCounterComponent } from '../char-counter/char-counter.component';
+import { TextFieldLimits } from '../../utils/text-field-limits';
 
 @Component({
   selector: 'app-thread-composer',
@@ -22,7 +23,7 @@ export class ThreadComposerComponent {
   @Input() submitLabel = 'Post';
   @Input() disabled = false;
   @Input() rows = 3;
-  @Input() maxLength = 10000;
+  @Input() maxLength = TextFieldLimits.message;
 
   @Output() submit = new EventEmitter<void>();
 

@@ -36,6 +36,8 @@ public class ChatMessageDto
     public int Id { get; set; }
     public bool IsAnonymous { get; set; }
     public bool CanKick { get; set; }
+    public int LikeCount { get; set; }
+    public bool LikedByCurrentUser { get; set; }
 }
 
 public class ChatRoomListResponse

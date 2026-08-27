@@ -213,6 +213,7 @@ public class GetCrewGiftLogQueryHandler(
                     entry.EncryptedPayload = CryptoMapper.MapPayload(envelope);
                     if (gift.Type is not GiftType.SeasonStarted
                         and not GiftType.CycleStarted
+                        and not GiftType.CycleCompleted
                         and not GiftType.SurvivalThresholdsRefreshed)
                     {
                         entry.GiverName = string.Empty;

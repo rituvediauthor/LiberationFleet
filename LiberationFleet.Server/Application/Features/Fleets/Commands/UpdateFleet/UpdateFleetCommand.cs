@@ -62,9 +62,13 @@ public class UpdateFleetCommandHandler(
             return new FleetOperationResponse { Success = false, Message = "Invalid privacy or scope." };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length > 100)
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length > TextFieldLimits.OrgName)
         {
-            return new FleetOperationResponse { Success = false, Message = "Fleet name is required (max 100 characters)." };
+            return new FleetOperationResponse
+            {
+                Success = false,
+                Message = $"Fleet name is required (max {TextFieldLimits.OrgName} characters)."
+            };
         }
 
         if (scope == CrewScope.Local
