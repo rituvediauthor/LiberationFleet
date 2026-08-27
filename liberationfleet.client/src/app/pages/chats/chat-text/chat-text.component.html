@@ -84,8 +84,19 @@
             [attr.aria-pressed]="!!message.likedByCurrentUser"
             [attr.aria-label]="message.likedByCurrentUser ? 'Unlike message' : 'Like message'"
             (click)="toggleMessageLike(message, $event)">
-            <i class="fa-solid fa-heart" aria-hidden="true"></i>
+            <i
+              class="fa-heart"
+              [class.fa-solid]="!!message.likedByCurrentUser"
+              [class.fa-regular]="!message.likedByCurrentUser"
+              aria-hidden="true"></i>
             <span *ngIf="(message.likeCount ?? 0) > 0">{{ message.likeCount }}</span>
+          </button>
+          <button
+            *ngIf="(message.likeCount ?? 0) > 0"
+            type="button"
+            class="view-likes-link"
+            (click)="openMessageLikers(message, $event)">
+            View
           </button>
         </div>
         <div class="message-send-status" *ngIf="message.sendStatus === 'failed'">
@@ -236,6 +247,16 @@
   (cancelled)="onKickReasonCancelled()"
   (confirmed)="onKickReasonConfirmed($event)">
 </app-kick-reason-dialog>
+
+<app-content-likers-dialog
+  [open]="likersDialogOpen"
+  [items]="likersDialogItems"
+  [loading]="likersDialogLoading"
+  [title]="likersDialogTitle"
+  [crewId]="crewId || null"
+  [fleetId]="fleetId || null"
+  (close)="closeLikersDialog()">
+</app-content-likers-dialog>
 
 <div class="dialog-backdrop" *ngIf="showAnonymousReminderDialog" (click)="onAnonymousReminderBackdrop($event)">
   <div

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { EncryptedContentSendPayload } from '../models/encrypted-send.model';
 import {
   ChatMessageListResponse,
@@ -11,6 +11,7 @@ import {
   DeleteChatRoomRequest,
   UpdateChatRoomRequest
 } from '../models/chat.model';
+import { ContentLiker, ContentLikersResponse } from '../models/gift.model';
 
 @Injectable({
   providedIn: 'root'
@@ -122,6 +123,19 @@ export class ChatService {
       liked?: boolean;
       likeCount?: number;
     }>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/like`, {});
+  }
+
+  getMessageLikers(roomId: number, messageId: number): Observable<ContentLiker[]> {
+    return this.http.get<ContentLikersResponse>(
+      `${this.apiUrl}/rooms/${roomId}/messages/${messageId}/likers`
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load likers');
+        }
+        return response.items ?? [];
+      })
+    );
   }
 
   kickFromMessage(roomId: number, messageId: number, reason: string): Observable<ChatOperationResponse> {

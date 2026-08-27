@@ -130,6 +130,9 @@
 }
 
 .message-engagement {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 6px;
 }
 
@@ -147,6 +150,22 @@
 
 .message-like-btn.liked {
   color: var(--lf-color-danger, #dc2626);
+}
+
+.view-likes-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--lf-color-text-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-likes-link:hover {
+  color: var(--lf-color-text-body);
+  text-decoration: underline;
 }
 
 .kebab-btn {

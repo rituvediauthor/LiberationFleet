@@ -71,10 +71,13 @@
   color: var(--lf-color-text-body);
 }
 
-h1 {
+h1,
+.proposal-title {
   margin: 0 0 12px;
   font-size: 22px;
+  line-height: 1.25;
   color: var(--lf-color-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .approve {

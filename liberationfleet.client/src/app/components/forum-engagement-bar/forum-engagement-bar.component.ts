@@ -15,7 +15,11 @@ import { CommonModule } from '@angular/common';
         (click)="onLike($event)"
         [attr.aria-pressed]="liked"
         aria-label="Like post">
-        <i class="fa-solid fa-heart" aria-hidden="true"></i>
+        <i
+          class="fa-heart"
+          [class.fa-solid]="liked"
+          [class.fa-regular]="!liked"
+          aria-hidden="true"></i>
         <span class="engagement-count">{{ likeCount }}</span>
       </button>
       <button

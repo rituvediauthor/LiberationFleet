@@ -14,6 +14,7 @@
     <div class="proposal-content-card">
       <div class="proposal-header" *ngIf="!editing">
         <div class="proposal-header-main">
+          <h1 class="proposal-title">{{ p.title }}</h1>
           <p class="meta">
             <app-user-avatar
               [anonymous]="isAnonymousAuthor(p.authorUserId)"

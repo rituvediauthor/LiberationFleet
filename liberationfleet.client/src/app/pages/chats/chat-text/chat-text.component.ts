@@ -42,7 +42,9 @@ import { NotificationTargetDirective } from '../../../directives/notification-ta
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
+import { ContentLikersDialogComponent } from '../../../components/content-likers-dialog/content-likers-dialog.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { ContentLiker } from '../../../models/gift.model';
 import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 import {
   clearNotificationHighlightParams,
@@ -83,6 +85,7 @@ interface ChatOutboxEntry {
     MentionTextComponent,
     ReportContentDialogComponent,
     KickReasonDialogComponent,
+    ContentLikersDialogComponent,
     UserAvatarComponent,
     AccessibleDialogDirective,
     LocationHeaderComponent,
@@ -135,6 +138,10 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   showAnonymousReminderDialog = false;
   dontRemindAnonymousMode = false;
   dismissAnonymousReminderBound = () => this.confirmAnonymousReminder();
+  likersDialogOpen = false;
+  likersDialogLoading = false;
+  likersDialogItems: ContentLiker[] = [];
+  likersDialogTitle = 'Liked by';
   composerFocused = false;
   composerUiMinimized = false;
   pickingFile = false;
@@ -386,6 +393,34 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: () => this.toastService.error('Failed to update like')
     });
+  }
+
+  openMessageLikers(message: ChatMessage, event?: Event) {
+    event?.stopPropagation();
+    if (!this.roomId || message.id <= 0 || (message.likeCount ?? 0) <= 0) {
+      return;
+    }
+
+    this.likersDialogTitle = 'Liked by';
+    this.likersDialogOpen = true;
+    this.likersDialogLoading = true;
+    this.likersDialogItems = [];
+    this.chatService.getMessageLikers(this.roomId, message.id).subscribe({
+      next: items => {
+        this.likersDialogLoading = false;
+        this.likersDialogItems = items;
+      },
+      error: err => {
+        this.likersDialogLoading = false;
+        this.likersDialogOpen = false;
+        this.toastService.error(err?.message ?? 'Failed to load likers');
+      }
+    });
+  }
+
+  closeLikersDialog() {
+    this.likersDialogOpen = false;
+    this.likersDialogItems = [];
   }
 
   startEditMessage(message: ChatMessage, event?: Event) {

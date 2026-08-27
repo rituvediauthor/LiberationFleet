@@ -199,4 +199,18 @@ public class ChatRepository : IChatRepository
             .ToListAsync(cancellationToken);
         return liked.ToHashSet();
     }
+
+    public async Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveMessageLikersAsync(
+        int messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.ChatMessageLikes
+            .AsNoTracking()
+            .Where(l => l.ChatRoomMessageId == messageId && l.RemovedAt == null)
+            .OrderBy(l => l.CreatedAt)
+            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+    }
 }

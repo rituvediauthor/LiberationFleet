@@ -46,4 +46,7 @@ public interface IChatRepository
         int userId,
         IEnumerable<int> messageIds,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveMessageLikersAsync(
+        int messageId,
+        CancellationToken cancellationToken = default);
 }
