@@ -7,7 +7,17 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <div class="profile-card" *ngIf="!loading && profile">
-      <h1 class="profile-name">{{ profile.username }}</h1>
+      <div class="profile-header">
+        <app-user-avatar
+          class="profile-avatar"
+          [resourceId]="profile.avatarResourceId"
+          [fleetId]="fleetId || null"
+          [fallbackInitial]="profile.username"
+          size="lg"
+          [alt]="profile.username + ' avatar'">
+        </app-user-avatar>
+        <h1 class="profile-name">{{ profile.username }}</h1>
+      </div>
 
       <section class="section">
         <h2>Payment platforms</h2>
@@ -23,26 +33,16 @@
 
       <div class="readonly-grid">
         <div class="readonly-item">
-          <span class="readonly-label">Lifetime contributions</span>
-          <span class="readonly-value">${{ profile.lifetimeContributions }}</span>
+          <span class="readonly-label">Library of Things priority</span>
+          <span class="readonly-value">{{ profile.priorityScore }}</span>
         </div>
-        <div class="readonly-item">
-          <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
-          <span class="readonly-value">${{ profile.averageMonthlyContributions }}</span>
-          <span class="hint-text">Last three calendar months of gifts, excluding Library of Things; emergency aid is included. Months before joining the season use your estimate; months after joining with no gifts count as $0.</span>
-        </div>
-        <div class="readonly-item">
-          <span class="readonly-label">In need of aid</span>
-          <span class="readonly-value">{{ profile.inNeedOfAid ? 'Yes' : 'No' }}</span>
-        </div>
-        <div class="readonly-item">
-          <span class="readonly-label">Emergency level</span>
-          <span class="readonly-value">{{ profile.emergencyLevel }}</span>
-        </div>
+        <p class="hint-text priority-hint">
+          Used to rank Library of Things requests in their crew. Organizers and members not marked in need of aid rank last.
+        </p>
       </div>
 
-      <div class="moderation-actions" *ngIf="!profile.isSelf">
-        <div class="block-section" *ngIf="!profile.isPlaceholderMember">
+      <div class="moderation-actions" *ngIf="!profile.isSelf && profile.canSocialInteract">
+        <div class="block-section">
           <button
             type="button"
             class="block-btn"
@@ -51,18 +51,9 @@
             {{ isBlocked ? 'Blocked' : 'Block' }}
           </button>
           <p class="hint-text">
-            Blocking hides all comments and messages between you and this person.
+            Blocking hides comments and messages between you. Neither of you will see the other's content.
           </p>
         </div>
-
-        <button
-          type="button"
-          class="kick-btn"
-          *ngIf="!profile.isPlaceholderMember"
-          [disabled]="actionLoading"
-          (click)="onKickFromTheirCrew()">
-          Propose kick from their crew
-        </button>
       </div>
     </div>
   </div>
@@ -78,12 +69,3 @@
   (cancelled)="onCancelBlock()"
   (dismissed)="onCancelBlock()">
 </app-confirm-dialog>
-
-<app-kick-reason-dialog
-  [visible]="showKickDialog"
-  title="Propose kick from their crew?"
-  [message]="profile ? 'Submit a proposal to remove ' + profile.username + ' from their crew.' : 'Submit a kick proposal?'"
-  (confirmed)="onConfirmKick($event)"
-  (cancelled)="onCancelKick()"
-  (dismissed)="onCancelKick()">
-</app-kick-reason-dialog>

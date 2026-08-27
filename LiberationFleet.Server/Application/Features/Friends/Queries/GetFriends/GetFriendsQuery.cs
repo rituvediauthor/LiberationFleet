@@ -12,6 +12,7 @@ public class GetFriendsQueryHandler(
     ICurrentUserService currentUser,
     IFriendshipRepository friendshipRepository,
     IUserRepository userRepository,
+    IUserBlockRepository blockRepository,
     IDirectMessageRepository directMessageRepository,
     INotificationRepository notificationRepository) : IRequestHandler<GetFriendsQuery, FriendListResponse>
 {
@@ -33,6 +34,18 @@ public class GetFriendsQueryHandler(
             .Distinct()
             .ToList();
 
+        if (friendIds.Count == 0)
+        {
+            return new FriendListResponse
+            {
+                Success = true,
+                Message = "Friends loaded.",
+                Items = Array.Empty<FriendListItemDto>()
+            };
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        friendIds = friendIds.Where(id => !hiddenUserIds.Contains(id)).ToList();
         if (friendIds.Count == 0)
         {
             return new FriendListResponse

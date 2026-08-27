@@ -7,6 +7,7 @@ import {
   CrewLookupResponse,
   FleetCrewDetailResponse,
   FleetCrewListResponse,
+  FleetCrewmateProfileResponse,
   FleetCrewOperationResponse,
   FleetEmergencyListResponse,
   FleetGiftLogResponse,
@@ -30,6 +31,7 @@ import {
   UpdateFleetRequest,
   WriteFleetRuleBody
 } from '../models/fleet.model';
+import { mapFriendshipState } from '../models/crewmate.model';
 import { ChatRoomListResponse } from '../models/chat.model';
 import { GiftLogQueryOptions } from '../models/gift.model';
 import {
@@ -195,6 +197,27 @@ export class FleetService {
 
   getCrewDetail(crewId: number): Observable<FleetCrewDetailResponse> {
     return this.http.get<FleetCrewDetailResponse>(`${this.apiUrl}/current/crews/${crewId}`);
+  }
+
+  getCrewmateProfile(userId: number): Observable<FleetCrewmateProfileResponse> {
+    return this.http.get<FleetCrewmateProfileResponse>(`${this.apiUrl}/current/crewmates/${userId}`).pipe(
+      map(response => {
+        if (!response.profile) {
+          return response;
+        }
+        return {
+          ...response,
+          profile: {
+            ...response.profile,
+            paymentPlatforms: response.profile.paymentPlatforms ?? [],
+            friendshipState: mapFriendshipState(
+              response.profile.friendshipState as unknown as number | string
+            ),
+            canSocialInteract: response.profile.canSocialInteract !== false
+          }
+        };
+      })
+    );
   }
 
   kickCrew(crewId: number, reason: string): Observable<FleetCrewOperationResponse> {

@@ -12,6 +12,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LiberationFleet.Server.Controllers;
 
+/// <summary>
+/// Friendship is global (not scoped to a crew or fleet). Friend lists, requests, DMs, and blocks are user-to-user.
+/// </summary>
 [ApiController]
 [Route("api/friends")]
 [Authorize]

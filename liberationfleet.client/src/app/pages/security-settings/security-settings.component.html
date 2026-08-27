@@ -31,22 +31,26 @@
             </span>
             <span class="device-meta">Last seen {{ formatDate(device.lastSeenAt) }}</span>
           </div>
+          <div class="device-actions" *ngIf="!device.isCurrent">
+            <button
+              type="button"
+              class="device-action-btn"
+              *ngIf="!device.isBlocked"
+              [disabled]="deviceActionLoading"
+              (click)="blockDevice(device)">
+              Block
+            </button>
+            <button
+              type="button"
+              class="device-action-btn"
+              *ngIf="device.isBlocked"
+              [disabled]="deviceActionLoading"
+              (click)="unblockDevice(device)">
+              Unblock
+            </button>
+          </div>
         </li>
       </ul>
-    </section>
-
-    <section class="settings-section" *ngIf="!loading">
-      <h2>Two-factor verification</h2>
-      <label class="toggle-row">
-        <input
-          type="checkbox"
-          [checked]="settings.twoFactorEnabled"
-          (change)="onTwoFactorChange($any($event.target).checked)">
-        <span class="toggle-copy">
-          <span class="toggle-label">Enable two-factor verification</span>
-          <span class="toggle-description">Adds an extra sign-in check when supported.</span>
-        </span>
-      </label>
     </section>
 
     <section class="settings-section" *ngIf="!loading">

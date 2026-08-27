@@ -109,6 +109,7 @@ export class CryptoApiService {
     resourceId: string;
     crewId?: number | null;
     fleetId?: number | null;
+    recipientUserId?: number | null;
     keyVersion: number;
     nonce: string;
     ciphertext: string;
@@ -123,6 +124,7 @@ export class CryptoApiService {
       resourceId: string;
       crewId?: number | null;
       fleetId?: number | null;
+      recipientUserId?: number | null;
       keyVersion: number;
       nonce: string;
       ciphertext: string;
@@ -164,6 +166,7 @@ export class CryptoApiService {
       resourceId: string;
       crewId?: number | null;
       fleetId?: number | null;
+      recipientUserId?: number | null;
       keyVersion: number;
       nonce: string;
       ciphertext: Blob | Uint8Array | ArrayBuffer;
@@ -180,6 +183,9 @@ export class CryptoApiService {
     }
     if (payload.fleetId != null) {
       params = params.set('fleetId', payload.fleetId.toString());
+    }
+    if (payload.recipientUserId != null) {
+      params = params.set('recipientUserId', payload.recipientUserId.toString());
     }
 
     // Never ArrayBuffer.slice a huge typed array — that doubles peak RAM.

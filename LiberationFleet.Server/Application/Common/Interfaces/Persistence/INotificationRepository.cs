@@ -48,6 +48,12 @@ public interface INotificationRepository
         int? relatedEntityId,
         CancellationToken cancellationToken = default);
 
+    Task<int> MarkReadByKindAsync(
+        int userId,
+        NotificationKind kind,
+        int? actorUserId = null,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Notification notification, CancellationToken cancellationToken = default);
 
     Task AddRangeAsync(IEnumerable<Notification> notifications, CancellationToken cancellationToken = default);

@@ -316,6 +316,14 @@ public class CrewChatsProposalService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         change.RoomId = room.Id;
+
+        var savedRoom = await chatRepository.GetRoomByIdWithAuthorAsync(room.Id, cancellationToken);
+        if (savedRoom is not null)
+        {
+            var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope: null);
+            await chatRealtimeNotifier.NotifyFleetRoomCreatedAsync(proposal.FleetId.Value, dto, cancellationToken);
+        }
+
         return true;
     }
 

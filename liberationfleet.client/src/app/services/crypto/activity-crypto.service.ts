@@ -10,6 +10,7 @@ import {
 import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
 import { CryptoSessionService } from './crypto-session.service';
+import { ProposalCryptoService } from './proposal-crypto.service';
 
 const PREVIEW_MAX_LENGTH = 140;
 
@@ -20,7 +21,8 @@ export class ActivityCryptoService {
   constructor(
     private cryptoSession: CryptoSessionService,
     private cryptoService: CryptoService,
-    private cryptoApi: CryptoApiService
+    private cryptoApi: CryptoApiService,
+    private proposalCrypto: ProposalCryptoService
   ) {}
 
   async enrichItems(items: UserActivityItem[]): Promise<UserActivityItem[]> {
@@ -111,33 +113,27 @@ export class ActivityCryptoService {
           .map(item => item.thumbnailResourceId)
           .filter((id): id is string => !!id)
       )];
-      const envelopes = await this.fetchEnvelopes('ImageAsset', resourceIds, crewId);
-      const envelopeByResourceId = new Map(envelopes.map(envelope => [envelope.resourceId, envelope]));
-
-      for (const item of crewItems) {
-        if (!item.thumbnailResourceId) {
-          continue;
+      try {
+        const resolved = await this.proposalCrypto.decryptAttachments(
+          crewId,
+          resourceIds.map(resourceId => ({
+            resourceId,
+            type: 'image' as const
+          }))
+        );
+        const urlById = new Map(
+          resolved
+            .filter(attachment => !!attachment.dataUrl)
+            .map(attachment => [attachment.resourceId, attachment.dataUrl!] as const)
+        );
+        for (const item of crewItems) {
+          if (!item.thumbnailResourceId) {
+            continue;
+          }
+          item.thumbnailUrl = urlById.get(item.thumbnailResourceId) ?? null;
         }
-
-        const envelope = envelopeByResourceId.get(item.thumbnailResourceId);
-        if (!envelope) {
-          continue;
-        }
-
-        try {
-          const url = await this.cryptoSession.decryptWithCrewKeyFallback(
-            crewId,
-            envelope.keyVersion,
-            key => this.cryptoService.decryptMediaToObjectUrl(
-              key,
-              envelope.nonce,
-              envelope.ciphertext
-            )
-          );
-          item.thumbnailUrl = url;
-        } catch {
-          // Thumbnail preview is best-effort.
-        }
+      } catch {
+        // Thumbnail preview is best-effort.
       }
     }
 
@@ -189,7 +185,9 @@ export class ActivityCryptoService {
         );
         return {
           text: payload.body,
-          thumbnailResourceId: payload.attachments?.find(attachment => attachment.type === 'image')?.resourceId ?? null
+          thumbnailResourceId: payload.attachments?.find(attachment => attachment.type === 'image')?.resourceId
+            ?? payload.attachments?.find(attachment => attachment.type === 'video')?.posterResourceId
+            ?? null
         };
       }
       case 'ForumPost':
@@ -209,6 +207,7 @@ export class ActivityCryptoService {
           text,
           thumbnailResourceId: payload.thumbnailResourceId
             ?? payload.attachments?.find(attachment => attachment.type === 'image')?.resourceId
+            ?? payload.attachments?.find(attachment => attachment.type === 'video')?.posterResourceId
             ?? null
         };
       }

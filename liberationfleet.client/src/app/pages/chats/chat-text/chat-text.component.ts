@@ -43,7 +43,6 @@ import { ReportContentDialogComponent } from '../../../components/report-content
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
-import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
@@ -902,7 +901,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
         : await new Promise<{ success: boolean; message?: string; messageId?: number }>((resolve, reject) => {
             this.chatService.sendMessage(this.roomId, {
               ...encrypted,
-              body: truncateNotificationPreview(entry.body),
+              body: '',
               mentionedUserIds: entry.mentionedUserIds,
               isAnonymous: entry.isAnonymous
             }).subscribe({ next: resolve, error: reject });

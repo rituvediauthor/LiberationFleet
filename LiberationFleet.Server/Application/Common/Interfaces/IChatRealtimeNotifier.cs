@@ -12,5 +12,7 @@ public interface IChatRealtimeNotifier
 
     Task NotifyRoomCreatedAsync(int crewId, ChatRoomListItemDto room, CancellationToken cancellationToken = default);
 
+    Task NotifyFleetRoomCreatedAsync(int fleetId, ChatRoomListItemDto room, CancellationToken cancellationToken = default);
+
     Task NotifyRoomActivityUpdatedAsync(int crewId, int roomId, DateTime lastActivityAt, CancellationToken cancellationToken = default);
 }

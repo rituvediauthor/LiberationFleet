@@ -13,7 +13,8 @@ public class GetNotificationsQueryHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
     NotificationBadgeSummaryService badgeSummaryService,
-    IUserRepository userRepository) : IRequestHandler<GetNotificationsQuery, NotificationListResponse>
+    IUserRepository userRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetNotificationsQuery, NotificationListResponse>
 {
     public async Task<NotificationListResponse> Handle(GetNotificationsQuery request, CancellationToken cancellationToken)
     {
@@ -35,6 +36,11 @@ public class GetNotificationsQueryHandler(
             request.BeforeId,
             disabledKinds,
             cancellationToken);
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        notifications = notifications
+            .Where(n => !n.ActorUserId.HasValue || !hiddenUserIds.Contains(n.ActorUserId.Value))
+            .ToList();
 
         var unreadCount = await ResolveUnreadCountAsync(userId, cancellationToken);
 

@@ -80,6 +80,7 @@ import { LibraryStockListComponent } from './pages/library/library-stock-list/li
 import { LibraryMyOfferingsComponent } from './pages/library/library-my-offerings/library-my-offerings.component';
 import { authGuard } from './guards/auth.guard';
 import { libraryAccessGuard } from './guards/library-access.guard';
+import { fleetRulesAcceptedGuard } from './guards/fleet-rules-accepted.guard';
 import { FleetHomeComponent } from './pages/fleet/fleet-home/fleet-home.component';
 import { CreateFleetComponent } from './pages/fleet/create-fleet/create-fleet.component';
 import { JoinFleetComponent } from './pages/fleet/join-fleet/join-fleet.component';
@@ -165,183 +166,177 @@ export const routes: Routes = [
   {
     path: 'app/fleet/join-requests',
     component: FleetJoinRequestsComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Join Requests' }
   },
   {
     path: 'app/fleet/edit',
     component: EditFleetComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Fleet Settings' }
   },
   {
     path: 'app/fleet/gift-log',
     component: FleetGiftLogComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Gift Log' }
   },
   {
     path: 'app/fleet/gift-log/record',
     component: FleetRecordGiftComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Record Gift' }
   },
   {
     path: 'app/fleet/emergency-requests',
     component: FleetEmergencyListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Emergency Requests' }
   },
   {
     path: 'app/fleet/library',
     component: FleetLibraryHubComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Library of Things' }
   },
   {
     path: 'app/fleet/library/durable',
     component: FleetLibraryListComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { title: 'Durable Goods', kind: 'Durable', parentTab: 'fleet', locationHeader: 'Durable Goods' }
   },
   {
     path: 'app/fleet/library/consumable',
     component: FleetLibraryListComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { title: 'Consumable Goods', kind: 'Consumable', parentTab: 'fleet', locationHeader: 'Consumable Goods' }
   },
   {
     path: 'app/fleet/library/services',
     component: FleetLibraryListComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { title: 'Services', kind: 'Service', parentTab: 'fleet', locationHeader: 'Services' }
   },
   {
     path: 'app/fleet/library/units/:unitId',
     component: FleetLibraryDetailComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Library Item' }
   },
   {
     path: 'app/fleet/chats',
     component: FleetChatListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Chats' }
   },
   {
     path: 'app/fleet/chats/arrange',
     component: ArrangeChatChannelsComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Arrange Channels' }
   },
   {
     path: 'app/fleet/chats/create',
     component: ChatCreateComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Chat' }
-  },
-  {
-    path: 'app/fleet/chats/:id/voice',
-    component: ChatVoiceComponent,
-    canActivate: [authGuard],
-    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Voice Chat' }
   },
   {
     path: 'app/fleet/chats/:id',
     component: ChatTextComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Chat' }
   },
   {
     path: 'app/fleet/forums',
     component: FleetForumListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Fleet Space' }
   },
   {
     path: 'app/fleet/forums/create',
     component: FleetForumCreateComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Create Post' }
   },
   {
     path: 'app/fleet/forums/:id',
     component: FleetForumDetailComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Post' }
   },
   {
     path: 'app/fleet/proposals',
     component: ProposalsTypeComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposals' }
   },
   {
     path: 'app/fleet/proposals/list/:status',
     component: ProposalsListComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposals' }
   },
   {
     path: 'app/fleet/proposals/create',
     component: CreateProposalComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Proposal' }
   },
   {
     path: 'app/fleet/proposals/:id',
     component: ProposalDetailComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposal' }
   },
   {
     path: 'app/fleet/rules',
     component: FleetRuleListComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Rules' }
   },
   {
     path: 'app/fleet/rules/create',
     component: FleetRuleCreateComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Create Rule' }
   },
   {
     path: 'app/fleet/rules/:id/edit',
     component: FleetRuleEditComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Edit Rule' }
   },
   {
     path: 'app/fleet/crews',
     component: FleetCrewsComponent,
     pathMatch: 'full',
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Crews' }
   },
   {
     path: 'app/fleet/crews/invite',
     component: InviteCrewComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Add Crew' }
   },
   {
     path: 'app/fleet/crews/:id',
     component: FleetCrewDetailComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Crew' }
   },
   {
     path: 'app/fleet/crewmates/:userId',
     component: FleetCrewmateDetailComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Crewmate' }
   },
   {

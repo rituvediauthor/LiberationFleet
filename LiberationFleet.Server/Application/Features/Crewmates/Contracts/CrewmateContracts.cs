@@ -90,6 +90,10 @@ public class CrewmateProfileDto
     public IReadOnlyList<string> IdentityGroups { get; set; } = Array.Empty<string>();
     public bool IsSurvivalThresholdRecipient { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
+    /// <summary>
+    /// False when either party has blocked the other (hides friend-request actions without revealing reverse blocks).
+    /// </summary>
+    public bool CanSocialInteract { get; set; } = true;
     public bool IsSelf { get; set; }
     public bool CanAttachFiles { get; set; }
     public bool CanCreateProposals { get; set; }

@@ -11,6 +11,9 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
 
+/// <summary>
+/// Friendship is global (not scoped to a crew or fleet). These commands operate on the user-to-user friendship graph.
+/// </summary>
 public record RequestFriendshipCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
 public record CancelFriendshipRequestCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
 public record AcceptFriendshipCommand(int TargetUserId) : IRequest<CrewmateOperationResponse>;
@@ -65,6 +68,7 @@ public class RequestFriendshipCommandHandler(
             Status = FriendshipStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
+        Friendship.SetPairIds(friendship);
 
         await friendshipRepository.AddAsync(friendship, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -93,6 +97,8 @@ public class CancelFriendshipRequestCommandHandler(
     IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
+    INotificationRepository notificationRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CancelFriendshipRequestCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(CancelFriendshipRequestCommand request, CancellationToken cancellationToken)
@@ -122,6 +128,12 @@ public class CancelFriendshipRequestCommandHandler(
         }
 
         friendshipRepository.Remove(friendship);
+        await ManageFriendshipNotificationHelper.MarkFriendRequestNotificationsReadAsync(
+            notificationRepository,
+            notificationService,
+            access.ViewerId,
+            request.TargetUserId,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewmateOperationResponse
@@ -177,7 +189,7 @@ public class AcceptFriendshipCommandHandler(
             Kind = NotificationKind.FriendRequestAccepted,
             Title = NotificationService.GetKindLabel(NotificationKind.FriendRequestAccepted),
             Body = "Your friend request was accepted.",
-            ActionUrl = "/app/friends/accepted",
+            ActionUrl = "/app/friends",
             ActorUserId = access.ViewerId
         }, cancellationToken);
 
@@ -195,6 +207,8 @@ public class RejectFriendshipCommandHandler(
     IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
+    INotificationRepository notificationRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RejectFriendshipCommand, CrewmateOperationResponse>
 {
     public async Task<CrewmateOperationResponse> Handle(RejectFriendshipCommand request, CancellationToken cancellationToken)
@@ -224,6 +238,12 @@ public class RejectFriendshipCommandHandler(
         }
 
         friendshipRepository.Remove(friendship);
+        await ManageFriendshipNotificationHelper.MarkFriendRequestNotificationsReadAsync(
+            notificationRepository,
+            notificationService,
+            access.ViewerId,
+            request.TargetUserId,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewmateOperationResponse
@@ -377,4 +397,29 @@ file static class ManageFriendshipAccessMapping
 {
     public static CrewmateOperationResponse Fail(FriendAccessResult access) =>
         new() { Success = false, Message = access.Message };
+}
+
+file static class ManageFriendshipNotificationHelper
+{
+    public static async Task MarkFriendRequestNotificationsReadAsync(
+        INotificationRepository notificationRepository,
+        NotificationService notificationService,
+        int userA,
+        int userB,
+        CancellationToken cancellationToken)
+    {
+        await notificationRepository.MarkReadByKindAsync(
+            userA,
+            NotificationKind.FriendRequest,
+            actorUserId: userB,
+            cancellationToken);
+        await notificationRepository.MarkReadByKindAsync(
+            userB,
+            NotificationKind.FriendRequest,
+            actorUserId: userA,
+            cancellationToken);
+
+        await notificationService.PushBadgeSummaryAndGetAsync(userA, cancellationToken);
+        await notificationService.PushBadgeSummaryAndGetAsync(userB, cancellationToken);
+    }
 }

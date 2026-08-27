@@ -4,25 +4,27 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
-import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { FleetService } from '../../../services/fleet.service';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
-import { CrewmateProfile } from '../../../models/crewmate.model';
+import { FleetCrewmateProfile } from '../../../models/fleet.model';
+import { mapFriendshipState } from '../../../models/crewmate.model';
 
 @Component({
   selector: 'app-fleet-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, UserAvatarComponent],
   templateUrl: './fleet-crewmate-detail.component.html',
   styleUrl: './fleet-crewmate-detail.component.css'
 })
 export class FleetCrewmateDetailComponent implements OnInit {
-  profile: CrewmateProfile | null = null;
+  profile: FleetCrewmateProfile | null = null;
   loading = true;
   errorMessage = '';
   actionLoading = false;
   showBlockDialog = false;
-  showKickDialog = false;
+  fleetId = 0;
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
@@ -30,18 +32,34 @@ export class FleetCrewmateDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private navigation = inject(NavigationService);
+  private fleetService = inject(FleetService);
   private crewmateService = inject(CrewmateService);
   private toastService = inject(ToastService);
   private userId = 0;
+  private backCrewId: number | null = null;
 
   ngOnInit() {
-    this.backButton = this.navigation.createBackButton(['/app/fleet/crews']);
+    const fromCrewId = Number(this.route.snapshot.queryParamMap.get('crewId'));
+    this.backCrewId = Number.isFinite(fromCrewId) && fromCrewId >= 0 ? fromCrewId : null;
+    this.backButton = this.navigation.createBackButton(
+      this.backCrewId != null
+        ? ['/app/fleet/crews', this.backCrewId]
+        : ['/app/fleet/crews']
+    );
+
     this.userId = Number(this.route.snapshot.paramMap.get('userId'));
     if (!this.userId) {
       this.loading = false;
       this.errorMessage = 'Invalid crewmate.';
       return;
     }
+
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        this.fleetId = status.fleetId ?? 0;
+      }
+    });
+
     this.loadProfile();
   }
 
@@ -50,49 +68,15 @@ export class FleetCrewmateDetailComponent implements OnInit {
   }
 
   onBlockCrewmate() {
-    if (this.isBlocked) {
+    if (this.isBlocked || !this.profile?.canSocialInteract) {
       return;
     }
     this.showBlockDialog = true;
   }
 
-  onKickFromTheirCrew() {
-    this.showKickDialog = true;
-  }
-
-  onConfirmKick(reason: string) {
-    this.showKickDialog = false;
-    if (!this.profile || this.actionLoading) {
-      return;
-    }
-
-    this.actionLoading = true;
-    this.crewmateService.kickCrewmate(this.userId, reason).subscribe({
-      next: response => {
-        this.actionLoading = false;
-        if (!response.success) {
-          this.toastService.error(response.message || 'Failed to submit kick proposal');
-          return;
-        }
-        this.toastService.success(response.message || 'Kick proposal submitted');
-        if (response.proposalId) {
-          this.router.navigate(['/app/crew/proposals', response.proposalId]);
-        }
-      },
-      error: () => {
-        this.actionLoading = false;
-        this.toastService.error('Failed to submit kick proposal');
-      }
-    });
-  }
-
-  onCancelKick() {
-    this.showKickDialog = false;
-  }
-
   onConfirmBlock() {
     this.showBlockDialog = false;
-    this.runAction(() => this.crewmateService.blockCrewmate(this.userId));
+    this.runAction(() => this.crewmateService.blockCrewmate(this.userId), { leaveOnSuccess: true });
   }
 
   onCancelBlock() {
@@ -103,10 +87,10 @@ export class FleetCrewmateDetailComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    this.crewmateService.getCrewmateProfile(this.userId).subscribe({
+    this.fleetService.getCrewmateProfile(this.userId).subscribe({
       next: response => {
         if (!response.success || !response.profile) {
-          this.errorMessage = response.message || 'Failed to load crewmate profile';
+          this.errorMessage = response.message || 'Failed to load profile';
           this.profile = null;
         } else {
           this.profile = response.profile;
@@ -116,14 +100,20 @@ export class FleetCrewmateDetailComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.errorMessage = 'Failed to load crewmate profile';
+        this.errorMessage = 'Failed to load profile';
         this.toastService.error(this.errorMessage);
       }
     });
   }
 
   private updateActionButtons() {
-    if (!this.profile || this.profile.isSelf || this.profile.isPlaceholderMember) {
+    if (!this.profile || this.profile.isSelf) {
+      this.primaryButton = null;
+      this.secondaryButton = null;
+      return;
+    }
+
+    if (!this.profile.canSocialInteract) {
       this.primaryButton = null;
       this.secondaryButton = null;
       return;
@@ -181,7 +171,10 @@ export class FleetCrewmateDetailComponent implements OnInit {
     }
   }
 
-  private runAction(action: () => ReturnType<CrewmateService['requestFriendship']>) {
+  private runAction(
+    action: () => ReturnType<CrewmateService['requestFriendship']>,
+    options?: { leaveOnSuccess?: boolean }
+  ) {
     if (!this.profile || this.actionLoading) {
       return;
     }
@@ -192,11 +185,20 @@ export class FleetCrewmateDetailComponent implements OnInit {
     action().subscribe({
       next: response => {
         if (response.success) {
+          this.toastService.success(response.message);
+          if (options?.leaveOnSuccess) {
+            this.actionLoading = false;
+            if (this.backCrewId != null) {
+              this.router.navigate(['/app/fleet/crews', this.backCrewId]);
+            } else {
+              this.router.navigate(['/app/fleet/crews']);
+            }
+            return;
+          }
           this.profile = {
             ...this.profile!,
-            friendshipState: response.friendshipState
+            friendshipState: mapFriendshipState(response.friendshipState as unknown as number | string)
           };
-          this.toastService.success(response.message);
         } else {
           this.toastService.error(response.message || 'Action failed');
         }

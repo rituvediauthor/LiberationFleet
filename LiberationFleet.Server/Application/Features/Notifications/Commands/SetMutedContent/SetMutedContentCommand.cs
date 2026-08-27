@@ -14,6 +14,7 @@ public record SetMutedContentCommand(MutedContentType ContentType, int ResourceI
 public class SetMutedContentCommandHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
+    IFriendshipRepository friendshipRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<SetMutedContentCommand, NotificationOperationResponse>
 {
@@ -30,6 +31,22 @@ public class SetMutedContentCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
+
+        if (request.ContentType == MutedContentType.Friend && request.Muted)
+        {
+            var friendship = await friendshipRepository.GetBetweenUsersAsync(
+                userId,
+                request.ResourceId,
+                cancellationToken);
+            if (friendship is null || friendship.Status != FriendshipStatus.Accepted)
+            {
+                return new NotificationOperationResponse
+                {
+                    Success = false,
+                    Message = "You can only mute accepted friends."
+                };
+            }
+        }
 
         if (request.Muted)
         {

@@ -37,6 +37,14 @@
           class="crewmate-row"
           *ngFor="let crewmate of crew.crewmates"
           (click)="openCrewmate(crewmate)">
+          <app-user-avatar
+            class="crewmate-avatar"
+            [resourceId]="crewmate.avatarResourceId"
+            [fleetId]="fleetId || null"
+            [fallbackInitial]="crewmate.username"
+            size="sm"
+            [alt]="crewmate.username + ' avatar'">
+          </app-user-avatar>
           <span class="crewmate-name">{{ crewmate.username }}</span>
           <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
         </button>

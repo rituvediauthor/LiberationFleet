@@ -210,7 +210,8 @@ export class CrewmateService {
       isPlaceholderMember: !!profile.isPlaceholderMember,
       canClaimIdentity: !!profile.canClaimIdentity,
       isInSeason: !!profile.isInSeason,
-      friendshipState: mapFriendshipState(profile.friendshipState as unknown as number | string)
+      friendshipState: mapFriendshipState(profile.friendshipState as unknown as number | string),
+      canSocialInteract: profile.canSocialInteract !== false
     };
   }
 

@@ -134,10 +134,36 @@
 }
 
 .device-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--lf-color-border);
   border-radius: 10px;
   background: var(--lf-color-bg-surface);
+}
+
+.device-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.device-action-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-text-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.device-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .device-copy {

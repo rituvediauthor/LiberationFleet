@@ -29,15 +29,18 @@
         #fleetNav="routerLinkActive"
         [attr.aria-current]="fleetNav.isActive ? 'page' : null"
         style="padding-bottom: 10px; gap:0px;">
-        <app-brand-logo
-          class="nav-logo"
-          [class.nav-logo-custom]="!!fleetImageSrc"
-          variant="fleet"
-          size="sm"
-          [monochrome]="!fleetNav.isActive"
-          [customSrc]="fleetImageSrc"
-          alt="">
-        </app-brand-logo>
+        <span class="nav-icon-wrap">
+          <app-brand-logo
+            class="nav-logo"
+            [class.nav-logo-custom]="!!fleetImageSrc"
+            variant="fleet"
+            size="sm"
+            [monochrome]="!fleetNav.isActive"
+            [customSrc]="fleetImageSrc"
+            alt="">
+          </app-brand-logo>
+          <app-content-badge [count]="fleetUnreadCount"></app-content-badge>
+        </span>
         <span class="nav-label">Fleet</span>
       </a>
       <a
@@ -48,15 +51,18 @@
         #crewNav="routerLinkActive"
         [attr.aria-current]="crewNav.isActive ? 'page' : null"
         style="padding-bottom: 10px; gap:0px;">
-        <app-brand-logo
-          class="nav-logo"
-          [class.nav-logo-custom]="!!crewImageSrc"
-          variant="crew"
-          size="sm"
-          [monochrome]="!crewNav.isActive"
-          [customSrc]="crewImageSrc"
-          alt="">
-        </app-brand-logo>
+        <span class="nav-icon-wrap">
+          <app-brand-logo
+            class="nav-logo"
+            [class.nav-logo-custom]="!!crewImageSrc"
+            variant="crew"
+            size="sm"
+            [monochrome]="!crewNav.isActive"
+            [customSrc]="crewImageSrc"
+            alt="">
+          </app-brand-logo>
+          <app-content-badge [count]="crewUnreadCount"></app-content-badge>
+        </span>
         <span class="nav-label">Crew</span>
       </a>
       <a

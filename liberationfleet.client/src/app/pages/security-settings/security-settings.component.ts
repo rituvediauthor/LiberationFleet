@@ -33,6 +33,7 @@ export class SecuritySettingsComponent implements OnInit {
   currentSettingsLockPassword = '';
   loading = true;
   saving = false;
+  deviceActionLoading = false;
   errorMessage = '';
   showPasswordDialog = false;
   passwordDialogError = '';
@@ -79,11 +80,6 @@ export class SecuritySettingsComponent implements OnInit {
     this.updateSaveButton();
   }
 
-  onTwoFactorChange(enabled: boolean) {
-    this.settings.twoFactorEnabled = enabled;
-    this.updateSaveButton();
-  }
-
   onLockSettingsChange(enabled: boolean) {
     this.settings.lockSettingsWithPassword = enabled;
     if (!enabled) {
@@ -127,6 +123,51 @@ export class SecuritySettingsComponent implements OnInit {
     return new Date(value).toLocaleString();
   }
 
+  blockDevice(device: RegisteredDeviceDto) {
+    if (this.deviceActionLoading || device.isCurrent) {
+      return;
+    }
+    this.deviceActionLoading = true;
+    this.securityService.blockDevice(device.id).subscribe({
+      next: response => {
+        this.deviceActionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to block device');
+          return;
+        }
+        device.isBlocked = true;
+        device.isTrusted = false;
+        this.toastService.success(response.message || 'Device blocked');
+      },
+      error: () => {
+        this.deviceActionLoading = false;
+        this.toastService.error('Failed to block device');
+      }
+    });
+  }
+
+  unblockDevice(device: RegisteredDeviceDto) {
+    if (this.deviceActionLoading || device.isCurrent) {
+      return;
+    }
+    this.deviceActionLoading = true;
+    this.securityService.unblockDevice(device.id).subscribe({
+      next: response => {
+        this.deviceActionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to unblock device');
+          return;
+        }
+        device.isBlocked = false;
+        this.toastService.success(response.message || 'Device unblocked');
+      },
+      error: () => {
+        this.deviceActionLoading = false;
+        this.toastService.error('Failed to unblock device');
+      }
+    });
+  }
+
   private async beginSave() {
     const lockEnabled = await this.settingsLockService.isLockEnabled();
     if (lockEnabled && !this.pendingSettingsPassword) {
@@ -157,7 +198,6 @@ export class SecuritySettingsComponent implements OnInit {
     }
 
     this.securityService.updateSettings({
-      twoFactorEnabled: this.settings.twoFactorEnabled,
       lockSettingsWithPassword: this.settings.lockSettingsWithPassword,
       newSettingsLockPassword: this.newSettingsLockPassword.trim() || undefined,
       currentSettingsLockPassword: this.currentSettingsLockPassword.trim() || undefined,

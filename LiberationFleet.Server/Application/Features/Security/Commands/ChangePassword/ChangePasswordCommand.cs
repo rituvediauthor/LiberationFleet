@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Application.Features.Security.Contracts;
 using MediatR;
 
@@ -53,6 +54,7 @@ public class ChangePasswordCommandHandler(
         user.PasswordHash = passwordHasher.Hash(body.NewPassword);
         user.FailedLoginAttempts = 0;
         user.LastFailedLoginAt = null;
+        SecurityStampHelper.Bump(user);
         await userRepository.UpdateAsync(user, cancellationToken);
 
         await SettingsLockHelper.RecordSettingsChangedAlertAsync(

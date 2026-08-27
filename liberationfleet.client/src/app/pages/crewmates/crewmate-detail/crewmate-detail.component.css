@@ -151,6 +151,10 @@
   text-align: right;
 }
 
+.priority-hint {
+  margin: -4px 0 8px;
+}
+
 .kick-btn {
   width: 100%;
   padding: 12px;

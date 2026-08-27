@@ -138,7 +138,9 @@ public static class NotificationBadgeBuilder
             return true;
         }
 
-        if (notification.ActorUserId.HasValue && mutedFriendIds.Contains(notification.ActorUserId.Value))
+        if (notification.Kind == NotificationKind.NewDirectMessage
+            && notification.ActorUserId.HasValue
+            && mutedFriendIds.Contains(notification.ActorUserId.Value))
         {
             return true;
         }

@@ -113,6 +113,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IdentityGroups).HasMaxLength(512);
             entity.Property(e => e.AdultContentPreference).HasDefaultValue(AdultContentPreference.Block);
             entity.Property(e => e.TwoFactorEnabled).HasDefaultValue(false);
+            entity.Property(e => e.SecurityStamp).HasMaxLength(64).IsRequired();
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
             entity.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
             entity.Property(e => e.AvatarResourceId).HasMaxLength(64);
@@ -216,7 +217,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.CatchUpSnapshotMonth).HasDefaultValue(0);
             entity.Property(e => e.AllowSurvivalThresholds).HasDefaultValue(true);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
-            entity.Property(e => e.DuoVoteTimeoutMode).HasDefaultValue(DuoVoteTimeoutMode.AutoReject);
+            entity.Property(e => e.DuoVoteTimeoutMode)
+                .HasDefaultValue(DuoVoteTimeoutMode.AutoReject)
+                .HasSentinel((DuoVoteTimeoutMode)(-1));
             entity.Property(e => e.InNeedDefaultThreshold).HasPrecision(18, 2).HasDefaultValue(20m);
             entity.Property(e => e.FinancialMembershipContributionFloor).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
@@ -247,7 +250,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.JoinCode).IsRequired().HasMaxLength(32);
             entity.Property(e => e.ZipCode).HasMaxLength(10);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
-            entity.Property(e => e.DuoVoteTimeoutMode).HasDefaultValue(DuoVoteTimeoutMode.AutoReject);
+            entity.Property(e => e.DuoVoteTimeoutMode)
+                .HasDefaultValue(DuoVoteTimeoutMode.AutoReject)
+                .HasSentinel((DuoVoteTimeoutMode)(-1));
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
             entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
             entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);
@@ -666,7 +671,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.StorageTier).HasDefaultValue(EncryptedContentStorageTier.Hot);
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_EncryptedContentEnvelopes_CrewOrFleet",
-                "[CrewId] IS NOT NULL OR [FleetId] IS NOT NULL"));
+                "([CrewId] IS NOT NULL AND [FleetId] IS NULL) OR ([CrewId] IS NULL AND [FleetId] IS NOT NULL) OR ([CrewId] IS NULL AND [FleetId] IS NULL)"));
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -681,6 +686,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.RecipientUserId);
         });
 
         modelBuilder.Entity<Proposal>(entity =>
@@ -1211,6 +1217,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.RequesterUserId, e.AddresseeUserId }).IsUnique();
+            entity.HasIndex(e => new { e.UserLowId, e.UserHighId }).IsUnique();
             entity.HasOne(e => e.Requester)
                 .WithMany()
                 .HasForeignKey(e => e.RequesterUserId)

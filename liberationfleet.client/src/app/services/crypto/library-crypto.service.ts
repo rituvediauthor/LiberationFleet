@@ -58,7 +58,9 @@ export class LibraryCryptoService {
       existingAttachments
     );
 
-    const thumbnailResourceId = detailAttachments.find(a => a.type === 'image')?.resourceId
+    // Prefer the encrypt-time list thumb (first image or video poster), not images-only.
+    const thumbnailResourceId = encrypted.thumbnailResourceId
+      ?? detailAttachments.find(a => a.type === 'image')?.resourceId
       ?? existingAttachments.find(a => a.type === 'image')?.resourceId
       ?? limitedAttachments.find(a => a.type === 'image')?.resourceId
       ?? null;
@@ -106,19 +108,41 @@ export class LibraryCryptoService {
     }
 
     const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
-    const thumbnailIds = [...new Set(
+    const thumbnailIds = new Set(
       items
         .map(item => item.thumbnailResourceId)
         .filter((id): id is string => !!id)
-    )];
-    const thumbnailMap = await this.resolveThumbnailsBatch(thumbnailIds, crewId, crewKey);
+    );
 
-    return items.map(item => ({
-      ...item,
-      thumbnailUrl: (item.thumbnailResourceId ? thumbnailMap.get(item.thumbnailResourceId) : null)
-        ?? item.thumbnailUrl
-        ?? null
+    // Recover list thumbs from ciphertext when the API column was never set (video posters, etc.).
+    const recoveredIds = new Map<number, string>();
+    await Promise.all(items.map(async item => {
+      if (item.thumbnailResourceId || !item.hasEncryptedContent) {
+        return;
+      }
+      const payload = await this.decryptOfferingPayload(item.offeringId, crewId, crewKey);
+      const recovered = payload?.thumbnailResourceId
+        ?? payload?.attachments?.find(attachment => attachment.type === 'image')?.resourceId
+        ?? payload?.attachments?.find(attachment => attachment.type === 'video')?.posterResourceId
+        ?? null;
+      if (recovered) {
+        recoveredIds.set(item.unitId, recovered);
+        thumbnailIds.add(recovered);
+      }
     }));
+
+    const thumbnailMap = await this.resolveThumbnailsBatch([...thumbnailIds], crewId);
+
+    return items.map(item => {
+      const thumbId = item.thumbnailResourceId ?? recoveredIds.get(item.unitId) ?? null;
+      return {
+        ...item,
+        thumbnailResourceId: thumbId ?? item.thumbnailResourceId,
+        thumbnailUrl: (thumbId ? thumbnailMap.get(thumbId) : null)
+          ?? item.thumbnailUrl
+          ?? null
+      };
+    });
   }
 
   async enrichUnitDetail(detail: LibraryUnitDetail, crewId: number): Promise<LibraryUnitDetail> {
@@ -166,13 +190,17 @@ export class LibraryCryptoService {
     }));
 
     let thumbnailUrl = detail.thumbnailUrl ?? null;
-    const thumbId = payload.thumbnailResourceId ?? detailAttachments[0]?.resourceId;
+    const thumbId = payload.thumbnailResourceId
+      ?? detailAttachments.find(attachment => attachment.type === 'image')?.resourceId
+      ?? attachments.find(attachment => attachment.type === 'video')?.posterResourceId
+      ?? detail.thumbnailResourceId
+      ?? null;
     if (thumbId) {
       const thumbFromPayload = resolvedImages.find(attachment => attachment.resourceId === thumbId)?.dataUrl;
       if (thumbFromPayload) {
         thumbnailUrl = thumbFromPayload;
-      } else if (detail.thumbnailResourceId) {
-        thumbnailUrl = await this.resolveThumbnail(detail.thumbnailResourceId, crewId, crewKey);
+      } else {
+        thumbnailUrl = await this.resolveThumbnail(thumbId, crewId, crewKey) ?? thumbnailUrl;
       }
     }
 
@@ -204,7 +232,7 @@ export class LibraryCryptoService {
         .map(item => item.thumbnailResourceId)
         .filter((id): id is string => !!id)
     )];
-    const thumbnailMap = await this.resolveThumbnailsBatch(thumbnailIds, crewId, crewKey);
+    const thumbnailMap = await this.resolveThumbnailsBatch(thumbnailIds, crewId);
     const encryptedRequestIds = items
       .filter(item => item.hasEncryptedPurpose)
       .map(item => item.requestId.toString());
@@ -341,8 +369,7 @@ export class LibraryCryptoService {
 
   private async resolveThumbnailsBatch(
     resourceIds: string[],
-    crewId: number,
-    _crewKey: CryptoKey
+    crewId: number
   ): Promise<Map<string, string>> {
     const results = new Map<string, string>();
     if (resourceIds.length === 0) {
@@ -350,23 +377,16 @@ export class LibraryCryptoService {
     }
 
     try {
-      const envelopes = await firstValueFrom(
-        this.cryptoApi.getEncryptedContents('ImageAsset', resourceIds, crewId)
+      const resolved = await this.proposalCrypto.decryptAttachments(
+        crewId,
+        resourceIds.map(resourceId => ({
+          resourceId,
+          type: 'image' as const
+        }))
       );
-      for (const envelope of envelopes) {
-        try {
-          const url = await this.cryptoSession.decryptWithCrewKeyFallback(
-            crewId,
-            envelope.keyVersion,
-            key => this.cryptoService.decryptMediaToObjectUrl(
-              key,
-              envelope.nonce,
-              envelope.ciphertext
-            )
-          );
-          results.set(envelope.resourceId, url);
-        } catch {
-          // Skip unreadable thumbnails.
+      for (const attachment of resolved) {
+        if (attachment.dataUrl) {
+          results.set(attachment.resourceId, attachment.dataUrl);
         }
       }
     } catch {
@@ -422,26 +442,7 @@ export class LibraryCryptoService {
       return null;
     }
 
-    try {
-      const envelopes = await firstValueFrom(
-        this.cryptoApi.getEncryptedContents('ImageAsset', [thumbnailResourceId], crewId)
-      );
-      const envelope = envelopes[0];
-      if (!envelope) {
-        return null;
-      }
-
-      return await this.cryptoSession.decryptWithCrewKeyFallback(
-        crewId,
-        envelope.keyVersion,
-        key => this.cryptoService.decryptMediaToObjectUrl(
-          key,
-          envelope.nonce,
-          envelope.ciphertext
-        )
-      );
-    } catch {
-      return null;
-    }
+    const map = await this.resolveThumbnailsBatch([thumbnailResourceId], crewId);
+    return map.get(thumbnailResourceId) ?? null;
   }
 }

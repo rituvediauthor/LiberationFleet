@@ -183,7 +183,7 @@ export class ProposalCryptoService {
     payload: ProposalEncryptedPayload,
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
-  ): Promise<{ nonce: string; ciphertext: string }> {
+  ): Promise<{ nonce: string; ciphertext: string; thumbnailResourceId: string | null }> {
     if (!pendingAttachmentsAllowSubmit(newAttachments)) {
       throw new Error('Attachments are still processing. Wait until they finish or cancel them.');
     }
@@ -192,16 +192,18 @@ export class ProposalCryptoService {
     const scopeKey = await this.resolveScopeKey(normalizedScope);
     const uploadedAttachments = await this.uploadAttachments(normalizedScope, newAttachments);
     const allAttachments = [...existingAttachments, ...uploadedAttachments];
-    let thumbnailResourceId = allAttachments.find(a => a.type === 'image')?.resourceId ?? null;
-    if (!thumbnailResourceId) {
-      thumbnailResourceId = await this.uploadVideoPosterThumbnail(normalizedScope, newAttachments);
-    }
+    const thumbnailResourceId = await this.resolveListThumbnailResourceId(
+      normalizedScope,
+      allAttachments,
+      newAttachments
+    );
     const fullPayload: ProposalEncryptedPayload = {
       ...payload,
       attachments: allAttachments,
       thumbnailResourceId
     };
-    return this.cryptoService.encryptJson(scopeKey, fullPayload);
+    const encrypted = await this.cryptoService.encryptJson(scopeKey, fullPayload);
+    return { ...encrypted, thumbnailResourceId };
   }
 
   async encryptCommentPayload(
@@ -660,7 +662,13 @@ export class ProposalCryptoService {
             normalizedScope.fleetId
           )
         );
-        for (const envelope of envelopes) {
+        const unresolvedIds: string[] = [];
+        for (const resourceId of pendingIds) {
+          const envelope = envelopes.find(entry => entry.resourceId === resourceId);
+          if (!envelope?.ciphertext) {
+            unresolvedIds.push(resourceId);
+            continue;
+          }
           try {
             const url = await this.decryptMediaCached(
               scopeKey,
@@ -672,8 +680,46 @@ export class ProposalCryptoService {
             );
             dataUrlByResourceId.set(envelope.resourceId, url);
           } catch {
-            // Skip unreadable attachments.
+            unresolvedIds.push(resourceId);
           }
+        }
+
+        // Binary / cold-stored images (and any string-path miss) fall back to /content/bytes.
+        if (unresolvedIds.length > 0 && contentType === 'ImageAsset') {
+          await Promise.all(unresolvedIds.map(async resourceId => {
+            try {
+              const payload = await firstValueFrom(
+                this.cryptoApi.getEncryptedContentBytes(
+                  'ImageAsset',
+                  resourceId,
+                  normalizedScope.crewId,
+                  normalizedScope.fleetId
+                )
+              );
+              if (payload.nonce === MEDIA_PLAIN_NONCE) {
+                const streamUrl = this.tryBuildPlainMediaStreamUrl(
+                  'ImageAsset',
+                  payload.resourceId || resourceId,
+                  normalizedScope
+                );
+                if (streamUrl) {
+                  dataUrlByResourceId.set(payload.resourceId || resourceId, streamUrl);
+                }
+                return;
+              }
+              const url = await this.decryptMediaBytesCached(
+                scopeKey,
+                normalizedScope,
+                payload.resourceId || resourceId,
+                payload.keyVersion,
+                payload.nonce,
+                payload.ciphertext
+              );
+              dataUrlByResourceId.set(payload.resourceId || resourceId, url);
+            } catch {
+              // Skip unreadable attachments.
+            }
+          }));
         }
       } catch {
         // Skip this content type batch.
@@ -858,11 +904,12 @@ export class ProposalCryptoService {
   }
 
   private async resolvePreviewImageUrls(
-    scopeKey: CryptoKey,
+    _scopeKey: CryptoKey,
     payload: ProposalEncryptedPayload,
     scope: ProposalCryptoScope
   ): Promise<string[]> {
-    const imageIds: string[] = (payload.attachments ?? [])
+    const attachments = payload.attachments ?? [];
+    const imageIds: string[] = attachments
       .filter(attachment => attachment.type === 'image' && !!attachment.resourceId)
       .map(attachment => attachment.resourceId)
       .slice(0, 20);
@@ -872,60 +919,64 @@ export class ProposalCryptoService {
       imageIds.unshift(payload.thumbnailResourceId);
     }
 
+    // Legacy / edit-wiped payloads may lack thumbnailResourceId but still have video posters.
+    if (imageIds.length === 0) {
+      const posterId = attachments.find(
+        attachment => attachment.type === 'video' && !!attachment.posterResourceId
+      )?.posterResourceId;
+      if (posterId) {
+        imageIds.push(posterId);
+      }
+    }
+
     if (imageIds.length === 0) {
       return [];
     }
 
-    const sessionKeyVersion = this.resolveScopeKeyVersion(scope);
-    const urls: (string | null)[] = new Array(imageIds.length).fill(null);
-    const pendingIds: string[] = [];
-    const pendingIndexes: number[] = [];
-
-    for (let i = 0; i < imageIds.length; i++) {
-      const resourceId = imageIds[i];
-      const cachedUrl = await this.tryCachedMediaUrl(scope, resourceId, sessionKeyVersion);
-      if (cachedUrl) {
-        urls[i] = cachedUrl;
-      } else {
-        pendingIds.push(resourceId);
-        pendingIndexes.push(i);
-      }
-    }
-
-    if (pendingIds.length > 0) {
-      const envelopes = await firstValueFrom(
-        this.cryptoApi.getEncryptedContents(
-          'ImageAsset',
-          pendingIds,
-          scope.crewId,
-          scope.fleetId
-        )
+    // Reuse attachment decrypt (string + binary/plain paths) so list thumbs match detail media.
+    const synthetic: ProposalAttachment[] = imageIds.map(resourceId => {
+      const source = attachments.find(
+        attachment => attachment.resourceId === resourceId || attachment.posterResourceId === resourceId
       );
-      const envelopeById = new Map(envelopes.map(envelope => [envelope.resourceId, envelope]));
+      return {
+        resourceId,
+        type: 'image' as const,
+        encrypted: source?.type === 'image' ? source.encrypted : true
+      };
+    });
 
-      await Promise.all(pendingIndexes.map(async (index, pendingOffset) => {
-        const resourceId = pendingIds[pendingOffset];
-        const envelope = envelopeById.get(resourceId);
-        if (!envelope) {
-          return;
-        }
+    const resolved = await this.decryptAttachments(scope, synthetic);
+    return resolved
+      .map(attachment => attachment.dataUrl)
+      .filter((url): url is string => !!url);
+  }
 
-        try {
-          urls[index] = await this.decryptMediaCached(
-            scopeKey,
-            scope,
-            envelope.resourceId,
-            envelope.keyVersion,
-            envelope.nonce,
-            envelope.ciphertext
-          );
-        } catch {
-          urls[index] = null;
-        }
-      }));
+  /** Prefer first image, else an existing video poster, else extract/upload a poster from new videos. */
+  private async resolveListThumbnailResourceId(
+    scope: ProposalCryptoScope,
+    allAttachments: ProposalAttachment[],
+    newAttachments: PendingAttachment[]
+  ): Promise<string | null> {
+    const imageId = allAttachments.find(attachment => attachment.type === 'image')?.resourceId ?? null;
+    if (imageId) {
+      return imageId;
     }
 
-    return urls.filter((url): url is string => !!url);
+    const existingPoster = allAttachments.find(
+      attachment => attachment.type === 'video' && !!attachment.posterResourceId
+    )?.posterResourceId;
+    if (existingPoster) {
+      return existingPoster;
+    }
+
+    const pendingPoster = newAttachments.find(
+      attachment => attachment.type === 'video' && !!attachment.posterResourceId
+    )?.posterResourceId;
+    if (pendingPoster) {
+      return pendingPoster;
+    }
+
+    return this.uploadVideoPosterThumbnail(scope, newAttachments);
   }
 
   private resolveScopeKeyVersion(scope: ProposalCryptoScope): number {
@@ -1082,6 +1133,9 @@ export class ProposalCryptoService {
         attachment.progressLabel = percent < 40 ? 'Encrypting…' : 'Uploading…';
         onLocalProgress?.(percent, attachment.progressLabel);
       });
+      if (attachment.type === 'video' && !attachment.posterResourceId) {
+        attachment.posterResourceId = await this.uploadSingleVideoPoster(normalizedScope, attachment) ?? undefined;
+      }
       attachment.uploaded = true;
       attachment.status = 'ready';
       attachment.progress = 100;
@@ -1141,9 +1195,16 @@ export class ProposalCryptoService {
         role: attachment.role,
         encrypted: attachment.encrypted !== false,
         posterResourceId: attachment.type === 'video'
-          ? (await this.uploadSingleVideoPoster(scope, attachment) ?? undefined)
+          ? (
+            attachment.posterResourceId
+              ?? await this.uploadSingleVideoPoster(scope, attachment)
+              ?? undefined
+          )
           : undefined
       });
+      if (attachment.type === 'video' && results[results.length - 1].posterResourceId) {
+        attachment.posterResourceId = results[results.length - 1].posterResourceId;
+      }
     }
 
     return results;
@@ -1219,6 +1280,7 @@ export class ProposalCryptoService {
             resourceId: attachment.resourceId,
             crewId: scope.crewId,
             fleetId: scope.fleetId,
+            recipientUserId: scope.friendUserId,
             keyVersion: this.resolveUploadKeyVersion(scope),
             nonce: MEDIA_PLAIN_NONCE,
             ciphertext: new Blob([plainPayload], { type: 'application/octet-stream' })
@@ -1264,6 +1326,7 @@ export class ProposalCryptoService {
             resourceId: attachment.resourceId,
             crewId: scope.crewId,
             fleetId: scope.fleetId,
+            recipientUserId: scope.friendUserId,
             keyVersion: this.resolveUploadKeyVersion(scope),
             nonce: encrypted.nonce,
             ciphertext: encrypted.ciphertext
@@ -1302,6 +1365,7 @@ export class ProposalCryptoService {
           resourceId: attachment.resourceId,
           crewId: scope.crewId,
           fleetId: scope.fleetId,
+          recipientUserId: scope.friendUserId,
           keyVersion: this.resolveUploadKeyVersion(scope),
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
@@ -1497,6 +1561,9 @@ export class ProposalCryptoService {
       resourceId: attachment.resourceId,
       crewId: normalizedScope.crewId && normalizedScope.crewId > 0 ? normalizedScope.crewId : undefined,
       fleetId: normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined,
+      recipientUserId: normalizedScope.friendUserId && normalizedScope.friendUserId > 0
+        ? normalizedScope.friendUserId
+        : undefined,
       keyVersion: this.resolveUploadKeyVersion(normalizedScope),
       nonce: encrypted.nonce,
       ciphertext: encrypted.ciphertext

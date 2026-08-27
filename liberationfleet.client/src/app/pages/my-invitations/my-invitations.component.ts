@@ -50,6 +50,8 @@ export class MyInvitationsComponent implements OnInit {
 
   ngOnInit() {
     this.notificationContent.markVisited('/app/crew/invitations');
+    // Fleet invitations on this page open crew proposals.
+    this.notificationContent.markVisited('/app/crew/proposals');
     this.loadInvitations();
   }
 

@@ -61,7 +61,7 @@ public class UpsertEncryptedContentCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenBothCrewAndFleetMissing_ReturnsFailure()
+    public async Task Handle_WhenPersonalMediaMissingRecipient_ReturnsFailure()
     {
         var handler = CreateHandler(userId: 1);
 
@@ -75,7 +75,7 @@ public class UpsertEncryptedContentCommandHandlerTests
             Ciphertext: "cipher"), CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.Message.Should().Be("Exactly one of crew or fleet scope is required.");
+        result.Message.Should().Be("Recipient is required for personal media.");
     }
 
     private static UpsertEncryptedContentCommandHandler CreateHandler(int? userId)
@@ -87,6 +87,7 @@ public class UpsertEncryptedContentCommandHandlerTests
             HandlerTestFixture.CreateCrewRepositoryMock().Object,
             HandlerTestFixture.CreateGiftRepositoryMock().Object,
             new Mock<ICryptoRepository>(MockBehavior.Loose).Object,
+            new Mock<IFriendshipRepository>(MockBehavior.Loose).Object,
             new Mock<IMediaDeepFreezeService>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateContentTenureService(),
             HandlerTestFixture.CreateUnitOfWorkMock().Object);

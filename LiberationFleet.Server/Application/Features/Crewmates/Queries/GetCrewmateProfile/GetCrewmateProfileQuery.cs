@@ -132,6 +132,7 @@ public class GetCrewmateProfileQueryHandler(
                     friendship,
                     viewerBlockedTarget,
                     targetBlockedViewer),
+                canSocialInteract: !viewerBlockedTarget && !targetBlockedViewer,
                 viewerId == request.UserId,
                 tenureDays,
                 canClaimIdentity,

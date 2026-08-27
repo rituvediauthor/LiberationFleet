@@ -82,6 +82,10 @@
   background: var(--lf-color-accent-soft-bg-alt);
 }
 
+.crewmate-avatar {
+  flex-shrink: 0;
+}
+
 .crewmate-name {
   flex: 1;
   font-size: 16px;

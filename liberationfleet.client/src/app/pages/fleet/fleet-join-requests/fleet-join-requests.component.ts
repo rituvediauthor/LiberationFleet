@@ -6,6 +6,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { FleetService } from '../../../services/fleet.service';
 import { ProposalService } from '../../../services/proposal.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { NotificationContentService } from '../../../services/notification-content.service';
 import { FleetJoinRequestListItem } from '../../../models/fleet.model';
 
 @Component({
@@ -26,12 +27,14 @@ export class FleetJoinRequestsComponent implements OnInit {
   private fleetService = inject(FleetService);
   private proposalService = inject(ProposalService);
   private toastService = inject(ToastService);
+  private notificationContent = inject(NotificationContentService);
 
   constructor() {
     this.backButton = this.navigation.createBackButton(['/app/fleet']);
   }
 
   ngOnInit() {
+    this.notificationContent.markVisited('/app/crew/proposals');
     this.loadRequests();
   }
 

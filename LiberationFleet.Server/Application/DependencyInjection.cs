@@ -57,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<ContentMentionService>();
         services.AddScoped<ContentTenureService>();
         services.AddScoped<CrewAvatarVisibilityService>();
+        services.AddScoped<FleetAvatarVisibilityService>();
 
         return services;
     }

@@ -263,6 +263,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   onReportSubmitted() {
     this.showReportDialog = false;
     this.reportTarget = null;
+    void this.router.navigate(['/app/friends']);
   }
 
   get reportMediaIds(): string[] {
@@ -287,17 +288,21 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.sending = true;
+    const plaintextBody = this.messageText.trim();
+    const attachmentsSnapshot = [...this.messageAttachments];
+    const keptSnapshot = [...this.keptEditAttachments];
+    const editingId = this.editingMessageId;
     try {
       const encrypted = await this.friendDmCrypto.encryptMessagePayload(
         this.friendUserId,
-        this.messageText.trim(),
+        plaintextBody,
         this.authorDisplayName,
-        this.messageAttachments,
-        this.keptEditAttachments
+        attachmentsSnapshot,
+        keptSnapshot
       );
 
-      const request$ = this.editingMessageId
-        ? this.friendService.updateMessage(this.friendUserId, this.editingMessageId, encrypted)
+      const request$ = editingId
+        ? this.friendService.updateMessage(this.friendUserId, editingId, encrypted)
         : this.friendService.sendMessage(this.friendUserId, encrypted);
 
       request$.subscribe({
@@ -307,6 +312,31 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
             this.toastService.error(response.message || 'Failed to send message');
             return;
           }
+
+          if (editingId != null) {
+            this.messages = this.messages.map(message =>
+              message.id === editingId
+                ? {
+                    ...message,
+                    body: plaintextBody,
+                    hasEncryptedContent: true,
+                    encryptedPayload: {
+                      keyVersion: encrypted.keyVersion,
+                      nonce: encrypted.nonce,
+                      ciphertext: encrypted.ciphertext
+                    }
+                  }
+                : message
+            );
+            void this.resolveLoadedMessageAttachments();
+          } else if (response.messageId) {
+            void this.appendLocalSentMessage(
+              response.messageId,
+              plaintextBody,
+              encrypted
+            );
+          }
+
           this.messageText = '';
           this.messageAttachments = [];
           this.keptEditAttachments = [];
@@ -322,6 +352,40 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
       this.sending = false;
       this.toastService.error('Failed to encrypt message');
     }
+  }
+
+  private async appendLocalSentMessage(
+    messageId: number,
+    body: string,
+    encrypted: { nonce: string; ciphertext: string; keyVersion: number }
+  ): Promise<void> {
+    if (this.messages.some(existing => existing.id === messageId)) {
+      return;
+    }
+
+    const local: DirectMessage = {
+      id: messageId,
+      authorUserId: this.currentUserId ?? 0,
+      authorUsername: this.authorDisplayName || 'You',
+      authorAvatarResourceId: null,
+      createdAt: new Date().toISOString(),
+      hasEncryptedContent: true,
+      encryptedPayload: {
+        keyVersion: encrypted.keyVersion,
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext
+      },
+      body
+    };
+
+    const decrypted = await this.decryptMessage(local);
+    if (this.messages.some(existing => existing.id === messageId)) {
+      return;
+    }
+
+    this.messages = [...this.messages, decrypted];
+    setTimeout(() => this.scrollToBottom(), 0);
+    void this.resolveLoadedMessageAttachments();
   }
 
   isOwnMessage(message: DirectMessage): boolean {

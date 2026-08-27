@@ -14,6 +14,8 @@ public class EncryptedContentEnvelope
     public int? CrewId { get; set; }
     public int? FleetId { get; set; }
     public int AuthorUserId { get; set; }
+    /// <summary>For personal (null crew/fleet) DM attachments — the intended friend recipient.</summary>
+    public int? RecipientUserId { get; set; }
     public int KeyVersion { get; set; } = 1;
     public string Nonce { get; set; } = string.Empty;
     /// <summary>Empty when <see cref="StorageTier"/> is DeepFreeze (bytes live in cold storage).</summary>

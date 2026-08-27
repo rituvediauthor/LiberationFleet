@@ -29,6 +29,22 @@ public class ChatHub(
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, CrewGroup(crewId));
     }
 
+    public async Task JoinFleet(int fleetId)
+    {
+        var userId = GetUserId();
+        if (!await fleetRepository.IsUserInFleetAsync(userId, fleetId, Context.ConnectionAborted))
+        {
+            throw new HubException("You are not a member of this fleet.");
+        }
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, FleetGroup(fleetId));
+    }
+
+    public async Task LeaveFleet(int fleetId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, FleetGroup(fleetId));
+    }
+
     public async Task JoinRoom(int roomId)
     {
         var userId = GetUserId();
@@ -65,6 +81,8 @@ public class ChatHub(
     }
 
     internal static string CrewGroup(int crewId) => $"crew:{crewId}";
+
+    internal static string FleetGroup(int fleetId) => $"fleet:{fleetId}";
 
     internal static string RoomGroup(int roomId) => $"room:{roomId}";
 

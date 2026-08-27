@@ -42,9 +42,9 @@ public class GetCrewmatesQueryHandler(
             membership.CrewId,
             cancellationToken);
         var friendships = await friendshipRepository.GetForUserAsync(viewerId, cancellationToken);
-        var friendshipByUserId = friendships.ToDictionary(
-            f => f.RequesterUserId == viewerId ? f.AddresseeUserId : f.RequesterUserId,
-            f => f);
+        var friendshipByUserId = friendships
+            .GroupBy(f => f.RequesterUserId == viewerId ? f.AddresseeUserId : f.RequesterUserId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(f => f.CreatedAt).First());
 
         var items = new List<CrewmateListItemDto>();
         foreach (var member in members.OrderBy(m => m.User.Username))

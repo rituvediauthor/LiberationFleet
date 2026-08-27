@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
 
@@ -20,8 +21,10 @@ public class JwtTokenService : ITokenService
         _audience = configuration["Jwt:Audience"] ?? "LiberationFleetClient";
     }
 
-    public string GenerateJwtToken(User user)
+    public string GenerateJwtToken(User user, int? registeredDeviceId = null)
     {
+        SecurityStampHelper.EnsureStamp(user);
+
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_secretKey);
 
@@ -30,7 +33,13 @@ public class JwtTokenService : ITokenService
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Name, user.Username),
+            new(SecurityStampHelper.SecurityStampClaimType, user.SecurityStamp),
         };
+
+        if (registeredDeviceId.HasValue && registeredDeviceId.Value > 0)
+        {
+            claims.Add(new Claim(SecurityStampHelper.DeviceIdClaimType, registeredDeviceId.Value.ToString()));
+        }
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {

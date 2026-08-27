@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Auth.Contracts;
+using LiberationFleet.Server.Application.Features.Security;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Auth.Commands.ResetPassword;
@@ -42,6 +43,7 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
 
         var user = resetToken.User;
         user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        SecurityStampHelper.Bump(user);
 
         resetToken.IsUsed = true;
         resetToken.UsedAt = DateTime.UtcNow;

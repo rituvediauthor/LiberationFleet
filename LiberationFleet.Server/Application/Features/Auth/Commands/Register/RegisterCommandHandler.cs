@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Auth.Contracts;
+using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 
@@ -44,6 +45,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, LoginResp
             Username = request.Username,
             Email = request.Email,
             PasswordHash = _passwordHasher.Hash(request.Password),
+            SecurityStamp = SecurityStampHelper.CreateNew(),
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };

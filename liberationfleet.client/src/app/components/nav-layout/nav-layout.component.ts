@@ -37,6 +37,8 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
 
   unreadCount = 0;
   friendsUnreadCount = 0;
+  crewUnreadCount = 0;
+  fleetUnreadCount = 0;
   crewId = 0;
   fleetId = 0;
   crewImageSrc: string | null = null;
@@ -64,6 +66,26 @@ export class NavLayoutComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.notificationService.areaCounts$.subscribe(counts => {
         this.friendsUnreadCount = counts.friends ?? 0;
+        this.crewUnreadCount =
+          (counts.crewChats ?? 0)
+          + (counts.crewForums ?? 0)
+          + (counts.crewProposals ?? 0)
+          + (counts.crewGiftLog ?? 0)
+          + (counts.crewEmergency ?? 0)
+          + (counts.crewRules ?? 0)
+          + (counts.crewSettings ?? 0)
+          + (counts.crewLibrary ?? 0)
+          + (counts.crewCrewmates ?? 0)
+          + (counts.userInvitations ?? 0);
+        this.fleetUnreadCount =
+          (counts.fleetChats ?? 0)
+          + (counts.fleetForums ?? 0)
+          + (counts.fleetProposals ?? 0)
+          + (counts.fleetGiftLog ?? 0)
+          + (counts.fleetRules ?? 0)
+          + (counts.fleetSettings ?? 0)
+          + (counts.fleetCrewmates ?? 0)
+          + (counts.fleet ?? 0);
       })
     );
     this.subscriptions.add(

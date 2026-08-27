@@ -49,8 +49,7 @@ public class DevMutualAidController : ControllerBase
     [Authorize]
     public Task<IActionResult> RecalculateCaps() => RunAsync(_devService.RecalculateCapsAsync);
 
-    private bool IsDevToolsEnabled() =>
-        _environment.IsDevelopment() || _environment.IsEnvironment("Docker");
+    private bool IsDevToolsEnabled() => _environment.IsDevelopment();
 
     private async Task<IActionResult> RunAsync(Func<int, CancellationToken, Task<DevActionResultDto>> action)
     {

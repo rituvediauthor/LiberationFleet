@@ -261,6 +261,22 @@ public class CreateChatRoomCommandHandler(
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
+        var savedRoom = await chatRepository.GetRoomByIdWithAuthorAsync(room.Id, cancellationToken);
+        EncryptedContentEnvelope? nameEnvelope = null;
+        if (hasEncryptedName)
+        {
+            nameEnvelope = await cryptoRepository.GetEnvelopeAsync(
+                EncryptedContentType.ChatRoomName,
+                room.Id.ToString(),
+                cancellationToken);
+        }
+
+        if (savedRoom is not null)
+        {
+            var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope);
+            await chatRealtimeNotifier.NotifyFleetRoomCreatedAsync(fleet.Id, dto, cancellationToken);
+        }
+
         return new ChatOperationResponse
         {
             Success = true,

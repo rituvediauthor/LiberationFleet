@@ -77,6 +77,7 @@ export interface CrewmateProfile {
   identityGroups?: string[];
   isSurvivalThresholdRecipient: boolean;
   friendshipState: CrewmateFriendshipState;
+  canSocialInteract?: boolean;
   isSelf: boolean;
   canAttachFiles: boolean;
   canCreateProposals: boolean;
@@ -164,11 +165,11 @@ export function formatLastActive(lastLoginAt: string | null, isSelf = false, isP
   }
 
   if (isSelf) {
-    return 'Active';
+    return 'You';
   }
 
   if (!lastLoginAt) {
-    return 'No recent activity';
+    return 'No recent login';
   }
 
   const then = new Date(lastLoginAt).getTime();
@@ -177,20 +178,20 @@ export function formatLastActive(lastLoginAt: string | null, isSelf = false, isP
   const diffMinutes = Math.floor(diffMs / 60000);
 
   if (diffMinutes < 5) {
-    return 'Active now';
+    return 'Last login just now';
   }
 
   if (diffMinutes < 60) {
-    return `Active ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    return `Last login ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 48) {
-    return `Active ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    return `Last login ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return `Active ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  return `Last login ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 }
 
 export function formatPlatformDisplay(platform: CrewmatePlatformDisplay | null): string {

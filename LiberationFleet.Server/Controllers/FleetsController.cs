@@ -25,6 +25,7 @@ using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetCurrentFleet;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetChatRooms;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetCrewDetail;
+using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetCrewmateProfile;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetCrews;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetDurableLibraryUnits;
 using LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetEmergencies;
@@ -46,6 +47,7 @@ using LiberationFleet.Server.Application.Features.Fleets.Queries.LookupCrewByJoi
 using LiberationFleet.Server.Application.Features.Fleets.Queries.SearchFleets;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Filters;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -55,6 +57,7 @@ namespace LiberationFleet.Server.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[ServiceFilter(typeof(FleetRuleAcceptanceFilter))]
 public class FleetsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -65,6 +68,7 @@ public class FleetsController : ControllerBase
     }
 
     [HttpGet("status")]
+    [SkipFleetRuleAcceptance]
     public async Task<IActionResult> GetStatus()
     {
         var result = await _mediator.Send(new GetFleetStatusQuery());
@@ -72,6 +76,7 @@ public class FleetsController : ControllerBase
     }
 
     [HttpPost("accept-rules")]
+    [SkipFleetRuleAcceptance]
     public async Task<IActionResult> AcceptRules([FromBody] AcceptFleetRulesBody body)
     {
         var result = await _mediator.Send(new AcceptFleetRulesCommand(body.AcceptedRuleIds));
@@ -188,6 +193,13 @@ public class FleetsController : ControllerBase
     public async Task<IActionResult> GetCrewDetail(int crewId)
     {
         var result = await _mediator.Send(new GetFleetCrewDetailQuery(crewId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("current/crewmates/{userId:int}")]
+    public async Task<IActionResult> GetCrewmateProfile(int userId)
+    {
+        var result = await _mediator.Send(new GetFleetCrewmateProfileQuery(userId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

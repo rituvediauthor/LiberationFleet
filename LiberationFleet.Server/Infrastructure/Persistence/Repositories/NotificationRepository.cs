@@ -184,6 +184,24 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
             cancellationToken);
     }
 
+    public async Task<int> MarkReadByKindAsync(
+        int userId,
+        NotificationKind kind,
+        int? actorUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = context.Notifications.Where(n => n.UserId == userId && !n.IsRead && n.Kind == kind);
+        if (actorUserId.HasValue)
+        {
+            var actorId = actorUserId.Value;
+            query = query.Where(n => n.ActorUserId == actorId);
+        }
+
+        return await query.ExecuteUpdateAsync(
+            setters => setters.SetProperty(n => n.IsRead, true),
+            cancellationToken);
+    }
+
     public async Task AddAsync(Notification notification, CancellationToken cancellationToken = default) =>
         await context.Notifications.AddAsync(notification, cancellationToken);
 

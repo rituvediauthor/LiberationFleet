@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+
 namespace LiberationFleet.Server.Application.Features.Fleets.Contracts;
 
 public class FleetDto
@@ -188,6 +190,27 @@ public class FleetCrewmateDto
 {
     public int UserId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
+}
+
+public class FleetCrewmateProfileDto
+{
+    public int UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
+    public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();
+    public int PriorityScore { get; set; }
+    public CrewmateFriendshipStateDto FriendshipState { get; set; }
+    public bool CanSocialInteract { get; set; } = true;
+    public bool IsSelf { get; set; }
+    public int? HomeCrewId { get; set; }
+}
+
+public class FleetCrewmateProfileResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public FleetCrewmateProfileDto? Profile { get; set; }
 }
 
 public class FleetCrewDetailResponse

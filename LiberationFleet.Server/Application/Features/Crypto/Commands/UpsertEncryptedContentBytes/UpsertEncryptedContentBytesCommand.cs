@@ -21,7 +21,8 @@ public record UpsertEncryptedContentBytesCommand(
     int? FleetId,
     int KeyVersion,
     string Nonce,
-    byte[] CiphertextBytes) : IRequest<CryptoOperationResponse>;
+    byte[] CiphertextBytes,
+    int? RecipientUserId = null) : IRequest<CryptoOperationResponse>;
 
 public class UpsertEncryptedContentBytesCommandHandler(
     ICurrentUserService currentUser,
@@ -30,6 +31,7 @@ public class UpsertEncryptedContentBytesCommandHandler(
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
+    IFriendshipRepository friendshipRepository,
     IMediaDeepFreezeService deepFreezeService,
     ContentTenureService contentTenureService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpsertEncryptedContentBytesCommand, CryptoOperationResponse>
@@ -87,6 +89,43 @@ public class UpsertEncryptedContentBytesCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
+        int? recipientUserId = null;
+
+        if (isPersonalMedia)
+        {
+            if (!request.RecipientUserId.HasValue || request.RecipientUserId.Value <= 0)
+            {
+                return new CryptoOperationResponse
+                {
+                    Success = false,
+                    Message = "Recipient is required for personal media."
+                };
+            }
+
+            if (request.RecipientUserId.Value == userId)
+            {
+                return new CryptoOperationResponse
+                {
+                    Success = false,
+                    Message = "Recipient cannot be yourself."
+                };
+            }
+
+            var friendship = await friendshipRepository.GetBetweenUsersAsync(
+                userId,
+                request.RecipientUserId.Value,
+                cancellationToken);
+            if (friendship is null || friendship.Status != FriendshipStatus.Accepted)
+            {
+                return new CryptoOperationResponse
+                {
+                    Success = false,
+                    Message = "You can only share personal media with accepted friends."
+                };
+            }
+
+            recipientUserId = request.RecipientUserId.Value;
+        }
 
         if (hasCrewScope)
         {
@@ -221,6 +260,7 @@ public class UpsertEncryptedContentBytesCommandHandler(
             CrewId = request.CrewId,
             FleetId = request.FleetId,
             AuthorUserId = userId,
+            RecipientUserId = recipientUserId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
             Ciphertext = string.Empty,

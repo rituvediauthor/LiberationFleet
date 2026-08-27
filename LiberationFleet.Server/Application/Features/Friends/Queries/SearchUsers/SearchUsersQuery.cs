@@ -38,9 +38,9 @@ public class SearchUsersQueryHandler(
         var users = await userRepository.SearchByUsernameAsync(query, MaxResults, cancellationToken);
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var friendships = await friendshipRepository.GetForUserAsync(userId, cancellationToken);
-        var friendshipByUserId = friendships.ToDictionary(
-            f => f.RequesterUserId == userId ? f.AddresseeUserId : f.RequesterUserId,
-            f => f);
+        var friendshipByUserId = friendships
+            .GroupBy(f => f.RequesterUserId == userId ? f.AddresseeUserId : f.RequesterUserId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(f => f.CreatedAt).First());
 
         var items = new List<UserSearchResultDto>();
         foreach (var user in users)

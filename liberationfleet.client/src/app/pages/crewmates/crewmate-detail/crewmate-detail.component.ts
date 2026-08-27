@@ -530,6 +530,13 @@ export class CrewmateDetailComponent implements OnInit {
       return;
     }
 
+    // Reverse-blocked: hide friend actions. Viewer-initiated block still uses the Block control.
+    if (this.profile.canSocialInteract === false && this.profile.friendshipState !== 'blocked') {
+      this.primaryButton = null;
+      this.secondaryButton = null;
+      return;
+    }
+
     const state = this.profile.friendshipState;
     const disabled = this.actionLoading;
 

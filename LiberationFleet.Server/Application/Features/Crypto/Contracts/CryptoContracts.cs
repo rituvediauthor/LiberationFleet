@@ -120,6 +120,7 @@ public class UpsertEncryptedContentRequest
     public string ResourceId { get; set; } = string.Empty;
     public int? CrewId { get; set; }
     public int? FleetId { get; set; }
+    public int? RecipientUserId { get; set; }
     public int KeyVersion { get; set; } = 1;
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;

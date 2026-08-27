@@ -66,6 +66,13 @@ public class SecurityController(IMediator mediator) : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpPost("devices/{deviceId:int}/unblock")]
+    public async Task<IActionResult> UnblockDevice(int deviceId)
+    {
+        var result = await mediator.Send(new UnblockDeviceCommand(deviceId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {

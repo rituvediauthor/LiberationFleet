@@ -1,4 +1,8 @@
-<app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [fillHeight]="true">
+<app-page-layout
+  [showFallibleFooter]="false"
+  [backButton]="backButton"
+  [fillHeight]="true"
+  [locationHeader]="statusPageLabel">
   <div class="proposals-list-page">
     <label class="filter-label" for="proposal-kind-filter">Filter</label>
     <select
@@ -50,8 +54,11 @@
               Auto-approval in {{ countdown }}
             </p>
           </div>
-          <div class="card-thumb" *ngIf="item.thumbnailUrl">
-            <img [src]="item.thumbnailUrl" alt="" />
+          <div class="card-thumb" *ngIf="item.thumbnailUrl || item.hasVideoAttachment">
+            <img *ngIf="item.thumbnailUrl" [src]="item.thumbnailUrl" alt="" />
+            <span class="card-thumb-play" *ngIf="item.hasVideoAttachment" aria-hidden="true">
+              <i class="fa-solid fa-play"></i>
+            </span>
           </div>
         </div>
       </button>

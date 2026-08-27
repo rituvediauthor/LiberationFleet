@@ -1,11 +1,14 @@
 using LiberationFleet.Server.Api.Exceptions;
 using LiberationFleet.Server.Application;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Hubs;
 using LiberationFleet.Server.Infrastructure;
 using LiberationFleet.Server.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -63,12 +66,61 @@ builder.Services.AddAuthentication("Bearer")
                 }
 
                 return Task.CompletedTask;
+            },
+            OnTokenValidated = async context =>
+            {
+                var principal = context.Principal;
+                if (principal is null)
+                {
+                    context.Fail("Missing principal.");
+                    return;
+                }
+
+                var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out var userId))
+                {
+                    context.Fail("Invalid user id.");
+                    return;
+                }
+
+                var stampClaim = principal.FindFirst(SecurityStampHelper.SecurityStampClaimType)?.Value;
+                var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                var user = await userRepository.GetByIdAsync(userId, context.HttpContext.RequestAborted);
+                if (user is null || !user.IsActive)
+                {
+                    context.Fail("User not found.");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(user.SecurityStamp)
+                    || string.IsNullOrWhiteSpace(stampClaim)
+                    || !string.Equals(user.SecurityStamp, stampClaim, StringComparison.Ordinal))
+                {
+                    context.Fail("Security stamp mismatch.");
+                    return;
+                }
+
+                var deviceClaim = principal.FindFirst(SecurityStampHelper.DeviceIdClaimType)?.Value;
+                if (int.TryParse(deviceClaim, out var registeredDeviceId) && registeredDeviceId > 0)
+                {
+                    var securityRepository = context.HttpContext.RequestServices
+                        .GetRequiredService<ISecurityRepository>();
+                    var device = await securityRepository.GetDeviceByIdAsync(
+                        userId,
+                        registeredDeviceId,
+                        context.HttpContext.RequestAborted);
+                    if (device is null || device.IsBlocked)
+                    {
+                        context.Fail("Device blocked.");
+                    }
+                }
             }
         };
     });
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<LiberationFleet.Server.Filters.LibraryAccessFilter>();
+builder.Services.AddScoped<LiberationFleet.Server.Filters.FleetRuleAcceptanceFilter>();
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 builder.Services.AddProblemDetails();
 

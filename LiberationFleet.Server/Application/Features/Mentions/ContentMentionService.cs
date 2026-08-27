@@ -25,6 +25,7 @@ public class ContentMentionService(
     IFleetRepository fleetRepository,
     IContentMentionRepository mentionRepository,
     IUserRepository userRepository,
+    IUserBlockRepository blockRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -62,7 +63,11 @@ public class ContentMentionService(
             validMemberIds = members.Select(m => m.UserId).ToHashSet();
         }
 
-        var validMentionIds = requestedIds.Where(validMemberIds.Contains).Distinct().ToList();
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(context.AuthorUserId, cancellationToken);
+        var validMentionIds = requestedIds
+            .Where(id => validMemberIds.Contains(id) && !hiddenUserIds.Contains(id))
+            .Distinct()
+            .ToList();
 
         IReadOnlyList<int> previousMentionIds = Array.Empty<int>();
         if (context.IsUpdate)

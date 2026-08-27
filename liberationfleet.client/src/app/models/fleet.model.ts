@@ -1,4 +1,5 @@
 import { CrewPrivacy, CrewScope } from './crew.model';
+import { CrewmateFriendshipState } from './crewmate.model';
 import {
   GiftLogEntry,
   GiftRecordItem,
@@ -221,7 +222,31 @@ export interface FleetCrewListResponse {
 export interface FleetCrewmateSummary {
   userId: number;
   username: string;
+  avatarResourceId?: string | null;
   isSelf?: boolean;
+}
+
+export interface FleetCrewmateProfile {
+  userId: number;
+  username: string;
+  avatarResourceId?: string | null;
+  paymentPlatforms: Array<{
+    platformId: number;
+    platformName: string;
+    handle: string;
+    isPreferred: boolean;
+  }>;
+  priorityScore: number;
+  friendshipState: CrewmateFriendshipState;
+  canSocialInteract: boolean;
+  isSelf: boolean;
+  homeCrewId?: number | null;
+}
+
+export interface FleetCrewmateProfileResponse {
+  success: boolean;
+  message: string;
+  profile?: FleetCrewmateProfile | null;
 }
 
 export interface FleetCrewDetail {

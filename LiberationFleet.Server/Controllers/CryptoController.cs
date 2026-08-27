@@ -128,7 +128,8 @@ public class CryptoController : ControllerBase
             body.FleetId,
             body.KeyVersion,
             body.Nonce,
-            body.Ciphertext));
+            body.Ciphertext,
+            body.RecipientUserId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -144,6 +145,7 @@ public class CryptoController : ControllerBase
         [FromQuery] string resourceId,
         [FromQuery] int? crewId,
         [FromQuery] int? fleetId,
+        [FromQuery] int? recipientUserId,
         [FromQuery] int keyVersion,
         [FromHeader(Name = "X-LF-Nonce")] string? nonce)
     {
@@ -167,7 +169,8 @@ public class CryptoController : ControllerBase
             fleetId,
             keyVersion,
             nonce,
-            ciphertextBytes));
+            ciphertextBytes,
+            recipientUserId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

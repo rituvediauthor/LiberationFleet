@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -12,7 +13,9 @@ public class GetFleetCrewDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
-    IFleetRepository fleetRepository) : IRequestHandler<GetFleetCrewDetailQuery, FleetCrewDetailResponse>
+    IFleetRepository fleetRepository,
+    IUserBlockRepository blockRepository,
+    FleetAvatarVisibilityService fleetAvatarVisibility) : IRequestHandler<GetFleetCrewDetailQuery, FleetCrewDetailResponse>
 {
     public async Task<FleetCrewDetailResponse> Handle(GetFleetCrewDetailQuery request, CancellationToken cancellationToken)
     {
@@ -35,9 +38,14 @@ public class GetFleetCrewDetailQueryHandler(
             };
         }
 
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+
         if (request.CrewId == 0)
         {
             var noCrewMembers = await fleetRepository.GetNoCrewMembershipsAsync(fleet.Id, cancellationToken);
+            var visibleNoCrew = noCrewMembers
+                .Where(m => !hiddenUserIds.Contains(m.UserId))
+                .ToList();
             return new FleetCrewDetailResponse
             {
                 Success = true,
@@ -46,16 +54,17 @@ public class GetFleetCrewDetailQueryHandler(
                 {
                     CrewId = 0,
                     CrewName = "No-Crew",
-                    MemberCount = noCrewMembers.Count,
+                    MemberCount = visibleNoCrew.Count,
                     MaxSize = null,
                     IsOwnCrew = membership is null,
                     IsNoCrew = true,
                     CanKick = false,
                     CanJoin = false,
-                    Crewmates = noCrewMembers.Select(m => new FleetCrewmateDto
+                    Crewmates = visibleNoCrew.Select(m => new FleetCrewmateDto
                     {
                         UserId = m.UserId,
-                        Username = m.User?.Username ?? $"User {m.UserId}"
+                        Username = m.User?.Username ?? $"User {m.UserId}",
+                        AvatarResourceId = null
                     }).ToList()
                 }
             };
@@ -73,6 +82,8 @@ public class GetFleetCrewDetailQueryHandler(
         }
 
         var members = await membershipRepository.GetActiveMembersByCrewIdAsync(request.CrewId, cancellationToken);
+        var visibleMembers = members.Where(m => !hiddenUserIds.Contains(m.UserId)).ToList();
+        var avatarAllowed = await fleetAvatarVisibility.GetAllowedUserIdsAsync(fleet, visibleMembers, cancellationToken);
         var isOwnCrew = membership?.CrewId == crew.Id;
         var viewerIsNoCrew = membership is null;
         var canJoin = viewerIsNoCrew && (
@@ -88,17 +99,23 @@ public class GetFleetCrewDetailQueryHandler(
             {
                 CrewId = crew.Id,
                 CrewName = crew.Name,
-                MemberCount = members.Count,
+                MemberCount = visibleMembers.Count,
                 MaxSize = crew.MaxSize,
                 IsOwnCrew = isOwnCrew,
                 IsNoCrew = false,
                 CanKick = !isOwnCrew && membership is not null,
                 CanJoin = canJoin,
-                Crewmates = members.Select(m => new FleetCrewmateDto
-                {
-                    UserId = m.UserId,
-                    Username = m.User?.Username ?? $"User {m.UserId}"
-                }).ToList()
+                Crewmates = visibleMembers
+                    .OrderBy(m => m.User?.Username ?? string.Empty)
+                    .Select(m => new FleetCrewmateDto
+                    {
+                        UserId = m.UserId,
+                        Username = m.User?.Username ?? $"User {m.UserId}",
+                        AvatarResourceId = FleetAvatarVisibilityService.Filter(
+                            m.User?.AvatarResourceId,
+                            m.UserId,
+                            avatarAllowed)
+                    }).ToList()
             }
         };
     }

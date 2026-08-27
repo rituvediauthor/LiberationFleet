@@ -7,6 +7,7 @@ namespace LiberationFleet.Server.Application.Features.Security.Commands.ManageDe
 
 public record TrustDeviceCommand(int DeviceId) : IRequest<SecurityOperationResponse>;
 public record BlockDeviceCommand(int DeviceId) : IRequest<SecurityOperationResponse>;
+public record UnblockDeviceCommand(int DeviceId) : IRequest<SecurityOperationResponse>;
 public record MarkSecurityAlertReadCommand(int AlertId) : IRequest<SecurityOperationResponse>;
 
 public class TrustDeviceCommandHandler(
@@ -56,6 +57,30 @@ public class BlockDeviceCommandHandler(
         device.IsTrusted = false;
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new SecurityOperationResponse { Success = true, Message = "Device blocked." };
+    }
+}
+
+public class UnblockDeviceCommandHandler(
+    ICurrentUserService currentUser,
+    ISecurityRepository securityRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<UnblockDeviceCommand, SecurityOperationResponse>
+{
+    public async Task<SecurityOperationResponse> Handle(UnblockDeviceCommand request, CancellationToken cancellationToken)
+    {
+        if (!currentUser.UserId.HasValue)
+        {
+            return new SecurityOperationResponse { Success = false, Message = "Unauthorized." };
+        }
+
+        var device = await securityRepository.GetDeviceByIdAsync(currentUser.UserId.Value, request.DeviceId, cancellationToken);
+        if (device is null)
+        {
+            return new SecurityOperationResponse { Success = false, Message = "Device not found." };
+        }
+
+        device.IsBlocked = false;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return new SecurityOperationResponse { Success = true, Message = "Device unblocked." };
     }
 }
 

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
+import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 import { FleetService } from '../../../services/fleet.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -15,7 +16,7 @@ type JoinStep = 'detail' | 'rules';
 @Component({
   selector: 'app-fleet-crew-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, KickReasonDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, KickReasonDialogComponent, UserAvatarComponent],
   templateUrl: './fleet-crew-detail.component.html',
   styleUrl: './fleet-crew-detail.component.css'
 })
@@ -25,6 +26,7 @@ export class FleetCrewDetailComponent implements OnInit {
   errorMessage = '';
   actionLoading = false;
   showKickDialog = false;
+  fleetId = 0;
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
 
@@ -55,6 +57,11 @@ export class FleetCrewDetailComponent implements OnInit {
       this.errorMessage = 'Invalid crew.';
       return;
     }
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        this.fleetId = status.fleetId ?? 0;
+      }
+    });
     this.loadCrew();
   }
 
@@ -76,7 +83,9 @@ export class FleetCrewDetailComponent implements OnInit {
   }
 
   openCrewmate(crewmate: FleetCrewmateSummary) {
-    this.router.navigate(['/app/fleet/crewmates', crewmate.userId]);
+    this.router.navigate(['/app/fleet/crewmates', crewmate.userId], {
+      queryParams: { crewId: this.crewId }
+    });
   }
 
   onKickCrew() {

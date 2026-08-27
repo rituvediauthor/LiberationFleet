@@ -25,6 +25,8 @@ public class User
     public int PercentBonus { get; set; }
     public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;
     public bool TwoFactorEnabled { get; set; }
+    /// <summary>Changed on password reset/change to invalidate existing JWTs.</summary>
+    public string SecurityStamp { get; set; } = string.Empty;
     public bool LockSettingsWithPassword { get; set; }
     public string? SettingsLockPasswordHash { get; set; }
     public int FailedLoginAttempts { get; set; }

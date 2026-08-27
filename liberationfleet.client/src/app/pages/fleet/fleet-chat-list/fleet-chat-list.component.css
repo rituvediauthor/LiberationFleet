@@ -15,22 +15,6 @@
   position: relative;
 }
 
-.kebab-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--lf-color-text-secondary);
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.kebab-btn:hover {
-  background: var(--lf-color-accent-soft-bg-alt);
-  color: var(--lf-color-accent);
-}
-
 .page-menu-panel {
   position: absolute;
   top: calc(100% + 6px);
@@ -58,13 +42,6 @@
 
 .page-menu-panel button:hover {
   background: var(--lf-color-accent-soft-bg-alt);
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 8px;
-  color: var(--lf-color-text-body);
 }
 
 .page-subtitle {
@@ -112,26 +89,48 @@
 
 .room-card {
   display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-muted);
+}
+
+.room-open {
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  padding: 16px;
+  border: none;
+  background: transparent;
   text-align: left;
-  border: 1px solid var(--lf-color-border);
-  border-radius: 12px;
-  background: var(--lf-color-bg-surface);
-  padding: 14px;
   cursor: pointer;
   color: inherit;
 }
 
-.room-card:hover {
-  background: var(--lf-color-bg-hover);
+.room-open:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.entry-badge-anchor {
+  position: absolute;
+  top: 12px;
+  right: 36px;
+  width: 0;
+  height: 0;
+}
+
+.room-main {
+  min-width: 0;
 }
 
 .room-main h2 {
-  margin: 0 0 4px;
-  font-size: 16px;
+  margin: 0 0 6px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--lf-color-text-body);
 }
@@ -140,12 +139,15 @@
   margin: 0 0 6px;
   font-size: 13px;
   color: var(--lf-color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .room-meta {
   margin: 0;
-  font-size: 12px;
-  color: var(--lf-color-text-muted);
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -154,11 +156,93 @@
 
 .room-type {
   font-weight: 600;
+  color: var(--lf-color-accent);
+}
+
+.muted-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lf-color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+}
+
+.adult-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lf-color-danger-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .room-chevron {
-  color: var(--lf-color-text-muted);
+  color: var(--lf-color-text-subtle);
+  flex-shrink: 0;
+}
+
+.room-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+}
+
+.kebab-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  cursor: pointer;
+}
+
+.kebab-btn:hover {
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-accent);
+}
+
+.room-menu {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 120px;
+  padding: 6px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.room-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
   font-size: 14px;
+  cursor: pointer;
+}
+
+.room-menu button:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.hidden-toggle-btn {
+  display: block;
+  margin: 16px 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--lf-color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hidden-list {
+  opacity: 0.85;
 }

@@ -6,7 +6,7 @@ using LiberationFleet.Server.Domain.Enums;
 namespace LiberationFleet.Server.Application.Features.Crypto;
 
 /// <summary>
-/// Personal (null crew/fleet) media used for friend DMs — authorized for the author or an accepted friend.
+/// Personal (null crew/fleet) media used for friend DMs — author or intended recipient only.
 /// </summary>
 public static class PersonalEncryptedMediaAccess
 {
@@ -41,6 +41,12 @@ public static class PersonalEncryptedMediaAccess
         if (envelope.AuthorUserId == viewerUserId)
         {
             return true;
+        }
+
+        // Legacy personal media without a recipient is author-only.
+        if (!envelope.RecipientUserId.HasValue || envelope.RecipientUserId.Value != viewerUserId)
+        {
+            return false;
         }
 
         if (await blockRepository.IsBlockedAsync(viewerUserId, envelope.AuthorUserId, cancellationToken)

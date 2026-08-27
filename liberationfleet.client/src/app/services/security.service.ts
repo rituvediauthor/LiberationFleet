@@ -53,6 +53,10 @@ export class SecurityService {
     return this.http.post<SecurityOperationResponse>(`${this.apiUrl}/devices/${deviceId}/block`, {});
   }
 
+  unblockDevice(deviceId: number): Observable<SecurityOperationResponse> {
+    return this.http.post<SecurityOperationResponse>(`${this.apiUrl}/devices/${deviceId}/unblock`, {});
+  }
+
   changePassword(request: ChangePasswordRequest): Observable<SecurityOperationResponse> {
     return this.http.post<SecurityOperationResponse>(`${this.apiUrl}/change-password`, request);
   }

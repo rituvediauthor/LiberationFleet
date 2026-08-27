@@ -11,7 +11,8 @@ public record GetFriendRequestsQuery : IRequest<FriendRequestListResponse>;
 public class GetFriendRequestsQueryHandler(
     ICurrentUserService currentUser,
     IFriendshipRepository friendshipRepository,
-    IUserRepository userRepository) : IRequestHandler<GetFriendRequestsQuery, FriendRequestListResponse>
+    IUserRepository userRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetFriendRequestsQuery, FriendRequestListResponse>
 {
     public async Task<FriendRequestListResponse> Handle(GetFriendRequestsQuery request, CancellationToken cancellationToken)
     {
@@ -21,6 +22,7 @@ public class GetFriendRequestsQueryHandler(
         }
 
         var userId = currentUser.UserId.Value;
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var friendships = await friendshipRepository.GetForUserAsync(userId, cancellationToken);
         var pending = friendships
             .Where(f => f.Status == FriendshipStatus.Pending)
@@ -33,6 +35,11 @@ public class GetFriendRequestsQueryHandler(
             var otherUserId = friendship.RequesterUserId == userId
                 ? friendship.AddresseeUserId
                 : friendship.RequesterUserId;
+
+            if (hiddenUserIds.Contains(otherUserId))
+            {
+                continue;
+            }
 
             var otherUser = await userRepository.GetByIdWithProfileAsync(otherUserId, cancellationToken);
             if (otherUser is null)

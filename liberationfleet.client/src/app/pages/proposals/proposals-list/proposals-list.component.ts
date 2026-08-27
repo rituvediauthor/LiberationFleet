@@ -148,6 +148,16 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
     return this.status;
   }
 
+  get statusPageLabel(): string {
+    if (this.status === 'Approved') {
+      return 'Proposals Approved';
+    }
+    if (this.status === 'Rejected') {
+      return 'Proposals Rejected';
+    }
+    return 'Proposals Pending';
+  }
+
   get kindOptions(): { value: string; label: string }[] {
     return this.isFleetScope ? FLEET_KIND_OPTIONS : CREW_KIND_OPTIONS;
   }

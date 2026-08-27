@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Login;
 using LiberationFleet.Server.Application.Features.Auth.Contracts;
+using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Application.Features.Security.Commands.RecordLoginAttempt;
 using MediatR;
 
@@ -96,8 +97,16 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
             request.DeviceName,
             request.UserAgent), cancellationToken);
 
-        // Monthly threshold / catch-up maintenance is deferred to next-aid and
-        // gift reception paths so login is not blocked on N+1 contribution work.
+        int? registeredDevicePk = null;
+        if (!string.IsNullOrWhiteSpace(request.DeviceId))
+        {
+            var device = await _securityRepository.GetDeviceByDeviceIdAsync(user.Id, request.DeviceId.Trim(), cancellationToken);
+            registeredDevicePk = device?.Id;
+        }
+
+        SecurityStampHelper.EnsureStamp(user);
+        await _userRepository.UpdateAsync(user, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("User logged in: {Email}", user.Email);
 
@@ -105,7 +114,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
         {
             Success = true,
             Message = "Login successful",
-            Token = _tokenService.GenerateJwtToken(user),
+            Token = _tokenService.GenerateJwtToken(user, registeredDevicePk),
             User = new UserDto
             {
                 Id = user.Id,
