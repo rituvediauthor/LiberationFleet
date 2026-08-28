@@ -15,6 +15,10 @@ public class FleetDto
     public double? DistanceMiles { get; set; }
     public bool RequireApprovalForEdits { get; set; } = true;
     public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
+    public bool AutoResolveOverTime { get; set; } = true;
+    public int BaseAutoResolveHours { get; set; } = 24;
+    public bool ChangeAutoResolveTimerOnFirstReject { get; set; } = true;
+    public int AutoResolveHoursAfterFirstReject { get; set; } = 168;
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }
@@ -33,6 +37,10 @@ public class UpdateFleetRequest
     public int? RadiusMiles { get; set; }
     public bool RequireApprovalForEdits { get; set; } = true;
     public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
+    public bool AutoResolveOverTime { get; set; } = true;
+    public int BaseAutoResolveHours { get; set; } = 24;
+    public bool ChangeAutoResolveTimerOnFirstReject { get; set; } = true;
+    public int AutoResolveHoursAfterFirstReject { get; set; } = 168;
     public bool LibraryOfThingsEnabled { get; set; } = true;
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }

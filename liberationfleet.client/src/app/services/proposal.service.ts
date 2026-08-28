@@ -155,7 +155,7 @@ export class ProposalService {
     }
     const diffMs = endAt.getTime() - Date.now();
     if (diffMs <= 0) {
-      return 'Awaiting auto-approval';
+      return 'Awaiting auto-resolution';
     }
     const totalMinutes = Math.floor(diffMs / 60000);
     const days = Math.floor(totalMinutes / (60 * 24));

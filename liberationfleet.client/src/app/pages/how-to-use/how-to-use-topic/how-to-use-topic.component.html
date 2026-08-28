@@ -1,0 +1,13 @@
+<app-page-layout [backButton]="backButton">
+  <article class="how-to-topic" *ngIf="topic as t">
+    <h1 class="topic-title">{{ t.title }}</h1>
+
+    <ng-container *ngFor="let block of t.blocks">
+      <p class="topic-paragraph" *ngIf="block.type === 'paragraph'">{{ block.text }}</p>
+      <h2 class="topic-heading" *ngIf="block.type === 'heading'">{{ block.text }}</h2>
+      <ul class="topic-list" *ngIf="block.type === 'list'">
+        <li *ngFor="let item of block.items">{{ item }}</li>
+      </ul>
+    </ng-container>
+  </article>
+</app-page-layout>

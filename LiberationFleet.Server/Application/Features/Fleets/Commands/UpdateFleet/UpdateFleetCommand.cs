@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Enums;
@@ -17,6 +18,10 @@ public record UpdateFleetCommand(
     int? RadiusMiles,
     bool RequireApprovalForEdits,
     string DuoVoteTimeoutMode,
+    bool AutoResolveOverTime,
+    int BaseAutoResolveHours,
+    bool ChangeAutoResolveTimerOnFirstReject,
+    int AutoResolveHoursAfterFirstReject,
     bool LibraryOfThingsEnabled,
     bool AllowCrewmateFileAttachments,
     int MinimumCrewmateTenureDaysForAttachments,
@@ -87,6 +92,14 @@ public class UpdateFleetCommandHandler(
         if (imageResourceId.Length > 64)
         {
             return new FleetOperationResponse { Success = false, Message = "Fleet image resource id is too long." };
+        }
+
+        var autoResolveError = CrewUpdateValidator.ValidateAutoResolveHours(
+            request.BaseAutoResolveHours,
+            request.AutoResolveHoursAfterFirstReject);
+        if (autoResolveError is not null)
+        {
+            return new FleetOperationResponse { Success = false, Message = autoResolveError };
         }
 
         var changes = FleetSettingsChangeDetector.DetectChanges(fleet, request, privacy, scope);

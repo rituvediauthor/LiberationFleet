@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
@@ -86,7 +87,7 @@ public class GetGiftDetailQueryHandler(
             likedByCurrentUser: likedGiftIds.Contains(gift.Id),
             commentCount: commentCount,
             isSeasonLocked: isSeasonLocked,
-            isAccountant: membership.IsAccountant);
+            isAccountant: CrewRoleAuthorizationService.CanBypassSeasonGiftLock(membership));
 
         var giftEnvelope = await cryptoRepository.GetEnvelopeAsync(
             EncryptedContentType.GiftLogEntry,

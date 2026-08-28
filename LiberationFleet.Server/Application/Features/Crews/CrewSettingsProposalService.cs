@@ -36,7 +36,10 @@ public class CrewSettingsProposalService(
                 LastActivityAt = utcNow
             };
 
-            ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+            ProposalVotingService.ApplyTimerRulesOnCreate(
+                proposal,
+                utcNow,
+                ProposalAutoResolveSettings.From(crew));
             await proposalRepository.AddProposalAsync(proposal, cancellationToken);
             var description = CrewSettingsChangeDescriber.BuildDescription(change);
             await proposalRepository.AddCrewSettingChangeAsync(new ProposalCrewSettingChange
@@ -137,6 +140,10 @@ public class CrewSettingsProposalService(
             && Enum.IsDefined(duo)
             ? duo
             : DuoVoteTimeoutMode.AutoReject;
+        crew.AutoResolveOverTime = request.AutoResolveOverTime;
+        crew.BaseAutoResolveHours = request.BaseAutoResolveHours;
+        crew.ChangeAutoResolveTimerOnFirstReject = request.ChangeAutoResolveTimerOnFirstReject;
+        crew.AutoResolveHoursAfterFirstReject = request.AutoResolveHoursAfterFirstReject;
         crew.InNeedDefaultThreshold = request.InNeedDefaultThreshold;
         crew.FinancialMembershipContributionFloor = request.FinancialMembershipContributionFloor;
         crew.LibraryOfThingsEnabled = request.LibraryOfThingsEnabled;
@@ -197,6 +204,18 @@ public class CrewSettingsProposalService(
                 break;
             case CrewSettingField.DuoVoteTimeoutMode:
                 crew.DuoVoteTimeoutMode = Enum.Parse<DuoVoteTimeoutMode>(change.NewValue);
+                break;
+            case CrewSettingField.AutoResolveOverTime:
+                crew.AutoResolveOverTime = bool.Parse(change.NewValue);
+                break;
+            case CrewSettingField.BaseAutoResolveHours:
+                crew.BaseAutoResolveHours = int.Parse(change.NewValue);
+                break;
+            case CrewSettingField.ChangeAutoResolveTimerOnFirstReject:
+                crew.ChangeAutoResolveTimerOnFirstReject = bool.Parse(change.NewValue);
+                break;
+            case CrewSettingField.AutoResolveHoursAfterFirstReject:
+                crew.AutoResolveHoursAfterFirstReject = int.Parse(change.NewValue);
                 break;
             case CrewSettingField.InNeedDefaultThreshold:
                 crew.InNeedDefaultThreshold = decimal.Parse(change.NewValue);

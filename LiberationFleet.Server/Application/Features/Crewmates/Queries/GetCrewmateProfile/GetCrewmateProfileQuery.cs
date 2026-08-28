@@ -70,8 +70,7 @@ public class GetCrewmateProfileQueryHandler(
         var priorityScore = await mutualAidService.GetPriorityScoreForUserAsync(
             request.UserId,
             viewerMembership.CrewId,
-            cancellationToken,
-            excludeActiveSeasonContributions: targetMembership.IsInSeason);
+            cancellationToken);
 
         var unsatisfiedThresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(
             viewerMembership.CrewId,

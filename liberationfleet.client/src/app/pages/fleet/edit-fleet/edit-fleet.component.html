@@ -121,13 +121,63 @@
         </div>
 
         <div class="form-group">
-          <label for="duoVoteTimeoutMode">1:1 vote timeout</label>
+          <label for="duoVoteTimeoutMode">Tied vote timeout</label>
           <select id="duoVoteTimeoutMode" formControlName="duoVoteTimeoutMode" class="form-input">
             <option value="AutoApprove">Auto approve</option>
             <option value="AutoReject">Auto reject</option>
             <option value="ResolveOnFirstVote">Resolve on first vote</option>
           </select>
-          <span class="hint-text">When exactly two eligible voters are involved: what happens if the approval timer ends without a decisive outcome, or how 1:1 votes resolve.</span>
+          <span class="hint-text">Proposals can settle early once approve or reject reaches a majority of eligible voters (half, rounded up). When the timer expires instead, whichever side has more votes wins; equal approve/reject counts (including 0–0) auto-approve or auto-reject per this setting. With exactly two eligible voters, “Resolve on first vote” also settles immediately on one reject or a second approve (the author’s automatic approve alone does not settle).</span>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="autoResolveOverTime">
+            Auto-resolve over time
+          </label>
+          <span class="hint-text">When enabled, pending fleet proposals resolve automatically when the approval timer expires. The side with more votes wins; equal counts use tied vote timeout above.</span>
+        </div>
+
+        <div class="form-group" *ngIf="autoResolveOverTime">
+          <label for="baseAutoResolveHours">Base auto-resolve (hours)</label>
+          <input
+            id="baseAutoResolveHours"
+            type="number"
+            formControlName="baseAutoResolveHours"
+            class="form-input"
+            min="1"
+            max="8760"
+            step="1"
+            [attr.aria-invalid]="isInvalid('baseAutoResolveHours')">
+          <span class="hint-text">Initial approval window before a pending proposal auto-resolves. If a reject vote is cast and “Change auto-resolve timer on first reject” is on, the timer switches to the post-reject duration instead.</span>
+          <span id="baseAutoResolveHours-error" class="error-text" role="alert" *ngIf="isInvalid('baseAutoResolveHours')">
+            Must be between 1 and 8760 hours
+          </span>
+        </div>
+
+        <div class="form-group checkbox-group" *ngIf="autoResolveOverTime">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="changeAutoResolveTimerOnFirstReject">
+            Change auto-resolve timer on first reject
+          </label>
+          <span class="hint-text">After the first reject vote, replace the remaining base timer with the post-reject duration below.</span>
+        </div>
+
+        <div class="form-group" *ngIf="autoResolveOverTime && changeAutoResolveTimerOnFirstReject">
+          <label for="autoResolveHoursAfterFirstReject">Auto-resolve after first reject (hours)</label>
+          <input
+            id="autoResolveHoursAfterFirstReject"
+            type="number"
+            formControlName="autoResolveHoursAfterFirstReject"
+            class="form-input"
+            min="1"
+            max="8760"
+            step="1"
+            [attr.aria-invalid]="isInvalid('autoResolveHoursAfterFirstReject')">
+          <span class="hint-text">When the first reject vote is cast, the approval timer resets to this duration.</span>
+          <span id="autoResolveHoursAfterFirstReject-error" class="error-text" role="alert" *ngIf="isInvalid('autoResolveHoursAfterFirstReject')">
+            Must be between 1 and 8760 hours
+          </span>
         </div>
 
         <section class="settings-section">

@@ -85,16 +85,19 @@
             [attr.aria-label]="message.likedByCurrentUser ? 'Unlike message' : 'Like message'"
             (click)="toggleMessageLike(message, $event)">
             <i
-              class="fa-heart"
+              class="fa-heart like-heart"
               [class.fa-solid]="!!message.likedByCurrentUser"
               [class.fa-regular]="!message.likedByCurrentUser"
               aria-hidden="true"></i>
-            <span *ngIf="(message.likeCount ?? 0) > 0">{{ message.likeCount }}</span>
+            <span
+              class="like-count"
+              [class.is-empty]="!(message.likeCount)">{{ message.likeCount || 0 }}</span>
           </button>
           <button
-            *ngIf="(message.likeCount ?? 0) > 0"
             type="button"
             class="view-likes-link"
+            [class.is-empty]="!(message.likeCount)"
+            [disabled]="!(message.likeCount)"
             (click)="openMessageLikers(message, $event)">
             View
           </button>
@@ -258,9 +261,9 @@
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>
 
-<div class="dialog-backdrop" *ngIf="showAnonymousReminderDialog" (click)="onAnonymousReminderBackdrop($event)">
+<div class="chat-anonymous-reminder-backdrop" *ngIf="showAnonymousReminderDialog" (click)="onAnonymousReminderBackdrop($event)">
   <div
-    class="dialog-card"
+    class="chat-anonymous-reminder-card"
     role="dialog"
     aria-modal="true"
     aria-labelledby="anonymous-reminder-title"

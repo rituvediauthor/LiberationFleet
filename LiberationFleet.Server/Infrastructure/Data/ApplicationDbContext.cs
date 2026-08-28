@@ -221,6 +221,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.DuoVoteTimeoutMode)
                 .HasDefaultValue(DuoVoteTimeoutMode.AutoReject)
                 .HasSentinel((DuoVoteTimeoutMode)(-1));
+            entity.Property(e => e.AutoResolveOverTime).HasDefaultValue(true);
+            entity.Property(e => e.BaseAutoResolveHours).HasDefaultValue(24);
+            entity.Property(e => e.ChangeAutoResolveTimerOnFirstReject).HasDefaultValue(true);
+            entity.Property(e => e.AutoResolveHoursAfterFirstReject).HasDefaultValue(168);
             entity.Property(e => e.InNeedDefaultThreshold).HasPrecision(18, 2).HasDefaultValue(20m);
             entity.Property(e => e.FinancialMembershipContributionFloor).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
@@ -254,6 +258,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.DuoVoteTimeoutMode)
                 .HasDefaultValue(DuoVoteTimeoutMode.AutoReject)
                 .HasSentinel((DuoVoteTimeoutMode)(-1));
+            entity.Property(e => e.AutoResolveOverTime).HasDefaultValue(true);
+            entity.Property(e => e.BaseAutoResolveHours).HasDefaultValue(24);
+            entity.Property(e => e.ChangeAutoResolveTimerOnFirstReject).HasDefaultValue(true);
+            entity.Property(e => e.AutoResolveHoursAfterFirstReject).HasDefaultValue(168);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
             entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
             entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);

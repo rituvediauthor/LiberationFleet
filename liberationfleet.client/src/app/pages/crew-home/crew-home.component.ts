@@ -278,6 +278,10 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.libraryAccess.navigateToLibrary(this.router);
   }
 
+  goToHowToUse() {
+    this.router.navigate(['/app/how-to']);
+  }
+
   private maybeShowCycleThankYou(status: CrewMembershipStatus) {
     const giftId = status.pendingCycleThankYouGiftId ?? null;
     if (!giftId || this.isCycleThankYouDismissed(giftId)) {

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
@@ -206,7 +207,7 @@ public class GetCrewGiftLogQueryHandler(
                     likedByCurrentUser: likedGiftIds.Contains(gift.Id),
                     commentCount: commentCount,
                     isSeasonLocked: isSeasonLocked,
-                    isAccountant: membership.IsAccountant);
+                    isAccountant: CrewRoleAuthorizationService.CanBypassSeasonGiftLock(membership));
                 if (envelopeByGiftId.TryGetValue(gift.Id.ToString(), out var envelope))
                 {
                     entry.HasEncryptedContent = true;

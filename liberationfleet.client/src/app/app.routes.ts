@@ -104,6 +104,8 @@ import { FleetLibraryDetailComponent } from './pages/fleet/fleet-library/fleet-l
 import { FleetForumListComponent } from './pages/fleet/fleet-forums/fleet-forum-list/fleet-forum-list.component';
 import { FleetForumCreateComponent } from './pages/fleet/fleet-forums/fleet-forum-create/fleet-forum-create.component';
 import { FleetForumDetailComponent } from './pages/fleet/fleet-forums/fleet-forum-detail/fleet-forum-detail.component';
+import { HowToUseHubComponent } from './pages/how-to-use/how-to-use-hub/how-to-use-hub.component';
+import { HowToUseTopicComponent } from './pages/how-to-use/how-to-use-topic/how-to-use-topic.component';
 
 export const routes: Routes = [
   {
@@ -137,6 +139,21 @@ export const routes: Routes = [
     pathMatch: 'full',
     canActivate: [authGuard],
     title: 'Crew'
+  },
+  {
+    path: 'app/how-to',
+    component: HowToUseHubComponent,
+    pathMatch: 'full',
+    canActivate: [authGuard],
+    title: 'How to use this app',
+    data: { parentTab: 'crew', locationHeader: 'How to use this app' }
+  },
+  {
+    path: 'app/how-to/:topicId',
+    component: HowToUseTopicComponent,
+    canActivate: [authGuard],
+    title: 'How to use this app',
+    data: { parentTab: 'crew', locationHeader: 'How to use this app' }
   },
   {
     path: 'app/fleet',

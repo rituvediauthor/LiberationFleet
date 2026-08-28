@@ -208,36 +208,51 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
-    public void CalculatePriorityScore_WhenLotCommerceModifiers_ReturnsNegativeOneForOrganizer()
-    {
-        var user = HandlerTestFixture.CreateUser();
-        var membership = new CrewMembership { IsOrganizer = true, User = user };
-
-        MutualAidCalculationService.CalculatePriorityScore(
-            user,
-            membership,
-            isFinancialMember: true,
-            crewLifetimeContributions: 1000m,
-            userLifetimeContributions: 500m,
-            survivalThresholdAmount: 75m,
-            applyLotCommerceModifiers: true).Should().Be(-1m);
-    }
-
-    [Fact]
-    public void CalculatePriorityScore_WhenLotCommerceModifiers_ReturnsNegativeTwoWhenNotInNeedOfAid()
+    public void CalculatePriorityScore_WhenOrganizerOnly_UsesSameFormulaAsProfile()
     {
         var user = HandlerTestFixture.CreateUser();
         user.InNeedOfAid = false;
-        var membership = new CrewMembership { User = user };
+        user.EmergencyLevel = 1;
+        var membership = new CrewMembership { IsOrganizer = true, User = user };
 
-        MutualAidCalculationService.CalculatePriorityScore(
+        var score = MutualAidCalculationService.CalculatePriorityScore(
             user,
             membership,
             isFinancialMember: true,
             crewLifetimeContributions: 1000m,
             userLifetimeContributions: 500m,
-            survivalThresholdAmount: 75m,
-            applyLotCommerceModifiers: true).Should().Be(-2m);
+            survivalThresholdAmount: 75m);
+
+        var baseScore = (1000m * 1m) + 1m + 500m + 75m;
+        score.Should().Be(baseScore * 2m);
+    }
+
+    [Fact]
+    public void CalculatePriorityScore_WhenNotInNeedOfAid_UsesSameFormulaAsInNeed()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        user.InNeedOfAid = false;
+        user.EmergencyLevel = 1;
+        var membership = new CrewMembership { User = user };
+
+        var notInNeed = MutualAidCalculationService.CalculatePriorityScore(
+            user,
+            membership,
+            isFinancialMember: true,
+            crewLifetimeContributions: 1000m,
+            userLifetimeContributions: 500m,
+            survivalThresholdAmount: 75m);
+
+        user.InNeedOfAid = true;
+        var inNeed = MutualAidCalculationService.CalculatePriorityScore(
+            user,
+            membership,
+            isFinancialMember: true,
+            crewLifetimeContributions: 1000m,
+            userLifetimeContributions: 500m,
+            survivalThresholdAmount: 75m);
+
+        notInNeed.Should().Be(inNeed);
     }
 
     [Fact]

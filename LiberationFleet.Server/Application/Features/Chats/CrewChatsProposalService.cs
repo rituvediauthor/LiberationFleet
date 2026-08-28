@@ -45,7 +45,8 @@ public class CrewChatsProposalService(
             LastActivityAt = utcNow
         };
 
-        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        await ProposalVotingService.ApplyTimerRulesOnCreateAsync(
+            proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
         await proposalRepository.AddCrewChatChangeAsync(new ProposalCrewChatChange
         {
@@ -120,7 +121,8 @@ public class CrewChatsProposalService(
             LastActivityAt = utcNow
         };
 
-        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        await ProposalVotingService.ApplyTimerRulesOnCreateAsync(
+            proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
         await proposalRepository.AddCrewChatChangeAsync(new ProposalCrewChatChange
         {

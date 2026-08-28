@@ -40,7 +40,7 @@ public class DemoteCrewRolesCommandHandler(
             return new CrewRoleChangeResponse { Success = false, Message = "Select at least one role." };
         }
 
-        // Self-demotion applies immediately — no proposal/approval required.
+        // Any crewmate can relinquish their own elected roles immediately — no proposal required.
         if (viewerId == request.TargetUserId)
         {
             roles = roles.Where(role => CrewRoleMapper.HasRole(viewerMembership, role)).ToList();

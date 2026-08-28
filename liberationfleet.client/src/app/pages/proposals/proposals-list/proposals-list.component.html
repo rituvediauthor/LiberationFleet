@@ -51,7 +51,7 @@
               <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
             </p>
             <p class="timer" *ngIf="countdownText(item) as countdown">
-              Auto-approval in {{ countdown }}
+              Auto-resolves in {{ countdown }}
             </p>
           </div>
           <div class="card-thumb" *ngIf="item.thumbnailUrl || item.hasVideoAttachment">

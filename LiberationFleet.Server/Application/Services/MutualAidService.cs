@@ -948,8 +948,7 @@ public partial class MutualAidService(
                     memberStatus.GetValueOrDefault(participant.UserId),
                     crewLifetime,
                     lifetimes.GetValueOrDefault(participant.UserId),
-                    capacityContext.SurvivalThresholdAmount,
-                    applyLotCommerceModifiers: false);
+                    capacityContext.SurvivalThresholdAmount);
             }
         }
 
@@ -1363,7 +1362,7 @@ public partial class MutualAidService(
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false,
-        bool applyLotCommerceModifiers = false)
+        bool assumeInNeedNonOrganizerForLot = false)
     {
         var membership = await mutualAidRepository.GetMembershipWithUserAsync(userId, crewId, cancellationToken);
         if (membership is null)
@@ -1401,11 +1400,11 @@ public partial class MutualAidService(
                 crewId,
                 membership,
                 cancellationToken,
-                excludeActiveSeasonContributions),
+                excludeActiveSeasonContributions,
+                ignoreOrganizerRole: assumeInNeedNonOrganizerForLot),
             crewLifetime,
             userLifetime,
-            capacityContext.SurvivalThresholdAmount,
-            applyLotCommerceModifiers);
+            capacityContext.SurvivalThresholdAmount);
     }
 
     public async Task<bool> IsFinancialMemberAsync(
@@ -1413,9 +1412,17 @@ public partial class MutualAidService(
         int crewId,
         CrewMembership membership,
         CancellationToken cancellationToken = default,
-        bool excludeActiveSeasonContributions = false)
+        bool excludeActiveSeasonContributions = false,
+        bool ignoreOrganizerRole = false)
     {
-        if (CrewRoleMapper.HasAnyRole(membership))
+        if (ignoreOrganizerRole)
+        {
+            if (CrewRoleMapper.HasAnyRoleExceptOrganizer(membership))
+            {
+                return true;
+            }
+        }
+        else if (CrewRoleMapper.HasAnyRole(membership))
         {
             return true;
         }

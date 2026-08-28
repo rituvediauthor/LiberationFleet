@@ -130,24 +130,8 @@ public static class MutualAidCalculationService
         bool isFinancialMember,
         decimal crewLifetimeContributions,
         decimal userLifetimeContributions,
-        decimal survivalThresholdAmount,
-        bool applyLotCommerceModifiers = false)
+        decimal survivalThresholdAmount)
     {
-        // Organizer / not-in-need demotions apply to Library of Things request
-        // ranking only — not to profile display or giving/receiving seasons.
-        if (applyLotCommerceModifiers)
-        {
-            if (membership.IsOrganizer)
-            {
-                return -1m;
-            }
-
-            if (!user.InNeedOfAid)
-            {
-                return -2m;
-            }
-        }
-
         var membershipBonus = isFinancialMember ? 1m : 0m;
 
         var baseScore = (crewLifetimeContributions * user.EmergencyLevel)

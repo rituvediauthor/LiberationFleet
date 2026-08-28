@@ -87,7 +87,10 @@ public class CrewJoinRequestProposalService(
             LastActivityAt = utcNow
         };
 
-        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        ProposalVotingService.ApplyTimerRulesOnCreate(
+            proposal,
+            utcNow,
+            ProposalAutoResolveSettings.From(crew));
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
         await proposalRepository.AddCrewJoinRequestAsync(new ProposalCrewJoinRequest
         {

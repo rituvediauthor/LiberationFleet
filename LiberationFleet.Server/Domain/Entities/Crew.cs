@@ -28,8 +28,15 @@ public class Crew
     public int CatchUpSnapshotMonth { get; set; }
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
-    /// <summary>How 1:1 (exactly two eligible voters) proposals resolve when still incomplete at timer expiry.</summary>
+    /// <summary>
+    /// When the approval timer expires with equal approve/reject counts (any tie),
+    /// and early settlement when exactly two eligible voters can vote.
+    /// </summary>
     public DuoVoteTimeoutMode DuoVoteTimeoutMode { get; set; } = DuoVoteTimeoutMode.AutoReject;
+    public bool AutoResolveOverTime { get; set; } = true;
+    public int BaseAutoResolveHours { get; set; } = 24;
+    public bool ChangeAutoResolveTimerOnFirstReject { get; set; } = true;
+    public int AutoResolveHoursAfterFirstReject { get; set; } = 168;
     /// <summary>
     /// Minimum 3-month average contribution (including LoT) to retain financial membership (roles exempt).
     /// </summary>

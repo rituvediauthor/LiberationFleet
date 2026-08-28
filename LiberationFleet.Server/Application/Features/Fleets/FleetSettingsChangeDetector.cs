@@ -70,6 +70,38 @@ public static class FleetSettingsChangeDetector
                 duoMode.ToString()));
         }
 
+        if (fleet.AutoResolveOverTime != request.AutoResolveOverTime)
+        {
+            changes.Add(new FleetSettingChangeItem(
+                FleetSettingField.AutoResolveOverTime,
+                fleet.AutoResolveOverTime.ToString(),
+                request.AutoResolveOverTime.ToString()));
+        }
+
+        if (fleet.BaseAutoResolveHours != request.BaseAutoResolveHours)
+        {
+            changes.Add(new FleetSettingChangeItem(
+                FleetSettingField.BaseAutoResolveHours,
+                fleet.BaseAutoResolveHours.ToString(),
+                request.BaseAutoResolveHours.ToString()));
+        }
+
+        if (fleet.ChangeAutoResolveTimerOnFirstReject != request.ChangeAutoResolveTimerOnFirstReject)
+        {
+            changes.Add(new FleetSettingChangeItem(
+                FleetSettingField.ChangeAutoResolveTimerOnFirstReject,
+                fleet.ChangeAutoResolveTimerOnFirstReject.ToString(),
+                request.ChangeAutoResolveTimerOnFirstReject.ToString()));
+        }
+
+        if (fleet.AutoResolveHoursAfterFirstReject != request.AutoResolveHoursAfterFirstReject)
+        {
+            changes.Add(new FleetSettingChangeItem(
+                FleetSettingField.AutoResolveHoursAfterFirstReject,
+                fleet.AutoResolveHoursAfterFirstReject.ToString(),
+                request.AutoResolveHoursAfterFirstReject.ToString()));
+        }
+
         if (fleet.LibraryOfThingsEnabled != request.LibraryOfThingsEnabled)
         {
             changes.Add(new FleetSettingChangeItem(
@@ -155,7 +187,15 @@ public static class FleetSettingsChangeDescriber
             FleetSettingField.RequireApprovalForEdits =>
                 $"Proposal to set \"Require approval for fleet edits\" to \"{change.NewValue}\".",
             FleetSettingField.DuoVoteTimeoutMode =>
-                $"Proposal to set \"1:1 vote timeout\" to \"{change.NewValue}\".",
+                $"Proposal to set tied vote timeout (equal approve/reject when the timer expires) to \"{FormatDuoMode(change.NewValue)}\".",
+            FleetSettingField.AutoResolveOverTime =>
+                $"Proposal to set \"Auto-resolve over time\" to \"{FormatBool(change.NewValue)}\". When enabled, the side with more votes wins at timer expiry; equal counts use tied vote timeout.",
+            FleetSettingField.BaseAutoResolveHours =>
+                $"Proposal to set initial auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
+            FleetSettingField.ChangeAutoResolveTimerOnFirstReject =>
+                $"Proposal to set \"Change auto-resolve timer on first reject\" to \"{FormatBool(change.NewValue)}\".",
+            FleetSettingField.AutoResolveHoursAfterFirstReject =>
+                $"Proposal to set post-reject auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
             FleetSettingField.LibraryOfThingsEnabled =>
                 $"Proposal to set \"Library of Things\" to \"{change.NewValue}\".",
             FleetSettingField.AllowCrewmateFileAttachments =>
@@ -173,5 +213,16 @@ public static class FleetSettingsChangeDescriber
                     ? "Proposal to remove the fleet image."
                     : "Proposal to set a new fleet image.",
             _ => "Proposal to change fleet settings."
+        };
+
+    private static string FormatBool(string value) =>
+        bool.TryParse(value, out var parsed) && parsed ? "True" : "False";
+
+    private static string FormatDuoMode(string value) =>
+        value switch
+        {
+            nameof(DuoVoteTimeoutMode.AutoApprove) => "Auto approve",
+            nameof(DuoVoteTimeoutMode.ResolveOnFirstVote) => "Resolve on first vote",
+            _ => "Auto reject"
         };
 }

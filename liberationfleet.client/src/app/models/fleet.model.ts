@@ -41,6 +41,10 @@ export interface Fleet {
   crewCount?: number;
   requireApprovalForEdits?: boolean;
   duoVoteTimeoutMode?: string;
+  autoResolveOverTime?: boolean;
+  baseAutoResolveHours?: number;
+  changeAutoResolveTimerOnFirstReject?: boolean;
+  autoResolveHoursAfterFirstReject?: number;
   libraryOfThingsEnabled?: boolean;
   allowCrewmateFileAttachments?: boolean;
   minimumCrewmateTenureDaysForAttachments?: number;
@@ -92,6 +96,10 @@ export interface UpdateFleetRequest {
   radiusMiles?: number;
   requireApprovalForEdits: boolean;
   duoVoteTimeoutMode: string;
+  autoResolveOverTime: boolean;
+  baseAutoResolveHours: number;
+  changeAutoResolveTimerOnFirstReject: boolean;
+  autoResolveHoursAfterFirstReject: number;
   libraryOfThingsEnabled: boolean;
   allowCrewmateFileAttachments: boolean;
   minimumCrewmateTenureDaysForAttachments: number;

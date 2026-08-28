@@ -33,7 +33,7 @@
             <span class="approve">{{ p.approveCount }} approve</span>
             <span class="disapprove">{{ p.disapproveCount }} disapprove</span>
           </p>
-          <p class="timer" *ngIf="countdownText() as countdown">Auto-approval in {{ countdown }}</p>
+          <p class="timer" *ngIf="countdownText() as countdown">Auto-resolves in {{ countdown }}</p>
           <p class="vote-restricted-banner" *ngIf="showKickVoteRestriction()">
             You cannot vote on a proposal to remove you from the crew.
           </p>

@@ -70,8 +70,7 @@ public class GetFleetCrewmateProfileQueryHandler(
                 request.UserId,
                 targetMembership.CrewId,
                 cancellationToken,
-                excludeActiveSeasonContributions: targetMembership.IsInSeason,
-                applyLotCommerceModifiers: true);
+                assumeInNeedNonOrganizerForLot: true);
             priorityScore = (int)Math.Round(lotScore, MidpointRounding.AwayFromZero);
         }
 

@@ -18,7 +18,7 @@
           <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
         </p>
         <p class="timer" *ngIf="countdownText(item) as countdown">
-          Auto-approval in {{ countdown }}
+          Auto-resolves in {{ countdown }}
         </p>
         <p class="status-line">Status: {{ item.status }}</p>
         <p class="card-hint">Open to vote on the crew proposal</p>

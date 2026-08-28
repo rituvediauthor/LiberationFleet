@@ -17,6 +17,10 @@ export interface Crew {
   allowCrossCrewGiving?: boolean;
   requireApprovalForEdits?: boolean;
   duoVoteTimeoutMode?: string;
+  autoResolveOverTime?: boolean;
+  baseAutoResolveHours?: number;
+  changeAutoResolveTimerOnFirstReject?: boolean;
+  autoResolveHoursAfterFirstReject?: number;
   inNeedDefaultThreshold?: number;
   financialMembershipContributionFloor?: number;
   libraryOfThingsEnabled?: boolean;
@@ -106,6 +110,10 @@ export interface UpdateCrewRequest {
   allowCrossCrewGiving: boolean;
   requireApprovalForEdits: boolean;
   duoVoteTimeoutMode: string;
+  autoResolveOverTime: boolean;
+  baseAutoResolveHours: number;
+  changeAutoResolveTimerOnFirstReject: boolean;
+  autoResolveHoursAfterFirstReject: number;
   inNeedDefaultThreshold: number;
   financialMembershipContributionFloor: number;
   libraryOfThingsEnabled: boolean;

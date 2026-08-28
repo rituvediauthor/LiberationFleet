@@ -1,0 +1,41 @@
+.how-to-topic {
+  width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  margin: 0 auto;
+}
+
+.topic-title {
+  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--lf-color-text-body);
+}
+
+.topic-heading {
+  margin: 24px 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lf-color-text-body);
+}
+
+.topic-heading:first-of-type {
+  margin-top: 0;
+}
+
+.topic-paragraph {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lf-color-text-secondary);
+}
+
+.topic-list {
+  margin: 0 0 16px;
+  padding-left: 1.25rem;
+  color: var(--lf-color-text-secondary);
+  line-height: 1.6;
+}
+
+.topic-list li + li {
+  margin-top: 8px;
+}

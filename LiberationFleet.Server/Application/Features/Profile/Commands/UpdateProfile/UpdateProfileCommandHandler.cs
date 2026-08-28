@@ -205,8 +205,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             var priorityScore = await _mutualAidService.GetPriorityScoreForUserAsync(
                 userId.Value,
                 membership.CrewId,
-                cancellationToken,
-                excludeActiveSeasonContributions: membership.IsInSeason);
+                cancellationToken);
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
                 cancellationToken);

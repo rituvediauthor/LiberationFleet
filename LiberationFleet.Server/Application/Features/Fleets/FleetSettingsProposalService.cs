@@ -35,7 +35,10 @@ public class FleetSettingsProposalService(
                 LastActivityAt = utcNow
             };
 
-            ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+            ProposalVotingService.ApplyTimerRulesOnCreate(
+                proposal,
+                utcNow,
+                ProposalAutoResolveSettings.From(fleet));
             await proposalRepository.AddProposalAsync(proposal, cancellationToken);
             var description = FleetSettingsChangeDescriber.BuildDescription(change);
             await proposalRepository.AddFleetSettingChangeAsync(new ProposalFleetSettingChange
@@ -147,6 +150,10 @@ public class FleetSettingsProposalService(
             && Enum.IsDefined(duo)
             ? duo
             : DuoVoteTimeoutMode.AutoReject;
+        fleet.AutoResolveOverTime = request.AutoResolveOverTime;
+        fleet.BaseAutoResolveHours = request.BaseAutoResolveHours;
+        fleet.ChangeAutoResolveTimerOnFirstReject = request.ChangeAutoResolveTimerOnFirstReject;
+        fleet.AutoResolveHoursAfterFirstReject = request.AutoResolveHoursAfterFirstReject;
         fleet.LibraryOfThingsEnabled = request.LibraryOfThingsEnabled;
         fleet.AllowCrewmateFileAttachments = request.AllowCrewmateFileAttachments;
         fleet.MinimumCrewmateTenureDaysForAttachments = request.MinimumCrewmateTenureDaysForAttachments;
@@ -188,6 +195,18 @@ public class FleetSettingsProposalService(
                 break;
             case FleetSettingField.DuoVoteTimeoutMode:
                 fleet.DuoVoteTimeoutMode = Enum.Parse<DuoVoteTimeoutMode>(change.NewValue);
+                break;
+            case FleetSettingField.AutoResolveOverTime:
+                fleet.AutoResolveOverTime = bool.Parse(change.NewValue);
+                break;
+            case FleetSettingField.BaseAutoResolveHours:
+                fleet.BaseAutoResolveHours = int.Parse(change.NewValue);
+                break;
+            case FleetSettingField.ChangeAutoResolveTimerOnFirstReject:
+                fleet.ChangeAutoResolveTimerOnFirstReject = bool.Parse(change.NewValue);
+                break;
+            case FleetSettingField.AutoResolveHoursAfterFirstReject:
+                fleet.AutoResolveHoursAfterFirstReject = int.Parse(change.NewValue);
                 break;
             case FleetSettingField.LibraryOfThingsEnabled:
                 fleet.LibraryOfThingsEnabled = bool.Parse(change.NewValue);

@@ -1,0 +1,17 @@
+<app-page-layout [backButton]="backButton">
+  <div class="how-to-hub">
+    <p class="welcome-text">{{ welcome }}</p>
+
+    <nav class="topic-menu" aria-label="How to use this app topics">
+      <button
+        type="button"
+        class="menu-link"
+        *ngFor="let topic of topics"
+        (click)="openTopic(topic.id)">
+        <i class="fa-solid menu-icon" [ngClass]="topic.icon" aria-hidden="true"></i>
+        <span class="menu-label">{{ topic.title }}</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+    </nav>
+  </div>
+</app-page-layout>

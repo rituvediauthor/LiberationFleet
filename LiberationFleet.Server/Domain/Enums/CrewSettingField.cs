@@ -26,5 +26,9 @@ public enum CrewSettingField
     AllowCrossCrewGiving = 21,
     ImageResourceId = 22,
     FinancialMembershipContributionFloor = 23,
-    DuoVoteTimeoutMode = 24
+    DuoVoteTimeoutMode = 24,
+    AutoResolveOverTime = 25,
+    BaseAutoResolveHours = 26,
+    ChangeAutoResolveTimerOnFirstReject = 27,
+    AutoResolveHoursAfterFirstReject = 28
 }

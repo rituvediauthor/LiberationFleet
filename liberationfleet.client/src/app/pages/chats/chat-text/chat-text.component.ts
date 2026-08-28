@@ -617,7 +617,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onAnonymousReminderBackdrop(event: MouseEvent) {
-    if ((event.target as HTMLElement).classList.contains('dialog-backdrop')) {
+    if ((event.target as HTMLElement).classList.contains('chat-anonymous-reminder-backdrop')) {
       this.confirmAnonymousReminder();
     }
   }

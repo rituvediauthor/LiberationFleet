@@ -19,4 +19,7 @@ public static class CrewRoleAuthorizationService
 
     public static bool CanProposeCrewmateAidStatEdits(CrewMembership membership) =>
         membership.IsOrganizer || membership.IsAccountant;
+
+    public static bool CanBypassSeasonGiftLock(CrewMembership membership) =>
+        membership.IsOrganizer || membership.IsAccountant;
 }

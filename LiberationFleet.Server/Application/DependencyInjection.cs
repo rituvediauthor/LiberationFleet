@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<FleetJoinRequestProposalService>();
         services.AddScoped<FleetKickCrewProposalService>();
         services.AddScoped<FleetMembershipService>();
+        services.AddScoped<DefaultOrgContentSeeder>();
         services.AddScoped<FleetSettingsProposalService>();
         services.AddScoped<FleetRulesProposalService>();
         services.AddScoped<PlaceholderCrewmateService>();

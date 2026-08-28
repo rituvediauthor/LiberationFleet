@@ -105,7 +105,8 @@ public class ClaimPlaceholderIdentityProposalService(
             LastActivityAt = utcNow
         };
 
-        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        await ProposalVotingService.ApplyTimerRulesOnCreateAsync(
+            proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
         await proposalRepository.AddClaimPlaceholderIdentityAsync(new ProposalClaimPlaceholderIdentity
         {

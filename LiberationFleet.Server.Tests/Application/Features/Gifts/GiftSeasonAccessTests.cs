@@ -44,10 +44,10 @@ public class GiftSeasonAccessTests
     }
 
     [Fact]
-    public void CanMutateVerification_AllowsAccountantWhenLocked()
+    public void CanMutateVerification_AllowsBypassWhenLocked()
     {
-        GiftSeasonAccess.CanMutateVerification(isAccountant: true, isSeasonLocked: true).Should().BeTrue();
-        GiftSeasonAccess.CanMutateVerification(isAccountant: false, isSeasonLocked: true).Should().BeFalse();
-        GiftSeasonAccess.CanMutateVerification(isAccountant: false, isSeasonLocked: false).Should().BeTrue();
+        GiftSeasonAccess.CanMutateVerification(canBypassSeasonLock: true, isSeasonLocked: true).Should().BeTrue();
+        GiftSeasonAccess.CanMutateVerification(canBypassSeasonLock: false, isSeasonLocked: true).Should().BeFalse();
+        GiftSeasonAccess.CanMutateVerification(canBypassSeasonLock: false, isSeasonLocked: false).Should().BeTrue();
     }
 }

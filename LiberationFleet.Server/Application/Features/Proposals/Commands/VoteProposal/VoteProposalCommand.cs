@@ -123,7 +123,12 @@ public class VoteProposalCommandHandler(
         else
         {
             proposal.DisapproveCount++;
-            ProposalVotingService.ApplyDisapproveTimerExtension(proposal, utcNow);
+            var autoResolveSettings = await ProposalEligibility.GetAutoResolveSettingsAsync(
+                proposal,
+                crewRepository,
+                fleetRepository,
+                cancellationToken);
+            ProposalVotingService.ApplyDisapproveTimerExtension(proposal, utcNow, autoResolveSettings);
         }
 
         proposal.LastActivityAt = utcNow;
@@ -137,8 +142,13 @@ public class VoteProposalCommandHandler(
             crewRepository,
             fleetRepository,
             cancellationToken);
+        var resolveSettings = await ProposalEligibility.GetAutoResolveSettingsAsync(
+            proposal,
+            crewRepository,
+            fleetRepository,
+            cancellationToken);
         var statusBefore = proposal.Status;
-        ProposalVotingService.RecalculateStatus(proposal, eligibleCount, utcNow, duoMode);
+        ProposalVotingService.RecalculateStatus(proposal, eligibleCount, utcNow, duoMode, resolveSettings);
         await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
             proposal,
             statusBefore,

@@ -18,7 +18,7 @@
           <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
         </p>
         <p class="timer" *ngIf="countdownText(item) as countdown">
-          Auto-approval in {{ countdown }}
+          Auto-resolves in {{ countdown }}
         </p>
         <p class="key-status" [class.ready]="item.isKeyPrepared">
           {{ item.isKeyPrepared ? 'Encryption key prepared' : 'Waiting for a crewmate to prepare your key' }}

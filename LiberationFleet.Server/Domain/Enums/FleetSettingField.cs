@@ -15,5 +15,9 @@ public enum FleetSettingField
     MinimumCrewmateTenureDaysForProposals = 10,
     MinimumContributionForProposals = 11,
     ImageResourceId = 12,
-    DuoVoteTimeoutMode = 13
+    DuoVoteTimeoutMode = 13,
+    AutoResolveOverTime = 14,
+    BaseAutoResolveHours = 15,
+    ChangeAutoResolveTimerOnFirstReject = 16,
+    AutoResolveHoursAfterFirstReject = 17
 }

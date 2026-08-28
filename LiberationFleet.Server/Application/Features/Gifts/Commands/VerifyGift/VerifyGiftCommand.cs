@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
@@ -45,12 +46,14 @@ public class VerifyGiftCommandHandler(
             gift,
             membership.Crew?.CurrentSeasonStartDate,
             gift.SeasonCycle?.SeasonStartDate);
-        if (!GiftSeasonAccess.CanMutateVerification(membership.IsAccountant, isSeasonLocked))
+        if (!GiftSeasonAccess.CanMutateVerification(
+                CrewRoleAuthorizationService.CanBypassSeasonGiftLock(membership),
+                isSeasonLocked))
         {
             return new GiftOperationResponse
             {
                 Success = false,
-                Message = "This gift is from a past season and is locked. Only accountants can verify it."
+                Message = "This gift is from a past season and is locked. Only accountants and organizers can verify it."
             };
         }
 

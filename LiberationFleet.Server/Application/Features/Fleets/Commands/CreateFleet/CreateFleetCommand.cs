@@ -24,6 +24,7 @@ public class CreateFleetCommandHandler(
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ContentTenureService contentTenureService,
+    DefaultOrgContentSeeder defaultOrgContentSeeder,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetCommand, FleetOperationResponse>
 {
     public async Task<FleetOperationResponse> Handle(CreateFleetCommand request, CancellationToken cancellationToken)
@@ -119,6 +120,8 @@ public class CreateFleetCommandHandler(
             CreatedAt = DateTime.UtcNow,
             LastActivityAt = DateTime.UtcNow
         }, cancellationToken);
+
+        await defaultOrgContentSeeder.SeedFleetDefaultsAsync(fleet, userId.Value, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -98,7 +98,10 @@ public class CreateFleetProposalCommandHandler(
             CreatedAt = utcNow,
             LastActivityAt = utcNow
         };
-        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        ProposalVotingService.ApplyTimerRulesOnCreate(
+            proposal,
+            utcNow,
+            ProposalAutoResolveSettings.From(fleet));
 
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

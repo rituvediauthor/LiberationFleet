@@ -76,6 +76,10 @@ export class EditFleetComponent implements OnInit {
       radiusMiles: [25],
       requireApprovalForEdits: [true],
       duoVoteTimeoutMode: ['AutoReject'],
+      autoResolveOverTime: [true],
+      baseAutoResolveHours: [24, [Validators.required, Validators.min(1), Validators.max(8760)]],
+      changeAutoResolveTimerOnFirstReject: [true],
+      autoResolveHoursAfterFirstReject: [168, [Validators.required, Validators.min(1), Validators.max(8760)]],
       libraryOfThingsEnabled: [true],
       allowCrewmateFileAttachments: [false],
       minimumCrewmateTenureDaysForAttachments: [0, [Validators.min(0)]],
@@ -115,6 +119,14 @@ export class EditFleetComponent implements OnInit {
 
   get allowCrewmateFileAttachments(): boolean {
     return !!this.form.get('allowCrewmateFileAttachments')?.value;
+  }
+
+  get autoResolveOverTime(): boolean {
+    return !!this.form.get('autoResolveOverTime')?.value;
+  }
+
+  get changeAutoResolveTimerOnFirstReject(): boolean {
+    return !!this.form.get('changeAutoResolveTimerOnFirstReject')?.value;
   }
 
   get displayImageUrl(): string | null {
@@ -339,6 +351,10 @@ export class EditFleetComponent implements OnInit {
     radiusMiles?: number;
     requireApprovalForEdits?: boolean;
     duoVoteTimeoutMode?: string;
+    autoResolveOverTime?: boolean;
+    baseAutoResolveHours?: number;
+    changeAutoResolveTimerOnFirstReject?: boolean;
+    autoResolveHoursAfterFirstReject?: number;
     libraryOfThingsEnabled?: boolean;
     allowCrewmateFileAttachments?: boolean;
     minimumCrewmateTenureDaysForAttachments?: number;
@@ -356,6 +372,10 @@ export class EditFleetComponent implements OnInit {
       radiusMiles: fleet.radiusMiles ?? 25,
       requireApprovalForEdits: fleet.requireApprovalForEdits ?? true,
       duoVoteTimeoutMode: fleet.duoVoteTimeoutMode ?? 'AutoReject',
+      autoResolveOverTime: fleet.autoResolveOverTime ?? true,
+      baseAutoResolveHours: fleet.baseAutoResolveHours ?? 24,
+      changeAutoResolveTimerOnFirstReject: fleet.changeAutoResolveTimerOnFirstReject ?? true,
+      autoResolveHoursAfterFirstReject: fleet.autoResolveHoursAfterFirstReject ?? 168,
       libraryOfThingsEnabled: fleet.libraryOfThingsEnabled ?? true,
       allowCrewmateFileAttachments: fleet.allowCrewmateFileAttachments ?? false,
       minimumCrewmateTenureDaysForAttachments: fleet.minimumCrewmateTenureDaysForAttachments ?? 0,
@@ -380,6 +400,10 @@ export class EditFleetComponent implements OnInit {
       radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
       duoVoteTimeoutMode: String(this.form.get('duoVoteTimeoutMode')?.value || 'AutoReject'),
+      autoResolveOverTime: !!this.form.get('autoResolveOverTime')?.value,
+      baseAutoResolveHours: Number(this.form.get('baseAutoResolveHours')?.value),
+      changeAutoResolveTimerOnFirstReject: !!this.form.get('changeAutoResolveTimerOnFirstReject')?.value,
+      autoResolveHoursAfterFirstReject: Number(this.form.get('autoResolveHoursAfterFirstReject')?.value),
       libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,
       allowCrewmateFileAttachments: !!this.form.get('allowCrewmateFileAttachments')?.value,
       minimumCrewmateTenureDaysForAttachments: Number(this.form.get('minimumCrewmateTenureDaysForAttachments')?.value),

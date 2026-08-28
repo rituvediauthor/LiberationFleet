@@ -89,4 +89,29 @@ public static class ProposalEligibility
 
         return DuoVoteTimeoutMode.AutoReject;
     }
+
+    public static async Task<ProposalAutoResolveSettings> GetAutoResolveSettingsAsync(
+        Proposal proposal,
+        ICrewRepository crewRepository,
+        IFleetRepository fleetRepository,
+        CancellationToken cancellationToken)
+    {
+        if (proposal.FleetId.HasValue)
+        {
+            var fleet = await fleetRepository.GetByIdAsync(proposal.FleetId.Value, cancellationToken);
+            return fleet is null
+                ? ProposalAutoResolveSettings.Defaults
+                : ProposalAutoResolveSettings.From(fleet);
+        }
+
+        if (proposal.CrewId.HasValue)
+        {
+            var crew = await crewRepository.GetByIdAsync(proposal.CrewId.Value, cancellationToken);
+            return crew is null
+                ? ProposalAutoResolveSettings.Defaults
+                : ProposalAutoResolveSettings.From(crew);
+        }
+
+        return ProposalAutoResolveSettings.Defaults;
+    }
 }

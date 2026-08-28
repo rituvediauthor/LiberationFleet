@@ -137,6 +137,20 @@ public static class CrewRoleMapper
         || membership.IsAccountant
         || membership.IsHonoraryMember;
 
+    /// <summary>
+    /// Any crew role except organizer — used when computing Library of Things priority
+    /// as if the member were not the organizer.
+    /// </summary>
+    public static bool HasAnyRoleExceptOrganizer(CrewMembership membership) =>
+        membership.IsAdvocate
+        || membership.IsDecentralizer
+        || membership.IsCeremonialOrganizer
+        || membership.IsModerator
+        || membership.IsIntermediary
+        || membership.IsRepresentative
+        || membership.IsAccountant
+        || membership.IsHonoraryMember;
+
     public static bool HasRole(CrewMembership membership, CrewRole role) =>
         role switch
         {
@@ -169,11 +183,11 @@ public static class CrewRoleMapper
         role switch
         {
             CrewRole.Organizer =>
-                "Full crew access including settings. Can leave the role without a vote; nominating a new organizer requires crew approval.",
+                "Can function as a holder of any of the other roles with access to all of the powers those roles entail.",
             CrewRole.Advocate =>
                 "Resolve conflict and serve as a mouthpiece for anonymous crew opinions. Can toggle anonymous mode in crew chat channels.",
             CrewRole.Decentralizer =>
-                "Save backups of crew records and identify concentrations of power. Can export the gift log and crewmate states.",
+                "Responsible for identifying concentrations of power and decentralizing them through the creation of back-up systems, back-up records, and nominating crewmates to spread out powers. Can export the gift log and crewmate states.",
             CrewRole.CeremonialOrganizer =>
                 "Organize events, celebrations, and ceremonies for the crew. No special app powers.",
             CrewRole.Moderator =>

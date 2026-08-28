@@ -1,0 +1,55 @@
+.how-to-hub {
+  width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  margin: 0 auto;
+}
+
+.welcome-text {
+  margin: 0 0 20px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--lf-color-text-body);
+}
+
+.topic-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-link:hover {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.menu-icon {
+  width: 24px;
+  text-align: center;
+  color: var(--lf-color-accent);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.menu-label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.menu-chevron {
+  color: var(--lf-color-text-subtle);
+}

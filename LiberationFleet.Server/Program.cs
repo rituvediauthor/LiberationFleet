@@ -241,6 +241,7 @@ static async Task ApplyMigrationsAsync(WebApplication app)
             await GiftLogSchemaRepair.EnsureAsync(dbContext, logger);
             await LotPlatformSchemaRepair.EnsureAsync(dbContext, logger);
             await DuoVoteTimeoutModeSchemaRepair.EnsureAsync(dbContext, logger);
+            await ProposalAutoResolveSettingsSchemaRepair.EnsureAsync(dbContext, logger);
             readyState.MarkReady();
             logger.LogInformation("Database migrations applied successfully");
             return;

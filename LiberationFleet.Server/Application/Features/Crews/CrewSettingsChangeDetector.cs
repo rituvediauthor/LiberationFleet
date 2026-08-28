@@ -99,6 +99,38 @@ public static class CrewSettingsChangeDetector
                 duoMode.ToString()));
         }
 
+        if (crew.AutoResolveOverTime != request.AutoResolveOverTime)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.AutoResolveOverTime,
+                crew.AutoResolveOverTime.ToString(),
+                request.AutoResolveOverTime.ToString()));
+        }
+
+        if (crew.BaseAutoResolveHours != request.BaseAutoResolveHours)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.BaseAutoResolveHours,
+                crew.BaseAutoResolveHours.ToString(),
+                request.BaseAutoResolveHours.ToString()));
+        }
+
+        if (crew.ChangeAutoResolveTimerOnFirstReject != request.ChangeAutoResolveTimerOnFirstReject)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.ChangeAutoResolveTimerOnFirstReject,
+                crew.ChangeAutoResolveTimerOnFirstReject.ToString(),
+                request.ChangeAutoResolveTimerOnFirstReject.ToString()));
+        }
+
+        if (crew.AutoResolveHoursAfterFirstReject != request.AutoResolveHoursAfterFirstReject)
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.AutoResolveHoursAfterFirstReject,
+                crew.AutoResolveHoursAfterFirstReject.ToString(),
+                request.AutoResolveHoursAfterFirstReject.ToString()));
+        }
+
         if (crew.InNeedDefaultThreshold != request.InNeedDefaultThreshold)
         {
             changes.Add(new CrewSettingChangeItem(
@@ -262,7 +294,15 @@ public static class CrewSettingsChangeDescriber
             CrewSettingField.RequireApprovalForEdits =>
                 $"Proposal to set \"Require approval for crew edits\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.DuoVoteTimeoutMode =>
-                $"Proposal to set \"1:1 vote timeout\" to \"{FormatDuoMode(change.NewValue)}\".",
+                $"Proposal to set tied vote timeout (equal approve/reject when the timer expires) to \"{FormatDuoMode(change.NewValue)}\".",
+            CrewSettingField.AutoResolveOverTime =>
+                $"Proposal to set \"Auto-resolve over time\" to \"{FormatBool(change.NewValue)}\". When enabled, the side with more votes wins at timer expiry; equal counts use tied vote timeout.",
+            CrewSettingField.BaseAutoResolveHours =>
+                $"Proposal to set initial auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
+            CrewSettingField.ChangeAutoResolveTimerOnFirstReject =>
+                $"Proposal to set \"Change auto-resolve timer on first reject\" to \"{FormatBool(change.NewValue)}\".",
+            CrewSettingField.AutoResolveHoursAfterFirstReject =>
+                $"Proposal to set post-reject auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
             CrewSettingField.InNeedDefaultThreshold =>
                 $"Proposal to change in-need threshold from ${change.OldValue} to ${change.NewValue}. " +
                 "Crewmates whose 3-month average (excluding Library of Things) is at or below this cannot opt out of in-need.",

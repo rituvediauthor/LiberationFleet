@@ -423,6 +423,26 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<bool>("AutoResolveOverTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("AutoResolveHoursAfterFirstReject")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(168);
+
+                    b.Property<int>("BaseAutoResolveHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(24);
+
+                    b.Property<bool>("ChangeAutoResolveTimerOnFirstReject")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<decimal>("FinancialMembershipContributionFloor")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)
@@ -1219,6 +1239,26 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(1);
+
+                    b.Property<bool>("AutoResolveOverTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("AutoResolveHoursAfterFirstReject")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(168);
+
+                    b.Property<int>("BaseAutoResolveHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(24);
+
+                    b.Property<bool>("ChangeAutoResolveTimerOnFirstReject")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("ImageResourceId")
                         .HasMaxLength(64)

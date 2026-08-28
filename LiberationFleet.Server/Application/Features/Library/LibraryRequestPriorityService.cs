@@ -1,14 +1,11 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
-using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Library;
 
-public class LibraryRequestPriorityService(
-    IMutualAidService mutualAidService,
-    ICrewMembershipRepository membershipRepository)
+public class LibraryRequestPriorityService(IMutualAidService mutualAidService)
 {
     public async Task ApplyPossessorPriorityAsync(
         IList<LibraryRequestListItemDto> items,
@@ -21,7 +18,6 @@ public class LibraryRequestPriorityService(
             return;
         }
 
-        var inSeasonByUser = await BuildInSeasonLookupAsync(crewId, cancellationToken);
         var utcNow = DateTime.UtcNow;
         var openByUnit = sourceRequests
             .Where(r => r.Status == LibraryRequestStatus.Open && r.NeededByStart > utcNow)
@@ -33,7 +29,6 @@ public class LibraryRequestPriorityService(
             item.RequesterPriorityScore = await GetAlignedPriorityScoreAsync(
                 item.RequesterUserId,
                 crewId,
-                inSeasonByUser,
                 cancellationToken);
         }
 
@@ -72,11 +67,9 @@ public class LibraryRequestPriorityService(
         int crewId,
         CancellationToken cancellationToken)
     {
-        var inSeasonByUser = await BuildInSeasonLookupAsync(crewId, cancellationToken);
         detail.RequesterPriorityScore = await GetAlignedPriorityScoreAsync(
             request.RequesterUserId,
             crewId,
-            inSeasonByUser,
             cancellationToken);
 
         var utcNow = DateTime.UtcNow;
@@ -97,7 +90,6 @@ public class LibraryRequestPriorityService(
                 : await GetAlignedPriorityScoreAsync(
                     openRequest.RequesterUserId,
                     crewId,
-                    inSeasonByUser,
                     cancellationToken);
         }
 
@@ -114,27 +106,16 @@ public class LibraryRequestPriorityService(
         }
     }
 
-    private async Task<IReadOnlyDictionary<int, bool>> BuildInSeasonLookupAsync(
-        int crewId,
-        CancellationToken cancellationToken)
-    {
-        var members = await membershipRepository.GetActiveMembersByCrewIdAsync(crewId, cancellationToken);
-        return members.ToDictionary(m => m.UserId, m => m.IsInSeason);
-    }
-
     private async Task<decimal> GetAlignedPriorityScoreAsync(
         int userId,
         int crewId,
-        IReadOnlyDictionary<int, bool> inSeasonByUser,
         CancellationToken cancellationToken)
     {
-        var excludeActiveSeason = inSeasonByUser.GetValueOrDefault(userId, false);
         var score = await mutualAidService.GetPriorityScoreForUserAsync(
             userId,
             crewId,
             cancellationToken,
-            excludeActiveSeasonContributions: excludeActiveSeason,
-            applyLotCommerceModifiers: true);
+            assumeInNeedNonOrganizerForLot: true);
         // Match profile/crewmate display rounding ((int)Math.Round(...)).
         return Math.Round(score, MidpointRounding.AwayFromZero);
     }

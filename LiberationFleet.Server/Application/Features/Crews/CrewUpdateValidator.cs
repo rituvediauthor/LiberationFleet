@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Crews;
@@ -67,6 +68,14 @@ public static class CrewUpdateValidator
             return Failure("Minimum contribution amounts cannot be negative.");
         }
 
+        var autoResolveError = ValidateAutoResolveHours(
+            request.BaseAutoResolveHours,
+            request.AutoResolveHoursAfterFirstReject);
+        if (autoResolveError is not null)
+        {
+            return Failure(autoResolveError);
+        }
+
         try
         {
             privacy = Enum.Parse<CrewPrivacy>(request.Privacy, ignoreCase: true);
@@ -102,6 +111,21 @@ public static class CrewUpdateValidator
 
     public static CycleCapMode ParseCycleCapMode(string value) =>
         Enum.Parse<CycleCapMode>(value, ignoreCase: true);
+
+    public static string? ValidateAutoResolveHours(int baseHours, int afterFirstRejectHours)
+    {
+        if (baseHours is < ProposalAutoResolveSettings.MinHours or > ProposalAutoResolveSettings.MaxHours)
+        {
+            return $"Base auto-resolve must be between {ProposalAutoResolveSettings.MinHours} and {ProposalAutoResolveSettings.MaxHours} hours.";
+        }
+
+        if (afterFirstRejectHours is < ProposalAutoResolveSettings.MinHours or > ProposalAutoResolveSettings.MaxHours)
+        {
+            return $"Auto-resolve after first reject must be between {ProposalAutoResolveSettings.MinHours} and {ProposalAutoResolveSettings.MaxHours} hours.";
+        }
+
+        return null;
+    }
 
     private static CrewOperationResponse Failure(string message) =>
         new() { Success = false, Message = message };

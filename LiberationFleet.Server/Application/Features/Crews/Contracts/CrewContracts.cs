@@ -16,6 +16,10 @@ public class CrewDto
     public bool RequireApprovalForEdits { get; set; } = true;
     /// <summary>AutoApprove | AutoReject | ResolveOnFirstVote</summary>
     public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
+    public bool AutoResolveOverTime { get; set; } = true;
+    public int BaseAutoResolveHours { get; set; } = 24;
+    public bool ChangeAutoResolveTimerOnFirstReject { get; set; } = true;
+    public int AutoResolveHoursAfterFirstReject { get; set; } = 168;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
     public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;
@@ -46,6 +50,10 @@ public class UpdateCrewRequest
     public bool AllowSurvivalThresholds { get; set; } = true;
     public bool RequireApprovalForEdits { get; set; } = true;
     public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
+    public bool AutoResolveOverTime { get; set; } = true;
+    public int BaseAutoResolveHours { get; set; } = 24;
+    public bool ChangeAutoResolveTimerOnFirstReject { get; set; } = true;
+    public int AutoResolveHoursAfterFirstReject { get; set; } = 168;
     public decimal InNeedDefaultThreshold { get; set; } = 20m;
     public decimal FinancialMembershipContributionFloor { get; set; }
     public bool LibraryOfThingsEnabled { get; set; } = true;

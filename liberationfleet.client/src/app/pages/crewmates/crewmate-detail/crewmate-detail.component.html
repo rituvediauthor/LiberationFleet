@@ -38,7 +38,8 @@
           <li *ngFor="let role of profile.roles">{{ role }}</li>
         </ul>
 
-        <p *ngIf="profile.electedRoles.length > 0" class="role-hint">Select elected roles below, then use Demote in the action bar.</p>
+        <p *ngIf="profile.isSelf && profile.electedRoles.length > 0" class="role-hint">Select your roles below, then use Demote to relinquish them immediately — no crew vote required.</p>
+        <p *ngIf="!profile.isSelf && profile.electedRoles.length > 0" class="role-hint">Select elected roles below, then use Demote in the action bar.</p>
         <div class="elected-role-pills" *ngIf="profile.electedRoles.length > 0">
           <button
             type="button"

@@ -18,6 +18,6 @@ public static class GiftSeasonAccess
         return seasonStart < currentSeasonStartDate.Value;
     }
 
-    public static bool CanMutateVerification(bool isAccountant, bool isSeasonLocked) =>
-        !isSeasonLocked || isAccountant;
+    public static bool CanMutateVerification(bool canBypassSeasonLock, bool isSeasonLocked) =>
+        !isSeasonLocked || canBypassSeasonLock;
 }

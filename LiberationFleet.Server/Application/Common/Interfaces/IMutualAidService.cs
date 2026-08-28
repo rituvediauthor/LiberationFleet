@@ -48,7 +48,7 @@ public interface IMutualAidService
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false,
-        bool applyLotCommerceModifiers = false);
+        bool assumeInNeedNonOrganizerForLot = false);
     Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default);
     Task<decimal> GetMonthlyContributionExcludingLotAsync(int userId, int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<int>> GetLockedCycleUserIdsAsync(int crewId, CancellationToken cancellationToken = default);
@@ -57,7 +57,8 @@ public interface IMutualAidService
         int crewId,
         CrewMembership membership,
         CancellationToken cancellationToken = default,
-        bool excludeActiveSeasonContributions = false);
+        bool excludeActiveSeasonContributions = false,
+        bool ignoreOrganizerRole = false);
     Task EnsureMemberInActiveSeasonAsync(
         int crewId,
         CrewMembership membership,

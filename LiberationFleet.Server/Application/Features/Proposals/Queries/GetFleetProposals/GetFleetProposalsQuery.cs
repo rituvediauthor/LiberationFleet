@@ -69,7 +69,10 @@ public class GetFleetProposalsQueryHandler(
                 proposal, proposalRepository, fleetRepository, cancellationToken);
             var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
                 proposal, crewRepository, fleetRepository, cancellationToken);
-            ProposalVotingService.TryResolveOnTimer(proposal, utcNow, duoMode, eligible);
+            var autoResolveSettings = await ProposalEligibility.GetAutoResolveSettingsAsync(
+                proposal, crewRepository, fleetRepository, cancellationToken);
+            ProposalVotingService.TryResolveOnTimer(
+                proposal, utcNow, duoMode, autoResolveSettings, eligible);
             await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
                 proposal,
                 statusBefore,

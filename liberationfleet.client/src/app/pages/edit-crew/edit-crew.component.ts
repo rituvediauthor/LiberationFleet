@@ -79,6 +79,10 @@ export class EditCrewComponent implements OnInit {
       allowCrossCrewGiving: [false],
       requireApprovalForEdits: [true],
       duoVoteTimeoutMode: ['AutoReject'],
+      autoResolveOverTime: [true],
+      baseAutoResolveHours: [24, [Validators.required, Validators.min(1), Validators.max(8760)]],
+      changeAutoResolveTimerOnFirstReject: [true],
+      autoResolveHoursAfterFirstReject: [168, [Validators.required, Validators.min(1), Validators.max(8760)]],
       inNeedDefaultThreshold: [20, [Validators.required, Validators.min(0)]],
       financialMembershipContributionFloor: [0, [Validators.required, Validators.min(0)]],
       libraryOfThingsEnabled: [true],
@@ -134,6 +138,14 @@ export class EditCrewComponent implements OnInit {
 
   get allowCrewmateFileAttachments(): boolean {
     return !!this.form.get('allowCrewmateFileAttachments')?.value;
+  }
+
+  get autoResolveOverTime(): boolean {
+    return !!this.form.get('autoResolveOverTime')?.value;
+  }
+
+  get changeAutoResolveTimerOnFirstReject(): boolean {
+    return !!this.form.get('changeAutoResolveTimerOnFirstReject')?.value;
   }
 
   get displayImageUrl(): string | null {
@@ -384,6 +396,10 @@ export class EditCrewComponent implements OnInit {
     allowCrossCrewGiving?: boolean;
     requireApprovalForEdits?: boolean;
     duoVoteTimeoutMode?: string;
+    autoResolveOverTime?: boolean;
+    baseAutoResolveHours?: number;
+    changeAutoResolveTimerOnFirstReject?: boolean;
+    autoResolveHoursAfterFirstReject?: number;
     inNeedDefaultThreshold?: number;
     financialMembershipContributionFloor?: number;
     libraryOfThingsEnabled?: boolean;
@@ -412,6 +428,10 @@ export class EditCrewComponent implements OnInit {
       allowCrossCrewGiving: crew.allowCrossCrewGiving ?? false,
       requireApprovalForEdits: crew.requireApprovalForEdits ?? true,
       duoVoteTimeoutMode: crew.duoVoteTimeoutMode ?? 'AutoReject',
+      autoResolveOverTime: crew.autoResolveOverTime ?? true,
+      baseAutoResolveHours: crew.baseAutoResolveHours ?? 24,
+      changeAutoResolveTimerOnFirstReject: crew.changeAutoResolveTimerOnFirstReject ?? true,
+      autoResolveHoursAfterFirstReject: crew.autoResolveHoursAfterFirstReject ?? 168,
       inNeedDefaultThreshold: crew.inNeedDefaultThreshold ?? 20,
       financialMembershipContributionFloor: crew.financialMembershipContributionFloor ?? 0,
       libraryOfThingsEnabled: crew.libraryOfThingsEnabled ?? true,
@@ -447,6 +467,10 @@ export class EditCrewComponent implements OnInit {
       allowCrossCrewGiving: !!this.form.get('allowCrossCrewGiving')?.value,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
       duoVoteTimeoutMode: String(this.form.get('duoVoteTimeoutMode')?.value || 'AutoReject'),
+      autoResolveOverTime: !!this.form.get('autoResolveOverTime')?.value,
+      baseAutoResolveHours: Number(this.form.get('baseAutoResolveHours')?.value),
+      changeAutoResolveTimerOnFirstReject: !!this.form.get('changeAutoResolveTimerOnFirstReject')?.value,
+      autoResolveHoursAfterFirstReject: Number(this.form.get('autoResolveHoursAfterFirstReject')?.value),
       inNeedDefaultThreshold: Number(this.form.get('inNeedDefaultThreshold')?.value),
       financialMembershipContributionFloor: Number(this.form.get('financialMembershipContributionFloor')?.value),
       libraryOfThingsEnabled: !!this.form.get('libraryOfThingsEnabled')?.value,

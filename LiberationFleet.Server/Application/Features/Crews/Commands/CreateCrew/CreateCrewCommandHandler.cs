@@ -19,6 +19,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
     private readonly ICurrentUserService _currentUserService;
     private readonly ContentTenureService _contentTenureService;
     private readonly FleetMembershipService _fleetMembershipService;
+    private readonly DefaultOrgContentSeeder _defaultOrgContentSeeder;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateCrewCommandHandler(
@@ -28,6 +29,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         ICurrentUserService currentUserService,
         ContentTenureService contentTenureService,
         FleetMembershipService fleetMembershipService,
+        DefaultOrgContentSeeder defaultOrgContentSeeder,
         IUnitOfWork unitOfWork)
     {
         _crewRepository = crewRepository;
@@ -36,6 +38,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         _currentUserService = currentUserService;
         _contentTenureService = contentTenureService;
         _fleetMembershipService = fleetMembershipService;
+        _defaultOrgContentSeeder = defaultOrgContentSeeder;
         _unitOfWork = unitOfWork;
     }
 
@@ -98,6 +101,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         }, cancellationToken);
         await _contentTenureService.OnJoinedCrewAsync(userId.Value, crew.Id, cancellationToken);
         await _fleetMembershipService.AttachCreatedCrewToFleetIfNeededAsync(userId.Value, crew.Id, cancellationToken);
+        await _defaultOrgContentSeeder.SeedCrewDefaultsAsync(crew, userId.Value, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewOperationResponse

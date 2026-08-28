@@ -92,7 +92,8 @@ public class FleetKickCrewProposalService(
             LastActivityAt = utcNow
         };
 
-        ProposalVotingService.ApplyTimerRulesOnCreate(proposal, utcNow);
+        await ProposalVotingService.ApplyTimerRulesOnCreateAsync(
+            proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
         await proposalRepository.AddFleetKickCrewAsync(new ProposalFleetKickCrew
         {

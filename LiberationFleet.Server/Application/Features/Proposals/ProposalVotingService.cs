@@ -32,10 +32,28 @@ public static class ProposalVotingService
     public static int RequiredVotesForMajority(int eligibleVoterCount) =>
         RequiredApproveVotes(eligibleVoterCount);
 
-    public static void ApplyTimerRulesOnCreate(Proposal proposal, DateTime utcNow)
+    public static void ApplyTimerRulesOnCreate(
+        Proposal proposal,
+        DateTime utcNow,
+        ProposalAutoResolveSettings settings)
     {
         proposal.Status = ProposalStatus.Pending;
-        proposal.ApprovalTimerEndsAt = utcNow.AddHours(24);
+        proposal.ApprovalTimerEndsAt = settings.ComputeTimerEnd(utcNow, disapproveCount: 0);
+    }
+
+    public static async Task ApplyTimerRulesOnCreateAsync(
+        Proposal proposal,
+        DateTime utcNow,
+        ICrewRepository crewRepository,
+        IFleetRepository fleetRepository,
+        CancellationToken cancellationToken)
+    {
+        var settings = await ProposalEligibility.GetAutoResolveSettingsAsync(
+            proposal,
+            crewRepository,
+            fleetRepository,
+            cancellationToken);
+        ApplyTimerRulesOnCreate(proposal, utcNow, settings);
     }
 
     /// <summary>Record the submitter's automatic approve vote once the proposal has an Id.</summary>
@@ -79,20 +97,38 @@ public static class ProposalVotingService
             crewRepository,
             fleetRepository,
             cancellationToken);
-        RecalculateStatus(proposal, eligibleCount, utcNow, duoMode);
+        var autoResolveSettings = await ProposalEligibility.GetAutoResolveSettingsAsync(
+            proposal,
+            crewRepository,
+            fleetRepository,
+            cancellationToken);
+        RecalculateStatus(proposal, eligibleCount, utcNow, duoMode, autoResolveSettings);
     }
 
-    public static void ApplyDisapproveTimerExtension(Proposal proposal, DateTime utcNow)
+    public static void ApplyDisapproveTimerExtension(
+        Proposal proposal,
+        DateTime utcNow,
+        ProposalAutoResolveSettings settings)
     {
-        proposal.ApprovalTimerEndsAt = utcNow.AddDays(7);
+        if (!settings.AutoResolveOverTime
+            || !settings.ChangeAutoResolveTimerOnFirstReject
+            || proposal.DisapproveCount != 1)
+        {
+            return;
+        }
+
+        proposal.ApprovalTimerEndsAt = utcNow.AddHours(settings.AutoResolveHoursAfterFirstReject);
     }
 
     public static void RecalculateStatus(
         Proposal proposal,
         int eligibleVoterCount,
         DateTime utcNow,
-        DuoVoteTimeoutMode duoMode = DuoVoteTimeoutMode.AutoReject)
+        DuoVoteTimeoutMode duoMode = DuoVoteTimeoutMode.AutoReject,
+        ProposalAutoResolveSettings? autoResolveSettings = null)
     {
+        var settings = autoResolveSettings ?? ProposalAutoResolveSettings.Defaults;
+
         // Duo ResolveOnFirstVote: author auto-approve alone must not settle.
         // A disapproval or a second approval settles immediately (matches duo thresholds).
         if (eligibleVoterCount == 2 && duoMode == DuoVoteTimeoutMode.ResolveOnFirstVote)
@@ -130,12 +166,14 @@ public static class ProposalVotingService
             }
         }
 
-        // Two eligible voters at 1–1: split rejects immediately.
+        // Two eligible voters at 1–1: apply tie preference immediately (before timer).
         if (eligibleVoterCount == 2
             && proposal.ApproveCount == 1
             && proposal.DisapproveCount == 1)
         {
-            proposal.Status = ProposalStatus.Rejected;
+            proposal.Status = duoMode == DuoVoteTimeoutMode.AutoApprove
+                ? ProposalStatus.Approved
+                : ProposalStatus.Rejected;
             proposal.ApprovalTimerEndsAt = null;
             return;
         }
@@ -145,39 +183,37 @@ public static class ProposalVotingService
             proposal.Status = ProposalStatus.Pending;
             if (!proposal.ApprovalTimerEndsAt.HasValue)
             {
-                proposal.ApprovalTimerEndsAt = proposal.DisapproveCount > 0
-                    ? utcNow.AddDays(7)
-                    : utcNow.AddHours(24);
+                proposal.ApprovalTimerEndsAt = settings.ComputeTimerEnd(utcNow, proposal.DisapproveCount);
             }
         }
 
-        TryResolveOnTimer(proposal, utcNow, duoMode, eligibleVoterCount);
+        TryResolveOnTimer(proposal, utcNow, duoMode, settings, eligibleVoterCount);
     }
 
     /// <summary>
     /// Resolve a still-pending proposal once UtcNow is at or past ApprovalTimerEndsAt.
     /// Cast-vote majority wins (approve count &gt; disapprove → approve, and vice versa).
-    /// Ties (including 0–0) reject, except two-voter incomplete outcomes which follow DuoVoteTimeoutMode.
+    /// Equal tallies of any size (including 0–0) follow DuoVoteTimeoutMode AutoApprove / AutoReject
+    /// (ResolveOnFirstVote treats ties as reject).
     /// </summary>
     public static void TryResolveOnTimer(
         Proposal proposal,
         DateTime utcNow,
         DuoVoteTimeoutMode duoMode = DuoVoteTimeoutMode.AutoReject,
+        ProposalAutoResolveSettings? autoResolveSettings = null,
         int? eligibleVoterCount = null)
     {
-        if (proposal.Status != ProposalStatus.Pending
+        var settings = autoResolveSettings ?? ProposalAutoResolveSettings.Defaults;
+        if (!settings.AutoResolveOverTime
+            || proposal.Status != ProposalStatus.Pending
             || !proposal.ApprovalTimerEndsAt.HasValue
             || proposal.ApprovalTimerEndsAt.Value > utcNow)
         {
             return;
         }
 
-        if (eligibleVoterCount == 2
-            && duoMode is DuoVoteTimeoutMode.AutoApprove or DuoVoteTimeoutMode.AutoReject
-            && proposal.ApproveCount + proposal.DisapproveCount < 2)
+        if (proposal.ApproveCount == proposal.DisapproveCount)
         {
-            // Incomplete duo vote: honor AutoApprove / AutoReject timeout preference.
-            // ResolveOnFirstVote falls through to cast-vote majority (author-only 1–0 → approve).
             proposal.Status = duoMode == DuoVoteTimeoutMode.AutoApprove
                 ? ProposalStatus.Approved
                 : ProposalStatus.Rejected;
@@ -191,7 +227,6 @@ public static class ProposalVotingService
         }
         else
         {
-            // Majority rejection, or tie / no votes → reject.
             proposal.Status = ProposalStatus.Rejected;
         }
 
