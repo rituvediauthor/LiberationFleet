@@ -144,8 +144,6 @@ stages:
           value: LiberationFleet.Server/Dockerfile
         - name: terraformWorkingDirectory
           value: $(Build.SourcesDirectory)/infrastructure/terraform
-        - name: vmImage
-          value: ubuntu-latest
         - name: ImageTag
           value: $[ stageDependencies.Build.BuildTest.outputs['setTag.ImageTag'] ]
       jobs:
@@ -153,7 +151,7 @@ stages:
           displayName: Staging infra + app
           environment: staging
           pool:
-            vmImage: $(vmImage)
+            vmImage: ubuntu-latest
           strategy:
             runOnce:
               deploy:
@@ -199,8 +197,6 @@ stages:
           value: LiberationFleet.Server/Dockerfile
         - name: terraformWorkingDirectory
           value: $(Build.SourcesDirectory)/infrastructure/terraform
-        - name: vmImage
-          value: ubuntu-latest
         - name: ImageTag
           value: $[ stageDependencies.Build.BuildTest.outputs['setTag.ImageTag'] ]
       jobs:
@@ -208,7 +204,7 @@ stages:
           displayName: Production infra + app
           environment: production
           pool:
-            vmImage: $(vmImage)
+            vmImage: ubuntu-latest
           strategy:
             runOnce:
               deploy:
