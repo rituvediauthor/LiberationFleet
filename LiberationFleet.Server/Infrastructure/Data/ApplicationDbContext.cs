@@ -89,6 +89,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<LibraryRequest> LibraryRequests => Set<LibraryRequest>();
     public DbSet<LibraryRequestMessage> LibraryRequestMessages => Set<LibraryRequestMessage>();
     public DbSet<LibraryMaintenanceRecord> LibraryMaintenanceRecords => Set<LibraryMaintenanceRecord>();
+    public DbSet<LibraryTask> LibraryTasks => Set<LibraryTask>();
+    public DbSet<LibraryTaskInstance> LibraryTaskInstances => Set<LibraryTaskInstance>();
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
     public DbSet<ContentReportAccessLog> ContentReportAccessLogs => Set<ContentReportAccessLog>();
     public DbSet<AppDonation> AppDonations => Set<AppDonation>();
@@ -1570,6 +1572,45 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.ContributorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LibraryTask>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Details).HasMaxLength(4000);
+            entity.Property(e => e.HasEncryptedContent).HasDefaultValue(false);
+            entity.Property(e => e.HasDeadline).HasDefaultValue(true);
+            entity.Property(e => e.DeleteOnCompletion).HasDefaultValue(false);
+            entity.Property(e => e.Value).HasPrecision(18, 2);
+            entity.Property(e => e.WeekDays).HasMaxLength(32);
+            entity.Property(e => e.MonthDays).HasMaxLength(128);
+            entity.Property(e => e.Interval).HasDefaultValue(1);
+            entity.Property(e => e.IsClosed).HasDefaultValue(false);
+            entity.HasOne(e => e.Crew)
+                .WithMany()
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CreatorUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.CrewId, e.IsClosed, e.CreatedAt });
+        });
+
+        modelBuilder.Entity<LibraryTaskInstance>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Task)
+                .WithMany(t => t.Instances)
+                .HasForeignKey(e => e.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ClaimedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ClaimedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TaskId, e.Status, e.ScheduledAt });
+            entity.HasIndex(e => new { e.ClaimedByUserId, e.Status });
         });
     }
 }

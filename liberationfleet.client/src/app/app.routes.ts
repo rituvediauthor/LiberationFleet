@@ -78,6 +78,10 @@ import { LibraryRequestChatComponent } from './pages/library/library-request-cha
 import { LibraryUnitActiveRequestsComponent } from './pages/library/library-unit-active-requests/library-unit-active-requests.component';
 import { LibraryStockListComponent } from './pages/library/library-stock-list/library-stock-list.component';
 import { LibraryMyOfferingsComponent } from './pages/library/library-my-offerings/library-my-offerings.component';
+import { LibraryTaskBoardComponent } from './pages/library/library-tasks/library-task-board/library-task-board.component';
+import { LibraryTaskFormComponent } from './pages/library/library-tasks/library-task-form/library-task-form.component';
+import { LibraryTaskDetailComponent } from './pages/library/library-tasks/library-task-detail/library-task-detail.component';
+import { LibraryTaskNoDeadlineComponent } from './pages/library/library-tasks/library-task-no-deadline/library-task-no-deadline.component';
 import { authGuard } from './guards/auth.guard';
 import { libraryAccessGuard } from './guards/library-access.guard';
 import { fleetRulesAcceptedGuard } from './guards/fleet-rules-accepted.guard';
@@ -733,6 +737,36 @@ export const routes: Routes = [
     component: LibraryHubComponent,
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Library of Things' }
+  },
+  {
+    path: 'app/crew/library-of-things/tasks/create',
+    component: LibraryTaskFormComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Create Task' }
+  },
+  {
+    path: 'app/crew/library-of-things/tasks/no-deadline',
+    component: LibraryTaskNoDeadlineComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'No-Deadline Tasks' }
+  },
+  {
+    path: 'app/crew/library-of-things/tasks/:id/edit',
+    component: LibraryTaskFormComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Edit Task' }
+  },
+  {
+    path: 'app/crew/library-of-things/tasks/:id',
+    component: LibraryTaskDetailComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Task' }
+  },
+  {
+    path: 'app/crew/library-of-things/tasks',
+    component: LibraryTaskBoardComponent,
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Task Board' }
   },
   {
     path: 'app/crew/library-of-things/durable',

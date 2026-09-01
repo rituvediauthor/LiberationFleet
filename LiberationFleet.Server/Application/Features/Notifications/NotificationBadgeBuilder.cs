@@ -362,7 +362,8 @@ public static class NotificationBadgeBuilder
             NotificationKind.JoinRequestFromCrew => "userInvitations",
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
-                or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed => "crewLibrary",
+                or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed
+                or NotificationKind.LibraryTaskScheduleChanged => "crewLibrary",
             NotificationKind.FriendRequest or NotificationKind.FriendRequestAccepted
                 or NotificationKind.NewDirectMessage => "friends",
             _ => null
@@ -458,6 +459,13 @@ public static class NotificationBadgeBuilder
             case NotificationKind.LibraryUnitBrokenConfirmed:
             case NotificationKind.LibraryUnitReportedFixed:
                 keys.Add("library-section:mine");
+                break;
+            case NotificationKind.LibraryTaskScheduleChanged:
+                keys.Add("library-section:tasks");
+                if (notification.RelatedEntityId.HasValue)
+                {
+                    keys.Add($"library-task:{notification.RelatedEntityId.Value}");
+                }
                 break;
             case NotificationKind.NewDirectMessage:
             case NotificationKind.FriendRequest:

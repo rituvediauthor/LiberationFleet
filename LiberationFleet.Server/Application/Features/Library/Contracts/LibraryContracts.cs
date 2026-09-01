@@ -345,3 +345,120 @@ public class LibraryMaintenanceOperationResponse
     public int? GiftId { get; set; }
     public int? CrewGiftRecipientUserId { get; set; }
 }
+
+public class LibraryTaskListItemDto
+{
+    public int TaskId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string CreatorUsername { get; set; } = string.Empty;
+    public int CreatorUserId { get; set; }
+    public decimal Value { get; set; }
+    public bool HasDeadline { get; set; }
+    public bool DeleteOnCompletion { get; set; }
+    public string ScheduleSummary { get; set; } = string.Empty;
+    public DateTime? NextDueAt { get; set; }
+    public bool HasEncryptedContent { get; set; }
+}
+
+public class LibraryTaskListResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public IReadOnlyList<LibraryTaskListItemDto> Items { get; set; } = Array.Empty<LibraryTaskListItemDto>();
+}
+
+public class LibraryTaskInstanceDto
+{
+    public int InstanceId { get; set; }
+    public DateTime ScheduledAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int? ClaimedByUserId { get; set; }
+    public string? ClaimedByUsername { get; set; }
+    public bool ClaimedByCurrentUser { get; set; }
+    public bool Selectable { get; set; }
+}
+
+public class LibraryTaskDetailDto
+{
+    public int TaskId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public bool HasEncryptedContent { get; set; }
+    public decimal Value { get; set; }
+    public int CreatorUserId { get; set; }
+    public string CreatorUsername { get; set; } = string.Empty;
+    public bool IsCreator { get; set; }
+    public bool HasDeadline { get; set; }
+    public bool DeleteOnCompletion { get; set; }
+    public bool CanCompleteAnytime { get; set; }
+    public bool HasPendingConfirmation { get; set; }
+    public IReadOnlyList<int> PendingConfirmationInstanceIds { get; set; } = Array.Empty<int>();
+    public bool AwaitingConfirmationForCurrentUser { get; set; }
+    public bool IsRecurring { get; set; }
+    public string Frequency { get; set; } = "None";
+    public bool TimeSpecific { get; set; }
+    public int? SpecificTimeMinutes { get; set; }
+    public bool IsSpaced { get; set; }
+    public int Interval { get; set; } = 1;
+    public bool DaySpecific { get; set; }
+    public IReadOnlyList<int> WeekDays { get; set; } = Array.Empty<int>();
+    public IReadOnlyList<int> MonthDays { get; set; } = Array.Empty<int>();
+    public int? YearMonth { get; set; }
+    public int? YearDay { get; set; }
+    public DateTime? OneShotDueAt { get; set; }
+    public string ScheduleSummary { get; set; } = string.Empty;
+    public IReadOnlyList<LibraryTaskInstanceDto> Instances { get; set; } = Array.Empty<LibraryTaskInstanceDto>();
+}
+
+public class LibraryTaskDetailResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public LibraryTaskDetailDto? Task { get; set; }
+}
+
+public class UpsertLibraryTaskRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public decimal Value { get; set; }
+    public bool HasDeadline { get; set; } = true;
+    public bool DeleteOnCompletion { get; set; }
+    public bool IsRecurring { get; set; }
+    public string Frequency { get; set; } = "None";
+    public bool TimeSpecific { get; set; }
+    public int? SpecificTimeMinutes { get; set; }
+    public bool IsSpaced { get; set; }
+    public int Interval { get; set; } = 1;
+    public bool DaySpecific { get; set; }
+    public IReadOnlyList<int> WeekDays { get; set; } = Array.Empty<int>();
+    public IReadOnlyList<int> MonthDays { get; set; } = Array.Empty<int>();
+    public int? YearMonth { get; set; }
+    public int? YearDay { get; set; }
+    public DateTime? OneShotDueAt { get; set; }
+    public string Nonce { get; set; } = string.Empty;
+    public string Ciphertext { get; set; } = string.Empty;
+    public int KeyVersion { get; set; } = 1;
+}
+
+public class LibraryTaskOperationResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int? TaskId { get; set; }
+}
+
+public class LibraryTaskInstanceIdsRequest
+{
+    public IReadOnlyList<int> InstanceIds { get; set; } = Array.Empty<int>();
+}
+
+public class LibraryTaskConfirmResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public bool TaskClosed { get; set; }
+    public IReadOnlyList<LibraryCreatorContributionGiftDto> ContributionGifts { get; set; }
+        = Array.Empty<LibraryCreatorContributionGiftDto>();
+}

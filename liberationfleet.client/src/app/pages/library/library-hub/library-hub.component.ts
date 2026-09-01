@@ -56,4 +56,8 @@ export class LibraryHubComponent implements OnInit, OnDestroy {
   openMyRequests() {
     this.router.navigate(['/app/crew/library-of-things/requests/mine']);
   }
+
+  openTaskBoard() {
+    this.router.navigate(['/app/crew/library-of-things/tasks']);
+  }
 }

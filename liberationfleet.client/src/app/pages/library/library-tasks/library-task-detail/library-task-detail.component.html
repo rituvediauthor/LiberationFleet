@@ -1,0 +1,84 @@
+<app-page-layout
+  [backButton]="backButton"
+  [primaryButton]="primaryButton"
+  [secondaryButton]="secondaryButton"
+  [fillHeight]="true">
+  <div class="task-detail-page">
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+    <ng-container *ngIf="!loading && task">
+      <p class="task-meta">Created by {{ task.creatorUsername }}</p>
+      <h2 class="task-title">{{ task.title }}</h2>
+      <p class="task-value">${{ formatValue(task.value) }}</p>
+      <p class="task-schedule" *ngIf="task.scheduleSummary">{{ task.scheduleSummary }}</p>
+      <p class="task-details" *ngIf="task.details">{{ task.details }}</p>
+      <p class="state-text" *ngIf="isNoDeadline && task.awaitingConfirmationForCurrentUser">
+        Your completion is awaiting confirmation.
+      </p>
+
+      <ng-container *ngIf="isNoDeadline && task.isCreator">
+        <h3 class="section-heading">Pending completions</h3>
+        <p class="state-text" *ngIf="task.instances.length === 0">No pending completions.</p>
+        <ul class="instance-list" *ngIf="task.instances.length > 0">
+          <li
+            *ngFor="let instance of task.instances"
+            class="instance-row"
+            [class.selected]="isSelected(instance)"
+            [class.disabled]="!canToggle(instance) && !isSelected(instance)">
+            <label class="instance-label">
+              <input
+                type="checkbox"
+                [checked]="isSelected(instance)"
+                [disabled]="!canToggle(instance) && !isSelected(instance)"
+                (change)="toggleInstance(instance)" />
+              <span class="instance-body">
+                <span class="instance-when">{{ formatPendingCompletion(instance) }}</span>
+              </span>
+            </label>
+          </li>
+        </ul>
+      </ng-container>
+
+      <ng-container *ngIf="!isNoDeadline">
+      <h3 class="section-heading">Instances</h3>
+      <p class="state-text" *ngIf="task.instances.length === 0">No upcoming instances.</p>
+
+      <ul class="instance-list" *ngIf="task.instances.length > 0">
+        <li
+          *ngFor="let instance of task.instances"
+          class="instance-row"
+          [class.selected]="isSelected(instance)"
+          [class.claimed-by-me]="isClaimedByMe(instance)"
+          [class.disabled]="!canToggle(instance) && !isSelected(instance)">
+          <label class="instance-label">
+            <input
+              type="checkbox"
+              [checked]="isSelected(instance)"
+              [disabled]="!canToggle(instance) && !isSelected(instance)"
+              (change)="toggleInstance(instance)" />
+            <span class="instance-body">
+              <span class="instance-when">{{ formatInstanceWhen(instance) }}</span>
+              <span class="instance-status" [attr.data-status]="instance.status">{{ instance.status }}</span>
+              <span class="claimed-pill" *ngIf="isClaimedByOther(instance)">
+                Claimed by {{ instance.claimedByUsername }}
+              </span>
+            </span>
+          </label>
+        </li>
+      </ul>
+      </ng-container>
+    </ng-container>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showDeleteConfirm"
+  title="Delete task"
+  message="Delete this task and all of its incomplete instances? Claimants will be notified."
+  confirmLabel="Delete"
+  cancelLabel="Cancel"
+  (confirmed)="onDeleteConfirm()"
+  (cancelled)="onDeleteCancel()"
+  (dismissed)="onDeleteCancel()">
+</app-confirm-dialog>

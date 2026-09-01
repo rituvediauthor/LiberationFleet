@@ -1,0 +1,71 @@
+@import '../../library-durable-list/library-durable-list.component.css';
+
+.board-top-actions {
+  margin: 0 0 12px;
+}
+
+.no-deadline-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.no-deadline-link:hover {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.page-note {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--lf-color-text-secondary);
+}
+
+.task-card {
+  width: 100%;
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  background: var(--lf-color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-card:hover {
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
+}
+
+.task-meta {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+}
+
+.task-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.task-schedule {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+}
+
+.task-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lf-color-accent);
+}

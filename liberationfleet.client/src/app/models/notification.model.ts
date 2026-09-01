@@ -53,7 +53,9 @@ export type NotificationKind =
   | 'NewFleetProposalReply'
   | 'FriendRequest'
   | 'FriendRequestAccepted'
-  | 'NewDirectMessage';
+  | 'NewDirectMessage'
+  | 'ChatMessageLiked'
+  | 'LibraryTaskScheduleChanged';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet' | 'Friends';
 

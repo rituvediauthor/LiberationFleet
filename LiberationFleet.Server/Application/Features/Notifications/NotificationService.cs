@@ -217,8 +217,9 @@ public class NotificationService(
         NotificationKind.FriendRequestAccepted => "Friend request accepted",
         NotificationKind.NewDirectMessage => "New direct message",
         NotificationKind.ChatMessageLiked => "Message liked",
+        NotificationKind.LibraryTaskScheduleChanged => "Task schedule updated",
         _ => kind.ToString()
-    };
+        };
 
     public static string GetKindCategory(NotificationKind kind) => kind switch
     {

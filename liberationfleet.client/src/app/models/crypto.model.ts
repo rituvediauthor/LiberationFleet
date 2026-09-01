@@ -9,13 +9,16 @@ export type EncryptedContentType =
   | 'LibraryRequest'
   | 'LibraryRequestMessage'
   | 'LibraryMaintenanceRecord'
+  | 'LibraryBrokenReport'
+  | 'LibraryTask'
   | 'ImageAsset'
   | 'AudioAsset'
   | 'VideoAsset'
   | 'ProposalComment'
   | 'ForumComment'
   | 'ChatRoomName'
-  | 'ProfileAvatar';
+  | 'ProfileAvatar'
+  | 'GiftComment';
 
 export interface UserKeyBundle {
   userId: number;

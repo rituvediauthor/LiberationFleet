@@ -16,6 +16,7 @@ using LiberationFleet.Server.Application.Features.Library.Commands.DeleteLibrary
 using LiberationFleet.Server.Application.Features.Library.Commands.ReportLibraryUnitLost;
 using LiberationFleet.Server.Application.Features.Library.Commands.UpdateLibraryOffering;
 using LiberationFleet.Server.Application.Features.Library.Commands.UpdateLibraryRequest;
+using LiberationFleet.Server.Application.Features.Library.Commands.LibraryTasks;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetDurableLibraryUnits;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetIncomingLibraryRequests;
@@ -399,6 +400,90 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.Nonce,
             body.Ciphertext,
             body.KeyVersion));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("tasks")]
+    public async Task<IActionResult> GetTasks()
+    {
+        var result = await mediator.Send(new GetLibraryTasksQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("tasks/no-deadline")]
+    public async Task<IActionResult> GetNoDeadlineTasks()
+    {
+        var result = await mediator.Send(new GetNoDeadlineLibraryTasksQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("tasks/{taskId:int}")]
+    public async Task<IActionResult> GetTask(int taskId)
+    {
+        var result = await mediator.Send(new GetLibraryTaskDetailQuery(taskId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks")]
+    public async Task<IActionResult> CreateTask([FromBody] UpsertLibraryTaskRequest body)
+    {
+        var result = await mediator.Send(new CreateLibraryTaskCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("tasks/{taskId:int}")]
+    public async Task<IActionResult> UpdateTask(int taskId, [FromBody] UpsertLibraryTaskRequest body)
+    {
+        var result = await mediator.Send(new UpdateLibraryTaskCommand(taskId, body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("tasks/{taskId:int}")]
+    public async Task<IActionResult> DeleteTask(int taskId)
+    {
+        var result = await mediator.Send(new DeleteLibraryTaskCommand(taskId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks/{taskId:int}/claim")]
+    public async Task<IActionResult> ClaimTaskInstances(int taskId, [FromBody] LibraryTaskInstanceIdsRequest body)
+    {
+        var result = await mediator.Send(new ClaimLibraryTaskInstancesCommand(taskId, body.InstanceIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks/{taskId:int}/unclaim")]
+    public async Task<IActionResult> UnclaimTaskInstances(int taskId, [FromBody] LibraryTaskInstanceIdsRequest body)
+    {
+        var result = await mediator.Send(new UnclaimLibraryTaskInstancesCommand(taskId, body.InstanceIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks/{taskId:int}/complete")]
+    public async Task<IActionResult> CompleteTaskInstances(int taskId, [FromBody] LibraryTaskInstanceIdsRequest body)
+    {
+        var result = await mediator.Send(new CompleteLibraryTaskInstancesCommand(taskId, body.InstanceIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks/{taskId:int}/complete-anytime")]
+    public async Task<IActionResult> CompleteNoDeadlineTask(int taskId)
+    {
+        var result = await mediator.Send(new CompleteNoDeadlineLibraryTaskCommand(taskId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks/{taskId:int}/confirm")]
+    public async Task<IActionResult> ConfirmTaskInstances(int taskId, [FromBody] LibraryTaskInstanceIdsRequest body)
+    {
+        var result = await mediator.Send(new ConfirmLibraryTaskInstancesCommand(taskId, body.InstanceIds));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("tasks/{taskId:int}/reject-completion")]
+    public async Task<IActionResult> RejectTaskInstances(int taskId, [FromBody] LibraryTaskInstanceIdsRequest body)
+    {
+        var result = await mediator.Send(new RejectLibraryTaskInstancesCommand(taskId, body.InstanceIds));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

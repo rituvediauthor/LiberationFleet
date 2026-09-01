@@ -224,6 +224,40 @@ export class GiftLogCryptoService {
     }, crewId);
   }
 
+  async encryptLibraryTaskCompletion(
+    gift: {
+      giftId: number;
+      contributorUserId: number;
+      contributorUsername: string;
+      amount: number;
+      itemTitle: string;
+      recipientUserId: number;
+      recipientUsername: string;
+      crewGiftRecipientUserId: number;
+    },
+    crewId: number
+  ): Promise<void> {
+    const amountText = Number.isInteger(gift.amount)
+      ? gift.amount.toString()
+      : gift.amount.toFixed(2).replace(/\.?0+$/, '');
+    const title = gift.itemTitle.trim() || 'a task';
+    const message = `${gift.contributorUsername} gifted ${gift.recipientUsername} $${amountText} worth of ${title}`;
+    await this.encryptAndStoreEntry({
+      id: gift.giftId,
+      type: 'direct',
+      giverId: gift.contributorUserId,
+      giverName: gift.contributorUsername,
+      recipientId: gift.recipientUserId,
+      recipientName: gift.recipientUsername,
+      amount: gift.amount,
+      platform: 'Library of Things',
+      timestamp: new Date(),
+      message,
+      relatedUserIds: [gift.contributorUserId, gift.recipientUserId, gift.crewGiftRecipientUserId],
+      hasEncryptedContent: false
+    }, crewId);
+  }
+
   buildLibraryOfThingsMessage(
     giverName: string,
     amount: number,

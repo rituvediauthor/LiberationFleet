@@ -335,3 +335,119 @@ export type LibraryHubSection =
   | 'consumable'
   | 'services'
   | 'mine';
+
+export type LibraryTaskFrequency = 'None' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+
+export type LibraryTaskInstanceStatus =
+  | 'Open'
+  | 'Claimed'
+  | 'AwaitingConfirmation'
+  | 'Confirmed'
+  | 'Cancelled';
+
+export interface LibraryTaskListItem {
+  taskId: number;
+  title: string;
+  creatorUsername: string;
+  creatorUserId: number;
+  value: number;
+  hasDeadline?: boolean;
+  deleteOnCompletion?: boolean;
+  scheduleSummary: string;
+  nextDueAt?: string | null;
+  hasEncryptedContent?: boolean;
+}
+
+export interface LibraryTaskListResponse {
+  success: boolean;
+  message: string;
+  items: LibraryTaskListItem[];
+}
+
+export interface LibraryTaskInstance {
+  instanceId: number;
+  scheduledAt: string;
+  completedAt?: string | null;
+  status: LibraryTaskInstanceStatus | string;
+  claimedByUserId?: number | null;
+  claimedByUsername?: string | null;
+  claimedByCurrentUser: boolean;
+  selectable: boolean;
+}
+
+export interface LibraryTaskDetail {
+  taskId: number;
+  title: string;
+  details: string;
+  hasEncryptedContent?: boolean;
+  value: number;
+  creatorUserId: number;
+  creatorUsername: string;
+  isCreator: boolean;
+  hasDeadline: boolean;
+  deleteOnCompletion?: boolean;
+  canCompleteAnytime?: boolean;
+  hasPendingConfirmation?: boolean;
+  pendingConfirmationInstanceIds?: number[];
+  awaitingConfirmationForCurrentUser?: boolean;
+  isRecurring: boolean;
+  frequency: LibraryTaskFrequency | string;
+  timeSpecific: boolean;
+  specificTimeMinutes?: number | null;
+  isSpaced: boolean;
+  interval: number;
+  daySpecific: boolean;
+  weekDays: number[];
+  monthDays: number[];
+  yearMonth?: number | null;
+  yearDay?: number | null;
+  oneShotDueAt?: string | null;
+  scheduleSummary: string;
+  instances: LibraryTaskInstance[];
+}
+
+export interface LibraryTaskDetailResponse {
+  success: boolean;
+  message: string;
+  task?: LibraryTaskDetail;
+}
+
+export interface UpsertLibraryTaskRequest {
+  title: string;
+  details: string;
+  value: number;
+  hasDeadline: boolean;
+  deleteOnCompletion?: boolean;
+  isRecurring: boolean;
+  frequency: LibraryTaskFrequency | string;
+  timeSpecific: boolean;
+  specificTimeMinutes?: number | null;
+  isSpaced: boolean;
+  interval: number;
+  daySpecific: boolean;
+  weekDays: number[];
+  monthDays: number[];
+  yearMonth?: number | null;
+  yearDay?: number | null;
+  oneShotDueAt?: string | null;
+  nonce: string;
+  ciphertext: string;
+  keyVersion: number;
+}
+
+export interface LibraryTaskOperationResponse {
+  success: boolean;
+  message: string;
+  taskId?: number;
+}
+
+export interface LibraryTaskInstanceIdsRequest {
+  instanceIds: number[];
+}
+
+export interface LibraryTaskConfirmResponse {
+  success: boolean;
+  message: string;
+  taskClosed?: boolean;
+  contributionGifts: LibraryCreatorContributionGift[];
+}

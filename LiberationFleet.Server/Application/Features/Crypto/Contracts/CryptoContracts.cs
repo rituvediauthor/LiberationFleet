@@ -75,7 +75,11 @@ public enum EncryptedContentTypeDto
     ChatRoomName = 14,
     LibraryRequest = 15,
     LibraryRequestMessage = 16,
-    ProfileAvatar = 19
+    LibraryBrokenReport = 17,
+    LibraryMaintenanceRecord = 18,
+    ProfileAvatar = 19,
+    GiftComment = 20,
+    LibraryTask = 21
 }
 
 public class CryptoOperationResponse

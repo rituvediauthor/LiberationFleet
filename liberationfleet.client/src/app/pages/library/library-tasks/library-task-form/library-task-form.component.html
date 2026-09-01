@@ -1,0 +1,178 @@
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="task-form-page">
+    <p *ngIf="loading" class="state-text">Loading...</p>
+
+    <form *ngIf="!loading" [formGroup]="form">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input
+          id="title"
+          class="form-input"
+          type="text"
+          formControlName="title"
+          placeholder="Task title"
+          [maxlength]="titleMaxLength"
+          [attr.aria-invalid]="isInvalid('title')"
+          [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
+        <app-char-counter [current]="form.get('title')?.value?.length || 0" [max]="titleMaxLength"></app-char-counter>
+        <span id="title-error" class="error-text" role="alert" *ngIf="isInvalid('title')">Title is required</span>
+      </div>
+
+      <div class="form-group">
+        <label for="value">Value ($)</label>
+        <input
+          id="value"
+          class="form-input"
+          type="number"
+          min="0.01"
+          step="0.01"
+          formControlName="value"
+          [attr.aria-invalid]="isInvalid('value')"
+          [attr.aria-describedby]="isInvalid('value') ? 'value-error' : null" />
+        <span id="value-error" class="error-text" role="alert" *ngIf="isInvalid('value')">
+          Enter a value of at least $0.01
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="details">Details</label>
+        <textarea
+          id="details"
+          class="form-input textarea"
+          rows="6"
+          formControlName="details"
+          placeholder="Describe the task"
+          [maxlength]="detailsMaxLength"></textarea>
+        <app-char-counter [current]="form.get('details')?.value?.length || 0" [max]="detailsMaxLength"></app-char-counter>
+      </div>
+
+      <div class="checkbox-field">
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="hasDeadline" />
+          <span>Deadline?</span>
+        </label>
+        <p class="field-hint" *ngIf="!hasDeadline">No deadline — do it when you can.</p>
+      </div>
+
+      <div class="checkbox-field" *ngIf="!hasDeadline">
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="deleteOnCompletion" />
+          <span>Delete on completion</span>
+        </label>
+        <p class="field-hint" *ngIf="form.get('deleteOnCompletion')?.value">
+          After you confirm a completion, this task is removed from the board.
+        </p>
+        <p class="field-hint" *ngIf="!form.get('deleteOnCompletion')?.value">
+          Stays on the board so any number of people can complete it any number of times.
+        </p>
+      </div>
+
+      <ng-container *ngIf="hasDeadline">
+      <div class="checkbox-field">
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="isRecurring" />
+          <span>Recurring</span>
+        </label>
+      </div>
+
+      <div class="form-group" *ngIf="isRecurring">
+        <label for="frequency">Frequency</label>
+        <select id="frequency" class="form-input" formControlName="frequency">
+          <option *ngFor="let option of frequencies" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </div>
+
+      <div class="checkbox-field">
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="timeSpecific" />
+          <span>Time Specific</span>
+        </label>
+      </div>
+
+      <div class="form-row time-row" *ngIf="timeSpecific">
+        <div class="form-group">
+          <label for="timeHour">Hour</label>
+          <input id="timeHour" class="form-input" type="number" min="1" max="12" formControlName="timeHour" />
+        </div>
+        <div class="form-group">
+          <label for="timeMinute">Minute</label>
+          <input id="timeMinute" class="form-input" type="number" min="0" max="59" formControlName="timeMinute" />
+        </div>
+        <div class="form-group">
+          <span class="group-label">AM / PM</span>
+          <div class="radio-group horizontal" role="radiogroup" aria-label="AM or PM">
+            <label class="radio-option compact">
+              <input type="radio" formControlName="timePeriod" value="am" />
+              <span>AM</span>
+            </label>
+            <label class="radio-option compact">
+              <input type="radio" formControlName="timePeriod" value="pm" />
+              <span>PM</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <ng-container *ngIf="!isRecurring">
+        <div class="form-group">
+          <label for="oneShotDate">Due date</label>
+          <input id="oneShotDate" class="form-input" type="date" formControlName="oneShotDate" />
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="isRecurring">
+        <div class="checkbox-field">
+          <label class="checkbox-option">
+            <input type="checkbox" formControlName="isSpaced" />
+            <span>Spaced</span>
+          </label>
+        </div>
+
+        <div class="form-group" *ngIf="isSpaced">
+          <label for="interval">Every N {{ spacedUnit }}</label>
+          <input id="interval" class="form-input" type="number" min="1" formControlName="interval" />
+        </div>
+
+        <ng-container *ngIf="frequency === 'Weekly' || frequency === 'Monthly'">
+          <div class="checkbox-field">
+            <label class="checkbox-option">
+              <input type="checkbox" formControlName="daySpecific" />
+              <span>Day specific</span>
+            </label>
+          </div>
+
+          <div class="day-grid" *ngIf="daySpecific && frequency === 'Weekly'" role="group" aria-label="Weekdays">
+            <label class="day-chip" *ngFor="let day of weekDayLabels" [class.selected]="isWeekDaySelected(day.value)">
+              <input type="checkbox" [checked]="isWeekDaySelected(day.value)" (change)="toggleWeekDay(day.value)" />
+              <span>{{ day.label }}</span>
+            </label>
+          </div>
+
+          <div class="day-grid month-days" *ngIf="daySpecific && frequency === 'Monthly'" role="group" aria-label="Days of month">
+            <label class="day-chip" *ngFor="let day of monthDayOptions" [class.selected]="isMonthDaySelected(day)">
+              <input type="checkbox" [checked]="isMonthDaySelected(day)" (change)="toggleMonthDay(day)" />
+              <span>{{ day }}</span>
+            </label>
+            <p class="field-hint" *ngIf="isMonthDaySelected(31)">31 = day 31 or last day of shorter months</p>
+          </div>
+        </ng-container>
+
+        <div class="form-row" *ngIf="frequency === 'Yearly'">
+          <div class="form-group">
+            <label for="yearMonth">Month</label>
+            <select id="yearMonth" class="form-input" formControlName="yearMonth">
+              <option *ngFor="let month of monthOptions" [ngValue]="month.value">{{ month.label }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="yearDay">Day</label>
+            <select id="yearDay" class="form-input" formControlName="yearDay">
+              <option *ngFor="let day of monthDayOptions" [ngValue]="day">{{ day }}</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+      </ng-container>
+    </form>
+  </div>
+</app-page-layout>

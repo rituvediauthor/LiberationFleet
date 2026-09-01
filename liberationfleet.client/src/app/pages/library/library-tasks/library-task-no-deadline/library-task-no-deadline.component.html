@@ -1,0 +1,20 @@
+<app-page-layout [backButton]="backButton" [fillHeight]="true">
+  <div class="library-list-page">
+    <p class="page-note">No-deadline tasks, ordered alphabetically</p>
+
+    <p *ngIf="loading" class="state-text">Loading...</p>
+    <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
+      No open no-deadline tasks yet.
+    </p>
+
+    <div class="item-cards" *ngIf="!loading && items.length > 0">
+      <button type="button" class="task-card" *ngFor="let item of items" (click)="openTask(item)">
+        <p class="task-meta">{{ item.creatorUsername }}</p>
+        <h2 class="task-title">{{ item.title }}</h2>
+        <p class="task-schedule">When you can</p>
+        <p class="task-value">${{ formatValue(item.value) }}</p>
+      </button>
+    </div>
+  </div>
+</app-page-layout>

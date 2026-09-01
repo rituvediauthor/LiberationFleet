@@ -32,7 +32,14 @@ import {
   RecordLibraryMaintenancePayload,
   LibraryUnitOperationResponse,
   LibraryMaintenanceOperationResponse,
-  LibraryOfferingKind
+  LibraryOfferingKind,
+  LibraryTaskListItem,
+  LibraryTaskListResponse,
+  LibraryTaskDetail,
+  LibraryTaskDetailResponse,
+  UpsertLibraryTaskRequest,
+  LibraryTaskOperationResponse,
+  LibraryTaskConfirmResponse
 } from '../models/library.model';
 
 @Injectable({
@@ -336,6 +343,77 @@ export class LibraryService {
     return this.http.post<LibraryMaintenanceOperationResponse>(`${this.basePath}/units/${unitId}/maintenance`, {
       ...payload,
       keyVersion: payload.keyVersion ?? 1
+    });
+  }
+
+  getTasks(): Observable<LibraryTaskListItem[]> {
+    return this.http.get<LibraryTaskListResponse>(`${this.basePath}/tasks`).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load tasks');
+        }
+        return response.items;
+      })
+    );
+  }
+
+  getNoDeadlineTasks(): Observable<LibraryTaskListItem[]> {
+    return this.http.get<LibraryTaskListResponse>(`${this.basePath}/tasks/no-deadline`).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load no-deadline tasks');
+        }
+        return response.items;
+      })
+    );
+  }
+
+  getTask(taskId: number): Observable<LibraryTaskDetail> {
+    return this.http.get<LibraryTaskDetailResponse>(`${this.basePath}/tasks/${taskId}`).pipe(
+      map(response => {
+        if (!response.success || !response.task) {
+          throw new Error(response.message || 'Failed to load task');
+        }
+        return response.task;
+      })
+    );
+  }
+
+  createTask(payload: UpsertLibraryTaskRequest): Observable<LibraryTaskOperationResponse> {
+    return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks`, payload);
+  }
+
+  updateTask(taskId: number, payload: UpsertLibraryTaskRequest): Observable<LibraryTaskOperationResponse> {
+    return this.http.put<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}`, payload);
+  }
+
+  deleteTask(taskId: number): Observable<LibraryTaskOperationResponse> {
+    return this.http.delete<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}`);
+  }
+
+  claimTaskInstances(taskId: number, instanceIds: number[]): Observable<LibraryTaskOperationResponse> {
+    return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}/claim`, { instanceIds });
+  }
+
+  unclaimTaskInstances(taskId: number, instanceIds: number[]): Observable<LibraryTaskOperationResponse> {
+    return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}/unclaim`, { instanceIds });
+  }
+
+  completeTaskInstances(taskId: number, instanceIds: number[]): Observable<LibraryTaskOperationResponse> {
+    return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}/complete`, { instanceIds });
+  }
+
+  completeNoDeadlineTask(taskId: number): Observable<LibraryTaskOperationResponse> {
+    return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}/complete-anytime`, {});
+  }
+
+  confirmTaskInstances(taskId: number, instanceIds: number[]): Observable<LibraryTaskConfirmResponse> {
+    return this.http.post<LibraryTaskConfirmResponse>(`${this.basePath}/tasks/${taskId}/confirm`, { instanceIds });
+  }
+
+  rejectTaskCompletion(taskId: number, instanceIds: number[]): Observable<LibraryTaskOperationResponse> {
+    return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}/reject-completion`, {
+      instanceIds
     });
   }
 }

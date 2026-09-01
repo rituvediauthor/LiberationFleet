@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IFallibleRepository, FallibleRepository>();
         services.AddScoped<ILibraryRepository, LibraryRepository>();
+        services.AddScoped<ILibraryTaskRepository, LibraryTaskRepository>();
         services.AddScoped<IEmergencyRequestRepository, EmergencyRequestRepository>();
         services.AddScoped<IUserActivityRepository, UserActivityRepository>();
         services.AddScoped<IVoicePresenceRepository, VoicePresenceRepository>();

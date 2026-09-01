@@ -80,7 +80,11 @@ public static class CryptoMapper
         EncryptedContentTypeDto.ChatRoomName => EncryptedContentType.ChatRoomName,
         EncryptedContentTypeDto.LibraryRequest => EncryptedContentType.LibraryRequest,
         EncryptedContentTypeDto.LibraryRequestMessage => EncryptedContentType.LibraryRequestMessage,
+        EncryptedContentTypeDto.LibraryBrokenReport => EncryptedContentType.LibraryBrokenReport,
+        EncryptedContentTypeDto.LibraryMaintenanceRecord => EncryptedContentType.LibraryMaintenanceRecord,
         EncryptedContentTypeDto.ProfileAvatar => EncryptedContentType.ProfileAvatar,
+        EncryptedContentTypeDto.GiftComment => EncryptedContentType.GiftComment,
+        EncryptedContentTypeDto.LibraryTask => EncryptedContentType.LibraryTask,
         _ => EncryptedContentType.GiftLogEntry
     };
 
@@ -101,7 +105,11 @@ public static class CryptoMapper
         EncryptedContentType.ChatRoomName => EncryptedContentTypeDto.ChatRoomName,
         EncryptedContentType.LibraryRequest => EncryptedContentTypeDto.LibraryRequest,
         EncryptedContentType.LibraryRequestMessage => EncryptedContentTypeDto.LibraryRequestMessage,
+        EncryptedContentType.LibraryBrokenReport => EncryptedContentTypeDto.LibraryBrokenReport,
+        EncryptedContentType.LibraryMaintenanceRecord => EncryptedContentTypeDto.LibraryMaintenanceRecord,
         EncryptedContentType.ProfileAvatar => EncryptedContentTypeDto.ProfileAvatar,
+        EncryptedContentType.GiftComment => EncryptedContentTypeDto.GiftComment,
+        EncryptedContentType.LibraryTask => EncryptedContentTypeDto.LibraryTask,
         _ => EncryptedContentTypeDto.GiftLogEntry
     };
 }

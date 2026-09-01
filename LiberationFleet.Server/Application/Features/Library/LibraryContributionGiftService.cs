@@ -274,6 +274,43 @@ public class LibraryContributionGiftService(
         return gift;
     }
 
+    public async Task<CreatorContributionGiftDetails?> TryAwardTaskCompletionAsync(
+        int crewId,
+        string taskTitle,
+        decimal value,
+        int completerUserId,
+        string completerUsername,
+        int creatorUserId,
+        string creatorUsername,
+        CancellationToken cancellationToken = default)
+    {
+        if (completerUserId == creatorUserId || value <= 0)
+        {
+            return null;
+        }
+
+        var gift = await CreatePeerGiftAsync(
+            crewId,
+            completerUserId,
+            creatorUserId,
+            value,
+            countsTowardContribution: true,
+            countsTowardReception: true,
+            taskTitle,
+            cancellationToken);
+
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
+        return new CreatorContributionGiftDetails(
+            gift.Id,
+            completerUserId,
+            completerUsername,
+            value,
+            taskTitle,
+            creatorUserId,
+            creatorUsername,
+            crewRecipient.Id);
+    }
+
     private static string? TruncateTitle(string? title)
     {
         if (string.IsNullOrWhiteSpace(title))

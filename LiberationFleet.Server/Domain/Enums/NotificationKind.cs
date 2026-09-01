@@ -59,5 +59,6 @@ public enum NotificationKind
     FriendRequest = 55,
     FriendRequestAccepted = 56,
     NewDirectMessage = 57,
-    ChatMessageLiked = 58
+    ChatMessageLiked = 58,
+    LibraryTaskScheduleChanged = 59
 }

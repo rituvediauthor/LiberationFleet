@@ -19,6 +19,11 @@ export interface LibraryOfferingEncryptInput {
   authorDisplayName: string;
 }
 
+export interface LibraryTaskEncryptedPayload {
+  title: string;
+  details: string;
+}
+
 export interface LibraryRequestEncryptedPayload {
   purpose: string;
 }
@@ -99,6 +104,105 @@ export class LibraryCryptoService {
     return {
       ...encrypted,
       preview: text.trim().slice(0, 200)
+    };
+  }
+
+  async encryptTaskPayload(
+    crewId: number,
+    payload: LibraryTaskEncryptedPayload
+  ): Promise<{ nonce: string; ciphertext: string; keyVersion: number }> {
+    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    const encrypted = await this.cryptoService.encryptJson<LibraryTaskEncryptedPayload>(crewKey, {
+      title: payload.title.trim(),
+      details: (payload.details ?? '').trim()
+    });
+    return {
+      ...encrypted,
+      keyVersion: this.cryptoSession.getCrewKeyVersion(crewId) ?? 1
+    };
+  }
+
+  async loadTaskPayload(taskId: number, crewId: number): Promise<LibraryTaskEncryptedPayload | null> {
+    if (!this.cryptoSession.isUnlocked()) {
+      return null;
+    }
+
+    try {
+      const envelopes = await firstValueFrom(
+        this.cryptoApi.getEncryptedContents('LibraryTask', [taskId.toString()], crewId)
+      );
+      const envelope = envelopes[0];
+      if (!envelope) {
+        return null;
+      }
+
+      return await this.cryptoSession.decryptWithCrewKeyFallback(
+        crewId,
+        envelope.keyVersion,
+        key => this.cryptoService.decryptJson<LibraryTaskEncryptedPayload>(
+          key,
+          envelope.nonce,
+          envelope.ciphertext
+        )
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async enrichTaskListItems<T extends { taskId: number; title: string; hasEncryptedContent?: boolean }>(
+    items: T[],
+    crewId: number
+  ): Promise<T[]> {
+    if (!this.cryptoSession.isUnlocked() || items.length === 0) {
+      return items.map(item => ({
+        ...item,
+        title: item.hasEncryptedContent && !item.title ? 'Encrypted task' : item.title
+      }));
+    }
+
+    return Promise.all(items.map(async item => {
+      if (!item.hasEncryptedContent) {
+        return item;
+      }
+
+      const payload = await this.loadTaskPayload(item.taskId, crewId);
+      return {
+        ...item,
+        title: payload?.title?.trim() || 'Encrypted task'
+      };
+    }));
+  }
+
+  async enrichTaskDetail<T extends { taskId: number; title: string; details: string; hasEncryptedContent?: boolean }>(
+    task: T,
+    crewId: number
+  ): Promise<T> {
+    if (!task.hasEncryptedContent) {
+      return task;
+    }
+
+    if (!this.cryptoSession.isUnlocked()) {
+      return {
+        ...task,
+        title: 'Encrypted task',
+        details: 'Unlock encryption to view task details.'
+      };
+    }
+
+    const payload = await this.loadTaskPayload(task.taskId, crewId);
+    if (!payload) {
+      return {
+        ...task,
+        title: 'Encrypted task',
+        details: '[Unable to decrypt]'
+      };
+    }
+
+    return {
+      ...task,
+      title: payload.title?.trim() || 'Encrypted task',
+      details: payload.details ?? ''
     };
   }
 
