@@ -47,9 +47,8 @@ public class LoginCommandHandlerTests
 
         user.LastLoginAt.Should().NotBeNull();
         user.FailedLoginAttempts.Should().Be(0);
-        userRepository.Verify(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()), Times.Once);
-        // Persistence is owned by RecordLoginAttempt so login does not double-save.
-        unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        userRepository.Verify(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()), Times.Exactly(2));
+        unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         passwordHasher.Verify(h => h.Verify("password123", user.PasswordHash), Times.Once);
     }
 

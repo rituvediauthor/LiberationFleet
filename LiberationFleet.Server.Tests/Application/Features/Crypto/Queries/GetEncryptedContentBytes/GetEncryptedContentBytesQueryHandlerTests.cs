@@ -30,7 +30,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
         var handler = CreateHandler(userId: 1);
 
         var result = await handler.Handle(
-            new GetEncryptedContentBytesQuery(EncryptedContentTypeDto.VideoAsset, "vid-1"),
+            new GetEncryptedContentBytesQuery(EncryptedContentTypeDto.Proposal, "proposal-1"),
             CancellationToken.None);
 
         result.Should().BeNull();

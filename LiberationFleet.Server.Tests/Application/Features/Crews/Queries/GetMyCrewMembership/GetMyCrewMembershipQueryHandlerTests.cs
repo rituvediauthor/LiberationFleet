@@ -142,6 +142,9 @@ public class GetMyCrewMembershipQueryHandlerTests
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
         crewRepository ??= HandlerTestFixture.CreateCrewRepositoryMock();
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.GetPendingCycleThankYouGiftIdAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int?)null);
 
         return new GetMyCrewMembershipQueryHandler(
             membershipRepository.Object,
