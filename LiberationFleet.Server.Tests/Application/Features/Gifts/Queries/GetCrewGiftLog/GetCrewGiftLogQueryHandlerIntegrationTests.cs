@@ -139,6 +139,7 @@ public class GetCrewGiftLogQueryHandlerIntegrationTests
                 fixture.Crew.Id,
                 null,
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
 

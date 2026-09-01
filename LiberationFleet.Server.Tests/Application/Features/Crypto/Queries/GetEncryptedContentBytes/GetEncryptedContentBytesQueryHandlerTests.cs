@@ -83,6 +83,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
                 10,
                 null,
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
@@ -136,6 +137,7 @@ public class GetEncryptedContentBytesQueryHandlerTests
                 10,
                 null,
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
@@ -168,6 +170,8 @@ public class GetEncryptedContentBytesQueryHandlerTests
             HandlerTestFixture.CreateCurrentUserServiceMock(userId).Object,
             (membershipRepository ?? HandlerTestFixture.CreateCrewMembershipRepositoryMock()).Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
+            HandlerTestFixture.CreateFriendshipRepositoryMock().Object,
+            HandlerTestFixture.CreateUserBlockRepositoryMock().Object,
             (cryptoRepository ?? new Mock<ICryptoRepository>(MockBehavior.Strict)).Object,
             (deepFreezeService ?? new Mock<IMediaDeepFreezeService>(MockBehavior.Loose)).Object);
     }

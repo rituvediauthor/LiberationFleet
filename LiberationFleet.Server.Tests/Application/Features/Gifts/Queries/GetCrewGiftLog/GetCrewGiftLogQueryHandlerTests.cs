@@ -109,6 +109,7 @@ public class GetCrewGiftLogQueryHandlerTests
                 crew.Id,
                 null,
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
 
@@ -260,6 +261,7 @@ public class GetCrewGiftLogQueryHandlerTests
                 It.IsAny<int?>(),
                 It.IsAny<int?>(),
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
 

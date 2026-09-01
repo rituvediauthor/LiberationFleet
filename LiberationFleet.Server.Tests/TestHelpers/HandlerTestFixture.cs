@@ -36,6 +36,37 @@ public static class HandlerTestFixture
         return new Mock<IGiftRepository>(MockBehavior.Strict);
     }
 
+    public static Mock<IFriendshipRepository> CreateFriendshipRepositoryMock()
+    {
+        return new Mock<IFriendshipRepository>(MockBehavior.Loose);
+    }
+
+    public static Mock<IUserBlockRepository> CreateUserBlockRepositoryMock()
+    {
+        var mock = new Mock<IUserBlockRepository>(MockBehavior.Loose);
+        mock.Setup(r => r.GetHiddenUserIdsForViewerAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
+        return mock;
+    }
+
+    public static DefaultOrgContentSeeder CreateDefaultOrgContentSeeder()
+    {
+        var chatRepository = new Mock<IChatRepository>(MockBehavior.Loose);
+        chatRepository
+            .Setup(r => r.AddRoomAsync(It.IsAny<ChatRoom>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var ruleRepository = new Mock<IRuleRepository>(MockBehavior.Loose);
+        ruleRepository
+            .Setup(r => r.AddAsync(It.IsAny<CrewRule>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return new DefaultOrgContentSeeder(
+            chatRepository.Object,
+            ruleRepository.Object,
+            CreateFleetRepositoryMock().Object);
+    }
+
     public static ContentTenureService CreateContentTenureService(
         Mock<IContentTenureRepository>? tenureRepository = null,
         Mock<ICrewMembershipRepository>? membershipRepository = null,

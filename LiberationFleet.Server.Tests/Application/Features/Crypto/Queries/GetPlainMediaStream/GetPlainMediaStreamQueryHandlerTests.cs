@@ -40,6 +40,7 @@ public class GetPlainMediaStreamQueryHandlerTests
                 10,
                 null,
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
@@ -60,6 +61,8 @@ public class GetPlainMediaStreamQueryHandlerTests
             HandlerTestFixture.CreateCurrentUserServiceMock(1).Object,
             membership.Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
+            HandlerTestFixture.CreateFriendshipRepositoryMock().Object,
+            HandlerTestFixture.CreateUserBlockRepositoryMock().Object,
             cryptoRepository.Object,
             deepFreeze.Object);
 
@@ -100,6 +103,7 @@ public class GetPlainMediaStreamQueryHandlerTests
                 10,
                 null,
                 It.IsAny<int?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { envelope });
 
@@ -109,6 +113,8 @@ public class GetPlainMediaStreamQueryHandlerTests
             HandlerTestFixture.CreateCurrentUserServiceMock(1).Object,
             membership.Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
+            HandlerTestFixture.CreateFriendshipRepositoryMock().Object,
+            HandlerTestFixture.CreateUserBlockRepositoryMock().Object,
             cryptoRepository.Object,
             deepFreeze.Object);
 

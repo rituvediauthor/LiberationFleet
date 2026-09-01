@@ -204,9 +204,11 @@ public class CreateCrewCommandHandlerTests
         return new CreateCrewCommandHandler(
             crewRepository.Object,
             membershipRepository.Object,
+            HandlerTestFixture.CreateFleetRepositoryMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             tenure,
             fleetMembership,
+            HandlerTestFixture.CreateDefaultOrgContentSeeder(),
             unitOfWork.Object);
     }
 }

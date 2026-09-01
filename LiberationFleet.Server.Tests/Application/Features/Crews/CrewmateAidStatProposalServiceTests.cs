@@ -150,10 +150,13 @@ public class CrewmateAidStatProposalServiceTests
         new(
             new ProposalRepository(fixture.Context),
             new FleetRepository(fixture.Context),
+            new CrewRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new UserRepository(fixture.Context),
             new MutualAidRepository(fixture.Context),
             fixture.Service,
+            new GiftRepository(fixture.Context),
+            HandlerTestFixture.CreateContentTenureService(),
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);
 
