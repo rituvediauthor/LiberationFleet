@@ -78,7 +78,8 @@ export class AcceptFleetRulesComponent implements OnInit {
   }
 
   get allRulesAccepted(): boolean {
-    return this.publicRules.every(rule => this.acceptedRuleIds.has(rule.id));
+    return this.publicRules.length > 0
+      && this.publicRules.every(rule => this.acceptedRuleIds.has(rule.id));
   }
 
   get leaveLabel(): string {

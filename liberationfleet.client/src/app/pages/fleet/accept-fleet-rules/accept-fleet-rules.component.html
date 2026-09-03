@@ -13,7 +13,7 @@
       <p class="state-text error" *ngIf="!loading && errorMessage">{{ errorMessage }}</p>
 
       <p class="state-text" *ngIf="!loading && !errorMessage && publicRules.length === 0">
-        This fleet has no public rules.
+        Public fleet rules could not be loaded. Try again, or leave if you no longer want to remain.
       </p>
 
       <ul class="rules-list" *ngIf="!loading && publicRules.length > 0">

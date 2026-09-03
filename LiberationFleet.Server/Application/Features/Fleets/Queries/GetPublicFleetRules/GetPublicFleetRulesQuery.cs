@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Domain.Enums;
@@ -9,6 +10,7 @@ namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetPublicFl
 public record GetPublicFleetRulesQuery(int? FleetId, string? JoinCode) : IRequest<PublicFleetRulesResponse>;
 
 public class GetPublicFleetRulesQueryHandler(
+    ICurrentUserService currentUser,
     IFleetRepository fleetRepository) : IRequestHandler<GetPublicFleetRulesQuery, PublicFleetRulesResponse>
 {
     public async Task<PublicFleetRulesResponse> Handle(GetPublicFleetRulesQuery request, CancellationToken cancellationToken)
@@ -31,19 +33,27 @@ public class GetPublicFleetRulesQueryHandler(
             };
         }
 
-        if (fleet.Privacy == CrewPrivacy.InviteOnly
-            || (hasJoinCode && !PrivacyAccess.CanDiscoverByJoinCode(fleet.Privacy)))
-        {
-            return new PublicFleetRulesResponse
-            {
-                Success = false,
-                Message = PrivacyAccess.InviteOnlyJoinMessage("fleet")
-            };
-        }
+        var isFleetMember = currentUser.UserId.HasValue
+            && await fleetRepository.IsUserInFleetAsync(currentUser.UserId.Value, fleet.Id, cancellationToken);
 
-        if (!PrivacyAccess.CanDiscoverByBrowse(fleet.Privacy) && !hasJoinCode)
+        // Members accepting updated rules must always see public rules, even when the fleet
+        // is Private / InviteOnly and would otherwise be hidden from discovery.
+        if (!isFleetMember)
         {
-            return new PublicFleetRulesResponse { Success = false, Message = "Fleet not found." };
+            if (fleet.Privacy == CrewPrivacy.InviteOnly
+                || (hasJoinCode && !PrivacyAccess.CanDiscoverByJoinCode(fleet.Privacy)))
+            {
+                return new PublicFleetRulesResponse
+                {
+                    Success = false,
+                    Message = PrivacyAccess.InviteOnlyJoinMessage("fleet")
+                };
+            }
+
+            if (!PrivacyAccess.CanDiscoverByBrowse(fleet.Privacy) && !hasJoinCode)
+            {
+                return new PublicFleetRulesResponse { Success = false, Message = "Fleet not found." };
+            }
         }
 
         var rules = await fleetRepository.GetPublicRulesAsync(fleet.Id, cancellationToken);
