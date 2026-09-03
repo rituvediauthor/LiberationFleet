@@ -74,7 +74,7 @@ public class UserRepository : IUserRepository
         }
 
         return await _context.Users
-            .Where(u => !u.IsUnclaimedPlaceholder && u.Username.Contains(term))
+            .Where(u => u.IsActive && !u.IsUnclaimedPlaceholder && u.Username.Contains(term))
             .OrderBy(u => u.Username)
             .Take(Math.Clamp(limit, 1, 50))
             .ToListAsync(cancellationToken);

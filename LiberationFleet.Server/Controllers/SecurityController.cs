@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Security.Commands.ChangePassword;
+using LiberationFleet.Server.Application.Features.Security.Commands.DeleteAccount;
 using LiberationFleet.Server.Application.Features.Security.Commands.ManageDevice;
 using LiberationFleet.Server.Application.Features.Security.Commands.UpdateSecuritySettings;
 using LiberationFleet.Server.Application.Features.Security.Commands.VerifySettingsPassword;
@@ -77,6 +78,13 @@ public class SecurityController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {
         var result = await mediator.Send(new ChangePasswordCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("delete-account")]
+    public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest body)
+    {
+        var result = await mediator.Send(new DeleteAccountCommand(body));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -1,0 +1,36 @@
+<div class="dialog-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
+  <div
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delete-account-title"
+    [appAccessibleDialog]="visible"
+    [appAccessibleDialogEscape]="onEscape">
+    <h2 id="delete-account-title">Delete account</h2>
+    <p class="dialog-note">
+      This permanently disables your account, removes you from your crew and fleet, and frees your username and email.
+      Enter your current password to confirm.
+    </p>
+
+    <label class="password-field">
+      <span>Current password</span>
+      <input
+        type="password"
+        [(ngModel)]="password"
+        autocomplete="current-password"
+        [disabled]="deleting"
+        [attr.aria-invalid]="!!errorMessage"
+        [attr.aria-describedby]="errorMessage ? 'delete-account-error' : null"
+        (keyup.enter)="onConfirm()">
+    </label>
+
+    <p *ngIf="errorMessage" id="delete-account-error" class="error-text" role="alert">{{ errorMessage }}</p>
+
+    <div class="dialog-actions">
+      <button type="button" class="cancel-btn" [disabled]="deleting" (click)="dismissed.emit()">Cancel</button>
+      <button type="button" class="delete-btn" [disabled]="!password.trim() || deleting" (click)="onConfirm()">
+        {{ deleting ? 'Deleting…' : 'Delete account' }}
+      </button>
+    </div>
+  </div>
+</div>

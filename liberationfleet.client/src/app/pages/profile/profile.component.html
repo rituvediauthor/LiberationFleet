@@ -348,9 +348,27 @@
       </section>
 
       <button type="button" class="logout-btn" (click)="onLogout()">Log out</button>
+
+      <section class="danger-zone" aria-labelledby="danger-zone-heading">
+        <h2 id="danger-zone-heading">Danger zone</h2>
+        <p class="section-hint">
+          Deleting your account removes you from your crew and fleet and permanently disables sign-in with this profile.
+        </p>
+        <button type="button" class="delete-account-btn" (click)="openDeleteAccountDialog()">
+          Delete account
+        </button>
+      </section>
     </div>
   </div>
 </app-page-layout>
+
+<app-delete-account-dialog
+  [visible]="showDeleteAccountDialog"
+  [errorMessage]="deleteAccountError"
+  [deleting]="deletingAccount"
+  (confirmed)="onDeleteAccountConfirmed($event)"
+  (dismissed)="onDeleteAccountDismissed()">
+</app-delete-account-dialog>
 
 <app-recovery-key-display
   [visible]="showRecoveryKeyModal"

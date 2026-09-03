@@ -14,7 +14,7 @@ public sealed class FleetReceptionOrderEntryDto : ReceptionOrderEntryDto
 public record GetFleetReceptionOrderQuery(
     int Limit = 30,
     bool ForRecordGift = true,
-    bool ExcludeSelfAsRecipient = true) : IRequest<IReadOnlyList<FleetReceptionOrderEntryDto>>;
+    bool ExcludeSelfAsRecipient = false) : IRequest<IReadOnlyList<FleetReceptionOrderEntryDto>>;
 
 public class GetFleetReceptionOrderQueryHandler(
     ICurrentUserService currentUser,

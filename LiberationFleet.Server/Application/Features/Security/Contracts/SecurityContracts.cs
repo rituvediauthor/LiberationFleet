@@ -78,6 +78,11 @@ public class ChangePasswordRequest
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 
+public class DeleteAccountRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+}
+
 public class VerifySettingsPasswordRequest
 {
     public string SettingsPassword { get; set; } = string.Empty;

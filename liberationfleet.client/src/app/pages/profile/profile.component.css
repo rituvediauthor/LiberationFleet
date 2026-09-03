@@ -203,6 +203,33 @@ label {
   width: 100%;
   margin-top: 8px;
   padding: 12px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: var(--lf-color-bg-hover);
+}
+
+.danger-zone {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--lf-color-border);
+}
+
+.danger-zone h2 {
+  color: var(--lf-color-danger);
+}
+
+.delete-account-btn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
   border: 1px solid var(--lf-color-danger);
   border-radius: 8px;
   background: var(--lf-color-bg-surface);
@@ -210,6 +237,10 @@ label {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.delete-account-btn:hover {
+  background: var(--lf-color-danger-soft-bg);
 }
 
 .password-section {
@@ -226,10 +257,6 @@ label {
 
 .password-requirements li.met {
   color: var(--lf-color-success, #228b22);
-}
-
-.logout-btn:hover {
-  background: var(--lf-color-danger-soft-bg);
 }
 
 .encryption-section .encryption-status {
