@@ -399,7 +399,9 @@ export class RecordGiftComponent implements OnInit {
     this.receptionEntries.forEach((entry, index) => {
       if (entry.userId === this.activeUserId) return;
 
-      const row = formValue.entries[index] as EntryFormValue;
+      const row = formValue.entries?.[index] as EntryFormValue | undefined;
+      if (!row) return;
+
       const amount = Number(row.amount);
       if (amount <= 0) return;
 

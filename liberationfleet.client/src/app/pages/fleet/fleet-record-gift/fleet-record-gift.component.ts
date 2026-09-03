@@ -350,7 +350,11 @@ export class FleetRecordGiftComponent implements OnInit {
         return;
       }
 
-      const row = formValue.entries[index] as EntryFormValue;
+      const row = formValue.entries?.[index] as EntryFormValue | undefined;
+      if (!row) {
+        return;
+      }
+
       const amount = Number(row.amount);
       if (amount <= 0) {
         return;
