@@ -141,4 +141,46 @@ describe('RecordGiftComponent', () => {
     expect(toastService.success).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
   });
+
+  it('should keep the active user reception entries and disable their inputs', () => {
+    component.activeUserId = 1;
+    giftService.getReceptionOrder.and.returnValue(of([
+      {
+        userId: 1,
+        username: 'James',
+        amountNeeded: 100,
+        entryType: 'cycle',
+        middlemanOptions: [],
+        noSuitableMiddleman: false,
+        giverPlatformIds: [1],
+        recipientPlatformIds: [1],
+        commonPlatformIds: [1],
+        hasUnverifiedPending: false,
+        pendingUnverifiedAmount: 0,
+        isUnlimitedNeed: false
+      },
+      {
+        userId: 2,
+        username: 'Ritu',
+        amountNeeded: 200,
+        entryType: 'cycle',
+        middlemanOptions: [],
+        noSuitableMiddleman: false,
+        giverPlatformIds: [1],
+        recipientPlatformIds: [1],
+        commonPlatformIds: [1],
+        hasUnverifiedPending: false,
+        pendingUnverifiedAmount: 0,
+        isUnlimitedNeed: false
+      }
+    ] as any));
+
+    component['loadReceptionOrder']();
+    fixture.detectChanges();
+
+    expect(component.receptionEntries.length).toBe(2);
+    expect(component.isOwnEntry(component.receptionEntries[0])).toBeTrue();
+    expect(component.entries.at(0)?.disabled).toBeTrue();
+    expect(component.entries.at(1)?.disabled).toBeFalse();
+  });
 });
