@@ -700,6 +700,43 @@ public class ProposalRepository : IProposalRepository
             .ToDictionaryAsync(a => a.ProposalId, cancellationToken);
     }
 
+    public Task<ProposalCrewLeaveFleet?> GetCrewLeaveFleetByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewLeaveFleets.FirstOrDefaultAsync(l => l.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddCrewLeaveFleetAsync(ProposalCrewLeaveFleet leave, CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewLeaveFleets.AddAsync(leave, cancellationToken);
+
+    public Task<ProposalCrewLeaveFleet?> GetPendingCrewLeaveFleetAsync(
+        int crewId,
+        int fleetId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewLeaveFleets
+            .Include(l => l.Proposal)
+            .Where(l =>
+                l.FleetId == fleetId
+                && l.Proposal.CrewId == crewId
+                && !l.Proposal.IsDeleted
+                && l.Proposal.Status == ProposalStatus.Pending
+                && l.Proposal.Kind == ProposalKind.CrewLeaveFleet)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewLeaveFleet>> GetCrewLeaveFleetsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewLeaveFleet>();
+        }
+
+        return await _context.ProposalCrewLeaveFleets
+            .Where(l => ids.Contains(l.ProposalId))
+            .ToDictionaryAsync(l => l.ProposalId, cancellationToken);
+    }
+
     public Task<ProposalFleetJoinRequest?> GetFleetJoinRequestByProposalIdAsync(
         int proposalId,
         CancellationToken cancellationToken = default) =>

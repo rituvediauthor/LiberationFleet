@@ -13,6 +13,7 @@ public class LeaveFleetCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ContentTenureService contentTenureService,
+    CrewLeaveFleetProposalService crewLeaveFleetProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<LeaveFleetCommand, FleetOperationResponse>
 {
     public async Task<FleetOperationResponse> Handle(LeaveFleetCommand request, CancellationToken cancellationToken)
@@ -43,43 +44,24 @@ public class LeaveFleetCommandHandler(
             };
         }
 
-        if (!membership.IsOrganizer)
-        {
-            return new FleetOperationResponse
-            {
-                Success = false,
-                Message = "Only an organizer can remove the crew from the fleet."
-            };
-        }
-
         var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
         if (fleet is null)
         {
             return new FleetOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
         }
 
-        var fleetCrew = await fleetRepository.GetFleetCrewAsync(fleet.Id, membership.CrewId, cancellationToken);
-        if (fleetCrew is null)
-        {
-            return new FleetOperationResponse { Success = false, Message = "Your crew is not in a fleet." };
-        }
-
-        await contentTenureService.OnCrewLeftFleetAsync(membership.CrewId, fleet.Id, cancellationToken);
-        await fleetRepository.RemoveFleetCrewAsync(fleetCrew, cancellationToken);
-
-        var room = await fleetRepository.GetLinkedFleetChatRoomAsync(fleet.Id, membership.CrewId, cancellationToken);
-        if (room is not null)
-        {
-            room.IsDeleted = true;
-            room.LinkedCrewId = null;
-        }
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        var proposalResult = await crewLeaveFleetProposalService.CreateAsync(
+            userId,
+            membership.CrewId,
+            fleet.Id,
+            cancellationToken);
 
         return new FleetOperationResponse
         {
-            Success = true,
-            Message = "Your crew left the fleet."
+            Success = proposalResult.Success,
+            Message = proposalResult.Message,
+            ProposalsSubmitted = proposalResult.Success,
+            ProposalsCreated = proposalResult.Success ? 1 : 0
         };
     }
 }

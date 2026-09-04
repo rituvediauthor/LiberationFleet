@@ -1,8 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { NavigationService } from '../../../services/navigation.service';
@@ -29,7 +27,6 @@ export class AcceptFleetRulesComponent implements OnInit {
   showLeaveDialog = false;
   errorMessage = '';
   isNoCrewMember = false;
-  isOrganizer = false;
 
   backButton!: ActionBarButton;
   primaryButton!: ActionBarButton;
@@ -45,13 +42,8 @@ export class AcceptFleetRulesComponent implements OnInit {
     this.backButton = this.navigation.createBackButton(['/app/crew']);
     this.updateButtons();
 
-    forkJoin({
-      status: this.fleetService.getStatus(),
-      membership: this.crewService.getMembership().pipe(
-        catchError(() => of({ hasCrew: false, isOrganizer: false }))
-      )
-    }).subscribe({
-      next: ({ status, membership }) => {
+    this.fleetService.getStatus().subscribe({
+      next: status => {
         if (!status.hasFleet || !status.fleetId) {
           this.loading = false;
           this.router.navigate(['/app/fleet']);
@@ -66,7 +58,6 @@ export class AcceptFleetRulesComponent implements OnInit {
         this.fleetId = status.fleetId;
         this.fleetName = status.fleetName || 'your fleet';
         this.isNoCrewMember = !!status.isNoCrewMember;
-        this.isOrganizer = !!membership.isOrganizer;
         this.loadRules();
       },
       error: () => {
@@ -83,24 +74,22 @@ export class AcceptFleetRulesComponent implements OnInit {
   }
 
   get leaveLabel(): string {
-    return this.canLeaveFleetDirectly ? 'Leave fleet' : 'Leave crew';
+    return 'Leave fleet';
   }
 
   get leaveDialogTitle(): string {
-    return this.canLeaveFleetDirectly ? 'Leave fleet?' : 'Leave crew?';
+    return this.createsLeaveProposal ? 'Propose leaving the fleet?' : 'Leave fleet?';
   }
 
   get leaveDialogMessage(): string {
-    if (this.canLeaveFleetDirectly) {
-      return this.isNoCrewMember
-        ? 'You will leave this fleet and lose access to fleet content.'
-        : 'Your crew will leave this fleet. Access to other crews\' library offerings and fleet content will end.';
+    if (this.isNoCrewMember) {
+      return 'You will leave this fleet and lose access to fleet content.';
     }
-    return 'Only an organizer can remove the whole crew from the fleet. Leaving the crew will also remove you from this fleet.';
+    return 'Confirming will create a crew proposal to leave this fleet. If it passes, your crew will leave and lose access to other crews\' library offerings and fleet content.';
   }
 
-  private get canLeaveFleetDirectly(): boolean {
-    return this.isNoCrewMember || this.isOrganizer;
+  private get createsLeaveProposal(): boolean {
+    return !this.isNoCrewMember;
   }
 
   isRuleAccepted(ruleId: number): boolean {
@@ -199,36 +188,32 @@ export class AcceptFleetRulesComponent implements OnInit {
     this.leaving = true;
     this.updateButtons();
 
-    const onResult = (success: boolean, message: string | undefined) => {
-      if (success) {
+    this.fleetService.leaveFleet().subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to leave fleet');
+          this.leaving = false;
+          this.updateButtons();
+          return;
+        }
+
         this.fleetService.clearSessionCache();
         this.crewService.clearMembershipCache();
-        this.toastService.success(message || (this.canLeaveFleetDirectly ? 'Left fleet' : 'Left crew'));
-        this.router.navigate([this.canLeaveFleetDirectly ? '/app/fleet' : '/app/crew']);
-        return;
+
+        if (result.proposalsSubmitted) {
+          this.toastService.success(result.message || 'Leave-fleet proposal submitted');
+          this.router.navigate(['/app/crew/proposals/list/pending']);
+          return;
+        }
+
+        this.toastService.success(result.message || 'Left fleet');
+        this.router.navigate(['/app/fleet']);
+      },
+      error: error => {
+        this.toastService.error(error.error?.message || 'Failed to leave fleet');
+        this.leaving = false;
+        this.updateButtons();
       }
-      this.toastService.error(message || 'Failed to leave');
-      this.leaving = false;
-      this.updateButtons();
-    };
-
-    const onError = (error: { error?: { message?: string } }) => {
-      this.toastService.error(error.error?.message || 'Failed to leave');
-      this.leaving = false;
-      this.updateButtons();
-    };
-
-    if (this.canLeaveFleetDirectly) {
-      this.fleetService.leaveFleet().subscribe({
-        next: result => onResult(result.success, result.message),
-        error: onError
-      });
-      return;
-    }
-
-    this.crewService.leaveCrew().subscribe({
-      next: result => onResult(result.success, result.message),
-      error: onError
     });
   }
 }

@@ -80,6 +80,7 @@ public sealed class ProposalTimerHostedService(
         var permissions = sp.GetRequiredService<CrewmatePermissionProposalService>();
         var aidStats = sp.GetRequiredService<CrewmateAidStatProposalService>();
         var applyFleet = sp.GetRequiredService<CrewApplyToFleetProposalService>();
+        var leaveFleet = sp.GetRequiredService<CrewLeaveFleetProposalService>();
         var fleetJoins = sp.GetRequiredService<FleetJoinRequestProposalService>();
         var fleetKicks = sp.GetRequiredService<FleetKickCrewProposalService>();
         var fleetSettings = sp.GetRequiredService<FleetSettingsProposalService>();
@@ -117,6 +118,7 @@ public sealed class ProposalTimerHostedService(
                 permissions,
                 aidStats,
                 applyFleet,
+                leaveFleet,
                 fleetJoins,
                 fleetKicks,
                 fleetSettings,

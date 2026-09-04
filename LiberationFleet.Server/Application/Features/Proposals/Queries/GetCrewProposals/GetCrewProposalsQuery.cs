@@ -31,6 +31,7 @@ public class GetCrewProposalsQueryHandler(
     CrewmatePermissionProposalService crewmatePermissionProposalService,
     CrewmateAidStatProposalService crewmateAidStatProposalService,
     CrewApplyToFleetProposalService crewApplyToFleetProposalService,
+    CrewLeaveFleetProposalService crewLeaveFleetProposalService,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     FleetKickCrewProposalService fleetKickCrewProposalService,
     FleetSettingsProposalService fleetSettingsProposalService,
@@ -81,6 +82,7 @@ public class GetCrewProposalsQueryHandler(
             crewmatePermissionProposalService,
             crewmateAidStatProposalService,
             crewApplyToFleetProposalService,
+                crewLeaveFleetProposalService,
                 fleetJoinRequestProposalService,
                 fleetKickCrewProposalService,
                 fleetSettingsProposalService,
@@ -151,6 +153,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewApplyToFleet).Select(p => p.Id),
             cancellationToken);
 
+        var crewLeaveFleets = await proposalRepository.GetCrewLeaveFleetsByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewLeaveFleet).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -171,6 +177,7 @@ public class GetCrewProposalsQueryHandler(
             crewmatePermissionGrants.TryGetValue(proposal.Id, out var crewmatePermissionGrant);
             crewmateAidStatChanges.TryGetValue(proposal.Id, out var crewmateAidStatChange);
             crewApplyToFleets.TryGetValue(proposal.Id, out var crewApplyToFleet);
+            crewLeaveFleets.TryGetValue(proposal.Id, out var crewLeaveFleet);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -187,7 +194,8 @@ public class GetCrewProposalsQueryHandler(
                 crewmatePermissionGrant,
                 crewmateAidStatChange,
                 currentUserVote,
-                crewApplyToFleet: crewApplyToFleet));
+                crewApplyToFleet: crewApplyToFleet,
+                crewLeaveFleet: crewLeaveFleet));
         }
 
         return new ProposalListResponse

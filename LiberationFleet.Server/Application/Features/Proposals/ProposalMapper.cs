@@ -29,6 +29,7 @@ public static class ProposalMapper
         ProposalFleetJoinRequest? fleetJoinRequest = null,
         ProposalFleetKickCrew? fleetKickCrew = null,
         ProposalCrewApplyToFleet? crewApplyToFleet = null,
+        ProposalCrewLeaveFleet? crewLeaveFleet = null,
         ProposalFleetNotice? fleetNotice = null)
     {
         var dto = new ProposalListItemDto
@@ -134,6 +135,12 @@ public static class ProposalMapper
             return dto;
         }
 
+        if (crewLeaveFleet is not null)
+        {
+            ApplyPlaintext(dto, crewLeaveFleet.Title, crewLeaveFleet.Description);
+            return dto;
+        }
+
         if (fleetNotice is not null)
         {
             ApplyPlaintext(dto, fleetNotice.Title, fleetNotice.Description);
@@ -180,6 +187,7 @@ public static class ProposalMapper
         ProposalFleetJoinRequest? fleetJoinRequest = null,
         ProposalFleetKickCrew? fleetKickCrew = null,
         ProposalCrewApplyToFleet? crewApplyToFleet = null,
+        ProposalCrewLeaveFleet? crewLeaveFleet = null,
         ProposalFleetNotice? fleetNotice = null)
     {
         var listItem = MapListItem(
@@ -201,6 +209,7 @@ public static class ProposalMapper
             fleetJoinRequest,
             fleetKickCrew,
             crewApplyToFleet,
+            crewLeaveFleet,
             fleetNotice);
         var isSystemProposal = IsSystemProposal(proposal.Kind);
         var plaintextDescription = crewmateKick?.Description
@@ -219,6 +228,7 @@ public static class ProposalMapper
             ?? fleetJoinRequest?.Description
             ?? fleetKickCrew?.Description
             ?? crewApplyToFleet?.Description
+            ?? crewLeaveFleet?.Description
             ?? fleetNotice?.Description
             ?? crewSettingChange?.Description;
         var usesAnonymousComments = true;
@@ -312,6 +322,7 @@ public static class ProposalMapper
             or ProposalKind.CrewmatePermissionGrant
             or ProposalKind.CrewmateAidStatChange
             or ProposalKind.CrewApplyToFleet
+            or ProposalKind.CrewLeaveFleet
             or ProposalKind.FleetJoinRequest
             or ProposalKind.FleetSettingChange
             or ProposalKind.FleetKickCrew

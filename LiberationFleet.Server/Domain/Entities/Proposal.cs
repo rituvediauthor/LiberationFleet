@@ -33,6 +33,7 @@ public class Proposal
     public ProposalCrewmatePermissionGrant? CrewmatePermissionGrant { get; set; }
     public ProposalCrewmateAidStatChange? CrewmateAidStatChange { get; set; }
     public ProposalCrewApplyToFleet? CrewApplyToFleet { get; set; }
+    public ProposalCrewLeaveFleet? CrewLeaveFleet { get; set; }
     public ProposalFleetJoinRequest? FleetJoinRequest { get; set; }
     public ProposalFleetSettingChange? FleetSettingChange { get; set; }
     public ProposalFleetKickCrew? FleetKickCrew { get; set; }

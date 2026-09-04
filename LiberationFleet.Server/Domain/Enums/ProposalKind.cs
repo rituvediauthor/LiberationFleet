@@ -19,5 +19,6 @@ public enum ProposalKind
     FleetKickCrew = 14,
     FleetChatChange = 15,
     FleetRuleChange = 16,
-    CrewmateAidStatChange = 17
+    CrewmateAidStatChange = 17,
+    CrewLeaveFleet = 18
 }

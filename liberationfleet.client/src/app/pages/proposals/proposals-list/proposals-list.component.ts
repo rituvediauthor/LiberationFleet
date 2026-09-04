@@ -32,7 +32,8 @@ const CREW_KIND_OPTIONS: { value: string; label: string }[] = [
   { value: 'ClaimPlaceholderIdentity', label: 'Claim identity' },
   { value: 'CrewmatePermissionGrant', label: 'Permission grant' },
   { value: 'CrewmateAidStatChange', label: 'Aid stat' },
-  { value: 'CrewApplyToFleet', label: 'Apply to fleet' }
+  { value: 'CrewApplyToFleet', label: 'Apply to fleet' },
+  { value: 'CrewLeaveFleet', label: 'Leave fleet' }
 ];
 
 const FLEET_KIND_OPTIONS: { value: string; label: string }[] = [

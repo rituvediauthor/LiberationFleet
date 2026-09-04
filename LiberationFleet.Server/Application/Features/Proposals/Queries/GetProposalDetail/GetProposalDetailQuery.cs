@@ -29,6 +29,7 @@ public class GetProposalDetailQueryHandler(
     CrewmatePermissionProposalService crewmatePermissionProposalService,
     CrewmateAidStatProposalService crewmateAidStatProposalService,
     CrewApplyToFleetProposalService crewApplyToFleetProposalService,
+    CrewLeaveFleetProposalService crewLeaveFleetProposalService,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     FleetKickCrewProposalService fleetKickCrewProposalService,
     FleetSettingsProposalService fleetSettingsProposalService,
@@ -94,6 +95,7 @@ public class GetProposalDetailQueryHandler(
             crewmatePermissionProposalService,
             crewmateAidStatProposalService,
             crewApplyToFleetProposalService,
+            crewLeaveFleetProposalService,
             fleetJoinRequestProposalService,
             fleetKickCrewProposalService,
             fleetSettingsProposalService,
@@ -168,6 +170,10 @@ public class GetProposalDetailQueryHandler(
 
         var crewApplyToFleet = proposal.Kind == ProposalKind.CrewApplyToFleet
             ? await proposalRepository.GetCrewApplyToFleetByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewLeaveFleet = proposal.Kind == ProposalKind.CrewLeaveFleet
+            ? await proposalRepository.GetCrewLeaveFleetByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
         var fleetNotice = proposal.Kind == ProposalKind.General && proposal.FleetId.HasValue && proposalEnvelope is null
@@ -273,6 +279,7 @@ public class GetProposalDetailQueryHandler(
                 fleetJoinRequest,
                 fleetKickCrew,
                 crewApplyToFleet,
+                crewLeaveFleet,
                 fleetNotice)
         };
     }

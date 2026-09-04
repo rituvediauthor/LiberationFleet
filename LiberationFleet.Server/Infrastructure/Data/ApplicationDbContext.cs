@@ -57,6 +57,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalFleetJoinRequest> ProposalFleetJoinRequests => Set<ProposalFleetJoinRequest>();
     public DbSet<ProposalFleetSettingChange> ProposalFleetSettingChanges => Set<ProposalFleetSettingChange>();
     public DbSet<ProposalFleetKickCrew> ProposalFleetKickCrews => Set<ProposalFleetKickCrew>();
+    public DbSet<ProposalCrewLeaveFleet> ProposalCrewLeaveFleets => Set<ProposalCrewLeaveFleet>();
     public DbSet<ProposalFleetRuleChange> ProposalFleetRuleChanges => Set<ProposalFleetRuleChange>();
     public DbSet<ProposalFleetNotice> ProposalFleetNotices => Set<ProposalFleetNotice>();
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
@@ -963,6 +964,23 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.TargetCrew)
                 .WithMany()
                 .HasForeignKey(e => e.TargetCrewId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProposalCrewLeaveFleet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.IsApplied).HasDefaultValue(false);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewLeaveFleet)
+                .HasForeignKey<ProposalCrewLeaveFleet>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Fleet)
+                .WithMany()
+                .HasForeignKey(e => e.FleetId)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

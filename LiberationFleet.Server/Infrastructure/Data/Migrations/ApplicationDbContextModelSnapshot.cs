@@ -2963,6 +2963,45 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("ProposalCrewApplyToFleets");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewLeaveFleet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("FleetId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsApplied")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FleetId");
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.ToTable("ProposalCrewLeaveFleets");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", b =>
                 {
                     b.Property<int>("Id")
@@ -5332,6 +5371,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Proposal");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewLeaveFleet", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Fleet", "Fleet")
+                        .WithMany()
+                        .HasForeignKey("FleetId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
+                        .WithOne("CrewLeaveFleet")
+                        .HasForeignKey("LiberationFleet.Server.Domain.Entities.ProposalCrewLeaveFleet", "ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Fleet");
+
+                    b.Navigation("Proposal");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ProposalCrewChatChange", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.Proposal", "Proposal")
@@ -5877,6 +5935,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("CrewApplyToFleet");
+
+                    b.Navigation("CrewLeaveFleet");
 
                     b.Navigation("CrewChatChange");
 

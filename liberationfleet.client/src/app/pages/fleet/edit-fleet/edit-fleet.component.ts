@@ -170,12 +170,19 @@ export class EditFleetComponent implements OnInit {
     this.showLeaveDialog = false;
     this.fleetService.leaveFleet().subscribe({
       next: result => {
-        if (result.success) {
-          this.toastService.success(result.message);
-          this.router.navigate(['/app/fleet']);
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to leave fleet');
           return;
         }
-        this.toastService.error(result.message || 'Failed to leave fleet');
+
+        if (result.proposalsSubmitted) {
+          this.toastService.success(result.message || 'Leave-fleet proposal submitted');
+          this.router.navigate(['/app/crew/proposals/list/pending']);
+          return;
+        }
+
+        this.toastService.success(result.message);
+        this.router.navigate(['/app/fleet']);
       },
       error: err => this.toastService.error(err?.error?.message || 'Failed to leave fleet')
     });
