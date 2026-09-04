@@ -1,0 +1,19 @@
+{
+  "name": "Liberation Fleet",
+  "short_name": "Liberation Fleet",
+  "description": "Mutual-aid coordination for crews and fleets.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    {
+      "src": "assets/images/LFleetLogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
