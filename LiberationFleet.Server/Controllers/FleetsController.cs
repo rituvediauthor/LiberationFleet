@@ -117,6 +117,7 @@ public class FleetsController : ControllerBase
     }
 
     [HttpGet("{fleetId:int}/public-rules")]
+    [SkipFleetRuleAcceptance]
     public async Task<IActionResult> GetPublicRules(int fleetId)
     {
         var result = await _mediator.Send(new GetPublicFleetRulesQuery(fleetId, null));
@@ -124,6 +125,7 @@ public class FleetsController : ControllerBase
     }
 
     [HttpGet("public-rules")]
+    [SkipFleetRuleAcceptance]
     public async Task<IActionResult> GetPublicRulesByJoinCode([FromQuery] string joinCode)
     {
         var result = await _mediator.Send(new GetPublicFleetRulesQuery(null, joinCode));
@@ -180,6 +182,7 @@ public class FleetsController : ControllerBase
     }
 
     [HttpPost("leave")]
+    [SkipFleetRuleAcceptance]
     public async Task<IActionResult> Leave()
     {
         var result = await _mediator.Send(new LeaveFleetCommand());
