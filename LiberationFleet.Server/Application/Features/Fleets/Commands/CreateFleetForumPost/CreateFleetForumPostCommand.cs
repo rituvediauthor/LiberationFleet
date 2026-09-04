@@ -1,9 +1,7 @@
-using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Mentions;
-using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -24,7 +22,6 @@ public class CreateFleetForumPostCommandHandler(
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
-    NotificationService notificationService,
     ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateFleetForumPostCommand, ForumOperationResponse>
 {
@@ -87,22 +84,6 @@ public class CreateFleetForumPostCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = $"/app/fleet/forums/{post.Id}?highlightId={post.Id}";
-        var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
-        foreach (var fleetCrew in fleetCrews)
-        {
-            await notificationService.NotifyCrewIfNotMutedAsync(
-                fleetCrew.CrewId,
-                NotificationKind.NewFleetForumPost,
-                MutedContentType.Forum,
-                post.Id,
-                "New fleet post",
-                NotificationPreview.BodyOrFallback(request.Preview, "A new post was published in your fleet."),
-                actionUrl,
-                relatedEntityId: post.Id,
-                excludeUserId: userId,
-                cancellationToken: cancellationToken);
-        }
-
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
             CrewId = membership.CrewId,

@@ -128,24 +128,22 @@ public class CreateFleetForumCommentCommandHandler(
                 ActorUserId = userId
             }, cancellationToken);
         }
-        else if (parentComment is null)
+
+        if (post.AuthorUserId != userId
+            && (parentComment is null || parentComment.AuthorUserId != post.AuthorUserId))
         {
-            var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleetId, cancellationToken);
-            foreach (var fleetCrew in fleetCrews)
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
             {
-                await notificationService.NotifyCrewIfNotMutedAsync(
-                    fleetCrew.CrewId,
-                    NotificationKind.NewFleetForumComment,
-                    MutedContentType.Forum,
-                    post.Id,
-                    "New fleet forum comment",
-                    NotificationPreview.BodyOrFallback(request.Preview, "A new comment was posted on a fleet forum thread."),
-                    actionUrl,
-                    relatedEntityId: post.Id,
-                    secondaryEntityId: comment.Id,
-                    excludeUserId: userId,
-                    cancellationToken: cancellationToken);
-            }
+                UserId = post.AuthorUserId,
+                CrewId = membership.CrewId,
+                Kind = NotificationKind.NewFleetForumComment,
+                Title = "New fleet forum comment",
+                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone commented on your fleet forum post."),
+                ActionUrl = actionUrl,
+                RelatedEntityId = post.Id,
+                SecondaryEntityId = comment.Id,
+                ActorUserId = userId
+            }, cancellationToken);
         }
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext

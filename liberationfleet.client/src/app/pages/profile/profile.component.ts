@@ -14,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { RecoveryKeyDisplayComponent } from '../../components/recovery-key-display/recovery-key-display.component';
+import { DeleteAccountDialogComponent } from '../../components/delete-account-dialog/delete-account-dialog.component';
 import { PaymentPlatformEditorComponent } from '../../components/payment-platform-editor/payment-platform-editor.component';
 import { IdentityGroupsEditorComponent } from '../../components/identity-groups-editor/identity-groups-editor.component';
 import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
@@ -78,6 +79,7 @@ function optionalPasswordChangeValidator(control: AbstractControl): ValidationEr
     RouterLink,
     PageLayoutComponent,
     RecoveryKeyDisplayComponent,
+    DeleteAccountDialogComponent,
     PaymentPlatformEditorComponent,
     IdentityGroupsEditorComponent,
     ProposalAttachmentPickerComponent,
@@ -102,6 +104,9 @@ export class ProfileComponent implements OnInit {
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
   rotatingRecoveryKey = false;
+  showDeleteAccountDialog = false;
+  deletingAccount = false;
+  deleteAccountError = '';
   crewId = 0;
   canToggleInNeedOff = true;
   inNeedToggleThreshold = 0;
@@ -267,6 +272,51 @@ export class ProfileComponent implements OnInit {
   onLogout() {
     this.authService.logout();
     this.router.navigate(['/sign-in']);
+  }
+
+  openDeleteAccountDialog() {
+    this.deleteAccountError = '';
+    this.deletingAccount = false;
+    this.showDeleteAccountDialog = true;
+  }
+
+  onDeleteAccountDismissed() {
+    if (this.deletingAccount) {
+      return;
+    }
+    this.showDeleteAccountDialog = false;
+    this.deleteAccountError = '';
+  }
+
+  async onDeleteAccountConfirmed(password: string) {
+    if (this.deletingAccount) {
+      return;
+    }
+
+    this.deletingAccount = true;
+    this.deleteAccountError = '';
+
+    try {
+      const result = await firstValueFrom(
+        this.securityService.deleteAccount({ currentPassword: password })
+      );
+
+      if (!result.success) {
+        this.deleteAccountError = result.message || 'Failed to delete account.';
+        return;
+      }
+
+      this.showDeleteAccountDialog = false;
+      this.toastService.success(result.message || 'Your account has been deleted.');
+      this.authService.logout();
+      await this.router.navigate(['/sign-in']);
+    } catch (error) {
+      this.deleteAccountError = this.extractErrorMessage(
+        error as { error?: { message?: string; errors?: Record<string, string[]> } }
+      );
+    } finally {
+      this.deletingAccount = false;
+    }
   }
 
   async onSave() {

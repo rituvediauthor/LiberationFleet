@@ -96,7 +96,6 @@ export class RecordGiftComponent implements OnInit {
         this.giverPlatformIds = profile.paymentPlatforms.map(p => p.platformId).filter(id => id > 0);
         this.activeUserId = profile.id;
         if (this.receptionEntries.length > 0) {
-          this.receptionEntries = this.receptionEntries.filter(e => e.userId !== this.activeUserId);
           this.buildEntryForms(this.receptionEntries);
         }
         this.giftService.getCrewMembers(profile.id).subscribe({
@@ -196,6 +195,10 @@ export class RecordGiftComponent implements OnInit {
     return entry.noSuitableMiddleman;
   }
 
+  isOwnEntry(entry: ReceptionOrderEntry): boolean {
+    return this.activeUserId > 0 && entry.userId === this.activeUserId;
+  }
+
   platformInfoLabel(entry: ReceptionOrderEntry, index: number): PlatformInfoLabel | null {
     const platformId = Number(this.entries.at(index)?.get('paymentPlatformId')?.value);
     if (platformId > 0) {
@@ -249,9 +252,7 @@ export class RecordGiftComponent implements OnInit {
     this.loading = true;
     this.giftService.getReceptionOrder(30).subscribe({
       next: entries => {
-        this.receptionEntries = this.activeUserId > 0
-          ? entries.filter(e => e.userId !== this.activeUserId)
-          : entries;
+        this.receptionEntries = entries;
         this.buildEntryForms(this.receptionEntries);
         this.loading = false;
         this.updateRecordButton();
@@ -283,11 +284,15 @@ export class RecordGiftComponent implements OnInit {
         const middleman = entry.middlemanOptions.find(mm => mm.userId === defaultMiddleman);
         defaultPlatformId = middleman?.commonPlatformIds[0] ?? '';
       }
-      this.entries.push(this.fb.group({
+      const group = this.fb.group({
         amount: [''],
         middlemanId: [defaultMiddleman],
         paymentPlatformId: [defaultPlatformId]
-      }));
+      });
+      if (this.isOwnEntry(entry)) {
+        group.disable({ emitEvent: false });
+      }
+      this.entries.push(group);
     });
   }
 
@@ -394,7 +399,9 @@ export class RecordGiftComponent implements OnInit {
     this.receptionEntries.forEach((entry, index) => {
       if (entry.userId === this.activeUserId) return;
 
-      const row = formValue.entries[index] as EntryFormValue;
+      const row = formValue.entries?.[index] as EntryFormValue | undefined;
+      if (!row) return;
+
       const amount = Number(row.amount);
       if (amount <= 0) return;
 

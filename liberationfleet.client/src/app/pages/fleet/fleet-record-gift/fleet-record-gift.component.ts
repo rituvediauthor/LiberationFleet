@@ -156,6 +156,10 @@ export class FleetRecordGiftComponent implements OnInit {
     return entry.noSuitableMiddleman;
   }
 
+  isOwnEntry(entry: ReceptionOrderEntry): boolean {
+    return this.activeUserId > 0 && entry.userId === this.activeUserId;
+  }
+
   platformInfoLabel(entry: ReceptionOrderEntry, index: number): PlatformInfoLabel | null {
     const platformId = Number(this.entries.at(index)?.get('paymentPlatformId')?.value);
     if (platformId > 0) {
@@ -245,7 +249,6 @@ export class FleetRecordGiftComponent implements OnInit {
       next: profile => {
         this.activeUserId = profile.id;
         if (this.receptionEntries.length > 0) {
-          this.receptionEntries = this.receptionEntries.filter(e => e.userId !== this.activeUserId);
           this.buildEntryForms(this.receptionEntries);
         }
         this.updateRecordButton();
@@ -257,10 +260,7 @@ export class FleetRecordGiftComponent implements OnInit {
   private loadReceptionOrder() {
     this.fleetService.getReceptionOrder().subscribe({
       next: result => {
-        const entries = result.items ?? [];
-        this.receptionEntries = this.activeUserId > 0
-          ? entries.filter(e => e.userId !== this.activeUserId)
-          : entries;
+        this.receptionEntries = result.items ?? [];
         this.buildEntryForms(this.receptionEntries);
         this.loading = false;
         this.updateRecordButton();
@@ -283,11 +283,15 @@ export class FleetRecordGiftComponent implements OnInit {
         const middleman = entry.middlemanOptions.find(mm => mm.userId === defaultMiddleman);
         defaultPlatformId = middleman?.commonPlatformIds[0] ?? '';
       }
-      this.entries.push(this.fb.group({
+      const group = this.fb.group({
         amount: [''],
         middlemanId: [defaultMiddleman],
         paymentPlatformId: [defaultPlatformId]
-      }));
+      });
+      if (this.isOwnEntry(entry)) {
+        group.disable({ emitEvent: false });
+      }
+      this.entries.push(group);
     });
   }
 
@@ -346,7 +350,11 @@ export class FleetRecordGiftComponent implements OnInit {
         return;
       }
 
-      const row = formValue.entries[index] as EntryFormValue;
+      const row = formValue.entries?.[index] as EntryFormValue | undefined;
+      if (!row) {
+        return;
+      }
+
       const amount = Number(row.amount);
       if (amount <= 0) {
         return;

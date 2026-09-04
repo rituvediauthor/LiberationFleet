@@ -26,6 +26,26 @@ h1 {
   margin-bottom: 16px;
 }
 
+.gift-entry.own-entry {
+  background: var(--lf-color-bg-muted, var(--lf-color-bg-hover));
+  border-style: dashed;
+}
+
+.own-entry-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+  line-height: 1.4;
+}
+
+.entry-you {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lf-color-text-secondary);
+}
+
 .entry-header {
   display: flex;
   flex-wrap: wrap;

@@ -121,20 +121,22 @@ public class CreateForumCommentCommandHandler(
                 ActorUserId = userId
             }, cancellationToken);
         }
-        else if (parentComment is null)
+
+        if (post.AuthorUserId != userId
+            && (parentComment is null || parentComment.AuthorUserId != post.AuthorUserId))
         {
-            await notificationService.NotifyCrewIfNotMutedAsync(
-                crewId,
-                NotificationKind.NewForumComment,
-                MutedContentType.Forum,
-                post.Id,
-                "New forum comment",
-                NotificationPreview.BodyOrFallback(request.Preview, "A new comment was posted on a forum thread."),
-                actionUrl,
-                relatedEntityId: post.Id,
-                secondaryEntityId: comment.Id,
-                excludeUserId: userId,
-                cancellationToken: cancellationToken);
+            await notificationService.NotifyUserAsync(new CreateNotificationRequest
+            {
+                UserId = post.AuthorUserId,
+                CrewId = crewId,
+                Kind = NotificationKind.NewForumComment,
+                Title = "New forum comment",
+                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone commented on your forum post."),
+                ActionUrl = actionUrl,
+                RelatedEntityId = post.Id,
+                SecondaryEntityId = comment.Id,
+                ActorUserId = userId
+            }, cancellationToken);
         }
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext

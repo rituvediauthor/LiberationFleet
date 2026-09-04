@@ -21,7 +21,7 @@ public class GetReceptionOrderQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_DelegatesToMutualAidServiceWithSelfExclusion()
+    public async Task Handle_DelegatesToMutualAidServiceIncludingSelf()
     {
         var mutualAidService = new Mock<IMutualAidService>(MockBehavior.Strict);
         mutualAidService
@@ -29,7 +29,7 @@ public class GetReceptionOrderQueryHandlerTests
                 5,
                 10,
                 true,
-                true,
+                false,
                 true,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);

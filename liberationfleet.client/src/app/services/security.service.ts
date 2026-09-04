@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   ChangePasswordRequest,
+  DeleteAccountRequest,
   RegisteredDevicesResponse,
   SecurityAlertsResponse,
   SecurityOperationResponse,
@@ -59,6 +60,10 @@ export class SecurityService {
 
   changePassword(request: ChangePasswordRequest): Observable<SecurityOperationResponse> {
     return this.http.post<SecurityOperationResponse>(`${this.apiUrl}/change-password`, request);
+  }
+
+  deleteAccount(request: DeleteAccountRequest): Observable<SecurityOperationResponse> {
+    return this.http.post<SecurityOperationResponse>(`${this.apiUrl}/delete-account`, request);
   }
 
   verifySettingsPassword(request: VerifySettingsPasswordRequest): Observable<VerifySettingsPasswordResponse> {

@@ -70,6 +70,10 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+export interface DeleteAccountRequest {
+  currentPassword: string;
+}
+
 export interface VerifySettingsPasswordRequest {
   settingsPassword: string;
 }

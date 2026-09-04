@@ -2,7 +2,6 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Mentions;
-using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -22,7 +21,6 @@ public class CreateForumPostCommandHandler(
     ICrewMembershipRepository membershipRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
-    NotificationService notificationService,
     ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateForumPostCommand, ForumOperationResponse>
 {
@@ -72,18 +70,6 @@ public class CreateForumPostCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        await notificationService.NotifyCrewIfNotMutedAsync(
-            membership.CrewId,
-            NotificationKind.NewForumPost,
-            MutedContentType.Forum,
-            post.Id,
-                "New post",
-            NotificationPreview.BodyOrFallback(request.Preview, "A new post was published."),
-            $"/app/crew/forums/{post.Id}?highlightId={post.Id}",
-            relatedEntityId: post.Id,
-            excludeUserId: userId,
-            cancellationToken: cancellationToken);
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
