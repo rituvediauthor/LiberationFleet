@@ -32,6 +32,7 @@ You may also provide profile and mutual-aid information, including:
 - Whether you are in need of aid
 - Emergency level and survival-aid preferences
 - People represented count and disability-level settings used in mutual-aid calculations
+- Optional identity-group tags you choose (for example categories related to disability, race, gender, sexuality, housing, immigration, religion, or other targeted-minority status). These tags may be used in mutual-aid priority scoring and may be visible to crewmates or included in limited Decentralizer crew exports
 - Payment platform handles you choose to share with your crew (for example a Venmo username)
 - Adult-content display preference (block, ask, or show)
 - Notification preferences
@@ -46,6 +47,7 @@ If you create or join a crew or fleet, we collect:
 - Your role and status (for example organizer, honorary member, season participation, estimated monthly contribution, priority scores, attachment/proposal permission gates, and related season or fleet settings)
 - Acceptance of fleet rules when joining a fleet
 - Voting, proposal status, kick, rejoin, and governance metadata needed to run crew/fleet features
+- Content-tenure clocks (accrued membership time in a crew or fleet) used for certain permission gates such as attachments, proposals, or branding features
 
 2.3 Friends and social graph
 We store friendship requests, acceptances, blocks, mute/hide preferences, and related timestamps so we can show your friends list and enforce blocking.
@@ -66,10 +68,10 @@ This structural gift and mutual-aid information is stored so the Service can cal
 2.5 Encrypted content (end-to-end encryption)
 We support client-side encryption for much user-generated content, including (as implemented):
 - Crew and fleet proposals and proposal comments
-- Crew and fleet forum/social-feed posts and comments
+- Crew and fleet forum/Space (social-feed) posts and comments
 - Crew and fleet chat messages and certain related fields (including chat room names where encrypted)
 - Direct messages between friends
-- Crew and fleet rules document bodies
+- Private crew and fleet rules document bodies (public rules may store title and description in readable form)
 - Gift-log display fields (for example display names or message text shown in the log) and gift comments
 - Library of Things fuller payloads, request messages, broken/maintenance report details, and library quest content
 - Media attachments (images, video, audio, and files), encrypted as opaque ciphertext by default (users may opt out of attachment encryption)
@@ -85,23 +87,24 @@ Your login password is used for authentication. It is not used to encrypt your p
 
 We do not hold the keys needed to decrypt end-to-end encrypted content in normal operation. Only you and other members who have valid keys can decrypt that content on their devices.
 
-You may optionally turn off encryption for individual file attachments when uploading (the “Encrypt attached files” control defaults to on). Unencrypted attachments are still stored in our media envelope format, but without AES encryption, so operators and anyone with database/storage access can read those file bytes. Prefer encryption for sensitive content. Profile, crew, and fleet brand images remain end-to-end encrypted and do not offer this opt-out.
+You may optionally turn off encryption for individual file attachments when uploading (the “Encrypt attached files” control defaults to on). Unencrypted attachments are still stored in our media envelope format, but without AES encryption, so operators and anyone with database/storage access can read those file bytes. Prefer encryption for sensitive content. Profile, crew, and fleet brand images remain end-to-end encrypted and do not offer this opt-out. Message and post bodies are encrypted by default on current clients; attachment encryption is the separate opt-out.
 
 Encryption does not extend to:
 - Gift amounts, participant identities in gift records, emergency-request calculation fields, or mutual-aid calculation data (section 2.4)
-- Crew/fleet settings and membership metadata (section 2.2)
+- Crew/fleet settings and membership metadata (section 2.2), including content-tenure clocks
+- Public rules title and description when a rule is marked public
 - Library titles and short previews used for browsing (section 2.7)
 - Notification titles/bodies shown in the app
 - Voice-channel presence metadata
 - App donation records and safety-report evidence packets as described below
 - Attachments you explicitly upload with encryption turned off (this section)
 
-Some older fleet chat may exist in readable form from a legacy client path that did not always send an encrypted envelope. Current fleet chat is encrypted. Prefer features that mark content as encrypted in the product UI.
+Current official clients encrypt fleet chat. The server may still accept and store a readable fleet chat body if a client or API caller does not send an encrypted envelope. Prefer features that mark content as encrypted in the product UI.
 
 2.6 Media attachments
-When you attach media with encryption on (the default), your device processes allowed file types, may compress or re-encode them, encrypts them, and uploads ciphertext. We do not store encrypted attachments as ordinary host files. Allowed types are limited (raster images such as JPEG/PNG/WebP/GIF, common video and audio formats, and certain downloadable file types for Library digital goods). Potentially hazardous types such as SVG, HTML, and executable formats are blocked by the client. Size limits apply; unencrypted uploads may allow larger files (for example roughly up to 50 MB images, 100 MB audio, and 500 MB generic files) because they skip encryption overhead, but we discourage unencrypted upload for private or sensitive material.
+When you attach media with encryption on (the default), your device processes allowed file types, may compress or re-encode them, encrypts them, and uploads ciphertext. We do not store encrypted attachments as ordinary host files. Allowed types are limited (raster images such as JPEG/PNG/WebP/GIF, common video and audio formats, and certain downloadable file types for Library digital goods). Potentially hazardous types such as SVG, HTML, and executable formats are blocked by the client. Size limits apply; unencrypted uploads may allow larger files (for example roughly up to 50 MB images, 100 MB audio, and 600 MB generic files) because they skip encryption overhead, but we discourage unencrypted upload for private or sensitive material.
 
-Older or large encrypted media may be moved to colder object storage (“deep freeze”) while remaining ciphertext only. Deep freeze is a storage tier for encrypted bytes, not an account freeze.
+Older or large media envelopes may be moved to colder object storage (“deep freeze”). Deep freeze is a storage tier for media envelope bytes (whether AES-encrypted or deliberately uploaded without encryption). It is not an account freeze.
 
 2.7 Library of Things
 For Library offerings, stock/units, requests, quests, and related flows we may store plaintext browsing and operational fields such as:
@@ -124,7 +127,7 @@ If you donate to support the app:
 - Stripe processes the payment on Stripe’s hosted Checkout pages
 - We do not collect or store your full card number, CVC, or bank credentials
 - After Stripe confirms a successful payment via webhook, we may store your user id, donation amount, currency, status, Stripe session/payment identifiers, and timestamps
-- Your profile may show calendar-year donation totals for your own reference (these are not tax advice and are not a formal tax receipt unless separately provided)
+- Your profile may show calendar-year donation totals for your own reference (these are not tax advice and are not a formal tax receipt unless separately provided). Liberation Fleet Co. is a government-recognized nonprofit organization; deductibility of donations depends on applicable law and any receipt or documentation we provide.
 
 2.11 Safety reports (report packets)
 When you use Report on content or a profile, we collect:
@@ -135,7 +138,7 @@ When you use Report on content or a profile, we collect:
 - A one-time evidence snapshot: decrypted text (truncated) and, when you include them, limited media metadata or bytes you choose to attach for that report
 - Timestamps and status of the report (received, escalated, closed, and similar)
 
-Routine end-to-end encrypted content remains unread by us unless submitted as report evidence. Report evidence is encrypted at rest with a separate report-evidence key (not your crew or fleet content key). Access is limited to safety operations, contracted moderation vendors (when used), and disclosures required by law — including CyberTipline reports to NCMEC for apparent child sexual exploitation when we have actual knowledge.
+Routine end-to-end encrypted content remains unread by us unless submitted as report evidence. Report evidence is encrypted at rest with a separate report-evidence key (not your crew or fleet content key). Access is limited to safety operations, contracted moderation vendors (when used), and disclosures required by law — including CyberTipline reports to NCMEC for apparent child sexual exploitation when we have actual knowledge. CSAM-related reports are queued for operator review and NCMEC filing; filing is performed by operators (or an authorized vendor) and is not an automatic public API post from the app.
 
 Retention: non-CSAM report packets are kept for a limited safety window (typically up to 90 days unless an investigation is open). CSAM-related or lawfully escalated packets are preserved as required for CyberTipline / legal compliance.
 
@@ -169,14 +172,16 @@ If you use password reset or other account recovery features, we process your em
 We use the information we collect to:
 - Create and manage your account and security settings (including device trust/block where available)
 - Authenticate you and maintain your session
-- Enable you to create, join, and participate in crews, fleets, friends lists, chats, forums, proposals, rules, Library of Things features (including quests and digital goods), emergency requests, gift logging, and voice channels
-- Record gifts and run mutual-aid features (reception order, thresholds, cycles, emergency requests, verification workflows, and season management)
+- Enable you to create, join, and participate in crews, fleets, friends lists, chats, forums/Spaces, proposals, rules, Library of Things features (including quests and digital goods), emergency requests, gift logging, and voice channels
+- Record gifts and run mutual-aid features (reception order, thresholds, cycles, emergency requests, verification workflows, season management, and priority scoring that may use identity-group and related profile fields)
+- Track content-tenure clocks used for certain permission gates
 - Display information to you and to other members of groups you join as the app is designed to do
 - Operate encryption key exchange and store encrypted content on your behalf
 - Process app donations through Stripe and show your donation history totals
-- Process safety reports, quarantine abusive content identifiers, freeze abusive accounts, and file legally required reports (including to NCMEC)
+- Process safety reports, quarantine abusive content identifiers, freeze abusive accounts, and support legally required reports (including operator filing to NCMEC)
 - Deliver notifications and honor mute/hide preferences
-- Support limited crew exports where a role (such as Decentralizer) is permitted to export gift-log or crewmate-state data for backup/decentralization purposes
+- Support limited crew exports where a role (such as Decentralizer) is permitted to export gift-log or crewmate-state data (which may include identity-group tags) for backup/decentralization purposes
+- Process self-service account deletion (disable and anonymize the account, remove memberships, and run related Library cleanup)
 - Respond to support requests and secure the Service
 - Comply with applicable law and enforce our Terms of Use and Community Standards
 
@@ -186,7 +191,7 @@ We do not sell your personal information.
 4. WHO CAN SEE YOUR INFORMATION
 
 4.1 Within crews and fleets
-Much of the information in the Service is shared with other members of crews or fleets you join, including usernames, payment handles you provide, gift activity, library browsing fields, quest board visibility appropriate to membership, and mutual-aid status relevant to shared seasons or fleets.
+Much of the information in the Service is shared with other members of crews or fleets you join, including usernames, payment handles you provide, gift activity, library browsing fields, quest board visibility appropriate to membership, mutual-aid status relevant to shared seasons or fleets, and identity-group tags you choose to provide.
 
 4.2 Friends and direct messages
 Friends can see information needed for friendship features. Direct message bodies are end-to-end encrypted between participants; conversation metadata may be stored on our servers.
@@ -231,7 +236,24 @@ No method of transmission or storage is completely secure. A security incident c
 
 7. DATA RETENTION
 
-We retain information for as long as your account is active or as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. Safety-report retention follows section 2.11. You may request account deletion by contacting us; some information may be retained where required by law or for legitimate security, fraud-prevention, donation, or safety purposes. The product does not currently provide a self-service “delete my account” or complete personal-data download button.
+We retain information for as long as your account is active or as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce our agreements. Safety-report retention follows section 2.11.
+
+You may delete your account yourself from Profile by confirming with your current password. When you delete your account, we:
+- Permanently disable sign-in for that account
+- Anonymize identifiers such as username and email so they are freed for reuse and no longer identify you in ordinary profile displays
+- Remove you from your crew and fleet memberships and pause related content-tenure clocks
+- Run Library of Things cleanup for a departing member (for example canceling open requests you made or that involve units you possess, and removing certain offerings or units tied to your possession or creation as the product implements)
+- Clear profile fields such as payment handles, avatar linkage, identity-group tags, and aid-preference flags used for mutual-aid displays
+
+Account deletion is not a complete erasure of every historical record. We may retain, where needed for mutual-aid integrity, security, fraud prevention, donation accounting, safety, or legal compliance:
+- Gift and mutual-aid calculation records (who gave or received, amounts, and related structural fields)
+- App donation records and Stripe identifiers
+- Safety-report packets and evidence as described in section 2.11
+- Content you authored in crews or fleets that continue with other members (for example chat, forum, proposal, or library rows), which may remain associated with an anonymized account id
+- Certain numeric mutual-aid profile fields on the anonymized account row (for example people-represented count, disability level, or emergency level) unless later cleared by operators
+- Content-tenure history rows and other server logs or records required by law
+
+The product does not currently provide a complete personal-data download or full “right to erasure” wipe of every related row.
 
 Device-side session caches described in section 2.13 are temporary performance aids on your device. They are cleared on sign-out and are not intended as long-term storage of your content on our servers.
 
@@ -240,6 +262,7 @@ Device-side session caches described in section 2.13 are temporary performance a
 
 - You can update certain profile, payment-handle, adult-content, notification, and security settings in the app.
 - You can leave a crew or fleet, unfriend or block users, mute or hide content, manage registered devices where that feature is available, and stop using the Service.
+- You can delete your account from Profile (password confirmation required). Deletion disables the account and anonymizes identifiers as described in section 7; it does not erase every historical gift, donation, report, or group-content record.
 - Encrypted content is unlocked with your 12-word recovery key on each device (or for the browser session if you choose to remember it). Your login password does not decrypt content keys on new accounts.
 - If you lose your recovery key, we cannot restore access to encrypted content.
 - Signing out clears device-side session caches of profile/membership state and decrypted media held in memory for that session.
@@ -271,11 +294,12 @@ SUMMARY (NOT A SUBSTITUTE FOR THE FULL POLICY)
 
 - We store account, crew/fleet, gift-calculation, emergency-request structure, library preview/quest structure, notification, donation metadata, and safety-report data on our servers.
 - Gift amounts and who gave to whom are stored in readable form so mutual-aid features work.
-- Much chat, forum, proposal, DM, rules, library payload, quest, gift-display, and media content is end-to-end encrypted so we cannot read it in normal operation.
+- Much chat, forum/Space, proposal, DM, private rules, library payload, quest, gift-display, and media content is end-to-end encrypted so we cannot read it in normal operation (public rules and structural gift fields may be readable; attachment encryption can be turned off).
 - Your device may temporarily keep session UI data and decrypted media in memory to improve performance; that cache is cleared on sign-out and is not an extra server copy of plaintext.
-- App donations are processed by Stripe; we keep amount and Stripe ids, not your card number.
+- App donations are processed by Stripe; we keep amount and Stripe ids, not your card number. Liberation Fleet Co. is a government-recognized nonprofit; in-app totals are not a tax receipt unless separately provided.
 - Voice media is handled by LiveKit; we may keep join/presence metadata.
-- Crew/fleet members and friends can see information required for shared features.
+- Crew/fleet members and friends can see information required for shared features, including optional identity-group tags you provide.
 - We are not a bank; peer payments happen on external platforms.
-- Reporting may send a one-time evidence snapshot for safety and legal compliance.
-- Account deletion is by request to operators; limited role-based crew exports are not a full personal-data download.
+- Reporting may send a one-time evidence snapshot for safety and legal compliance; CSAM reports are queued for operator NCMEC filing.
+- You can delete your account from Profile; deletion anonymizes and disables the account but may retain gifts, donations, reports, and some group content.
+- Limited role-based crew exports are not a full personal-data download.

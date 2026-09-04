@@ -16,7 +16,7 @@ You may not create, share, request, or store:
 - Credible threats of violence or content that facilitates violent crime
 - Other material that is illegal under United States federal law
 
-Reports of child sexual exploitation are treated as highest priority. When you report such content, a temporary plaintext evidence snapshot may be retained so we can file required reports to the National Center for Missing & Exploited Children (NCMEC) CyberTipline.
+Reports of child sexual exploitation are treated as highest priority. When you report such content, a temporary plaintext evidence snapshot may be retained and the report queued for safety review so operators can file required reports to the National Center for Missing & Exploited Children (NCMEC) CyberTipline.
 
 3. HARASSMENT AND ABUSE
 Do not stalk, harass, dox, or target other users. Use Block and Report. Crew or fleet kick proposals are for membership governance; they do not replace platform reports for illegal content. Roles such as Organizer or Moderator do not authorize harassment or illegal conduct.
@@ -36,18 +36,18 @@ The Library of Things is community resource sharing, not a marketplace run by Li
 - Respect return windows, care expectations, and crew/fleet rules for borrowed durables.
 
 7. ENCRYPTION AND REPORTS
-Most crew, fleet, chat, forum, proposal, rules, DM, library payload/quest, gift-display, and media content is end-to-end encrypted. We cannot read it in normal operation. If you Report content, your device may send a one-time decrypted snapshot of that item (and limited metadata) sealed for safety review. Routine chat is not monitored. Knowingly false reports intended to harm others are prohibited.
+Most crew, fleet, chat, forum/Space, proposal, private rules, DM, library payload/quest, gift-display, and media content is end-to-end encrypted. We cannot read it in normal operation. Public rules and structural fields (such as gift amounts) may be readable. File attachments encrypt by default; you may turn encryption off for an upload. If you Report content, your device may send a one-time decrypted snapshot of that item (and limited metadata) sealed for safety review. Routine chat is not monitored. Knowingly false reports intended to harm others are prohibited.
 
 8. ATTACHMENTS AND ADULT CONTENT
 Attach only allowed media types. Do not attempt to upload executable, script, or HTML/SVG payloads. Prefer the default “encrypt attached files” setting for sensitive material. Honor adult-content labels and gates; 18+ material must still comply with these standards and the law.
 
 9. VOICE AND SOCIAL SPACES
-Voice rooms, text chats, forums, and direct messages are shared community spaces. Do not disrupt rooms, evade blocks, or use anonymous/advocate modes (where available) to harass others.
+Voice rooms, text chats, forums/Spaces (social feeds), and direct messages are shared community spaces. Do not disrupt rooms, evade blocks, or use anonymous/advocate modes (where available) to harass others.
 
 10. ENFORCEMENT
-We may freeze accounts (including pending a safety review), remove or quarantine content identifiers, preserve report evidence, and report apparent child sexual exploitation to NCMEC when we have actual knowledge. We may refuse service to anyone who violates these standards or the Terms of Use.
+We may freeze accounts (including pending a safety review), remove or quarantine content identifiers, preserve report evidence, and report apparent child sexual exploitation to NCMEC when we have actual knowledge (including through operator review of queued report evidence). We may refuse service to anyone who violates these standards or the Terms of Use.
 
 11. CONTACT
-Use in-app Report for abusive or illegal content. For account issues, contact the operators through the channel published on our website when available.
+Use in-app Report for abusive or illegal content. You may delete your account from Profile (password confirmation required). For other account or support issues, contact the operators through the channel published on our website when available.
 
 These standards are part of your agreement to use Liberation Fleet together with the Terms of Use and Privacy Policy.
