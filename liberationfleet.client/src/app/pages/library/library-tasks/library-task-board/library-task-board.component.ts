@@ -34,7 +34,7 @@ export class LibraryTaskBoardComponent implements OnInit {
   constructor() {
     this.backButton = this.navigation.createBackButton(['/app/crew/library-of-things']);
     this.createButton = {
-      label: 'Create Task',
+      label: 'Create Quest',
       type: 'primary',
       onClick: () => this.router.navigate(['/app/crew/library-of-things/tasks/create'])
     };
@@ -92,7 +92,7 @@ export class LibraryTaskBoardComponent implements OnInit {
       },
       error: err => {
         this.loading = false;
-        this.errorMessage = err?.message ?? 'Failed to load tasks';
+        this.errorMessage = err?.message ?? 'Failed to load quests';
         this.toastService.error(this.errorMessage);
       }
     });

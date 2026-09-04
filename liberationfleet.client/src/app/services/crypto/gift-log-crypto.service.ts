@@ -240,7 +240,7 @@ export class GiftLogCryptoService {
     const amountText = Number.isInteger(gift.amount)
       ? gift.amount.toString()
       : gift.amount.toFixed(2).replace(/\.?0+$/, '');
-    const title = gift.itemTitle.trim() || 'a task';
+    const title = gift.itemTitle.trim() || 'a quest';
     const message = `${gift.contributorUsername} gifted ${gift.recipientUsername} $${amountText} worth of ${title}`;
     await this.encryptAndStoreEntry({
       id: gift.giftId,

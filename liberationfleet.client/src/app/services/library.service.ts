@@ -350,7 +350,7 @@ export class LibraryService {
     return this.http.get<LibraryTaskListResponse>(`${this.basePath}/tasks`).pipe(
       map(response => {
         if (!response.success) {
-          throw new Error(response.message || 'Failed to load tasks');
+          throw new Error(response.message || 'Failed to load quests');
         }
         return response.items;
       })
@@ -361,7 +361,7 @@ export class LibraryService {
     return this.http.get<LibraryTaskListResponse>(`${this.basePath}/tasks/no-deadline`).pipe(
       map(response => {
         if (!response.success) {
-          throw new Error(response.message || 'Failed to load no-deadline tasks');
+          throw new Error(response.message || 'Failed to load no-deadline quests');
         }
         return response.items;
       })
@@ -372,7 +372,7 @@ export class LibraryService {
     return this.http.get<LibraryTaskDetailResponse>(`${this.basePath}/tasks/${taskId}`).pipe(
       map(response => {
         if (!response.success || !response.task) {
-          throw new Error(response.message || 'Failed to load task');
+          throw new Error(response.message || 'Failed to load quest');
         }
         return response.task;
       })

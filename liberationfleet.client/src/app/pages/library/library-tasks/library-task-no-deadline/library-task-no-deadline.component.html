@@ -1,11 +1,11 @@
 <app-page-layout [backButton]="backButton" [fillHeight]="true">
   <div class="library-list-page">
-    <p class="page-note">No-deadline tasks, ordered alphabetically</p>
+    <p class="page-note">No-deadline quests, ordered alphabetically</p>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
-      No open no-deadline tasks yet.
+      No open no-deadline quests yet.
     </p>
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">

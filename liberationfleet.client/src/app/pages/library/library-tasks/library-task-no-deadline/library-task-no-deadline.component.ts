@@ -77,7 +77,7 @@ export class LibraryTaskNoDeadlineComponent implements OnInit {
       },
       error: err => {
         this.loading = false;
-        this.errorMessage = err?.message ?? 'Failed to load tasks';
+        this.errorMessage = err?.message ?? 'Failed to load quests';
         this.toastService.error(this.errorMessage);
       }
     });

@@ -10,7 +10,7 @@
           class="form-input"
           type="text"
           formControlName="title"
-          placeholder="Task title"
+          placeholder="Quest title"
           [maxlength]="titleMaxLength"
           [attr.aria-invalid]="isInvalid('title')"
           [attr.aria-describedby]="isInvalid('title') ? 'title-error' : null" />
@@ -41,7 +41,7 @@
           class="form-input textarea"
           rows="6"
           formControlName="details"
-          placeholder="Describe the task"
+          placeholder="Describe the quest"
           [maxlength]="detailsMaxLength"></textarea>
         <app-char-counter [current]="form.get('details')?.value?.length || 0" [max]="detailsMaxLength"></app-char-counter>
       </div>
@@ -60,7 +60,7 @@
           <span>Delete on completion</span>
         </label>
         <p class="field-hint" *ngIf="form.get('deleteOnCompletion')?.value">
-          After you confirm a completion, this task is removed from the board.
+          After you confirm a completion, this quest is removed from the board.
         </p>
         <p class="field-hint" *ngIf="!form.get('deleteOnCompletion')?.value">
           Stays on the board so any number of people can complete it any number of times.

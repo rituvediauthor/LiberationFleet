@@ -43,7 +43,7 @@ public class GetLibraryTasksQueryHandler(
         return new LibraryTaskListResponse
         {
             Success = true,
-            Message = "Tasks loaded.",
+            Message = "Quests loaded.",
             Items = items
         };
     }
@@ -85,7 +85,7 @@ public class GetNoDeadlineLibraryTasksQueryHandler(
         return new LibraryTaskListResponse
         {
             Success = true,
-            Message = "No-deadline tasks loaded.",
+            Message = "No-deadline quests loaded.",
             Items = items
         };
     }
@@ -120,7 +120,7 @@ public class GetLibraryTaskDetailQueryHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId || task.IsClosed)
         {
-            return new LibraryTaskDetailResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskDetailResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.HasDeadline)
@@ -133,14 +133,14 @@ public class GetLibraryTaskDetailQueryHandler(
                 cancellationToken);
             if (task is null || task.IsClosed)
             {
-                return new LibraryTaskDetailResponse { Success = false, Message = "Task not found." };
+                return new LibraryTaskDetailResponse { Success = false, Message = "Quest not found." };
             }
         }
 
         return new LibraryTaskDetailResponse
         {
             Success = true,
-            Message = "Task loaded.",
+            Message = "Quest loaded.",
             Task = LibraryTaskMapper.ToDetail(task, currentUser.UserId.Value, utcNow)
         };
     }
@@ -201,7 +201,7 @@ public class CreateLibraryTaskCommandHandler(
             return new LibraryTaskOperationResponse
             {
                 Success = false,
-                Message = "Could not schedule any upcoming instances for this task."
+                Message = "Could not schedule any upcoming instances for this quest."
             };
         }
 
@@ -226,7 +226,7 @@ public class CreateLibraryTaskCommandHandler(
         return new LibraryTaskOperationResponse
         {
             Success = true,
-            Message = "Task created.",
+            Message = "Quest created.",
             TaskId = task.Id
         };
     }
@@ -235,7 +235,7 @@ public class CreateLibraryTaskCommandHandler(
     {
         if (string.IsNullOrWhiteSpace(body.Nonce) || string.IsNullOrWhiteSpace(body.Ciphertext))
         {
-            return "Encrypted task content is required.";
+            return "Encrypted quest content is required.";
         }
 
         if (body.Value <= 0)
@@ -250,7 +250,7 @@ public class CreateLibraryTaskCommandHandler(
 
         if (!body.IsRecurring && !body.OneShotDueAt.HasValue)
         {
-            return "Choose a due date for a one-time task.";
+            return "Choose a due date for a one-time quest.";
         }
 
         if (body.IsRecurring)
@@ -273,7 +273,7 @@ public class CreateLibraryTaskCommandHandler(
             if (frequency == LibraryTaskRecurrenceFrequency.Yearly
                 && (body.YearMonth is null || body.YearDay is null))
             {
-                return "Choose a month and day for yearly tasks.";
+                return "Choose a month and day for yearly quests.";
             }
         }
 
@@ -318,12 +318,12 @@ public class UpdateLibraryTaskCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId || task.IsClosed)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.CreatorUserId != currentUser.UserId.Value)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Only the task creator can edit it." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Only the quest creator can edit it." };
         }
 
         var scheduleChanged = !LibraryTaskMapper.ScheduleEquals(task, request.Body);
@@ -348,7 +348,7 @@ public class UpdateLibraryTaskCommandHandler(
                 return new LibraryTaskOperationResponse
                 {
                     Success = false,
-                    Message = "Could not schedule any upcoming instances for this task."
+                    Message = "Could not schedule any upcoming instances for this quest."
                 };
             }
 
@@ -382,8 +382,8 @@ public class UpdateLibraryTaskCommandHandler(
                     UserId = userId,
                     CrewId = membership.CrewId,
                     Kind = NotificationKind.LibraryTaskScheduleChanged,
-                    Title = "Task schedule updated",
-                    Body = "A task you claimed was rescheduled. Open it to claim a new instance if you still want to help.",
+                    Title = "Quest schedule updated",
+                    Body = "A quest you claimed was rescheduled. Open it to claim a new instance if you still want to help.",
                     ActionUrl = $"/app/crew/library-of-things/tasks/{task.Id}",
                     RelatedEntityId = task.Id
                 }, cancellationToken);
@@ -393,7 +393,7 @@ public class UpdateLibraryTaskCommandHandler(
         return new LibraryTaskOperationResponse
         {
             Success = true,
-            Message = "Task updated.",
+            Message = "Quest updated.",
             TaskId = task.Id
         };
     }
@@ -429,12 +429,12 @@ public class DeleteLibraryTaskCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId || task.IsClosed)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.CreatorUserId != currentUser.UserId.Value)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Only the task creator can delete it." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Only the quest creator can delete it." };
         }
 
         var claimantIds = await taskRepository.GetDistinctClaimantUserIdsAsync(task.Id, cancellationToken);
@@ -459,8 +459,8 @@ public class DeleteLibraryTaskCommandHandler(
                 UserId = userId,
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.LibraryTaskScheduleChanged,
-                Title = "Task deleted",
-                Body = "A task you claimed was deleted by its creator.",
+                Title = "Quest deleted",
+                Body = "A quest you claimed was deleted by its creator.",
                 ActionUrl = "/app/crew/library-of-things/tasks",
                 RelatedEntityId = task.Id
             }, cancellationToken);
@@ -469,7 +469,7 @@ public class DeleteLibraryTaskCommandHandler(
         return new LibraryTaskOperationResponse
         {
             Success = true,
-            Message = "Task deleted.",
+            Message = "Quest deleted.",
             TaskId = task.Id
         };
     }
@@ -504,7 +504,7 @@ public class ClaimLibraryTaskInstancesCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId || task.IsClosed)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.CreatorUserId == currentUser.UserId.Value)
@@ -512,7 +512,7 @@ public class ClaimLibraryTaskInstancesCommandHandler(
             return new LibraryTaskOperationResponse
             {
                 Success = false,
-                Message = "You cannot claim your own task instances."
+                Message = "You cannot claim your own quest instances."
             };
         }
 
@@ -571,7 +571,7 @@ public class UnclaimLibraryTaskInstancesCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         var instances = await taskRepository.GetTrackedInstancesByIdsAsync(
@@ -631,7 +631,7 @@ public class CompleteLibraryTaskInstancesCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         var instances = await taskRepository.GetTrackedInstancesByIdsAsync(
@@ -699,7 +699,7 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId)
         {
-            return new LibraryTaskConfirmResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskConfirmResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.CreatorUserId != currentUser.UserId.Value)
@@ -707,7 +707,7 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
             return new LibraryTaskConfirmResponse
             {
                 Success = false,
-                Message = "Only the task creator can confirm completion."
+                Message = "Only the quest creator can confirm completion."
             };
         }
 
@@ -735,7 +735,7 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
             var completerName = instance.ClaimedByUser?.Username ?? "Crewmate";
             var gift = await contributionGiftService.TryAwardTaskCompletionAsync(
                 membership.CrewId,
-                "Library task",
+                "Library quest",
                 task.Value,
                 completerId,
                 completerName,
@@ -779,7 +779,7 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
         {
             Success = true,
             Message = !task.HasDeadline && task.DeleteOnCompletion
-                ? "Completion confirmed. Task removed from the board."
+                ? "Completion confirmed. Quest removed from the board."
                 : "Completion confirmed.",
             ContributionGifts = gifts,
             TaskClosed = !task.HasDeadline && task.DeleteOnCompletion
@@ -816,7 +816,7 @@ public class RejectLibraryTaskInstancesCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.CreatorUserId != currentUser.UserId.Value)
@@ -824,7 +824,7 @@ public class RejectLibraryTaskInstancesCommandHandler(
             return new LibraryTaskOperationResponse
             {
                 Success = false,
-                Message = "Only the task creator can mark instances incomplete."
+                Message = "Only the quest creator can mark instances incomplete."
             };
         }
 
@@ -897,7 +897,7 @@ public class CompleteNoDeadlineLibraryTaskCommandHandler(
         var task = await taskRepository.GetTrackedTaskByIdAsync(request.TaskId, cancellationToken);
         if (task is null || task.CrewId != membership.CrewId || task.IsClosed)
         {
-            return new LibraryTaskOperationResponse { Success = false, Message = "Task not found." };
+            return new LibraryTaskOperationResponse { Success = false, Message = "Quest not found." };
         }
 
         if (task.HasDeadline)
@@ -905,7 +905,7 @@ public class CompleteNoDeadlineLibraryTaskCommandHandler(
             return new LibraryTaskOperationResponse
             {
                 Success = false,
-                Message = "This endpoint is only for no-deadline tasks."
+                Message = "This endpoint is only for no-deadline quests."
             };
         }
 
@@ -914,7 +914,7 @@ public class CompleteNoDeadlineLibraryTaskCommandHandler(
             return new LibraryTaskOperationResponse
             {
                 Success = false,
-                Message = "You cannot complete your own task."
+                Message = "You cannot complete your own quest."
             };
         }
 

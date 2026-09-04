@@ -192,7 +192,7 @@ export class LibraryTaskDetailComponent implements OnInit {
     if (this.selectedIds.size === 0) {
       this.primaryButton = this.task.isCreator
         ? {
-            label: 'Edit Task',
+            label: 'Edit Quest',
             type: 'primary',
             onClick: () =>
               this.router.navigate(['/app/crew/library-of-things/tasks', this.taskId, 'edit'])
@@ -200,7 +200,7 @@ export class LibraryTaskDetailComponent implements OnInit {
         : null;
       this.secondaryButton = this.task.isCreator
         ? {
-            label: 'Delete Task',
+            label: 'Delete Quest',
             type: 'secondary',
             disabled: this.actionBusy,
             onClick: () => {
@@ -283,13 +283,13 @@ export class LibraryTaskDetailComponent implements OnInit {
       }
 
       this.primaryButton = {
-        label: 'Edit Task',
+        label: 'Edit Quest',
         type: 'primary',
         onClick: () =>
           this.router.navigate(['/app/crew/library-of-things/tasks', this.taskId, 'edit'])
       };
       this.secondaryButton = {
-        label: 'Delete Task',
+        label: 'Delete Quest',
         type: 'secondary',
         disabled: this.actionBusy,
         onClick: () => {
@@ -454,7 +454,7 @@ export class LibraryTaskDetailComponent implements OnInit {
       },
       error: err => {
         this.loading = false;
-        this.errorMessage = err?.message ?? 'Failed to load task';
+        this.errorMessage = err?.message ?? 'Failed to load quest';
         this.toastService.error(this.errorMessage);
       }
     });
@@ -473,10 +473,10 @@ export class LibraryTaskDetailComponent implements OnInit {
         this.actionBusy = false;
         if (!response.success) {
           this.refreshActionButtons();
-          this.toastService.error(response.message || 'Failed to delete task');
+          this.toastService.error(response.message || 'Failed to delete quest');
           return;
         }
-        this.toastService.success(response.message || 'Task deleted.');
+        this.toastService.success(response.message || 'Quest deleted.');
         void this.router.navigate(this.tasksListPath());
       },
       error: (err: unknown) => this.onActionError(err)

@@ -742,31 +742,31 @@ export const routes: Routes = [
     path: 'app/crew/library-of-things/tasks/create',
     component: LibraryTaskFormComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { parentTab: 'crew', locationHeader: 'Create Task' }
+    data: { parentTab: 'crew', locationHeader: 'Create Quest' }
   },
   {
     path: 'app/crew/library-of-things/tasks/no-deadline',
     component: LibraryTaskNoDeadlineComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { parentTab: 'crew', locationHeader: 'No-Deadline Tasks' }
+    data: { parentTab: 'crew', locationHeader: 'No-Deadline Quests' }
   },
   {
     path: 'app/crew/library-of-things/tasks/:id/edit',
     component: LibraryTaskFormComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { parentTab: 'crew', locationHeader: 'Edit Task' }
+    data: { parentTab: 'crew', locationHeader: 'Edit Quest' }
   },
   {
     path: 'app/crew/library-of-things/tasks/:id',
     component: LibraryTaskDetailComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { parentTab: 'crew', locationHeader: 'Task' }
+    data: { parentTab: 'crew', locationHeader: 'Quest' }
   },
   {
     path: 'app/crew/library-of-things/tasks',
     component: LibraryTaskBoardComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { parentTab: 'crew', locationHeader: 'Task Board' }
+    data: { parentTab: 'crew', locationHeader: 'Quest Board' }
   },
   {
     path: 'app/crew/library-of-things/durable',

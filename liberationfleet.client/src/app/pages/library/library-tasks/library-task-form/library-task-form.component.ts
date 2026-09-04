@@ -217,12 +217,12 @@ export class LibraryTaskFormComponent implements OnInit {
     }
 
     if (!this.crewId) {
-      this.toastService.error('Crew is required to save a task.');
+      this.toastService.error('Crew is required to save a quest.');
       return;
     }
 
     if (!this.cryptoSession.isUnlocked()) {
-      this.toastService.error('Unlock encryption to create or edit tasks.');
+      this.toastService.error('Unlock encryption to create or edit quests.');
       return;
     }
 
@@ -258,11 +258,11 @@ export class LibraryTaskFormComponent implements OnInit {
       this.saveButton = { ...this.saveButton, disabled: false };
       const result = response as { success: boolean; message?: string; taskId?: number };
       if (!result.success) {
-        this.toastService.error(result.message || 'Failed to save task');
+        this.toastService.error(result.message || 'Failed to save quest');
         return;
       }
 
-      this.toastService.success(this.isEdit ? 'Task updated.' : 'Task created.');
+      this.toastService.success(this.isEdit ? 'Quest updated.' : 'Quest created.');
       const nextId = result.taskId ?? this.taskId;
       if (nextId) {
         void this.router.navigate(['/app/crew/library-of-things/tasks', nextId]);
@@ -276,7 +276,7 @@ export class LibraryTaskFormComponent implements OnInit {
       this.saveButton = { ...this.saveButton, disabled: false };
       const message = (err as { error?: { message?: string }; message?: string })?.error?.message
         ?? (err as { message?: string })?.message
-        ?? 'Failed to save task';
+        ?? 'Failed to save quest';
       this.toastService.error(message);
     }
   }
@@ -297,7 +297,7 @@ export class LibraryTaskFormComponent implements OnInit {
       },
       error: err => {
         this.loading = false;
-        this.toastService.error(err?.message ?? 'Failed to load task');
+        this.toastService.error(err?.message ?? 'Failed to load quest');
         void this.router.navigate(['/app/crew/library-of-things/tasks']);
       }
     });

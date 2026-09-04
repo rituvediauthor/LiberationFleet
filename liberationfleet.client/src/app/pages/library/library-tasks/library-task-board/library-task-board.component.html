@@ -2,15 +2,15 @@
   <div class="library-list-page">
     <div class="board-top-actions">
       <button type="button" class="no-deadline-link" (click)="openNoDeadlineTasks()">
-        No-Deadline Tasks
+        No-Deadline Quests
       </button>
     </div>
-    <p class="page-note">Crew tasks ordered by soonest due</p>
+    <p class="page-note">Crew quests ordered by soonest due</p>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
-      No open deadline tasks yet. Create one to get started.
+      No open deadline quests yet. Create one to get started.
     </p>
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">

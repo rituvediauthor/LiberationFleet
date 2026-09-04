@@ -157,7 +157,7 @@ export class LibraryCryptoService {
     if (!this.cryptoSession.isUnlocked() || items.length === 0) {
       return items.map(item => ({
         ...item,
-        title: item.hasEncryptedContent && !item.title ? 'Encrypted task' : item.title
+        title: item.hasEncryptedContent && !item.title ? 'Encrypted quest' : item.title
       }));
     }
 
@@ -169,7 +169,7 @@ export class LibraryCryptoService {
       const payload = await this.loadTaskPayload(item.taskId, crewId);
       return {
         ...item,
-        title: payload?.title?.trim() || 'Encrypted task'
+        title: payload?.title?.trim() || 'Encrypted quest'
       };
     }));
   }
@@ -185,8 +185,8 @@ export class LibraryCryptoService {
     if (!this.cryptoSession.isUnlocked()) {
       return {
         ...task,
-        title: 'Encrypted task',
-        details: 'Unlock encryption to view task details.'
+        title: 'Encrypted quest',
+        details: 'Unlock encryption to view quest details.'
       };
     }
 
@@ -194,14 +194,14 @@ export class LibraryCryptoService {
     if (!payload) {
       return {
         ...task,
-        title: 'Encrypted task',
+        title: 'Encrypted quest',
         details: '[Unable to decrypt]'
       };
     }
 
     return {
       ...task,
-      title: payload.title?.trim() || 'Encrypted task',
+      title: payload.title?.trim() || 'Encrypted quest',
       details: payload.details ?? ''
     };
   }
