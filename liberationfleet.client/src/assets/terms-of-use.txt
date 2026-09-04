@@ -1,6 +1,6 @@
 LIBERATION FLEET TERMS OF USE
 
-Last updated: August 2, 2026
+Last updated: September 2, 2026
 
 These Terms of Use ("Terms") are a binding agreement between you and Liberation Fleet ("we," "us," or "our") governing your access to and use of the Liberation Fleet application and related services (the "Service").
 
@@ -13,24 +13,26 @@ IMPORTANT: This document is a product draft based on how Liberation Fleet works 
 
 1.1 Age. You must be at least 18 years old to use the Service. The Service is not directed to children. Accounts for minors are prohibited.
 
-1.2 Account security. You are responsible for maintaining the confidentiality of your login credentials and your 12-word recovery key. You are responsible for activity under your account. Notify us promptly of unauthorized access.
+1.2 Account security. You are responsible for maintaining the confidentiality of your login credentials and your 12-word recovery key. You are responsible for activity under your account. Notify us promptly of unauthorized access. Where device registration, trust, or block features are available, you are responsible for reviewing devices associated with your account.
 
 1.3 Recovery key. Much content is end-to-end encrypted. We cannot reset or recover your recovery key. If you lose it, encrypted content may be permanently inaccessible even if we reset your login password.
 
-1.4 Accurate information. You agree to provide accurate registration information and to keep payment handles and other profile fields you choose to share reasonably accurate.
+1.4 Accurate information. You agree to provide accurate registration information and to keep payment handles and other profile fields you choose to share reasonably accurate. You agree not to knowingly falsify gift amounts, emergency-request needs, Library of Things condition reports, verification status, or mutual-aid profile metrics used for priority and season calculations.
 
 
 2. WHAT THE SERVICE IS (AND IS NOT)
 
-2.1 Coordination tool. Liberation Fleet helps adults coordinate mutual aid, crews, fleets, discussions, proposals, gift logging, a Library of Things, friends messaging, voice channels, and related community features.
+2.1 Coordination tool. Liberation Fleet helps adults coordinate mutual aid through crews and fleets, including discussions and forums, text and voice chat, proposals and rules, gift logging, emergency requests during giving seasons, a Library of Things (offerings, requests, maintenance/broken reports, tasks, and digital goods), friends messaging, roles and governance tools, and related community features.
 
 2.2 Not a financial institution. We are not a bank, credit union, money transmitter, escrow agent, payment processor, broker, insurer, or tax advisor. We do not hold user funds for peer gifts and do not guarantee that another user will send, receive, or correctly record money.
 
 2.3 Peer gifts. When users exchange money for mutual aid, payment occurs on third-party platforms (for example PayPal, Venmo, Cash App, or Zelle) that you choose. Those services are not operated by us. Gift records inside Liberation Fleet are coordination and calculation tools; they are not bank statements or proof of cleared funds unless independently verified.
 
-2.4 App donations. Optional donations that support hosting and development of Liberation Fleet are processed by Stripe on Stripe’s Checkout. Card data is handled by Stripe. We may record confirmed donation amounts and Stripe identifiers for your profile totals. Donations are generally non-refundable except where required by law or Stripe’s processes, or where we agree in writing. Do not assume donations are tax-deductible unless we separately confirm a qualifying status and provide an appropriate receipt.
+2.4 Library of Things. Library offerings are community resource-sharing tools, not a marketplace operated by Liberation Fleet. We do not guarantee availability, condition, fitness, safety, or legality of goods or services shared between users. Digital downloads are provided by the offering member “as is.” Review files carefully on your own device; Liberation Fleet does not warranty third-party digital content.
 
-2.5 No professional advice. Content on the Service is not legal, medical, financial, or professional advice.
+2.5 App donations. Optional donations that support hosting and development of Liberation Fleet are processed by Stripe on Stripe’s Checkout. Card data is handled by Stripe. We may record confirmed donation amounts and Stripe identifiers for your profile totals. Donations are generally non-refundable except where required by law or Stripe’s processes, or where we agree in writing. Do not assume donations are tax-deductible unless we separately confirm a qualifying status and provide an appropriate receipt.
+
+2.6 No professional advice. Content on the Service is not legal, medical, financial, or professional advice.
 
 
 3. LICENSE AND INTELLECTUAL PROPERTY
@@ -52,16 +54,17 @@ You must comply with our Community Standards and all applicable laws. Without li
 - Attempt to bypass encryption, access controls, attachment filters, adult-content gates, rate limits, or report systems
 - Probe, scan, or attack the Service, or reverse engineer it except where mandatory law allows
 - Use the Service to operate an unauthorized money-transmission, gambling, or other regulated business without required licenses
-- Misrepresent donations, gifts, identity, or affiliation in a way that deceives others
+- Misrepresent donations, gifts, emergency needs, Library of Things item condition, identity, or affiliation in a way that deceives others
+- Abuse Library of Things ranking, requests, tasks, or maintenance/broken reporting to harass members or fabricate contribution credit
 
 We may investigate violations, remove or quarantine content identifiers, freeze accounts, preserve evidence, and report apparent child sexual exploitation to the National Center for Missing & Exploited Children (NCMEC) when we have actual knowledge, as described in the Privacy Policy and Community Standards.
 
 
 5. ENCRYPTION, MONITORING, AND REPORTS
 
-5.1 End-to-end encryption. Much crew, fleet, chat, forum, proposal, DM, library, and media content is encrypted on devices so we cannot read plaintext in ordinary operation. Encryption is provided as-is and may have limitations (lost keys, client bugs, misconfigured fleet chat, or similar).
+5.1 End-to-end encryption. Much crew, fleet, chat, forum, proposal, rules, DM, library (including certain task and request payloads), gift-display, and media content is encrypted on devices so we cannot read plaintext in ordinary operation. Encryption is provided as-is and may have limitations (lost keys, client bugs, misconfigured fleet chat, or similar).
 
-5.2 No general monitoring of encrypted content. We do not generally claim to review encrypted message bodies. Metadata, structural gift/library/notification data, and other non-encrypted fields may be processed as described in the Privacy Policy.
+5.2 No general monitoring of encrypted content. We do not generally claim to review encrypted message bodies. Metadata, structural gift/library/notification data, emergency-request calculation fields, and other non-encrypted fields may be processed as described in the Privacy Policy.
 
 5.3 Reports. When you use Report, your device may send a one-time decrypted evidence snapshot for safety review and legal compliance. Reporting in bad faith (knowingly false reports intended to harm) is prohibited.
 
@@ -72,12 +75,12 @@ We may investigate violations, remove or quarantine content identifiers, freeze 
 
 6. USER RESPONSIBILITY FOR GROUP GOVERNANCE
 
-Crews and fleets may use proposals, votes, kicks, rules, and seasons. Those tools are membership governance features, not a guarantee of fairness or of platform enforcement for every interpersonal dispute. Use Block and Report for safety issues. We may override local governance when required for safety, legality, or Service integrity.
+Crews and fleets may use proposals, votes, kicks, rules, roles, seasons, and related tools. Those features are membership governance tools, not a guarantee of fairness or of platform enforcement for every interpersonal dispute. Crew or fleet roles (for example Organizer, Moderator, or Decentralizer) do not authorize illegal conduct and do not replace Report for safety issues. Use Block and Report for safety issues. We may override local governance when required for safety, legality, or Service integrity.
 
 
 7. THIRD-PARTY SERVICES
 
-The Service may integrate or link to third parties, including Stripe (donations), LiveKit (voice), and user-chosen payment apps. Your use of third-party services is subject to their terms and privacy policies. We are not responsible for third-party acts or omissions.
+The Service may integrate or link to third parties, including Stripe (donations), LiveKit (voice), hosting/object-storage providers, email delivery providers (when configured for account recovery), and user-chosen payment apps. Your use of third-party services is subject to their terms and privacy policies. We are not responsible for third-party acts or omissions.
 
 
 8. AVAILABILITY AND CHANGES
@@ -87,12 +90,12 @@ We may modify, suspend, or discontinue features at any time. We do not guarantee
 
 9. TERMINATION
 
-You may stop using the Service at any time. We may suspend or terminate access, freeze accounts, or delete/disable content if you violate these Terms or if we reasonably believe it is necessary to protect users, the public, or the Service, or to comply with law. Provisions that by nature should survive (including intellectual property, disclaimers, limitation of liability, indemnity, and governing law) survive termination.
+You may stop using the Service at any time and may leave crews or fleets as the product allows. Account deletion is currently handled by contacting operators as described in the Privacy Policy; the app may not offer a self-service full account deletion button. We may suspend or terminate access, freeze accounts (including pending safety review), or delete/disable content if you violate these Terms or if we reasonably believe it is necessary to protect users, the public, or the Service, or to comply with law. Provisions that by nature should survive (including intellectual property, disclaimers, limitation of liability, indemnity, and governing law) survive termination.
 
 
 10. DISCLAIMERS
 
-THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE." TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE SECURE, ERROR-FREE, OR THAT MUTUAL-AID OUTCOMES, GIFT PAYMENTS, LIBRARY LENDING, OR DONATIONS WILL MEET YOUR EXPECTATIONS.
+THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE." TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE SECURE, ERROR-FREE, OR THAT MUTUAL-AID OUTCOMES, GIFT PAYMENTS, LIBRARY LENDING OR DIGITAL DOWNLOADS, TASK COMPLETION, EMERGENCY REQUESTS, OR DONATIONS WILL MEET YOUR EXPECTATIONS.
 
 
 11. LIMITATION OF LIABILITY
@@ -106,7 +109,7 @@ Some jurisdictions do not allow certain limitations; in those places, our liabil
 
 12. INDEMNITY
 
-You agree to defend, indemnify, and hold harmless Liberation Fleet and its operators, affiliates, and agents from claims, damages, losses, and expenses (including reasonable attorneys’ fees) arising out of your content, your peer gift activity, your misuse of the Service, or your violation of these Terms or law.
+You agree to defend, indemnify, and hold harmless Liberation Fleet and its operators, affiliates, and agents from claims, damages, losses, and expenses (including reasonable attorneys’ fees) arising out of your content, your peer gift activity, your Library of Things offerings or downloads, your misuse of the Service, or your violation of these Terms or law.
 
 
 13. GOVERNING LAW AND DISPUTES
@@ -136,8 +139,9 @@ Operators should confirm governing venue, arbitration, and entity details with c
 SUMMARY (NOT A SUBSTITUTE FOR THE FULL TERMS)
 
 - You must be 18+ and accept these Terms, the Privacy Policy, and Community Standards.
-- Liberation Fleet coordinates mutual aid; it is not a bank and does not move peer gift money.
+- Liberation Fleet coordinates mutual aid, Library of Things sharing, and crew/fleet governance; it is not a bank and does not move peer gift money.
 - App donations go through Stripe.
 - Encrypted content generally cannot be recovered without your recovery key.
 - Illegal content (including CSAM) is forbidden and may be reported to NCMEC.
+- Library goods and digital downloads are between users; we do not warrant them.
 - The Service is provided as-is with liability limited as allowed by law.

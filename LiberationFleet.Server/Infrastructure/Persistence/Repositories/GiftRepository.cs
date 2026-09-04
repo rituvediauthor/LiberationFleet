@@ -463,10 +463,12 @@ public class GiftRepository : IGiftRepository
         if (currentSeasonStartDate.HasValue)
         {
             var seasonStart = currentSeasonStartDate.Value;
+            // Include current-season and later-season cycle gifts so next-season
+            // record-gift slots still show optimistic pending need.
             query = query.Where(g =>
                 (g.SeasonCycleId != null
                     && g.SeasonCycle != null
-                    && g.SeasonCycle.SeasonStartDate == seasonStart)
+                    && g.SeasonCycle.SeasonStartDate >= seasonStart)
                 || (g.SeasonCycleId == null && g.CreatedAt >= seasonStart));
         }
 
@@ -475,6 +477,7 @@ public class GiftRepository : IGiftRepository
             {
                 RecipientUserId = g.RecipientUserId,
                 SeasonCycleId = g.SeasonCycleId,
+                MonthlySurvivalThresholdId = g.MonthlySurvivalThresholdId,
                 IsSurvivalThreshold = g.IsSurvivalThreshold,
                 IsRepresentativeGift = g.IsRepresentativeGift,
                 Amount = g.Amount

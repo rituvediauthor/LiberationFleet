@@ -19,6 +19,7 @@ public class PendingGiftOptimisticNeedTests
             new GiftRepository(fixture.Context),
             new CrewPaymentPlatformRepository(fixture.Context),
             new UserRepository(fixture.Context),
+            new MutualAidRepository(fixture.Context),
             fixture.Service,
             HandlerTestFixture.CreateCustomGiftRecordingService(fixture.Context, fixture.Service),
             HandlerTestFixture.CreateNotificationService(fixture.Context),
@@ -124,5 +125,51 @@ public class PendingGiftOptimisticNeedTests
         gift = await fixture.Context.Gifts.SingleAsync(g => g.Id == gift.Id);
         gift.ReceptionApplied.Should().BeTrue();
         gift.VerificationStatus.Should().Be(GiftVerificationStatus.Verified);
+    }
+
+    [Fact]
+    public async Task ReceptionOrder_PendingSurvivalGiftOnlyReducesTargetedThreshold()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var olderMonth = DateTime.UtcNow.Month == 1 ? 12 : DateTime.UtcNow.Month - 1;
+        var olderYear = DateTime.UtcNow.Month == 1 ? DateTime.UtcNow.Year - 1 : DateTime.UtcNow.Year;
+        var older = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 40m,
+            year: olderYear,
+            month: olderMonth);
+        var newer = await fixture.AddUnsatisfiedThresholdAsync(fixture.Bob, thresholdAmount: 40m);
+
+        var recordHandler = CreateRecordHandler(fixture, fixture.Alice.Id);
+        var result = await recordHandler.Handle(
+            new RecordGiftsCommand(
+            [
+                new GiftRecordItem(
+                    10,
+                    fixture.Platforms["PayPal"].Id,
+                    fixture.Bob.Id,
+                    null,
+                    false,
+                    "survivalThreshold",
+                    null,
+                    newer.Id)
+            ]),
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+
+        var gift = await fixture.Context.Gifts.SingleAsync(g => g.IsSurvivalThreshold);
+        gift.MonthlySurvivalThresholdId.Should().Be(newer.Id);
+
+        var after = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            limit: 30,
+            forRecordGift: true);
+        var olderEntry = after.Single(e => e.ThresholdId == older.Id);
+        var newerEntry = after.Single(e => e.ThresholdId == newer.Id);
+        olderEntry.AmountNeeded.Should().Be(40m);
+        olderEntry.HasUnverifiedPending.Should().BeFalse();
+        newerEntry.AmountNeeded.Should().Be(30m);
+        newerEntry.PendingUnverifiedAmount.Should().Be(10m);
     }
 }

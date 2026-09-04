@@ -16,7 +16,8 @@ public record GiftRecordItem(
     int? MiddlemanId,
     bool IsCustom,
     string? EntryType,
-    int? SeasonCycleId = null);
+    int? SeasonCycleId = null,
+    int? ThresholdId = null);
 
 public record RecordGiftsCommand(IReadOnlyList<GiftRecordItem> Gifts) : IRequest<GiftOperationResponse>;
 
@@ -26,6 +27,7 @@ public class RecordGiftsCommandHandler(
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IUserRepository userRepository,
+    IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
     ICustomGiftRecordingService customGiftRecordingService,
     NotificationService notificationService,
@@ -140,6 +142,24 @@ public class RecordGiftsCommandHandler(
                 var isCatchUp = string.Equals(item.EntryType, "catchUp", StringComparison.OrdinalIgnoreCase);
                 var countsTowardReception = !item.MiddlemanId.HasValue;
 
+                if (isSurvivalThreshold && item.ThresholdId.HasValue)
+                {
+                    var threshold = await mutualAidRepository.GetThresholdByIdAsync(
+                        item.ThresholdId.Value,
+                        cancellationToken);
+                    if (threshold is null
+                        || threshold.CrewId != membership.CrewId
+                        || threshold.UserId != item.RecipientId
+                        || threshold.Satisfied)
+                    {
+                        return new GiftOperationResponse
+                        {
+                            Success = false,
+                            Message = "Invalid survival threshold entry."
+                        };
+                    }
+                }
+
                 var gift = new Gift
                 {
                     CrewId = membership.CrewId,
@@ -155,6 +175,7 @@ public class RecordGiftsCommandHandler(
                     CountsTowardReception = countsTowardReception,
                     CountsTowardContribution = true,
                     SeasonCycleId = item.SeasonCycleId,
+                    MonthlySurvivalThresholdId = isSurvivalThreshold ? item.ThresholdId : null,
                     VerificationStatus = GiftVerificationStatus.Pending,
                     CreatedAt = DateTime.UtcNow
                 };

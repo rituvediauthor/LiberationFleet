@@ -149,6 +149,7 @@ public class RecordFleetGiftsCommandHandler(
                 CountsTowardReception = countsTowardReception,
                 CountsTowardContribution = true,
                 SeasonCycleId = item.SeasonCycleId,
+                MonthlySurvivalThresholdId = isSurvivalThreshold ? item.ThresholdId : null,
                 VerificationStatus = item.IsCustom
                     ? GiftVerificationStatus.Verified
                     : GiftVerificationStatus.Pending,

@@ -19,6 +19,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             new GiftRepository(fixture.Context),
             new CrewPaymentPlatformRepository(fixture.Context),
             new UserRepository(fixture.Context),
+            new MutualAidRepository(fixture.Context),
             fixture.Service,
             HandlerTestFixture.CreateCustomGiftRecordingService(fixture.Context, fixture.Service),
             HandlerTestFixture.CreateNotificationService(fixture.Context),

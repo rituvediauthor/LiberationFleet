@@ -1728,6 +1728,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int?>("MiddlemanUserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("MonthlySurvivalThresholdId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("ReceptionApplied")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -1758,6 +1761,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasIndex("InitiatedGiftId");
 
                     b.HasIndex("MiddlemanUserId");
+
+                    b.HasIndex("MonthlySurvivalThresholdId");
 
                     b.HasIndex("RecipientUserId");
 
@@ -4937,6 +4942,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasForeignKey("MiddlemanUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.MonthlySurvivalThreshold", "MonthlySurvivalThreshold")
+                        .WithMany()
+                        .HasForeignKey("MonthlySurvivalThresholdId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "RecipientUser")
                         .WithMany()
                         .HasForeignKey("RecipientUserId")
@@ -4957,6 +4967,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("InitiatedGift");
 
                     b.Navigation("MiddlemanUser");
+
+                    b.Navigation("MonthlySurvivalThreshold");
 
                     b.Navigation("RecipientUser");
 

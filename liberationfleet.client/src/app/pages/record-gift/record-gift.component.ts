@@ -419,7 +419,8 @@ export class RecordGiftComponent implements OnInit {
         middlemanId: middlemanId > 0 ? middlemanId : undefined,
         isCustom: false,
         entryType: entry.entryType,
-        seasonCycleId: entry.seasonCycleId
+        seasonCycleId: entry.seasonCycleId,
+        thresholdId: entry.thresholdId
       });
     });
 

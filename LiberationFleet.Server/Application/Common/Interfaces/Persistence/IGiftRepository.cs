@@ -123,6 +123,7 @@ public sealed class PendingReceptionCredit
 {
     public int RecipientUserId { get; init; }
     public int? SeasonCycleId { get; init; }
+    public int? MonthlySurvivalThresholdId { get; init; }
     public bool IsSurvivalThreshold { get; init; }
     public bool IsRepresentativeGift { get; init; }
     public decimal Amount { get; init; }

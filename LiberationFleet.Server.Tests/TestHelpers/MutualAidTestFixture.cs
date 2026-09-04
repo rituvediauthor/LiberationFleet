@@ -112,14 +112,17 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
         User recipient,
         decimal thresholdAmount,
         decimal receivedAmount = 0m,
-        int receptionOrderPosition = 0)
+        int receptionOrderPosition = 0,
+        int? year = null,
+        int? month = null)
     {
+        var now = DateTime.UtcNow;
         var threshold = new MonthlySurvivalThreshold
         {
             CrewId = Crew.Id,
             UserId = recipient.Id,
-            Year = DateTime.UtcNow.Year,
-            Month = DateTime.UtcNow.Month,
+            Year = year ?? now.Year,
+            Month = month ?? now.Month,
             ThresholdAmount = thresholdAmount,
             ReceivedAmount = receivedAmount,
             ReceptionOrderPosition = receptionOrderPosition,

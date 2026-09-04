@@ -1283,6 +1283,82 @@ public class MutualAidServiceTests
         bobCycle.CycleCompleted.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetReceptionOrderAsync_ForRecordGift_IncludesNextSeasonCycleWhenCurrentSeasonHasOneLeft()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var currentCycles = await fixture.Context.SeasonCycles
+            .Where(c => c.SeasonStartDate == fixture.SeasonStart)
+            .ToListAsync();
+        foreach (var cycle in currentCycles.Where(c => c.UserId != fixture.Bob.Id))
+        {
+            cycle.CycleCompleted = true;
+            cycle.CycleCompletedAt = DateTime.UtcNow;
+            cycle.CycleReceived = cycle.CycleCapAtStart > 0 ? cycle.CycleCapAtStart : 100m;
+        }
+
+        var bobCurrent = currentCycles.Single(c => c.UserId == fixture.Bob.Id);
+        bobCurrent.HasCycleStarted = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var nextSeasonStart = fixture.Crew.NextSeasonStartDate!.Value;
+        var nextLeader = await fixture.Context.SeasonCycles
+            .Where(c => c.SeasonStartDate == nextSeasonStart && !c.CycleCompleted)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .FirstAsync();
+
+        var order = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            forRecordGift: true,
+            cancellationToken: CancellationToken.None);
+
+        var cycleEntries = order.Where(e => e.EntryType == "cycle").ToList();
+        cycleEntries.Should().HaveCount(2);
+        cycleEntries.Select(e => e.SeasonCycleId).Should().Contain(bobCurrent.Id);
+        cycleEntries.Select(e => e.SeasonCycleId).Should().Contain(nextLeader.Id);
+    }
+
+    [Fact]
+    public async Task ApplyGiftReceptionAsync_ScopedSurvivalGiftDoesNotBurnSiblingThreshold()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var older = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 40m,
+            year: DateTime.UtcNow.Year,
+            month: DateTime.UtcNow.Month == 1 ? 12 : DateTime.UtcNow.Month - 1);
+        if (DateTime.UtcNow.Month == 1)
+        {
+            older.Year = DateTime.UtcNow.Year - 1;
+            await fixture.Context.SaveChangesAsync();
+        }
+
+        var newer = await fixture.AddUnsatisfiedThresholdAsync(fixture.Bob, thresholdAmount: 40m);
+
+        var gift = new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Bob.Id,
+            Type = GiftType.Direct,
+            Amount = 25m,
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            CountsTowardReception = true,
+            IsSurvivalThreshold = true,
+            MonthlySurvivalThresholdId = newer.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.Gifts.Add(gift);
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.ApplyGiftReceptionAsync(gift, CancellationToken.None);
+
+        var olderReloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == older.Id);
+        var newerReloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == newer.Id);
+        olderReloaded.ReceivedAmount.Should().Be(0m);
+        newerReloaded.ReceivedAmount.Should().Be(25m);
+    }
+
     private static IReadOnlyList<CrewMemberPlatforms> CreateMemberPlatforms() =>
     [
         new CrewMemberPlatforms { UserId = 1, Username = "giver", PlatformIds = [1] },

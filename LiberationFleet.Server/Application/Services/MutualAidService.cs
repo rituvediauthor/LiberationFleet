@@ -151,15 +151,26 @@ public partial class MutualAidService(
             crew.CurrentSeasonStartDate,
             cancellationToken);
         var pendingByCycleId = new Dictionary<int, decimal>();
-        var pendingThresholdByUserId = new Dictionary<int, decimal>();
+        var pendingThresholdByThresholdId = new Dictionary<int, decimal>();
+        var pendingUnscopedThresholdByUserId = new Dictionary<int, decimal>();
         var pendingCycleByUserId = new Dictionary<int, decimal>();
         var pendingRepresentativeByUserId = new Dictionary<int, decimal>();
         foreach (var credit in pendingCredits)
         {
             if (credit.IsSurvivalThreshold)
             {
-                pendingThresholdByUserId[credit.RecipientUserId] =
-                    pendingThresholdByUserId.GetValueOrDefault(credit.RecipientUserId) + credit.Amount;
+                if (credit.MonthlySurvivalThresholdId.HasValue)
+                {
+                    pendingThresholdByThresholdId[credit.MonthlySurvivalThresholdId.Value] =
+                        pendingThresholdByThresholdId.GetValueOrDefault(credit.MonthlySurvivalThresholdId.Value)
+                        + credit.Amount;
+                }
+                else
+                {
+                    pendingUnscopedThresholdByUserId[credit.RecipientUserId] =
+                        pendingUnscopedThresholdByUserId.GetValueOrDefault(credit.RecipientUserId) + credit.Amount;
+                }
+
                 continue;
             }
 
@@ -185,10 +196,20 @@ public partial class MutualAidService(
         if (AreSurvivalThresholdsEnabled(crew))
         {
             var thresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken);
+            var unscopedRemainingByUserId = new Dictionary<int, decimal>(pendingUnscopedThresholdByUserId);
             foreach (var threshold in thresholds)
             {
                 var verifiedNeed = threshold.ThresholdAmount - threshold.ReceivedAmount;
-                var pending = pendingThresholdByUserId.GetValueOrDefault(threshold.UserId);
+                var pending = pendingThresholdByThresholdId.GetValueOrDefault(threshold.Id);
+                // Legacy unscoped survival gifts burn down oldest thresholds first.
+                var unscopedRemaining = unscopedRemainingByUserId.GetValueOrDefault(threshold.UserId);
+                if (unscopedRemaining > 0m && verifiedNeed > pending)
+                {
+                    var appliedUnscoped = Math.Min(unscopedRemaining, verifiedNeed - pending);
+                    pending += appliedUnscoped;
+                    unscopedRemainingByUserId[threshold.UserId] = unscopedRemaining - appliedUnscoped;
+                }
+
                 var need = Math.Max(0m, verifiedNeed - pending);
                 if (need <= 0 && pending <= 0)
                 {
@@ -256,7 +277,25 @@ public partial class MutualAidService(
             }
         }
 
-        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(crew.Id, crew.CurrentSeasonStartDate!.Value, cancellationToken)).ToList();
+        var currentSeasonCycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate!.Value,
+            cancellationToken)).ToList();
+        // Record-gift locks the active unit plus the next unit in global order,
+        // which may live on the provisional next season when this season is nearly done.
+        var cyclesForOrder = currentSeasonCycles.ToList();
+        if (forRecordGift
+            && crew.NextSeasonStartDate.HasValue
+            && crew.NextSeasonStartDate.Value > crew.CurrentSeasonStartDate.Value)
+        {
+            var nextSeasonCycles = await mutualAidRepository.GetSeasonCyclesAsync(
+                crew.Id,
+                crew.NextSeasonStartDate.Value,
+                cancellationToken);
+            cyclesForOrder.AddRange(nextSeasonCycles);
+        }
+
+        var cycles = currentSeasonCycles;
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var seasonParticipants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
         var memberStatus = await BuildFinancialMemberStatusAsync(crew, seasonParticipants, cancellationToken);
@@ -279,9 +318,10 @@ public partial class MutualAidService(
 
         // Incomplete for order/locking is CycleCompleted=false. Catch-up stays on
         // completed cycles via GetCatchUpAmount (virtual entries), not this list.
-        var allIncompleteCycles = cycles
+        var allIncompleteCycles = cyclesForOrder
             .Where(c => !c.CycleCompleted)
-            .OrderBy(c => c.ReceptionOrderPosition)
+            .OrderBy(c => c.SeasonStartDate)
+            .ThenBy(c => c.ReceptionOrderPosition)
             .ToList();
 
         await RefreshHasCycleStartedAsync(crew, allIncompleteCycles, cancellationToken);
@@ -2062,8 +2102,27 @@ public partial class MutualAidService(
 
     private async Task ApplyToThresholdForUserAsync(Gift gift, int userId, CancellationToken cancellationToken)
     {
-        var thresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(gift.CrewId, cancellationToken);
-        var threshold = thresholds.FirstOrDefault(t => t.UserId == userId);
+        MonthlySurvivalThreshold? threshold = null;
+        if (gift.MonthlySurvivalThresholdId.HasValue)
+        {
+            threshold = await mutualAidRepository.GetThresholdByIdAsync(
+                gift.MonthlySurvivalThresholdId.Value,
+                cancellationToken);
+            if (threshold is not null
+                && (threshold.CrewId != gift.CrewId
+                    || threshold.UserId != userId
+                    || threshold.Satisfied))
+            {
+                threshold = null;
+            }
+        }
+
+        if (threshold is null)
+        {
+            var thresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(gift.CrewId, cancellationToken);
+            threshold = thresholds.FirstOrDefault(t => t.UserId == userId);
+        }
+
         if (threshold is null)
         {
             return;
@@ -3231,7 +3290,8 @@ public partial class MutualAidService(
     {
         var incomplete = cycles
             .Where(c => !c.CycleCompleted)
-            .OrderBy(c => c.ReceptionOrderPosition)
+            .OrderBy(c => c.SeasonStartDate)
+            .ThenBy(c => c.ReceptionOrderPosition)
             .ToList();
         if (incomplete.Count == 0)
         {

@@ -285,6 +285,7 @@ public class RecordGiftsCommandHandlerTests
             giftRepository.Object,
             crewPaymentPlatformRepository.Object,
             userRepository.Object,
+            new Mock<IMutualAidRepository>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             new Mock<ICustomGiftRecordingService>(MockBehavior.Loose).Object,
             notificationService,

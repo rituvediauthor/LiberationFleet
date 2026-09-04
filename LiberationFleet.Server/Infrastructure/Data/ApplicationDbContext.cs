@@ -438,6 +438,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.SeasonCycleId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.MonthlySurvivalThreshold)
+                .WithMany()
+                .HasForeignKey(e => e.MonthlySurvivalThresholdId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.CrewId, e.CreatedAt, e.Id });
             entity.HasIndex(e => new { e.CrewId, e.GiverUserId, e.CreatedAt });
         });

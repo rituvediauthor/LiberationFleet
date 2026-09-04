@@ -188,6 +188,7 @@ export interface GiftRecordItem {
   isCustom: boolean;
   entryType?: ReceptionEntryType | CustomGiftCategory;
   seasonCycleId?: number;
+  thresholdId?: number;
 }
 
 export interface PlatformAccount {
