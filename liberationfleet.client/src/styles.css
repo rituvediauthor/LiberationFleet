@@ -14,19 +14,10 @@
 html,
 body {
   height: 100%;
-  height: 100dvh;
-  height: -webkit-fill-available;
   margin: 0;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-}
-
-html.lf-standalone,
-html.lf-standalone body {
-  height: var(--lf-app-height, 100dvh);
-  max-height: var(--lf-app-height, 100dvh);
-  overflow: hidden;
 }
 
 html.lf-media-detail-open,
@@ -45,25 +36,25 @@ html.lf-media-detail-open .conversation-header {
 html {
   --lf-safe-top: env(safe-area-inset-top, 0px);
   --lf-safe-right: env(safe-area-inset-right, 0px);
-  --lf-safe-bottom: env(safe-area-inset-bottom, 0px);
+  /*
+   * Bottom inset is intentionally 0 in the app shell. Standalone iOS already
+   * reserves home-indicator / chrome space in the layout viewport; applying
+   * env(safe-area-inset-bottom) again (via .lf-safe-bottom) double-spaced the
+   * footer. Overlays that truly need cover clearance can still use env() locally.
+   */
+  --lf-safe-bottom: 0px;
   --lf-safe-left: env(safe-area-inset-left, 0px);
   --lf-content-max-width: 560px;
   --lf-content-gutter: 20px;
+  /*
+   * Fill with the bottom-bar surface so any system edge under the nav matches
+   * the bar. Keep a black band only behind the top status / notch gutter.
+   */
   background-color: var(--lf-color-bg-surface);
   background-image: linear-gradient(#000, #000);
   background-repeat: no-repeat;
   background-position: top center;
   background-size: 100% var(--lf-safe-top);
-}
-
-@media (display-mode: standalone), (display-mode: fullscreen) {
-  html {
-    --lf-safe-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
-  }
-}
-
-html.lf-standalone {
-  --lf-safe-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
 }
 
 @media (max-width: 600px) {
@@ -89,12 +80,18 @@ body {
   background: transparent;
 }
 
+/*
+ * Spacers remain in templates for an easy rollback, but they must not consume
+ * layout height while the system already insets the standalone viewport.
+ */
 .lf-safe-bottom {
+  display: none;
   flex-shrink: 0;
-  width: 100%;
-  height: var(--lf-safe-bottom);
-  /* Match footer / action-bar surface across themes. */
-  background: var(--lf-color-bg-surface);
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 

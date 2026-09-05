@@ -12,7 +12,6 @@
   min-height: calc(
     100dvh
     - var(--bottom-nav-height, var(--action-bar-height, 0px))
-    - env(safe-area-inset-bottom, 0px)
     - var(--lf-hub-loading-padding, 40px)
   );
 }
