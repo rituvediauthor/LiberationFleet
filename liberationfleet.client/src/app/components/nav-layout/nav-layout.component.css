@@ -78,9 +78,8 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-  min-height: var(--bottom-nav-height);
-  height: auto;
-  padding: 0 var(--lf-content-gutter, 20px) var(--lf-safe-bottom);
+  height: var(--bottom-nav-height);
+  padding: 0 var(--lf-content-gutter, 20px);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);
@@ -93,7 +92,7 @@
   align-items: stretch;
   width: 100%;
   max-width: var(--lf-content-max-width, 560px);
-  height: var(--bottom-nav-height);
+  height: 100%;
 }
 
 .nav-item {

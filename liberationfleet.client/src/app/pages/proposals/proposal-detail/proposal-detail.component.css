@@ -310,7 +310,7 @@ h1,
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 var(--lf-content-gutter, 20px) var(--lf-safe-bottom, env(safe-area-inset-bottom, 0px));
+  padding: 0 var(--lf-content-gutter, 20px);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);

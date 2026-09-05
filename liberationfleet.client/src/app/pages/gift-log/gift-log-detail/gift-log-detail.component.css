@@ -200,7 +200,7 @@
   bottom: 0;
   display: flex;
   justify-content: center;
-  padding: 12px var(--lf-content-gutter, 20px) calc(12px + var(--lf-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  padding: 12px var(--lf-content-gutter, 20px);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);

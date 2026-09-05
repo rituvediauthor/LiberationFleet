@@ -84,12 +84,11 @@
   align-items: stretch;
   min-height: var(--action-bar-height);
   height: auto;
-  padding: 12px var(--lf-content-gutter, 20px) calc(12px + var(--lf-safe-bottom));
+  padding: 12px var(--lf-content-gutter, 20px);
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);
   z-index: 100;
-  box-sizing: border-box;
 }
 
 .action-bar-inner {
@@ -238,7 +237,7 @@
   }
 
   .action-bar {
-    padding: 10px var(--lf-content-gutter, 16px) calc(10px + var(--lf-safe-bottom));
+    padding: 10px var(--lf-content-gutter, 16px);
   }
 
   .action-button {

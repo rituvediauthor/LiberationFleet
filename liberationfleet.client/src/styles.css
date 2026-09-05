@@ -77,19 +77,12 @@ body {
   background: transparent;
 }
 
-/*
- * Bottom safe-area is applied as padding on action / nav / composer bars so the
- * bar surface extends into the home-indicator region. Standalone spacer divs
- * were stacking on top of that inset and (with html's old full-bleed black)
- * looked like an extra black curve bar.
- */
 .lf-safe-bottom {
-  display: none;
-  height: 0;
-  width: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+  height: var(--lf-safe-bottom);
+  /* Match footer / action-bar surface across themes. */
+  background: var(--lf-color-bg-surface);
   pointer-events: none;
 }
 
