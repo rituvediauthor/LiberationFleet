@@ -1,8 +1,7 @@
 # Build the LiberationFleet API + Angular SPA image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+# Avoid apt-get in CI (Debian mirror/signature flakes → exit 100). BusyBox wget is enough for HEALTHCHECK.
+COPY --from=busybox:1.36.1-musl /bin/busybox /usr/local/bin/busybox
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
@@ -39,5 +38,5 @@ FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8080/healthz || exit 1
+  CMD ["/usr/local/bin/busybox", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
 ENTRYPOINT ["dotnet", "LiberationFleet.Server.dll"]

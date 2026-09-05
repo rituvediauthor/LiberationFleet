@@ -43,7 +43,16 @@ services:
     ports:
       - "${API_HTTP_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      test:
+        [
+          "CMD",
+          "/usr/local/bin/busybox",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:8080/healthz"
+        ]
       interval: 30s
       timeout: 5s
       retries: 5
