@@ -35,10 +35,30 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
 
         await DeleteMatchingAsync(
             context.EncryptedContentEnvelopes.Where(e =>
-                e.CrewId == crewId && e.ContentType != EncryptedContentType.GiftLogEntry),
+                e.CrewId == crewId
+                && e.ContentType != EncryptedContentType.GiftLogEntry
+                && e.ContentType != EncryptedContentType.ProfileAvatar),
             cancellationToken);
 
         await DeleteMatchingAsync(context.CrewKeyDistributions.Where(d => d.CrewId == crewId), cancellationToken);
+
+        // Gifts are retained for investigation but Restrict-FK to cycles/thresholds.
+        // Clear those links before deleting season rows so sole-member leave can succeed.
+        var giftsWithSeasonLinks = await context.Gifts
+            .Where(g => g.CrewId == crewId
+                && (g.SeasonCycleId != null || g.MonthlySurvivalThresholdId != null))
+            .ToListAsync(cancellationToken);
+        foreach (var gift in giftsWithSeasonLinks)
+        {
+            gift.SeasonCycleId = null;
+            gift.MonthlySurvivalThresholdId = null;
+        }
+
+        if (giftsWithSeasonLinks.Count > 0)
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
         await DeleteMatchingAsync(context.MonthlySurvivalThresholds.Where(t => t.CrewId == crewId), cancellationToken);
         await DeleteMatchingAsync(context.SeasonCycles.Where(c => c.CrewId == crewId), cancellationToken);
         await DeleteMatchingAsync(context.CrewRules.Where(r => r.CrewId == crewId), cancellationToken);
@@ -78,6 +98,32 @@ public class CrewCleanupRepository(ApplicationDbContext context) : ICrewCleanupR
         var hasGifts = await context.Gifts.AnyAsync(g => g.CrewId == crewId, cancellationToken);
         if (!hasGifts)
         {
+            // Detach any leftover user handles before deleting the crew platform catalog.
+            var platformIds = await context.CrewPaymentPlatforms
+                .Where(p => p.CrewId == crewId)
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
+            if (platformIds.Count > 0)
+            {
+                var lingeringAccounts = await context.UserPaymentPlatforms
+                    .Where(a => a.CrewPaymentPlatformId != null && platformIds.Contains(a.CrewPaymentPlatformId.Value))
+                    .ToListAsync(cancellationToken);
+                foreach (var account in lingeringAccounts)
+                {
+                    if (string.IsNullOrWhiteSpace(account.PlatformName))
+                    {
+                        account.PlatformName = "Unknown";
+                    }
+
+                    account.CrewPaymentPlatformId = null;
+                }
+
+                if (lingeringAccounts.Count > 0)
+                {
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+            }
+
             await DeleteMatchingAsync(context.CrewPaymentPlatforms.Where(p => p.CrewId == crewId), cancellationToken);
             await DeleteMatchingAsync(context.Crews.Where(c => c.Id == crewId), cancellationToken);
         }

@@ -136,6 +136,7 @@ public class PlaceholderCrewmateService(
             user.PaymentPlatforms.Add(new UserPaymentPlatform
             {
                 CrewPaymentPlatformId = crewPlatform.Id,
+                PlatformName = crewPlatform.Name,
                 Handle = platform.Handle.Trim(),
                 IsPreferred = isPreferred
             });

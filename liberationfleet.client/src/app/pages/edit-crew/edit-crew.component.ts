@@ -194,14 +194,22 @@ export class EditCrewComponent implements OnInit {
     this.showLeaveDialog = false;
     this.crewService.leaveCrew().subscribe({
       next: result => {
+        // Always drop cached membership so the no-crew dashboard can load even if
+        // the server partially applied leave before returning an error.
+        this.crewService.clearMembershipCache();
         if (result.success) {
           this.toastService.success(result.message);
           this.router.navigate(['/app/crew']);
           return;
         }
         this.toastService.error(result.message || 'Failed to leave crew');
+        this.router.navigate(['/app/crew']);
       },
-      error: () => this.toastService.error('Failed to leave crew')
+      error: () => {
+        this.crewService.clearMembershipCache();
+        this.toastService.error('Failed to leave crew');
+        this.router.navigate(['/app/crew']);
+      }
     });
   }
 

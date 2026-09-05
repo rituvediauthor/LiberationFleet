@@ -154,7 +154,9 @@ public class CrewmateRejoinProposalService(
                 rejoin.TargetUserId,
                 proposal.CrewId!.Value,
                 cancellationToken);
-            membershipRepository.Remove(membership);
+            // Unban but keep the membership soft-left so rejoining restores crew-specific stats.
+            membership.IsBanned = false;
+            membershipRepository.MarkLeft(membership, DateTime.UtcNow);
         }
 
         rejoin.IsApplied = true;

@@ -24,7 +24,7 @@ public class MutualAidRepository : IMutualAidRepository
             .ThenInclude(u => u.PaymentPlatforms)
                 .ThenInclude(p => p.CrewPaymentPlatform)
             .AsSplitQuery()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsInSeason)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsInSeason)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default) =>
@@ -33,18 +33,18 @@ public class MutualAidRepository : IMutualAidRepository
             .ThenInclude(u => u.PaymentPlatforms)
                 .ThenInclude(p => p.CrewPaymentPlatform)
             .AsSplitQuery()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsSeasonReady)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsSeasonReady)
             .ToListAsync(cancellationToken);
 
     public Task<int> CountSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .AsNoTracking()
-            .CountAsync(m => m.CrewId == crewId && !m.IsBanned && m.IsSeasonReady, cancellationToken);
+            .CountAsync(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsSeasonReady, cancellationToken);
 
     public Task<int> CountSeasonParticipantsNeedingSurvivalAidAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsInSeason && m.User.NeedsSurvivalAid)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsInSeason && m.User.NeedsSurvivalAid)
             .CountAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetActiveMembersWithUsersAsync(int crewId, CancellationToken cancellationToken = default) =>
@@ -53,7 +53,7 @@ public class MutualAidRepository : IMutualAidRepository
             .ThenInclude(u => u.PaymentPlatforms)
                 .ThenInclude(p => p.CrewPaymentPlatform)
             .AsSplitQuery()
-            .Where(m => m.CrewId == crewId && !m.IsBanned)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null)
             .ToListAsync(cancellationToken);
 
     public Task<CrewMembership?> GetMembershipWithUserAsync(
@@ -64,7 +64,7 @@ public class MutualAidRepository : IMutualAidRepository
             .AsNoTracking()
             .Include(m => m.User)
             .FirstOrDefaultAsync(
-                m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned,
+                m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned && m.LeftAt == null,
                 cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetSeasonContributionMembersAsync(
@@ -73,7 +73,7 @@ public class MutualAidRepository : IMutualAidRepository
     {
         var participants = await _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsInSeason)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsInSeason)
             .ToListAsync(cancellationToken);
 
         if (participants.Count > 0)
@@ -83,7 +83,7 @@ public class MutualAidRepository : IMutualAidRepository
 
         return await _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.IsSeasonReady)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsSeasonReady)
             .ToListAsync(cancellationToken);
     }
 
@@ -323,7 +323,7 @@ public class MutualAidRepository : IMutualAidRepository
         var ids = userIds as IList<int> ?? userIds.ToList();
         var overrides = await _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && ids.Contains(m.UserId) && m.LifetimeContributionOverride != null)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && ids.Contains(m.UserId) && m.LifetimeContributionOverride != null)
             .Select(m => new { m.UserId, Override = m.LifetimeContributionOverride!.Value })
             .ToListAsync(cancellationToken);
 
@@ -397,7 +397,7 @@ public class MutualAidRepository : IMutualAidRepository
         var giftTotal = giftTotalsByUser.Sum(g => g.Total);
         var overrides = await _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LifetimeContributionOverride != null)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.LifetimeContributionOverride != null)
             .Select(m => new { m.UserId, Override = m.LifetimeContributionOverride!.Value })
             .ToListAsync(cancellationToken);
 

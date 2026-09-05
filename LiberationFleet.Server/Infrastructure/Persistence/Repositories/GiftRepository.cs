@@ -315,7 +315,7 @@ public class GiftRepository : IGiftRepository
         }
 
         var membership = await _context.CrewMemberships
-            .FirstOrDefaultAsync(m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned, cancellationToken);
+            .FirstOrDefaultAsync(m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned && m.LeftAt == null, cancellationToken);
         var months = MutualAidCalculationService.GetPastThreeCalendarMonths(DateTime.UtcNow);
         var rangeStart = new DateTime(months[0].Year, months[0].Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var rangeEnd = rangeStart.AddMonths(3);

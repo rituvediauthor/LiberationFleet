@@ -49,11 +49,13 @@ public static class CrewmateMapper
     public static CrewmatePlatformDisplayDto? MapPlatformDisplay(User viewer, User crewmate)
     {
         var viewerPlatformIds = viewer.PaymentPlatforms
-            .Select(p => p.CrewPaymentPlatformId)
+            .Where(p => p.CrewPaymentPlatformId.HasValue)
+            .Select(p => p.CrewPaymentPlatformId!.Value)
             .ToHashSet();
 
         var commonPlatforms = crewmate.PaymentPlatforms
-            .Where(p => viewerPlatformIds.Contains(p.CrewPaymentPlatformId))
+            .Where(p => p.CrewPaymentPlatformId.HasValue
+                && viewerPlatformIds.Contains(p.CrewPaymentPlatformId.Value))
             .OrderByDescending(p => p.IsPreferred)
             .ThenBy(p => p.Id)
             .ToList();
@@ -74,7 +76,7 @@ public static class CrewmateMapper
 
         return new CrewmatePlatformDisplayDto
         {
-            PlatformName = selected.CrewPaymentPlatform?.Name ?? string.Empty,
+            PlatformName = selected.CrewPaymentPlatform?.Name ?? selected.PlatformName,
             Handle = selected.Handle,
             IsSharedWithViewer = isShared
         };
@@ -82,12 +84,13 @@ public static class CrewmateMapper
 
     public static IReadOnlyList<CrewmatePaymentPlatformDto> MapPaymentPlatforms(User user) =>
         user.PaymentPlatforms
+            .Where(p => p.CrewPaymentPlatformId.HasValue)
             .OrderByDescending(p => p.IsPreferred)
             .ThenBy(p => p.Id)
             .Select(p => new CrewmatePaymentPlatformDto
             {
-                PlatformId = p.CrewPaymentPlatformId,
-                PlatformName = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                PlatformId = p.CrewPaymentPlatformId!.Value,
+                PlatformName = p.CrewPaymentPlatform?.Name ?? p.PlatformName,
                 Handle = p.Handle,
                 IsPreferred = p.IsPreferred
             })
@@ -131,9 +134,9 @@ public static class CrewmateMapper
             ElectedRoles = CrewRoleMapper.MapElectedRoleDtos(membership),
             PaymentPlatforms = MapPaymentPlatforms(crewmate),
             SacrificeCountLastSeason = MutualAidCalculationService.GetSacrificeCountFromPercentBonus(
-                crewmate.PercentBonus),
+                membership.PercentBonus),
             SacrificeCountThisSeason = membership.EmergencySacrificesThisSeason,
-            PercentBoost = crewmate.PercentBonus,
+            PercentBoost = membership.PercentBonus,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
             LifetimeContributions = lifetimeContributions,

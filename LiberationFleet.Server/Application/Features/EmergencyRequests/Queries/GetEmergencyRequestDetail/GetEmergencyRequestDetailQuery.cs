@@ -51,20 +51,22 @@ public class GetEmergencyRequestDetailQueryHandler(
         var viewer = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
         var viewerMember = viewer.FirstOrDefault(m => m.UserId == viewerId);
         var viewerPlatformIds = viewerMember?.User.PaymentPlatforms
-            .Select(p => p.CrewPaymentPlatformId)
+            .Where(p => p.CrewPaymentPlatformId.HasValue)
+            .Select(p => p.CrewPaymentPlatformId!.Value)
             .ToHashSet() ?? [];
 
         var requesterPlatforms = emergencyRequest.RequesterUser.PaymentPlatforms
+            .Where(p => p.CrewPaymentPlatformId.HasValue)
             .OrderByDescending(p => p.IsPreferred)
             .ThenBy(p => p.Id)
             .ToList();
 
         var commonPlatforms = requesterPlatforms
-            .Where(p => viewerPlatformIds.Contains(p.CrewPaymentPlatformId))
+            .Where(p => viewerPlatformIds.Contains(p.CrewPaymentPlatformId!.Value))
             .Select(p => new EmergencyPlatformDto
             {
-                PlatformId = p.CrewPaymentPlatformId,
-                PlatformName = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                PlatformId = p.CrewPaymentPlatformId!.Value,
+                PlatformName = p.CrewPaymentPlatform?.Name ?? p.PlatformName,
                 Handle = p.Handle,
                 IsPreferred = p.IsPreferred,
                 IsSharedWithViewer = true
@@ -78,8 +80,8 @@ public class GetEmergencyRequestDetailQueryHandler(
             {
                 commonPlatforms.Add(new EmergencyPlatformDto
                 {
-                    PlatformId = preferred.CrewPaymentPlatformId,
-                    PlatformName = preferred.CrewPaymentPlatform?.Name ?? string.Empty,
+                    PlatformId = preferred.CrewPaymentPlatformId!.Value,
+                    PlatformName = preferred.CrewPaymentPlatform?.Name ?? preferred.PlatformName,
                     Handle = preferred.Handle,
                     IsPreferred = preferred.IsPreferred,
                     IsSharedWithViewer = false
@@ -110,7 +112,9 @@ public class GetEmergencyRequestDetailQueryHandler(
                 Username = m.Username,
                 CommonPlatformIds = m.PlatformIds
                     .Where(id => viewerPlatformIds.Contains(id))
-                    .Intersect(emergencyRequest.RequesterUser.PaymentPlatforms.Select(p => p.CrewPaymentPlatformId))
+                    .Intersect(emergencyRequest.RequesterUser.PaymentPlatforms
+                        .Where(p => p.CrewPaymentPlatformId.HasValue)
+                        .Select(p => p.CrewPaymentPlatformId!.Value))
                     .ToList()
             })
             .ToList();

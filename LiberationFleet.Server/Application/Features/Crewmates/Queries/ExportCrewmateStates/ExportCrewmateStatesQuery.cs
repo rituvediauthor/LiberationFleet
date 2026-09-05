@@ -80,7 +80,7 @@ public class ExportCrewmateStatesQueryHandler(
                 DisabilityLevel = user.DisabilityLevel,
                 IdentityGroups = IdentityGroupKeys.Parse(user.IdentityGroups),
                 SacrificeCountLastSeason = MutualAidCalculationService.GetSacrificeCountFromPercentBonus(
-                    user.PercentBonus),
+                    member.PercentBonus),
                 SacrificeCountThisSeason = member.EmergencySacrificesThisSeason,
                 IsSurvivalThresholdRecipient = isSurvivalRecipient,
                 EstimatedMonthlyContribution = member.EstimatedMonthlyContribution,

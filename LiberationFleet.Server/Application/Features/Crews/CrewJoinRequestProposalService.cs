@@ -1,5 +1,8 @@
 using System.Text.Json;
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Fleets;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Services;
@@ -30,6 +33,11 @@ public class CrewJoinRequestProposalService(
     IUserRepository userRepository,
     NotificationService notificationService,
     ContentTenureService contentTenureService,
+    LibraryMemberCleanupService libraryMemberCleanupService,
+    EmptyCrewCleanupService emptyCrewCleanupService,
+    FleetMembershipService fleetMembershipService,
+    IMutualAidService mutualAidService,
+    UserPaymentPlatformPortabilityService paymentPlatformPortability,
     IUnitOfWork unitOfWork)
 {
     public async Task<CrewJoinRequestResult> CreateJoinRequestAsync(
@@ -38,9 +46,10 @@ public class CrewJoinRequestProposalService(
         IReadOnlyList<int> acceptedRuleIds,
         CancellationToken cancellationToken)
     {
-        if (await membershipRepository.GetActiveMembershipAsync(applicantUserId, cancellationToken) is not null)
+        var activeMembership = await membershipRepository.GetActiveMembershipAsync(applicantUserId, cancellationToken);
+        if (activeMembership is not null && activeMembership.CrewId == crewId)
         {
-            return CrewJoinRequestResult.Failed("You are already a member of a crew.");
+            return CrewJoinRequestResult.Failed("You are already a member of this crew.");
         }
 
         if (await membershipRepository.IsUserBannedFromCrewAsync(applicantUserId, crewId, cancellationToken))
@@ -77,6 +86,7 @@ public class CrewJoinRequestProposalService(
             return CrewJoinRequestResult.Failed("User not found.");
         }
 
+        var switchingCrews = activeMembership is not null;
         var utcNow = DateTime.UtcNow;
         var proposal = new Proposal
         {
@@ -92,6 +102,11 @@ public class CrewJoinRequestProposalService(
             utcNow,
             ProposalAutoResolveSettings.From(crew));
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
+
+        var description = switchingCrews
+            ? $"{applicant.Username} accepted the crew's public rules and requested to join. If approved, they will leave their current crew and join this one. A crewmate should prepare an encryption key before approval when possible."
+            : $"{applicant.Username} accepted the crew's public rules and requested to join. A crewmate should prepare an encryption key before approval when possible.";
+
         await proposalRepository.AddCrewJoinRequestAsync(new ProposalCrewJoinRequest
         {
             Proposal = proposal,
@@ -99,8 +114,7 @@ public class CrewJoinRequestProposalService(
             ApplicantUsername = applicant.Username,
             AcceptedRuleIdsJson = JsonSerializer.Serialize(acceptedRuleIds.OrderBy(id => id)),
             Title = $"Allow {applicant.Username} to join",
-            Description =
-                $"{applicant.Username} accepted the crew's public rules and requested to join. A crewmate should prepare an encryption key before approval when possible."
+            Description = description
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -111,13 +125,19 @@ public class CrewJoinRequestProposalService(
             crewId,
             NotificationKind.JoinRequestFromPerson,
             "Join request",
-            $"{applicant.Username} requested to join the crew.",
+            switchingCrews
+                ? $"{applicant.Username} requested to join (will leave their current crew if approved)."
+                : $"{applicant.Username} requested to join the crew.",
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: applicantUserId,
             cancellationToken: cancellationToken);
 
-        return CrewJoinRequestResult.Succeeded(proposal.Id, "Join request submitted.");
+        return CrewJoinRequestResult.Succeeded(
+            proposal.Id,
+            switchingCrews
+                ? "Join request submitted. You will leave your current crew only if this crew approves."
+                : "Join request submitted.");
     }
 
     public async Task TryApplyApprovedProposalAsync(Proposal proposal, CancellationToken cancellationToken)
@@ -133,10 +153,13 @@ public class CrewJoinRequestProposalService(
             return;
         }
 
-        if (await membershipRepository.GetActiveMembershipAsync(joinRequest.ApplicantUserId, cancellationToken) is not null)
+        var activeMembership = await membershipRepository.GetActiveMembershipAsync(
+            joinRequest.ApplicantUserId,
+            cancellationToken);
+        if (activeMembership is not null && activeMembership.CrewId == proposal.CrewId)
         {
             joinRequest.IsApplied = true;
-            joinRequest.Description = $"{joinRequest.ApplicantUsername} joined another crew first.";
+            joinRequest.Description = $"{joinRequest.ApplicantUsername} is already a member of this crew.";
             return;
         }
 
@@ -161,13 +184,32 @@ public class CrewJoinRequestProposalService(
             return;
         }
 
-        await membershipRepository.AddAsync(new CrewMembership
+        if (activeMembership is not null)
         {
-            UserId = joinRequest.ApplicantUserId,
-            CrewId = proposal.CrewId!.Value,
-            IsBanned = false,
-            JoinedAt = DateTime.UtcNow
-        }, cancellationToken);
+            var sourceCrewId = activeMembership.CrewId;
+            var applicantId = joinRequest.ApplicantUserId;
+            await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
+                sourceCrewId,
+                applicantId,
+                cancellationToken);
+            await mutualAidService.RemoveMemberFromSeasonAsync(sourceCrewId, applicantId, cancellationToken);
+            await contentTenureService.OnLeftCrewAsync(applicantId, sourceCrewId, cancellationToken);
+            await paymentPlatformPortability.DetachFromCrewAsync(applicantId, cancellationToken);
+            await fleetMembershipService.RetainInFleetAsNoCrewAsync(applicantId, sourceCrewId, cancellationToken);
+            membershipRepository.MarkLeft(activeMembership, DateTime.UtcNow);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(sourceCrewId, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        await membershipRepository.ReactivateOrCreateAsync(
+            joinRequest.ApplicantUserId,
+            proposal.CrewId!.Value,
+            cancellationToken);
+        await paymentPlatformPortability.RemountToCrewAsync(
+            joinRequest.ApplicantUserId,
+            proposal.CrewId!.Value,
+            cancellationToken);
 
         var applicant = await userRepository.GetByIdWithProfileAsync(joinRequest.ApplicantUserId, cancellationToken);
         if (applicant is not null && !applicant.IsCrewGiftRecipient)
@@ -193,7 +235,9 @@ public class CrewJoinRequestProposalService(
             cancellationToken);
 
         joinRequest.IsApplied = true;
-        joinRequest.Description = $"{joinRequest.ApplicantUsername} was approved and joined the crew.";
+        joinRequest.Description = activeMembership is not null
+            ? $"{joinRequest.ApplicantUsername} left their previous crew and joined this one."
+            : $"{joinRequest.ApplicantUsername} was approved and joined the crew.";
 
         var pendingInvitation = await invitationRepository.GetPendingAsync(
             proposal.CrewId!.Value,

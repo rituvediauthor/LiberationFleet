@@ -16,6 +16,9 @@ public class LeaveCrewCommandHandler(
     LibraryMemberCleanupService libraryMemberCleanupService,
     EmptyCrewCleanupService emptyCrewCleanupService,
     FleetMembershipService fleetMembershipService,
+    ContentTenureService contentTenureService,
+    IMutualAidService mutualAidService,
+    UserPaymentPlatformPortabilityService paymentPlatformPortability,
     IUnitOfWork unitOfWork) : IRequestHandler<LeaveCrewCommand, CrewOperationResponse>
 {
     public async Task<CrewOperationResponse> Handle(LeaveCrewCommand request, CancellationToken cancellationToken)
@@ -34,8 +37,11 @@ public class LeaveCrewCommandHandler(
         var crewId = membership.CrewId;
         var userId = currentUser.UserId.Value;
         await libraryMemberCleanupService.CleanupForDepartingMemberAsync(crewId, userId, cancellationToken);
+        await mutualAidService.RemoveMemberFromSeasonAsync(crewId, userId, cancellationToken);
+        await contentTenureService.OnLeftCrewAsync(userId, crewId, cancellationToken);
+        await paymentPlatformPortability.DetachFromCrewAsync(userId, cancellationToken);
         await fleetMembershipService.RetainInFleetAsNoCrewAsync(userId, crewId, cancellationToken);
-        membershipRepository.Remove(membership);
+        membershipRepository.MarkLeft(membership, DateTime.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(crewId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

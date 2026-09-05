@@ -1325,6 +1325,15 @@ public partial class MutualAidService(
             await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
         }
 
+        // Drop open survival thresholds so the leaver no longer appears in reception order.
+        var openThresholds = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crewId, cancellationToken))
+            .Where(t => t.UserId == userId)
+            .ToList();
+        foreach (var threshold in openThresholds)
+        {
+            threshold.Satisfied = true;
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -1888,11 +1897,8 @@ public partial class MutualAidService(
     {
         foreach (var member in participants)
         {
-            if (member.User is not null)
-            {
-                member.User.PercentBonus = MutualAidCalculationService.GetSacrificePercentBonus(
-                    member.EmergencySacrificesThisSeason);
-            }
+            member.PercentBonus = MutualAidCalculationService.GetSacrificePercentBonus(
+                member.EmergencySacrificesThisSeason);
 
             member.EmergencySacrificesThisSeason = 0;
         }
@@ -2465,11 +2471,8 @@ public partial class MutualAidService(
 
         foreach (var member in nextParticipants)
         {
-            if (member.User is not null)
-            {
-                member.User.PercentBonus = MutualAidCalculationService.GetSacrificePercentBonus(
-                    member.EmergencySacrificesThisSeason);
-            }
+            member.PercentBonus = MutualAidCalculationService.GetSacrificePercentBonus(
+                member.EmergencySacrificesThisSeason);
 
             member.EmergencySacrificesThisSeason = 0;
         }

@@ -141,7 +141,7 @@ public static class MutualAidCalculationService
 
         // Always at least 1 so dependents+disability of 0 cannot zero the score.
         var priorityMultiplier = user.PeopleRepresentedCount + user.DisabilityLevel + 1;
-        var sacrificeBonusFactor = 1m + (user.PercentBonus / 100m);
+        var sacrificeBonusFactor = 1m + (membership.PercentBonus / 100m);
         return baseScore * priorityMultiplier * sacrificeBonusFactor;
     }
 

@@ -186,6 +186,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Handle).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.PlatformName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.IsPreferred).HasDefaultValue(false);
             entity.HasOne(e => e.User)
                 .WithMany(u => u.PaymentPlatforms)
@@ -194,7 +195,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.CrewPaymentPlatform)
                 .WithMany(p => p.UserAccounts)
                 .HasForeignKey(e => e.CrewPaymentPlatformId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<PasswordResetToken>(entity =>
@@ -373,6 +375,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.RepresentativeReceivedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.IsAccountant).HasDefaultValue(false);
             entity.Property(e => e.EmergencySacrificesThisSeason).HasDefaultValue(0);
+            entity.Property(e => e.PercentBonus).HasDefaultValue(0);
             entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
             entity.Property(e => e.CanAttachFiles).HasDefaultValue(false);
             entity.Property(e => e.CanCreateProposals).HasDefaultValue(false);
@@ -382,7 +385,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
             entity.Property(e => e.IsInSeason).HasDefaultValue(false);
             entity.Property(e => e.GivingSeasonJoinedAt);
+            entity.Property(e => e.LeftAt);
             entity.Property(e => e.CurrentPriorityScore).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.HasIndex(e => new { e.CrewId, e.IsBanned, e.LeftAt });
             entity.HasOne(e => e.User)
                 .WithMany(u => u.CrewMemberships)
                 .HasForeignKey(e => e.UserId)

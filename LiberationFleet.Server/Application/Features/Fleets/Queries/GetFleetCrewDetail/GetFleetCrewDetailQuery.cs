@@ -85,8 +85,7 @@ public class GetFleetCrewDetailQueryHandler(
         var visibleMembers = members.Where(m => !hiddenUserIds.Contains(m.UserId)).ToList();
         var avatarAllowed = await fleetAvatarVisibility.GetAllowedUserIdsAsync(fleet, visibleMembers, cancellationToken);
         var isOwnCrew = membership?.CrewId == crew.Id;
-        var viewerIsNoCrew = membership is null;
-        var canJoin = viewerIsNoCrew && (
+        var canJoin = !isOwnCrew && (
             crew.Privacy == CrewPrivacy.Public
             || crew.Privacy == CrewPrivacy.Private
             || crew.Privacy == CrewPrivacy.FleetMembersOnly);

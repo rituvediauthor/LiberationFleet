@@ -1,20 +1,12 @@
-<app-page-layout [backButton]="backButton" [primaryButton]="primaryButton">
+<app-page-layout
+  [backButton]="backButton"
+  [primaryButton]="primaryButton"
+  [secondaryButton]="secondaryButton">
   <div class="fleet-crew-detail-page">
     <p *ngIf="loading" class="state-text">Loading crew...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <div *ngIf="!loading && crew && joinStep === 'detail'">
-      <div class="header-row">
-        <button
-          type="button"
-          class="kick-btn"
-          *ngIf="crew.canKick"
-          [disabled]="actionLoading"
-          (click)="onKickCrew()">
-          Kick from fleet
-        </button>
-      </div>
-
       <p class="page-subtitle">
         <ng-container *ngIf="crew.isNoCrew; else normalSubtitle">
           {{ crew.memberCount }} fleet members without a crew
@@ -75,6 +67,17 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showJoinConfirm"
+  title="Join crew?"
+  [message]="joinConfirmMessage"
+  confirmLabel="Continue"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmJoin()"
+  (cancelled)="onCancelJoinConfirm()"
+  (dismissed)="onCancelJoinConfirm()">
+</app-confirm-dialog>
 
 <app-kick-reason-dialog
   [visible]="showKickDialog"

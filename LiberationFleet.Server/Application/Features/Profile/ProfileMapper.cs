@@ -35,8 +35,9 @@ public static class ProfileMapper
                 .Select(p => new PaymentPlatformAccountDto
                 {
                     Id = p.Id,
-                    PlatformId = p.CrewPaymentPlatformId,
-                    Platform = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                    PlatformId = p.CrewPaymentPlatformId ?? 0,
+                    Platform = p.CrewPaymentPlatform?.Name ?? p.PlatformName,
+                    CustomPlatformName = p.CrewPaymentPlatformId is null ? p.PlatformName : null,
                     Handle = p.Handle,
                     IsPreferred = p.IsPreferred
                 })
@@ -89,8 +90,8 @@ public static class ProfileMapper
             SacrificeCountThisSeason = membership?.EmergencySacrificesThisSeason ?? 0,
             AverageMonthlyContributions = giftStats.AverageMonthlyContributions,
             MembershipStatus = isFinancialMember,
-            LifetimeContributions = giftStats.LifetimeContributions,
-            ReceptionThisYear = giftStats.ReceptionThisYear,
+            LifetimeContributions = membership?.LifetimeContributionOverride ?? giftStats.LifetimeContributions,
+            ReceptionThisYear = membership?.ReceptionThisYearOverride ?? giftStats.ReceptionThisYear,
             PercentBoost = percentBoost,
             PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
             DonationsPreviousTaxYearUsd = donationsPreviousTaxYearUsd,

@@ -139,7 +139,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             membership,
             isFinancialMember,
             priorityScore,
-            user.PercentBonus,
+            membership?.PercentBonus ?? 0,
             isSurvivalRecipient,
             canToggleOff,
             toggleThreshold,

@@ -31,7 +31,10 @@ public class GetCrewMembersQueryHandler(
             {
                 Id = m.UserId,
                 Username = m.User.Username,
-                PlatformIds = m.User.PaymentPlatforms.Select(p => p.CrewPaymentPlatformId).ToList()
+                PlatformIds = m.User.PaymentPlatforms
+                    .Where(p => p.CrewPaymentPlatformId.HasValue)
+                    .Select(p => p.CrewPaymentPlatformId!.Value)
+                    .ToList()
             })
             .OrderBy(m => m.Username)
             .ToList();

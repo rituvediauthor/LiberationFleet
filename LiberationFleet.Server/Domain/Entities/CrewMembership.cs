@@ -6,6 +6,12 @@ public class CrewMembership
     public int UserId { get; set; }
     public int CrewId { get; set; }
     public bool IsBanned { get; set; }
+    /// <summary>
+    /// When set, the user has left this crew. Membership (roles, boosts, overrides)
+    /// is retained so rejoining restores crew-specific stats. Null = currently a member
+    /// (unless <see cref="IsBanned"/>).
+    /// </summary>
+    public DateTime? LeftAt { get; set; }
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     public bool IsOrganizer { get; set; }
     public bool IsHonoraryMember { get; set; }
@@ -28,6 +34,11 @@ public class CrewMembership
     public decimal RepresentativeReceivedAmount { get; set; }
     public bool IsAccountant { get; set; }
     public int EmergencySacrificesThisSeason { get; set; }
+    /// <summary>
+    /// Percent boost from last season's emergency sacrifices for this crew only.
+    /// Applied in priority score; does not transfer when joining another crew.
+    /// </summary>
+    public int PercentBonus { get; set; }
     public bool IsPlaceholderMember { get; set; }
     public bool CanAttachFiles { get; set; }
     public bool CanCreateProposals { get; set; }

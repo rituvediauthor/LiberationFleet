@@ -788,9 +788,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("LeftAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal?>("LifetimeContributionOverride")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PercentBonus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<decimal?>("ReceptionThisYearOverride")
                         .HasPrecision(18, 2)
@@ -819,6 +827,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasIndex("CrewId", "IsBanned", "IsInSeason");
 
                     b.HasIndex("CrewId", "IsBanned", "IsSeasonReady");
+
+                    b.HasIndex("CrewId", "IsBanned", "LeftAt");
 
                     b.ToTable("CrewMemberships");
                 });
@@ -4203,7 +4213,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CrewPaymentPlatformId")
+                    b.Property<int?>("CrewPaymentPlatformId")
                         .HasColumnType("int");
 
                     b.Property<string>("Handle")
@@ -4215,6 +4225,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<string>("PlatformName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -5788,8 +5803,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.CrewPaymentPlatform", "CrewPaymentPlatform")
                         .WithMany("UserAccounts")
                         .HasForeignKey("CrewPaymentPlatformId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithMany("PaymentPlatforms")

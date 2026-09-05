@@ -22,9 +22,10 @@ public class CrewPaymentPlatformRepository : ICrewPaymentPlatformRepository
         var platformIds = await _context.UserPaymentPlatforms
             .AsNoTracking()
             .Where(upp => upp.UserId != userId)
+            .Where(upp => upp.CrewPaymentPlatformId != null)
             .Where(upp => _context.CrewMemberships.Any(m =>
-                m.UserId == upp.UserId && m.CrewId == crewId && !m.IsBanned))
-            .Select(upp => upp.CrewPaymentPlatformId)
+                m.UserId == upp.UserId && m.CrewId == crewId && !m.IsBanned && m.LeftAt == null))
+            .Select(upp => upp.CrewPaymentPlatformId!.Value)
             .Distinct()
             .ToListAsync(cancellationToken);
 

@@ -22,6 +22,11 @@ public class User
     /// </summary>
     public string? IdentityGroups { get; set; }
     public bool NeedsSurvivalAid { get; set; }
+    /// <summary>
+    /// Legacy user-level boost. Mutual-aid priority now uses
+    /// <see cref="CrewMembership.PercentBonus"/> so boosts stay crew-specific.
+    /// Kept for migration compatibility; no longer written by season rollover.
+    /// </summary>
     public int PercentBonus { get; set; }
     public AdultContentPreference AdultContentPreference { get; set; } = AdultContentPreference.Block;
     public bool TwoFactorEnabled { get; set; }

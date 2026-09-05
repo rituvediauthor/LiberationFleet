@@ -48,15 +48,17 @@ public static class CrewPaymentPlatformService
         User second)
     {
         var firstPlatforms = first.PaymentPlatforms
-            .Where(p => p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
-            .ToDictionary(p => p.CrewPaymentPlatformId);
+            .Where(p => p.CrewPaymentPlatformId.HasValue
+                && (p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings))
+            .ToDictionary(p => p.CrewPaymentPlatformId!.Value);
         return second.PaymentPlatforms
-            .Where(p => (p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
-                && firstPlatforms.ContainsKey(p.CrewPaymentPlatformId))
+            .Where(p => p.CrewPaymentPlatformId.HasValue
+                && (p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
+                && firstPlatforms.ContainsKey(p.CrewPaymentPlatformId!.Value))
             .Select(p => new PaymentPlatformOptionDto
             {
-                Id = p.CrewPaymentPlatformId,
-                Name = p.CrewPaymentPlatform.Name
+                Id = p.CrewPaymentPlatformId!.Value,
+                Name = p.CrewPaymentPlatform?.Name ?? p.PlatformName
             })
             .OrderBy(p => p.Name)
             .ToList();
@@ -65,7 +67,8 @@ public static class CrewPaymentPlatformService
     public static CrewMemberPlatforms MapCrewMemberPlatforms(CrewMembership membership)
     {
         var accounts = membership.User.PaymentPlatforms
-            .Where(p => p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings)
+            .Where(p => p.CrewPaymentPlatformId.HasValue
+                && (p.CrewPaymentPlatform is null || !p.CrewPaymentPlatform.IsLibraryOfThings))
             .ToList();
         var preferred = accounts.FirstOrDefault(p => p.IsPreferred)
             ?? accounts.FirstOrDefault();
@@ -75,17 +78,17 @@ public static class CrewPaymentPlatformService
             UserId = membership.UserId,
             Username = membership.User.Username,
             IsIntermediary = membership.IsIntermediary,
-            PlatformIds = accounts.Select(p => p.CrewPaymentPlatformId).ToList(),
+            PlatformIds = accounts.Select(p => p.CrewPaymentPlatformId!.Value).ToList(),
             PlatformAccounts = accounts
                 .Select(p => new PlatformAccountDto
                 {
-                    PlatformId = p.CrewPaymentPlatformId,
-                    Name = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                    PlatformId = p.CrewPaymentPlatformId!.Value,
+                    Name = p.CrewPaymentPlatform?.Name ?? p.PlatformName,
                     Handle = p.Handle
                 })
                 .ToList(),
             PreferredPlatformId = preferred?.CrewPaymentPlatformId,
-            PreferredPlatformName = preferred?.CrewPaymentPlatform?.Name,
+            PreferredPlatformName = preferred?.CrewPaymentPlatform?.Name ?? preferred?.PlatformName,
             PreferredPlatformHandle = preferred?.Handle
         };
     }

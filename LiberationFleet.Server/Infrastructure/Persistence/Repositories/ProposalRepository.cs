@@ -51,7 +51,7 @@ public class ProposalRepository : IProposalRepository
     public Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .CountAsync(
-                m => m.CrewId == crewId && !m.IsBanned && !m.IsPlaceholderMember,
+                m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && !m.IsPlaceholderMember,
                 cancellationToken);
 
     public Task<ProposalVote?> GetVoteAsync(int proposalId, int userId, CancellationToken cancellationToken = default) =>

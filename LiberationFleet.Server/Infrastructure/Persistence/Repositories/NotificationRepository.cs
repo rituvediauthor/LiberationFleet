@@ -332,7 +332,7 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
     {
         var query = context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned);
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null);
 
         if (excludeUserId.HasValue)
         {

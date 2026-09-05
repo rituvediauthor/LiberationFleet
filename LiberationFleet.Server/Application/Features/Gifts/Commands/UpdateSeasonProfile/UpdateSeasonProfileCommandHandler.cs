@@ -105,12 +105,25 @@ public class UpdateSeasonProfileCommandHandler(
             else
             {
                 var existing = await crewPaymentPlatformRepository.GetByIdAsync(platform.PlatformId, cancellationToken);
-                if (existing is null || existing.CrewId != membership.CrewId || existing.IsLibraryOfThings)
+                if (existing is not null
+                    && existing.CrewId == membership.CrewId
+                    && !existing.IsLibraryOfThings)
+                {
+                    crewPlatform = existing;
+                }
+                else if (!string.IsNullOrWhiteSpace(platform.Platform))
+                {
+                    crewPlatform = await CrewPaymentPlatformService.EnsurePlatformAsync(
+                        crewPaymentPlatformRepository,
+                        unitOfWork,
+                        membership.CrewId,
+                        platform.Platform,
+                        cancellationToken);
+                }
+                else
                 {
                     return new SeasonProfileResponse { Success = false, Message = "Invalid payment platform for your crew." };
                 }
-
-                crewPlatform = existing;
             }
 
             var isPreferred = platform.IsPreferred && !preferredAssigned;
@@ -122,6 +135,7 @@ public class UpdateSeasonProfileCommandHandler(
             user.PaymentPlatforms.Add(new UserPaymentPlatform
             {
                 CrewPaymentPlatformId = crewPlatform.Id,
+                PlatformName = crewPlatform.Name,
                 Handle = platform.Handle.Trim(),
                 IsPreferred = isPreferred
             });
@@ -195,8 +209,9 @@ public class UpdateSeasonProfileCommandHandler(
                     .Select(p => new PaymentPlatformAccountDto
                     {
                         Id = p.Id,
-                        PlatformId = p.CrewPaymentPlatformId,
-                        Platform = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                        PlatformId = p.CrewPaymentPlatformId ?? 0,
+                        Platform = p.CrewPaymentPlatform?.Name ?? p.PlatformName,
+                        CustomPlatformName = p.CrewPaymentPlatformId is null ? p.PlatformName : null,
                         Handle = p.Handle,
                         IsPreferred = p.IsPreferred
                     })

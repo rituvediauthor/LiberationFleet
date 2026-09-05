@@ -89,9 +89,14 @@ public class UpsertEncryptedContentCommandHandler(
             return new CryptoOperationResponse { Success = false, Message = "Encrypted profile picture is too large." };
         }
 
-        var hasCrewScope = request.CrewId.HasValue;
-        var hasFleetScope = request.FleetId.HasValue;
-        var isPersonalAvatar = domainType == EncryptedContentType.ProfileAvatar && !hasCrewScope && !hasFleetScope;
+        // Profile avatars are always personal (user content key) so leaving/deleting a crew
+        // cannot wipe the picture with empty-crew encrypted cleanup.
+        var effectiveCrewId = domainType == EncryptedContentType.ProfileAvatar ? null : request.CrewId;
+        var effectiveFleetId = domainType == EncryptedContentType.ProfileAvatar ? null : request.FleetId;
+
+        var hasCrewScope = effectiveCrewId.HasValue;
+        var hasFleetScope = effectiveFleetId.HasValue;
+        var isPersonalAvatar = domainType == EncryptedContentType.ProfileAvatar;
         var isPersonalMedia = AttachmentTypes.Contains(domainType) && !hasCrewScope && !hasFleetScope;
         if (!isPersonalAvatar && !isPersonalMedia && hasCrewScope == hasFleetScope)
         {
@@ -148,12 +153,12 @@ public class UpsertEncryptedContentCommandHandler(
 
         if (hasCrewScope)
         {
-            if (!await membershipRepository.IsUserInCrewAsync(userId, request.CrewId!.Value, cancellationToken))
+            if (!await membershipRepository.IsUserInCrewAsync(userId, effectiveCrewId!.Value, cancellationToken))
             {
                 return new CryptoOperationResponse { Success = false, Message = "You are not in this crew." };
             }
         }
-        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId!.Value, cancellationToken))
+        else if (hasFleetScope && !await fleetRepository.IsUserInFleetAsync(userId, effectiveFleetId!.Value, cancellationToken))
         {
             return new CryptoOperationResponse { Success = false, Message = "You are not in this fleet." };
         }
@@ -166,21 +171,20 @@ public class UpsertEncryptedContentCommandHandler(
         {
             if (hasCrewScope)
             {
-                var sameCrew = existing.CrewId == request.CrewId!.Value;
-                var personalToCrew = domainType == EncryptedContentType.ProfileAvatar
-                    && !existing.CrewId.HasValue
-                    && !existing.FleetId.HasValue
-                    && existing.AuthorUserId == userId;
-                if (!sameCrew && !personalToCrew)
+                if (existing.CrewId != effectiveCrewId!.Value)
                 {
                     return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this crew." };
                 }
             }
-            else if (hasFleetScope && existing.FleetId != request.FleetId!.Value)
+            else if (hasFleetScope && existing.FleetId != effectiveFleetId!.Value)
             {
                 return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found in this fleet." };
             }
-            else if ((isPersonalAvatar || isPersonalMedia)
+            else if (isPersonalAvatar && existing.AuthorUserId != userId)
+            {
+                return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found." };
+            }
+            else if (isPersonalMedia
                 && (existing.CrewId.HasValue || existing.FleetId.HasValue || existing.AuthorUserId != userId))
             {
                 return new CryptoOperationResponse { Success = false, Message = "Encrypted content not found." };
@@ -196,8 +200,8 @@ public class UpsertEncryptedContentCommandHandler(
 
         if (hasCrewScope && AttachmentTypes.Contains(domainType))
         {
-            var membership = await membershipRepository.GetMembershipAsync(userId, request.CrewId!.Value, cancellationToken);
-            var crew = await crewRepository.GetByIdAsync(request.CrewId.Value, cancellationToken);
+            var membership = await membershipRepository.GetMembershipAsync(userId, effectiveCrewId!.Value, cancellationToken);
+            var crew = await crewRepository.GetByIdAsync(effectiveCrewId.Value, cancellationToken);
             if (membership is null || crew is null)
             {
                 return new CryptoOperationResponse { Success = false, Message = "You are not allowed to attach files in this crew." };
@@ -208,7 +212,7 @@ public class UpsertEncryptedContentCommandHandler(
             {
                 giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
                     userId,
-                    request.CrewId.Value,
+                    effectiveCrewId.Value,
                     crew.CurrentSeasonStartDate,
                     cancellationToken);
             }
@@ -218,7 +222,7 @@ public class UpsertEncryptedContentCommandHandler(
             }
             var crewTenureDays = await contentTenureService.GetCrewTenureDaysAsync(
                 userId,
-                request.CrewId.Value,
+                effectiveCrewId.Value,
                 cancellationToken);
 
             if (!CrewContentPermissionService.CanAttachFilesToCrewContent(
@@ -238,9 +242,9 @@ public class UpsertEncryptedContentCommandHandler(
         if (hasFleetScope && AttachmentTypes.Contains(domainType))
         {
             var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
-            var fleet = await fleetRepository.GetByIdAsync(request.FleetId!.Value, cancellationToken);
+            var fleet = await fleetRepository.GetByIdAsync(effectiveFleetId!.Value, cancellationToken);
             if (membership is null || fleet is null
-                || !await fleetRepository.IsUserInFleetAsync(userId, request.FleetId.Value, cancellationToken))
+                || !await fleetRepository.IsUserInFleetAsync(userId, effectiveFleetId.Value, cancellationToken))
             {
                 return new CryptoOperationResponse { Success = false, Message = "You are not allowed to attach files in this fleet." };
             }
@@ -260,7 +264,7 @@ public class UpsertEncryptedContentCommandHandler(
             }
             var fleetTenureDays = await contentTenureService.GetFleetTenureDaysAsync(
                 userId,
-                request.FleetId.Value,
+                effectiveFleetId.Value,
                 cancellationToken);
 
             if (!FleetContentPermissionService.CanAttachFilesToFleetContent(
@@ -281,8 +285,8 @@ public class UpsertEncryptedContentCommandHandler(
         {
             ContentType = domainType,
             ResourceId = request.ResourceId.Trim(),
-            CrewId = request.CrewId,
-            FleetId = request.FleetId,
+            CrewId = effectiveCrewId,
+            FleetId = effectiveFleetId,
             AuthorUserId = userId,
             RecipientUserId = recipientUserId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,

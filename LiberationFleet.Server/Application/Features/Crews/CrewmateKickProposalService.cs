@@ -23,6 +23,7 @@ public class CrewmateKickProposalService(
     EmptyCrewCleanupService emptyCrewCleanupService,
     FleetMembershipService fleetMembershipService,
     ContentTenureService contentTenureService,
+    UserPaymentPlatformPortabilityService paymentPlatformPortability,
     IUnitOfWork unitOfWork)
 {
     public Task<CrewmateKickProposalResult> CreateFromAnonymousCommentAsync(
@@ -290,6 +291,11 @@ public class CrewmateKickProposalService(
                     proposal.CrewId!.Value,
                     kick.TargetUserId,
                     cancellationToken);
+                await mutualAidService.RemoveMemberFromSeasonAsync(
+                    proposal.CrewId!.Value,
+                    kick.TargetUserId,
+                    cancellationToken);
+                await paymentPlatformPortability.DetachFromCrewAsync(kick.TargetUserId, cancellationToken);
                 await fleetMembershipService.RetainInFleetAsNoCrewAsync(
                     kick.TargetUserId,
                     proposal.CrewId!.Value,

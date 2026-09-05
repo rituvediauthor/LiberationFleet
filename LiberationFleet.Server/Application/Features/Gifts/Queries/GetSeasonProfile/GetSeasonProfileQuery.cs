@@ -64,8 +64,9 @@ public class GetSeasonProfileQueryHandler(
                     .Select(p => new PaymentPlatformAccountDto
                     {
                         Id = p.Id,
-                        PlatformId = p.CrewPaymentPlatformId,
-                        Platform = p.CrewPaymentPlatform?.Name ?? string.Empty,
+                        PlatformId = p.CrewPaymentPlatformId ?? 0,
+                        Platform = p.CrewPaymentPlatform?.Name ?? p.PlatformName,
+                        CustomPlatformName = p.CrewPaymentPlatformId is null ? p.PlatformName : null,
                         Handle = p.Handle,
                         IsPreferred = p.IsPreferred
                     })

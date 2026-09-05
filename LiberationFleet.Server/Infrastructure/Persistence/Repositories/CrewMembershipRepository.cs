@@ -17,7 +17,10 @@ public class CrewMembershipRepository : ICrewMembershipRepository
     public Task<CrewMembership?> GetActiveMembershipAsync(int userId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .Include(m => m.Crew)
-            .FirstOrDefaultAsync(m => m.UserId == userId && !m.IsBanned, cancellationToken);
+            .OrderByDescending(m => m.JoinedAt)
+            .FirstOrDefaultAsync(
+                m => m.UserId == userId && !m.IsBanned && m.LeftAt == null,
+                cancellationToken);
 
     public Task<bool> IsUserBannedFromCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships.AnyAsync(
@@ -26,7 +29,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
 
     public Task<bool> IsUserInCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships.AnyAsync(
-            m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned,
+            m => m.UserId == userId && m.CrewId == crewId && !m.IsBanned && m.LeftAt == null,
             cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetActiveMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default) =>
@@ -37,7 +40,7 @@ public class CrewMembershipRepository : ICrewMembershipRepository
             .Include(m => m.User)
                 .ThenInclude(u => u.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
-            .Where(m => m.CrewId == crewId && !m.IsBanned && !m.User.IsCrewGiftRecipient)
+            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && !m.User.IsCrewGiftRecipient)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetBannedMembersByCrewIdAsync(
@@ -55,6 +58,32 @@ public class CrewMembershipRepository : ICrewMembershipRepository
             m => m.UserId == userId && m.CrewId == crewId,
             cancellationToken);
 
+    public async Task<CrewMembership> ReactivateOrCreateAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var existing = await GetMembershipAsync(userId, crewId, cancellationToken);
+        if (existing is not null)
+        {
+            existing.IsBanned = false;
+            existing.LeftAt = null;
+            // Returning members keep prior crew-specific stats/roles; they must re-enter season.
+            existing.IsInSeason = false;
+            existing.IsSeasonReady = false;
+            return existing;
+        }
+
+        var membership = new CrewMembership
+        {
+            UserId = userId,
+            CrewId = crewId,
+            JoinedAt = DateTime.UtcNow
+        };
+        await AddAsync(membership, cancellationToken);
+        return membership;
+    }
+
     public async Task AddAsync(CrewMembership membership, CancellationToken cancellationToken = default)
     {
         await _context.CrewMemberships.AddAsync(membership, cancellationToken);
@@ -62,4 +91,11 @@ public class CrewMembershipRepository : ICrewMembershipRepository
 
     public void Remove(CrewMembership membership) =>
         _context.CrewMemberships.Remove(membership);
+
+    public void MarkLeft(CrewMembership membership, DateTime leftAtUtc)
+    {
+        membership.LeftAt = leftAtUtc;
+        membership.IsInSeason = false;
+        membership.IsSeasonReady = false;
+    }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, of, shareReplay, tap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -19,6 +19,7 @@ import {
   UpdateCrewRequest
 } from '../models/crew.model';
 import { PaymentPlatformOption } from '../models/gift.model';
+import { ProfileService } from './profile.service';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +31,8 @@ export class CrewService {
   /** Emits when the session membership cache is cleared or replaced. */
   readonly membershipChanged$ = this.membershipChangedSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
+  private readonly profileService = inject(ProfileService);
 
   /**
    * Session-cached membership. Concurrent callers share one in-flight request.
@@ -55,6 +57,8 @@ export class CrewService {
 
   clearMembershipCache(): void {
     this.membershipRequest$ = null;
+    // Stats (lifetime, priority, roles, etc.) are crew-scoped — drop stale profile cache.
+    this.profileService.clearProfileCache();
     this.membershipChangedSubject.next();
   }
 

@@ -128,12 +128,26 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             else
             {
                 var existing = await _crewPaymentPlatformRepository.GetByIdAsync(platform.PlatformId, cancellationToken);
-                if (existing is null || existing.CrewId != membership.CrewId || existing.IsLibraryOfThings)
+                if (existing is not null
+                    && existing.CrewId == membership.CrewId
+                    && !existing.IsLibraryOfThings)
+                {
+                    crewPlatform = existing;
+                }
+                else if (!string.IsNullOrWhiteSpace(platform.Platform))
+                {
+                    // Stale IDs from a previous crew: remount by platform name onto this crew.
+                    crewPlatform = await CrewPaymentPlatformService.EnsurePlatformAsync(
+                        _crewPaymentPlatformRepository,
+                        _unitOfWork,
+                        membership.CrewId,
+                        platform.Platform,
+                        cancellationToken);
+                }
+                else
                 {
                     return new ProfileOperationResponse { Success = false, Message = "Invalid payment platform for your crew." };
                 }
-
-                crewPlatform = existing;
             }
 
             var isPreferred = platform.IsPreferred && !preferredAssigned;
@@ -145,6 +159,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             user.PaymentPlatforms.Add(new UserPaymentPlatform
             {
                 CrewPaymentPlatformId = crewPlatform.Id,
+                PlatformName = crewPlatform.Name,
                 Handle = platform.Handle.Trim(),
                 IsPreferred = isPreferred
             });
@@ -220,7 +235,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership,
                 isFinancialMember,
                 priorityScore,
-                reloaded.PercentBonus,
+                membership?.PercentBonus ?? 0,
                 isSurvivalRecipient,
                 canToggleOff,
                 toggleThreshold);

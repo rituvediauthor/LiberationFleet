@@ -498,7 +498,8 @@ export class ProfileComponent implements OnInit {
   }
 
   private avatarCryptoScope(): { crewId?: number } {
-    return this.crewId > 0 ? { crewId: this.crewId } : {};
+    // Profile avatars stay on the personal user content key so leaving a crew cannot wipe them.
+    return {};
   }
 
   private async refreshAvatarPreview() {
@@ -514,45 +515,6 @@ export class ProfileComponent implements OnInit {
       this.avatarResourceId,
       'ProfileAvatar'
     );
-
-    if (this.avatarPreviewUrl && this.crewId > 0) {
-      await this.maybeMigratePersonalAvatarToCrew();
-    }
-  }
-
-  private async maybeMigratePersonalAvatarToCrew(): Promise<void> {
-    if (!this.avatarResourceId || this.crewId <= 0 || !this.avatarPreviewUrl) {
-      return;
-    }
-
-    const alreadyCrewScoped = await this.proposalCrypto.hasEncryptedContent(
-      { crewId: this.crewId },
-      this.avatarResourceId,
-      'ProfileAvatar'
-    );
-    if (alreadyCrewScoped) {
-      return;
-    }
-
-    try {
-      const blob = await fetch(this.avatarPreviewUrl).then(r => r.blob());
-      const file = new File([blob], 'avatar.jpg', { type: blob.type || 'image/jpeg' });
-      await this.proposalCrypto.uploadImageAttachment(
-        { crewId: this.crewId },
-        {
-          file,
-          blob,
-          type: 'image',
-          resourceId: this.avatarResourceId,
-          previewUrl: this.avatarPreviewUrl,
-          status: 'ready'
-        },
-        'ProfileAvatar'
-      );
-      this.images.invalidate(this.avatarResourceId, 'ProfileAvatar');
-    } catch {
-      // Keep the personal envelope until the user saves a new picture.
-    }
   }
 
   private loadPlatformOptions() {
@@ -689,17 +651,37 @@ export class ProfileComponent implements OnInit {
 
   private getPaymentPlatformsForSave() {
     return this.paymentPlatforms
-      .filter(p => p.handle.trim() && (p.platformId > 0 || p.customPlatformName?.trim()))
-      .map(p => ({
-        id: p.id > 0 ? p.id : 0,
-        platformId: p.platformId === CUSTOM_PLATFORM_OPTION_ID ? 0 : p.platformId,
-        customPlatformName: p.platformId === CUSTOM_PLATFORM_OPTION_ID ? p.customPlatformName?.trim() : undefined,
-        platform: p.platformId === CUSTOM_PLATFORM_OPTION_ID
-          ? (p.customPlatformName?.trim() ?? '')
-          : (this.platformOptions.find(option => option.id === p.platformId)?.name ?? p.platform),
-        handle: p.handle.trim(),
-        isPreferred: !!p.isPreferred
-      }));
+      .filter(p => {
+        const name = this.resolvePlatformName(p);
+        return !!p.handle.trim() && (!!name || p.platformId > 0);
+      })
+      .map(p => {
+        const platformName = this.resolvePlatformName(p);
+        const knownInCrew = p.platformId > 0
+          && this.platformOptions.some(option => option.id === p.platformId);
+        return {
+          id: p.id > 0 ? p.id : 0,
+          platformId: knownInCrew ? p.platformId : 0,
+          customPlatformName: knownInCrew ? undefined : platformName,
+          platform: platformName,
+          handle: p.handle.trim(),
+          isPreferred: !!p.isPreferred
+        };
+      });
+  }
+
+  private resolvePlatformName(platform: PaymentPlatformAccount): string {
+    if (platform.platformId === CUSTOM_PLATFORM_OPTION_ID) {
+      return platform.customPlatformName?.trim() ?? '';
+    }
+    const optionName = this.platformOptions.find(option => option.id === platform.platformId)?.name;
+    if (optionName?.trim()) {
+      return optionName.trim();
+    }
+    if (typeof platform.platform === 'string') {
+      return platform.platform.trim();
+    }
+    return platform.customPlatformName?.trim() ?? '';
   }
 
   private getPaymentPlatformValidationError(): string | null {

@@ -48,7 +48,7 @@ public class FleetRepository : IFleetRepository
     {
         var viaCrew = await _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.UserId == userId && !m.IsBanned)
+            .Where(m => m.UserId == userId && !m.IsBanned && m.LeftAt == null)
             .Join(
                 _context.FleetCrews.Include(fc => fc.Fleet),
                 m => m.CrewId,
@@ -85,7 +85,7 @@ public class FleetRepository : IFleetRepository
     public async Task<int> CountActiveFleetMembersAsync(int fleetId, CancellationToken cancellationToken = default)
     {
         var crewMemberCount = await _context.CrewMemberships.CountAsync(
-            m => !m.IsBanned
+            m => !m.IsBanned && m.LeftAt == null
                  && !m.IsPlaceholderMember
                  && _context.FleetCrews.Any(fc => fc.FleetId == fleetId && fc.CrewId == m.CrewId),
             cancellationToken);
@@ -97,7 +97,7 @@ public class FleetRepository : IFleetRepository
     {
         if (await _context.CrewMemberships.AnyAsync(
                 m => m.UserId == userId
-                     && !m.IsBanned
+                     && !m.IsBanned && m.LeftAt == null
                      && _context.FleetCrews.Any(fc => fc.FleetId == fleetId && fc.CrewId == m.CrewId),
                 cancellationToken))
         {
@@ -112,7 +112,7 @@ public class FleetRepository : IFleetRepository
     public async Task<IReadOnlyList<int>> GetActiveFleetMemberUserIdsAsync(int fleetId, CancellationToken cancellationToken = default)
     {
         var crewUserIds = await _context.CrewMemberships
-            .Where(m => !m.IsBanned
+            .Where(m => !m.IsBanned && m.LeftAt == null
                         && _context.FleetCrews.Any(fc => fc.FleetId == fleetId && fc.CrewId == m.CrewId))
             .Select(m => m.UserId)
             .ToListAsync(cancellationToken);
