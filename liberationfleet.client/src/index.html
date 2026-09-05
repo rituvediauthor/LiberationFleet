@@ -20,6 +20,30 @@
       document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
     })();
   </script>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      function isStandalone() {
+        try {
+          return window.matchMedia('(display-mode: standalone)').matches
+            || window.matchMedia('(display-mode: fullscreen)').matches
+            || !!(window.navigator && window.navigator.standalone);
+        } catch (e) {
+          return !!(window.navigator && window.navigator.standalone);
+        }
+      }
+      function syncViewportShell() {
+        root.classList.toggle('lf-standalone', isStandalone());
+        /* innerHeight (not visualViewport) so the keyboard does not collapse the shell. */
+        root.style.setProperty('--lf-app-height', Math.round(window.innerHeight) + 'px');
+      }
+      syncViewportShell();
+      window.addEventListener('resize', syncViewportShell);
+      window.addEventListener('orientationchange', function () {
+        window.setTimeout(syncViewportShell, 150);
+      });
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>
