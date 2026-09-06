@@ -289,6 +289,18 @@
   box-sizing: border-box;
 }
 
+.typing-indicator {
+  width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  margin: 0 0 6px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--lf-color-text-muted, #6b7280);
+  min-height: 1.2em;
+}
+
 .chat-action-bar-inner {
   display: flex;
   align-items: flex-start;

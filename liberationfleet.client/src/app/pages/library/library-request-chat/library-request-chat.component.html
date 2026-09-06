@@ -31,6 +31,7 @@
   </div>
 
   <div class="chat-action-bar" [appComposerFooterPad]="messageScroll">
+    <p class="typing-indicator" *ngIf="typingLabel" aria-live="polite">{{ typingLabel }}</p>
     <div class="chat-action-bar-inner">
       <button
         type="button"
@@ -50,6 +51,7 @@
             class="message-input"
             [class.expanded]="composerExpanded"
             [(ngModel)]="messageText"
+            (ngModelChange)="onMessageInput()"
             appMentionAutocomplete
             [(mentionedUserIds)]="mentionedUserIds"
             (focus)="onComposerFocus()"

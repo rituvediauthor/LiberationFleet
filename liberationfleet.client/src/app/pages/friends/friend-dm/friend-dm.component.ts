@@ -37,6 +37,10 @@ import { ComposerFooterPadDirective } from '../../../directives/composer-footer-
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
+import {
+  TypingActivityController,
+  TypingPresenceTracker
+} from '../../../utils/typing-indicator.util';
 
 @Component({
   selector: 'app-friend-dm',
@@ -88,6 +92,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   hasMore = false;
   sending = false;
   loadError = '';
+  typingLabel = '';
   showReportDialog = false;
   reportTarget: DirectMessage | null = null;
   readonly canAttachFiles = true;
@@ -106,6 +111,13 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   private intersectionObserver?: IntersectionObserver;
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
+  private hubTypingSubscription?: Subscription;
+  private readonly typingActivity = new TypingActivityController(isTyping => {
+    void this.chatHub.sendDirectTyping(this.friendUserId, isTyping);
+  });
+  private readonly typingPresence = new TypingPresenceTracker(label => {
+    this.typingLabel = label;
+  });
 
   @HostListener('document:click')
   closeMenus() {
@@ -130,6 +142,16 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
         void this.onMessageUpdated(event.message as DirectMessage);
       }
     });
+    this.hubTypingSubscription = this.chatHub.typing$.subscribe(event => {
+      if (event.scope !== 'direct' || event.friendUserId !== this.friendUserId) {
+        return;
+      }
+      this.typingPresence.setTyping(
+        `user:${event.userId ?? this.friendUserId}`,
+        event.displayName,
+        event.isTyping
+      );
+    });
 
     this.profileService.getProfile().subscribe({
       next: profile => {
@@ -149,6 +171,9 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     this.intersectionObserver?.disconnect();
     this.hubSubscription?.unsubscribe();
     this.hubUpdateSubscription?.unsubscribe();
+    this.hubTypingSubscription?.unsubscribe();
+    this.typingActivity.destroy();
+    this.typingPresence.destroy();
   }
 
   goBack() {
@@ -158,6 +183,10 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
   onComposerFocus() {
     this.composerUiMinimized = false;
     this.composerFocused = true;
+  }
+
+  onMessageInput() {
+    this.typingActivity.onInput(!!this.messageText.trim());
   }
 
   onComposerBlur() {
@@ -343,6 +372,7 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
           this.keptEditAttachments = [];
           this.editingMessageId = null;
           this.composerFocused = false;
+          this.typingActivity.stop();
         },
         error: () => {
           this.sending = false;

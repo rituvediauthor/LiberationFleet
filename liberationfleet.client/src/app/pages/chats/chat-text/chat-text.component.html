@@ -115,6 +115,7 @@
   </div>
 
   <div class="chat-action-bar" *ngIf="contentRevealed" [appComposerFooterPad]="messageScroll">
+    <p class="typing-indicator" *ngIf="typingLabel" aria-live="polite">{{ typingLabel }}</p>
     <div class="chat-action-bar-inner">
     <button
       type="button"
@@ -135,6 +136,7 @@
           [class.expanded]="composerExpanded"
           [class.anonymous-active]="composeAnonymously"
           [(ngModel)]="messageText"
+          (ngModelChange)="onMessageInput()"
           appMentionAutocomplete
           [(mentionedUserIds)]="mentionedUserIds"
           (focus)="onComposerFocus()"

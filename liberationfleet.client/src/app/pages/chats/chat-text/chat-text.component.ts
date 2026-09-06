@@ -47,6 +47,10 @@ import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar
 import { ContentLiker } from '../../../models/gift.model';
 import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 import {
+  TypingActivityController,
+  TypingPresenceTracker
+} from '../../../utils/typing-indicator.util';
+import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
 } from '../../../utils/notification-deep-link.util';
@@ -142,6 +146,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   likersDialogLoading = false;
   likersDialogItems: ContentLiker[] = [];
   likersDialogTitle = 'Liked by';
+  typingLabel = '';
   composerFocused = false;
   composerUiMinimized = false;
   pickingFile = false;
@@ -157,6 +162,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Own anonymous messages from this session (SignalR strips author id). */
   private recentOwnMessageIds = new Set<number>();
+  /** Prevents double-toggles while a like request is in flight. */
+  private likingMessageIds = new Set<number>();
   private highlightSeekPagesLeft = 0;
   private highlightSeekActive = false;
 
@@ -184,6 +191,13 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private hubSubscription?: Subscription;
   private hubUpdateSubscription?: Subscription;
   private hubDeleteSubscription?: Subscription;
+  private hubTypingSubscription?: Subscription;
+  private readonly typingActivity = new TypingActivityController(isTyping => {
+    void this.chatHub.sendRoomTyping(this.roomId, isTyping, this.composeAnonymously);
+  });
+  private readonly typingPresence = new TypingPresenceTracker(label => {
+    this.typingLabel = label;
+  });
 
   @HostListener('document:click')
   closeMenus() {
@@ -220,6 +234,19 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       if (event.roomId === this.roomId) {
         this.messages = this.messages.filter(existing => existing.id !== event.messageId);
       }
+    });
+    this.hubTypingSubscription = this.chatHub.typing$.subscribe(event => {
+      if (event.scope !== 'room' || event.roomId !== this.roomId) {
+        return;
+      }
+      const key = event.isAnonymous
+        ? 'anon'
+        : `user:${event.userId ?? event.displayName}`;
+      this.typingPresence.setTyping(
+        key,
+        event.isAnonymous ? 'Anonymous' : event.displayName,
+        event.isTyping
+      );
     });
 
     this.profileService.getProfile().subscribe({
@@ -278,6 +305,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.hubSubscription?.unsubscribe();
     this.hubUpdateSubscription?.unsubscribe();
     this.hubDeleteSubscription?.unsubscribe();
+    this.hubTypingSubscription?.unsubscribe();
+    this.typingActivity.destroy();
+    this.typingPresence.destroy();
     void this.chatHub.leaveRoom();
   }
 
@@ -378,21 +408,44 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleMessageLike(message: ChatMessage, event?: Event) {
     event?.stopPropagation();
-    if (!this.roomId || message.id <= 0) {
+    if (!this.roomId || message.id <= 0 || this.likingMessageIds.has(message.id)) {
       return;
     }
 
-    this.chatService.toggleMessageLike(this.roomId, message.id).subscribe({
+    const messageId = message.id;
+    const previousLiked = !!message.likedByCurrentUser;
+    const previousCount = message.likeCount ?? 0;
+    const optimisticLiked = !previousLiked;
+    const optimisticCount = Math.max(0, previousCount + (optimisticLiked ? 1 : -1));
+
+    this.likingMessageIds.add(messageId);
+    this.patchMessageLike(messageId, optimisticLiked, optimisticCount);
+
+    this.chatService.toggleMessageLike(this.roomId, messageId).subscribe({
       next: result => {
+        this.likingMessageIds.delete(messageId);
         if (!result.success) {
+          this.patchMessageLike(messageId, previousLiked, previousCount);
           this.toastService.error(result.message || 'Failed to update like');
           return;
         }
-        message.likedByCurrentUser = !!result.liked;
-        message.likeCount = result.likeCount ?? 0;
+        // Always patch by id — SignalR may have replaced the object before HTTP returns.
+        this.patchMessageLike(messageId, !!result.liked, result.likeCount ?? 0);
       },
-      error: () => this.toastService.error('Failed to update like')
+      error: () => {
+        this.likingMessageIds.delete(messageId);
+        this.patchMessageLike(messageId, previousLiked, previousCount);
+        this.toastService.error('Failed to update like');
+      }
     });
+  }
+
+  private patchMessageLike(messageId: number, likedByCurrentUser: boolean, likeCount: number) {
+    this.messages = this.messages.map(existing =>
+      existing.id === messageId
+        ? { ...existing, likedByCurrentUser, likeCount }
+        : existing
+    );
   }
 
   openMessageLikers(message: ChatMessage, event?: Event) {
@@ -523,6 +576,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.keptEditAttachments = [];
     this.editingMessageId = null;
     this.composerFocused = false;
+    this.typingActivity.stop();
     this.restoreComposeAnonymously();
     this.preferStickToBottom = true;
     this.scrollToBottom();
@@ -603,10 +657,19 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     const enabling = !this.composeAnonymously;
     this.composeAnonymously = enabling;
     this.persistComposeAnonymously();
+    // Re-broadcast so peers see Anonymous vs username when the mode flips mid-typing.
+    if (this.messageText.trim()) {
+      this.typingActivity.stop();
+      this.typingActivity.onInput(true);
+    }
     if (enabling && !this.isAnonymousReminderDismissed()) {
       this.dontRemindAnonymousMode = false;
       this.showAnonymousReminderDialog = true;
     }
+  }
+
+  onMessageInput() {
+    this.typingActivity.onInput(!!this.messageText.trim());
   }
 
   confirmAnonymousReminder() {
@@ -777,7 +840,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
           ? {
               ...decrypted,
               clientLocalId: previous.clientLocalId,
-              sendStatus: undefined
+              sendStatus: undefined,
+              likeCount: decrypted.likeCount ?? previous.likeCount,
+              likedByCurrentUser: decrypted.likedByCurrentUser ?? previous.likedByCurrentUser
             }
           : existing
       );

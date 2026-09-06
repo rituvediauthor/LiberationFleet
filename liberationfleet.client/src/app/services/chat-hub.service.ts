@@ -15,6 +15,19 @@ export interface DirectMessageReceivedEvent {
   message: ChatMessage;
 }
 
+export type TypingScope = 'room' | 'direct' | 'libraryRequest';
+
+export interface TypingEvent {
+  scope: TypingScope;
+  roomId?: number;
+  friendUserId?: number;
+  requestId?: number;
+  userId?: number | null;
+  displayName: string;
+  isAnonymous?: boolean;
+  isTyping: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -32,6 +45,7 @@ export class ChatHubService implements OnDestroy {
   readonly roomActivityUpdated$ = new Subject<ChatRoomActivityUpdate>();
   readonly directMessageReceived$ = new Subject<DirectMessageReceivedEvent>();
   readonly directMessageUpdated$ = new Subject<DirectMessageReceivedEvent>();
+  readonly typing$ = new Subject<TypingEvent>();
 
   constructor(
     private authService: AuthService,
@@ -99,6 +113,42 @@ export class ChatHubService implements OnDestroy {
     this.joinedRoomId = null;
   }
 
+  async sendRoomTyping(roomId: number, isTyping: boolean, isAnonymous: boolean): Promise<void> {
+    if (roomId <= 0) {
+      return;
+    }
+    try {
+      const connection = await this.ensureConnectedInternal();
+      await connection.invoke('SendRoomTyping', roomId, isTyping, isAnonymous);
+    } catch {
+      // Ephemeral — ignore transient hub failures.
+    }
+  }
+
+  async sendDirectTyping(friendUserId: number, isTyping: boolean): Promise<void> {
+    if (friendUserId <= 0) {
+      return;
+    }
+    try {
+      const connection = await this.ensureConnectedInternal();
+      await connection.invoke('SendDirectTyping', friendUserId, isTyping);
+    } catch {
+      // Ephemeral — ignore transient hub failures.
+    }
+  }
+
+  async sendLibraryRequestTyping(requestId: number, isTyping: boolean): Promise<void> {
+    if (requestId <= 0) {
+      return;
+    }
+    try {
+      const connection = await this.ensureConnectedInternal();
+      await connection.invoke('SendLibraryRequestTyping', requestId, isTyping);
+    } catch {
+      // Ephemeral — ignore transient hub failures.
+    }
+  }
+
   async disconnect(): Promise<void> {
     this.joinedCrewId = null;
     this.joinedFleetId = null;
@@ -164,6 +214,17 @@ export class ChatHubService implements OnDestroy {
 
     this.connection.on('DirectMessageUpdated', (event: DirectMessageReceivedEvent) => {
       this.directMessageUpdated$.next(event);
+    });
+
+    this.connection.on('Typing', (event: TypingEvent) => {
+      if (!event || !event.scope) {
+        return;
+      }
+      this.typing$.next({
+        ...event,
+        displayName: event.displayName || (event.isAnonymous ? 'Anonymous' : 'Someone'),
+        isTyping: !!event.isTyping
+      });
     });
 
     await this.connection.start();

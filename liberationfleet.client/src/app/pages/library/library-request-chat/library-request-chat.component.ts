@@ -37,6 +37,12 @@ import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
+import { ChatHubService } from '../../../services/chat-hub.service';
+import {
+  TypingActivityController,
+  TypingPresenceTracker
+} from '../../../utils/typing-indicator.util';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-library-request-chat',
@@ -89,10 +95,18 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   hasMore = false;
   sending = false;
   loadError = '';
+  typingLabel = '';
 
   private readonly pageSize = 50;
   private intersectionObserver?: IntersectionObserver;
   private messageItemsSubscription?: { unsubscribe(): void };
+  private hubTypingSubscription?: Subscription;
+  private readonly typingActivity = new TypingActivityController(isTyping => {
+    void this.chatHub.sendLibraryRequestTyping(this.requestId, isTyping);
+  });
+  private readonly typingPresence = new TypingPresenceTracker(label => {
+    this.typingLabel = label;
+  });
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -106,6 +120,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
   private authService = inject(AuthService);
+  private chatHub = inject(ChatHubService);
 
   ngOnInit() {
     const token = this.authService.getToken();
@@ -123,6 +138,17 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
       this.requestId
     );
 
+    this.hubTypingSubscription = this.chatHub.typing$.subscribe(event => {
+      if (event.scope !== 'libraryRequest' || event.requestId !== this.requestId) {
+        return;
+      }
+      this.typingPresence.setTyping(
+        `user:${event.userId ?? event.displayName}`,
+        event.displayName,
+        event.isTyping
+      );
+    });
+
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.authorDisplayName = profile.username;
@@ -137,6 +163,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
         // crew-content moderation permission.
         this.canAttachFiles = true;
         await this.encryptionContent.whenReady();
+        void this.chatHub.ensureConnected();
         this.loadRequestTitle();
         this.loadLatestMessages(true);
       },
@@ -157,6 +184,9 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   ngOnDestroy() {
     this.intersectionObserver?.disconnect();
     this.messageItemsSubscription?.unsubscribe();
+    this.hubTypingSubscription?.unsubscribe();
+    this.typingActivity.destroy();
+    this.typingPresence.destroy();
   }
 
   goBack() {
@@ -166,6 +196,10 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   onComposerFocus() {
     this.composerUiMinimized = false;
     this.composerFocused = true;
+  }
+
+  onMessageInput() {
+    this.typingActivity.onInput(!!this.messageText.trim());
   }
 
   onComposerBlur() {
@@ -267,6 +301,7 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
           this.messageText = '';
           this.mentionedUserIds = [];
           this.messageAttachments = [];
+          this.typingActivity.stop();
           this.composerFocused = false;
           this.loadLatestMessages(true);
         },
