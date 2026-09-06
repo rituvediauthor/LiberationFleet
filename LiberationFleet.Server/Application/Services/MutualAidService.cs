@@ -1560,7 +1560,7 @@ public partial class MutualAidService(
         {
             UserId = recipientUserId,
             Username = username,
-            AmountNeeded = Math.Round(need, 2),
+            AmountNeeded = MutualAidCalculationService.CeilingToWholeDollar(need),
             EntryType = entryType,
             ThresholdId = thresholdId,
             CycleUserId = cycleUserId,

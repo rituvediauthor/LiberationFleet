@@ -607,7 +607,9 @@ public class MutualAidServiceTests
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
         var now = DateTime.UtcNow;
-        var joinMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        // Effective join is last completed month so that month counts as post-join.
+        var joinMonthStart = currentMonthStart.AddMonths(-1);
         foreach (var membership in fixture.Context.CrewMemberships)
         {
             membership.GivingSeasonJoinedAt = joinMonthStart.AddDays(1);

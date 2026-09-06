@@ -663,7 +663,7 @@ public class EmergencySplitService(
             isFinancialMember,
             capacityContext.MemberCycleCap,
             capacityContext.NonMemberCycleCap);
-        return Math.Max(0m, cap - cycle.CycleReceived);
+        return MutualAidCalculationService.CeilingToWholeDollar(Math.Max(0m, cap - cycle.CycleReceived));
     }
 
     private static void ReduceSegmentCap(

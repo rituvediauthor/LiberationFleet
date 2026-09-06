@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -61,12 +62,13 @@ public class CreateEmergencyRequestCommandHandler(
             currentUser.UserId.Value,
             cancellationToken);
 
+        var amountNeeded = MutualAidCalculationService.CeilingToWholeDollar(request.AmountNeeded);
         var emergencyRequest = new EmergencyRequest
         {
             CrewId = membership.CrewId,
             RequesterUserId = currentUser.UserId.Value,
             Purpose = purpose,
-            AmountNeeded = request.AmountNeeded,
+            AmountNeeded = amountNeeded,
             AmountReceived = 0m,
             AmountSplitCommitted = 0m,
             Status = EmergencyRequestStatus.Open,
@@ -82,7 +84,7 @@ public class CreateEmergencyRequestCommandHandler(
             membership.CrewId,
             NotificationKind.NewEmergencyRequest,
             "Emergency request",
-            $"{requesterName} needs ${request.AmountNeeded:0.##} for: {purposePreview}",
+            $"{requesterName} needs ${amountNeeded:0} for: {purposePreview}",
             $"/app/crew/emergency-requests/{emergencyRequest.Id}?highlightId={emergencyRequest.Id}",
             relatedEntityId: emergencyRequest.Id,
             excludeUserId: currentUser.UserId.Value,

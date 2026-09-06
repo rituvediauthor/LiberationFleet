@@ -310,13 +310,13 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          'This setting determines the average monthly (only counting the last three months) contribution amount a roleless crewmate must have in order to be able to toggle their in-need status off.'
+          'This setting determines the average monthly (only counting the last three completed months) contribution amount a roleless crewmate must have in order to be able to toggle their in-need status off.'
       },
       { type: 'heading', text: 'Financial membership contribution floor' },
       {
         type: 'paragraph',
         text:
-          'This setting determines the average monthly (only counting the last three months) contribution amount a roleless crewmate must have in order to be able to be counted as a member and so receive a full cycle’s worth of concentrated aid.'
+          'This setting determines the average monthly (only counting the last three completed months) contribution amount a roleless crewmate must have in order to be able to be counted as a member and so receive a full cycle’s worth of concentrated aid.'
       },
       { type: 'heading', text: 'Enable Library of Things' },
       {

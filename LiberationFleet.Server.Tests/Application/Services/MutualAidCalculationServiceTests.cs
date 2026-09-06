@@ -44,6 +44,30 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
+    public void GetSurvivalThresholdAmount_RoundsUpToWholeDollar()
+    {
+        // 100 / 2 / 3 = 16.666... → $17
+        MutualAidCalculationService.GetSurvivalThresholdAmount(100m, 3).Should().Be(17m);
+    }
+
+    [Fact]
+    public void GetMemberCycleCap_RoundsUpToWholeDollar()
+    {
+        var crew = CreateCrew();
+        crew.MemberCycleCapMultiplier = 0.5m;
+        MutualAidCalculationService.GetMemberCycleCap(crew, 101m).Should().Be(51m);
+    }
+
+    [Fact]
+    public void CeilingToWholeDollar_RoundsPositiveAmountsUp()
+    {
+        MutualAidCalculationService.CeilingToWholeDollar(0m).Should().Be(0m);
+        MutualAidCalculationService.CeilingToWholeDollar(10m).Should().Be(10m);
+        MutualAidCalculationService.CeilingToWholeDollar(10.01m).Should().Be(11m);
+        MutualAidCalculationService.CeilingToWholeDollar(-5m).Should().Be(0m);
+    }
+
+    [Fact]
     public void GetSurvivalThresholdAmount_WhenNoRecipients_ReturnsZero()
     {
         MutualAidCalculationService.GetSurvivalThresholdAmount(300m, 0).Should().Be(0m);
@@ -149,7 +173,8 @@ public class MutualAidCalculationServiceTests
     [Fact]
     public void CalculateThreeMonthContributionAverage_AppliesJoinMonthFillRules()
     {
-        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 8, 19, 0, 0, 0, DateTimeKind.Utc));
+        // Sep → completed months Jun/Jul/Aug. Joined Aug 2 with $30 in Aug → (90+90+30)/3.
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
         var byMonth = new Dictionary<(int Year, int Month), decimal> { [(2026, 8)] = 30m };
         var joined = new DateTime(2026, 8, 2, 0, 0, 0, DateTimeKind.Utc);
 
@@ -161,9 +186,22 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
-    public void GetPastThreeCalendarMonths_IncludesCurrentAndTwoPrior()
+    public void CalculateThreeMonthContributionAverage_WhenJustJoinedCurrentMonth_UsesEstimateOnly()
     {
-        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 8, 19, 0, 0, 0, DateTimeKind.Utc));
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 9, 6, 0, 0, 0, DateTimeKind.Utc));
+        var joined = new DateTime(2026, 9, 6, 12, 0, 0, DateTimeKind.Utc);
+
+        MutualAidCalculationService.CalculateThreeMonthContributionAverage(
+            months,
+            new Dictionary<(int Year, int Month), decimal>(),
+            joined,
+            estimatedMonthlyContribution: 20m).Should().Be(20m);
+    }
+
+    [Fact]
+    public void GetPastThreeCalendarMonths_ExcludesCurrentMonth()
+    {
+        var months = MutualAidCalculationService.GetPastThreeCalendarMonths(new DateTime(2026, 9, 6, 0, 0, 0, DateTimeKind.Utc));
         months.Should().Equal((2026, 6), (2026, 7), (2026, 8));
     }
 

@@ -5,15 +5,30 @@ namespace LiberationFleet.Server.Application.Services;
 
 public static class MutualAidCalculationService
 {
+    /// <summary>
+    /// Rounds a needed/target money amount up to the next whole dollar. Zero and negatives stay 0.
+    /// </summary>
+    public static decimal CeilingToWholeDollar(decimal amount)
+    {
+        if (amount <= 0m)
+        {
+            return 0m;
+        }
+
+        return Math.Ceiling(amount);
+    }
+
     public static decimal GetMemberCycleCap(Crew crew, decimal totalMonthlyContributions) =>
-        crew.MemberCycleCapMode == CycleCapMode.Fixed
-            ? crew.MemberCycleCapFixedAmount
-            : totalMonthlyContributions * crew.MemberCycleCapMultiplier;
+        CeilingToWholeDollar(
+            crew.MemberCycleCapMode == CycleCapMode.Fixed
+                ? crew.MemberCycleCapFixedAmount
+                : totalMonthlyContributions * crew.MemberCycleCapMultiplier);
 
     public static decimal GetNonMemberCycleCap(Crew crew, decimal totalMonthlyContributions) =>
-        crew.NonMemberCycleCapMode == CycleCapMode.Fixed
-            ? crew.NonMemberCycleCapFixedAmount
-            : totalMonthlyContributions * crew.NonMemberCycleCapMultiplier;
+        CeilingToWholeDollar(
+            crew.NonMemberCycleCapMode == CycleCapMode.Fixed
+                ? crew.NonMemberCycleCapFixedAmount
+                : totalMonthlyContributions * crew.NonMemberCycleCapMultiplier);
 
     public static decimal GetTotalMonthlyContributions(IEnumerable<decimal> estimatedMonthlyContributions) =>
         estimatedMonthlyContributions.Sum();
@@ -25,7 +40,7 @@ public static class MutualAidCalculationService
             return 0m;
         }
 
-        return totalMonthlyContributions / 2m / thresholdRecipientCount;
+        return CeilingToWholeDollar(totalMonthlyContributions / 2m / thresholdRecipientCount);
     }
 
     public static decimal GetEffectiveMemberCycleCap(decimal seasonStartCap, decimal currentCalculatedCap) =>
@@ -52,20 +67,23 @@ public static class MutualAidCalculationService
         return new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
     }
 
+    /// <summary>
+    /// The three most recently completed calendar months (excludes the current month).
+    /// </summary>
     public static IReadOnlyList<(int Year, int Month)> GetPastThreeCalendarMonths(DateTime utcNow)
     {
         var current = new DateTime(utcNow.Year, utcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         return
         [
+            (current.AddMonths(-3).Year, current.AddMonths(-3).Month),
             (current.AddMonths(-2).Year, current.AddMonths(-2).Month),
-            (current.AddMonths(-1).Year, current.AddMonths(-1).Month),
-            (current.Year, current.Month)
+            (current.AddMonths(-1).Year, current.AddMonths(-1).Month)
         ];
     }
 
     /// <summary>
-    /// Financial contributions for one calendar month. Empty months before joining
-    /// the giving season use the estimate; empty months after joining are zero.
+    /// Financial contributions for one completed calendar month. Empty months before
+    /// joining the giving season use the estimate; empty months on or after joining are zero.
     /// </summary>
     public static decimal GetCalendarMonthContribution(
         decimal financialContributionsInMonth,
@@ -95,7 +113,7 @@ public static class MutualAidCalculationService
     }
 
     /// <summary>
-    /// Three-month contribution average using join-month fill rules.
+    /// Three-month contribution average over completed months, using join-month fill rules.
     /// </summary>
     public static decimal CalculateThreeMonthContributionAverage(
         IReadOnlyList<(int Year, int Month)> months,
@@ -122,7 +140,7 @@ public static class MutualAidCalculationService
     }
 
     public const string MonthlyContributionAverageExplanation =
-        "Last three calendar months of gifts, excluding Library of Things; emergency aid is included. Months before joining the season use your estimate; months after joining with no gifts count as $0.";
+        "Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.";
 
     public static decimal CalculatePriorityScore(
         User user,
@@ -167,7 +185,7 @@ public static class MutualAidCalculationService
             return 0m;
         }
 
-        return Math.Max(0m, effectiveCycleCap - cycle.CycleReceived);
+        return CeilingToWholeDollar(Math.Max(0m, effectiveCycleCap - cycle.CycleReceived));
     }
 
     public static int GetSacrificePercentBonus(int emergencySacrificeCount) =>

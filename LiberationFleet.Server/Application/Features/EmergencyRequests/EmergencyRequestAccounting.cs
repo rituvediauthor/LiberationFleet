@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -6,10 +7,12 @@ namespace LiberationFleet.Server.Application.Features.EmergencyRequests;
 public static class EmergencyRequestAccounting
 {
     public static decimal GetAmountUncovered(EmergencyRequest request) =>
-        Math.Max(0m, request.AmountNeeded - request.AmountReceived - request.AmountSplitCommitted);
+        MutualAidCalculationService.CeilingToWholeDollar(
+            Math.Max(0m, request.AmountNeeded - request.AmountReceived - request.AmountSplitCommitted));
 
     public static decimal GetAmountRemainingToReceive(EmergencyRequest request) =>
-        Math.Max(0m, request.AmountNeeded - request.AmountReceived);
+        MutualAidCalculationService.CeilingToWholeDollar(
+            Math.Max(0m, request.AmountNeeded - request.AmountReceived));
 
     public static void RefreshFulfilledStatus(EmergencyRequest request)
     {
