@@ -77,9 +77,8 @@ public class GetMyProfileQueryHandlerTests
             .Setup(r => r.GetCrewmateGiftStatsAsync(user.Id, It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(giftStats);
 
-        user.PercentBonus = 20; // 2 sacrifices last season → +20%
-
         var membership = HandlerTestFixture.CreateMembership(user, HandlerTestFixture.CreateCrew());
+        membership.PercentBonus = 20; // 2 sacrifices last season → +20%
         membership.EmergencySacrificesThisSeason = 3;
 
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();

@@ -260,8 +260,7 @@ public class MutualAidCalculationServiceTests
     {
         var user = HandlerTestFixture.CreateUser();
         user.EmergencyLevel = 2;
-        user.PercentBonus = 10;
-        var membership = new CrewMembership { User = user };
+        var membership = new CrewMembership { User = user, PercentBonus = 10 };
 
         var score = MutualAidCalculationService.CalculatePriorityScore(
             user,
@@ -282,10 +281,9 @@ public class MutualAidCalculationServiceTests
     {
         var user = HandlerTestFixture.CreateUser();
         user.EmergencyLevel = 2;
-        user.PercentBonus = 10;
         user.PeopleRepresentedCount = 3;
         user.DisabilityLevel = 2;
-        var membership = new CrewMembership { User = user };
+        var membership = new CrewMembership { User = user, PercentBonus = 10 };
 
         var baseScore = (100m * 2m) + 1m + 50m + 80m;
         var score = MutualAidCalculationService.CalculatePriorityScore(
