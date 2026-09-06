@@ -979,7 +979,7 @@ public class MutualAidServiceTests
             CrewPaymentPlatformId = lotPlatform.Id,
             CrewPaymentPlatform = lotPlatform,
             CountsTowardContribution = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow.AddMonths(-1)
         });
         await fixture.Context.SaveChangesAsync();
 
@@ -1012,7 +1012,7 @@ public class MutualAidServiceTests
             Type = GiftType.Direct,
             Amount = 30m,
             CountsTowardContribution = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow.AddMonths(-1)
         });
         await fixture.Context.SaveChangesAsync();
 
@@ -1045,7 +1045,7 @@ public class MutualAidServiceTests
             Type = GiftType.Direct,
             Amount = 30m,
             CountsTowardContribution = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow.AddMonths(-1)
         });
         await fixture.Context.SaveChangesAsync();
 

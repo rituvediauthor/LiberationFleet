@@ -65,7 +65,7 @@ public class CrewInNeedServiceTests
                 CountsTowardContribution = true,
                 CountsTowardReception = false,
                 VerificationStatus = Domain.Enums.GiftVerificationStatus.Verified,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow.AddMonths(-1)
             });
             await context.SaveChangesAsync();
 

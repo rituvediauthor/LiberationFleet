@@ -28,7 +28,7 @@ public class UpdateProfileCommandHandlerIntegrationTests
                 CountsTowardContribution = true,
                 CountsTowardReception = false,
                 VerificationStatus = GiftVerificationStatus.Verified,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow.AddMonths(-1)
             });
             context.UserPaymentPlatforms.Add(new UserPaymentPlatform
             {

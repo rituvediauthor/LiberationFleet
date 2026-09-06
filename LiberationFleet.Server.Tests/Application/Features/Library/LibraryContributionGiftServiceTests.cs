@@ -126,6 +126,10 @@ public class LibraryContributionGiftServiceTests
         await fixture.Context.SaveChangesAsync();
         details.Should().NotBeNull();
 
+        var awardedGift = await fixture.Context.Gifts.SingleAsync(g => g.Id == details!.GiftId);
+        awardedGift.CreatedAt = DateTime.UtcNow.AddMonths(-1);
+        await fixture.Context.SaveChangesAsync();
+
         var isMember = await fixture.Service.IsFinancialMemberAsync(
             fixture.Alice.Id,
             fixture.Crew.Id,
