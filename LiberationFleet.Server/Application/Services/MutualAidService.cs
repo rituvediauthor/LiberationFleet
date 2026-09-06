@@ -963,6 +963,8 @@ public partial class MutualAidService(
             return;
         }
 
+        await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
+
         var currentSeasonStart = crew.CurrentSeasonStartDate.Value;
 
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
@@ -2051,37 +2053,93 @@ public partial class MutualAidService(
 
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
-        if (capacityContext.SurvivalThresholdAmount <= 0)
-        {
-            return;
-        }
+        var survivalAmount = capacityContext.SurvivalThresholdAmount;
 
-        var survivalRecipients = participants
-            .Where(m => m.User.NeedsSurvivalAid)
+        var eligibleRecipients = participants
+            .Where(IsSurvivalThresholdEligible)
             .OrderByDescending(m => m.CurrentPriorityScore)
             .ToList();
+        var eligibleUserIds = eligibleRecipients.Select(m => m.UserId).ToHashSet();
 
+        var existingForMonth = await mutualAidRepository.GetThresholdsForMonthAsync(
+            crew.Id,
+            year,
+            month,
+            cancellationToken);
         var created = false;
-        var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
-        foreach (var member in survivalRecipients)
+        var changed = false;
+
+        foreach (var threshold in existingForMonth)
         {
-            if (await mutualAidRepository.HasThresholdForMonthAsync(crew.Id, member.UserId, year, month, cancellationToken))
+            if (!eligibleUserIds.Contains(threshold.UserId))
+            {
+                if (threshold.ReceivedAmount <= 0m && !threshold.Satisfied)
+                {
+                    mutualAidRepository.RemoveThreshold(threshold);
+                    changed = true;
+                }
+                else if (!threshold.Satisfied)
+                {
+                    threshold.Satisfied = true;
+                    changed = true;
+                }
+
+                continue;
+            }
+
+            if (threshold.Satisfied || survivalAmount <= 0m)
             {
                 continue;
             }
 
-            await mutualAidRepository.AddThresholdAsync(new MonthlySurvivalThreshold
+            if (threshold.ThresholdAmount != survivalAmount)
             {
-                CrewId = crew.Id,
-                UserId = member.UserId,
-                Year = year,
-                Month = month,
-                ThresholdAmount = capacityContext.SurvivalThresholdAmount,
-                ReceivedAmount = 0m,
-                ReceptionOrderPosition = position++,
-                Satisfied = false
-            }, cancellationToken);
-            created = true;
+                threshold.ThresholdAmount = survivalAmount;
+                changed = true;
+            }
+
+            if (threshold.ReceivedAmount >= threshold.ThresholdAmount)
+            {
+                threshold.ReceivedAmount = threshold.ThresholdAmount;
+                threshold.Satisfied = true;
+                changed = true;
+            }
+        }
+
+        if (survivalAmount > 0m)
+        {
+            var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
+            foreach (var member in eligibleRecipients)
+            {
+                if (await mutualAidRepository.HasThresholdForMonthAsync(
+                        crew.Id,
+                        member.UserId,
+                        year,
+                        month,
+                        cancellationToken))
+                {
+                    continue;
+                }
+
+                await mutualAidRepository.AddThresholdAsync(new MonthlySurvivalThreshold
+                {
+                    CrewId = crew.Id,
+                    UserId = member.UserId,
+                    Year = year,
+                    Month = month,
+                    ThresholdAmount = survivalAmount,
+                    ReceivedAmount = 0m,
+                    ReceptionOrderPosition = position++,
+                    Satisfied = false
+                }, cancellationToken);
+                created = true;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         if (created)
@@ -2102,6 +2160,9 @@ public partial class MutualAidService(
                 cancellationToken: cancellationToken);
         }
     }
+
+    private static bool IsSurvivalThresholdEligible(CrewMembership membership) =>
+        membership.User.NeedsSurvivalAid;
 
     private Task ApplyToThresholdAsync(Gift gift, CancellationToken cancellationToken) =>
         ApplyToThresholdForUserAsync(gift, gift.RecipientUserId, cancellationToken);

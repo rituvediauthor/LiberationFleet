@@ -44,7 +44,11 @@ public class MutualAidRepository : IMutualAidRepository
     public Task<int> CountSeasonParticipantsNeedingSurvivalAidAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .AsNoTracking()
-            .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsInSeason && m.User.NeedsSurvivalAid)
+            .Where(m => m.CrewId == crewId
+                && !m.IsBanned
+                && m.LeftAt == null
+                && m.IsInSeason
+                && m.User.NeedsSurvivalAid)
             .CountAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CrewMembership>> GetActiveMembersWithUsersAsync(int crewId, CancellationToken cancellationToken = default) =>
@@ -194,6 +198,20 @@ public class MutualAidRepository : IMutualAidRepository
     {
         await _context.MonthlySurvivalThresholds.AddAsync(threshold, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<MonthlySurvivalThreshold>> GetThresholdsForMonthAsync(
+        int crewId,
+        int year,
+        int month,
+        CancellationToken cancellationToken = default) =>
+        await _context.MonthlySurvivalThresholds
+            .Include(t => t.User)
+            .Where(t => t.CrewId == crewId && t.Year == year && t.Month == month)
+            .OrderBy(t => t.ReceptionOrderPosition)
+            .ToListAsync(cancellationToken);
+
+    public void RemoveThreshold(MonthlySurvivalThreshold threshold) =>
+        _context.MonthlySurvivalThresholds.Remove(threshold);
 
     public Task<bool> HasThresholdForMonthAsync(int crewId, int userId, int year, int month, CancellationToken cancellationToken = default) =>
         _context.MonthlySurvivalThresholds.AnyAsync(

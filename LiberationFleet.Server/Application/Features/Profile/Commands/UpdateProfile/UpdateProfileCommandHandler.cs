@@ -76,6 +76,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         var previousInNeedOfAid = user.InNeedOfAid;
         var previousPeopleRepresentedCount = user.PeopleRepresentedCount;
         var previousDisabilityLevel = user.DisabilityLevel;
+        var previousNeedsSurvivalAid = user.NeedsSurvivalAid;
 
         user.Username = request.Username.Trim();
         user.Email = request.Email.Trim();
@@ -202,6 +203,11 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             }
 
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
+        }
+
+        if (previousNeedsSurvivalAid != reloaded.NeedsSurvivalAid)
+        {
+            await _mutualAidService.EnsureCurrentMonthSurvivalThresholdsAsync(userId.Value, cancellationToken);
         }
 
         UserProfileDto? profile = null;

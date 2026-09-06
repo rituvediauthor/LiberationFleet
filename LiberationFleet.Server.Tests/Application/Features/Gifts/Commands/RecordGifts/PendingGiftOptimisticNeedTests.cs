@@ -140,6 +140,12 @@ public class PendingGiftOptimisticNeedTests
             month: olderMonth);
         var newer = await fixture.AddUnsatisfiedThresholdAsync(fixture.Bob, thresholdAmount: 40m);
 
+        var before = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            limit: 30,
+            forRecordGift: true);
+        var newerBefore = before.Single(e => e.ThresholdId == newer.Id);
+
         var recordHandler = CreateRecordHandler(fixture, fixture.Alice.Id);
         var result = await recordHandler.Handle(
             new RecordGiftsCommand(
@@ -169,7 +175,7 @@ public class PendingGiftOptimisticNeedTests
         var newerEntry = after.Single(e => e.ThresholdId == newer.Id);
         olderEntry.AmountNeeded.Should().Be(40m);
         olderEntry.HasUnverifiedPending.Should().BeFalse();
-        newerEntry.AmountNeeded.Should().Be(30m);
+        newerEntry.AmountNeeded.Should().Be(newerBefore.AmountNeeded - 10m);
         newerEntry.PendingUnverifiedAmount.Should().Be(10m);
     }
 }

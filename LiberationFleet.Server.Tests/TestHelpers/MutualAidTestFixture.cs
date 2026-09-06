@@ -116,6 +116,7 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
         int? year = null,
         int? month = null)
     {
+        recipient.NeedsSurvivalAid = true;
         var now = DateTime.UtcNow;
         var threshold = new MonthlySurvivalThreshold
         {

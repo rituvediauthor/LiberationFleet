@@ -54,6 +54,8 @@ public class UpdateSeasonProfileCommandHandler(
         var previousInNeedOfAid = user.InNeedOfAid;
         var previousPeopleRepresentedCount = user.PeopleRepresentedCount;
         var previousDisabilityLevel = user.DisabilityLevel;
+        var previousNeedsSurvivalAid = user.NeedsSurvivalAid;
+        var previousEstimatedContribution = membership.EstimatedMonthlyContribution;
 
         var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
         var inNeedThreshold = crew?.InNeedDefaultThreshold ?? 0m;
@@ -184,6 +186,12 @@ public class UpdateSeasonProfileCommandHandler(
             }
 
             await mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
+        }
+
+        if (previousNeedsSurvivalAid != reloaded.NeedsSurvivalAid
+            || previousEstimatedContribution != reloadedMembership.EstimatedMonthlyContribution)
+        {
+            await mutualAidService.EnsureCurrentMonthSurvivalThresholdsAsync(userId.Value, cancellationToken);
         }
 
         var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(

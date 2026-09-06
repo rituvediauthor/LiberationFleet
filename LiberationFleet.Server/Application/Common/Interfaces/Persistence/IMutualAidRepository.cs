@@ -33,6 +33,12 @@ public interface IMutualAidRepository
     Task<IReadOnlyList<MonthlySurvivalThreshold>> GetUnsatisfiedThresholdsAsync(int crewId, CancellationToken cancellationToken = default);
     Task<MonthlySurvivalThreshold?> GetThresholdByIdAsync(int thresholdId, CancellationToken cancellationToken = default);
     Task AddThresholdAsync(MonthlySurvivalThreshold threshold, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MonthlySurvivalThreshold>> GetThresholdsForMonthAsync(
+        int crewId,
+        int year,
+        int month,
+        CancellationToken cancellationToken = default);
+    void RemoveThreshold(MonthlySurvivalThreshold threshold);
     Task<bool> HasThresholdForMonthAsync(int crewId, int userId, int year, int month, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetFinancialContributionsByMonthAsync(
         int userId,

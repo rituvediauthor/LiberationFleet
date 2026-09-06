@@ -716,6 +716,83 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task CreateSurvivalThresholds_DividesHalfCapacityAmongEligibleRecipientsOnly()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = membership.UserId switch
+            {
+                _ when membership.UserId == fixture.Alice.Id => 20m,
+                _ when membership.UserId == fixture.Bob.Id => 20m,
+                _ => 15m
+            };
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        fixture.Alice.NeedsSurvivalAid = true;
+        fixture.Bob.NeedsSurvivalAid = true;
+        fixture.Carol.NeedsSurvivalAid = false;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.GetReceptionOrderAsync(fixture.Alice.Id, cancellationToken: CancellationToken.None);
+
+        var capacity = await fixture.Service.GetCrewMonthlyGivingCapacityAsync(fixture.Crew.Id, CancellationToken.None);
+        capacity.Should().Be(55m);
+
+        var now = DateTime.UtcNow;
+        var thresholds = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id && t.Year == now.Year && t.Month == now.Month)
+            .ToListAsync();
+
+        thresholds.Should().HaveCount(2);
+        thresholds.Select(t => t.UserId).Should().BeEquivalentTo([fixture.Alice.Id, fixture.Bob.Id]);
+        // Ceiling(55 * 0.5 / 2) = Ceiling(13.75) = 14
+        thresholds.Should().OnlyContain(t => t.ThresholdAmount == 14m);
+    }
+
+    [Fact]
+    public async Task CreateSurvivalThresholds_RecalculatesAmountWhenRecipientCountDrops()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = membership.UserId switch
+            {
+                _ when membership.UserId == fixture.Alice.Id => 20m,
+                _ when membership.UserId == fixture.Bob.Id => 20m,
+                _ => 15m
+            };
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        fixture.Alice.NeedsSurvivalAid = true;
+        fixture.Bob.NeedsSurvivalAid = true;
+        fixture.Carol.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.GetReceptionOrderAsync(fixture.Alice.Id, cancellationToken: CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        var initial = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id && t.Year == now.Year && t.Month == now.Month)
+            .ToListAsync();
+        initial.Should().HaveCount(3);
+        initial.Should().OnlyContain(t => t.ThresholdAmount == 10m); // Ceiling(55/2/3)
+
+        fixture.Carol.NeedsSurvivalAid = false;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.EnsureCurrentMonthSurvivalThresholdsAsync(fixture.Alice.Id, CancellationToken.None);
+
+        var updated = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id && t.Year == now.Year && t.Month == now.Month)
+            .ToListAsync();
+        updated.Should().HaveCount(2);
+        updated.Should().OnlyContain(t => t.ThresholdAmount == 14m);
+    }
+
+    [Fact]
     public async Task OnInNeedOfAidChanged_WhenNoLongerInNeed_CompletesAndDeactivatesCurrentCycle()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
