@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Tests.TestHelpers;
@@ -201,6 +202,16 @@ public class CreateCrewCommandHandlerTests
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
             tenure);
 
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        userRepository
+            .Setup(r => r.GetByIdWithProfileAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int id, CancellationToken _) => HandlerTestFixture.CreateUser(id));
+
+        var paymentPlatformPortability = new UserPaymentPlatformPortabilityService(
+            userRepository.Object,
+            HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
+            unitOfWork.Object);
+
         return new CreateCrewCommandHandler(
             crewRepository.Object,
             membershipRepository.Object,
@@ -209,6 +220,7 @@ public class CreateCrewCommandHandlerTests
             tenure,
             fleetMembership,
             HandlerTestFixture.CreateDefaultOrgContentSeeder(),
+            paymentPlatformPortability,
             unitOfWork.Object);
     }
 }
