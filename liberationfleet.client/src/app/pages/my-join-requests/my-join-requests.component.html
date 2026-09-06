@@ -12,14 +12,7 @@
       <article class="request-card" *ngFor="let item of items">
         <h2 class="card-title">{{ item.crewName }}</h2>
         <p class="card-meta">Requested {{ formatCreatedAt(item.createdAt) }}</p>
-        <p class="vote-line">
-          <span class="approve">{{ item.approveCount }} approve</span>
-          <span class="dot">·</span>
-          <span class="disapprove">{{ item.disapproveCount }} disapprove</span>
-        </p>
-        <p class="timer" *ngIf="countdownText(item) as countdown">
-          Auto-resolves in {{ countdown }}
-        </p>
+        <p class="status-line">Status: Pending</p>
         <p class="key-status" [class.ready]="item.isKeyPrepared">
           {{ item.isKeyPrepared ? 'Encryption key prepared' : 'Waiting for a crewmate to prepare your key' }}
         </p>

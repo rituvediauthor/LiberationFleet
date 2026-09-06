@@ -19,6 +19,7 @@ import { GiftLogCryptoService } from '../../services/crypto/gift-log-crypto.serv
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { GiftLogEntry, GiftVerificationAction, ContentLiker } from '../../models/gift.model';
+import { CrewMembershipStatus } from '../../models/crew.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
 import { NavigationService } from '../../services/navigation.service';
 import { NotificationContentService } from '../../services/notification-content.service';
@@ -99,30 +100,52 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activeUserId = user?.id ?? 0;
     });
 
-    // Prefer membership (already cached on crew home) over season/status so the page
-    // can load without waiting on mutual-aid maintenance work.
+    // Prefer membership for fast path when season is already known started; if cached
+    // as not started, re-check /api/season/status (season can start mid-session).
     this.crewService.getMembership().subscribe({
       next: async membership => {
         if (!membership.seasonStarted) {
-          if (this.router.url.split('?')[0] === '/app/crew/gift-log') {
-            void this.router.navigate(['/app/crew/season-setup'], { replaceUrl: true });
-          }
+          this.giftService.getSeasonStatus().subscribe({
+            next: status => {
+              if (!status.seasonStarted) {
+                if (this.router.url.split('?')[0] === '/app/crew/gift-log') {
+                  void this.router.navigate(['/app/crew/season-setup'], { replaceUrl: true });
+                }
+                return;
+              }
+              this.crewService.clearMembershipCache();
+              void this.bootstrapGiftLogAfterSeasonConfirmed({
+                ...membership,
+                seasonStarted: true,
+                isInSeason: !!status.userInSeason
+              } as CrewMembershipStatus);
+            },
+            error: () => {
+              if (this.router.url.split('?')[0] === '/app/crew/gift-log') {
+                void this.router.navigate(['/app/crew/season-setup'], { replaceUrl: true });
+              }
+            }
+          });
           return;
         }
 
-        this.userInSeason = !!membership.isInSeason;
-        this.seasonStarted = true;
-        this.crewId = membership.crewId ?? 0;
-        this.canExportCrewData = !!membership.canExportCrewData;
-        await this.encryptionContent.whenReady();
-        this.loadGiftLog();
-        this.encryptionReload?.markInitialLoadDone();
+        await this.bootstrapGiftLogAfterSeasonConfirmed(membership);
       },
       error: () => {
         this.errorMessage = 'Failed to load crew membership';
         this.loading = false;
       }
     });
+  }
+
+  private async bootstrapGiftLogAfterSeasonConfirmed(membership: CrewMembershipStatus) {
+    this.userInSeason = !!membership.isInSeason;
+    this.seasonStarted = true;
+    this.crewId = membership.crewId ?? 0;
+    this.canExportCrewData = !!membership.canExportCrewData;
+    await this.encryptionContent.whenReady();
+    this.loadGiftLog();
+    this.encryptionReload?.markInitialLoadDone();
   }
 
   ngAfterViewInit() {

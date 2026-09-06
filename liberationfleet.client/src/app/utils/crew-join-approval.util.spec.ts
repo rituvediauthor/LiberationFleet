@@ -1,6 +1,6 @@
 import {
-  isCrewDashboardRedirectUrl,
   isCrewJoinRequestApprovedNotification,
+  isNewSeasonNotification,
   JOIN_REQUEST_APPROVED_TITLE
 } from './crew-join-approval.util';
 import { NotificationItem } from '../models/notification.model';
@@ -10,7 +10,7 @@ function notification(partial: Partial<NotificationItem>): NotificationItem {
     id: 1,
     kind: 'ProposalAccepted',
     title: JOIN_REQUEST_APPROVED_TITLE,
-    body: '',
+    body: 'You were approved to join Test Crew.',
     actionUrl: '/app/crew',
     isRead: false,
     createdAt: new Date().toISOString(),
@@ -22,21 +22,27 @@ describe('crew-join-approval.util', () => {
   it('detects join-request approved notifications', () => {
     expect(isCrewJoinRequestApprovedNotification(notification({}))).toBe(true);
     expect(isCrewJoinRequestApprovedNotification(notification({
-      title: 'Proposal accepted'
+      title: 'Proposal accepted',
+      actionUrl: '/app/crew',
+      body: 'You were approved to join Alpha.'
+    }))).toBe(true);
+    expect(isCrewJoinRequestApprovedNotification(notification({
+      title: 'Proposal accepted',
+      actionUrl: '/app/crew/proposals/list/approved',
+      body: 'Your crew proposal was approved.'
     }))).toBe(false);
     expect(isCrewJoinRequestApprovedNotification(notification({
       kind: 'NewProposal'
     }))).toBe(false);
   });
 
-  it('recognizes crew dashboard redirect URLs', () => {
-    expect(isCrewDashboardRedirectUrl('/app/crew')).toBe(true);
-    expect(isCrewDashboardRedirectUrl('/app/crew?x=1')).toBe(true);
-    expect(isCrewDashboardRedirectUrl('/app/crew/join')).toBe(true);
-    expect(isCrewDashboardRedirectUrl('/app/crew/join-requests')).toBe(true);
-    expect(isCrewDashboardRedirectUrl('/app/crew/create')).toBe(true);
-    expect(isCrewDashboardRedirectUrl('/app/crew/invitations')).toBe(true);
-    expect(isCrewDashboardRedirectUrl('/app/fleet')).toBe(false);
-    expect(isCrewDashboardRedirectUrl('/app/crew/crewmates')).toBe(false);
+  it('detects new season notifications', () => {
+    expect(isNewSeasonNotification(notification({
+      kind: 'NewSeason',
+      title: 'New season',
+      body: 'Season started',
+      actionUrl: '/app/crew/gift-log'
+    }))).toBe(true);
+    expect(isNewSeasonNotification(notification({}))).toBe(false);
   });
 });

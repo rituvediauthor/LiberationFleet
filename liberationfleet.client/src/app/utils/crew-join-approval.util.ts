@@ -4,18 +4,23 @@ import { NotificationItem } from '../models/notification.model';
 export const JOIN_REQUEST_APPROVED_TITLE = 'Join request approved';
 
 export function isCrewJoinRequestApprovedNotification(notification: NotificationItem): boolean {
-  return notification.kind === 'ProposalAccepted'
-    && notification.title === JOIN_REQUEST_APPROVED_TITLE;
+  if (notification.kind !== 'ProposalAccepted') {
+    return false;
+  }
+
+  if (notification.title === JOIN_REQUEST_APPROVED_TITLE) {
+    return true;
+  }
+
+  // ActionUrl is /app/crew for join approvals (not the proposals list).
+  const actionPath = (notification.actionUrl ?? '').split('?')[0];
+  if (actionPath === '/app/crew') {
+    return true;
+  }
+
+  return /approved to join/i.test(notification.body ?? '');
 }
 
-/**
- * No-crew crew surfaces where the user should be taken to the dashboard
- * once a join request is approved.
- */
-export function isCrewDashboardRedirectUrl(url: string): boolean {
-  const path = url.split('?')[0].split('#')[0];
-  return path === '/app/crew'
-    || path.startsWith('/app/crew/join')
-    || path.startsWith('/app/crew/create')
-    || path.startsWith('/app/crew/invitations');
+export function isNewSeasonNotification(notification: NotificationItem): boolean {
+  return notification.kind === 'NewSeason';
 }

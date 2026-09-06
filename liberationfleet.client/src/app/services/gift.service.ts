@@ -62,17 +62,14 @@ export class GiftService {
     return this.http.post<SeasonSetupSaveResult>(`${this.seasonUrl}/clear-ready`, {});
   }
 
-  /** Navigate immediately using known season state when available (avoids blocking on /api/season/status). */
+  /** Prefer live season status so a mid-session season start is not stuck on prep. */
   navigateToGiftLogEntry(router: Router, seasonStarted?: boolean | null): void {
-    if (seasonStarted === false) {
-      void router.navigate(['/app/crew/season-setup']);
-      return;
-    }
     if (seasonStarted === true) {
       void router.navigate(['/app/crew/gift-log']);
       return;
     }
 
+    // Cached `false` is untrusted (season can start while signed in without cache clear).
     this.getSeasonStatus().subscribe({
       next: status => {
         if (!status.seasonStarted) {
@@ -81,7 +78,13 @@ export class GiftService {
           void router.navigate(['/app/crew/gift-log']);
         }
       },
-      error: () => void router.navigate(['/app/crew/gift-log'])
+      error: () => {
+        if (seasonStarted === false) {
+          void router.navigate(['/app/crew/season-setup']);
+        } else {
+          void router.navigate(['/app/crew/gift-log']);
+        }
+      }
     });
   }
 
@@ -101,14 +104,21 @@ export class GiftService {
       ]);
     };
 
-    if (known && known.seasonStarted != null && known.userInSeason != null) {
-      go(!!known.seasonStarted, !!known.userInSeason);
+    // Prefer live status: cached seasonStarted/userInSeason can lag after a mid-session season start.
+    if (known?.seasonStarted === true && known.userInSeason === true) {
+      go(true, true);
       return;
     }
 
     this.getSeasonStatus().subscribe({
       next: status => go(!!status.seasonStarted, !!status.userInSeason),
-      error: () => void router.navigate(['/app/crew/join-season'])
+      error: () => {
+        if (known && known.seasonStarted != null && known.userInSeason != null) {
+          go(!!known.seasonStarted, !!known.userInSeason);
+          return;
+        }
+        void router.navigate(['/app/crew/join-season']);
+      }
     });
   }
 

@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { Subscription, firstValueFrom, of } from 'rxjs';
+import { catchError, filter } from 'rxjs/operators';
 import { ToastContainerComponent } from './components/toast/toast.component';
 import { DevToolbarComponent } from './components/dev-toolbar/dev-toolbar.component';
 import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/crypto-unlock-dialog.component';
@@ -16,8 +16,8 @@ import { NotificationHubService } from './services/notification-hub.service';
 import { NotificationService } from './services/notification.service';
 import { NotificationItem } from './models/notification.model';
 import {
-  isCrewDashboardRedirectUrl,
-  isCrewJoinRequestApprovedNotification
+  isCrewJoinRequestApprovedNotification,
+  isNewSeasonNotification
 } from './utils/crew-join-approval.util';
 
 @Component({
@@ -79,7 +79,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.subscriptions.add(
       this.notificationHub.notificationReceived$.subscribe(notification => {
-        this.onJoinRequestApproved(notification);
+        this.onMembershipAffectingNotification(notification);
       })
     );
   }
@@ -155,19 +155,37 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * When a pending join request is approved while the user is signed in with no crew,
-   * drop the stale membership cache so Crew Home shows the dashboard. If they are already
-   * on a no-crew crew surface, navigate there immediately.
+   * Live notifications that invalidate session membership (join approved, season started).
+   * Always force-refresh membership and send the user to the right surface when relevant.
    */
-  private onJoinRequestApproved(notification: NotificationItem) {
+  private onMembershipAffectingNotification(notification: NotificationItem) {
+    if (isNewSeasonNotification(notification)) {
+      this.crewService.clearMembershipCache();
+      return;
+    }
+
     if (!isCrewJoinRequestApprovedNotification(notification)) {
       return;
     }
 
+    void this.handleJoinRequestApproved();
+  }
+
+  private async handleJoinRequestApproved() {
     this.crewService.clearMembershipCache();
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
 
-    if (isCrewDashboardRedirectUrl(this.router.url)) {
+    try {
+      await firstValueFrom(
+        this.crewService.getMembership(true).pipe(catchError(() => of(null)))
+      );
+    } catch {
+      // Still navigate; crew home will retry membership load.
+    }
+
+    // Always land on the crew dashboard after acceptance (replace so back does not
+    // return to join/prep surfaces that no longer apply).
+    if (this.router.url.startsWith('/app')) {
       void this.router.navigate(['/app/crew'], { replaceUrl: true });
     }
   }

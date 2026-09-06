@@ -39,9 +39,10 @@ public class GetMyJoinRequestsQueryHandler(
                 CrewId = proposal.CrewId!.Value,
                 CrewName = crew?.Name ?? "Unknown crew",
                 Status = proposal.Status.ToString(),
-                ApproveCount = proposal.ApproveCount,
-                DisapproveCount = proposal.DisapproveCount,
-                ApprovalTimerEndsAt = proposal.ApprovalTimerEndsAt,
+                // Applicants must not see live vote progress or timers — only pending state.
+                ApproveCount = 0,
+                DisapproveCount = 0,
+                ApprovalTimerEndsAt = null,
                 IsKeyPrepared = joinRequest?.IsKeyPrepared ?? false,
                 CreatedAt = proposal.CreatedAt
             });

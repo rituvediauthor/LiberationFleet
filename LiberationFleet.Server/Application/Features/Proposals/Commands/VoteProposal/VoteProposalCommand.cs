@@ -184,7 +184,8 @@ public class VoteProposalCommandHandler(
                 notifyCrewId = authorMembership?.CrewId;
             }
 
-            if (proposal.Status == ProposalStatus.Approved)
+            if (proposal.Status == ProposalStatus.Approved
+                && proposal.Kind != ProposalKind.CrewJoinRequest)
             {
                 var isFleet = proposal.FleetId.HasValue;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -203,16 +204,19 @@ public class VoteProposalCommandHandler(
             else if (proposal.Status == ProposalStatus.Rejected)
             {
                 var isFleet = proposal.FleetId.HasValue;
+                var isCrewJoin = proposal.Kind == ProposalKind.CrewJoinRequest;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = proposal.AuthorUserId,
                     CrewId = notifyCrewId,
                     Kind = isFleet ? NotificationKind.FleetProposalRejected : NotificationKind.ProposalRejected,
-                    Title = "Proposal rejected",
-                    Body = isFleet
-                        ? "Your fleet proposal was rejected."
-                        : "Your crew proposal was rejected.",
-                    ActionUrl = ProposalRouting.StatusListUrl(proposal),
+                    Title = isCrewJoin ? "Join request rejected" : "Proposal rejected",
+                    Body = isCrewJoin
+                        ? "Your request to join the crew was rejected."
+                        : isFleet
+                            ? "Your fleet proposal was rejected."
+                            : "Your crew proposal was rejected.",
+                    ActionUrl = isCrewJoin ? "/app/crew/join-requests" : ProposalRouting.StatusListUrl(proposal),
                     RelatedEntityId = proposal.Id
                 }, cancellationToken);
             }

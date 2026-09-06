@@ -256,7 +256,7 @@ public class CrewJoinRequestProposalService(
             Kind = NotificationKind.ProposalAccepted,
             Title = "Join request approved",
             Body = $"You were approved to join {crew.Name}.",
-            ActionUrl = ProposalRouting.StatusListUrl(proposal),
+            ActionUrl = "/app/crew",
             RelatedEntityId = proposal.Id
         }, cancellationToken);
 

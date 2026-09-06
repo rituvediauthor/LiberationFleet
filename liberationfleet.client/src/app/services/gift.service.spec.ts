@@ -251,4 +251,31 @@ describe('GiftService', () => {
     expect(req.request.method).toBe('PUT');
     req.flush({ success: true, message: 'Season profile saved.', profile: { paymentPlatforms: [], inNeedOfAid: true, emergencyLevel: 1, peopleRepresentedCount: 2, disabilityLevel: 0, identityGroups: ['Woman'], needsSurvivalAid: false, canToggleInNeedOff: false, inNeedToggleThreshold: 0, estimatedMonthlyContribution: 30, canEditEstimatedContribution: true, priorityScore: 10 } });
   });
+
+  it('should recheck season status when cached seasonStarted is false', () => {
+    const router = jasmine.createSpyObj('Router', ['navigate']);
+
+    service.navigateToGiftLogEntry(router as never, false);
+
+    const req = httpMock.expectOne('/api/season/status');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      seasonStarted: true,
+      userInSeason: true,
+      userSeasonReady: true,
+      readyCount: 1,
+      canStartSeason: false
+    });
+
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
+  });
+
+  it('should go to gift log immediately when seasonStarted is known true', () => {
+    const router = jasmine.createSpyObj('Router', ['navigate']);
+
+    service.navigateToGiftLogEntry(router as never, true);
+
+    httpMock.expectNone('/api/season/status');
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
+  });
 });
