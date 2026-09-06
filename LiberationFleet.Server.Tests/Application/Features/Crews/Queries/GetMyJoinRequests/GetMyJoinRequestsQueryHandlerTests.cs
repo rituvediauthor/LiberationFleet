@@ -84,15 +84,18 @@ public class GetMyJoinRequestsQueryHandlerTests
         Mock<IProposalRepository>? proposalRepository = null,
         Mock<ICrewRepository>? crewRepository = null)
     {
-        proposalRepository ??= new Mock<IProposalRepository>(MockBehavior.Strict);
-        proposalRepository
-            .Setup(r => r.GetJoinRequestProposalsByApplicantAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<Proposal>());
-        proposalRepository
-            .Setup(r => r.GetCrewJoinRequestsByProposalIdsAsync(
-                It.IsAny<IEnumerable<int>>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<int, ProposalCrewJoinRequest>());
+        if (proposalRepository is null)
+        {
+            proposalRepository = new Mock<IProposalRepository>(MockBehavior.Strict);
+            proposalRepository
+                .Setup(r => r.GetJoinRequestProposalsByApplicantAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<Proposal>());
+            proposalRepository
+                .Setup(r => r.GetCrewJoinRequestsByProposalIdsAsync(
+                    It.IsAny<IEnumerable<int>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Dictionary<int, ProposalCrewJoinRequest>());
+        }
 
         crewRepository ??= HandlerTestFixture.CreateCrewRepositoryMock();
 
