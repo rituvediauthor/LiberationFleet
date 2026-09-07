@@ -336,6 +336,8 @@ public class EmergencySplitService(
         var paybackPosition = requesterPrimary.ReceptionOrderPosition;
         ShiftPositionsFrom(requesterSeasonCycles, paybackPosition);
 
+        // Link payback → offer only. Setting offer → payback/emergency here creates a circular FK
+        // graph that fails when RecordEmergencySacrificeAsync flushes mid-operation on SQL Server.
         var paybackSegment = new SeasonCycle
         {
             CrewId = request.CrewId,
@@ -344,7 +346,7 @@ public class EmergencySplitService(
             CycleCapAtStart = amount,
             UsesSegmentCap = true,
             CapIsProvisional = false,
-            EmergencySplitOfferId = splitOffer.Id,
+            EmergencySplitOffer = splitOffer,
             TotalReceptionAmount = 0m,
             SurvivalThresholdReceived = 0m,
             CycleReceived = 0m,
@@ -355,13 +357,17 @@ public class EmergencySplitService(
         };
         await mutualAidRepository.AddSeasonCycleAsync(paybackSegment, cancellationToken);
 
-        splitOffer.RequesterEmergencyCycle = emergencySegment;
-        splitOffer.OffererPaybackCycle = paybackSegment;
-
         request.AmountSplitCommitted += amount;
         EmergencyRequestAccounting.RefreshFulfilledStatus(request);
 
+        // Persist offer + segments first (one-way FKs only), then wire the inverse offer → cycle links.
         await mutualAidService.RecordEmergencySacrificeAsync(request.CrewId, offererUserId, cancellationToken);
+
+        splitOffer.RequesterEmergencyCycleId = emergencySegment.Id;
+        splitOffer.OffererPaybackCycleId = paybackSegment.Id;
+        splitOffer.RequesterEmergencyCycle = emergencySegment;
+        splitOffer.OffererPaybackCycle = paybackSegment;
+
         await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
 
         return EmergencySplitResult.Succeeded("Cycle split recorded.");

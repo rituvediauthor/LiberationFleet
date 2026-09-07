@@ -39,9 +39,12 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
 
     public static async Task<MutualAidSeasonFixture> CreateActiveSeasonAsync(
         decimal monthlyContribution = 100m,
-        decimal cycleCap = 600m)
+        decimal cycleCap = 600m,
+        bool useSqlite = false)
     {
-        var context = TestDbContextFactory.Create();
+        var context = useSqlite
+            ? await TestDbContextFactory.CreateSqliteAsync()
+            : TestDbContextFactory.Create();
         await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
 
         var alice = CreateUser("alice", "alice@example.com");

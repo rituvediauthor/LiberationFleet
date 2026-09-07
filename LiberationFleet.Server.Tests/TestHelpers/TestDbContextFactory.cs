@@ -32,6 +32,23 @@ public static class TestDbContextFactory
         return new ApplicationDbContext(options);
     }
 
+    /// <summary>
+    /// Relational provider with FK enforcement. InMemory hides circular-FK / unique-index failures.
+    /// </summary>
+    public static async Task<ApplicationDbContext> CreateSqliteAsync()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), $"lf-tests-{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite($"Data Source={dbPath}")
+            .Options;
+
+        var context = new ApplicationDbContext(options);
+        await context.Database.OpenConnectionAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+        await context.Database.EnsureCreatedAsync();
+        return context;
+    }
+
     public static async Task<ApplicationDbContext> CreateWithUserAsync(
         string username = "testuser",
         string email = "test@example.com",

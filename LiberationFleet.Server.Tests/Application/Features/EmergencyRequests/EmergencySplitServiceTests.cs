@@ -46,6 +46,46 @@ public class EmergencySplitServiceTests
     }
 
     [Fact]
+    public async Task ApplySplit_FromStartedActiveLeader_FiftyDollarSplit_LinksPaybackToOffer()
+    {
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var bobPrimary = await fx.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fx.Bob.Id && c.SeasonStartDate == fx.SeasonStart);
+        bobPrimary.HasCycleStarted = true;
+        await fx.Context.SaveChangesAsync();
+
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 50m);
+        var splitService = CreateSplitService(fx);
+
+        var result = await splitService.ApplySplitAsync(request, fx.Bob.Id, 50m, CancellationToken.None);
+        await fx.Context.SaveChangesAsync();
+
+        result.Success.Should().BeTrue(because: result.Message);
+        await AssertSplitLinkedAsync(fx, request, fx.Bob.Id, 50m, EmergencyOffererQueueRole.ActiveCycle);
+    }
+
+    [Fact]
+    public async Task ApplySplit_FromStartedActiveLeader_FiftyDollarSplit_PersistsOnSqlite()
+    {
+        // Relational FKs catch the circular offer↔payback graph that InMemory allows.
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m, useSqlite: true);
+        var bobPrimary = await fx.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fx.Bob.Id && c.SeasonStartDate == fx.SeasonStart
+            && c.EmergencyRequestId == null && c.EmergencySplitOfferId == null);
+        bobPrimary.HasCycleStarted = true;
+        await fx.Context.SaveChangesAsync();
+
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 50m);
+        var splitService = CreateSplitService(fx);
+
+        var result = await splitService.ApplySplitAsync(request, fx.Bob.Id, 50m, CancellationToken.None);
+        await fx.Context.SaveChangesAsync();
+
+        result.Success.Should().BeTrue(because: result.Message);
+        await AssertSplitLinkedAsync(fx, request, fx.Bob.Id, 50m, EmergencyOffererQueueRole.ActiveCycle);
+    }
+
+    [Fact]
     public async Task ApplySplit_FromActiveLeader_CanInsertEmergencyBeforeActiveCycle()
     {
         await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
@@ -217,6 +257,32 @@ public class EmergencySplitServiceTests
             new CrewMembershipRepository(fx.Context),
             new EmergencyRequestRepository(fx.Context),
             fx.Service);
+
+    private static async Task AssertSplitLinkedAsync(
+        MutualAidSeasonFixture fx,
+        EmergencyRequest request,
+        int offererUserId,
+        decimal amount,
+        EmergencyOffererQueueRole role)
+    {
+        var offer = await fx.Context.EmergencySplitOffers.SingleAsync(o => o.EmergencyRequestId == request.Id);
+        offer.Amount.Should().Be(amount);
+        offer.OffererUserId.Should().Be(offererUserId);
+        offer.OffererQueueRole.Should().Be(role);
+        offer.OffererPaybackCycleId.Should().NotBeNull();
+        offer.RequesterEmergencyCycleId.Should().NotBeNull();
+
+        var payback = await fx.Context.SeasonCycles.SingleAsync(c => c.Id == offer.OffererPaybackCycleId);
+        payback.UserId.Should().Be(offererUserId);
+        payback.EmergencySplitOfferId.Should().Be(offer.Id);
+        payback.EmergencySplitOfferId.Should().BeGreaterThan(0);
+        payback.CycleCapAtStart.Should().Be(amount);
+
+        var emergency = await fx.Context.SeasonCycles.SingleAsync(c => c.Id == offer.RequesterEmergencyCycleId);
+        emergency.UserId.Should().Be(request.RequesterUserId);
+        emergency.EmergencyRequestId.Should().Be(request.Id);
+        emergency.CycleCapAtStart.Should().Be(amount);
+    }
 
     private static async Task<EmergencyRequest> AddEmergencyRequestAsync(
         MutualAidSeasonFixture fx,
