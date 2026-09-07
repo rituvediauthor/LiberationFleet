@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -286,6 +287,212 @@ public class MutualAidServiceTests
         cycle.CycleReceived.Should().Be(125m);
         cycle.TotalReceptionAmount.Should().Be(125m);
         cycle.HasCycleStarted.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApplyGiftReceptionAsync_GiftToEmergencySegment_CreditsEmergencyRequestAmountReceived()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = new EmergencyRequest
+        {
+            CrewId = fixture.Crew.Id,
+            RequesterUserId = fixture.Carol.Id,
+            Purpose = "Queue-funded emergency",
+            AmountNeeded = 100m,
+            AmountReceived = 0m,
+            AmountSplitCommitted = 0m,
+            Status = EmergencyRequestStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(
+                [fixture.Bob.Id, fixture.Alice.Id])
+        };
+        fixture.Context.EmergencyRequests.Add(request);
+        await fixture.Context.SaveChangesAsync();
+
+        var splitService = new EmergencySplitService(
+            new MutualAidRepository(fixture.Context),
+            new CrewMembershipRepository(fixture.Context),
+            new EmergencyRequestRepository(fixture.Context),
+            fixture.Service);
+        (await splitService.ApplySplitAsync(request, fixture.Bob.Id, 100m, CancellationToken.None))
+            .Success.Should().BeTrue();
+        await fixture.Context.SaveChangesAsync();
+
+        request = await fixture.Context.EmergencyRequests
+            .Include(r => r.SplitOffers)
+            .SingleAsync(r => r.Id == request.Id);
+        request.AmountSplitCommitted.Should().Be(100m);
+        request.AmountReceived.Should().Be(0m);
+
+        var emergencySegment = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.EmergencyRequestId == request.Id);
+        emergencySegment.CycleCapAtStart.Should().Be(100m);
+
+        var gift = new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Carol.Id,
+            Type = GiftType.Direct,
+            Amount = 50m,
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            SeasonCycleId = emergencySegment.Id,
+            CountsTowardReception = true,
+            IsCustomGift = false,
+            IsSurvivalThreshold = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.Gifts.Add(gift);
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.ApplyGiftReceptionAsync(gift, CancellationToken.None);
+
+        emergencySegment = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == emergencySegment.Id);
+        emergencySegment.CycleReceived.Should().Be(50m);
+
+        request = await fixture.Context.EmergencyRequests
+            .Include(r => r.SplitOffers)
+            .SingleAsync(r => r.Id == request.Id);
+        request.AmountReceived.Should().Be(50m);
+        request.AmountSplitCommitted.Should().Be(50m);
+        request.Status.Should().Be(EmergencyRequestStatus.Open);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(50m);
+        gift.EmergencyRequestId.Should().Be(request.Id);
+
+        var split = request.SplitOffers.Single();
+        split.Amount.Should().Be(50m);
+        split.IsCancelled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RepairEmergencyQueueFundedCredits_CreditsAlreadyAppliedUntaggedSegmentGifts()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = new EmergencyRequest
+        {
+            CrewId = fixture.Crew.Id,
+            RequesterUserId = fixture.Carol.Id,
+            Purpose = "Stuck after confirm",
+            AmountNeeded = 100m,
+            AmountReceived = 0m,
+            AmountSplitCommitted = 100m,
+            Status = EmergencyRequestStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(
+                [fixture.Bob.Id, fixture.Alice.Id])
+        };
+        fixture.Context.EmergencyRequests.Add(request);
+        await fixture.Context.SaveChangesAsync();
+
+        var splitOffer = new EmergencySplitOffer
+        {
+            EmergencyRequestId = request.Id,
+            OffererUserId = fixture.Bob.Id,
+            Amount = 100m,
+            OffererQueueRole = EmergencyOffererQueueRole.ActiveCycle,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.EmergencySplitOffers.Add(splitOffer);
+        await fixture.Context.SaveChangesAsync();
+
+        var emergencySegment = new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Carol.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 100m,
+            CycleReceived = 50m,
+            UsesSegmentCap = true,
+            EmergencyRequestId = request.Id,
+            ReceptionOrderPosition = 0,
+            PriorityScoreAtSeasonStart = 100m
+        };
+        fixture.Context.SeasonCycles.Add(emergencySegment);
+        await fixture.Context.SaveChangesAsync();
+
+        splitOffer.RequesterEmergencyCycleId = emergencySegment.Id;
+        var gift = new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Carol.Id,
+            Type = GiftType.Direct,
+            Amount = 50m,
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            SeasonCycleId = emergencySegment.Id,
+            CountsTowardReception = true,
+            ReceptionApplied = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.Gifts.Add(gift);
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.RepairEmergencyQueueFundedCreditsAsync(request.Id, CancellationToken.None);
+
+        request = await fixture.Context.EmergencyRequests
+            .Include(r => r.SplitOffers)
+            .SingleAsync(r => r.Id == request.Id);
+        request.AmountReceived.Should().Be(50m);
+        request.AmountSplitCommitted.Should().Be(50m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(50m);
+
+        gift = await fixture.Context.Gifts.SingleAsync(g => g.Id == gift.Id);
+        gift.EmergencyRequestId.Should().Be(request.Id);
+    }
+
+    [Fact]
+    public async Task ApplyGiftReceptionAsync_DoesNotDoubleCreditWhenGiftAlreadyTiedToEmergency()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = new EmergencyRequest
+        {
+            CrewId = fixture.Crew.Id,
+            RequesterUserId = fixture.Carol.Id,
+            Purpose = "Direct emergency already reconciled",
+            AmountNeeded = 100m,
+            AmountReceived = 40m,
+            AmountSplitCommitted = 0m,
+            Status = EmergencyRequestStatus.Open,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.EmergencyRequests.Add(request);
+        await fixture.Context.SaveChangesAsync();
+
+        var emergencySegment = new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Carol.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 40m,
+            UsesSegmentCap = true,
+            EmergencyRequestId = request.Id,
+            ReceptionOrderPosition = 0,
+            PriorityScoreAtSeasonStart = 100m
+        };
+        fixture.Context.SeasonCycles.Add(emergencySegment);
+        await fixture.Context.SaveChangesAsync();
+
+        var gift = new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Carol.Id,
+            Type = GiftType.Direct,
+            Amount = 40m,
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            SeasonCycleId = emergencySegment.Id,
+            EmergencyRequestId = request.Id,
+            CountsTowardReception = true,
+            IsCustomGift = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.Gifts.Add(gift);
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.ApplyGiftReceptionAsync(gift, CancellationToken.None);
+
+        request = await fixture.Context.EmergencyRequests.SingleAsync(r => r.Id == request.Id);
+        request.AmountReceived.Should().Be(40m);
     }
 
     [Fact]

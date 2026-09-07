@@ -514,6 +514,24 @@ public class GiftRepository : IGiftRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Gift>> GetUnattributedEmergencySegmentGiftsAsync(
+        int emergencyRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Gifts
+            .Where(g =>
+                g.ReceptionApplied
+                && g.EmergencyRequestId == null
+                && g.SeasonCycleId != null
+                && g.CountsTowardReception
+                && _context.SeasonCycles.Any(c =>
+                    c.Id == g.SeasonCycleId
+                    && c.EmergencyRequestId == emergencyRequestId))
+            .OrderBy(g => g.CreatedAt)
+            .ThenBy(g => g.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<GiftComment>> GetCommentsByGiftIdAsync(
         int giftId,
         CancellationToken cancellationToken = default)

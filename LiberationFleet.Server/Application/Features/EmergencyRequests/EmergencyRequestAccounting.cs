@@ -39,4 +39,54 @@ public static class EmergencyRequestAccounting
             .Where(o => !o.IsCancelled && o.Amount > 0m)
             .OrderBy(o => o.OffererQueueRole)
             .ThenBy(o => o.CreatedAt);
+
+    /// <summary>
+    /// Converts queue-funded emergency-segment reception into request receipts.
+    /// Does not resize split segments or restore primary caps — the segment is being filled, not shrunk.
+    /// </summary>
+    public static void ApplyQueueFundedReceipt(
+        EmergencyRequest request,
+        SeasonCycle emergencySegment,
+        decimal amountAppliedToCycle)
+    {
+        if (amountAppliedToCycle <= 0m || request.AmountReceived >= request.AmountNeeded)
+        {
+            return;
+        }
+
+        var credit = Math.Min(
+            amountAppliedToCycle,
+            Math.Max(0m, request.AmountNeeded - request.AmountReceived));
+        if (credit <= 0m)
+        {
+            return;
+        }
+
+        request.AmountReceived += credit;
+
+        var convert = Math.Min(credit, Math.Max(0m, request.AmountSplitCommitted));
+        request.AmountSplitCommitted -= convert;
+
+        if (convert > 0m)
+        {
+            var split = request.SplitOffers
+                .Where(o => !o.IsCancelled && o.Amount > 0m && o.RequesterEmergencyCycleId == emergencySegment.Id)
+                .OrderBy(o => o.CreatedAt)
+                .FirstOrDefault()
+                ?? OrderSplitOffersForShrink(request.SplitOffers).FirstOrDefault();
+
+            if (split is not null)
+            {
+                var reduceBy = Math.Min(convert, split.Amount);
+                split.Amount -= reduceBy;
+                if (split.Amount <= 0m)
+                {
+                    split.Amount = 0m;
+                    split.IsCancelled = true;
+                }
+            }
+        }
+
+        RefreshFulfilledStatus(request);
+    }
 }

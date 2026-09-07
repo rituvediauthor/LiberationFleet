@@ -27,6 +27,10 @@ public interface IMutualAidService
     Task<SeasonSetupSaveResultDto> ClearSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionForUserAsync(Gift gift, int recipientUserId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Credits AmountReceived for reception-applied gifts on emergency segments that were never attributed.
+    /// </summary>
+    Task RepairEmergencyQueueFundedCreditsAsync(int emergencyRequestId, CancellationToken cancellationToken = default);
     Task OnCrewmatePriorityChangedAsync(int userId, CancellationToken cancellationToken = default);
     Task OnInNeedOfAidChangedAsync(int userId, bool isInNeedOfAid, CancellationToken cancellationToken = default);
     Task EnsureCurrentMonthSurvivalThresholdsAsync(int userId, CancellationToken cancellationToken = default);
