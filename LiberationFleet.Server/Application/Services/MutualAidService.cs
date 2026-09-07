@@ -13,6 +13,7 @@ public partial class MutualAidService(
     IMutualAidRepository mutualAidRepository,
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
+    IEmergencyRequestRepository emergencyRequestRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IMutualAidService, IMutualAidDevService
 {
@@ -836,6 +837,8 @@ public partial class MutualAidService(
             effectiveMemberCap,
             effectiveNonMemberCap);
 
+        var cycleReceivedBefore = cycle.CycleReceived;
+
         if (gift.IsSurvivalThreshold && crew.AllowSurvivalThresholds)
         {
             cycle.SurvivalThresholdReceived += gift.Amount;
@@ -869,6 +872,12 @@ public partial class MutualAidService(
                 await AnnounceCycleCompletedAsync(crew, cycle, cancellationToken);
             }
         }
+
+        await CreditEmergencyRequestForSegmentReceptionAsync(
+            gift,
+            cycle,
+            cycle.CycleReceived - cycleReceivedBefore,
+            cancellationToken);
 
         await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
         await TryEndSeasonAsync(crew, cancellationToken);
@@ -2311,6 +2320,7 @@ public partial class MutualAidService(
 
         var applied = Math.Min(gift.Amount, room);
         target.CycleReceived += applied;
+        await CreditEmergencyRequestForSegmentReceptionAsync(gift, target, applied, cancellationToken);
         var newlyCompleted = TryMarkCycleCompleted(target, effectiveCap);
         if (newlyCompleted)
         {
@@ -2405,11 +2415,102 @@ public partial class MutualAidService(
         {
             var applied = Math.Min(remaining, room);
             activeCycle.CycleReceived += applied;
+            await CreditEmergencyRequestForSegmentReceptionAsync(gift, activeCycle, applied, cancellationToken);
             var newlyCompleted = TryMarkCycleCompleted(activeCycle, effectiveCap);
             if (newlyCompleted)
             {
                 await AnnounceCycleCompletedAsync(crew, activeCycle, cancellationToken);
             }
+        }
+    }
+
+    /// <summary>
+    /// Queue gifts to emergency segments credit AmountReceived. Direct emergency gifts already
+    /// reconcile via EmergencyReconciliationService and set Gift.EmergencyRequestId first.
+    /// </summary>
+    private async Task CreditEmergencyRequestForSegmentReceptionAsync(
+        Gift gift,
+        SeasonCycle cycle,
+        decimal amountAppliedToCycle,
+        CancellationToken cancellationToken)
+    {
+        if (amountAppliedToCycle <= 0m
+            || !cycle.EmergencyRequestId.HasValue
+            || gift.EmergencyRequestId.HasValue)
+        {
+            return;
+        }
+
+        var emergencyRequestId = cycle.EmergencyRequestId.Value;
+        gift.EmergencyRequestId = emergencyRequestId;
+
+        var request = await emergencyRequestRepository.GetByIdWithDetailsAsync(
+            emergencyRequestId,
+            cancellationToken);
+        if (request is null)
+        {
+            return;
+        }
+
+        EmergencyRequestAccounting.ApplyQueueFundedReceipt(request, cycle, amountAppliedToCycle);
+    }
+
+    public async Task RepairEmergencyQueueFundedCreditsAsync(
+        int emergencyRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        var unattributed = await giftRepository.GetUnattributedEmergencySegmentGiftsAsync(
+            emergencyRequestId,
+            cancellationToken);
+        if (unattributed.Count == 0)
+        {
+            return;
+        }
+
+        var request = await emergencyRequestRepository.GetByIdWithDetailsAsync(
+            emergencyRequestId,
+            cancellationToken);
+        if (request is null)
+        {
+            return;
+        }
+
+        var changed = false;
+        var creditedBySegmentId = new Dictionary<int, decimal>();
+        foreach (var gift in unattributed)
+        {
+            if (!gift.SeasonCycleId.HasValue)
+            {
+                continue;
+            }
+
+            var segment = await mutualAidRepository.GetSeasonCycleByIdAsync(
+                gift.SeasonCycleId.Value,
+                cancellationToken);
+            if (segment is null || segment.EmergencyRequestId != emergencyRequestId)
+            {
+                continue;
+            }
+
+            creditedBySegmentId.TryGetValue(segment.Id, out var alreadyCredited);
+            var remainingOnSegment = Math.Max(0m, segment.CycleReceived - alreadyCredited);
+            var credit = Math.Min(gift.Amount, remainingOnSegment);
+
+            gift.EmergencyRequestId = emergencyRequestId;
+            changed = true;
+
+            if (credit <= 0m)
+            {
+                continue;
+            }
+
+            EmergencyRequestAccounting.ApplyQueueFundedReceipt(request, segment, credit);
+            creditedBySegmentId[segment.Id] = alreadyCredited + credit;
+        }
+
+        if (changed)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 
