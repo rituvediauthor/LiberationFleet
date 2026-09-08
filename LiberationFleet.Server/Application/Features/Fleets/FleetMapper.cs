@@ -5,7 +5,11 @@ namespace LiberationFleet.Server.Application.Features.Fleets;
 
 public static class FleetMapper
 {
-    public static FleetDto MapFleet(Fleet fleet, int crewCount) => new()
+    public static FleetDto MapFleet(
+        Fleet fleet,
+        int crewCount,
+        decimal libraryPriorityAverage = 0m,
+        int[]? libraryPriorityTierCounts = null) => new()
     {
         Id = fleet.Id,
         Name = fleet.Name,
@@ -27,7 +31,9 @@ public static class FleetMapper
         MinimumContributionForAttachments = fleet.MinimumContributionForAttachments,
         MinimumCrewmateTenureDaysForProposals = fleet.MinimumCrewmateTenureDaysForProposals,
         MinimumContributionForProposals = fleet.MinimumContributionForProposals,
-        ImageResourceId = fleet.ImageResourceId
+        ImageResourceId = fleet.ImageResourceId,
+        LibraryPriorityAverage = libraryPriorityAverage,
+        LibraryPriorityTierCounts = libraryPriorityTierCounts ?? [0, 0, 0, 0, 0]
     };
 
     public static FleetRuleDto MapRule(FleetRule rule) => new()

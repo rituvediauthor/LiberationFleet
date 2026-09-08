@@ -103,6 +103,8 @@ export interface CrewmateProfile {
   hasActiveSeasonCycle?: boolean;
   givingSeasonPriority?: PriorityScoreBreakdown | null;
   libraryOfThingsPriority?: PriorityScoreBreakdown | null;
+  libraryPriorityTier?: number;
+  libraryPriorityAverage?: number;
 }
 
 export type CrewmateAidStatField =

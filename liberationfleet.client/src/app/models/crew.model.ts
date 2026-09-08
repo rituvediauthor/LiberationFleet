@@ -37,6 +37,9 @@ export interface Crew {
   minimumCrewmateTenureDaysForProposals?: number;
   minimumContributionForProposals?: number;
   imageResourceId?: string | null;
+  libraryPriorityAverage?: number;
+  libraryPriorityTierCounts?: number[];
+  homeCrewLibraryPriorityTierCounts?: number[];
 }
 
 export interface CrewMembershipStatus {

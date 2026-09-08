@@ -116,7 +116,7 @@
           </span>
         </div>
 
-        <div class="form-group" *ngIf="offeringKind !== 'Service' && offeringKind !== 'Digital'">
+        <div class="form-group" *ngIf="offeringKind === 'Durable'">
           <label for="quantity">{{ quantityLabel }}</label>
           <input
             id="quantity"
@@ -134,12 +134,63 @@
         </div>
       </div>
 
-      <p class="field-hint" *ngIf="offeringKind !== 'Service' && offeringKind !== 'Digital'">{{ quantityHint }}</p>
+      <p class="field-hint" *ngIf="offeringKind === 'Durable'">{{ quantityHint }}</p>
+
+      <div class="form-group" *ngIf="showPerTierStock">
+        <span class="group-label">Stock by priority tier</span>
+        <p class="field-hint">
+          Each tier has its own pool. Browsers only see and deplete their tier’s stock. Total: {{ tierStockTotal }}
+        </p>
+        <div class="tier-stock-block" *ngFor="let tier of [1, 2, 3, 4, 5]">
+          <div class="form-row tier-stock-row">
+            <label [attr.for]="'stockTier' + tier">Tier {{ tier }}</label>
+            <input
+              [id]="'stockTier' + tier"
+              class="form-input"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              [formControlName]="'stockTier' + tier" />
+            <button
+              type="button"
+              class="btn-view-audience"
+              (click)="viewTierAudience(tier, 'Exact')">
+              View
+            </button>
+          </div>
+          <p class="field-hint customer-count-hint">
+            Number of customers: {{ customersForTier(tier) }}
+            {{ audienceLabel }} in Tier {{ tier }}
+          </p>
+        </div>
+      </div>
 
       <label class="checkbox-option" *ngIf="showQuantityNotApplicable">
         <input type="checkbox" formControlName="quantityNotApplicable" />
         <span>Quantity N/A (varies — whatever is available)</span>
       </label>
+
+      <div class="form-group" *ngIf="showMinimumViewerTier">
+        <label for="minimumViewerTier">Visible to Tier N or higher</label>
+        <div class="tier-min-row">
+          <select id="minimumViewerTier" class="form-input" formControlName="minimumViewerTier">
+            <option [ngValue]="1">Tier 1 or higher (everyone)</option>
+            <option [ngValue]="2">Tier 2 or higher</option>
+            <option [ngValue]="3">Tier 3 or higher</option>
+            <option [ngValue]="4">Tier 4 or higher</option>
+            <option [ngValue]="5">Tier 5 only</option>
+          </select>
+          <button
+            type="button"
+            class="btn-view-audience"
+            (click)="viewTierAudience(selectedMinimumViewerTier, 'MinimumOrHigher')">
+            View
+          </button>
+        </div>
+        <p class="field-hint">Only members whose LoT priority tier is at least this high can see the service. Default Tier 1 includes everyone.</p>
+        <p class="field-hint customer-count-hint">{{ audienceCustomerHint }}</p>
+      </div>
 
       <div class="form-group">
         <label for="unitLabel">Unit (optional)</label>
@@ -207,3 +258,16 @@
   (confirmed)="dismissDurableNotice()"
   (dismissed)="dismissDurableNotice()">
 </app-confirm-dialog>
+
+<app-library-tier-audience-dialog
+  [open]="audienceDialogOpen"
+  [items]="audienceDialogItems"
+  [loading]="audienceDialogLoading"
+  [error]="audienceDialogError"
+  [title]="audienceDialogTitle"
+  [subtitle]="audienceDialogSubtitle"
+  [audienceLabel]="audienceLabel"
+  [crewId]="audienceDialogCrewId"
+  [fleetId]="audienceDialogFleetId"
+  (close)="closeAudienceDialog()">
+</app-library-tier-audience-dialog>

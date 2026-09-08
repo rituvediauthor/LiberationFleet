@@ -52,6 +52,8 @@ export interface Fleet {
   minimumCrewmateTenureDaysForProposals?: number;
   minimumContributionForProposals?: number;
   imageResourceId?: string | null;
+  libraryPriorityAverage?: number;
+  libraryPriorityTierCounts?: number[];
 }
 
 export interface CreateFleetRequest {
@@ -245,6 +247,8 @@ export interface FleetCrewmateProfile {
     isPreferred: boolean;
   }>;
   priorityScore: number;
+  libraryPriorityTier?: number;
+  libraryPriorityAverage?: number;
   friendshipState: CrewmateFriendshipState;
   canSocialInteract: boolean;
   isSelf: boolean;

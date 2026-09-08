@@ -41,6 +41,8 @@ export class EditCrewComponent implements OnInit {
   memberCount = 0;
   requireApprovalForEdits = true;
   monthlyGivingCapacity = 0;
+  libraryPriorityAverage = 0;
+  libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0];
   loading = true;
   loadError = '';
   isSaving = false;
@@ -360,6 +362,10 @@ export class EditCrewComponent implements OnInit {
         this.joinCode = result.crew.joinCode;
         this.memberCount = result.crew.memberCount;
         this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? 0;
+        this.libraryPriorityAverage = result.crew.libraryPriorityAverage ?? 0;
+        this.libraryPriorityTierCounts = result.crew.libraryPriorityTierCounts?.length === 5
+          ? [...result.crew.libraryPriorityTierCounts]
+          : [0, 0, 0, 0, 0];
         this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
         this.imageResourceId = result.crew.imageResourceId ?? null;
         this.patchFormFromCrew(result.crew);

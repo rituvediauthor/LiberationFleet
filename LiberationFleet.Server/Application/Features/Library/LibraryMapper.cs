@@ -15,9 +15,20 @@ public static class LibraryMapper
             Name = category.Name
         };
 
-    public static LibraryUnitListItemDto MapUnitListItem(LibraryUnit unit)
+    public static LibraryUnitListItemDto MapUnitListItem(LibraryUnit unit, int? viewerTier = null)
     {
         var isStock = LibraryOfferingRules.IsStockBased(unit.Offering);
+        var remainingStock = unit.Offering.RemainingStock;
+        var isOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering);
+        if (viewerTier is int tier)
+        {
+            if (LibraryOfferingRules.UsesPerTierStock(unit.Offering))
+            {
+                remainingStock = LibraryOfferingRules.GetTierStock(unit.Offering, tier);
+                isOutOfStock = LibraryOfferingRules.IsOutOfStockForTier(unit.Offering, tier);
+            }
+        }
+
         return new LibraryUnitListItemDto
         {
             UnitId = unit.Id,
@@ -36,9 +47,9 @@ public static class LibraryMapper
                 .ToList(),
             ThumbnailResourceId = unit.Offering.ThumbnailResourceId,
             HasEncryptedContent = unit.Offering.HasEncryptedContent,
-            RemainingStock = unit.Offering.RemainingStock,
+            RemainingStock = remainingStock,
             QuantityNotApplicable = unit.Offering.QuantityNotApplicable,
-            IsOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering),
+            IsOutOfStock = isOutOfStock,
             OfferingKind = unit.Offering.Kind.ToString(),
             FulfillmentMode = unit.Offering.FulfillmentMode.ToString(),
             Visibility = unit.Offering.Visibility.ToString(),
@@ -71,9 +82,17 @@ public static class LibraryMapper
             CreatedAt = offering.CreatedAt
         };
 
-    public static LibraryUnitDetailDto MapUnitDetail(LibraryUnit unit, LibraryUnitViewerContextDto viewer)
+    public static LibraryUnitDetailDto MapUnitDetail(LibraryUnit unit, LibraryUnitViewerContextDto viewer, int? viewerTier = null)
     {
         var isStock = LibraryOfferingRules.IsStockBased(unit.Offering);
+        var remainingStock = unit.Offering.RemainingStock;
+        var isOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering);
+        if (viewerTier is int tier && LibraryOfferingRules.UsesPerTierStock(unit.Offering))
+        {
+            remainingStock = LibraryOfferingRules.GetTierStock(unit.Offering, tier);
+            isOutOfStock = LibraryOfferingRules.IsOutOfStockForTier(unit.Offering, tier);
+        }
+
         return new LibraryUnitDetailDto
         {
             UnitId = unit.Id,
@@ -95,9 +114,9 @@ public static class LibraryMapper
             UnitStatus = unit.Status.ToString(),
             ValuePerUnit = unit.Offering.ValuePerUnit,
             UnitLabel = unit.Offering.UnitLabel,
-            RemainingStock = unit.Offering.RemainingStock,
+            RemainingStock = remainingStock,
             QuantityNotApplicable = unit.Offering.QuantityNotApplicable,
-            IsOutOfStock = LibraryOfferingRules.IsOutOfStock(unit.Offering),
+            IsOutOfStock = isOutOfStock,
             OfferingKind = unit.Offering.Kind.ToString(),
             FulfillmentMode = unit.Offering.FulfillmentMode.ToString(),
             Visibility = unit.Offering.Visibility.ToString(),

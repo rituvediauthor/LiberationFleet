@@ -62,6 +62,14 @@ public class CreateLibraryOfferingRequest
     public string? UnitLabel { get; set; }
     public int Quantity { get; set; } = 1;
     public bool QuantityNotApplicable { get; set; }
+    /// <summary>Consumable tracked stock by LoT priority tier (1–5). When null, <see cref="Quantity"/> is assigned to Tier 1.</summary>
+    public int? StockTier1 { get; set; }
+    public int? StockTier2 { get; set; }
+    public int? StockTier3 { get; set; }
+    public int? StockTier4 { get; set; }
+    public int? StockTier5 { get; set; }
+    /// <summary>Services: minimum viewer tier (1–5). Default 1.</summary>
+    public int MinimumViewerTier { get; set; } = 1;
     public string? ThumbnailResourceId { get; set; }
     public string Kind { get; set; } = "Durable";
     public string FulfillmentMode { get; set; } = "OnRequest";
@@ -132,6 +140,12 @@ public class UpdateLibraryOfferingRequest
     public string? Nonce { get; set; }
     public string? Ciphertext { get; set; }
     public int? KeyVersion { get; set; }
+    public int? StockTier1 { get; set; }
+    public int? StockTier2 { get; set; }
+    public int? StockTier3 { get; set; }
+    public int? StockTier4 { get; set; }
+    public int? StockTier5 { get; set; }
+    public int? MinimumViewerTier { get; set; }
 }
 
 public class LibraryUnitDetailResponse
@@ -461,4 +475,25 @@ public class LibraryTaskConfirmResponse
     public bool TaskClosed { get; set; }
     public IReadOnlyList<LibraryCreatorContributionGiftDto> ContributionGifts { get; set; }
         = Array.Empty<LibraryCreatorContributionGiftDto>();
+}
+
+public class LibraryPriorityTierAudienceMemberDto
+{
+    public int UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string? AvatarResourceId { get; set; }
+    public int Tier { get; set; }
+}
+
+public class LibraryPriorityTierAudienceResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string Visibility { get; set; } = "CrewOnly";
+    public int Tier { get; set; }
+    public string MatchMode { get; set; } = "Exact";
+    public int? CrewId { get; set; }
+    public int? FleetId { get; set; }
+    public IReadOnlyList<LibraryPriorityTierAudienceMemberDto> Items { get; set; }
+        = Array.Empty<LibraryPriorityTierAudienceMemberDto>();
 }

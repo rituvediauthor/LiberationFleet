@@ -26,6 +26,8 @@ public class FleetDto
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
     public string? ImageResourceId { get; set; }
+    public decimal LibraryPriorityAverage { get; set; }
+    public int[] LibraryPriorityTierCounts { get; set; } = [0, 0, 0, 0, 0];
 }
 
 public class UpdateFleetRequest
@@ -208,6 +210,8 @@ public class FleetCrewmateProfileDto
     public string? AvatarResourceId { get; set; }
     public IReadOnlyList<CrewmatePaymentPlatformDto> PaymentPlatforms { get; set; } = Array.Empty<CrewmatePaymentPlatformDto>();
     public int PriorityScore { get; set; }
+    public int LibraryPriorityTier { get; set; } = 1;
+    public decimal LibraryPriorityAverage { get; set; }
     public CrewmateFriendshipStateDto FriendshipState { get; set; }
     public bool CanSocialInteract { get; set; } = true;
     public bool IsSelf { get; set; }

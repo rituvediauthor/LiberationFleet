@@ -15,7 +15,13 @@ public record UpdateLibraryOfferingCommand(
     string? ThumbnailResourceId,
     string? Nonce,
     string? Ciphertext,
-    int? KeyVersion)
+    int? KeyVersion,
+    int? StockTier1 = null,
+    int? StockTier2 = null,
+    int? StockTier3 = null,
+    int? StockTier4 = null,
+    int? StockTier5 = null,
+    int? MinimumViewerTier = null)
     : IRequest<LibraryOfferingOperationResponse>;
 
 public class UpdateLibraryOfferingCommandHandler(
@@ -72,6 +78,47 @@ public class UpdateLibraryOfferingCommandHandler(
         if (request.Visibility.HasValue)
         {
             offering.Visibility = request.Visibility.Value;
+            changed = true;
+        }
+
+        var anyStockTier = request.StockTier1.HasValue
+            || request.StockTier2.HasValue
+            || request.StockTier3.HasValue
+            || request.StockTier4.HasValue
+            || request.StockTier5.HasValue;
+        if (anyStockTier)
+        {
+            if (offering.Kind != LibraryOfferingKind.Consumable || offering.QuantityNotApplicable)
+            {
+                return new LibraryOfferingOperationResponse
+                {
+                    Success = false,
+                    Message = "Per-tier stock applies only to consumables with tracked quantity."
+                };
+            }
+
+            LibraryOfferingRules.SetTierStocks(
+                offering,
+                request.StockTier1 ?? offering.RemainingStockTier1 ?? 0,
+                request.StockTier2 ?? offering.RemainingStockTier2 ?? 0,
+                request.StockTier3 ?? offering.RemainingStockTier3 ?? 0,
+                request.StockTier4 ?? offering.RemainingStockTier4 ?? 0,
+                request.StockTier5 ?? offering.RemainingStockTier5 ?? 0);
+            changed = true;
+        }
+
+        if (request.MinimumViewerTier.HasValue)
+        {
+            if (offering.Kind != LibraryOfferingKind.Service)
+            {
+                return new LibraryOfferingOperationResponse
+                {
+                    Success = false,
+                    Message = "Minimum viewer tier applies only to services."
+                };
+            }
+
+            offering.MinimumViewerTier = LibraryPriorityTier.ClampTier(request.MinimumViewerTier.Value);
             changed = true;
         }
 

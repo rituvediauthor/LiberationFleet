@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -18,6 +19,7 @@ public class CompleteLibraryRequestCommandHandler(
     IGiftRepository giftRepository,
     LibraryContributionGiftService contributionGiftService,
     IMutualAidService mutualAidService,
+    LibraryPriorityTierService priorityTierService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CompleteLibraryRequestCommand, LibraryCompleteRequestResponse>
 {
@@ -67,12 +69,21 @@ public class CompleteLibraryRequestCommandHandler(
         CreatorContributionGiftDetails? receptionGift = null;
         if (LibraryOfferingRules.IsStockBased(offering))
         {
-            if (!LibraryOfferingRules.HasSufficientStock(offering, libraryRequest.Quantity))
+            var requesterMembership = libraryRequest.RequesterUserId == userId
+                ? membership
+                : await membershipRepository.GetActiveMembershipAsync(libraryRequest.RequesterUserId, cancellationToken);
+            var requesterCrewId = requesterMembership?.CrewId ?? offering.CrewId;
+            var requesterTier = (await priorityTierService.GetSummaryForUserAsync(
+                libraryRequest.RequesterUserId,
+                requesterCrewId,
+                cancellationToken)).ViewerTier;
+
+            if (!LibraryOfferingRules.HasSufficientStockForTier(offering, libraryRequest.Quantity, requesterTier))
             {
                 return new LibraryCompleteRequestResponse { Success = false, Message = "Not enough stock available." };
             }
 
-            LibraryOfferingRules.ReduceStock(offering, libraryRequest.Quantity);
+            LibraryOfferingRules.ReduceStockForTier(offering, libraryRequest.Quantity, requesterTier);
             offering.UpdatedAt = utcNow;
             if (!offering.QuantityNotApplicable && offering.RemainingStock <= 0)
             {

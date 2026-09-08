@@ -27,6 +27,7 @@ public class CreateLibraryRequestCommandHandler(
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
+    LibraryPriorityTierService priorityTierService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateLibraryRequestCommand, LibraryRequestOperationResponse>
 {
     public async Task<LibraryRequestOperationResponse> Handle(
@@ -90,6 +91,21 @@ public class CreateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "On-demand offerings use record acquisition instead of requests." };
         }
 
+        var tierSummary = await priorityTierService.GetSummaryForUserAsync(
+            userId,
+            membership.CrewId,
+            cancellationToken);
+        var viewerTier = tierSummary.ViewerTier;
+
+        if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier))
+        {
+            return new LibraryRequestOperationResponse
+            {
+                Success = false,
+                Message = "This service is not available at your priority tier."
+            };
+        }
+
         // Durables are always a single item; stock-based goods (incl. "N/A" stock
         // consumables) keep the requested quantity so gifts scale by amount.
         var quantity = LibraryOfferingRules.IsStockBased(unit.Offering) ? request.Quantity : 1;
@@ -99,7 +115,7 @@ public class CreateLibraryRequestCommandHandler(
         }
 
         if (LibraryOfferingRules.IsStockBased(unit.Offering)
-            && !LibraryOfferingRules.HasSufficientStock(unit.Offering, quantity))
+            && !LibraryOfferingRules.HasSufficientStockForTier(unit.Offering, quantity, viewerTier))
         {
             return new LibraryRequestOperationResponse { Success = false, Message = "Not enough stock available." };
         }

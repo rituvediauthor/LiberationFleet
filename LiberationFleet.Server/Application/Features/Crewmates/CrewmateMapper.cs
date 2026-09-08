@@ -114,7 +114,9 @@ public static class CrewmateMapper
         bool canClaimIdentity = false,
         SeasonCycle? seasonCycle = null,
         PriorityScoreBreakdownDto? givingSeasonPriority = null,
-        PriorityScoreBreakdownDto? libraryOfThingsPriority = null)
+        PriorityScoreBreakdownDto? libraryOfThingsPriority = null,
+        int libraryPriorityTier = 1,
+        decimal libraryPriorityAverage = 0m)
     {
         var lifetimeContributions = membership.LifetimeContributionOverride ?? giftStats.LifetimeContributions;
         var receptionThisYear = membership.ReceptionThisYearOverride ?? giftStats.ReceptionThisYear;
@@ -178,7 +180,9 @@ public static class CrewmateMapper
             CycleCompleted = seasonCycle?.CycleCompleted,
             HasActiveSeasonCycle = seasonCycle is not null || crew.CurrentSeasonStartDate.HasValue,
             GivingSeasonPriority = givingSeasonPriority,
-            LibraryOfThingsPriority = libraryOfThingsPriority
+            LibraryOfThingsPriority = libraryOfThingsPriority,
+            LibraryPriorityTier = libraryPriorityTier,
+            LibraryPriorityAverage = libraryPriorityAverage
         };
     }
 }

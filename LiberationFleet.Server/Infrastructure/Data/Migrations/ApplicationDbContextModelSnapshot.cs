@@ -2223,10 +2223,30 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("Kind")
                         .HasColumnType("int");
 
+                    b.Property<int>("MinimumViewerTier")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<bool>("QuantityNotApplicable")
                         .HasColumnType("bit");
 
                     b.Property<int?>("RemainingStock")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RemainingStockTier1")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RemainingStockTier2")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RemainingStockTier3")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RemainingStockTier4")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RemainingStockTier5")
                         .HasColumnType("int");
 
                     b.Property<string>("ThumbnailResourceId")

@@ -5,7 +5,13 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 
 public static class CrewMapper
 {
-    public static CrewDto MapCrew(Crew crew, int memberCount, decimal monthlyGivingCapacity = 0m) => new()
+    public static CrewDto MapCrew(
+        Crew crew,
+        int memberCount,
+        decimal monthlyGivingCapacity = 0m,
+        decimal libraryPriorityAverage = 0m,
+        int[]? libraryPriorityTierCounts = null,
+        int[]? homeCrewLibraryPriorityTierCounts = null) => new()
     {
         Id = crew.Id,
         Name = crew.Name,
@@ -39,6 +45,11 @@ public static class CrewMapper
         MinimumContributionForProposals = crew.MinimumContributionForProposals,
         AllowCrossCrewGiving = crew.AllowCrossCrewGiving,
         MonthlyGivingCapacity = monthlyGivingCapacity,
-        ImageResourceId = crew.ImageResourceId
+        ImageResourceId = crew.ImageResourceId,
+        LibraryPriorityAverage = libraryPriorityAverage,
+        LibraryPriorityTierCounts = libraryPriorityTierCounts ?? [0, 0, 0, 0, 0],
+        HomeCrewLibraryPriorityTierCounts = homeCrewLibraryPriorityTierCounts
+            ?? libraryPriorityTierCounts
+            ?? [0, 0, 0, 0, 0]
     };
 }

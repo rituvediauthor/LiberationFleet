@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Domain.Entities;
@@ -42,6 +43,11 @@ public class UpdateProfileCommandHandlerIntegrationTests
             var membershipRepository = new CrewMembershipRepository(context);
             var mutualAidRepository = new MutualAidRepository(context);
             var mutualAidService = HandlerTestFixture.CreateMutualAidService(context);
+            var priorityTierService = new LibraryPriorityTierService(
+                mutualAidService,
+                membershipRepository,
+                new FleetRepository(context),
+                new UserBlockRepository(context));
             var handler = new UpdateProfileCommandHandler(
                 userRepository,
                 new GiftRepository(context),
@@ -51,7 +57,8 @@ public class UpdateProfileCommandHandlerIntegrationTests
                 HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
                 mutualAidService,
                 mutualAidRepository,
-                context);
+                context,
+                priorityTierService);
 
             var result = await handler.Handle(new UpdateProfileCommand
             {

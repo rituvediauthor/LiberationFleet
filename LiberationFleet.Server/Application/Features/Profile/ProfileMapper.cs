@@ -23,12 +23,28 @@ public static class ProfileMapper
             BaseScore = breakdown.BaseScore,
             PeopleRepresentedCount = breakdown.PeopleRepresentedCount,
             DisabilityLevel = breakdown.DisabilityLevel,
+            TargetedMinorityGroupCount = breakdown.TargetedMinorityGroupCount,
             PriorityMultiplier = breakdown.PriorityMultiplier,
             PercentBoost = breakdown.PercentBoost,
             SacrificeBonusFactor = breakdown.SacrificeBonusFactor,
             IsFinancialMember = breakdown.IsFinancialMember,
             StatusReason = statusReason
         };
+
+    public static string? GivingSeasonStatusReason(CrewMembership membership, User user)
+    {
+        if (membership.IsOrganizer)
+        {
+            return "Organizer — last to receive concentrated aid via cycles when in need";
+        }
+
+        return user.InNeedOfAid ? null : "Not in need (not in the active concentrated-aid queue)";
+    }
+
+    public static string? LibraryOfThingsStatusReason(CrewMembership membership) =>
+        membership.IsOrganizer
+            ? "Computed as if you were not the organizer (LoT does not use the organizer last-place rule)"
+            : null;
 
     public static UserProfileDto MapUser(
         User user,
@@ -45,7 +61,9 @@ public static class ProfileMapper
         int previousTaxYear = 0,
         int currentTaxYear = 0,
         PriorityScoreBreakdownDto? givingSeasonPriority = null,
-        PriorityScoreBreakdownDto? libraryOfThingsPriority = null)
+        PriorityScoreBreakdownDto? libraryOfThingsPriority = null,
+        int libraryPriorityTier = 1,
+        decimal libraryPriorityAverage = 0m)
     {
         return new UserProfileDto
         {
@@ -77,6 +95,8 @@ public static class ProfileMapper
             InNeedToggleThreshold = inNeedToggleThreshold,
             GivingSeasonPriority = givingSeasonPriority,
             LibraryOfThingsPriority = libraryOfThingsPriority,
+            LibraryPriorityTier = libraryPriorityTier,
+            LibraryPriorityAverage = libraryPriorityAverage,
             Stats = BuildStats(
                 giftStats,
                 membership,

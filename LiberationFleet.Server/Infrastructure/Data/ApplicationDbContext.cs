@@ -1520,6 +1520,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.ValuePerUnit).HasPrecision(18, 2);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.Visibility).HasDefaultValue(LibraryOfferingVisibility.CrewOnly);
+            entity.Property(e => e.MinimumViewerTier).HasDefaultValue(1);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)

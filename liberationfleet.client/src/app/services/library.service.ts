@@ -33,13 +33,15 @@ import {
   LibraryUnitOperationResponse,
   LibraryMaintenanceOperationResponse,
   LibraryOfferingKind,
+  LibraryOfferingVisibility,
   LibraryTaskListItem,
   LibraryTaskListResponse,
   LibraryTaskDetail,
   LibraryTaskDetailResponse,
   UpsertLibraryTaskRequest,
   LibraryTaskOperationResponse,
-  LibraryTaskConfirmResponse
+  LibraryTaskConfirmResponse,
+  LibraryPriorityTierAudienceResponse
 } from '../models/library.model';
 
 @Injectable({
@@ -67,6 +69,21 @@ export class LibraryService {
         return response.items;
       })
     );
+  }
+
+  getPriorityTierAudience(options: {
+    visibility: LibraryOfferingVisibility | string;
+    tier: number;
+    matchMode: 'Exact' | 'MinimumOrHigher';
+  }): Observable<LibraryPriorityTierAudienceResponse> {
+    const params = new HttpParams()
+      .set('visibility', options.visibility)
+      .set('tier', String(options.tier))
+      .set('matchMode', options.matchMode);
+
+    return this.http.get<LibraryPriorityTierAudienceResponse>(
+      `${this.basePath}/priority-tier-audience`,
+      { params });
   }
 
   getDurableUnits(options?: {

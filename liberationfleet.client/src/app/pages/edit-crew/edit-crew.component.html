@@ -257,6 +257,18 @@
             </label>
             <span class="hint-text">When disabled, the Library of Things button is hidden from the crew home page.</span>
           </div>
+          <div class="form-group">
+            <span class="group-label">Priority tiers</span>
+            <p class="hint-text">
+              Average LoT score: {{ libraryPriorityAverage | number:'1.0-1' }}.
+              Counts use the fleet average when this crew is in a fleet; otherwise the crew average.
+            </p>
+            <ul class="tier-count-list" aria-label="Library priority tier counts">
+              <li *ngFor="let count of libraryPriorityTierCounts; let i = index">
+                Tier {{ i + 1 }}: {{ count }}
+              </li>
+            </ul>
+          </div>
         </section>
 
         <section class="settings-section">

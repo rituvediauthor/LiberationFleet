@@ -37,6 +37,12 @@ public class CrewDto
     public bool AllowCrossCrewGiving { get; set; }
     public decimal MonthlyGivingCapacity { get; set; }
     public string? ImageResourceId { get; set; }
+    public decimal LibraryPriorityAverage { get; set; }
+    public int[] LibraryPriorityTierCounts { get; set; } = [0, 0, 0, 0, 0];
+    /// <summary>
+    /// Home-crew members only, using the same LoT average as <see cref="LibraryPriorityTierCounts"/>.
+    /// </summary>
+    public int[] HomeCrewLibraryPriorityTierCounts { get; set; } = [0, 0, 0, 0, 0];
 }
 
 public class UpdateCrewRequest

@@ -1,6 +1,7 @@
-using LiberationFleet.Server.Application.Common.Interfaces;
+﻿using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Services;
 using MediatR;
@@ -18,6 +19,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
     private readonly ICurrentUserService _currentUserService;
     private readonly IAppDonationRepository _donationRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly LibraryPriorityTierService _priorityTierService;
 
     public GetMyProfileQueryHandler(
         IUserRepository userRepository,
@@ -28,7 +30,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         IMutualAidService mutualAidService,
         ICurrentUserService currentUserService,
         IAppDonationRepository donationRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        LibraryPriorityTierService priorityTierService)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
@@ -39,6 +42,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         _currentUserService = currentUserService;
         _donationRepository = donationRepository;
         _unitOfWork = unitOfWork;
+        _priorityTierService = priorityTierService;
     }
 
     public async Task<UserProfileDto?> Handle(GetMyProfileQuery request, CancellationToken cancellationToken)
@@ -115,6 +119,11 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 cancellationToken,
                 assumeInNeedNonOrganizerForLot: true);
 
+            var tierSummary = await _priorityTierService.GetSummaryForUserAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken);
+
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
                 cancellationToken);
@@ -155,8 +164,12 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 currentYearInner,
                 ProfileMapper.ToDto(
                     givingSeasonBreakdown,
-                    user.InNeedOfAid ? null : "Not in need"),
-                ProfileMapper.ToDto(libraryBreakdown));
+                    ProfileMapper.GivingSeasonStatusReason(membership, user)),
+                ProfileMapper.ToDto(
+                    libraryBreakdown,
+                    ProfileMapper.LibraryOfThingsStatusReason(membership)),
+                tierSummary.ViewerTier,
+                tierSummary.AverageScore);
         }
 
         var now = DateTime.UtcNow;

@@ -53,7 +53,7 @@ public class GetDurableLibraryUnitsQueryHandler(
         {
             Success = true,
             Message = "Durable goods loaded.",
-            Items = page.Items.Select(LibraryMapper.MapUnitListItem).ToList(),
+            Items = page.Items.Select(unit => LibraryMapper.MapUnitListItem(unit)).ToList(),
             HasMore = page.HasMore
         };
     }

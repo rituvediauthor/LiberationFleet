@@ -12,7 +12,8 @@ public class GetLibraryUnitDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
-    ILibraryRepository libraryRepository) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
+    ILibraryRepository libraryRepository,
+    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
 {
     public async Task<LibraryUnitDetailResponse> Handle(
         GetLibraryUnitDetailQuery request,
@@ -45,6 +46,23 @@ public class GetLibraryUnitDetailQueryHandler(
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
 
+        var viewerTier = (await priorityTierService.GetSummaryForUserAsync(
+            userId,
+            membership.CrewId,
+            cancellationToken)).ViewerTier;
+
+        if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier))
+        {
+            return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
+        }
+
+        if (LibraryOfferingRules.UsesPerTierStock(unit.Offering)
+            && !LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier)
+            && !unit.Offering.QuantityNotApplicable)
+        {
+            return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
+        }
+
         var isHolder = unit.CurrentPossessorUserId == userId;
         var hasOpenRequest = await libraryRepository.HasOpenRequestForUnitByUserAsync(
             unit.Id,
@@ -55,13 +73,19 @@ public class GetLibraryUnitDetailQueryHandler(
             userId,
             cancellationToken);
 
-        var viewer = LibraryRequestValidation.BuildViewerContext(unit, isHolder, hasOpenRequest, activeRequest, userId);
+        var viewer = LibraryRequestValidation.BuildViewerContext(
+            unit,
+            isHolder,
+            hasOpenRequest,
+            activeRequest,
+            userId,
+            viewerTier);
 
         return new LibraryUnitDetailResponse
         {
             Success = true,
             Message = "Item loaded.",
-            Item = LibraryMapper.MapUnitDetail(unit, viewer)
+            Item = LibraryMapper.MapUnitDetail(unit, viewer, viewerTier)
         };
     }
 }

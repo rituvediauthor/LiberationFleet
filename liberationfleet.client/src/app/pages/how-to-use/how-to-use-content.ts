@@ -268,7 +268,7 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          '“Targeted Minority Groups” are more likely to be the target of discrimination and hate crimes, increasing the frequency and severity of hardships they are likely to face. Thus we must prioritize preventing and getting them out of situations of dangerous vulnerability. A person’s priority score is increased by 10% for each selected minority group.'
+          '“Targeted Minority Groups” are more likely to be the target of discrimination and hate crimes, increasing the frequency and severity of hardships they are likely to face. Thus we must prioritize preventing and getting them out of situations of dangerous vulnerability. Each selected group is added into the priority multiplier (people represented + disability + minority groups + 1).'
       }
     ]
   },

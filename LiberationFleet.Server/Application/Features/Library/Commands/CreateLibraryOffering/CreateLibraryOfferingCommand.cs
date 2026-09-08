@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -15,6 +16,12 @@ public record CreateLibraryOfferingCommand(
     string? UnitLabel,
     int Quantity,
     bool QuantityNotApplicable,
+    int? StockTier1,
+    int? StockTier2,
+    int? StockTier3,
+    int? StockTier4,
+    int? StockTier5,
+    int MinimumViewerTier,
     string? ThumbnailResourceId,
     LibraryOfferingKind Kind,
     LibraryFulfillmentMode FulfillmentMode,
@@ -66,9 +73,23 @@ public class CreateLibraryOfferingCommandHandler(
             return new LibraryOfferingOperationResponse { Success = false, Message = "Value per unit must be greater than zero." };
         }
 
-        if (!request.QuantityNotApplicable && (request.Quantity < 1 || request.Quantity > MaxQuantity))
+        if (!request.QuantityNotApplicable && request.Kind != LibraryOfferingKind.Consumable
+            && (request.Quantity < 1 || request.Quantity > MaxQuantity))
         {
             return new LibraryOfferingOperationResponse { Success = false, Message = $"Quantity must be between 1 and {MaxQuantity}." };
+        }
+
+        if (request.Kind == LibraryOfferingKind.Consumable && !request.QuantityNotApplicable)
+        {
+            var tiers = ResolveConsumableTier(request);
+            if (tiers is null)
+            {
+                return new LibraryOfferingOperationResponse
+                {
+                    Success = false,
+                    Message = $"Each tier stock must be between 0 and {MaxQuantity}, and at least one tier must have stock."
+                };
+            }
         }
 
         if (request.QuantityNotApplicable && request.Kind == LibraryOfferingKind.Durable)
@@ -158,8 +179,11 @@ public class CreateLibraryOfferingCommandHandler(
             DescriptionPreview = descriptionPreview,
             ValuePerUnit = request.ValuePerUnit,
             UnitLabel = unitLabel,
-            RemainingStock = isStock && !quantityNotApplicable ? request.Quantity : null,
+            RemainingStock = null,
             QuantityNotApplicable = quantityNotApplicable,
+            MinimumViewerTier = request.Kind == LibraryOfferingKind.Service
+                ? LibraryPriorityTier.ClampTier(request.MinimumViewerTier)
+                : 1,
             ThumbnailResourceId = string.IsNullOrWhiteSpace(request.ThumbnailResourceId)
                 ? null
                 : request.ThumbnailResourceId.Trim(),
@@ -170,6 +194,16 @@ public class CreateLibraryOfferingCommandHandler(
                 .Select(category => new LibraryOfferingCategory { CategoryId = category.Id })
                 .ToList()
         };
+
+        if (request.Kind == LibraryOfferingKind.Consumable && !quantityNotApplicable)
+        {
+            var tiers = ResolveConsumableTier(request)!;
+            LibraryOfferingRules.SetTierStocks(offering, tiers[0], tiers[1], tiers[2], tiers[3], tiers[4]);
+        }
+        else if (isStock && !quantityNotApplicable)
+        {
+            offering.RemainingStock = request.Quantity;
+        }
 
         await libraryRepository.AddOfferingAsync(offering, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -225,5 +259,43 @@ public class CreateLibraryOfferingCommandHandler(
             OfferingId = offering.Id,
             UnitIds = units.Select(u => u.Id).ToList()
         };
+    }
+
+    private static int[]? ResolveConsumableTier(CreateLibraryOfferingCommand request)
+    {
+        var anyExplicit = request.StockTier1.HasValue
+            || request.StockTier2.HasValue
+            || request.StockTier3.HasValue
+            || request.StockTier4.HasValue
+            || request.StockTier5.HasValue;
+
+        int[] tiers;
+        if (anyExplicit)
+        {
+            tiers =
+            [
+                request.StockTier1 ?? 0,
+                request.StockTier2 ?? 0,
+                request.StockTier3 ?? 0,
+                request.StockTier4 ?? 0,
+                request.StockTier5 ?? 0
+            ];
+        }
+        else
+        {
+            if (request.Quantity < 1 || request.Quantity > MaxQuantity)
+            {
+                return null;
+            }
+
+            tiers = [request.Quantity, 0, 0, 0, 0];
+        }
+
+        if (tiers.Any(t => t < 0 || t > MaxQuantity) || tiers.Sum() < 1)
+        {
+            return null;
+        }
+
+        return tiers;
     }
 }

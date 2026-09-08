@@ -21,6 +21,7 @@ using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetDurableLibraryUnits;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetIncomingLibraryRequests;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryCategories;
+using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryPriorityTierAudience;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryRequestDetail;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryRequestMessages;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryOfferingUnits;
@@ -49,6 +50,20 @@ public class LibraryController(IMediator mediator) : ControllerBase
         [FromQuery] string? kind = null)
     {
         var result = await mediator.Send(new GetLibraryCategoriesQuery(inUseOnly, kind));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Lists non-blocked crewmates/fleet-mates who can see a listing for the given tier
+    /// (exact tier for consumable stock, or minimum-or-higher for services).
+    /// </summary>
+    [HttpGet("priority-tier-audience")]
+    public async Task<IActionResult> GetPriorityTierAudience(
+        [FromQuery] string? visibility = "CrewOnly",
+        [FromQuery] int tier = 1,
+        [FromQuery] string? matchMode = "Exact")
+    {
+        var result = await mediator.Send(new GetLibraryPriorityTierAudienceQuery(visibility, tier, matchMode));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -158,7 +173,13 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.ThumbnailResourceId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.StockTier1,
+            body.StockTier2,
+            body.StockTier3,
+            body.StockTier4,
+            body.StockTier5,
+            body.MinimumViewerTier));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -393,6 +414,12 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.UnitLabel,
             body.Quantity,
             body.QuantityNotApplicable,
+            body.StockTier1,
+            body.StockTier2,
+            body.StockTier3,
+            body.StockTier4,
+            body.StockTier5,
+            body.MinimumViewerTier,
             body.ThumbnailResourceId,
             kind,
             fulfillmentMode,

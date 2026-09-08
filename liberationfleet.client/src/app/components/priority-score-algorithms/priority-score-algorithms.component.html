@@ -1,14 +1,26 @@
 <section class="priority-algorithms" *ngIf="libraryOfThings || givingSeason" aria-label="Priority score algorithms">
-  <article class="algorithm-block" *ngIf="libraryOfThings as lot">
-    <h3 class="algorithm-title">Library of Things priority score: {{ lot.score }}</h3>
-    <p class="algorithm-expression">{{ expression(lot) }}</p>
-    <p class="algorithm-labels">{{ labels(lot) }}</p>
-  </article>
+  <ng-container *ngIf="singleBreakdown as score; else divergentScores">
+    <article class="algorithm-block">
+      <h3 class="algorithm-title">Priority score: {{ score.score }}</h3>
+      <p class="algorithm-status" *ngIf="score.statusReason">{{ score.statusReason }}</p>
+      <p class="algorithm-expression">{{ expression(score) }}</p>
+      <p class="algorithm-labels">{{ labels(score) }}</p>
+    </article>
+  </ng-container>
 
-  <article class="algorithm-block" *ngIf="givingSeason as season">
-    <h3 class="algorithm-title">Giving Season: {{ season.score }}</h3>
-    <p class="algorithm-status" *ngIf="season.statusReason">{{ season.statusReason }}</p>
-    <p class="algorithm-expression">{{ expression(season) }}</p>
-    <p class="algorithm-labels">{{ labels(season) }}</p>
-  </article>
+  <ng-template #divergentScores>
+    <article class="algorithm-block" *ngIf="givingSeason as season">
+      <h3 class="algorithm-title">Giving Season priority score: {{ season.score }}</h3>
+      <p class="algorithm-status" *ngIf="season.statusReason">{{ season.statusReason }}</p>
+      <p class="algorithm-expression">{{ expression(season) }}</p>
+      <p class="algorithm-labels">{{ labels(season) }}</p>
+    </article>
+
+    <article class="algorithm-block" *ngIf="libraryOfThings as lot">
+      <h3 class="algorithm-title">Library of Things priority score: {{ lot.score }}</h3>
+      <p class="algorithm-status" *ngIf="lot.statusReason">{{ lot.statusReason }}</p>
+      <p class="algorithm-expression">{{ expression(lot) }}</p>
+      <p class="algorithm-labels">{{ labels(lot) }}</p>
+    </article>
+  </ng-template>
 </section>

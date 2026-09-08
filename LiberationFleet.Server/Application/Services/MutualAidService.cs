@@ -1496,6 +1496,7 @@ public partial class MutualAidService(
                 BaseScore: 0m,
                 PeopleRepresentedCount: 0,
                 DisabilityLevel: 0,
+                TargetedMinorityGroupCount: 0,
                 PriorityMultiplier: 1,
                 PercentBoost: 0,
                 SacrificeBonusFactor: 1m,
@@ -1536,7 +1537,8 @@ public partial class MutualAidService(
                 ignoreOrganizerRole: assumeInNeedNonOrganizerForLot),
             crewLifetime,
             userLifetime,
-            capacityContext.SurvivalThresholdAmount);
+            capacityContext.SurvivalThresholdAmount,
+            demoteOrganizerToLastPlace: !assumeInNeedNonOrganizerForLot);
     }
 
     public async Task<bool> IsFinancialMemberAsync(

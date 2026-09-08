@@ -196,6 +196,19 @@ label {
   font-weight: 600;
 }
 
+.tier-count-list {
+  margin: 8px 0 0;
+  padding-left: 1.25rem;
+  font-size: 14px;
+  color: var(--lf-color-text-muted, inherit);
+}
+
+.group-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;

@@ -48,6 +48,8 @@ export class EditFleetComponent implements OnInit {
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
   fleetId = 0;
+  libraryPriorityAverage = 0;
+  libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0];
   canAttachFiles = false;
   imageAttachments: PendingAttachment[] = [];
   imageResourceId: string | null = null;
@@ -320,6 +322,10 @@ export class EditFleetComponent implements OnInit {
         this.joinCode = result.fleet.joinCode;
         this.requireApprovalForEdits = result.fleet.requireApprovalForEdits ?? true;
         this.imageResourceId = result.fleet.imageResourceId ?? null;
+        this.libraryPriorityAverage = result.fleet.libraryPriorityAverage ?? 0;
+        this.libraryPriorityTierCounts = result.fleet.libraryPriorityTierCounts?.length === 5
+          ? [...result.fleet.libraryPriorityTierCounts]
+          : [0, 0, 0, 0, 0];
         this.patchFormFromFleet(result.fleet);
         this.updateLocalValidators();
         this.captureInitialState();

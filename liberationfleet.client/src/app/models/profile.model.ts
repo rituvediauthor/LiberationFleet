@@ -29,6 +29,7 @@ export interface PriorityScoreBreakdown {
   baseScore: number;
   peopleRepresentedCount: number;
   disabilityLevel: number;
+  targetedMinorityGroupCount: number;
   priorityMultiplier: number;
   percentBoost: number;
   sacrificeBonusFactor: number;
@@ -55,6 +56,8 @@ export interface UserProfile {
   stats: UserProfileStats;
   givingSeasonPriority?: PriorityScoreBreakdown | null;
   libraryOfThingsPriority?: PriorityScoreBreakdown | null;
+  libraryPriorityTier?: number;
+  libraryPriorityAverage?: number;
 }
 
 export interface UserProfileStats {

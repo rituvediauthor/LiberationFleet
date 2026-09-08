@@ -2,7 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
-using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Application.Features.Library;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrew;
@@ -13,7 +13,8 @@ public class GetMyCrewQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ICrewRepository crewRepository,
-    IMutualAidService mutualAidService) : IRequestHandler<GetMyCrewQuery, CrewOperationResponse>
+    IMutualAidService mutualAidService,
+    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetMyCrewQuery, CrewOperationResponse>
 {
     public async Task<CrewOperationResponse> Handle(GetMyCrewQuery request, CancellationToken cancellationToken)
     {
@@ -34,13 +35,29 @@ public class GetMyCrewQueryHandler(
             return new CrewOperationResponse { Success = false, Message = "Crew not found." };
         }
 
+        var userId = currentUser.UserId.Value;
         var memberCount = await crewRepository.CountMembersAsync(crew.Id, cancellationToken);
         var monthlyGivingCapacity = await mutualAidService.GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken);
+        var tierSnapshot = await priorityTierService.GetSnapshotForCrewAsync(crew.Id, cancellationToken);
+        var scopeTierCounts = await priorityTierService.GetScopeTierCountsForViewerAsync(
+            crew.Id,
+            userId,
+            cancellationToken);
+        var homeCrewTierCounts = await priorityTierService.GetHomeCrewTierCountsForViewerAsync(
+            crew.Id,
+            userId,
+            cancellationToken);
         return new CrewOperationResponse
         {
             Success = true,
             Message = "Crew loaded.",
-            Crew = CrewMapper.MapCrew(crew, memberCount, monthlyGivingCapacity)
+            Crew = CrewMapper.MapCrew(
+                crew,
+                memberCount,
+                monthlyGivingCapacity,
+                tierSnapshot.AverageScore,
+                scopeTierCounts,
+                homeCrewTierCounts)
         };
     }
 }

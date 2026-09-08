@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -27,6 +28,7 @@ public class RecordLibraryAcquisitionCommandHandler(
     IGiftRepository giftRepository,
     LibraryContributionGiftService contributionGiftService,
     IMutualAidService mutualAidService,
+    LibraryPriorityTierService priorityTierService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordLibraryAcquisitionCommand, LibraryCompleteRequestResponse>
 {
     public async Task<LibraryCompleteRequestResponse> Handle(
@@ -77,7 +79,21 @@ public class RecordLibraryAcquisitionCommandHandler(
             return new LibraryCompleteRequestResponse { Success = false, Message = "Quantity must be at least 1." };
         }
 
-        if (!LibraryOfferingRules.HasSufficientStock(offering, quantity))
+        var viewerTier = (await priorityTierService.GetSummaryForUserAsync(
+            userId,
+            membership.CrewId,
+            cancellationToken)).ViewerTier;
+
+        if (!LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier))
+        {
+            return new LibraryCompleteRequestResponse
+            {
+                Success = false,
+                Message = "This service is not available at your priority tier."
+            };
+        }
+
+        if (!LibraryOfferingRules.HasSufficientStockForTier(offering, quantity, viewerTier))
         {
             return new LibraryCompleteRequestResponse { Success = false, Message = "Not enough stock available." };
         }
@@ -125,7 +141,7 @@ public class RecordLibraryAcquisitionCommandHandler(
         }
 
         trackedUnit.Offering.UpdatedAt = utcNow;
-        LibraryOfferingRules.ReduceStock(trackedUnit.Offering, quantity);
+        LibraryOfferingRules.ReduceStockForTier(trackedUnit.Offering, quantity, viewerTier);
         if (!trackedUnit.Offering.QuantityNotApplicable && trackedUnit.Offering.RemainingStock <= 0)
         {
             trackedUnit.Status = LibraryUnitStatus.Broken;

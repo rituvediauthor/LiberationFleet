@@ -14,6 +14,7 @@
         [roles]="[]"
         [membershipStatus]="null"
         [priorityScore]="profile.priorityScore"
+        [libraryPriorityTier]="profile.libraryPriorityTier ?? null"
         [inNeedOfAid]="null"
         [isSurvivalThresholdRecipient]="null"
         [crewName]="null"
@@ -35,7 +36,9 @@
         <div class="readonly-grid">
           <div class="readonly-item">
             <span class="readonly-label">Library of Things priority</span>
-            <span class="readonly-value">{{ profile.priorityScore }}</span>
+            <span class="readonly-value">
+              {{ profile.priorityScore }}<ng-container *ngIf="profile.libraryPriorityTier"> · Tier {{ profile.libraryPriorityTier }}</ng-container>
+            </span>
           </div>
           <p class="hint-text priority-hint">
             Used to rank Library of Things requests in their crew. Organizers and members not marked in need of aid rank last.

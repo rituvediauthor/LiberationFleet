@@ -59,9 +59,13 @@ internal static class LibraryRequestValidation
         bool isHolder,
         bool hasOpenRequest,
         LibraryRequest? activeRequest,
-        int viewerUserId)
+        int viewerUserId,
+        int viewerTier = 1)
     {
         var offering = unit.Offering;
+        var tierStock = LibraryOfferingRules.UsesPerTierStock(offering)
+            ? LibraryOfferingRules.GetTierStock(offering, viewerTier)
+            : offering.RemainingStock;
         var viewer = new LibraryUnitViewerContextDto
         {
             IsHolder = isHolder,
@@ -69,7 +73,7 @@ internal static class LibraryRequestValidation
             ActiveRequestStatus = activeRequest?.Status.ToString(),
             MaxRequestQuantity = offering.QuantityNotApplicable
                 ? 1
-                : Math.Max(1, offering.RemainingStock ?? 1),
+                : Math.Max(1, tierStock ?? 1),
             BrokenPendingConfirmation = unit.BrokenPendingConfirmation,
             IsRetired = unit.IsRetired,
             CanReportBroken = LibraryUnitAccess.CanReportBroken(unit, viewerUserId),
@@ -79,7 +83,7 @@ internal static class LibraryRequestValidation
             CanReportLost = LibraryUnitAccess.CanReportLost(unit, viewerUserId)
         };
 
-        if (unit.IsRetired)
+        if (unit.IsRetired || !LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier))
         {
             viewer.CanRequest = false;
             viewer.CanRecordAcquisition = false;
@@ -91,7 +95,7 @@ internal static class LibraryRequestValidation
             viewer.CanRequest = false;
             viewer.CanRecordAcquisition = !isHolder
                 && unit.Status == LibraryUnitStatus.Available
-                && LibraryOfferingRules.HasAvailableStock(offering);
+                && LibraryOfferingRules.HasAvailableStockForTier(offering, viewerTier);
             return viewer;
         }
 
@@ -99,7 +103,7 @@ internal static class LibraryRequestValidation
             && !unit.BrokenPendingConfirmation;
         if (LibraryOfferingRules.IsStockBased(offering))
         {
-            viewer.CanRequest = canRequest && LibraryOfferingRules.HasAvailableStock(offering);
+            viewer.CanRequest = canRequest && LibraryOfferingRules.HasAvailableStockForTier(offering, viewerTier);
         }
         else
         {

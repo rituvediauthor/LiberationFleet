@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain;
@@ -19,6 +20,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
     private readonly IMutualAidService _mutualAidService;
     private readonly IMutualAidRepository _mutualAidRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly LibraryPriorityTierService _priorityTierService;
 
     public UpdateProfileCommandHandler(
         IUserRepository userRepository,
@@ -29,7 +31,8 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         ICurrentUserService currentUserService,
         IMutualAidService mutualAidService,
         IMutualAidRepository mutualAidRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        LibraryPriorityTierService priorityTierService)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
@@ -40,6 +43,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         _mutualAidService = mutualAidService;
         _mutualAidRepository = mutualAidRepository;
         _unitOfWork = unitOfWork;
+        _priorityTierService = priorityTierService;
     }
 
     public async Task<ProfileOperationResponse> Handle(UpdateProfileCommand request, CancellationToken cancellationToken)
@@ -233,6 +237,10 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 cancellationToken,
                 assumeInNeedNonOrganizerForLot: true);
+            var tierSummary = await _priorityTierService.GetSummaryForUserAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken);
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
                 cancellationToken);
@@ -253,8 +261,12 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 toggleThreshold,
                 givingSeasonPriority: ProfileMapper.ToDto(
                     givingSeasonBreakdown,
-                    reloaded.InNeedOfAid ? null : "Not in need"),
-                libraryOfThingsPriority: ProfileMapper.ToDto(libraryBreakdown));
+                    ProfileMapper.GivingSeasonStatusReason(membership, reloaded)),
+                libraryOfThingsPriority: ProfileMapper.ToDto(
+                    libraryBreakdown,
+                    ProfileMapper.LibraryOfThingsStatusReason(membership)),
+                libraryPriorityTier: tierSummary.ViewerTier,
+                libraryPriorityAverage: tierSummary.AverageScore);
         }
 
         return new ProfileOperationResponse

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -13,6 +14,7 @@ public sealed record PriorityScoreBreakdown(
     decimal BaseScore,
     int PeopleRepresentedCount,
     int DisabilityLevel,
+    int TargetedMinorityGroupCount,
     int PriorityMultiplier,
     int PercentBoost,
     decimal SacrificeBonusFactor,
@@ -163,21 +165,47 @@ public static class MutualAidCalculationService
         bool isFinancialMember,
         decimal crewLifetimeContributions,
         decimal userLifetimeContributions,
-        decimal survivalThresholdAmount)
+        decimal survivalThresholdAmount,
+        bool demoteOrganizerToLastPlace = true)
     {
         var membershipBonus = isFinancialMember ? 1m : 0m;
         var emergencyLevel = user.EmergencyLevel;
         var peopleRepresentedCount = user.PeopleRepresentedCount;
         var disabilityLevel = user.DisabilityLevel;
+        var targetedMinorityGroupCount = IdentityGroupKeys.Parse(user.IdentityGroups).Count;
         var percentBoost = membership.PercentBonus;
+
+        // Organizers receive concentrated cycle aid last when in need: fixed score of -1
+        // sorts after all positive scores. Library of Things skips this (demoteOrganizerToLastPlace: false).
+        if (demoteOrganizerToLastPlace && membership.IsOrganizer)
+        {
+            return new PriorityScoreBreakdown(
+                Score: -1m,
+                CrewLifetimeContributions: crewLifetimeContributions,
+                EmergencyLevel: emergencyLevel,
+                MembershipBonus: membershipBonus,
+                UserLifetimeContributions: userLifetimeContributions,
+                SurvivalThresholdAmount: survivalThresholdAmount,
+                BaseScore: -1m,
+                PeopleRepresentedCount: peopleRepresentedCount,
+                DisabilityLevel: disabilityLevel,
+                TargetedMinorityGroupCount: targetedMinorityGroupCount,
+                PriorityMultiplier: -1,
+                PercentBoost: percentBoost,
+                SacrificeBonusFactor: 1m + (percentBoost / 100m),
+                IsFinancialMember: isFinancialMember);
+        }
 
         var baseScore = (crewLifetimeContributions * emergencyLevel)
             + membershipBonus
             + userLifetimeContributions
             + survivalThresholdAmount;
 
-        // Always at least 1 so dependents+disability of 0 cannot zero the score.
-        var priorityMultiplier = peopleRepresentedCount + disabilityLevel + 1;
+        // Always at least 1 so dependents+disability+groups of 0 cannot zero the score.
+        var priorityMultiplier = peopleRepresentedCount
+            + disabilityLevel
+            + targetedMinorityGroupCount
+            + 1;
         var sacrificeBonusFactor = 1m + (percentBoost / 100m);
         var score = baseScore * priorityMultiplier * sacrificeBonusFactor;
 
@@ -191,6 +219,7 @@ public static class MutualAidCalculationService
             BaseScore: baseScore,
             PeopleRepresentedCount: peopleRepresentedCount,
             DisabilityLevel: disabilityLevel,
+            TargetedMinorityGroupCount: targetedMinorityGroupCount,
             PriorityMultiplier: priorityMultiplier,
             PercentBoost: percentBoost,
             SacrificeBonusFactor: sacrificeBonusFactor,
@@ -203,14 +232,17 @@ public static class MutualAidCalculationService
         bool isFinancialMember,
         decimal crewLifetimeContributions,
         decimal userLifetimeContributions,
-        decimal survivalThresholdAmount) =>
+        decimal survivalThresholdAmount,
+        bool demoteOrganizerToLastPlace = true) =>
         CalculatePriorityScoreBreakdown(
             user,
             membership,
             isFinancialMember,
             crewLifetimeContributions,
             userLifetimeContributions,
-            survivalThresholdAmount).Score;
+            survivalThresholdAmount,
+            demoteOrganizerToLastPlace).Score;
+
 
     public static bool IsCycleSatisfied(SeasonCycle cycle, decimal effectiveCycleCap) =>
         cycle.CycleReceived >= effectiveCycleCap;

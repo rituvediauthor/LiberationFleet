@@ -17,6 +17,7 @@ export class CrewmateIdCardComponent {
   @Input() roles: string[] = [];
   @Input() membershipStatus: boolean | null = null;
   @Input() priorityScore: number | null = null;
+  @Input() libraryPriorityTier: number | null = null;
   @Input() inNeedOfAid: boolean | null = null;
   @Input() isSurvivalThresholdRecipient: boolean | null = null;
   @Input() crewName: string | null | undefined;
@@ -28,6 +29,16 @@ export class CrewmateIdCardComponent {
       return this.roles.length ? `${this.roles.join(', ')} · Non-member` : 'Non-member';
     }
     return this.roles.length ? this.roles.join(', ') : 'None';
+  }
+
+  get priorityScoreDisplay(): string {
+    if (this.priorityScore == null) {
+      return '—';
+    }
+    if (this.libraryPriorityTier == null) {
+      return String(this.priorityScore);
+    }
+    return `${this.priorityScore} · Tier ${this.libraryPriorityTier}`;
   }
 
   yesNo(value: boolean | null | undefined): string {

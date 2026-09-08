@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -21,7 +22,8 @@ public class GetCrewmateProfileQueryHandler(
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IProposalRepository proposalRepository,
-    ContentTenureService contentTenureService) : IRequestHandler<GetCrewmateProfileQuery, CrewmateProfileResponse>
+    ContentTenureService contentTenureService,
+    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetCrewmateProfileQuery, CrewmateProfileResponse>
 {
     public async Task<CrewmateProfileResponse> Handle(GetCrewmateProfileQuery request, CancellationToken cancellationToken)
     {
@@ -120,6 +122,11 @@ public class GetCrewmateProfileQueryHandler(
                 cancellationToken);
         }
 
+        var tierSummary = await priorityTierService.GetSummaryForUserAsync(
+            request.UserId,
+            viewerMembership.CrewId,
+            cancellationToken);
+
         return new CrewmateProfileResponse
         {
             Success = true,
@@ -146,8 +153,12 @@ public class GetCrewmateProfileQueryHandler(
                 seasonCycle,
                 ProfileMapper.ToDto(
                     givingSeasonBreakdown,
-                    crewmate.InNeedOfAid ? null : "Not in need"),
-                ProfileMapper.ToDto(libraryBreakdown))
+                    ProfileMapper.GivingSeasonStatusReason(targetMembership, crewmate)),
+                ProfileMapper.ToDto(
+                    libraryBreakdown,
+                    ProfileMapper.LibraryOfThingsStatusReason(targetMembership)),
+                tierSummary.ViewerTier,
+                tierSummary.AverageScore)
         };
     }
 }

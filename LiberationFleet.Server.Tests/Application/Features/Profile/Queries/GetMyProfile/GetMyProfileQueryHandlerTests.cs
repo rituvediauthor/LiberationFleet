@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Queries.GetMyProfile;
@@ -130,7 +131,25 @@ public class GetMyProfileQueryHandlerTests
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             CreateDonationRepositoryMock().Object,
-            HandlerTestFixture.CreateUnitOfWorkMock().Object);
+            HandlerTestFixture.CreateUnitOfWorkMock().Object,
+            CreatePriorityTierService());
+    }
+
+    private static LibraryPriorityTierService CreatePriorityTierService()
+    {
+        var membership = new Mock<ICrewMembershipRepository>(MockBehavior.Loose);
+        membership
+            .Setup(r => r.GetActiveMembersByCrewIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CrewMembership>());
+        var fleet = new Mock<IFleetRepository>(MockBehavior.Loose);
+        fleet
+            .Setup(r => r.GetFleetForCrewAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Fleet?)null);
+        return new LibraryPriorityTierService(
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
+            membership.Object,
+            fleet.Object,
+            HandlerTestFixture.CreateUserBlockRepositoryMock().Object);
     }
 
     private static Mock<IAppDonationRepository> CreateDonationRepositoryMock()

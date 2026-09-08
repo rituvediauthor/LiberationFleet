@@ -229,6 +229,7 @@ public static class HandlerTestFixture
                 BaseScore: 0m,
                 PeopleRepresentedCount: 0,
                 DisabilityLevel: 0,
+                TargetedMinorityGroupCount: 0,
                 PriorityMultiplier: 1,
                 PercentBoost: 0,
                 SacrificeBonusFactor: 1m,

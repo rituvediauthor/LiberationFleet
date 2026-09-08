@@ -43,6 +43,7 @@ public class PriorityScoreBreakdownDto
     public decimal BaseScore { get; set; }
     public int PeopleRepresentedCount { get; set; }
     public int DisabilityLevel { get; set; }
+    public int TargetedMinorityGroupCount { get; set; }
     public int PriorityMultiplier { get; set; }
     public int PercentBoost { get; set; }
     public decimal SacrificeBonusFactor { get; set; }
@@ -73,6 +74,8 @@ public class UserProfileDto
     public UserProfileStatsDto Stats { get; set; } = new();
     public PriorityScoreBreakdownDto? GivingSeasonPriority { get; set; }
     public PriorityScoreBreakdownDto? LibraryOfThingsPriority { get; set; }
+    public int LibraryPriorityTier { get; set; } = 1;
+    public decimal LibraryPriorityAverage { get; set; }
 }
 
 public class ProfileOperationResponse

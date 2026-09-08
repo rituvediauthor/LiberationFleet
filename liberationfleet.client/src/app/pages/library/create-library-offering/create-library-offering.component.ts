@@ -9,14 +9,22 @@ import { ProposalAttachmentPickerComponent } from '../../../components/proposal-
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryCategoryPickerComponent } from '../../../components/library-category-picker/library-category-picker.component';
+import { LibraryTierAudienceDialogComponent } from '../../../components/library-tier-audience-dialog/library-tier-audience-dialog.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
+import { FleetService } from '../../../services/fleet.service';
 import { ProfileService } from '../../../services/profile.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { PendingAttachment } from '../../../models/proposal.model';
-import { LibraryCategory, LibraryFulfillmentMode, LibraryOfferingKind, LibraryOfferingVisibility } from '../../../models/library.model';
+import {
+  LibraryCategory,
+  LibraryFulfillmentMode,
+  LibraryOfferingKind,
+  LibraryOfferingVisibility,
+  LibraryPriorityTierAudienceMember
+} from '../../../models/library.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
@@ -31,7 +39,8 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
     ProposalAttachmentPickerComponent,
     LibraryCategoryPickerComponent,
     CharCounterComponent,
-    ConfirmDialogComponent
+    ConfirmDialogComponent,
+    LibraryTierAudienceDialogComponent
   ],
   templateUrl: './create-library-offering.component.html',
   styleUrl: './create-library-offering.component.css'
@@ -47,10 +56,29 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   selectedCategoryIds: number[] = [];
   isSubmitting = false;
   crewId = 0;
+  fleetId: number | null = null;
   canAttachFiles = false;
   authorDisplayName = '';
+  /** Scope-average tier counts (fleet when in a fleet). */
+  scopeTierCounts: number[] = [0, 0, 0, 0, 0];
+  /** Home-crew members only (same average as scope). */
+  homeCrewTierCounts: number[] = [0, 0, 0, 0, 0];
+  /** Fleet-wide member tier counts when the crew is in a fleet. */
+  fleetTierCounts: number[] = [0, 0, 0, 0, 0];
+  hasFleet = false;
+  /** Bound for template so visibility/min-tier changes always refresh the hint. */
+  audienceCustomerHint = '';
+  audienceDialogOpen = false;
+  audienceDialogLoading = false;
+  audienceDialogError: string | null = null;
+  audienceDialogTitle = 'Who can see this';
+  audienceDialogSubtitle: string | null = null;
+  audienceDialogItems: LibraryPriorityTierAudienceMember[] = [];
+  audienceDialogCrewId: number | null = null;
+  audienceDialogFleetId: number | null = null;
   durableNoticeVisible = false;
   private durableNoticeShown = false;
+  private audienceLoadSeq = 0;
   readonly durableNoticeMessage =
     'Listing a durable item does not count as a gift to the crew until another crewmate requests and acquires it. This prevents inflating priority scores by listing items nobody needs.';
   readonly titleMaxLength = TextFieldLimits.title;
@@ -65,6 +93,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   private libraryService = inject(LibraryService);
   private libraryCrypto = inject(LibraryCryptoService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
@@ -87,7 +116,13 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       valuePerUnit: [null, [Validators.required, Validators.min(0.01)]],
       unitLabel: ['', [Validators.maxLength(this.unitLabelMaxLength)]],
       quantity: [1, [Validators.required, Validators.min(1), Validators.max(100)]],
-      quantityNotApplicable: [initialKind === 'Service' || initialKind === 'Digital']
+      quantityNotApplicable: [initialKind === 'Service' || initialKind === 'Digital'],
+      stockTier1: [0, [Validators.min(0), Validators.max(100)]],
+      stockTier2: [0, [Validators.min(0), Validators.max(100)]],
+      stockTier3: [0, [Validators.min(0), Validators.max(100)]],
+      stockTier4: [0, [Validators.min(0), Validators.max(100)]],
+      stockTier5: [0, [Validators.min(0), Validators.max(100)]],
+      minimumViewerTier: [1, [Validators.required, Validators.min(1), Validators.max(5)]]
     });
 
     this.applyKindRules(initialKind);
@@ -113,6 +148,43 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       }
     });
 
+    this.crewService.getCurrentCrew().subscribe({
+      next: result => {
+        if (!result.success || !result.crew) {
+          return;
+        }
+        this.scopeTierCounts = this.normalizeTierCounts(result.crew.libraryPriorityTierCounts);
+        this.homeCrewTierCounts = this.normalizeTierCounts(
+          result.crew.homeCrewLibraryPriorityTierCounts ?? result.crew.libraryPriorityTierCounts);
+        if (!this.hasFleet) {
+          this.fleetTierCounts = [...this.scopeTierCounts];
+        }
+        this.refreshAudienceHints();
+      }
+    });
+
+    this.fleetService.getCurrent().subscribe({
+      next: result => {
+        if (!result.success || !result.fleet) {
+          this.hasFleet = false;
+          this.fleetId = null;
+          this.fleetTierCounts = [...this.homeCrewTierCounts];
+          this.refreshAudienceHints();
+          return;
+        }
+        this.hasFleet = true;
+        this.fleetId = result.fleet.id;
+        this.fleetTierCounts = this.normalizeTierCounts(result.fleet.libraryPriorityTierCounts);
+        this.refreshAudienceHints();
+      },
+      error: () => {
+        this.hasFleet = false;
+        this.fleetId = null;
+        this.fleetTierCounts = [...this.homeCrewTierCounts];
+        this.refreshAudienceHints();
+      }
+    });
+
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.authorDisplayName = profile.username;
@@ -127,7 +199,16 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
         if (offeringKind === 'Durable') {
           this.showDurableNotice();
         }
+        this.refreshAudienceHints();
       });
+
+    this.form.get('visibility')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.refreshAudienceHints());
+
+    this.form.get('minimumViewerTier')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.refreshAudienceHints());
 
     this.form.get('quantityNotApplicable')?.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -135,6 +216,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
     this.form.statusChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.updateCreateButton());
     this.form.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.updateCreateButton());
+    this.refreshAudienceHints();
   }
 
   ngOnDestroy() {
@@ -160,6 +242,111 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   get showQuantityNotApplicable(): boolean {
     return this.offeringKind === 'Consumable';
+  }
+
+  get showPerTierStock(): boolean {
+    return this.offeringKind === 'Consumable' && !this.form.get('quantityNotApplicable')?.value;
+  }
+
+  get showMinimumViewerTier(): boolean {
+    return this.offeringKind === 'Service';
+  }
+
+  get visibility(): LibraryOfferingVisibility {
+    return this.form.get('visibility')?.value ?? 'CrewOnly';
+  }
+
+  get audienceTierCounts(): number[] {
+    if (this.visibility === 'FleetWide' && this.hasFleet) {
+      return this.fleetTierCounts;
+    }
+    return this.homeCrewTierCounts;
+  }
+
+  get audienceLabel(): string {
+    return this.visibility === 'FleetWide' && this.hasFleet ? 'fleet-mates' : 'crewmates';
+  }
+
+  customersForTier(tier: number): number {
+    const index = Math.min(5, Math.max(1, tier)) - 1;
+    return this.audienceTierCounts[index] ?? 0;
+  }
+
+  /** Visible when viewer tier >= minimum (selected tier and all higher tiers). */
+  customersForMinimumTier(minimumTier: number): number {
+    const min = Math.min(5, Math.max(1, minimumTier));
+    return this.audienceTierCounts
+      .slice(min - 1)
+      .reduce((sum, count) => sum + (count || 0), 0);
+  }
+
+  get selectedMinimumViewerTier(): number {
+    return Number(this.form.get('minimumViewerTier')?.value) || 1;
+  }
+
+  viewTierAudience(tier: number, matchMode: 'Exact' | 'MinimumOrHigher' = 'Exact'): void {
+    const seq = ++this.audienceLoadSeq;
+    const visibility = this.visibility;
+    const audienceLabel = this.audienceLabel;
+    this.audienceDialogOpen = true;
+    this.audienceDialogLoading = true;
+    this.audienceDialogError = null;
+    this.audienceDialogItems = [];
+    this.audienceDialogCrewId = this.crewId > 0 ? this.crewId : null;
+    this.audienceDialogFleetId = visibility === 'FleetWide' && this.hasFleet ? this.fleetId : null;
+    this.audienceDialogTitle = matchMode === 'MinimumOrHigher'
+      ? `Tier ${tier}+ ${audienceLabel}`
+      : `Tier ${tier} ${audienceLabel}`;
+    this.audienceDialogSubtitle = matchMode === 'MinimumOrHigher'
+      ? `People who can see a service set to Tier ${tier} or higher (${visibility === 'FleetWide' && this.hasFleet ? 'fleet-wide' : 'crew only'}). Blocked mates are excluded.`
+      : `People in Tier ${tier} who would see this stock pool (${visibility === 'FleetWide' && this.hasFleet ? 'fleet-wide' : 'crew only'}). Blocked mates are excluded.`;
+
+    this.libraryService.getPriorityTierAudience({
+      visibility,
+      tier,
+      matchMode
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: result => {
+        if (seq !== this.audienceLoadSeq) {
+          return;
+        }
+        this.audienceDialogLoading = false;
+        if (!result.success) {
+          this.audienceDialogError = result.message || 'Failed to load audience';
+          return;
+        }
+        this.audienceDialogItems = result.items ?? [];
+        this.audienceDialogCrewId = result.crewId ?? this.audienceDialogCrewId;
+        this.audienceDialogFleetId = result.fleetId ?? this.audienceDialogFleetId;
+      },
+      error: err => {
+        if (seq !== this.audienceLoadSeq) {
+          return;
+        }
+        this.audienceDialogLoading = false;
+        this.audienceDialogError = err?.error?.message || err?.message || 'Failed to load audience';
+      }
+    });
+  }
+
+  closeAudienceDialog(): void {
+    this.audienceLoadSeq++;
+    this.audienceDialogOpen = false;
+    this.audienceDialogLoading = false;
+    this.audienceDialogError = null;
+    this.audienceDialogItems = [];
+  }
+
+  private refreshAudienceHints(): void {
+    const minTier = this.selectedMinimumViewerTier;
+    const count = this.customersForMinimumTier(minTier);
+    this.audienceCustomerHint =
+      `Number of customers: ${count} ${this.audienceLabel} at Tier ${minTier} or higher`;
+  }
+
+  get tierStockTotal(): number {
+    const raw = this.form.getRawValue();
+    return [1, 2, 3, 4, 5].reduce((sum, tier) => sum + (Number(raw[`stockTier${tier}`]) || 0), 0);
   }
 
   get valueLabel(): string {
@@ -229,12 +416,19 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       || !!raw.quantityNotApplicable;
     const quantity = offeringKind === 'Durable'
       ? Number(raw.quantity)
-      : quantityNotApplicable
-        ? 1
-        : Number(raw.quantity);
+      : offeringKind === 'Consumable' && !quantityNotApplicable
+        ? this.tierStockTotal
+        : quantityNotApplicable
+          ? 1
+          : Number(raw.quantity);
     const fulfillmentMode = offeringKind === 'Digital'
       ? 'OnDemand'
       : raw.fulfillmentMode as LibraryFulfillmentMode;
+
+    if (offeringKind === 'Consumable' && !quantityNotApplicable && this.tierStockTotal <= 0) {
+      this.toastService.error('Set stock for at least one priority tier.');
+      return;
+    }
 
     void this.encryptionContent.whenReady().then(async () => {
       try {
@@ -256,6 +450,12 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
           unitLabel: raw.unitLabel?.trim() || null,
           quantity,
           quantityNotApplicable,
+          stockTier1: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier1) || 0 : null,
+          stockTier2: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier2) || 0 : null,
+          stockTier3: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier3) || 0 : null,
+          stockTier4: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier4) || 0 : null,
+          stockTier5: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier5) || 0 : null,
+          minimumViewerTier: offeringKind === 'Service' ? Number(raw.minimumViewerTier) || 1 : 1,
           thumbnailResourceId: encrypted.thumbnailResourceId,
           kind: offeringKind,
           fulfillmentMode,
@@ -291,13 +491,15 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     const fulfillmentControl = this.form.get('fulfillmentMode');
     const quantityControl = this.form.get('quantity');
     const quantityNaControl = this.form.get('quantityNotApplicable');
+    const minTierControl = this.form.get('minimumViewerTier');
 
     if (kind === 'Durable') {
       fulfillmentControl?.setValue('OnRequest');
       fulfillmentControl?.disable();
       quantityNaControl?.setValue(false);
       quantityNaControl?.disable();
-      quantityControl?.enable();
+      minTierControl?.disable();
+      this.applyQuantityFieldState();
       return;
     }
 
@@ -307,6 +509,8 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       quantityNaControl?.setValue(true);
       quantityNaControl?.disable();
       quantityControl?.disable();
+      minTierControl?.disable();
+      this.applyQuantityFieldState();
       return;
     }
 
@@ -316,20 +520,36 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       quantityNaControl?.setValue(true);
       quantityNaControl?.disable();
       quantityControl?.disable();
+      minTierControl?.enable();
+      this.applyQuantityFieldState();
       return;
     }
 
     quantityNaControl?.enable();
+    minTierControl?.disable();
     this.applyQuantityFieldState();
   }
 
   private applyQuantityFieldState() {
     const quantityControl = this.form.get('quantity');
+    const tierControls = [1, 2, 3, 4, 5].map(t => this.form.get(`stockTier${t}`));
     if (this.offeringKind === 'Service' || this.offeringKind === 'Digital') {
       quantityControl?.disable();
+      tierControls.forEach(c => c?.disable());
       return;
     }
 
+    if (this.offeringKind === 'Consumable') {
+      quantityControl?.disable();
+      if (this.form.get('quantityNotApplicable')?.value) {
+        tierControls.forEach(c => c?.disable());
+      } else {
+        tierControls.forEach(c => c?.enable());
+      }
+      return;
+    }
+
+    tierControls.forEach(c => c?.disable());
     if (this.form.get('quantityNotApplicable')?.value) {
       quantityControl?.disable();
     } else {
@@ -371,19 +591,27 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     return value === 'OnDemand' ? 'OnDemand' : 'OnRequest';
   }
 
+  private normalizeTierCounts(counts: number[] | null | undefined): number[] {
+    if (counts?.length === 5) {
+      return counts.map(c => Number(c) || 0);
+    }
+    return [0, 0, 0, 0, 0];
+  }
+
   private updateCreateButton() {
     const submitAttachments = this.offeringKind === 'Digital'
       ? this.buildDigitalAttachments()
       : this.attachments;
     const digitalBlocked = this.offeringKind === 'Digital'
       && (!this.canAttachFiles || this.downloadAttachments.length === 0);
-    this.createButton = {
+      this.createButton = {
       label: 'Create',
       type: 'primary',
       disabled: this.isSubmitting
         || this.form.invalid
         || this.selectedCategoryIds.length === 0
         || digitalBlocked
+        || (this.showPerTierStock && this.tierStockTotal <= 0)
         || !pendingAttachmentsAllowSubmit(submitAttachments),
       onClick: () => this.onSubmit()
     };

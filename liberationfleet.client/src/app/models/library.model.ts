@@ -55,6 +55,12 @@ export interface CreateLibraryOfferingRequest {
   unitLabel?: string | null;
   quantity: number;
   quantityNotApplicable?: boolean;
+  stockTier1?: number | null;
+  stockTier2?: number | null;
+  stockTier3?: number | null;
+  stockTier4?: number | null;
+  stockTier5?: number | null;
+  minimumViewerTier?: number;
   thumbnailResourceId?: string | null;
   kind?: string;
   fulfillmentMode?: string;
@@ -450,4 +456,22 @@ export interface LibraryTaskConfirmResponse {
   message: string;
   taskClosed?: boolean;
   contributionGifts: LibraryCreatorContributionGift[];
+}
+
+export interface LibraryPriorityTierAudienceMember {
+  userId: number;
+  username: string;
+  avatarResourceId?: string | null;
+  tier: number;
+}
+
+export interface LibraryPriorityTierAudienceResponse {
+  success: boolean;
+  message: string;
+  visibility?: string;
+  tier?: number;
+  matchMode?: string;
+  crewId?: number | null;
+  fleetId?: number | null;
+  items: LibraryPriorityTierAudienceMember[];
 }

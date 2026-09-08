@@ -1,8 +1,9 @@
-using LiberationFleet.Server.Application.Common.Interfaces;
+﻿using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Services;
 using MediatR;
 
@@ -18,7 +19,8 @@ public class GetFleetCrewmateProfileQueryHandler(
     IFriendshipRepository friendshipRepository,
     IUserBlockRepository blockRepository,
     IMutualAidService mutualAidService,
-    FleetAvatarVisibilityService fleetAvatarVisibility) : IRequestHandler<GetFleetCrewmateProfileQuery, FleetCrewmateProfileResponse>
+    FleetAvatarVisibilityService fleetAvatarVisibility,
+    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetFleetCrewmateProfileQuery, FleetCrewmateProfileResponse>
 {
     public async Task<FleetCrewmateProfileResponse> Handle(
         GetFleetCrewmateProfileQuery request,
@@ -56,6 +58,8 @@ public class GetFleetCrewmateProfileQueryHandler(
         var targetMembership = await membershipRepository.GetActiveMembershipAsync(request.UserId, cancellationToken);
         string? avatarResourceId = null;
         int priorityScore = 0;
+        int libraryPriorityTier = 1;
+        decimal libraryPriorityAverage = 0m;
         int? homeCrewId = null;
 
         if (targetMembership is not null)
@@ -72,6 +76,13 @@ public class GetFleetCrewmateProfileQueryHandler(
                 cancellationToken,
                 assumeInNeedNonOrganizerForLot: true);
             priorityScore = (int)Math.Round(lotScore, MidpointRounding.AwayFromZero);
+
+            var tierSummary = await priorityTierService.GetSummaryForUserAsync(
+                request.UserId,
+                targetMembership.CrewId,
+                cancellationToken);
+            libraryPriorityTier = tierSummary.ViewerTier;
+            libraryPriorityAverage = tierSummary.AverageScore;
         }
 
         var friendship = await friendshipRepository.GetBetweenUsersAsync(viewerId, request.UserId, cancellationToken);
@@ -93,6 +104,8 @@ public class GetFleetCrewmateProfileQueryHandler(
                 AvatarResourceId = avatarResourceId,
                 PaymentPlatforms = CrewmateMapper.MapPaymentPlatforms(target),
                 PriorityScore = priorityScore,
+                LibraryPriorityTier = libraryPriorityTier,
+                LibraryPriorityAverage = libraryPriorityAverage,
                 FriendshipState = friendshipState,
                 CanSocialInteract = true,
                 IsSelf = viewerId == request.UserId,

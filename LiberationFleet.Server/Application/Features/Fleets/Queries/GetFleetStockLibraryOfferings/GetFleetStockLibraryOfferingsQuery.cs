@@ -18,7 +18,8 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
-    ILibraryRepository libraryRepository) : IRequestHandler<GetFleetStockLibraryOfferingsQuery, LibraryUnitListResponse>
+    ILibraryRepository libraryRepository,
+    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetFleetStockLibraryOfferingsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
         GetFleetStockLibraryOfferingsQuery request,
@@ -61,22 +62,39 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
             .Select(fc => fc.CrewId)
             .ToList();
 
+        var summary = await priorityTierService.GetSummaryForUserAsync(
+            currentUser.UserId.Value,
+            membership.CrewId,
+            cancellationToken);
+        var viewerTier = summary.ViewerTier;
+
+        var fetchLimit = Math.Clamp(request.Limit, 1, 100);
         var page = await libraryRepository.GetStockUnitsForCrewIdsAsync(
             crewIds,
             membership.CrewId,
             request.Kind,
             request.Search,
             request.CategoryIds,
-            Math.Clamp(request.Limit, 1, 100),
+            Math.Min(100, fetchLimit * 3),
             Math.Max(request.Offset, 0),
             cancellationToken);
+
+        var items = page.Items
+            .Where(unit => LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier))
+            .Where(unit =>
+                unit.Offering.QuantityNotApplicable
+                || !LibraryOfferingRules.UsesPerTierStock(unit.Offering)
+                || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier))
+            .Take(fetchLimit)
+            .Select(unit => LibraryMapper.MapUnitListItem(unit, viewerTier))
+            .ToList();
 
         return new LibraryUnitListResponse
         {
             Success = true,
             Message = "Fleet offerings loaded.",
-            Items = page.Items.Select(LibraryMapper.MapUnitListItem).ToList(),
-            HasMore = page.HasMore
+            Items = items,
+            HasMore = page.HasMore || page.Items.Count > items.Count
         };
     }
 }
