@@ -18,42 +18,6 @@
     </nav>
 
     <section class="settings-section" *ngIf="!loading">
-      <h2>Your registered devices</h2>
-      <p *ngIf="devices.length === 0" class="state-text">No devices registered yet.</p>
-      <ul class="device-list" *ngIf="devices.length > 0">
-        <li class="device-item" *ngFor="let device of devices">
-          <div class="device-copy">
-            <span class="device-name">
-              {{ device.displayName }}
-              <span *ngIf="device.isCurrent" class="device-badge current">This device</span>
-              <span *ngIf="device.isTrusted" class="device-badge trusted">Registered</span>
-              <span *ngIf="device.isBlocked" class="device-badge blocked">Blocked</span>
-            </span>
-            <span class="device-meta">Last seen {{ formatDate(device.lastSeenAt) }}</span>
-          </div>
-          <div class="device-actions" *ngIf="!device.isCurrent">
-            <button
-              type="button"
-              class="device-action-btn"
-              *ngIf="!device.isBlocked"
-              [disabled]="deviceActionLoading"
-              (click)="blockDevice(device)">
-              Block
-            </button>
-            <button
-              type="button"
-              class="device-action-btn"
-              *ngIf="device.isBlocked"
-              [disabled]="deviceActionLoading"
-              (click)="unblockDevice(device)">
-              Unblock
-            </button>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <section class="settings-section" *ngIf="!loading">
       <h2>Save login info</h2>
       <label class="toggle-row">
         <input
@@ -108,6 +72,42 @@
         <span>Current settings lock password</span>
         <input type="password" [(ngModel)]="currentSettingsLockPassword" autocomplete="current-password">
       </label>
+    </section>
+
+    <section class="settings-section" *ngIf="!loading">
+      <h2>Your registered devices</h2>
+      <p *ngIf="devices.length === 0" class="state-text">No devices registered yet.</p>
+      <ul class="device-list" *ngIf="devices.length > 0">
+        <li class="device-item" *ngFor="let device of devices">
+          <div class="device-copy">
+            <span class="device-name">
+              {{ device.displayName }}
+              <span *ngIf="device.isCurrent" class="device-badge current">This device</span>
+              <span *ngIf="device.isTrusted" class="device-badge trusted">Registered</span>
+              <span *ngIf="device.isBlocked" class="device-badge blocked">Blocked</span>
+            </span>
+            <span class="device-meta">Last seen {{ formatDate(device.lastSeenAt) }}</span>
+          </div>
+          <div class="device-actions" *ngIf="!device.isCurrent">
+            <button
+              type="button"
+              class="device-action-btn"
+              *ngIf="!device.isBlocked"
+              [disabled]="deviceActionLoading"
+              (click)="blockDevice(device)">
+              Block
+            </button>
+            <button
+              type="button"
+              class="device-action-btn"
+              *ngIf="device.isBlocked"
+              [disabled]="deviceActionLoading"
+              (click)="unblockDevice(device)">
+              Unblock
+            </button>
+          </div>
+        </li>
+      </ul>
     </section>
   </div>
 </app-page-layout>
