@@ -55,7 +55,7 @@ export class PriorityScoreAlgorithmsComponent {
       'Your contributions',
       'Survival threshold)'
     ];
-    const multiplier = '(People represented + Disability + Targeted minority groups + 1');
+    const multiplier = '(People represented + Disability + Targeted minority groups + 1)';
     const boost = breakdown.percentBoost > 0
       ? `Sacrifice boost (+${breakdown.percentBoost}%)`
       : 'Sacrifice boost';
