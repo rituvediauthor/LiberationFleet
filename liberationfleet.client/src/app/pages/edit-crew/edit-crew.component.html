@@ -262,6 +262,7 @@
             <p class="hint-text">
               Average LoT score: {{ libraryPriorityAverage | number:'1.0-1' }}.
               Counts use the fleet average when this crew is in a fleet; otherwise the crew average.
+              Tier 5 is the highest score band; Tier 1 is the lowest.
             </p>
             <ul class="tier-count-list" aria-label="Library priority tier counts">
               <li *ngFor="let count of libraryPriorityTierCounts; let i = index">

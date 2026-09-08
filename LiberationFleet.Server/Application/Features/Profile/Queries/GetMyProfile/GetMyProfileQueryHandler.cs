@@ -111,13 +111,13 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 userId.Value,
                 membership.CrewId,
                 cancellationToken);
-            priorityScore = givingSeasonBreakdown.Score;
 
             var libraryBreakdown = await _mutualAidService.GetPriorityScoreBreakdownForUserAsync(
                 userId.Value,
                 membership.CrewId,
                 cancellationToken,
                 assumeInNeedNonOrganizerForLot: true);
+            priorityScore = libraryBreakdown.Score;
 
             var tierSummary = await _priorityTierService.GetSummaryForUserAsync(
                 userId.Value,

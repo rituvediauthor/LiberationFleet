@@ -36,12 +36,14 @@
         <div class="readonly-grid">
           <div class="readonly-item">
             <span class="readonly-label">Library of Things priority</span>
-            <span class="readonly-value">
-              {{ profile.priorityScore }}<ng-container *ngIf="profile.libraryPriorityTier"> · Tier {{ profile.libraryPriorityTier }}</ng-container>
-            </span>
+            <span class="readonly-value">{{ profile.priorityScore }}</span>
+          </div>
+          <div class="readonly-item" *ngIf="profile.libraryPriorityTier">
+            <span class="readonly-label">LoT tier</span>
+            <span class="readonly-value">{{ profile.libraryPriorityTier }}</span>
           </div>
           <p class="hint-text priority-hint">
-            Used to rank Library of Things requests in their crew. Organizers and members not marked in need of aid rank last.
+            Used to rank Library of Things requests in their crew. Tier 5 is the highest score band; Tier 1 is the lowest.
           </p>
         </div>
       </app-collapsible-section>

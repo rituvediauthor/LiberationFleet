@@ -106,19 +106,19 @@
   word-break: break-word;
 }
 
-.id-card-field:nth-child(4),
 .id-card-field:nth-child(5),
-.id-card-field:nth-child(6) {
+.id-card-field:nth-child(6),
+.id-card-field:nth-child(7) {
   grid-column: 1 / -1;
 }
 
 @media (min-width: 480px) {
-  .id-card-field:nth-child(4) {
+  .id-card-field:nth-child(5) {
     grid-column: auto;
   }
 
-  .id-card-field:nth-child(5),
-  .id-card-field:nth-child(6) {
+  .id-card-field:nth-child(6),
+  .id-card-field:nth-child(7) {
     grid-column: auto;
   }
 }

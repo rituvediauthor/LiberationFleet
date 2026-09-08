@@ -35,10 +35,14 @@ export class CrewmateIdCardComponent {
     if (this.priorityScore == null) {
       return '—';
     }
+    return String(this.priorityScore);
+  }
+
+  get libraryPriorityTierDisplay(): string {
     if (this.libraryPriorityTier == null) {
-      return String(this.priorityScore);
+      return '—';
     }
-    return `${this.priorityScore} · Tier ${this.libraryPriorityTier}`;
+    return String(this.libraryPriorityTier);
   }
 
   yesNo(value: boolean | null | undefined): string {

@@ -231,12 +231,12 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 userId.Value,
                 membership.CrewId,
                 cancellationToken);
-            var priorityScore = givingSeasonBreakdown.Score;
             var libraryBreakdown = await _mutualAidService.GetPriorityScoreBreakdownForUserAsync(
                 userId.Value,
                 membership.CrewId,
                 cancellationToken,
                 assumeInNeedNonOrganizerForLot: true);
+            var priorityScore = libraryBreakdown.Score;
             var tierSummary = await _priorityTierService.GetSummaryForUserAsync(
                 userId.Value,
                 membership.CrewId,
