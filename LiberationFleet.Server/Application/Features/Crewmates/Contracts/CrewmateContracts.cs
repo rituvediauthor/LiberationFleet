@@ -115,6 +115,8 @@ public class CrewmateProfileDto
     public decimal? CycleReceived { get; set; }
     public bool? CycleCompleted { get; set; }
     public bool HasActiveSeasonCycle { get; set; }
+    public PriorityScoreBreakdownDto? GivingSeasonPriority { get; set; }
+    public PriorityScoreBreakdownDto? LibraryOfThingsPriority { get; set; }
 }
 
 public class ProposeCrewmateAidStatChangeItemDto

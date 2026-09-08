@@ -292,6 +292,8 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       error: () => {
         this.verifyingGiftId = null;
         this.toastService.error('Failed to update gift');
+        // Verification may have committed server-side before a post-save failure.
+        this.loadGift({ silent: true });
       }
     });
   }

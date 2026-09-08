@@ -19,11 +19,16 @@ import { PaymentPlatformEditorComponent } from '../../components/payment-platfor
 import { IdentityGroupsEditorComponent } from '../../components/identity-groups-editor/identity-groups-editor.component';
 import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 import { ProposalAttachmentPickerComponent } from '../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { CrewmateIdCardComponent } from '../../components/crewmate-id-card/crewmate-id-card.component';
+import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
+import { PriorityScoreAlgorithmsComponent } from '../../components/priority-score-algorithms/priority-score-algorithms.component';
+import { CryptoUnlockDialogComponent } from '../../components/crypto-unlock-dialog/crypto-unlock-dialog.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { SecurityService } from '../../services/security.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
+import { FleetService } from '../../services/fleet.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
@@ -83,7 +88,11 @@ function optionalPasswordChangeValidator(control: AbstractControl): ValidationEr
     PaymentPlatformEditorComponent,
     IdentityGroupsEditorComponent,
     ProposalAttachmentPickerComponent,
-    CharCounterComponent
+    CharCounterComponent,
+    CrewmateIdCardComponent,
+    CollapsibleSectionComponent,
+    PriorityScoreAlgorithmsComponent,
+    CryptoUnlockDialogComponent
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
@@ -101,6 +110,8 @@ export class ProfileComponent implements OnInit {
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
   encryptionUnlocked = false;
+  encryptionToggleBusy = false;
+  showUnlockDialog = false;
   showRecoveryKeyModal = false;
   pendingRecoveryPhrase = '';
   rotatingRecoveryKey = false;
@@ -108,6 +119,8 @@ export class ProfileComponent implements OnInit {
   deletingAccount = false;
   deleteAccountError = '';
   crewId = 0;
+  crewName: string | null = null;
+  fleetName: string | null = null;
   canToggleInNeedOff = true;
   inNeedToggleThreshold = 0;
   avatarAttachments: PendingAttachment[] = [];
@@ -125,6 +138,7 @@ export class ProfileComponent implements OnInit {
   private profileService = inject(ProfileService);
   private securityService = inject(SecurityService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private cryptoSession = inject(CryptoSessionService);
   private proposalCrypto = inject(ProposalCryptoService);
   private images = inject(EncryptedImageCacheService);
@@ -146,7 +160,14 @@ export class ProfileComponent implements OnInit {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.crewName = membership.crewName ?? null;
         void this.refreshAvatarPreview();
+      }
+    });
+
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        this.fleetName = status.fleetName ?? null;
       }
     });
 
@@ -154,6 +175,9 @@ export class ProfileComponent implements OnInit {
     void this.loadEncryptionStatus();
     this.cryptoSession.unlocked$.subscribe(unlocked => {
       this.encryptionUnlocked = unlocked;
+      if (unlocked) {
+        this.showUnlockDialog = false;
+      }
       void this.refreshAvatarPreview();
       this.updateSaveButton();
     });
@@ -176,6 +200,44 @@ export class ProfileComponent implements OnInit {
 
   onAvatarAttachmentsChange() {
     this.updateSaveButton();
+  }
+
+  async onEncryptionUnlockedToggle(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const wantsUnlocked = input.checked;
+
+    if (wantsUnlocked) {
+      if (this.encryptionUnlocked) {
+        const phrase = this.authService.getSessionRecoveryPhrase();
+        if (phrase) {
+          this.encryptionToggleBusy = true;
+          try {
+            await this.authService.unlockWithRecoveryPhrase(phrase, true);
+            this.toastService.success('Recovery key saved on this device.');
+          } catch {
+            this.toastService.error('Could not save the recovery key on this device.');
+          } finally {
+            this.encryptionToggleBusy = false;
+          }
+        }
+        return;
+      }
+
+      this.showUnlockDialog = true;
+      return;
+    }
+
+    this.encryptionToggleBusy = true;
+    try {
+      this.authService.lockEncryptionOnThisDevice();
+      this.toastService.success('Encryption locked. Recovery key removed from this device.');
+    } finally {
+      this.encryptionToggleBusy = false;
+    }
+  }
+
+  onEncryptionUnlockDialogCompleted() {
+    this.showUnlockDialog = false;
   }
 
   async startRecoveryKeyRotation() {

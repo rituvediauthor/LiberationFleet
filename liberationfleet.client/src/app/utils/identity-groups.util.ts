@@ -21,6 +21,12 @@ export const IDENTITY_GROUP_OPTIONS: IdentityGroupOption[] = [
   { key: 'OtherTargetedMinority', label: 'Other targeted minority' }
 ];
 
+export function formatIdentityGroupLabels(keys: string[] | null | undefined): string[] {
+  const normalized = normalizeIdentityGroups(keys);
+  const byKey = new Map(IDENTITY_GROUP_OPTIONS.map(o => [o.key, o.label]));
+  return normalized.map(key => byKey.get(key) ?? key);
+}
+
 export function normalizeIdentityGroups(keys: string[] | null | undefined): string[] {
   if (!keys?.length) {
     return [];

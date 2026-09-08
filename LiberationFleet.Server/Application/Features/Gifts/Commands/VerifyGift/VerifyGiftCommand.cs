@@ -6,6 +6,7 @@ using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 
@@ -20,7 +21,8 @@ public class VerifyGiftCommandHandler(
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IMutualAidService mutualAidService,
-    IUnitOfWork unitOfWork) : IRequestHandler<VerifyGiftCommand, GiftOperationResponse>
+    IUnitOfWork unitOfWork,
+    ILogger<VerifyGiftCommandHandler> logger) : IRequestHandler<VerifyGiftCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(VerifyGiftCommand request, CancellationToken cancellationToken)
     {
@@ -89,10 +91,10 @@ public class VerifyGiftCommandHandler(
         switch (request.Action)
         {
             case GiftVerificationAction.ConfirmReceived:
-                await HandleConfirmReceivedAsync(gift, completedChild, initiatedParent, cancellationToken);
+                HandleConfirmReceived(gift);
                 break;
             case GiftVerificationAction.ConfirmNotReceived:
-                await HandleConfirmNotReceivedAsync(gift, cancellationToken);
+                HandleConfirmNotReceived(gift);
                 break;
             case GiftVerificationAction.CompleteTransfer:
                 return await HandleCompleteTransferAsync(gift, userId, membership.CrewId, request.PaymentPlatformId, cancellationToken);
@@ -110,9 +112,37 @@ public class VerifyGiftCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (request.Action is GiftVerificationAction.ConfirmReceived)
+        {
+            try
+            {
+                await ApplyReceptionAfterConfirmAsync(gift, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Post-verify reception apply failed for gift {GiftId} in crew {CrewId}",
+                    gift.Id,
+                    membership.CrewId);
+            }
+        }
+
         if (request.Action is GiftVerificationAction.ConfirmReceived or GiftVerificationAction.ConfirmNotReceived)
         {
-            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+            try
+            {
+                await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Gift verification is already committed; do not fail the request after success.
+                logger.LogError(
+                    ex,
+                    "Post-verify contribution refresh failed for gift {GiftId} in crew {CrewId}",
+                    gift.Id,
+                    membership.CrewId);
+            }
         }
 
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
@@ -126,21 +156,13 @@ public class VerifyGiftCommandHandler(
         };
     }
 
-    private async Task HandleConfirmReceivedAsync(
-        Gift gift,
-        Gift? completedChild,
-        Gift? initiatedParent,
-        CancellationToken cancellationToken)
+    private static void HandleConfirmReceived(Gift gift)
     {
         switch (gift.Type)
         {
             case GiftType.Direct:
                 gift.CountsTowardContribution = true;
                 gift.VerificationStatus = GiftVerificationStatus.Verified;
-                if (!gift.ReceptionApplied)
-                {
-                    await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
-                }
                 break;
 
             case GiftType.Initiated:
@@ -150,15 +172,19 @@ public class VerifyGiftCommandHandler(
 
             case GiftType.Completed:
                 gift.VerificationStatus = GiftVerificationStatus.Verified;
-                if (!gift.ReceptionApplied)
-                {
-                    await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
-                }
                 break;
         }
     }
 
-    private Task HandleConfirmNotReceivedAsync(Gift gift, CancellationToken cancellationToken)
+    private async Task ApplyReceptionAfterConfirmAsync(Gift gift, CancellationToken cancellationToken)
+    {
+        if ((gift.Type is GiftType.Direct or GiftType.Completed) && !gift.ReceptionApplied)
+        {
+            await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
+        }
+    }
+
+    private static void HandleConfirmNotReceived(Gift gift)
     {
         gift.CountsTowardContribution = false;
 
@@ -169,8 +195,6 @@ public class VerifyGiftCommandHandler(
             GiftType.Completed => GiftVerificationStatus.RecipientNotReceived,
             _ => gift.VerificationStatus
         };
-
-        return Task.CompletedTask;
     }
 
     private async Task<GiftOperationResponse> HandleCompleteTransferAsync(

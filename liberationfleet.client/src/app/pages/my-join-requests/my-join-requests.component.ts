@@ -63,7 +63,7 @@ export class MyJoinRequestsComponent implements OnInit {
 
   countdownText(item: JoinRequestListItem): string | null {
     const countdown = this.proposalService.formatCountdown(
-      item.approvalTimerEndsAt ? new Date(item.approvalTimerEndsAt) : null
+      item.approvalTimerEndsAt ? this.proposalService.parseApiDate(item.approvalTimerEndsAt) : null
     );
     return countdown || null;
   }

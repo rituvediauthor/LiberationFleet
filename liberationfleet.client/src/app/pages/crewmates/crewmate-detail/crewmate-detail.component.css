@@ -98,6 +98,28 @@
   gap: 10px;
 }
 
+.identity-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.identity-group-list li {
+  font-size: 14px;
+  color: var(--lf-color-text-body);
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--lf-color-bg-muted);
+}
+
+.priority-hint {
+  margin: 4px 0 8px;
+  grid-column: 1 / -1;
+}
+
 .platform-list li {
   display: flex;
   flex-wrap: wrap;

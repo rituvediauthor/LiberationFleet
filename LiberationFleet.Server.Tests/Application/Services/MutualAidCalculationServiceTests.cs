@@ -206,6 +206,32 @@ public class MutualAidCalculationServiceTests
     }
 
     [Fact]
+    public void CalculatePriorityScoreBreakdown_ExposesFormulaComponents()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        user.EmergencyLevel = 1;
+        user.PeopleRepresentedCount = 2;
+        user.DisabilityLevel = 1;
+        var membership = new CrewMembership { User = user, PercentBonus = 10 };
+
+        var breakdown = MutualAidCalculationService.CalculatePriorityScoreBreakdown(
+            user,
+            membership,
+            isFinancialMember: true,
+            crewLifetimeContributions: 100m,
+            userLifetimeContributions: 50m,
+            survivalThresholdAmount: 5m);
+
+        breakdown.BaseScore.Should().Be(156m);
+        breakdown.PriorityMultiplier.Should().Be(4);
+        breakdown.SacrificeBonusFactor.Should().Be(1.1m);
+        breakdown.Score.Should().Be(156m * 4m * 1.1m);
+        breakdown.MembershipBonus.Should().Be(1m);
+        breakdown.PeopleRepresentedCount.Should().Be(2);
+        breakdown.DisabilityLevel.Should().Be(1);
+    }
+
+    [Fact]
     public void CalculatePriorityScore_DoesNotApplyOrganizerModifierByDefault()
     {
         var user = HandlerTestFixture.CreateUser();

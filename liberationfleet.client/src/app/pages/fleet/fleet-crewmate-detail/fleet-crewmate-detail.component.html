@@ -7,20 +7,20 @@
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
 
     <div class="profile-card" *ngIf="!loading && profile">
-      <div class="profile-header">
-        <app-user-avatar
-          class="profile-avatar"
-          [resourceId]="profile.avatarResourceId"
-          [fleetId]="fleetId || null"
-          [fallbackInitial]="profile.username"
-          size="lg"
-          [alt]="profile.username + ' avatar'">
-        </app-user-avatar>
-        <h1 class="profile-name">{{ profile.username }}</h1>
-      </div>
+      <app-crewmate-id-card
+        [username]="profile.username"
+        [avatarResourceId]="profile.avatarResourceId"
+        [crewId]="profile.homeCrewId"
+        [roles]="[]"
+        [membershipStatus]="null"
+        [priorityScore]="profile.priorityScore"
+        [inNeedOfAid]="null"
+        [isSurvivalThresholdRecipient]="null"
+        [crewName]="null"
+        [fleetName]="fleetName">
+      </app-crewmate-id-card>
 
-      <section class="section">
-        <h2>Payment platforms</h2>
+      <app-collapsible-section title="Payment platforms">
         <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
         <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
           <li *ngFor="let platform of profile.paymentPlatforms">
@@ -29,17 +29,19 @@
             <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
           </li>
         </ul>
-      </section>
+      </app-collapsible-section>
 
-      <div class="readonly-grid">
-        <div class="readonly-item">
-          <span class="readonly-label">Library of Things priority</span>
-          <span class="readonly-value">{{ profile.priorityScore }}</span>
+      <app-collapsible-section title="Crewmate stats" [expanded]="true">
+        <div class="readonly-grid">
+          <div class="readonly-item">
+            <span class="readonly-label">Library of Things priority</span>
+            <span class="readonly-value">{{ profile.priorityScore }}</span>
+          </div>
+          <p class="hint-text priority-hint">
+            Used to rank Library of Things requests in their crew. Organizers and members not marked in need of aid rank last.
+          </p>
         </div>
-        <p class="hint-text priority-hint">
-          Used to rank Library of Things requests in their crew. Organizers and members not marked in need of aid rank last.
-        </p>
-      </div>
+      </app-collapsible-section>
 
       <div class="moderation-actions" *ngIf="!profile.isSelf && profile.canSocialInteract">
         <div class="block-section">

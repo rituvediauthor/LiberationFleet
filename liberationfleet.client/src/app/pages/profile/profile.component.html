@@ -9,6 +9,25 @@
 
   <div class="form-container" *ngIf="form && profile && !isLoading">
     <div class="form-card">
+      <app-crewmate-id-card
+        [username]="profile.username"
+        [avatarResourceId]="avatarResourceId"
+        [avatarPreviewUrl]="displayAvatarUrl"
+        [crewId]="crewId"
+        [roles]="roles"
+        [membershipStatus]="!!stats?.membershipStatus"
+        [priorityScore]="stats?.priorityScore ?? 0"
+        [inNeedOfAid]="!!form.get('inNeedOfAid')?.value"
+        [isSurvivalThresholdRecipient]="profile.isSurvivalThresholdRecipient"
+        [crewName]="crewName"
+        [fleetName]="fleetName">
+      </app-crewmate-id-card>
+
+      <app-priority-score-algorithms
+        [libraryOfThings]="profile.libraryOfThingsPriority"
+        [givingSeason]="profile.givingSeasonPriority">
+      </app-priority-score-algorithms>
+
       <form [formGroup]="form">
         <section class="section avatar-section">
           <h2>Profile picture</h2>
@@ -17,15 +36,8 @@
             It will not appear in crew spaces until you have file attachment privileges.
           </p>
 
-          <div class="avatar-preview" *ngIf="displayAvatarUrl">
-            <img [src]="displayAvatarUrl" alt="Profile avatar preview">
-            <button
-              type="button"
-              class="text-btn"
-              *ngIf="canEditAvatar || avatarResourceId"
-              (click)="clearAvatar()">
-              Remove
-            </button>
+          <div class="avatar-actions" *ngIf="displayAvatarUrl && (canEditAvatar || avatarResourceId)">
+            <button type="button" class="text-btn" (click)="clearAvatar()">Remove</button>
           </div>
 
           <app-proposal-attachment-picker
@@ -43,11 +55,106 @@
           </p>
         </section>
 
-        <div class="priority-score-banner" *ngIf="stats" aria-live="polite">
-          <span class="priority-score-label">Priority score</span>
-          <span class="priority-score-value">{{ stats.priorityScore }}</span>
-          <span class="hint-text">Live mutual-aid priority. Reception order freezes each member's score when their cycle starts — not this live value. Library of Things ranks requests using the score you would have if in need and not the organizer.</span>
-        </div>
+        <app-collapsible-section title="Payment platforms">
+          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
+          <app-payment-platform-editor
+            [platforms]="paymentPlatforms"
+            [platformOptions]="platformOptions"
+            [showPreferred]="true"
+            (changed)="onPaymentPlatformChange()"
+            (add)="addPaymentPlatform()"
+            (remove)="removePaymentPlatform($event)"
+            (preferredChange)="setPreferredPlatform($event)">
+          </app-payment-platform-editor>
+        </app-collapsible-section>
+
+        <section class="section encryption-section">
+          <h2>Encryption</h2>
+          <p class="section-hint">
+            Your 12-word recovery key decrypts crew posts, proposals, and encrypted gift messages.
+            It is separate from your login password.
+          </p>
+
+          <div class="form-group checkbox-group encryption-toggle">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="encryptionUnlocked"
+                [disabled]="encryptionToggleBusy"
+                (change)="onEncryptionUnlockedToggle($event)">
+              Unlocked on this device
+            </label>
+            <span class="hint-text">
+              When checked, encryption stays unlocked and your recovery key can be saved on this device.
+              Uncheck to lock encryption and delete the key from this device.
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="text-btn"
+            [disabled]="!encryptionUnlocked || rotatingRecoveryKey"
+            (click)="startRecoveryKeyRotation()">
+            Generate new recovery key
+          </button>
+        </section>
+
+        <app-collapsible-section title="Crewmate stats">
+          <div class="readonly-grid" *ngIf="stats">
+            <div class="readonly-item">
+              <span class="readonly-label">Sacrifices last season</span>
+              <span class="readonly-value">{{ stats.sacrificeCountLastSeason }}</span>
+              <span class="hint-text">Explains your percent boost this season (+10% per sacrifice).</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Sacrifices this season</span>
+              <span class="readonly-value">{{ stats.sacrificeCountThisSeason }}</span>
+              <span class="hint-text">Emergency responses this season; become next season’s percent boost.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
+              <span class="readonly-value">${{ stats.averageMonthlyContributions }}</span>
+              <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Lifetime contributions</span>
+              <span class="readonly-value">${{ stats.lifetimeContributions }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Reception this year</span>
+              <span class="readonly-value">${{ stats.receptionThisYear }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Percent boost</span>
+              <span class="readonly-value">+{{ stats.percentBoost }}%</span>
+              <span class="hint-text">From sacrifices last season; multiplies your priority score.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">App donations {{ stats.previousTaxYear || (currentYear - 1) }}</span>
+              <span class="readonly-value">${{ stats.donationsPreviousTaxYearUsd ?? 0 }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">App donations {{ stats.currentTaxYear || currentYear }}</span>
+              <span class="readonly-value">${{ stats.donationsCurrentTaxYearUsd ?? 0 }}</span>
+            </div>
+          </div>
+
+          <p class="section-hint donation-hint">
+            App donations support Liberation Fleet (hosting/development), not crew mutual aid.
+            <a routerLink="/app/donate">Donate</a>
+          </p>
+          <p class="hint-text priority-hint">
+            Live mutual-aid priority is shown on your Crewmate ID. Reception order freezes each member's score when their cycle starts — not the live value. Library of Things ranks requests using the score you would have if in need and not the organizer.
+          </p>
+        </app-collapsible-section>
+
+        <app-collapsible-section title="Targeted minority groups">
+          <app-identity-groups-editor
+            [selected]="form.get('identityGroups')?.value || []"
+            [showHeading]="false"
+            (selectedChange)="onIdentityGroupsChange($event)">
+          </app-identity-groups-editor>
+        </app-collapsible-section>
 
         <div class="form-group">
           <label for="username">Username</label>
@@ -85,105 +192,6 @@
             Enter a valid email address
           </span>
         </div>
-
-        <section class="section">
-          <h2>Roles</h2>
-          <p *ngIf="!roles.length" class="section-hint">No special roles.</p>
-          <ul class="role-list" *ngIf="roles.length">
-            <li *ngFor="let role of roles">{{ role }}</li>
-          </ul>
-        </section>
-
-        <section class="section">
-          <h2>Payment Platforms</h2>
-          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
-
-          <app-payment-platform-editor
-            [platforms]="paymentPlatforms"
-            [platformOptions]="platformOptions"
-            [showPreferred]="true"
-            (changed)="onPaymentPlatformChange()"
-            (add)="addPaymentPlatform()"
-            (remove)="removePaymentPlatform($event)"
-            (preferredChange)="setPreferredPlatform($event)">
-          </app-payment-platform-editor>
-        </section>
-
-        <section class="section encryption-section">
-          <h2>Encryption</h2>
-          <p class="section-hint">
-            Your 12-word recovery key decrypts crew posts, proposals, and encrypted gift messages.
-            It is separate from your login password.
-          </p>
-
-          <div class="encryption-status">
-            <span class="status-label">Status</span>
-            <span class="status-value" [class.unlocked]="encryptionUnlocked">
-              {{ encryptionUnlocked ? 'Unlocked on this device' : 'Locked' }}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            class="text-btn"
-            [disabled]="!encryptionUnlocked || rotatingRecoveryKey"
-            (click)="startRecoveryKeyRotation()">
-            Generate new recovery key
-          </button>
-        </section>
-
-        <div class="readonly-grid" *ngIf="stats">
-          <div class="readonly-item">
-            <span class="readonly-label">Sacrifices last season</span>
-            <span class="readonly-value">{{ stats.sacrificeCountLastSeason }}</span>
-            <span class="hint-text">Explains your percent boost this season (+10% per sacrifice).</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Sacrifices this season</span>
-            <span class="readonly-value">{{ stats.sacrificeCountThisSeason }}</span>
-            <span class="hint-text">Emergency responses this season; become next season’s percent boost.</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
-            <span class="readonly-value">${{ stats.averageMonthlyContributions }}</span>
-            <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Membership status</span>
-            <span class="readonly-value">{{ stats.membershipStatus ? 'Active' : 'Inactive' }}</span>
-            <span class="hint-text">Based on your 3-month contribution average including Library of Things (and crew roles).</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Lifetime contributions</span>
-            <span class="readonly-value">${{ stats.lifetimeContributions }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Reception this year</span>
-            <span class="readonly-value">${{ stats.receptionThisYear }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Percent boost</span>
-            <span class="readonly-value">+{{ stats.percentBoost }}%</span>
-            <span class="hint-text">From sacrifices last season; multiplies your priority score.</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Survival threshold recipient</span>
-            <span class="readonly-value">{{ profile.isSurvivalThresholdRecipient ? 'Yes' : 'No' }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">App donations {{ stats.previousTaxYear || (currentYear - 1) }}</span>
-            <span class="readonly-value">${{ stats.donationsPreviousTaxYearUsd ?? 0 }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">App donations {{ stats.currentTaxYear || currentYear }}</span>
-            <span class="readonly-value">${{ stats.donationsCurrentTaxYearUsd ?? 0 }}</span>
-          </div>
-        </div>
-
-        <p class="section-hint donation-hint">
-          App donations support Liberation Fleet (hosting/development), not crew mutual aid.
-          <a routerLink="/app/donate">Donate</a>
-        </p>
 
         <div class="form-group checkbox-group">
           <label class="checkbox-label">
@@ -260,11 +268,6 @@
             Disability level must be between 0 and 3
           </span>
         </div>
-
-        <app-identity-groups-editor
-          [selected]="form.get('identityGroups')?.value || []"
-          (selectedChange)="onIdentityGroupsChange($event)">
-        </app-identity-groups-editor>
       </form>
 
       <section class="section password-section" [formGroup]="passwordForm">
@@ -377,3 +380,8 @@
   confirmLabel="I have saved this recovery key in a safe place"
   (confirmed)="onRecoveryKeyRotationConfirmed()">
 </app-recovery-key-display>
+
+<app-crypto-unlock-dialog
+  [visible]="showUnlockDialog"
+  (unlocked)="onEncryptionUnlockDialogCompleted()">
+</app-crypto-unlock-dialog>

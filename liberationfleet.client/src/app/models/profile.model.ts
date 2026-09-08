@@ -19,6 +19,23 @@ export interface PaymentPlatformAccount {
   customPlatformName?: string;
 }
 
+export interface PriorityScoreBreakdown {
+  score: number;
+  crewLifetimeContributions: number;
+  emergencyLevel: number;
+  membershipBonus: number;
+  userLifetimeContributions: number;
+  survivalThresholdAmount: number;
+  baseScore: number;
+  peopleRepresentedCount: number;
+  disabilityLevel: number;
+  priorityMultiplier: number;
+  percentBoost: number;
+  sacrificeBonusFactor: number;
+  isFinancialMember: boolean;
+  statusReason?: string | null;
+}
+
 export interface UserProfile {
   id: number;
   username: string;
@@ -36,6 +53,8 @@ export interface UserProfile {
   canToggleInNeedOff: boolean;
   inNeedToggleThreshold: number;
   stats: UserProfileStats;
+  givingSeasonPriority?: PriorityScoreBreakdown | null;
+  libraryOfThingsPriority?: PriorityScoreBreakdown | null;
 }
 
 export interface UserProfileStats {

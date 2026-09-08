@@ -70,11 +70,10 @@ export class GiftLogCryptoService {
         );
         // Prefer the stored encrypted body (historical freeform posts / LoT / celebrations).
         // Fall back to a rebuilt template when the payload has no message text.
+        // Strip legacy "(Unverified)" suffixes — status is shown via the UI pill only.
         const storedMessage = (payload.message || '').trim();
-        const message = storedMessage
-          ? storedMessage
-          : (this.isCelebrationType(entry.type) ? (entry.message || rebuilt) : rebuilt);
-        return {
+        const message = this.resolveDisplayMessage(entry, storedMessage, rebuilt);
+        const resolved: GiftLogEntry = {
           ...entry,
           giverName,
           recipientName,
@@ -82,6 +81,11 @@ export class GiftLogCryptoService {
           platform,
           message
         };
+        if (storedMessage && message !== storedMessage && /\(Unverified\)\s*$/i.test(storedMessage)) {
+          void this.encryptAndStoreEntry(resolved, crewId, entry.encryptedPayload?.keyVersion)
+            .catch(() => undefined);
+        }
+        return resolved;
       } catch {
         return {
           ...entry,
@@ -317,9 +321,7 @@ export class GiftLogCryptoService {
     if (displayFlag === 'cantComplete') {
       return `${baseMessage} (Can't Complete)`;
     }
-    if (displayFlag === 'unverified' || status === 'unverified') {
-      return `${baseMessage} (Unverified)`;
-    }
+    // Unverified state is shown via the list/detail pill, not message-body text.
     if (type === 'initiated' && status === 'completed') {
       return `${baseMessage} (Completed)`;
     }
@@ -360,6 +362,23 @@ export class GiftLogCryptoService {
     return normalized === 'seasonstarted'
       || normalized === 'cyclestarted'
       || normalized === 'survivalthresholdsrefreshed';
+  }
+
+  private resolveDisplayMessage(
+    entry: GiftLogEntry,
+    storedMessage: string,
+    rebuilt: string
+  ): string {
+    if (!storedMessage) {
+      return this.isCelebrationType(entry.type) ? (entry.message || rebuilt) : rebuilt;
+    }
+
+    // Always strip legacy verification suffix from the body; the Unverified pill owns that state.
+    if (/\(Unverified\)\s*$/i.test(storedMessage)) {
+      return rebuilt;
+    }
+
+    return storedMessage;
   }
 
   private maskEncryptedEntry(entry: GiftLogEntry): GiftLogEntry {

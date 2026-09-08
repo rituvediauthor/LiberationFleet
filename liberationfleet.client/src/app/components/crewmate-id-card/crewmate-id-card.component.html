@@ -1,0 +1,55 @@
+<article class="crewmate-id-card" aria-label="Crewmate ID">
+  <header class="id-card-banner">
+    <span class="id-card-banner-label">Crewmate ID</span>
+  </header>
+
+  <div class="id-card-main">
+    <div class="id-card-identity">
+      <img
+        *ngIf="avatarPreviewUrl"
+        class="id-card-avatar-img"
+        [src]="avatarPreviewUrl"
+        [alt]="username + ' avatar'">
+      <app-user-avatar
+        *ngIf="!avatarPreviewUrl"
+        [resourceId]="avatarResourceId"
+        [crewId]="crewId || null"
+        [fallbackInitial]="username"
+        size="lg"
+        [alt]="username + ' avatar'">
+      </app-user-avatar>
+
+      <div class="id-card-name-block">
+        <h2 class="id-card-username">{{ username }}</h2>
+        <p class="id-card-roles">{{ roleDisplay }}</p>
+      </div>
+    </div>
+
+    <dl class="id-card-fields">
+      <div class="id-card-field">
+        <dt>Membership</dt>
+        <dd>{{ activeInactive(membershipStatus) }}</dd>
+      </div>
+      <div class="id-card-field">
+        <dt>Priority score</dt>
+        <dd>{{ priorityScore == null ? '—' : priorityScore }}</dd>
+      </div>
+      <div class="id-card-field">
+        <dt>In need</dt>
+        <dd>{{ yesNo(inNeedOfAid) }}</dd>
+      </div>
+      <div class="id-card-field">
+        <dt>Survival threshold recipient</dt>
+        <dd>{{ yesNo(isSurvivalThresholdRecipient) }}</dd>
+      </div>
+      <div class="id-card-field">
+        <dt>Crew</dt>
+        <dd>{{ crewName?.trim() || '—' }}</dd>
+      </div>
+      <div class="id-card-field">
+        <dt>Fleet</dt>
+        <dd>{{ fleetName?.trim() || '—' }}</dd>
+      </div>
+    </dl>
+  </div>
+</article>

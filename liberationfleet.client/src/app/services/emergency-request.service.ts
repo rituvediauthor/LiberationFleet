@@ -47,4 +47,8 @@ export class EmergencyRequestService {
   splitCycle(id: number, amount: number): Observable<EmergencyRequestOperationResponse> {
     return this.http.post<EmergencyRequestOperationResponse>(`${this.apiUrl}/${id}/split-cycle`, { amount });
   }
+
+  cancel(id: number): Observable<EmergencyRequestOperationResponse> {
+    return this.http.post<EmergencyRequestOperationResponse>(`${this.apiUrl}/${id}/cancel`, {});
+  }
 }

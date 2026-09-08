@@ -6,6 +6,7 @@ using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
 
@@ -31,7 +32,8 @@ public class RecordGiftsCommandHandler(
     IMutualAidService mutualAidService,
     ICustomGiftRecordingService customGiftRecordingService,
     NotificationService notificationService,
-    IUnitOfWork unitOfWork) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
+    IUnitOfWork unitOfWork,
+    ILogger<RecordGiftsCommandHandler> logger) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
 {
     public async Task<GiftOperationResponse> Handle(RecordGiftsCommand request, CancellationToken cancellationToken)
     {
@@ -190,26 +192,48 @@ public class RecordGiftsCommandHandler(
 
             if (notifiedRecipients.Add(item.RecipientId))
             {
-                var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
-                if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
+                try
                 {
-                    await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                    var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
+                    if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
                     {
-                        UserId = item.RecipientId,
-                        CrewId = membership.CrewId,
-                        Kind = NotificationKind.NewGifts,
-                        Title = "New gift(s)",
-                        Body = "You received a new gift in your crew.",
-                        ActionUrl = lastSaved is not null
-                            ? $"/app/crew/gift-log?highlightId={lastSaved.Id}"
-                            : "/app/crew/gift-log",
-                        RelatedEntityId = lastSaved?.Id
-                    }, cancellationToken);
+                        await notificationService.NotifyUserAsync(new CreateNotificationRequest
+                        {
+                            UserId = item.RecipientId,
+                            CrewId = membership.CrewId,
+                            Kind = NotificationKind.NewGifts,
+                            Title = "New gift(s)",
+                            Body = "You received a new gift in your crew.",
+                            ActionUrl = lastSaved is not null
+                                ? $"/app/crew/gift-log?highlightId={lastSaved.Id}"
+                                : "/app/crew/gift-log",
+                            RelatedEntityId = lastSaved?.Id
+                        }, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(
+                        ex,
+                        "Failed to notify recipient {RecipientId} after recording gifts in crew {CrewId}",
+                        item.RecipientId,
+                        membership.CrewId);
                 }
             }
         }
 
-        await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+        try
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Gifts are already saved; do not fail the request after success.
+            logger.LogError(
+                ex,
+                "Post-record contribution refresh failed for crew {CrewId}",
+                membership.CrewId);
+        }
 
         return new GiftOperationResponse
         {

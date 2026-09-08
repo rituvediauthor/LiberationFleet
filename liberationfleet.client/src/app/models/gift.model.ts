@@ -224,6 +224,8 @@ export interface ReceptionOrderEntry {
   hasUnverifiedPending?: boolean;
   pendingUnverifiedAmount?: number;
   isUnlimitedNeed?: boolean;
+  isEmergencyCycle?: boolean;
+  isPaybackCycle?: boolean;
   crewId?: number;
   crewName?: string;
 }

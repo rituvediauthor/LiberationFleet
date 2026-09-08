@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.EmergencyRequests.Commands.CancelEmergencyRequest;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Commands.CreateEmergencyRequest;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Commands.MarkEmergencyGiftAlreadyLogged;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Commands.RecordEmergencyGift;
@@ -42,6 +43,13 @@ public class EmergencyRequestsController : ControllerBase
     {
         body ??= new CreateEmergencyRequestRequest();
         var result = await _mediator.Send(new CreateEmergencyRequestCommand(body.Purpose, body.AmountNeeded));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var result = await _mediator.Send(new CancelEmergencyRequestCommand(id));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

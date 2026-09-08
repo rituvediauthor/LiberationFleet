@@ -368,7 +368,7 @@ public class EmergencySplitService(
         splitOffer.RequesterEmergencyCycle = emergencySegment;
         splitOffer.OffererPaybackCycle = paybackSegment;
 
-        await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
+        await mutualAidService.OnCrewContributionsChangedAsync(request.CrewId, cancellationToken);
 
         return EmergencySplitResult.Succeeded("Cycle split recorded.");
     }

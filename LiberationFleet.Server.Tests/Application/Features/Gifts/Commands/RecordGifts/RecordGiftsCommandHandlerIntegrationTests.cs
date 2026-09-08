@@ -4,6 +4,7 @@ using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.RecordGifts;
 
@@ -23,7 +24,8 @@ public class RecordGiftsCommandHandlerIntegrationTests
             fixture.Service,
             HandlerTestFixture.CreateCustomGiftRecordingService(fixture.Context, fixture.Service),
             HandlerTestFixture.CreateNotificationService(fixture.Context),
-            fixture.Context);
+            fixture.Context,
+            NullLogger<RecordGiftsCommandHandler>.Instance);
     }
 
     [Fact]
@@ -65,7 +67,8 @@ public class RecordGiftsCommandHandlerIntegrationTests
             giftRepository,
             crewPaymentPlatformRepository,
             fixture.Service,
-            fixture.Context);
+            fixture.Context,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
 
         var verifyResult = await verifyHandler.Handle(
             new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),
@@ -152,7 +155,8 @@ public class RecordGiftsCommandHandlerIntegrationTests
             giftRepository,
             crewPaymentPlatformRepository,
             fixture.Service,
-            fixture.Context);
+            fixture.Context,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
 
         var verifyResult = await verifyHandler.Handle(
             new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),

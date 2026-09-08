@@ -79,6 +79,16 @@ h1 {
   border-radius: 999px;
 }
 
+.entry-type-emergency {
+  color: var(--lf-color-accent);
+  background: color-mix(in srgb, var(--lf-color-accent) 16%, transparent);
+}
+
+.entry-type-payback {
+  color: var(--lf-color-text-primary);
+  background: color-mix(in srgb, var(--lf-color-text-secondary) 18%, transparent);
+}
+
 .entry-unverified {
   font-size: 12px;
   color: var(--lf-color-text-secondary);

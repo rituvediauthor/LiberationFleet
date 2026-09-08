@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Hubs;
 using LiberationFleet.Server.Infrastructure;
 using LiberationFleet.Server.Infrastructure.Data;
+using LiberationFleet.Server.Infrastructure.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -152,6 +153,8 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new UtcNullableDateTimeJsonConverter());
     });
 builder.Services.AddSingleton<LiberationFleet.Server.Infrastructure.Data.DatabaseReadyState>();
 builder.Services.AddOpenApi();

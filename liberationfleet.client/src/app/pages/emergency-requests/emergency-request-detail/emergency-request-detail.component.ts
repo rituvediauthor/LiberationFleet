@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
 import { CrewService } from '../../../services/crew.service';
 import { ProfileService } from '../../../services/profile.service';
@@ -22,7 +23,13 @@ type ResponseMode = 'recordGift' | 'splitCycle';
 @Component({
   selector: 'app-emergency-request-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, NotificationTargetDirective],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    ConfirmDialogComponent,
+    NotificationTargetDirective
+  ],
   templateUrl: './emergency-request-detail.component.html',
   styleUrl: './emergency-request-detail.component.css'
 })
@@ -31,6 +38,7 @@ export class EmergencyRequestDetailComponent implements OnInit {
   loading = true;
   errorMessage = '';
   submitting = false;
+  showCloseConfirm = false;
   responseMode: ResponseMode = 'recordGift';
   platforms: PaymentPlatformOption[] = [];
   giverPlatformIds: number[] = [];
@@ -162,6 +170,37 @@ export class EmergencyRequestDetailComponent implements OnInit {
     });
   }
 
+  onConfirmClose() {
+    this.showCloseConfirm = false;
+    if (!this.request || this.submitting || !this.request.isSelfRequest) {
+      return;
+    }
+
+    this.submitting = true;
+    this.updateSubmitButton();
+    this.emergencyRequestService.cancel(this.requestId).subscribe({
+      next: result => {
+        if (result.success) {
+          this.toastService.success(result.message || 'Emergency request closed.');
+          this.router.navigate(['/app/crew/emergency-requests']);
+          return;
+        }
+        this.toastService.error(result.message || 'Failed to close request');
+        this.submitting = false;
+        this.updateSubmitButton();
+      },
+      error: error => {
+        this.toastService.error(error?.error?.message || 'Failed to close request');
+        this.submitting = false;
+        this.updateSubmitButton();
+      }
+    });
+  }
+
+  onDismissCloseConfirm() {
+    this.showCloseConfirm = false;
+  }
+
   private loadDetail() {
     this.emergencyRequestService.getDetail(this.requestId).subscribe({
       next: response => {
@@ -185,6 +224,18 @@ export class EmergencyRequestDetailComponent implements OnInit {
   }
 
   private updateSubmitButton() {
+    if (this.request?.isSelfRequest && this.request.status === 'Open') {
+      this.submitButton = {
+        label: 'Close Request',
+        type: 'primary',
+        disabled: this.submitting,
+        onClick: () => {
+          this.showCloseConfirm = true;
+        }
+      };
+      return;
+    }
+
     const disabled = this.submitting
       || !this.request
       || this.request.isSelfRequest

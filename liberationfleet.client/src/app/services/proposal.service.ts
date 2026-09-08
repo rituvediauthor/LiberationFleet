@@ -69,7 +69,7 @@ export class ProposalService {
         }
         return response.items.map(comment => ({
           ...comment,
-          createdAt: new Date(comment.createdAt)
+          createdAt: this.parseApiDate(comment.createdAt)
         }));
       })
     );
@@ -161,28 +161,51 @@ export class ProposalService {
     const days = Math.floor(totalMinutes / (60 * 24));
     const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
     const minutes = totalMinutes % 60;
+    const parts: string[] = [];
     if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
+      parts.push(`${days} day${days === 1 ? '' : 's'}`);
     }
     if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+      parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
     }
-    return `${minutes}m`;
+    if (minutes > 0 || parts.length === 0) {
+      parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+    }
+    if (parts.length === 1) {
+      return parts[0];
+    }
+    if (parts.length === 2) {
+      return `${parts[0]} and ${parts[1]}`;
+    }
+    return `${parts[0]}, ${parts[1]}, and ${parts[2]}`;
+  }
+
+  parseApiDate(value: string | Date): Date {
+    if (value instanceof Date) {
+      return value;
+    }
+    // Unspecified timestamps from older responses are UTC wall times — force Z.
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value) && !/(Z|[+-]\d{2}:?\d{2})$/.test(value)) {
+      return new Date(`${value}Z`);
+    }
+    return new Date(value);
   }
 
   private mapListItem(item: ProposalListItem): ProposalListItem {
     return {
       ...item,
       kind: item.kind,
-      lastActivityAt: new Date(item.lastActivityAt),
-      approvalTimerEndsAt: item.approvalTimerEndsAt ? new Date(item.approvalTimerEndsAt) : null
+      lastActivityAt: this.parseApiDate(item.lastActivityAt),
+      approvalTimerEndsAt: item.approvalTimerEndsAt
+        ? this.parseApiDate(item.approvalTimerEndsAt as string | Date)
+        : null
     };
   }
 
   private mapDetail(proposal: ProposalDetail): ProposalDetail {
     return {
       ...this.mapListItem(proposal),
-      createdAt: new Date(proposal.createdAt),
+      createdAt: this.parseApiDate(proposal.createdAt),
       canEdit: proposal.canEdit,
       canDelete: proposal.canDelete,
       canVote: proposal.canVote ?? true,
@@ -193,7 +216,7 @@ export class ProposalService {
       canKickAuthor: proposal.canKickAuthor,
       comments: (proposal.comments ?? []).map(comment => ({
         ...comment,
-        createdAt: new Date(comment.createdAt)
+        createdAt: this.parseApiDate(comment.createdAt)
       }))
     };
   }

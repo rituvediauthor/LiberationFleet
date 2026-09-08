@@ -22,7 +22,7 @@
             <div class="request-main">
               <p class="request-name">{{ item.requesterUsername }}</p>
               <p class="request-purpose">{{ item.purposePreview }}</p>
-              <p class="request-amount">${{ item.amountRemaining }} remaining of ${{ item.amountNeeded }}</p>
+              <p class="request-amount">${{ item.amountUncovered ?? item.amountRemaining }} remaining of ${{ item.amountNeeded }}</p>
             </div>
             <i class="fa-solid fa-angle-right chevron" aria-hidden="true"></i>
           </button>
@@ -73,7 +73,10 @@
             <span class="entry-name">{{ entry.username }}</span>
             <span class="entry-you" *ngIf="isOwnEntry(entry)">You</span>
             <span class="entry-need">{{ entryNeedLabel(entry) }}</span>
-            <span class="entry-type">{{ entryTypeLabel(entry) }}</span>
+            <span
+              class="entry-type"
+              [class.entry-type-emergency]="entry.isEmergencyCycle"
+              [class.entry-type-payback]="entry.isPaybackCycle">{{ entryTypeLabel(entry) }}</span>
             <span *ngIf="entry.hasUnverifiedPending" class="entry-unverified" title="Includes gifts awaiting verification">Unverified gifts pending</span>
           </div>
 

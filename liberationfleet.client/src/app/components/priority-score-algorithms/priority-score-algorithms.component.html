@@ -1,0 +1,14 @@
+<section class="priority-algorithms" *ngIf="libraryOfThings || givingSeason" aria-label="Priority score algorithms">
+  <article class="algorithm-block" *ngIf="libraryOfThings as lot">
+    <h3 class="algorithm-title">Library of Things priority score: {{ lot.score }}</h3>
+    <p class="algorithm-expression">{{ expression(lot) }}</p>
+    <p class="algorithm-labels">{{ labels(lot) }}</p>
+  </article>
+
+  <article class="algorithm-block" *ngIf="givingSeason as season">
+    <h3 class="algorithm-title">Giving Season: {{ season.score }}</h3>
+    <p class="algorithm-status" *ngIf="season.statusReason">{{ season.statusReason }}</p>
+    <p class="algorithm-expression">{{ expression(season) }}</p>
+    <p class="algorithm-labels">{{ labels(season) }}</p>
+  </article>
+</section>

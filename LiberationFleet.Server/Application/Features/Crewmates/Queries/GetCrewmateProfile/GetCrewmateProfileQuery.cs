@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Profile;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using MediatR;
@@ -67,10 +68,17 @@ public class GetCrewmateProfileQueryHandler(
             targetMembership,
             cancellationToken);
 
-        var priorityScore = await mutualAidService.GetPriorityScoreForUserAsync(
+        var givingSeasonBreakdown = await mutualAidService.GetPriorityScoreBreakdownForUserAsync(
             request.UserId,
             viewerMembership.CrewId,
             cancellationToken);
+        var priorityScore = givingSeasonBreakdown.Score;
+
+        var libraryBreakdown = await mutualAidService.GetPriorityScoreBreakdownForUserAsync(
+            request.UserId,
+            viewerMembership.CrewId,
+            cancellationToken,
+            assumeInNeedNonOrganizerForLot: true);
 
         var unsatisfiedThresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(
             viewerMembership.CrewId,
@@ -135,7 +143,11 @@ public class GetCrewmateProfileQueryHandler(
                 viewerId == request.UserId,
                 tenureDays,
                 canClaimIdentity,
-                seasonCycle)
+                seasonCycle,
+                ProfileMapper.ToDto(
+                    givingSeasonBreakdown,
+                    crewmate.InNeedOfAid ? null : "Not in need"),
+                ProfileMapper.ToDto(libraryBreakdown))
         };
     }
 }

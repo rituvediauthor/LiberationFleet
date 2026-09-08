@@ -1,5 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Application.Features.Profile;
+using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
@@ -110,7 +112,9 @@ public static class CrewmateMapper
         bool isSelf,
         int tenureDays,
         bool canClaimIdentity = false,
-        SeasonCycle? seasonCycle = null)
+        SeasonCycle? seasonCycle = null,
+        PriorityScoreBreakdownDto? givingSeasonPriority = null,
+        PriorityScoreBreakdownDto? libraryOfThingsPriority = null)
     {
         var lifetimeContributions = membership.LifetimeContributionOverride ?? giftStats.LifetimeContributions;
         var receptionThisYear = membership.ReceptionThisYearOverride ?? giftStats.ReceptionThisYear;
@@ -172,7 +176,9 @@ public static class CrewmateMapper
             SurvivalThresholdReceived = seasonCycle?.SurvivalThresholdReceived,
             CycleReceived = seasonCycle?.CycleReceived,
             CycleCompleted = seasonCycle?.CycleCompleted,
-            HasActiveSeasonCycle = seasonCycle is not null || crew.CurrentSeasonStartDate.HasValue
+            HasActiveSeasonCycle = seasonCycle is not null || crew.CurrentSeasonStartDate.HasValue,
+            GivingSeasonPriority = givingSeasonPriority,
+            LibraryOfThingsPriority = libraryOfThingsPriority
         };
     }
 }

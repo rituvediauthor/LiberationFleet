@@ -1,0 +1,43 @@
+.priority-algorithms {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 0 20px;
+}
+
+.algorithm-block {
+  padding: 14px 16px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-muted);
+}
+
+.algorithm-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lf-color-text-body);
+}
+
+.algorithm-expression {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--lf-color-text-body);
+  word-break: break-word;
+}
+
+.algorithm-labels,
+.algorithm-status {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
+  white-space: pre-line;
+}
+
+.algorithm-status {
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}

@@ -3,6 +3,21 @@ using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Services;
 
+public sealed record PriorityScoreBreakdown(
+    decimal Score,
+    decimal CrewLifetimeContributions,
+    int EmergencyLevel,
+    decimal MembershipBonus,
+    decimal UserLifetimeContributions,
+    decimal SurvivalThresholdAmount,
+    decimal BaseScore,
+    int PeopleRepresentedCount,
+    int DisabilityLevel,
+    int PriorityMultiplier,
+    int PercentBoost,
+    decimal SacrificeBonusFactor,
+    bool IsFinancialMember);
+
 public static class MutualAidCalculationService
 {
     /// <summary>
@@ -142,7 +157,7 @@ public static class MutualAidCalculationService
     public const string MonthlyContributionAverageExplanation =
         "Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.";
 
-    public static decimal CalculatePriorityScore(
+    public static PriorityScoreBreakdown CalculatePriorityScoreBreakdown(
         User user,
         CrewMembership membership,
         bool isFinancialMember,
@@ -151,17 +166,51 @@ public static class MutualAidCalculationService
         decimal survivalThresholdAmount)
     {
         var membershipBonus = isFinancialMember ? 1m : 0m;
+        var emergencyLevel = user.EmergencyLevel;
+        var peopleRepresentedCount = user.PeopleRepresentedCount;
+        var disabilityLevel = user.DisabilityLevel;
+        var percentBoost = membership.PercentBonus;
 
-        var baseScore = (crewLifetimeContributions * user.EmergencyLevel)
+        var baseScore = (crewLifetimeContributions * emergencyLevel)
             + membershipBonus
             + userLifetimeContributions
             + survivalThresholdAmount;
 
         // Always at least 1 so dependents+disability of 0 cannot zero the score.
-        var priorityMultiplier = user.PeopleRepresentedCount + user.DisabilityLevel + 1;
-        var sacrificeBonusFactor = 1m + (membership.PercentBonus / 100m);
-        return baseScore * priorityMultiplier * sacrificeBonusFactor;
+        var priorityMultiplier = peopleRepresentedCount + disabilityLevel + 1;
+        var sacrificeBonusFactor = 1m + (percentBoost / 100m);
+        var score = baseScore * priorityMultiplier * sacrificeBonusFactor;
+
+        return new PriorityScoreBreakdown(
+            Score: score,
+            CrewLifetimeContributions: crewLifetimeContributions,
+            EmergencyLevel: emergencyLevel,
+            MembershipBonus: membershipBonus,
+            UserLifetimeContributions: userLifetimeContributions,
+            SurvivalThresholdAmount: survivalThresholdAmount,
+            BaseScore: baseScore,
+            PeopleRepresentedCount: peopleRepresentedCount,
+            DisabilityLevel: disabilityLevel,
+            PriorityMultiplier: priorityMultiplier,
+            PercentBoost: percentBoost,
+            SacrificeBonusFactor: sacrificeBonusFactor,
+            IsFinancialMember: isFinancialMember);
     }
+
+    public static decimal CalculatePriorityScore(
+        User user,
+        CrewMembership membership,
+        bool isFinancialMember,
+        decimal crewLifetimeContributions,
+        decimal userLifetimeContributions,
+        decimal survivalThresholdAmount) =>
+        CalculatePriorityScoreBreakdown(
+            user,
+            membership,
+            isFinancialMember,
+            crewLifetimeContributions,
+            userLifetimeContributions,
+            survivalThresholdAmount).Score;
 
     public static bool IsCycleSatisfied(SeasonCycle cycle, decimal effectiveCycleCap) =>
         cycle.CycleReceived >= effectiveCycleCap;

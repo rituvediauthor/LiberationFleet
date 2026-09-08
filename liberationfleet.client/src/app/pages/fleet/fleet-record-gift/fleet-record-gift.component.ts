@@ -109,6 +109,12 @@ export class FleetRecordGiftComponent implements OnInit {
     if (entry.entryType === 'representative') {
       return 'Representative';
     }
+    if (entry.isEmergencyCycle) {
+      return 'Emergency cycle';
+    }
+    if (entry.isPaybackCycle) {
+      return 'Pay-back cycle';
+    }
     return 'Cycle';
   }
 

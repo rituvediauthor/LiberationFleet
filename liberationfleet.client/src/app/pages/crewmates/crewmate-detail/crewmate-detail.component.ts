@@ -9,14 +9,28 @@ import { KickReasonDialogComponent } from '../../../components/kick-reason-dialo
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
+import { CrewmateIdCardComponent } from '../../../components/crewmate-id-card/crewmate-id-card.component';
+import { CollapsibleSectionComponent } from '../../../components/collapsible-section/collapsible-section.component';
+import { PriorityScoreAlgorithmsComponent } from '../../../components/priority-score-algorithms/priority-score-algorithms.component';
+import { FleetService } from '../../../services/fleet.service';
+import { formatIdentityGroupLabels } from '../../../utils/identity-groups.util';
 import { CrewmateAidStatField, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
 import { CrewService } from '../../../services/crew.service';
-import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent, ConfirmDialogComponent, KickReasonDialogComponent, ReportContentDialogComponent, UserAvatarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    PageLayoutComponent,
+    ConfirmDialogComponent,
+    KickReasonDialogComponent,
+    ReportContentDialogComponent,
+    CrewmateIdCardComponent,
+    CollapsibleSectionComponent,
+    PriorityScoreAlgorithmsComponent
+  ],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'
 })
@@ -31,6 +45,9 @@ export class CrewmateDetailComponent implements OnInit {
   showReportDialog = false;
   selectedRoles = new Set<string>();
   crewId = 0;
+  crewName: string | null = null;
+  fleetName: string | null = null;
+  identityGroupLabels: string[] = [];
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
@@ -51,6 +68,7 @@ export class CrewmateDetailComponent implements OnInit {
   private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private toastService = inject(ToastService);
   userId = 0;
 
@@ -67,6 +85,13 @@ export class CrewmateDetailComponent implements OnInit {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.crewId = membership.crewId ?? 0;
+        this.crewName = membership.crewName ?? null;
+      }
+    });
+
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        this.fleetName = status.fleetName ?? null;
       }
     });
 
@@ -492,6 +517,7 @@ export class CrewmateDetailComponent implements OnInit {
           this.profile = null;
         } else {
           this.profile = response.profile;
+          this.identityGroupLabels = formatIdentityGroupLabels(response.profile.identityGroups);
           this.selectedRoles.clear();
           this.syncAidDraftFromProfile();
           this.updateActionButtons();

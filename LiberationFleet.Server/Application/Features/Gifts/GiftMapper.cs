@@ -210,11 +210,7 @@ public static class GiftMapper
             return $"{baseMessage} (Can't Complete)";
         }
 
-        if (displayFlag == GiftVerificationUiHelper.FlagUnverified
-            || status == "unverified")
-        {
-            return $"{baseMessage} (Unverified)";
-        }
+        // Unverified state is shown via the client pill, not message-body text.
 
         if (gift.Type == GiftType.Initiated && status == "completed")
         {

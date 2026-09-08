@@ -1,3 +1,5 @@
+import type { PriorityScoreBreakdown } from './profile.model';
+
 export type CrewmateFriendshipState = 'none' | 'requestSent' | 'requestReceived' | 'friends' | 'blocked';
 
 export interface CrewmatePlatformDisplay {
@@ -99,6 +101,8 @@ export interface CrewmateProfile {
   cycleReceived?: number | null;
   cycleCompleted?: boolean | null;
   hasActiveSeasonCycle?: boolean;
+  givingSeasonPriority?: PriorityScoreBreakdown | null;
+  libraryOfThingsPriority?: PriorityScoreBreakdown | null;
 }
 
 export type CrewmateAidStatField =

@@ -7,6 +7,7 @@ using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.RecordGifts;
 
@@ -289,6 +290,7 @@ public class RecordGiftsCommandHandlerTests
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             new Mock<ICustomGiftRecordingService>(MockBehavior.Loose).Object,
             notificationService,
-            unitOfWork.Object);
+            unitOfWork.Object,
+            NullLogger<RecordGiftsCommandHandler>.Instance);
     }
 }

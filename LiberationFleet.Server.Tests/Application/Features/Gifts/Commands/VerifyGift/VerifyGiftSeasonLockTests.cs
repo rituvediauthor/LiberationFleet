@@ -5,6 +5,7 @@ using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Tests.TestHelpers;
 using FluentAssertions;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.VerifyGift;
 
@@ -56,7 +57,8 @@ public class VerifyGiftSeasonLockTests
             giftRepository.Object,
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
-            HandlerTestFixture.CreateUnitOfWorkMock().Object);
+            HandlerTestFixture.CreateUnitOfWorkMock().Object,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
 
         var result = await handler.Handle(
             new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),
@@ -124,7 +126,67 @@ public class VerifyGiftSeasonLockTests
             giftRepository.Object,
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             mutualAid.Object,
-            unitOfWork.Object);
+            unitOfWork.Object,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
+
+        var result = await handler.Handle(
+            new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        gift.VerificationStatus.Should().Be(GiftVerificationStatus.Verified);
+    }
+
+    [Fact]
+    public async Task Handle_WhenContributionRefreshThrows_StillReturnsSuccess()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew();
+        crew.CurrentSeasonStartDate = DateTime.UtcNow.AddDays(-5);
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
+        membership.IsInSeason = true;
+
+        var gift = new Gift
+        {
+            Id = 9,
+            CrewId = crew.Id,
+            GiverUserId = 2,
+            RecipientUserId = user.Id,
+            GiverUser = HandlerTestFixture.CreateUser(id: 2),
+            RecipientUser = user,
+            Type = GiftType.Direct,
+            Amount = 10,
+            VerificationStatus = GiftVerificationStatus.Pending,
+            CountsTowardReception = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var membershipRepository = new Mock<ICrewMembershipRepository>(MockBehavior.Strict);
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(membership);
+
+        var giftRepository = new Mock<IGiftRepository>(MockBehavior.Strict);
+        giftRepository
+            .Setup(r => r.GetByIdWithUsersAsync(gift.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(gift);
+
+        var mutualAid = HandlerTestFixture.CreateMutualAidServiceMock();
+        mutualAid
+            .Setup(s => s.ApplyGiftReceptionAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mutualAid
+            .Setup(s => s.OnCrewContributionsChangedAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        var handler = new VerifyGiftCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
+            membershipRepository.Object,
+            giftRepository.Object,
+            HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
+            mutualAid.Object,
+            HandlerTestFixture.CreateUnitOfWorkMock().Object,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
 
         var result = await handler.Handle(
             new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),

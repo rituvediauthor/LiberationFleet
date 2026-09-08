@@ -32,6 +32,27 @@ public class UserProfileStatsDto
     public int PreviousTaxYear { get; set; }
 }
 
+public class PriorityScoreBreakdownDto
+{
+    public int Score { get; set; }
+    public decimal CrewLifetimeContributions { get; set; }
+    public int EmergencyLevel { get; set; }
+    public decimal MembershipBonus { get; set; }
+    public decimal UserLifetimeContributions { get; set; }
+    public decimal SurvivalThresholdAmount { get; set; }
+    public decimal BaseScore { get; set; }
+    public int PeopleRepresentedCount { get; set; }
+    public int DisabilityLevel { get; set; }
+    public int PriorityMultiplier { get; set; }
+    public int PercentBoost { get; set; }
+    public decimal SacrificeBonusFactor { get; set; }
+    public bool IsFinancialMember { get; set; }
+    /// <summary>
+    /// Optional reception-status note for Giving Season (e.g. not in need).
+    /// </summary>
+    public string? StatusReason { get; set; }
+}
+
 public class UserProfileDto
 {
     public int Id { get; set; }
@@ -50,6 +71,8 @@ public class UserProfileDto
     public bool CanToggleInNeedOff { get; set; }
     public decimal InNeedToggleThreshold { get; set; }
     public UserProfileStatsDto Stats { get; set; } = new();
+    public PriorityScoreBreakdownDto? GivingSeasonPriority { get; set; }
+    public PriorityScoreBreakdownDto? LibraryOfThingsPriority { get; set; }
 }
 
 public class ProfileOperationResponse

@@ -4,7 +4,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
-import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { CrewmateIdCardComponent } from '../../../components/crewmate-id-card/crewmate-id-card.component';
+import { CollapsibleSectionComponent } from '../../../components/collapsible-section/collapsible-section.component';
 import { FleetService } from '../../../services/fleet.service';
 import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -14,7 +15,13 @@ import { mapFriendshipState } from '../../../models/crewmate.model';
 @Component({
   selector: 'app-fleet-crewmate-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, ConfirmDialogComponent, UserAvatarComponent],
+  imports: [
+    CommonModule,
+    PageLayoutComponent,
+    ConfirmDialogComponent,
+    CrewmateIdCardComponent,
+    CollapsibleSectionComponent
+  ],
   templateUrl: './fleet-crewmate-detail.component.html',
   styleUrl: './fleet-crewmate-detail.component.css'
 })
@@ -25,6 +32,7 @@ export class FleetCrewmateDetailComponent implements OnInit {
   actionLoading = false;
   showBlockDialog = false;
   fleetId = 0;
+  fleetName: string | null = null;
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
@@ -57,6 +65,7 @@ export class FleetCrewmateDetailComponent implements OnInit {
     this.fleetService.getStatus().subscribe({
       next: status => {
         this.fleetId = status.fleetId ?? 0;
+        this.fleetName = status.fleetName ?? null;
       }
     });
 

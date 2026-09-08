@@ -223,10 +223,16 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership.CrewId,
                 membership,
                 cancellationToken);
-            var priorityScore = await _mutualAidService.GetPriorityScoreForUserAsync(
+            var givingSeasonBreakdown = await _mutualAidService.GetPriorityScoreBreakdownForUserAsync(
                 userId.Value,
                 membership.CrewId,
                 cancellationToken);
+            var priorityScore = givingSeasonBreakdown.Score;
+            var libraryBreakdown = await _mutualAidService.GetPriorityScoreBreakdownForUserAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken,
+                assumeInNeedNonOrganizerForLot: true);
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
                 cancellationToken);
@@ -244,7 +250,11 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
                 membership?.PercentBonus ?? 0,
                 isSurvivalRecipient,
                 canToggleOff,
-                toggleThreshold);
+                toggleThreshold,
+                givingSeasonPriority: ProfileMapper.ToDto(
+                    givingSeasonBreakdown,
+                    reloaded.InNeedOfAid ? null : "Not in need"),
+                libraryOfThingsPriority: ProfileMapper.ToDto(libraryBreakdown));
         }
 
         return new ProfileOperationResponse

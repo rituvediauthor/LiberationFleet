@@ -46,6 +46,10 @@ h2 {
   margin-bottom: 16px;
 }
 
+.avatar-actions {
+  margin-bottom: 12px;
+}
+
 .avatar-preview img {
   width: 88px;
   height: 88px;
@@ -265,6 +269,18 @@ label {
   gap: 12px;
   margin-bottom: 8px;
   font-size: 14px;
+}
+
+.encryption-toggle {
+  margin-bottom: 12px;
+}
+
+.priority-hint {
+  margin-top: 8px;
+}
+
+.donation-hint {
+  margin-top: 8px;
 }
 
 .status-label {

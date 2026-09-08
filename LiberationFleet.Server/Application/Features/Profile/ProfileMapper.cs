@@ -9,6 +9,27 @@ namespace LiberationFleet.Server.Application.Features.Profile;
 
 public static class ProfileMapper
 {
+    public static PriorityScoreBreakdownDto ToDto(
+        PriorityScoreBreakdown breakdown,
+        string? statusReason = null) =>
+        new()
+        {
+            Score = (int)Math.Round(breakdown.Score, MidpointRounding.AwayFromZero),
+            CrewLifetimeContributions = breakdown.CrewLifetimeContributions,
+            EmergencyLevel = breakdown.EmergencyLevel,
+            MembershipBonus = breakdown.MembershipBonus,
+            UserLifetimeContributions = breakdown.UserLifetimeContributions,
+            SurvivalThresholdAmount = breakdown.SurvivalThresholdAmount,
+            BaseScore = breakdown.BaseScore,
+            PeopleRepresentedCount = breakdown.PeopleRepresentedCount,
+            DisabilityLevel = breakdown.DisabilityLevel,
+            PriorityMultiplier = breakdown.PriorityMultiplier,
+            PercentBoost = breakdown.PercentBoost,
+            SacrificeBonusFactor = breakdown.SacrificeBonusFactor,
+            IsFinancialMember = breakdown.IsFinancialMember,
+            StatusReason = statusReason
+        };
+
     public static UserProfileDto MapUser(
         User user,
         CrewmateGiftStatsDto giftStats,
@@ -22,7 +43,9 @@ public static class ProfileMapper
         decimal donationsPreviousTaxYearUsd = 0m,
         decimal donationsCurrentTaxYearUsd = 0m,
         int previousTaxYear = 0,
-        int currentTaxYear = 0)
+        int currentTaxYear = 0,
+        PriorityScoreBreakdownDto? givingSeasonPriority = null,
+        PriorityScoreBreakdownDto? libraryOfThingsPriority = null)
     {
         return new UserProfileDto
         {
@@ -52,6 +75,8 @@ public static class ProfileMapper
             IsSurvivalThresholdRecipient = isSurvivalThresholdRecipient,
             CanToggleInNeedOff = canToggleInNeedOff,
             InNeedToggleThreshold = inNeedToggleThreshold,
+            GivingSeasonPriority = givingSeasonPriority,
+            LibraryOfThingsPriority = libraryOfThingsPriority,
             Stats = BuildStats(
                 giftStats,
                 membership,

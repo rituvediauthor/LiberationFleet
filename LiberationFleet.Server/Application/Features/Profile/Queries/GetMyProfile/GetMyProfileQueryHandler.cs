@@ -103,10 +103,17 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
                 membership,
                 cancellationToken);
 
-            priorityScore = await _mutualAidService.GetPriorityScoreForUserAsync(
+            var givingSeasonBreakdown = await _mutualAidService.GetPriorityScoreBreakdownForUserAsync(
                 userId.Value,
                 membership.CrewId,
                 cancellationToken);
+            priorityScore = givingSeasonBreakdown.Score;
+
+            var libraryBreakdown = await _mutualAidService.GetPriorityScoreBreakdownForUserAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken,
+                assumeInNeedNonOrganizerForLot: true);
 
             var unsatisfiedThresholds = await _mutualAidRepository.GetUnsatisfiedThresholdsAsync(
                 membership.CrewId,
@@ -120,6 +127,36 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
             canToggleOff = CrewInNeedService.CanToggleInNeedOff(
                 giftStats.AverageMonthlyContributions,
                 toggleThreshold);
+
+            var nowInner = DateTime.UtcNow;
+            var currentYearInner = nowInner.Year;
+            var previousYearInner = currentYearInner - 1;
+            var currentStartInner = new DateTime(currentYearInner, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var previousStartInner = new DateTime(previousYearInner, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var nextStartInner = new DateTime(currentYearInner + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var currentDonationsInner = await _donationRepository.SumCompletedUsdForUserInRangeAsync(
+                userId.Value, currentStartInner, nextStartInner, cancellationToken);
+            var previousDonationsInner = await _donationRepository.SumCompletedUsdForUserInRangeAsync(
+                userId.Value, previousStartInner, currentStartInner, cancellationToken);
+
+            return ProfileMapper.MapUser(
+                user,
+                giftStats,
+                membership,
+                isFinancialMember,
+                priorityScore,
+                membership.PercentBonus,
+                isSurvivalRecipient,
+                canToggleOff,
+                toggleThreshold,
+                previousDonationsInner,
+                currentDonationsInner,
+                previousYearInner,
+                currentYearInner,
+                ProfileMapper.ToDto(
+                    givingSeasonBreakdown,
+                    user.InNeedOfAid ? null : "Not in need"),
+                ProfileMapper.ToDto(libraryBreakdown));
         }
 
         var now = DateTime.UtcNow;

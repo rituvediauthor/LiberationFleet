@@ -1,0 +1,124 @@
+.crewmate-id-card {
+  margin-bottom: 20px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--lf-color-accent) 10%, var(--lf-color-bg-surface)) 0%,
+      var(--lf-color-bg-surface) 42%,
+      var(--lf-color-bg-muted) 100%
+    );
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.id-card-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--lf-color-accent) 18%, var(--lf-color-bg-surface));
+  border-bottom: 1px solid var(--lf-color-border);
+}
+
+.id-card-banner-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lf-color-text-secondary);
+}
+
+.id-card-main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.id-card-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.id-card-avatar-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--lf-color-border);
+  background: var(--lf-color-bg-muted);
+  flex-shrink: 0;
+}
+
+.id-card-name-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.id-card-username {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--lf-color-text-body);
+  word-break: break-word;
+}
+
+.id-card-roles {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+  line-height: 1.35;
+}
+
+.id-card-fields {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.id-card-field {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--lf-color-bg-surface) 80%, transparent);
+  border: 1px solid var(--lf-color-border);
+}
+
+.id-card-field dt {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lf-color-text-secondary);
+}
+
+.id-card-field dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+  word-break: break-word;
+}
+
+.id-card-field:nth-child(4),
+.id-card-field:nth-child(5),
+.id-card-field:nth-child(6) {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 480px) {
+  .id-card-field:nth-child(4) {
+    grid-column: auto;
+  }
+
+  .id-card-field:nth-child(5),
+  .id-card-field:nth-child(6) {
+    grid-column: auto;
+  }
+}

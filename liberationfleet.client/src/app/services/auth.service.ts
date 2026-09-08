@@ -92,6 +92,14 @@ export class AuthService {
     this.clearSessionCaches();
   }
 
+  /** Lock encryption and remove any remembered recovery key from this device. */
+  lockEncryptionOnThisDevice(): void {
+    this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+    this.savedRecoveryPhrase.setSaveEnabled(false);
+    this.cryptoSession.clearSession();
+    this.resetEncryptionReady();
+  }
+
   private clearSessionCaches(): void {
     this.crewService.clearSessionCache();
     this.fleetService.clearSessionCache();

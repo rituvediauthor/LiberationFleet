@@ -4,6 +4,7 @@ using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.CompleteMiddlemanGift;
 
@@ -66,7 +67,8 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             giftRepository,
             crewPaymentPlatformRepository,
             fixture.Service,
-            fixture.Context);
+            fixture.Context,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
 
         var verifyResult = await verifyHandler.Handle(
             new VerifyGiftCommand(completed.Id, GiftVerificationAction.ConfirmReceived),

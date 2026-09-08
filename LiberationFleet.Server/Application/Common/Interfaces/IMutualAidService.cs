@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -48,6 +49,12 @@ public interface IMutualAidService
     Task EnsureNextSeasonCyclesAsync(int crewId, CancellationToken cancellationToken = default);
     Task RecalculateCapsAfterMembershipChangeAsync(int crewId, CancellationToken cancellationToken = default);
     Task<decimal> GetPriorityScoreForUserAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default,
+        bool excludeActiveSeasonContributions = false,
+        bool assumeInNeedNonOrganizerForLot = false);
+    Task<PriorityScoreBreakdown> GetPriorityScoreBreakdownForUserAsync(
         int userId,
         int crewId,
         CancellationToken cancellationToken = default,
@@ -130,6 +137,10 @@ public class ReceptionOrderEntryDto
     public decimal PendingUnverifiedAmount { get; set; }
     /// <summary>True for Representative entries: no cap; AmountNeeded is not a remaining-need figure.</summary>
     public bool IsUnlimitedNeed { get; set; }
+    /// <summary>Split segment that funds the emergency requester.</summary>
+    public bool IsEmergencyCycle { get; set; }
+    /// <summary>Split payback segment for the offerer who sacrificed cycle capacity.</summary>
+    public bool IsPaybackCycle { get; set; }
 }
 
 public class PlatformAccountDto

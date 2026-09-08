@@ -269,7 +269,9 @@ public partial class MutualAidService(
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        if (maxEntries is int earlyLimit)
+        // Record-gift must still load locked cycles even when many survival thresholds
+        // would otherwise fill the limit by themselves.
+        if (!forRecordGift && maxEntries is int earlyLimit)
         {
             var early = TakePrioritizedEntries(entries, giverUserId, excludeSelfAsRecipient, earlyLimit);
             if (early.Count >= earlyLimit)
@@ -325,10 +327,10 @@ public partial class MutualAidService(
             .ThenBy(c => c.ReceptionOrderPosition)
             .ToList();
 
-        await RefreshHasCycleStartedAsync(crew, allIncompleteCycles, cancellationToken);
-
+        // Do not mutate HasCycleStarted on this read path — recording/verify/split own that.
+        // Emergency split segments stay giftable even when the requester opted out of survival aid.
         var incompleteCycles = allIncompleteCycles
-            .Where(UserNeedsAid)
+            .Where(c => UserNeedsAid(c) || c.EmergencyRequestId.HasValue)
             .ToList();
 
         var units = BuildIncompleteUnits(incompleteCycles);
@@ -397,12 +399,32 @@ public partial class MutualAidService(
                 giverPlatforms,
                 middlemanPool,
                 pending,
-                pending > 0));
+                pending > 0,
+                isEmergencyCycle: cycle.EmergencyRequestId.HasValue,
+                isPaybackCycle: cycle.EmergencySplitOfferId.HasValue));
         }
 
         foreach (var unit in lockedUnits)
         {
             foreach (var cycle in unit.OrderBy(c => c.ReceptionOrderPosition))
+            {
+                AddCycleEntry(cycle, ReceptionEntryType.Cycle.ToApiValue(), CapFor(cycle) - cycle.CycleReceived);
+            }
+        }
+
+        // Emergency aid segments (and paybacks for already-locked users) can sit outside the
+        // live locked window after snapshot-eligible splits — still show them for record-gift.
+        if (forRecordGift)
+        {
+            var lockedUserIds = lockedUnits
+                .SelectMany(u => u.Select(c => c.UserId))
+                .ToHashSet();
+            foreach (var cycle in incompleteCycles
+                .Where(c => !lockedCycleIds.Contains(c.Id)
+                    && (c.EmergencyRequestId.HasValue
+                        || (c.EmergencySplitOfferId.HasValue && lockedUserIds.Contains(c.UserId))))
+                .OrderBy(c => c.SeasonStartDate)
+                .ThenBy(c => c.ReceptionOrderPosition))
             {
                 AddCycleEntry(cycle, ReceptionEntryType.Cycle.ToApiValue(), CapFor(cycle) - cycle.CycleReceived);
             }
@@ -993,6 +1015,11 @@ public partial class MutualAidService(
 
             foreach (var participant in participants)
             {
+                if (participant.User is null)
+                {
+                    continue;
+                }
+
                 participant.CurrentPriorityScore = MutualAidCalculationService.CalculatePriorityScore(
                     participant.User,
                     participant,
@@ -1075,22 +1102,38 @@ public partial class MutualAidService(
             return;
         }
 
-        var lockedCount = 0;
+        var locked = new List<List<SeasonCycle>>();
+        var lockedCycleIds = new HashSet<int>();
         if (lockLeaderSlots)
         {
             var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(cycles);
-            if (leader is not null)
+
+            void AddLocked(SeasonCycle? anchor)
             {
-                lockedCount = 1;
-                if (runnerUp is not null)
+                if (anchor is null)
                 {
-                    lockedCount = 2;
+                    return;
+                }
+
+                var unit = units.FirstOrDefault(u => u.Any(c => c.Id == anchor.Id));
+                if (unit is null || unit.Any(c => lockedCycleIds.Contains(c.Id)))
+                {
+                    return;
+                }
+
+                locked.Add(unit);
+                foreach (var cycle in unit)
+                {
+                    lockedCycleIds.Add(cycle.Id);
                 }
             }
+
+            AddLocked(leader);
+            AddLocked(runnerUp);
         }
 
-        var locked = units.Take(lockedCount).ToList();
-        var unlocked = units.Skip(lockedCount)
+        var unlocked = units
+            .Where(u => !u.Any(c => lockedCycleIds.Contains(c.Id)))
             .OrderByDescending(u =>
             {
                 var primary = u.LastOrDefault(IsPrimaryCycle);
@@ -1424,10 +1467,39 @@ public partial class MutualAidService(
         bool excludeActiveSeasonContributions = false,
         bool assumeInNeedNonOrganizerForLot = false)
     {
+        var breakdown = await GetPriorityScoreBreakdownForUserAsync(
+            userId,
+            crewId,
+            cancellationToken,
+            excludeActiveSeasonContributions,
+            assumeInNeedNonOrganizerForLot);
+        return breakdown.Score;
+    }
+
+    public async Task<PriorityScoreBreakdown> GetPriorityScoreBreakdownForUserAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default,
+        bool excludeActiveSeasonContributions = false,
+        bool assumeInNeedNonOrganizerForLot = false)
+    {
         var membership = await mutualAidRepository.GetMembershipWithUserAsync(userId, crewId, cancellationToken);
         if (membership is null)
         {
-            return 0m;
+            return new PriorityScoreBreakdown(
+                Score: 0m,
+                CrewLifetimeContributions: 0m,
+                EmergencyLevel: 0,
+                MembershipBonus: 0m,
+                UserLifetimeContributions: 0m,
+                SurvivalThresholdAmount: 0m,
+                BaseScore: 0m,
+                PeopleRepresentedCount: 0,
+                DisabilityLevel: 0,
+                PriorityMultiplier: 1,
+                PercentBoost: 0,
+                SacrificeBonusFactor: 1m,
+                IsFinancialMember: false);
         }
 
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
@@ -1452,7 +1524,7 @@ public partial class MutualAidService(
             ? await BuildCapacityContextAsync(crew, cancellationToken)
             : new CapacityContext();
 
-        return MutualAidCalculationService.CalculatePriorityScore(
+        return MutualAidCalculationService.CalculatePriorityScoreBreakdown(
             membership.User,
             membership,
             await IsFinancialMemberAsync(
@@ -1542,7 +1614,9 @@ public partial class MutualAidService(
         IReadOnlyList<CrewMemberPlatforms> members,
         decimal pendingUnverifiedAmount = 0m,
         bool hasUnverifiedPending = false,
-        bool isUnlimitedNeed = false)
+        bool isUnlimitedNeed = false,
+        bool isEmergencyCycle = false,
+        bool isPaybackCycle = false)
     {
         var recipientMember = members.FirstOrDefault(m => m.UserId == recipientUserId);
         var recipientPlatforms = recipientMember?.PlatformIds ?? Array.Empty<int>();
@@ -1589,7 +1663,9 @@ public partial class MutualAidService(
                 .ToList() ?? [],
             HasUnverifiedPending = hasUnverifiedPending,
             PendingUnverifiedAmount = Math.Round(pendingUnverifiedAmount, 2),
-            IsUnlimitedNeed = isUnlimitedNeed
+            IsUnlimitedNeed = isUnlimitedNeed,
+            IsEmergencyCycle = isEmergencyCycle,
+            IsPaybackCycle = isPaybackCycle
         };
     }
 
@@ -2553,15 +2629,22 @@ public partial class MutualAidService(
             actorUserId: cycle.UserId,
             cancellationToken);
 
-        await notificationService.NotifyCrewAsync(
-            crew.Id,
-            NotificationKind.NewCycle,
-            "Cycle concluded",
-            "A crewmate's reception cycle has concluded.",
-            GiftLogActionUrl(cycleGift.Id),
-            relatedEntityId: cycleGift.Id,
-            excludeUserId: cycle.UserId,
-            cancellationToken: cancellationToken);
+        try
+        {
+            await notificationService.NotifyCrewAsync(
+                crew.Id,
+                NotificationKind.NewCycle,
+                "Cycle concluded",
+                "A crewmate's reception cycle has concluded.",
+                GiftLogActionUrl(cycleGift.Id),
+                relatedEntityId: cycleGift.Id,
+                excludeUserId: cycle.UserId,
+                cancellationToken: cancellationToken);
+        }
+        catch
+        {
+            // Celebratory gift is already saved; notification failure must not undo reception.
+        }
     }
 
     private static void UpdateCycleCompletion(SeasonCycle cycle, decimal effectiveCap)
@@ -3329,8 +3412,11 @@ public partial class MutualAidService(
         IReadOnlyList<SeasonCycle> incompleteOrdered,
         CancellationToken cancellationToken)
     {
-        // Frontmost among recipients who still need aid; non-needers never count as started.
-        var frontmost = incompleteOrdered.FirstOrDefault(c => c.User?.InNeedOfAid != false);
+        // Keep the currently started incomplete cycle active. Do not jump the "started"
+        // flag onto a later (e.g. runner-up) cycle while an earlier active cycle remains open.
+        var existingStarted = incompleteOrdered.FirstOrDefault(c => c.HasCycleStarted);
+        var frontmost = existingStarted
+            ?? incompleteOrdered.FirstOrDefault(c => c.User?.InNeedOfAid != false);
         var changed = false;
 
         foreach (var cycle in incompleteOrdered)
@@ -3353,14 +3439,21 @@ public partial class MutualAidService(
                     actorUserId: cycle.UserId,
                     cancellationToken);
 
-                await notificationService.NotifyCrewAsync(
-                    crew.Id,
-                    NotificationKind.NewCycle,
-                    "New cycle",
-                    "A crewmate's reception cycle has started.",
-                    GiftLogActionUrl(cycleGift.Id),
-                    relatedEntityId: cycleGift.Id,
-                    cancellationToken: cancellationToken);
+                try
+                {
+                    await notificationService.NotifyCrewAsync(
+                        crew.Id,
+                        NotificationKind.NewCycle,
+                        "New cycle",
+                        "A crewmate's reception cycle has started.",
+                        GiftLogActionUrl(cycleGift.Id),
+                        relatedEntityId: cycleGift.Id,
+                        cancellationToken: cancellationToken);
+                }
+                catch
+                {
+                    // Cycle-started gift is already saved; notification failure must not undo reception.
+                }
             }
         }
 

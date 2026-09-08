@@ -59,7 +59,7 @@ public class RecordEmergencyGiftCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = accessError ?? "Emergency request not found." };
         }
 
-        if (emergencyRequest.Status == EmergencyRequestStatus.Cancelled)
+        if (emergencyRequest.Status != EmergencyRequestStatus.Open)
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "This emergency request is no longer open." };
         }

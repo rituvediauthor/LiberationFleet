@@ -145,6 +145,8 @@ public class GetFleetReceptionOrderQueryHandler(
         HasUnverifiedPending = entry.HasUnverifiedPending,
         PendingUnverifiedAmount = entry.PendingUnverifiedAmount,
         IsUnlimitedNeed = entry.IsUnlimitedNeed,
+        IsEmergencyCycle = entry.IsEmergencyCycle,
+        IsPaybackCycle = entry.IsPaybackCycle,
         CrewId = crewId,
         CrewName = crewName
     };

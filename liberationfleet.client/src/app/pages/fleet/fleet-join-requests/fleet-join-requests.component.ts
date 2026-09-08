@@ -68,7 +68,7 @@ export class FleetJoinRequestsComponent implements OnInit {
 
   countdownText(item: FleetJoinRequestListItem): string | null {
     const countdown = this.proposalService.formatCountdown(
-      item.approvalTimerEndsAt ? new Date(item.approvalTimerEndsAt) : null
+      item.approvalTimerEndsAt ? this.proposalService.parseApiDate(item.approvalTimerEndsAt) : null
     );
     return countdown || null;
   }

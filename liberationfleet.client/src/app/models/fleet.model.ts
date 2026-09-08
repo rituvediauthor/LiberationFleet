@@ -318,6 +318,8 @@ export interface FleetEmergencyListItem {
   amountNeeded: number;
   amountFulfilled: number;
   amountRemaining: number;
+  amountSplitCommitted?: number;
+  amountUncovered?: number;
   createdAt: string;
 }
 

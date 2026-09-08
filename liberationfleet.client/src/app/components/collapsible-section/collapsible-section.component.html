@@ -1,0 +1,13 @@
+<section class="collapsible-section" [class.is-expanded]="expanded">
+  <button
+    type="button"
+    class="collapsible-header"
+    (click)="toggle()"
+    [attr.aria-expanded]="expanded">
+    <span class="collapsible-title">{{ title }}</span>
+    <i class="fa-solid" [class.fa-chevron-down]="!expanded" [class.fa-chevron-up]="expanded" aria-hidden="true"></i>
+  </button>
+  <div class="collapsible-body" *ngIf="expanded">
+    <ng-content></ng-content>
+  </div>
+</section>
