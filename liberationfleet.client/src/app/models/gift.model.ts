@@ -58,6 +58,7 @@ export interface GiftLogEntry {
   likedByCurrentUser?: boolean;
   commentCount?: number;
   isSeasonLocked?: boolean;
+  crewId?: number;
 }
 
 export interface ContentLiker {

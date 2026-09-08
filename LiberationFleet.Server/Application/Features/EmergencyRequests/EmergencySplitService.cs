@@ -700,6 +700,9 @@ public class EmergencySplitService(
         segment.CycleCapAtStart = Math.Max(0m, currentCap - amount);
         if (segment.CycleCapAtStart <= segment.CycleReceived)
         {
+            // Full-cycle split: leftover primary is satisfied in place (cap 0). Package-aware
+            // unit building treats this as the cycle having "moved" into the emergency/payback
+            // segment rather than gluing those segments onto the next crewmate.
             segment.CycleCompleted = true;
             segment.CycleCompletedAt = DateTime.UtcNow;
         }

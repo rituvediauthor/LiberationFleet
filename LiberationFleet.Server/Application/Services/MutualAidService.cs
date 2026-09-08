@@ -126,6 +126,7 @@ public partial class MutualAidService(
         await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
 
         var allMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crew.Id, cancellationToken);
+        var activeMemberIds = allMembers.Select(m => m.UserId).ToHashSet();
         var memberPlatforms = allMembers.Select(CrewPaymentPlatformService.MapCrewMemberPlatforms).ToList();
 
         var middlemanPool = BuildMiddlemanPool(memberPlatforms, additionalMembersForMiddlemen);
@@ -198,7 +199,7 @@ public partial class MutualAidService(
         {
             var thresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken);
             var unscopedRemainingByUserId = new Dictionary<int, decimal>(pendingUnscopedThresholdByUserId);
-            foreach (var threshold in thresholds)
+            foreach (var threshold in thresholds.Where(t => activeMemberIds.Contains(t.UserId)))
             {
                 var verifiedNeed = threshold.ThresholdAmount - threshold.ReceivedAmount;
                 var pending = pendingThresholdByThresholdId.GetValueOrDefault(threshold.Id);
@@ -283,7 +284,9 @@ public partial class MutualAidService(
         var currentSeasonCycles = (await mutualAidRepository.GetSeasonCyclesAsync(
             crew.Id,
             crew.CurrentSeasonStartDate!.Value,
-            cancellationToken)).ToList();
+            cancellationToken))
+            .Where(c => activeMemberIds.Contains(c.UserId))
+            .ToList();
         // Record-gift locks the active unit plus the next unit in global order,
         // which may live on the provisional next season when this season is nearly done.
         var cyclesForOrder = currentSeasonCycles.ToList();
@@ -295,7 +298,7 @@ public partial class MutualAidService(
                 crew.Id,
                 crew.NextSeasonStartDate.Value,
                 cancellationToken);
-            cyclesForOrder.AddRange(nextSeasonCycles);
+            cyclesForOrder.AddRange(nextSeasonCycles.Where(c => activeMemberIds.Contains(c.UserId)));
         }
 
         var cycles = currentSeasonCycles;
@@ -327,14 +330,15 @@ public partial class MutualAidService(
             .ThenBy(c => c.ReceptionOrderPosition)
             .ToList();
 
-        // Do not mutate HasCycleStarted on this read path — recording/verify/split own that.
-        // Emergency split segments stay giftable even when the requester opted out of survival aid.
+        // Emergency/payback segments stay giftable even when a party opted out of survival aid.
         var incompleteCycles = allIncompleteCycles
-            .Where(c => UserNeedsAid(c) || c.EmergencyRequestId.HasValue)
+            .Where(c => UserNeedsAid(c)
+                || c.EmergencyRequestId.HasValue
+                || c.EmergencySplitOfferId.HasValue)
             .ToList();
 
-        var units = BuildIncompleteUnits(incompleteCycles);
-        var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(incompleteCycles);
+        var units = BuildIncompleteUnits(incompleteCycles, cyclesForOrder);
+        var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(cyclesForOrder);
         var lockedUnits = new List<List<SeasonCycle>>();
         var lockedCycleIds = new HashSet<int>();
 
@@ -412,17 +416,14 @@ public partial class MutualAidService(
             }
         }
 
-        // Emergency aid segments (and paybacks for already-locked users) can sit outside the
-        // live locked window after snapshot-eligible splits — still show them for record-gift.
+        // Emergency aid and payback segments can sit outside the live locked window after
+        // full-cycle splits or a package primary leaving — still show them for record-gift
+        // so offerers keep their reception amount and requesters keep emergency aid.
         if (forRecordGift)
         {
-            var lockedUserIds = lockedUnits
-                .SelectMany(u => u.Select(c => c.UserId))
-                .ToHashSet();
             foreach (var cycle in incompleteCycles
                 .Where(c => !lockedCycleIds.Contains(c.Id)
-                    && (c.EmergencyRequestId.HasValue
-                        || (c.EmergencySplitOfferId.HasValue && lockedUserIds.Contains(c.UserId))))
+                    && (c.EmergencyRequestId.HasValue || c.EmergencySplitOfferId.HasValue))
                 .OrderBy(c => c.SeasonStartDate)
                 .ThenBy(c => c.ReceptionOrderPosition))
             {
@@ -1096,7 +1097,7 @@ public partial class MutualAidService(
             .Where(c => !c.CycleCompleted)
             .OrderBy(c => c.ReceptionOrderPosition)
             .ToList();
-        var units = BuildIncompleteUnits(incomplete);
+        var units = BuildIncompleteUnits(incomplete, cycles);
         if (units.Count <= 1)
         {
             return;
@@ -1369,14 +1370,22 @@ public partial class MutualAidService(
                     crewId,
                     seasonStart,
                     cancellationToken);
-                foreach (var cycle in cycles.Where(c => c.UserId == userId && !c.CycleCompleted))
+                foreach (var cycle in cycles.Where(c => c.UserId == userId))
                 {
-                    cycle.CycleCompleted = true;
-                    cycle.CycleCompletedAt ??= DateTime.UtcNow;
+                    if (!cycle.CycleCompleted)
+                    {
+                        cycle.CycleCompleted = true;
+                        cycle.CycleCompletedAt ??= DateTime.UtcNow;
+                    }
+
+                    // Left members must not keep catch-up slots in reception order.
+                    cycle.CatchUpVisible = false;
                 }
             }
 
             await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
+            // Completing a leaver's incompletes must not leave the season stuck waiting on them.
+            await TryEndSeasonAsync(crew, cancellationToken);
         }
 
         // Drop open survival thresholds so the leaver no longer appears in reception order.
@@ -1386,6 +1395,17 @@ public partial class MutualAidService(
         foreach (var threshold in openThresholds)
         {
             threshold.Satisfied = true;
+        }
+
+        // Cancel open emergency requests so fleet/crew emergency lists stay current.
+        // Do not touch other members' payback cycles — those stay open so offerers keep
+        // their full reception package when the requester leaves.
+        var openEmergencies = (await emergencyRequestRepository.GetOpenByCrewIdAsync(crewId, cancellationToken))
+            .Where(r => r.RequesterUserId == userId)
+            .ToList();
+        foreach (var emergency in openEmergencies)
+        {
+            emergency.Status = EmergencyRequestStatus.Cancelled;
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -2670,6 +2690,9 @@ public partial class MutualAidService(
         {
             var allComplete = true;
             var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
+            var activeMemberIds = (await membershipRepository.GetActiveMembersByCrewIdAsync(crew.Id, cancellationToken))
+                .Select(m => m.UserId)
+                .ToHashSet();
             var memberStatus = new Dictionary<int, bool>();
             foreach (var participant in participants)
             {
@@ -2682,6 +2705,12 @@ public partial class MutualAidService(
 
             foreach (var cycle in cycles)
             {
+                // Left/banned members' leftover rows must not stall season roll-forward.
+                if (!activeMemberIds.Contains(cycle.UserId))
+                {
+                    continue;
+                }
+
                 if (cycle.User?.InNeedOfAid == false)
                 {
                     continue;
@@ -2864,7 +2893,7 @@ public partial class MutualAidService(
             return;
         }
 
-        var units = BuildIncompleteUnits(incomplete);
+        var units = BuildIncompleteUnits(incomplete, cycles);
         units = units
             .OrderByDescending(u =>
             {
@@ -3044,7 +3073,7 @@ public partial class MutualAidService(
             .Where(c => !c.CycleCompleted)
             .OrderBy(c => c.ReceptionOrderPosition)
             .ToList();
-        var units = BuildIncompleteUnits(incomplete);
+        var units = BuildIncompleteUnits(incomplete, allCycles);
         if (units.Count <= 1)
         {
             return;
@@ -3396,13 +3425,34 @@ public partial class MutualAidService(
             return;
         }
 
-        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
             crew.Id,
             crew.CurrentSeasonStartDate.Value,
-            cancellationToken);
+            cancellationToken)).ToList();
+
+        var activeMemberIds = (await membershipRepository.GetActiveMembersByCrewIdAsync(crew.Id, cancellationToken))
+            .Select(m => m.UserId)
+            .ToHashSet();
+
+        // Repair: complete stale incompletes for people who already left so they cannot
+        // keep HasCycleStarted / lock leadership forever.
+        var repaired = false;
+        foreach (var orphan in cycles.Where(c => !c.CycleCompleted && !activeMemberIds.Contains(c.UserId)))
+        {
+            orphan.CycleCompleted = true;
+            orphan.CycleCompletedAt ??= DateTime.UtcNow;
+            orphan.HasCycleStarted = false;
+            orphan.CatchUpVisible = false;
+            repaired = true;
+        }
+
+        if (repaired)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         var incomplete = cycles
-            .Where(c => !c.CycleCompleted)
+            .Where(c => !c.CycleCompleted && activeMemberIds.Contains(c.UserId))
             .OrderBy(c => c.ReceptionOrderPosition)
             .ToList();
 
@@ -3484,8 +3534,18 @@ public partial class MutualAidService(
     private static bool IsBoundSegment(SeasonCycle cycle) =>
         cycle.EmergencyRequestId.HasValue || cycle.EmergencySplitOfferId.HasValue;
 
-    private static List<List<SeasonCycle>> BuildIncompleteUnits(IReadOnlyList<SeasonCycle> incompleteOrdered)
+    /// <summary>
+    /// Groups incomplete cycles into reception packages.
+    /// Bound emergency/payback segments attach only to their intended package primary
+    /// (the next primary by position at creation time). If that primary was completed
+    /// (full-cycle split or leave), bound segments stay as their own unit so they are
+    /// not glued onto the next crewmate's cycle.
+    /// </summary>
+    private static List<List<SeasonCycle>> BuildIncompleteUnits(
+        IReadOnlyList<SeasonCycle> incompleteOrdered,
+        IReadOnlyList<SeasonCycle>? allSeasonCycles = null)
     {
+        var packageLookup = allSeasonCycles ?? incompleteOrdered;
         var units = new List<List<SeasonCycle>>();
         var i = 0;
         while (i < incompleteOrdered.Count)
@@ -3499,8 +3559,12 @@ public partial class MutualAidService(
 
             if (i < incompleteOrdered.Count && IsPrimaryCycle(incompleteOrdered[i]))
             {
-                unit.Add(incompleteOrdered[i]);
-                i++;
+                if (unit.Count == 0
+                    || IsIntendedPackagePrimary(unit, incompleteOrdered[i], packageLookup))
+                {
+                    unit.Add(incompleteOrdered[i]);
+                    i++;
+                }
             }
 
             if (unit.Count > 0)
@@ -3512,6 +3576,36 @@ public partial class MutualAidService(
         return units;
     }
 
+    /// <summary>
+    /// The package primary is the first primary that sits after the last bound segment
+    /// by reception position (including completed zero leftovers). Attach only while
+    /// that intended primary is still incomplete.
+    /// </summary>
+    private static bool IsIntendedPackagePrimary(
+        IReadOnlyList<SeasonCycle> boundSegments,
+        SeasonCycle candidatePrimary,
+        IReadOnlyList<SeasonCycle> allSeasonCycles)
+    {
+        if (boundSegments.Count == 0)
+        {
+            return true;
+        }
+
+        var lastBound = boundSegments
+            .OrderByDescending(b => b.ReceptionOrderPosition)
+            .First();
+        var intended = allSeasonCycles
+            .Where(c => IsPrimaryCycle(c)
+                && c.SeasonStartDate == lastBound.SeasonStartDate
+                && c.ReceptionOrderPosition > lastBound.ReceptionOrderPosition)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .FirstOrDefault();
+
+        return intended is not null
+            && !intended.CycleCompleted
+            && intended.Id == candidatePrimary.Id;
+    }
+
     private static SeasonCycle? GetUnitPrimary(SeasonCycle cycleInUnit, IReadOnlyList<SeasonCycle> allCycles)
     {
         if (IsPrimaryCycle(cycleInUnit))
@@ -3519,30 +3613,18 @@ public partial class MutualAidService(
             return cycleInUnit;
         }
 
-        var ordered = allCycles
+        var incomplete = allCycles
             .Where(c => !c.CycleCompleted)
             .OrderBy(c => c.ReceptionOrderPosition)
             .ToList();
-        var index = ordered.FindIndex(c => c.Id == cycleInUnit.Id);
-        if (index < 0)
+        var units = BuildIncompleteUnits(incomplete, allCycles);
+        var unit = units.FirstOrDefault(u => u.Any(c => c.Id == cycleInUnit.Id));
+        if (unit is null)
         {
             return null;
         }
 
-        for (var i = index + 1; i < ordered.Count; i++)
-        {
-            if (IsPrimaryCycle(ordered[i]))
-            {
-                return ordered[i];
-            }
-
-            if (!IsBoundSegment(ordered[i]))
-            {
-                break;
-            }
-        }
-
-        return null;
+        return unit.LastOrDefault(IsPrimaryCycle) ?? unit[^1];
     }
 
     private static (SeasonCycle? Leader, SeasonCycle? RunnerUp) FindLockedLeaderAndRunnerUp(
@@ -3558,7 +3640,7 @@ public partial class MutualAidService(
             return (null, null);
         }
 
-        var units = BuildIncompleteUnits(incomplete);
+        var units = BuildIncompleteUnits(incomplete, cycles);
         if (units.Count == 0)
         {
             return (null, null);

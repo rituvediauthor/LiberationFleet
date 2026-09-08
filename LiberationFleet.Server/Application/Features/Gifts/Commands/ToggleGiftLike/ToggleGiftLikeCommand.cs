@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -14,6 +15,7 @@ public record ToggleGiftLikeCommand(int GiftId) : IRequest<GiftLikeToggleRespons
 public class ToggleGiftLikeCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<ToggleGiftLikeCommand, GiftLikeToggleResponse>
@@ -35,12 +37,19 @@ public class ToggleGiftLikeCommandHandler(
         }
 
         var gift = await giftRepository.GetByIdWithUsersAsync(request.GiftId, cancellationToken);
-        if (gift is null || gift.CrewId != membership.CrewId)
+        if (gift is null
+            || !await GiftScopeAccess.CanAccessGiftCrewAsync(
+                membership.CrewId,
+                gift.CrewId,
+                fleetRepository,
+                cancellationToken))
         {
             return new GiftLikeToggleResponse { Success = false, Message = "Gift not found." };
         }
 
-        var actionUrl = $"/app/crew/gift-log/{gift.Id}?highlightId={gift.Id}";
+        var actionUrl = gift.CrewId == membership.CrewId
+            ? $"/app/crew/gift-log/{gift.Id}?highlightId={gift.Id}"
+            : $"/app/fleet/gift-log?highlightId={gift.Id}";
         var existing = await giftRepository.GetGiftLikeAsync(userId, gift.Id, cancellationToken);
         bool liked;
         var utcNow = DateTime.UtcNow;

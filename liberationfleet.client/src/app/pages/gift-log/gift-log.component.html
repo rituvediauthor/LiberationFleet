@@ -1,6 +1,6 @@
 <div class="gift-log-page">
   <app-location-header *ngIf="locationHeaderInfo" [info]="locationHeaderInfo">
-    <button type="button" class="season-info-link" (click)="goToSeasonInfo()">My giving info</button>
+    <button *ngIf="!isFleetScope" type="button" class="season-info-link" (click)="goToSeasonInfo()">My giving info</button>
   </app-location-header>
   <div class="log-scroll" #logContainer>
     <div class="scroll-page-body log-channel-body">
@@ -99,7 +99,7 @@
       <button
         type="button"
         class="export-btn"
-        *ngIf="!loading && !errorMessage && canExportCrewData"
+        *ngIf="!loading && !errorMessage && canExportCrewData && !isFleetScope"
         (click)="exportGiftLog()">
         Download gift log
       </button>
@@ -111,8 +111,21 @@
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
-    <button *ngIf="seasonStarted && userInSeason" type="button" class="record-btn" (click)="goToRecordGift()">Record Gift</button>
-    <button *ngIf="seasonStarted && !userInSeason" type="button" class="record-btn" (click)="goToJoinSeason()">Join season</button>
+    <button
+      *ngIf="!isFleetScope && seasonStarted && userInSeason"
+      type="button"
+      class="record-btn"
+      (click)="goToRecordGift()">Record Gift</button>
+    <button
+      *ngIf="!isFleetScope && seasonStarted && !userInSeason"
+      type="button"
+      class="record-btn"
+      (click)="goToJoinSeason()">Join season</button>
+    <button
+      *ngIf="isFleetScope && canRecordFleetGift"
+      type="button"
+      class="record-btn"
+      (click)="goToRecordGift()">Record Gift</button>
     </div>
   </div>
 </div>

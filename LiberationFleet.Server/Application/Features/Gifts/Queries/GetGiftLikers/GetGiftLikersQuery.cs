@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Engagement.Contracts;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Services;
 using MediatR;
 
@@ -11,6 +12,7 @@ public record GetGiftLikersQuery(int GiftId) : IRequest<ContentLikersResponse>;
 public class GetGiftLikersQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetGiftLikersQuery, ContentLikersResponse>
 {
@@ -29,13 +31,18 @@ public class GetGiftLikersQueryHandler(
         }
 
         var gift = await giftRepository.GetByIdWithUsersAsync(request.GiftId, cancellationToken);
-        if (gift is null || gift.CrewId != membership.CrewId)
+        if (gift is null
+            || !await GiftScopeAccess.CanAccessGiftCrewAsync(
+                membership.CrewId,
+                gift.CrewId,
+                fleetRepository,
+                cancellationToken))
         {
             return new ContentLikersResponse { Success = false, Message = "Gift not found." };
         }
 
         var likers = await giftRepository.GetActiveGiftLikersAsync(gift.Id, cancellationToken);
-        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(membership.CrewId, cancellationToken);
+        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(gift.CrewId, cancellationToken);
 
         return new ContentLikersResponse
         {

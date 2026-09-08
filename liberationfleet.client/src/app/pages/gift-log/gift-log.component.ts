@@ -12,13 +12,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FleetService } from '../../services/fleet.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewService } from '../../services/crew.service';
 import { CrewmateService } from '../../services/crewmate.service';
 import { GiftLogCryptoService } from '../../services/crypto/gift-log-crypto.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { GiftLogEntry, GiftVerificationAction, ContentLiker } from '../../models/gift.model';
+import { GiftLogEntry, GiftVerificationAction, ContentLiker, GiftLogPage } from '../../models/gift.model';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../services/encryption-content.service';
 import { NavigationService } from '../../services/navigation.service';
@@ -33,6 +34,9 @@ import { ForumEngagementBarComponent } from '../../components/forum-engagement-b
 import { ContentLikersDialogComponent } from '../../components/content-likers-dialog/content-likers-dialog.component';
 import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../utils/location-header.util';
+import { Observable, map } from 'rxjs';
+
+export type GiftLogScope = 'crew' | 'fleet';
 
 @Component({
   selector: 'app-gift-log',
@@ -56,6 +60,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   canExportCrewData = false;
   userInSeason = false;
   seasonStarted = false;
+  canRecordFleetGift = false;
+  scope: GiftLogScope = 'crew';
   completionPlatformSelections: Record<number, number | ''> = {};
   likingEntryId: number | null = null;
   likersDialogOpen = false;
@@ -64,7 +70,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   likersDialogTitle = 'Liked by';
   locationHeaderInfo: LocationHeaderInfo | null = injectLocationHeaderInfo();
   highlightId: number | null = null;
-  readonly notifyPrefix = '/app/crew/gift-log';
+  notifyPrefix = '/app/crew/gift-log';
 
   private readonly pageSize = 25;
   private intersectionObserver?: IntersectionObserver;
@@ -78,6 +84,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private navigation = inject(NavigationService);
   private notificationContent = inject(NotificationContentService);
   private giftService = inject(GiftService);
+  private fleetService = inject(FleetService);
   private crewService = inject(CrewService);
   private crewmateService = inject(CrewmateService);
   private giftLogCrypto = inject(GiftLogCryptoService);
@@ -86,7 +93,13 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private encryptionContent = inject(EncryptionContentService);
   private encryptionReload?: EncryptionReloadHandle;
 
+  get isFleetScope(): boolean {
+    return this.scope === 'fleet';
+  }
+
   ngOnInit() {
+    this.scope = this.route.snapshot.data['giftLogScope'] === 'fleet' ? 'fleet' : 'crew';
+    this.notifyPrefix = this.isFleetScope ? '/app/fleet/gift-log' : '/app/crew/gift-log';
     this.highlightId = readNotificationHighlightId(this.route);
     clearNotificationHighlightParams(this.router, this.route);
     if (this.highlightId) {
@@ -99,6 +112,11 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.authService.currentUser$.subscribe(user => {
       this.activeUserId = user?.id ?? 0;
     });
+
+    if (this.isFleetScope) {
+      this.bootstrapFleetGiftLog();
+      return;
+    }
 
     // Prefer membership for fast path when season is already known started; if cached
     // as not started, re-check /api/season/status (season can start mid-session).
@@ -134,6 +152,31 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       error: () => {
         this.errorMessage = 'Failed to load crew membership';
         this.loading = false;
+      }
+    });
+  }
+
+  private bootstrapFleetGiftLog() {
+    this.seasonStarted = true;
+    this.userInSeason = true;
+    this.crewService.getMembership().subscribe({
+      next: async membership => {
+        this.crewId = membership.crewId ?? 0;
+        await this.encryptionContent.whenReady();
+        this.loadGiftLog();
+        this.encryptionReload?.markInitialLoadDone();
+      },
+      error: () => {
+        this.errorMessage = 'Failed to load crew membership';
+        this.loading = false;
+      }
+    });
+    this.fleetService.getStatus().subscribe({
+      next: status => {
+        this.canRecordFleetGift = !!status.hasFleet && !!status.allowCrossCrewGiving;
+      },
+      error: () => {
+        this.canRecordFleetGift = false;
       }
     });
   }
@@ -199,11 +242,11 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   goBack() {
-    this.navigation.back(['/app/crew']);
+    this.navigation.back([this.isFleetScope ? '/app/fleet' : '/app/crew']);
   }
 
   goToRecordGift() {
-    void this.router.navigate(['/app/crew/gift-log/record']);
+    void this.router.navigate([this.isFleetScope ? '/app/fleet/gift-log/record' : '/app/crew/gift-log/record']);
   }
 
   goToJoinSeason() {
@@ -215,7 +258,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openGiftDetail(entry: GiftLogEntry) {
-    void this.router.navigate(['/app/crew/gift-log', entry.id]);
+    void this.router.navigate([this.isFleetScope ? '/app/fleet/gift-log' : '/app/crew/gift-log', entry.id]);
   }
 
   toggleEntryLike(entry: GiftLogEntry) {
@@ -385,15 +428,61 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.entries = next;
   }
 
+  private fetchLogPage(options?: {
+    limit?: number;
+    beforeCreatedAt?: string;
+    beforeId?: number;
+  }): Observable<GiftLogPage> {
+    if (this.isFleetScope) {
+      return this.fleetService.getGiftLog(options).pipe(
+        map(result => {
+          if (!result.success) {
+            throw new Error(result.message || 'Failed to load gift log');
+          }
+          return {
+            items: (result.items ?? []).map(entry => ({
+              ...entry,
+              timestamp: entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp)
+            })),
+            hasMore: !!result.hasMore
+          };
+        })
+      );
+    }
+
+    return this.giftService.getLogs(options);
+  }
+
+  private async decryptPageItems(items: GiftLogEntry[]): Promise<GiftLogEntry[]> {
+    if (this.crewId <= 0) {
+      return items;
+    }
+
+    // Fleet log includes other crews' gifts; only home-crew envelopes are decryptable.
+    const homeCrewItems = items.filter(entry => !entry.crewId || entry.crewId === this.crewId);
+    const otherCrewItems = items.filter(entry => entry.crewId && entry.crewId !== this.crewId);
+    const decryptedHome = await this.giftLogCrypto.decryptEntries(homeCrewItems, this.crewId);
+    void this.giftLogCrypto.backfillUnencryptedEntries(decryptedHome, this.crewId, this.activeUserId);
+
+    if (!this.isFleetScope || otherCrewItems.length === 0) {
+      return decryptedHome;
+    }
+
+    const byId = new Map<number, GiftLogEntry>();
+    for (const entry of decryptedHome) {
+      byId.set(entry.id, entry);
+    }
+    for (const entry of otherCrewItems) {
+      byId.set(entry.id, entry);
+    }
+    return items.map(entry => byId.get(entry.id) ?? entry);
+  }
+
   private reloadGiftLogQuietly() {
-    this.giftService.getLogs({ limit: this.pageSize }).subscribe({
+    this.fetchLogPage({ limit: this.pageSize }).subscribe({
       next: async page => {
         try {
-          let items = page.items;
-          if (this.crewId > 0) {
-            items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
-            void this.giftLogCrypto.backfillUnencryptedEntries(items, this.crewId, this.activeUserId);
-          }
+          const items = await this.decryptPageItems(page.items);
           this.entries = items;
           this.hasMore = page.hasMore;
           this.applyCompletionDefaults(page.items);
@@ -413,14 +502,10 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadingMore = false;
     this.errorMessage = '';
 
-    this.giftService.getLogs({ limit: this.pageSize }).subscribe({
+    this.fetchLogPage({ limit: this.pageSize }).subscribe({
       next: async page => {
         try {
-          let items = page.items;
-          if (this.crewId > 0) {
-            items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
-            void this.giftLogCrypto.backfillUnencryptedEntries(items, this.crewId, this.activeUserId);
-          }
+          const items = await this.decryptPageItems(page.items);
           this.entries = items;
           this.hasMore = page.hasMore;
           this.applyCompletionDefaults(page.items);
@@ -456,16 +541,13 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     const previousScrollTop = container?.scrollTop ?? 0;
 
     this.loadingMore = true;
-    this.giftService.getLogs({
+    this.fetchLogPage({
       limit: this.pageSize,
       beforeCreatedAt: oldest.timestamp.toISOString(),
       beforeId: oldest.id
     }).subscribe({
       next: async page => {
-        let items = page.items;
-        if (this.crewId > 0) {
-          items = await this.giftLogCrypto.decryptEntries(items, this.crewId);
-        }
+        const items = await this.decryptPageItems(page.items);
         this.applyCompletionDefaults(items);
         this.entries = [...items, ...this.entries];
         this.hasMore = page.hasMore;

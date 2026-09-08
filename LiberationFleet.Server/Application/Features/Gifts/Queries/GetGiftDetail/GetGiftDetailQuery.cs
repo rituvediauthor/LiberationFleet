@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crypto;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -15,6 +16,7 @@ public record GetGiftDetailQuery(int GiftId) : IRequest<GiftDetailResponse>;
 public class GetGiftDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository,
@@ -35,13 +37,18 @@ public class GetGiftDetailQueryHandler(
         }
 
         var gift = await giftRepository.GetByIdWithUsersAsync(request.GiftId, cancellationToken);
-        if (gift is null || gift.CrewId != membership.CrewId)
+        if (gift is null
+            || !await GiftScopeAccess.CanAccessGiftCrewAsync(
+                membership.CrewId,
+                gift.CrewId,
+                fleetRepository,
+                cancellationToken))
         {
             return new GiftDetailResponse { Success = false, Message = "Gift not found." };
         }
 
         var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(
-            membership.CrewId,
+            gift.CrewId,
             gift.Type == GiftType.Initiated ? [gift.Id] : null,
             cancellationToken);
         completedByInitiated.TryGetValue(gift.Id, out var completedChild);
@@ -55,10 +62,9 @@ public class GetGiftDetailQueryHandler(
         var seasonStartDates = await giftRepository.GetSeasonStartDatesForGiftsAsync([gift.Id], cancellationToken);
         seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
-        var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
-            gift,
-            currentSeasonStartDate,
-            giftSeasonStartDate);
+        var isHomeCrewGift = gift.CrewId == membership.CrewId;
+        var isSeasonLocked = isHomeCrewGift
+            && GiftSeasonAccess.IsSeasonLocked(gift, currentSeasonStartDate, giftSeasonStartDate);
 
         Dictionary<int, int> likeCounts;
         HashSet<int> likedGiftIds;
@@ -87,7 +93,8 @@ public class GetGiftDetailQueryHandler(
             likedByCurrentUser: likedGiftIds.Contains(gift.Id),
             commentCount: commentCount,
             isSeasonLocked: isSeasonLocked,
-            isAccountant: CrewRoleAuthorizationService.CanBypassSeasonGiftLock(membership));
+            isAccountant: isHomeCrewGift
+                && CrewRoleAuthorizationService.CanBypassSeasonGiftLock(membership));
 
         var giftEnvelope = await cryptoRepository.GetEnvelopeAsync(
             EncryptedContentType.GiftLogEntry,
@@ -126,14 +133,14 @@ public class GetGiftDetailQueryHandler(
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(
             EncryptedContentType.GiftComment,
             commentIds,
-            crewId: membership.CrewId,
+            crewId: gift.CrewId,
             cancellationToken: cancellationToken);
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var topLevelIds = topLevel.Select(c => c.Id).ToList();
         var commentLikeCounts = await giftRepository.GetActiveLikeCountsForGiftCommentsAsync(topLevelIds, cancellationToken);
         var likedCommentIds = await giftRepository.GetActiveLikedGiftCommentIdsByUserAsync(userId, topLevelIds, cancellationToken);
-        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(membership.CrewId, cancellationToken);
+        var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(gift.CrewId, cancellationToken);
 
         var commentDtos = topLevel.Select(comment =>
         {

@@ -29,8 +29,16 @@ public class GetEmergencyRequestsQueryHandler(
         }
 
         var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(membership.CrewId, cancellationToken);
+        var activeMemberIds = (await membershipRepository.GetActiveMembersByCrewIdAsync(
+                membership.CrewId,
+                cancellationToken))
+            .Where(m => !m.IsPlaceholderMember)
+            .Select(m => m.UserId)
+            .ToHashSet();
         var crewName = membership.Crew?.Name ?? string.Empty;
-        var items = requests.Select(r =>
+        var items = requests
+            .Where(r => activeMemberIds.Contains(r.RequesterUserId))
+            .Select(r =>
         {
             var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
             return new EmergencyRequestListItemDto

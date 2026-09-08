@@ -42,7 +42,15 @@ public class GetFleetEmergenciesQueryHandler(
         foreach (var fleetCrew in fleetCrews)
         {
             var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(fleetCrew.CrewId, cancellationToken);
-            items.AddRange(requests.Select(r =>
+            var activeMemberIds = (await membershipRepository.GetActiveMembersByCrewIdAsync(
+                    fleetCrew.CrewId,
+                    cancellationToken))
+                .Where(m => !m.IsPlaceholderMember)
+                .Select(m => m.UserId)
+                .ToHashSet();
+            items.AddRange(requests
+                .Where(r => activeMemberIds.Contains(r.RequesterUserId))
+                .Select(r =>
             {
                 var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
                 return new EmergencyRequestListItemDto

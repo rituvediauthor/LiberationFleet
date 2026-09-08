@@ -20,8 +20,7 @@ import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-reques
 import { MyInvitationsComponent } from './pages/my-invitations/my-invitations.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { GiftLogDetailComponent } from './pages/gift-log/gift-log-detail/gift-log-detail.component';
-import { SeasonInfoComponent } from './pages/gift-log/season-info/season-info.component';
-import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
+import { SeasonInfoComponent } from './pages/gift-log/season-info/season-info.component';import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
 import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
 import { EmergencyRequestsListComponent } from './pages/emergency-requests/emergency-requests-list/emergency-requests-list.component';
 import { EmergencyRequestCreateComponent } from './pages/emergency-requests/emergency-request-create/emergency-request-create.component';
@@ -95,7 +94,6 @@ import { EditFleetComponent } from './pages/fleet/edit-fleet/edit-fleet.componen
 import { FleetCrewsComponent } from './pages/fleet/fleet-crews/fleet-crews.component';
 import { FleetCrewDetailComponent } from './pages/fleet/fleet-crew-detail/fleet-crew-detail.component';
 import { FleetCrewmateDetailComponent } from './pages/fleet/fleet-crewmate-detail/fleet-crewmate-detail.component';
-import { FleetGiftLogComponent } from './pages/fleet/fleet-gift-log/fleet-gift-log.component';
 import { FleetRecordGiftComponent } from './pages/fleet/fleet-record-gift/fleet-record-gift.component';
 import { FleetEmergencyListComponent } from './pages/fleet/fleet-emergency-list/fleet-emergency-list.component';
 import { FleetChatListComponent } from './pages/fleet/fleet-chat-list/fleet-chat-list.component';
@@ -198,16 +196,22 @@ export const routes: Routes = [
   },
   {
     path: 'app/fleet/gift-log',
-    component: FleetGiftLogComponent,
+    component: GiftLogComponent,
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
-    data: { parentTab: 'fleet', locationHeader: 'Gift Log' }
+    data: { parentTab: 'fleet', locationHeader: 'Gift Log', giftLogScope: 'fleet' }
   },
   {
     path: 'app/fleet/gift-log/record',
     component: FleetRecordGiftComponent,
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Record Gift' }
+  },
+  {
+    path: 'app/fleet/gift-log/:id',
+    component: GiftLogDetailComponent,
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Gift', giftLogScope: 'fleet' }
   },
   {
     path: 'app/fleet/emergency-requests',

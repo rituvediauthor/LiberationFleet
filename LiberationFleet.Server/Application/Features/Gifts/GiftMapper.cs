@@ -86,7 +86,8 @@ public static class GiftMapper
             LikeCount = likeCount,
             LikedByCurrentUser = likedByCurrentUser,
             CommentCount = commentCount,
-            IsSeasonLocked = isSeasonLocked
+            IsSeasonLocked = isSeasonLocked,
+            CrewId = gift.CrewId
         };
     }
 

@@ -75,6 +75,7 @@ public class ToggleGiftLikeCommandHandlerTests
         var handler = new ToggleGiftLikeCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(actor.Id).Object,
             membershipRepository.Object,
+            HandlerTestFixture.CreateFleetRepositoryMock().Object,
             giftRepository.Object,
             notificationService,
             unitOfWork.Object);
@@ -144,6 +145,7 @@ public class ToggleGiftLikeCommandHandlerTests
         var handler = new ToggleGiftLikeCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
             membershipRepository.Object,
+            HandlerTestFixture.CreateFleetRepositoryMock().Object,
             giftRepository.Object,
             HandlerTestFixture.CreateNotificationService(notificationRepository: notificationRepository),
             HandlerTestFixture.CreateUnitOfWorkMock().Object);

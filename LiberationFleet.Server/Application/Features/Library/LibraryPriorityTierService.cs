@@ -86,7 +86,7 @@ public class LibraryPriorityTierService(
     }
 
     /// <summary>
-    /// Visible non-blocked audience members for an offering visibility scope, with their LoT tiers.
+    /// Visible non-blocked audience members for an offering visibility scope, with their Priority tiers.
     /// </summary>
     public async Task<IReadOnlyList<LibraryPriorityTierAudienceMember>> GetAudienceMembersForViewerAsync(
         int homeCrewId,

@@ -158,7 +158,8 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
   }
 
   goBack() {
-    this.navigation.back(['/app/crew/gift-log']);
+    const scope = this.route.snapshot.data['giftLogScope'] === 'fleet' ? 'fleet' : 'crew';
+    this.navigation.back([scope === 'fleet' ? '/app/fleet/gift-log' : '/app/crew/gift-log']);
   }
 
   onCommentFocus() {

@@ -38,6 +38,7 @@ public class GiftLogEntryDto
     public bool LikedByCurrentUser { get; set; }
     public int CommentCount { get; set; }
     public bool IsSeasonLocked { get; set; }
+    public int CrewId { get; set; }
 }
 
 public class GiftCommentDto
