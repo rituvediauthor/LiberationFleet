@@ -58,10 +58,9 @@ public class EmergencySplitService(
 
         if (!IsOffererEligibleForRequest(request, viewerUserId))
         {
-            // Legacy requests without a snapshot: fall back to live queue order.
+            // Legacy requests without a snapshot: fall back to live queue order (read-only).
             if (!HasEligibilitySnapshot(request))
             {
-                await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
                 var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(
                     request.CrewId,
                     cancellationToken);
@@ -94,9 +93,8 @@ public class EmergencySplitService(
             };
         }
 
-        // Match ApplySplitAsync: remaining is checked against live cycle state across current+future seasons.
-        await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
-
+        // Read-only: do not EnsureNextSeasonCyclesAsync here — detail GET must not mutate season state.
+        // ApplySplitAsync still ensures future seasons before applying.
         var offererRemaining = await GetPrimaryRemainingAsync(request.CrewId, viewerUserId, cancellationToken);
         if (offererRemaining <= 0m)
         {
