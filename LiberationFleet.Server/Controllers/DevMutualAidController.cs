@@ -65,7 +65,7 @@ public class DevMutualAidController : ControllerBase
             return NotFound();
         }
 
-        await _resetService.ResetAsync(HttpContext.RequestAborted);
+        await _resetService.ResetAsync(CancellationToken.None);
         return Ok(new DevActionResultDto
         {
             Success = true,

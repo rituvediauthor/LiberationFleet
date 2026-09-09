@@ -184,11 +184,14 @@ if (!app.Environment.IsEnvironment("Docker"))
 }
 
 // Block API/hub traffic until migrations finish. Liveness (/healthz) stays available.
+// Dev reset/enabled stay reachable so a failed nuke can be retried without restarting the host.
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
     if (path.StartsWithSegments("/healthz")
         || path.StartsWithSegments("/openapi")
+        || path.StartsWithSegments("/api/dev/mutual-aid/enabled")
+        || path.StartsWithSegments("/api/dev/mutual-aid/reset-app")
         || !path.StartsWithSegments("/api") && !path.StartsWithSegments("/hubs"))
     {
         await next();
