@@ -29,9 +29,10 @@ public class EmergencyReconciliationServiceTests
 
         result.AmountAppliedToNeed.Should().Be(75m);
         result.OverflowAmount.Should().Be(0m);
-        request.AmountReceived.Should().Be(50m);
+        request.AmountReceived.Should().Be(75m);
         request.AmountSplitCommitted.Should().Be(25m);
         request.Status.Should().Be(EmergencyRequestStatus.Open);
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
 
         var split = await fx.Context.EmergencySplitOffers.SingleAsync(o => o.EmergencyRequestId == request.Id);
         split.Amount.Should().Be(25m);
@@ -87,6 +88,37 @@ public class EmergencyReconciliationServiceTests
         aliceSplit.Amount.Should().Be(0m);
         bobSplit.Amount.Should().Be(25m);
         request.AmountSplitCommitted.Should().Be(25m);
+        request.AmountReceived.Should().Be(75m);
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task ApplyDirectGift_WhenFullySplit_CreditsReceivedInsteadOfReopeningUncovered()
+    {
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 110m);
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
+        var splitService = CreateSplitService(fx);
+        var reconciliation = CreateReconciliationService(fx);
+
+        (await splitService.ApplySplitAsync(request, fx.Bob.Id, 100m, CancellationToken.None)).Success.Should().BeTrue();
+        await fx.Context.SaveChangesAsync();
+
+        request = (await ReloadRequestAsync(fx, request.Id))!;
+        request.AmountSplitCommitted.Should().Be(100m);
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+
+        var result = await reconciliation.ApplyDirectGiftAsync(request, 50m, CancellationToken.None);
+        await fx.Context.SaveChangesAsync();
+
+        result.AmountAppliedToNeed.Should().Be(50m);
+        result.OverflowAmount.Should().Be(0m);
+        request.AmountReceived.Should().Be(50m);
+        request.AmountSplitCommitted.Should().Be(50m);
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+
+        var eligibility = await splitService.GetViewerSplitEligibilityAsync(
+            request, fx.Alice.Id, CancellationToken.None);
+        eligibility.CanSplit.Should().BeFalse();
     }
 
     [Fact]
