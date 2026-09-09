@@ -381,11 +381,11 @@ public partial class MutualAidService(
             return pending;
         }
 
-        void AddCycleEntry(SeasonCycle cycle, string entryType, decimal verifiedNeed)
+        void AddCycleEntry(SeasonCycle cycle, string entryType, decimal verifiedNeed, bool keepForPackageContext = false)
         {
             var pending = PendingForCycle(cycle);
             var need = Math.Max(0m, verifiedNeed - pending);
-            if (need <= 0 && pending <= 0)
+            if (need <= 0 && pending <= 0 && !keepForPackageContext)
             {
                 return;
             }
@@ -417,11 +417,27 @@ public partial class MutualAidService(
             {
                 AddCycleEntry(cycle, ReceptionEntryType.Cycle.ToApiValue(), CapFor(cycle) - cycle.CycleReceived);
             }
+
+            if (unit.All(IsBoundSegment))
+            {
+                var completedPartner = FindCompletedIntendedPackagePrimary(unit, cyclesForOrder);
+                if (completedPartner is not null
+                    && entries.All(e => e.SeasonCycleId != completedPartner.Id))
+                {
+                    AddCycleEntry(
+                        completedPartner,
+                        ReceptionEntryType.Cycle.ToApiValue(),
+                        CapFor(completedPartner) - completedPartner.CycleReceived,
+                        keepForPackageContext: true);
+                }
+            }
         }
 
         // Emergency aid and payback segments can sit outside the live locked window after
         // full-cycle splits or a package primary leaving — still show them for record-gift
         // so offerers keep their reception amount and requesters keep emergency aid.
+        // When the intended requester primary was completed by the split, also show that
+        // cycle as the package "second half" (needs $0) so the payback is not alone.
         if (forRecordGift)
         {
             foreach (var cycle in incompleteCycles
@@ -431,6 +447,17 @@ public partial class MutualAidService(
                 .ThenBy(c => c.ReceptionOrderPosition))
             {
                 AddCycleEntry(cycle, ReceptionEntryType.Cycle.ToApiValue(), CapFor(cycle) - cycle.CycleReceived);
+                var completedPartner = FindCompletedIntendedPackagePrimary([cycle], cyclesForOrder);
+                if (completedPartner is not null
+                    && !lockedCycleIds.Contains(completedPartner.Id)
+                    && entries.All(e => e.SeasonCycleId != completedPartner.Id))
+                {
+                    AddCycleEntry(
+                        completedPartner,
+                        ReceptionEntryType.Cycle.ToApiValue(),
+                        CapFor(completedPartner) - completedPartner.CycleReceived,
+                        keepForPackageContext: true);
+                }
             }
         }
 
@@ -800,6 +827,16 @@ public partial class MutualAidService(
         {
             await TryRepairMisfiredScopedSegmentCreditAsync(gift, cancellationToken);
         }
+
+        // Dead-end from VerifyGift: verification committed but ApplyGiftReception threw —
+        // apply those now so payback/emergency segments can complete.
+        var unapplied = await giftRepository.GetVerifiedUnappliedGiftsForCycleIdsAsync(
+            incompleteSegmentIds,
+            cancellationToken);
+        foreach (var gift in unapplied)
+        {
+            await ApplyGiftReceptionAsync(gift, cancellationToken);
+        }
     }
 
     /// <summary>
@@ -856,15 +893,10 @@ public partial class MutualAidService(
             return;
         }
 
+        // Credit only what the segment still needs; do not skip when CycleReceived is already
+        // positive from a smaller prior gift (old gate used CycleReceived >= gift.Amount).
         var credit = Math.Min(gift.Amount, room);
         if (credit <= 0m)
-        {
-            return;
-        }
-
-        // Only repair when the segment is still empty/under-credited relative to this gift.
-        // If CycleReceived already covers this gift, nothing to do.
-        if (segment.CycleReceived >= gift.Amount)
         {
             return;
         }
@@ -3786,19 +3818,38 @@ public partial class MutualAidService(
             return true;
         }
 
+        var intended = FindIntendedPackagePrimary(boundSegments, allSeasonCycles);
+        return intended is not null
+            && !intended.CycleCompleted
+            && intended.Id == candidatePrimary.Id;
+    }
+
+    private static SeasonCycle? FindCompletedIntendedPackagePrimary(
+        IReadOnlyList<SeasonCycle> boundSegments,
+        IReadOnlyList<SeasonCycle> allSeasonCycles)
+    {
+        var intended = FindIntendedPackagePrimary(boundSegments, allSeasonCycles);
+        return intended is not null && intended.CycleCompleted ? intended : null;
+    }
+
+    private static SeasonCycle? FindIntendedPackagePrimary(
+        IReadOnlyList<SeasonCycle> boundSegments,
+        IReadOnlyList<SeasonCycle> allSeasonCycles)
+    {
+        if (boundSegments.Count == 0)
+        {
+            return null;
+        }
+
         var lastBound = boundSegments
             .OrderByDescending(b => b.ReceptionOrderPosition)
             .First();
-        var intended = allSeasonCycles
+        return allSeasonCycles
             .Where(c => IsPrimaryCycle(c)
                 && c.SeasonStartDate == lastBound.SeasonStartDate
                 && c.ReceptionOrderPosition > lastBound.ReceptionOrderPosition)
             .OrderBy(c => c.ReceptionOrderPosition)
             .FirstOrDefault();
-
-        return intended is not null
-            && !intended.CycleCompleted
-            && intended.Id == candidatePrimary.Id;
     }
 
     private static SeasonCycle? GetUnitPrimary(SeasonCycle cycleInUnit, IReadOnlyList<SeasonCycle> allCycles)

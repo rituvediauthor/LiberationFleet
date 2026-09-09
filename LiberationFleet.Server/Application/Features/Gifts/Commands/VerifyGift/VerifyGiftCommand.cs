@@ -125,14 +125,31 @@ public class VerifyGiftCommandHandler(
                     "Post-verify reception apply failed for gift {GiftId} in crew {CrewId}",
                     gift.Id,
                     membership.CrewId);
-                // Verification already committed; surface the failure so callers know reception
-                // (and cycle completion) may not have applied — silent swallow left payback /
-                // emergency segments stuck in reception order after confirm.
+
+                // Verification is already committed. Retry once, then still return success so the
+                // UI does not dead-end with Verified + !ReceptionApplied and no retry actions.
+                try
+                {
+                    await ApplyReceptionAfterConfirmAsync(gift, cancellationToken);
+                }
+                catch (Exception retryEx)
+                {
+                    logger.LogError(
+                        retryEx,
+                        "Post-verify reception apply retry failed for gift {GiftId} in crew {CrewId}",
+                        gift.Id,
+                        membership.CrewId);
+                }
+
+                var savedAfterFail = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+                var applied = savedAfterFail?.ReceptionApplied == true;
                 return new GiftOperationResponse
                 {
-                    Success = false,
-                    Message = "Gift was verified, but applying it to the reception cycle failed. Please retry or contact an accountant.",
-                    Entry = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken) is { } savedAfterFail
+                    Success = true,
+                    Message = applied
+                        ? "Gift verification updated."
+                        : "Gift was verified. Refresh the reception order shortly if a pay-back or emergency cycle still shows the same need.",
+                    Entry = savedAfterFail is not null
                         ? GiftMapper.MapGift(savedAfterFail, viewerUserId: userId, completedChild: completedChild, initiatedParent: initiatedParent)
                         : null
                 };
