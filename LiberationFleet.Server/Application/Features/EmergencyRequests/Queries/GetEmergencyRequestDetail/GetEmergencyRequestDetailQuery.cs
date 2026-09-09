@@ -47,10 +47,17 @@ public class GetEmergencyRequestDetailQueryHandler(
             return new EmergencyRequestDetailResponse { Success = false, Message = accessError ?? "Emergency request not found." };
         }
 
-        await mutualAidService.RepairEmergencyQueueFundedCreditsAsync(emergencyRequest.Id, cancellationToken);
-        emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(
-            emergencyRequest.Id,
-            cancellationToken) ?? emergencyRequest;
+        try
+        {
+            await mutualAidService.RepairEmergencyQueueFundedCreditsAsync(emergencyRequest.Id, cancellationToken);
+            emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(
+                emergencyRequest.Id,
+                cancellationToken) ?? emergencyRequest;
+        }
+        catch
+        {
+            // Repair is best-effort; never block opening the request.
+        }
 
         var requestCrewId = emergencyRequest.CrewId;
         var viewer = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
@@ -60,7 +67,7 @@ public class GetEmergencyRequestDetailQueryHandler(
             .Select(p => p.CrewPaymentPlatformId!.Value)
             .ToHashSet() ?? [];
 
-        var requesterPlatforms = emergencyRequest.RequesterUser.PaymentPlatforms
+        var requesterPlatforms = (emergencyRequest.RequesterUser?.PaymentPlatforms ?? [])
             .Where(p => p.CrewPaymentPlatformId.HasValue)
             .OrderByDescending(p => p.IsPreferred)
             .ThenBy(p => p.Id)
@@ -81,11 +88,11 @@ public class GetEmergencyRequestDetailQueryHandler(
         if (commonPlatforms.Count == 0)
         {
             var preferred = requesterPlatforms.FirstOrDefault(p => p.IsPreferred) ?? requesterPlatforms.FirstOrDefault();
-            if (preferred is not null)
+            if (preferred?.CrewPaymentPlatformId is int preferredPlatformId)
             {
                 commonPlatforms.Add(new EmergencyPlatformDto
                 {
-                    PlatformId = preferred.CrewPaymentPlatformId!.Value,
+                    PlatformId = preferredPlatformId,
                     PlatformName = preferred.CrewPaymentPlatform?.Name ?? preferred.PlatformName,
                     Handle = preferred.Handle,
                     IsPreferred = preferred.IsPreferred,
@@ -117,17 +124,30 @@ public class GetEmergencyRequestDetailQueryHandler(
                 Username = m.Username,
                 CommonPlatformIds = m.PlatformIds
                     .Where(id => viewerPlatformIds.Contains(id))
-                    .Intersect(emergencyRequest.RequesterUser.PaymentPlatforms
+                    .Intersect(emergencyRequest.RequesterUser?.PaymentPlatforms
                         .Where(p => p.CrewPaymentPlatformId.HasValue)
-                        .Select(p => p.CrewPaymentPlatformId!.Value))
+                        .Select(p => p.CrewPaymentPlatformId!.Value) ?? [])
                     .ToList()
             })
             .ToList();
 
-        var splitEligibility = await emergencySplitService.GetViewerSplitEligibilityAsync(
-            emergencyRequest,
-            viewerId,
-            cancellationToken);
+        EmergencySplitEligibility splitEligibility;
+        try
+        {
+            splitEligibility = await emergencySplitService.GetViewerSplitEligibilityAsync(
+                emergencyRequest,
+                viewerId,
+                cancellationToken);
+        }
+        catch
+        {
+            // Never block detail load on split-eligibility side effects or capacity lookup failures.
+            splitEligibility = new EmergencySplitEligibility
+            {
+                CanSplit = false,
+                Message = "Split is temporarily unavailable."
+            };
+        }
 
         var amounts = EmergencyRequestDtoMapper.MapAmounts(emergencyRequest);
         var requestCrew = await mutualAidRepository.GetCrewAsync(requestCrewId, cancellationToken);
@@ -142,7 +162,7 @@ public class GetEmergencyRequestDetailQueryHandler(
                 CrewId = requestCrewId,
                 CrewName = requestCrew?.Name ?? string.Empty,
                 RequesterUserId = emergencyRequest.RequesterUserId,
-                RequesterUsername = emergencyRequest.RequesterUser.Username,
+                RequesterUsername = emergencyRequest.RequesterUser?.Username ?? string.Empty,
                 Purpose = emergencyRequest.Purpose,
                 AmountNeeded = emergencyRequest.AmountNeeded,
                 AmountFulfilled = amounts.AmountReceived,
