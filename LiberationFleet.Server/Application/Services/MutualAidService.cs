@@ -123,9 +123,17 @@ public partial class MutualAidService(
         int? maxEntries,
         CancellationToken cancellationToken)
     {
-        // Heal legacy gifts that were marked ReceptionApplied but credited the primary instead of
-        // the scoped payback/emergency segment — otherwise stuck rows linger in the order.
-        await RepairMisfiredScopedSegmentCreditsForCrewAsync(crew, cancellationToken);
+        // Heal stuck payback/emergency credits best-effort. Never fail the reception order load
+        // if a bad gift id / apply throws (that left the whole page blank after #67).
+        try
+        {
+            await RepairMisfiredScopedSegmentCreditsForCrewAsync(crew, cancellationToken);
+        }
+        catch
+        {
+            // ignored — display the order even if healing cannot run
+        }
+
         await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
 
         var allMembers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crew.Id, cancellationToken);
@@ -825,7 +833,14 @@ public partial class MutualAidService(
             cancellationToken);
         foreach (var gift in gifts)
         {
-            await TryRepairMisfiredScopedSegmentCreditAsync(gift, cancellationToken);
+            try
+            {
+                await TryRepairMisfiredScopedSegmentCreditAsync(gift, cancellationToken);
+            }
+            catch
+            {
+                // Keep healing other gifts; one bad row must not abort the order.
+            }
         }
 
         // Dead-end from VerifyGift: verification committed but ApplyGiftReception threw —
@@ -835,7 +850,14 @@ public partial class MutualAidService(
             cancellationToken);
         foreach (var gift in unapplied)
         {
-            await ApplyGiftReceptionAsync(gift, cancellationToken);
+            try
+            {
+                await ApplyGiftReceptionAsync(gift, cancellationToken);
+            }
+            catch
+            {
+                // Invalid SeasonCycleId / owner mismatch must not blank the reception order.
+            }
         }
     }
 
