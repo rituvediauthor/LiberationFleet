@@ -81,6 +81,23 @@ public sealed class LocalDeepFreezeBlobStore(IOptions<MediaDeepFreezeOptions> op
         return Task.CompletedTask;
     }
 
+    public Task ClearAllAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var root = options.Value.LocalRootPath;
+        if (!Path.IsPathRooted(root))
+        {
+            root = Path.Combine(AppContext.BaseDirectory, root);
+        }
+
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static void EnsureDirectory(string fullPath)
     {
         var directory = Path.GetDirectoryName(fullPath);

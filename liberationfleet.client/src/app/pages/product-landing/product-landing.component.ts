@@ -1,18 +1,29 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { BrandLogoComponent } from '../../components/brand-logo/brand-logo.component';
+import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
+import { DevMutualAidService } from '../../components/dev-toolbar/dev-mutual-aid.service';
+import { DevToolsService } from '../../services/dev-tools.service';
+import { ToastService } from '../../components/toast/toast.component';
 
 @Component({
   selector: 'app-product-landing',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, BrandLogoComponent],
+  imports: [CommonModule, PageLayoutComponent, BrandLogoComponent, ConfirmDialogComponent],
   templateUrl: './product-landing.component.html',
   styleUrl: './product-landing.component.css'
 })
-export class ProductLandingComponent {
+export class ProductLandingComponent implements OnInit {
   signInButton: ActionBarButton;
+  showNukeDialog = false;
+  nukeEnabled = false;
+  nukeBusy = false;
+
+  private readonly devMutualAidService = inject(DevMutualAidService);
+  private readonly devToolsService = inject(DevToolsService);
+  private readonly toastService = inject(ToastService);
 
   constructor(private router: Router) {
     this.signInButton = {
@@ -22,7 +33,59 @@ export class ProductLandingComponent {
     };
   }
 
-  private navigateToSignIn() {
+  ngOnInit(): void {
+    this.devToolsService.load().subscribe({
+      next: status => {
+        this.nukeEnabled = status.enabled;
+      },
+      error: () => {
+        this.nukeEnabled = false;
+      }
+    });
+  }
+
+  openNukeDialog(): void {
+    if (this.nukeBusy || !this.nukeEnabled) {
+      return;
+    }
+
+    this.showNukeDialog = true;
+  }
+
+  closeNukeDialog(): void {
+    if (this.nukeBusy) {
+      return;
+    }
+
+    this.showNukeDialog = false;
+  }
+
+  confirmNuke(): void {
+    if (this.nukeBusy) {
+      return;
+    }
+
+    this.nukeBusy = true;
+    this.devMutualAidService.resetApp().subscribe({
+      next: result => {
+        this.nukeBusy = false;
+        this.showNukeDialog = false;
+        if (result.success) {
+          this.toastService.success(result.message, 6000);
+        } else {
+          this.toastService.error(result.message, 6000);
+        }
+      },
+      error: err => {
+        this.nukeBusy = false;
+        this.showNukeDialog = false;
+        const message = err.error?.message || 'App reset failed.';
+        this.toastService.error(message, 6000);
+      }
+    });
+  }
+
+  private navigateToSignIn(): void {
     this.router.navigate(['/sign-in']);
   }
 }

@@ -11,5 +11,7 @@ public sealed class DatabaseReadyState
 
     public bool IsReady => _isReady;
 
+    public void MarkNotReady() => _isReady = false;
+
     public void MarkReady() => _isReady = true;
 }

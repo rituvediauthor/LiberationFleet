@@ -5,5 +5,26 @@
       <h1>Liberation Fleet</h1>
       <p class="subtitle">Build resilient communities and help those in need with the power of the fleet!</p>
     </div>
+
+    <section class="nuke-panel" *ngIf="nukeEnabled">
+      <h2>Dev / staging reset</h2>
+      <p>
+        Clear all app data and wipe deep-freeze/blob-backed media so this environment behaves like a first run.
+      </p>
+      <button type="button" class="nuke-button" [disabled]="nukeBusy" (click)="openNukeDialog()">
+        {{ nukeBusy ? 'Resetting environment...' : 'Nuke all data/content' }}
+      </button>
+    </section>
   </div>
 </app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showNukeDialog"
+  title="Reset staging/dev environment?"
+  message="This permanently deletes all database records and deep-freeze/blob storage content for this environment. This cannot be undone."
+  confirmLabel="Delete everything"
+  cancelLabel="Cancel"
+  (confirmed)="confirmNuke()"
+  (cancelled)="closeNukeDialog()"
+  (dismissed)="closeNukeDialog()">
+</app-confirm-dialog>

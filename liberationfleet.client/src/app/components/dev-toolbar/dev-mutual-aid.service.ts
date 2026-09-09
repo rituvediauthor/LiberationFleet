@@ -34,4 +34,8 @@ export class DevMutualAidService {
   recalculateCaps(): Observable<DevActionResult> {
     return this.http.post<DevActionResult>(`${this.apiUrl}/recalculate-caps`, {});
   }
+
+  resetApp(): Observable<DevActionResult> {
+    return this.http.post<DevActionResult>(`${this.apiUrl}/reset-app`, {});
+  }
 }

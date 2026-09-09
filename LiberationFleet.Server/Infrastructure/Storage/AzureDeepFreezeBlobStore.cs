@@ -114,6 +114,16 @@ public sealed class AzureDeepFreezeBlobStore : IDeepFreezeBlobStore
         await container.DeleteBlobIfExistsAsync(blobPath, cancellationToken: cancellationToken);
     }
 
+    public async Task ClearAllAsync(CancellationToken cancellationToken = default)
+    {
+        if (_container is null)
+        {
+            return;
+        }
+
+        await _container.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+    }
+
     private BlobContainerClient EnsureContainer() =>
         _container ?? throw new InvalidOperationException("Azure deep-freeze storage is not configured.");
 }

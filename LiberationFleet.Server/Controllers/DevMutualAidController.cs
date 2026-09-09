@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,15 +10,18 @@ namespace LiberationFleet.Server.Controllers;
 public class DevMutualAidController : ControllerBase
 {
     private readonly IMutualAidDevService _devService;
+    private readonly DevEnvironmentResetService _resetService;
     private readonly ICurrentUserService _currentUser;
     private readonly IWebHostEnvironment _environment;
 
     public DevMutualAidController(
         IMutualAidDevService devService,
+        DevEnvironmentResetService resetService,
         ICurrentUserService currentUser,
         IWebHostEnvironment environment)
     {
         _devService = devService;
+        _resetService = resetService;
         _currentUser = currentUser;
         _environment = environment;
     }
@@ -49,7 +53,25 @@ public class DevMutualAidController : ControllerBase
     [Authorize]
     public Task<IActionResult> RecalculateCaps() => RunAsync(_devService.RecalculateCapsAsync);
 
-    private bool IsDevToolsEnabled() => _environment.IsDevelopment();
+    [HttpPost("reset-app")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetApp()
+    {
+        if (!IsDevToolsEnabled())
+        {
+            return NotFound();
+        }
+
+        await _resetService.ResetAsync(HttpContext.RequestAborted);
+        return Ok(new DevActionResultDto
+        {
+            Success = true,
+            Message = "All app data and deep-freeze storage were cleared. The app is back to first-run state."
+        });
+    }
+
+    private bool IsDevToolsEnabled() =>
+        _environment.IsDevelopment() || _environment.IsStaging();
 
     private async Task<IActionResult> RunAsync(Func<int, CancellationToken, Task<DevActionResultDto>> action)
     {

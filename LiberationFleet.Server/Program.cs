@@ -125,7 +125,7 @@ builder.Services.AddScoped<LiberationFleet.Server.Filters.FleetRuleAcceptanceFil
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 if (corsOrigins.Length > 0)
 {
     builder.Services.AddCors(options =>
@@ -240,13 +240,10 @@ static async Task ApplyMigrationsAsync(WebApplication app)
     {
         try
         {
-            await dbContext.Database.MigrateAsync();
-            await GiftLogSchemaRepair.EnsureAsync(dbContext, logger);
-            await LotPlatformSchemaRepair.EnsureAsync(dbContext, logger);
-            await DuoVoteTimeoutModeSchemaRepair.EnsureAsync(dbContext, logger);
-            await ProposalAutoResolveSettingsSchemaRepair.EnsureAsync(dbContext, logger);
-            readyState.MarkReady();
-            logger.LogInformation("Database migrations applied successfully");
+            await DatabaseLifecycle.ApplyMigrationsAndRepairsAsync(
+                dbContext,
+                readyState,
+                logger);
             return;
         }
         catch (Exception ex) when (attempt < maxAttempts)

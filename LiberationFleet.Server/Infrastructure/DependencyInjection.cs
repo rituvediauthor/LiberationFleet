@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddHostedService<Background.MediaDeepFreezeHostedService>();
         services.AddHostedService<Background.GiftAutoVerifyHostedService>();
         services.AddHostedService<Background.ProposalTimerHostedService>();
+        services.AddSingleton<Data.DevEnvironmentResetService>();
         services.AddSingleton<ILiveKitTokenService, Infrastructure.LiveKit.LiveKitTokenService>();
         services.AddHttpClient();
         services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();

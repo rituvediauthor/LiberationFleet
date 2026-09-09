@@ -25,6 +25,9 @@ public sealed class NullDeepFreezeBlobStore : IDeepFreezeBlobStore
 
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
+
+    public Task ClearAllAsync(CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
 }
 
 public sealed class DeepFreezeBlobStoreRouter(
@@ -54,4 +57,7 @@ public sealed class DeepFreezeBlobStoreRouter(
 
     public Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default) =>
         Active.DeleteAsync(blobPath, cancellationToken);
+
+    public Task ClearAllAsync(CancellationToken cancellationToken = default) =>
+        Active.ClearAllAsync(cancellationToken);
 }

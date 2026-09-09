@@ -24,4 +24,9 @@ public interface IDeepFreezeBlobStore
     Task<(Stream Stream, long Length)?> OpenReadAsync(string blobPath, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string blobPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes all blobs managed by this store. Intended for non-production reset flows only.
+    /// </summary>
+    Task ClearAllAsync(CancellationToken cancellationToken = default);
 }
