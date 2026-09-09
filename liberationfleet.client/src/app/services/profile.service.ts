@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, shareReplay, tap } from 'rxjs';
+import { PaymentPlatformOption } from '../models/gift.model';
 import {
   CUSTOM_PLATFORM_OPTION_ID,
   PaymentPlatformAccount,
@@ -8,6 +9,7 @@ import {
   UpdateProfileRequest,
   UserProfile
 } from '../models/profile.model';
+import { defaultSystemPlatformSelection } from '../utils/payment-platform-options.util';
 
 @Injectable({
   providedIn: 'root'
@@ -84,19 +86,25 @@ export class ProfileService {
     });
   }
 
-  createPaymentPlatformAccount(): PaymentPlatformAccount {
+  createPaymentPlatformAccount(
+    platformOptions: PaymentPlatformOption[] = []
+  ): PaymentPlatformAccount {
+    const selection = defaultSystemPlatformSelection(platformOptions);
     return {
       id: this.nextTempPlatformId--,
-      platformId: CUSTOM_PLATFORM_OPTION_ID,
-      platform: '',
+      platformId: selection.platformId,
+      platform: selection.platform,
       handle: '',
       customPlatformName: '',
       isPreferred: false
     };
   }
 
-  addPaymentPlatform(profile: UserProfile): PaymentPlatformAccount {
-    const account = this.createPaymentPlatformAccount();
+  addPaymentPlatform(
+    profile: UserProfile,
+    platformOptions: PaymentPlatformOption[] = []
+  ): PaymentPlatformAccount {
+    const account = this.createPaymentPlatformAccount(platformOptions);
     profile.paymentPlatforms = [...profile.paymentPlatforms, account];
     return account;
   }

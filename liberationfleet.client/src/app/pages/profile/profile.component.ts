@@ -257,14 +257,17 @@ export class ProfileComponent implements OnInit {
     }
   }
 
-  async onRecoveryKeyRotationConfirmed() {
+  async onRecoveryKeyRotationConfirmed(result: { rememberOnDevice: boolean }) {
     if (!this.pendingRecoveryPhrase) {
       return;
     }
 
     try {
       await this.authService.rotateRecoveryPhrase(this.pendingRecoveryPhrase);
-      await this.authService.unlockWithRecoveryPhrase(this.pendingRecoveryPhrase, true);
+      await this.authService.unlockWithRecoveryPhrase(
+        this.pendingRecoveryPhrase,
+        result.rememberOnDevice
+      );
       this.pendingRecoveryPhrase = '';
       this.showRecoveryKeyModal = false;
       this.toastService.success('Recovery key updated. Store the new key safely; the old one no longer works.');
@@ -319,7 +322,7 @@ export class ProfileComponent implements OnInit {
     if (!this.profile) {
       return;
     }
-    this.profileService.addPaymentPlatform(this.profile);
+    this.profileService.addPaymentPlatform(this.profile, this.platformOptions);
     this.updateSaveButton();
   }
 

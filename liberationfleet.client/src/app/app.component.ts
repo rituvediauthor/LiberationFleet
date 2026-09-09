@@ -1,6 +1,8 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { App } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { Subscription, firstValueFrom, of } from 'rxjs';
 import { catchError, filter } from 'rxjs/operators';
 import { ToastContainerComponent } from './components/toast/toast.component';
@@ -19,6 +21,7 @@ import {
   isCrewJoinRequestApprovedNotification,
   isNewSeasonNotification
 } from './utils/crew-join-approval.util';
+import { isNativeApp } from './utils/app-platform.util';
 
 @Component({
   selector: 'app-root',
@@ -48,6 +51,12 @@ export class AppComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private notificationsBootstrapped = false;
   private readonly subscriptions = new Subscription();
+  private appStateListener: PluginListenerHandle | null = null;
+  private readonly onVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      this.refreshMembershipIfInApp();
+    }
+  };
 
   ngOnInit() {
     void this.authService.getEncryptionReady().then(() => {
@@ -82,16 +91,45 @@ export class AppComponent implements OnInit, OnDestroy {
         this.onMembershipAffectingNotification(notification);
       })
     );
+
+    // Capacitor / backgrounded tabs often miss the live join-approval SignalR event.
+    // Re-check membership when the app returns to the foreground.
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (isNativeApp()) {
+      void App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          this.refreshMembershipIfInApp();
+        }
+      }).then(handle => {
+        this.appStateListener = handle;
+      });
+    }
   }
 
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    void this.appStateListener?.remove();
+    this.appStateListener = null;
   }
 
   onCryptoUnlocked() {
     this.syncUnlockDialog();
     void this.syncCrewCryptoIfInApp();
     void this.syncFleetCryptoIfInApp();
+  }
+
+  private refreshMembershipIfInApp() {
+    if (!this.router.url.startsWith('/app') || !this.authService.getToken()) {
+      return;
+    }
+
+    this.crewService.clearMembershipCache();
+    void this.connectNotificationsIfInApp();
   }
 
   private focusMainContent() {

@@ -265,7 +265,7 @@ export class SignUpComponent {
 
       this.authService.establishSession(authResult);
       this.pendingRecoveryPhrase = generateRecoveryPhrase();
-      await this.authService.setupNewAccountEncryption(this.pendingRecoveryPhrase, true);
+      await this.authService.setupNewAccountEncryption(this.pendingRecoveryPhrase, false);
       this.showRecoveryKeyModal = true;
     } catch (error: unknown) {
       const message = (error as { error?: { message?: string } })?.error?.message
@@ -308,10 +308,15 @@ export class SignUpComponent {
     this.navigation.back(['/sign-in']);
   }
 
-  async onRecoveryKeyConfirmed() {
+  async onRecoveryKeyConfirmed(result: { rememberOnDevice: boolean }) {
     if (!this.pendingRecoveryPhrase) {
       return;
     }
+
+    this.authService.setRememberRecoveryPhrase(
+      this.pendingRecoveryPhrase,
+      result.rememberOnDevice
+    );
 
     this.pendingRecoveryPhrase = '';
     this.showRecoveryKeyModal = false;

@@ -141,7 +141,7 @@ export class SeasonSetupComponent implements OnInit {
 
   addPaymentPlatform() {
     if (!this.profile) return;
-    this.profileService.addPaymentPlatform(this.profile);
+    this.profileService.addPaymentPlatform(this.profile, this.platformOptions);
     this.updateSaveButton();
   }
 

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { SavedRecoveryPhraseService } from '../../services/saved-recovery-phrase.service';
 import { ToastService } from '../toast/toast.component';
@@ -22,6 +23,7 @@ export class CryptoUnlockDialogComponent implements OnChanges {
   unlocking = false;
 
   private authService = inject(AuthService);
+  private router = inject(Router);
   private toastService = inject(ToastService);
   private savedRecoveryPhrase = inject(SavedRecoveryPhraseService);
 
@@ -50,5 +52,15 @@ export class CryptoUnlockDialogComponent implements OnChanges {
     } finally {
       this.unlocking = false;
     }
+  }
+
+  onLogout() {
+    if (this.unlocking) {
+      return;
+    }
+
+    this.recoveryPhrase = '';
+    this.authService.logout();
+    void this.router.navigate(['/sign-in']);
   }
 }

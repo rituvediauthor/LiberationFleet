@@ -80,4 +80,21 @@ describe('ProfileService', () => {
     expect(first.id).toBeGreaterThan(-2_147_483_648);
     expect(first.id).toBeLessThan(2_147_483_647);
   });
+
+  it('should default new payment platforms to the first system option when available', () => {
+    const account = service.createPaymentPlatformAccount([
+      { id: 3, name: 'Cash App' },
+      { id: 1, name: 'PayPal' }
+    ]);
+
+    expect(account.platformId).toBe(3);
+    expect(account.platform).toBe('Cash App');
+    expect(account.customPlatformName).toBe('');
+  });
+
+  it('should default new payment platforms to custom when no system options exist', () => {
+    const account = service.createPaymentPlatformAccount([]);
+    expect(account.platformId).toBe(0);
+    expect(account.platform).toBe('');
+  });
 });

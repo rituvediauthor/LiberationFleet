@@ -594,8 +594,12 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyCompletionDefaults(entries: GiftLogEntry[]) {
     entries.forEach(entry => {
-      if (entry.availableActions?.includes('completeTransfer') && entry.completionPlatformOptions?.length === 1) {
-        this.completionPlatformSelections[entry.id] = entry.completionPlatformOptions[0].id;
+      if (
+        entry.availableActions?.includes('completeTransfer')
+        && (entry.completionPlatformOptions?.length ?? 0) > 0
+        && this.completionPlatformSelections[entry.id] == null
+      ) {
+        this.completionPlatformSelections[entry.id] = entry.completionPlatformOptions![0].id;
       }
     });
   }

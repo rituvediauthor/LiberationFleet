@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
@@ -10,15 +10,26 @@ import { AccessibleDialogDirective } from '../../directives/accessible-dialog.di
   templateUrl: './recovery-key-display.component.html',
   styleUrl: './recovery-key-display.component.css'
 })
-export class RecoveryKeyDisplayComponent {
+export class RecoveryKeyDisplayComponent implements OnChanges {
   @Input() visible = false;
   @Input() recoveryPhrase = '';
   @Input() title = 'Save your recovery key';
   @Input() confirmLabel = 'I have saved my recovery key';
-  @Output() confirmed = new EventEmitter<void>();
+  /** When true (default), "Remember me" starts checked. */
+  @Input() rememberOnDeviceDefault = true;
+  @Output() confirmed = new EventEmitter<{ rememberOnDevice: boolean }>();
 
   acknowledged = false;
+  rememberOnDevice = true;
   copied = false;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['visible']?.currentValue === true) {
+      this.acknowledged = false;
+      this.copied = false;
+      this.rememberOnDevice = this.rememberOnDeviceDefault;
+    }
+  }
 
   get words(): string[] {
     return this.recoveryPhrase.split(' ').filter(Boolean);
@@ -44,6 +55,6 @@ export class RecoveryKeyDisplayComponent {
     if (!this.acknowledged) {
       return;
     }
-    this.confirmed.emit();
+    this.confirmed.emit({ rememberOnDevice: this.rememberOnDevice });
   }
 }

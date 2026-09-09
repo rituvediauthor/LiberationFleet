@@ -78,7 +78,10 @@ export class AddNonCrewmateComponent implements OnInit {
   }
 
   addPaymentPlatform() {
-    this.paymentPlatforms = [...this.paymentPlatforms, this.profileService.createPaymentPlatformAccount()];
+    this.paymentPlatforms = [
+      ...this.paymentPlatforms,
+      this.profileService.createPaymentPlatformAccount(this.platformOptions)
+    ];
     this.updateSaveButton();
   }
 

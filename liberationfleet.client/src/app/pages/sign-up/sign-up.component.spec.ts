@@ -113,6 +113,7 @@ describe('SignUpComponent', () => {
     const response = { success: true, token: 'jwt', user: { id: 1, username: 'newuser', email: 'new@example.com' } };
     userService.create.and.returnValue(of(response));
     authService.setupNewAccountEncryption.and.returnValue(Promise.resolve());
+    authService.unlockWithRecoveryPhrase.and.returnValue(Promise.resolve());
     fillValidForm();
 
     await (component as unknown as { completeSignUp(): Promise<void> }).completeSignUp();
@@ -129,14 +130,21 @@ describe('SignUpComponent', () => {
       token: 'jwt',
       user: { id: 1, username: 'newuser', email: 'new@example.com' }
     }));
-    expect(authService.setupNewAccountEncryption).toHaveBeenCalled();
+    expect(authService.setupNewAccountEncryption).toHaveBeenCalledWith(
+      jasmine.any(String),
+      false
+    );
     expect(component.showRecoveryKeyModal).toBeTrue();
     expect(component.pendingRecoveryPhrase.split(' ').length).toBe(12);
     expect(router.navigate).not.toHaveBeenCalled();
 
-    await component.onRecoveryKeyConfirmed();
+    await component.onRecoveryKeyConfirmed({ rememberOnDevice: true });
     fixture.detectChanges();
 
+    expect(authService.setRememberRecoveryPhrase).toHaveBeenCalledWith(
+      jasmine.any(String),
+      true
+    );
     expect(toastService.success).toHaveBeenCalledWith('Account created successfully!');
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });

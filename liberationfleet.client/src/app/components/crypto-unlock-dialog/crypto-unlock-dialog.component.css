@@ -63,6 +63,27 @@
   cursor: not-allowed;
 }
 
+.logout-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-btn:hover:not(:disabled) {
+  background: var(--lf-color-bg-hover);
+}
+
+.logout-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .field {
   display: flex;
   flex-direction: column;

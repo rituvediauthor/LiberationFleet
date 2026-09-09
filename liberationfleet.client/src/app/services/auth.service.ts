@@ -186,6 +186,13 @@ export class AuthService {
       throw new Error('Invalid recovery phrase.');
     }
 
+    // Drop any stale on-device phrase for this user id (common after a server data
+    // reset reuses ids 1, 2, …) so auto-unlock cannot race with provisioning.
+    const userId = this.getCurrentUserId();
+    if (userId) {
+      this.savedRecoveryPhrase.removePhrase(userId);
+    }
+
     await this.cryptoSession.provisionIdentityKeysWithRecoveryPhrase(normalized);
     this.persistRecoveryPhrase(normalized, rememberOnDevice);
     this.resetEncryptionReady();
@@ -200,6 +207,12 @@ export class AuthService {
     await this.cryptoSession.unlockFromRecoveryPhrase(normalized);
     this.persistRecoveryPhrase(normalized, rememberOnDevice);
     this.resetEncryptionReady();
+  }
+
+  /** Persist or clear the on-device recovery key without re-deriving identity keys. */
+  setRememberRecoveryPhrase(recoveryPhrase: string, rememberOnDevice: boolean): void {
+    const normalized = normalizeRecoveryPhrase(recoveryPhrase);
+    this.persistRecoveryPhrase(normalized, rememberOnDevice);
   }
 
   async rotateRecoveryPhrase(recoveryPhrase: string): Promise<void> {
@@ -306,6 +319,10 @@ export class AuthService {
     }
 
     this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+    const userId = this.getCurrentUserId();
+    if (userId) {
+      this.savedRecoveryPhrase.removePhrase(userId);
+    }
   }
 
   private getTokenStorageScope(): StorageScope {
@@ -315,7 +332,8 @@ export class AuthService {
   private shouldClearRememberedRecoveryPhrase(error: unknown): boolean {
     const message = error instanceof Error ? error.message : '';
     return message.includes('Invalid recovery key')
-      || message.includes('Incorrect unlock method');
+      || message.includes('Incorrect unlock method')
+      || message.includes('No encryption backup found');
   }
 
   private resetEncryptionReady(): void {

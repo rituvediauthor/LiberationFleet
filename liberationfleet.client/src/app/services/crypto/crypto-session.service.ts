@@ -134,7 +134,14 @@ export class CryptoSessionService {
   }
 
   async provisionIdentityKeysWithRecoveryPhrase(recoveryPhrase: string): Promise<void> {
-    const secret = recoveryPhraseToSecret(recoveryPhrase);
+    await this.provisionIdentityKeysFromSecret(recoveryPhraseToSecret(recoveryPhrase));
+  }
+
+  /**
+   * Creates identity keys and uploads a private-key backup wrapped with an already-derived secret.
+   * Callers that have a 12-word phrase should use {@link provisionIdentityKeysWithRecoveryPhrase}.
+   */
+  private async provisionIdentityKeysFromSecret(secret: string): Promise<void> {
     const keyPair = await this.cryptoService.generateIdentityKeyPair();
     this.identityPrivateKey = keyPair.privateKey;
     this.identityPublicKeySpki = await this.cryptoService.exportPublicKeySpki(keyPair.publicKey);
@@ -766,11 +773,10 @@ export class CryptoSessionService {
       backup = await firstValueFrom(this.cryptoApi.getMyPrivateKeyBackup());
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse && error.status === 404) {
-        if (expectedWrapVersion !== BACKUP_WRAP_RECOVERY_KEY) {
-          throw new Error('Incorrect unlock method for this account.');
-        }
-        await this.provisionIdentityKeysWithRecoveryPhrase(secret);
-        return;
+        // Do not invent a new backup here. Signup/setup owns provisioning; auto-unlock
+        // after a server reset must not race-overwrite a freshly provisioned backup
+        // with a stale on-device phrase (previously also double-hashed the secret).
+        throw new Error('No encryption backup found for this account. Sign up again or restore from a known recovery key after setup.');
       }
       throw error;
     }

@@ -10,6 +10,7 @@
       This 12-word recovery key is the only way to decrypt your crew's encrypted posts and messages.
       It is separate from your login password. Store it in a password manager or write it down and keep it offline.
       We cannot recover it for you.
+      Check Remember me to store the key on this device so you are not prompted for it on every sign-in.
     </p>
 
     <div class="phrase-grid" aria-label="Recovery key words">
@@ -22,6 +23,11 @@
     <button type="button" class="copy-btn" (click)="copyPhrase()">
       {{ copied ? 'Copied' : 'Copy recovery key' }}
     </button>
+
+    <label class="remember">
+      <input type="checkbox" [(ngModel)]="rememberOnDevice" />
+      Remember me
+    </label>
 
     <label class="acknowledge">
       <input type="checkbox" [(ngModel)]="acknowledged" />

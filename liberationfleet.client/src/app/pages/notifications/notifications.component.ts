@@ -15,6 +15,7 @@ import {
 import { CrewService } from '../../services/crew.service';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 import { NotificationCategoryMapperMatches } from '../../utils/notification-filter.util';
+import { isCrewJoinRequestApprovedNotification } from '../../utils/crew-join-approval.util';
 
 @Component({
   selector: 'app-notifications',
@@ -81,6 +82,12 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     if (!item.isRead) {
       this.notificationService.markRead(item.id).subscribe();
       item.isRead = true;
+    }
+
+    // Join approvals land on /app/crew; force a membership refetch so the crew
+    // dashboard appears instead of the cached no-crew welcome screen.
+    if (isCrewJoinRequestApprovedNotification(item)) {
+      this.crewService.clearMembershipCache();
     }
 
     const url = this.buildNavigationUrl(item);

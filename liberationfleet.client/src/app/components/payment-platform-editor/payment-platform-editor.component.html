@@ -7,8 +7,8 @@
         [(ngModel)]="account.platformId"
         class="form-input"
         (ngModelChange)="onFieldChange()">
-        <option [ngValue]="customPlatformOptionId">Add custom platform…</option>
         <option *ngFor="let p of platformOptions" [ngValue]="p.id">{{ p.name }}</option>
+        <option [ngValue]="customPlatformOptionId">Add custom platform…</option>
       </select>
     </div>
 

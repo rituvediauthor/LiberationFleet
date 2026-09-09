@@ -380,7 +380,7 @@
   [recoveryPhrase]="pendingRecoveryPhrase"
   title="Save your new recovery key"
   confirmLabel="I have saved this recovery key in a safe place"
-  (confirmed)="onRecoveryKeyRotationConfirmed()">
+  (confirmed)="onRecoveryKeyRotationConfirmed($event)">
 </app-recovery-key-display>
 
 <app-crypto-unlock-dialog

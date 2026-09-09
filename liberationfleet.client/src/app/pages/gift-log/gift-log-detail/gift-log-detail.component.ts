@@ -593,8 +593,12 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       comments: this.gift.comments
     };
 
-    if (entry.availableActions?.includes('completeTransfer') && entry.completionPlatformOptions?.length === 1) {
-      this.completionPlatformSelection = entry.completionPlatformOptions[0].id;
+    if (
+      entry.availableActions?.includes('completeTransfer')
+      && (entry.completionPlatformOptions?.length ?? 0) > 0
+      && this.completionPlatformSelection == null
+    ) {
+      this.completionPlatformSelection = entry.completionPlatformOptions![0].id;
     }
   }
 
@@ -670,8 +674,12 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
             ) as GiftComment[];
           }
           this.gift = entry;
-          if (entry.availableActions?.includes('completeTransfer') && entry.completionPlatformOptions?.length === 1) {
-            this.completionPlatformSelection = entry.completionPlatformOptions[0].id;
+          if (
+            entry.availableActions?.includes('completeTransfer')
+            && (entry.completionPlatformOptions?.length ?? 0) > 0
+            && this.completionPlatformSelection == null
+          ) {
+            this.completionPlatformSelection = entry.completionPlatformOptions![0].id;
           }
           this.expandHighlightedReply();
         } catch (error: unknown) {

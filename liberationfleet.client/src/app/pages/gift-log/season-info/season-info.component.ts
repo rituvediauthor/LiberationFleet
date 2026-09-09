@@ -100,7 +100,7 @@ export class SeasonInfoComponent implements OnInit {
     if (!this.profile) {
       return;
     }
-    const account = this.profileService.createPaymentPlatformAccount();
+    const account = this.profileService.createPaymentPlatformAccount(this.platformOptions);
     this.profile = {
       ...this.profile,
       paymentPlatforms: [...this.profile.paymentPlatforms, account]
