@@ -251,6 +251,97 @@ public class EmergencySplitServiceTests
         ids.Should().BeEquivalentTo([fx.Bob.Id, fx.Alice.Id]);
     }
 
+    [Fact]
+    public async Task ApplySplit_UserReport_Emergency100_Splits50Then12_Cycle110_AllowsFurtherSplit()
+    {
+        // Repro: emergency $100, cycle $110, prior splits $50+$12 — further split of remaining $38 should work.
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 110m);
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
+        var splitService = CreateSplitService(fx);
+
+        (await splitService.ApplySplitAsync(request, fx.Bob.Id, 50m, CancellationToken.None))
+            .Success.Should().BeTrue();
+        await fx.Context.SaveChangesAsync();
+
+        (await splitService.ApplySplitAsync(request, fx.Alice.Id, 12m, CancellationToken.None))
+            .Success.Should().BeTrue();
+        await fx.Context.SaveChangesAsync();
+
+        request.AmountSplitCommitted.Should().Be(62m);
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(38m);
+
+        var eligibility = await splitService.GetViewerSplitEligibilityAsync(
+            request, fx.Bob.Id, CancellationToken.None);
+        eligibility.CanSplit.Should().BeTrue(because: eligibility.Message);
+        eligibility.MaxSplitAmount.Should().Be(38m);
+
+        var result = await splitService.ApplySplitAsync(request, fx.Bob.Id, 38m, CancellationToken.None);
+        result.Success.Should().BeTrue(because: result.Message);
+    }
+
+    [Fact]
+    public async Task GetViewerSplitEligibility_IncludesRequesterRemainingCapacity()
+    {
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 110m);
+        var carolPrimary = await fx.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fx.Carol.Id && c.SeasonStartDate == fx.SeasonStart
+            && c.EmergencyRequestId == null && c.EmergencySplitOfferId == null);
+        // Requester only has $20 left on their primary after prior reception.
+        carolPrimary.CycleReceived = 90m;
+        await fx.Context.SaveChangesAsync();
+
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
+        var splitService = CreateSplitService(fx);
+
+        var eligibility = await splitService.GetViewerSplitEligibilityAsync(
+            request, fx.Bob.Id, CancellationToken.None);
+
+        eligibility.CanSplit.Should().BeTrue(because: eligibility.Message);
+        // Must not advertise more than the requester can sacrifice from their cycle.
+        eligibility.MaxSplitAmount.Should().Be(20m);
+
+        var over = await splitService.ApplySplitAsync(request, fx.Bob.Id, 50m, CancellationToken.None);
+        over.Success.Should().BeFalse();
+        over.Message.Should().Contain("requester");
+
+        var ok = await splitService.ApplySplitAsync(request, fx.Bob.Id, 20m, CancellationToken.None);
+        ok.Success.Should().BeTrue(because: ok.Message);
+    }
+
+    [Fact]
+    public async Task GetViewerSplitEligibility_WhenRequesterCurrentCapacityExhausted_UsesNextSeasonRemaining()
+    {
+        // Cycle $110 with $48 already received → $62 available. Splits $50+$12 exhaust the current
+        // primary while $38 of need remains — eligibility should fall through to next-season capacity
+        // (same as ApplySplit) rather than advertising uncovered need the current primary cannot cover.
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 110m);
+        var carolPrimary = await fx.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fx.Carol.Id && c.SeasonStartDate == fx.SeasonStart
+            && c.EmergencyRequestId == null && c.EmergencySplitOfferId == null);
+        carolPrimary.CycleReceived = 48m;
+        await fx.Context.SaveChangesAsync();
+
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
+        var splitService = CreateSplitService(fx);
+
+        (await splitService.ApplySplitAsync(request, fx.Bob.Id, 50m, CancellationToken.None))
+            .Success.Should().BeTrue();
+        await fx.Context.SaveChangesAsync();
+        (await splitService.ApplySplitAsync(request, fx.Alice.Id, 12m, CancellationToken.None))
+            .Success.Should().BeTrue();
+        await fx.Context.SaveChangesAsync();
+
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(38m);
+
+        var eligibility = await splitService.GetViewerSplitEligibilityAsync(
+            request, fx.Bob.Id, CancellationToken.None);
+        eligibility.CanSplit.Should().BeTrue(because: eligibility.Message);
+        eligibility.MaxSplitAmount.Should().Be(38m);
+
+        var ok = await splitService.ApplySplitAsync(request, fx.Bob.Id, 38m, CancellationToken.None);
+        ok.Success.Should().BeTrue(because: ok.Message);
+    }
+
     private static EmergencySplitService CreateSplitService(MutualAidSeasonFixture fx) =>
         new(
             new MutualAidRepository(fx.Context),
