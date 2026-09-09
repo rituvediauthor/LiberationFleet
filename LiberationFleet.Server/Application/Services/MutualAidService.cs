@@ -816,9 +816,24 @@ public partial class MutualAidService(
             return;
         }
 
-        var cycle = gift.SeasonCycleId.HasValue
-            ? await mutualAidRepository.GetSeasonCycleByIdAsync(gift.SeasonCycleId.Value, cancellationToken)
+        var explicitSeasonCycleId = gift.SeasonCycleId;
+        var cycle = explicitSeasonCycleId.HasValue
+            ? await mutualAidRepository.GetSeasonCycleByIdAsync(explicitSeasonCycleId.Value, cancellationToken)
             : null;
+
+        // Never silently retarget a scoped gift. Falling back to the primary would credit the
+        // wrong row and leave emergency/payback segments stuck in reception order.
+        if (explicitSeasonCycleId.HasValue && cycle is null)
+        {
+            throw new InvalidOperationException(
+                $"Gift {gift.Id} targets SeasonCycleId {explicitSeasonCycleId.Value}, which was not found.");
+        }
+
+        if (cycle is not null && cycle.UserId != recipientUserId)
+        {
+            throw new InvalidOperationException(
+                $"Gift {gift.Id} recipient {recipientUserId} does not own SeasonCycleId {cycle.Id} (owner {cycle.UserId}).");
+        }
 
         if (cycle is null && gift.EmergencyRequestId.HasValue)
         {
@@ -834,7 +849,10 @@ public partial class MutualAidService(
 
         if (cycle is null)
         {
-            cycle = await FindPrimaryCycleForUserAsync(
+            // Unscoped gifts: first incomplete row for the recipient, including payback/emergency
+            // segments (not primary-only). Primary-only fallback skipped paybacks and left them
+            // visible after a full-amount confirm.
+            cycle = await FindIncompleteCycleForUserAsync(
                 gift.CrewId,
                 recipientUserId,
                 crew.CurrentSeasonStartDate.Value,
@@ -2381,17 +2399,21 @@ public partial class MutualAidService(
         SeasonCycle? target = null;
         if (gift.SeasonCycleId.HasValue)
         {
-            target = cycles.FirstOrDefault(c => c.Id == gift.SeasonCycleId.Value);
+            target = cycles.FirstOrDefault(c =>
+                c.Id == gift.SeasonCycleId.Value && c.UserId == recipientUserId);
+            if (target is null)
+            {
+                return;
+            }
         }
-
-        target ??= cycles
-            .Where(c =>
-                c.UserId == recipientUserId
-                && IsPrimaryCycle(c)
-                && !c.CycleCompleted)
-            .OrderByDescending(c => c.HasCycleStarted)
-            .ThenBy(c => c.ReceptionOrderPosition)
-            .FirstOrDefault();
+        else
+        {
+            target = cycles
+                .Where(c => c.UserId == recipientUserId && !c.CycleCompleted)
+                .OrderByDescending(c => c.HasCycleStarted)
+                .ThenBy(c => c.ReceptionOrderPosition)
+                .FirstOrDefault();
+        }
 
         if (target is null)
         {
@@ -3525,6 +3547,24 @@ public partial class MutualAidService(
         return cycles
             .Where(c => c.UserId == userId && IsPrimaryCycle(c))
             .OrderBy(c => c.ReceptionOrderPosition)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Earliest incomplete cycle for the user in reception order, including emergency/payback
+    /// segments. Used when a gift has no SeasonCycleId so reception matches what the order shows.
+    /// </summary>
+    private async Task<SeasonCycle?> FindIncompleteCycleForUserAsync(
+        int crewId,
+        int userId,
+        DateTime seasonStartDate,
+        CancellationToken cancellationToken)
+    {
+        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(crewId, seasonStartDate, cancellationToken);
+        return cycles
+            .Where(c => c.UserId == userId && !c.CycleCompleted)
+            .OrderByDescending(c => c.HasCycleStarted)
+            .ThenBy(c => c.ReceptionOrderPosition)
             .FirstOrDefault();
     }
 
