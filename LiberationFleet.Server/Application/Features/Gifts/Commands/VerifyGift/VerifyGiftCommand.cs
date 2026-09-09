@@ -189,8 +189,11 @@ public class VerifyGiftCommandHandler(
 
     private async Task ApplyReceptionAfterConfirmAsync(Gift gift, CancellationToken cancellationToken)
     {
-        if ((gift.Type is GiftType.Direct or GiftType.Completed) && !gift.ReceptionApplied)
+        if (gift.Type is GiftType.Direct or GiftType.Completed)
         {
+            // Always call apply: first confirm credits the cycle; re-entry also repairs
+            // legacy misfires where ReceptionApplied was set but a payback/emergency segment
+            // never received CycleReceived (silent primary fallback).
             await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
         }
     }
