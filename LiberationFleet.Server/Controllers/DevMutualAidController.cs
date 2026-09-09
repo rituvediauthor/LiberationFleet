@@ -13,17 +13,20 @@ public class DevMutualAidController : ControllerBase
     private readonly DevEnvironmentResetService _resetService;
     private readonly ICurrentUserService _currentUser;
     private readonly IWebHostEnvironment _environment;
+    private readonly IConfiguration _configuration;
 
     public DevMutualAidController(
         IMutualAidDevService devService,
         DevEnvironmentResetService resetService,
         ICurrentUserService currentUser,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IConfiguration configuration)
     {
         _devService = devService;
         _resetService = resetService;
         _currentUser = currentUser;
         _environment = environment;
+        _configuration = configuration;
     }
 
     [HttpGet("enabled")]
@@ -70,8 +73,26 @@ public class DevMutualAidController : ControllerBase
         });
     }
 
-    private bool IsDevToolsEnabled() =>
-        _environment.IsDevelopment() || _environment.IsStaging();
+    /// <summary>
+    /// Dev/staging only. Staging Azure often still runs with ASPNETCORE_ENVIRONMENT=Production,
+    /// so also honor an explicit config flag and staging hostnames.
+    /// </summary>
+    private bool IsDevToolsEnabled()
+    {
+        if (_environment.IsDevelopment() || _environment.IsStaging())
+        {
+            return true;
+        }
+
+        if (_configuration.GetValue("DevTools:Enabled", false))
+        {
+            return true;
+        }
+
+        var host = HttpContext.Request.Host.Host;
+        return host.Contains("staging", StringComparison.OrdinalIgnoreCase)
+            && !host.Contains("production", StringComparison.OrdinalIgnoreCase);
+    }
 
     private async Task<IActionResult> RunAsync(Func<int, CancellationToken, Task<DevActionResultDto>> action)
     {

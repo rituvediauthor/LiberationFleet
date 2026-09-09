@@ -34,12 +34,16 @@ export class ProductLandingComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Staging hostnames may still report ASPNETCORE_ENVIRONMENT=Production; mirror donate page.
+    const isStagingHost =
+      typeof location !== 'undefined' && /staging/i.test(location.hostname);
+
     this.devToolsService.load().subscribe({
       next: status => {
-        this.nukeEnabled = status.enabled;
+        this.nukeEnabled = status.enabled || isStagingHost;
       },
       error: () => {
-        this.nukeEnabled = false;
+        this.nukeEnabled = isStagingHost;
       }
     });
   }
