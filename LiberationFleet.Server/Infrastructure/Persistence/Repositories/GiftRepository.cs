@@ -454,11 +454,18 @@ public class GiftRepository : IGiftRepository
             .AsNoTracking()
             .Where(g => g.CrewId == crewId
                 && g.CountsTowardReception
-                && !g.ReceptionApplied
                 && (
-                    (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)
-                    || (g.Type == GiftType.Completed
-                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)));
+                    (!g.ReceptionApplied
+                        && g.Type == GiftType.Direct
+                        && g.VerificationStatus == GiftVerificationStatus.Pending)
+                    || (!g.ReceptionApplied
+                        && g.Type == GiftType.Completed
+                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)
+                    // Verified but reception never applied — keep optimistic need reduced so users
+                    // do not stack more gifts on a stuck payback/emergency segment.
+                    || (!g.ReceptionApplied
+                        && g.VerificationStatus == GiftVerificationStatus.Verified
+                        && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))));
 
         if (currentSeasonStartDate.HasValue)
         {
@@ -527,6 +534,54 @@ public class GiftRepository : IGiftRepository
                 && _context.SeasonCycles.Any(c =>
                     c.Id == g.SeasonCycleId
                     && c.EmergencyRequestId == emergencyRequestId))
+            .OrderBy(g => g.CreatedAt)
+            .ThenBy(g => g.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Gift>> GetReceptionAppliedGiftsForCycleIdsAsync(
+        IEnumerable<int> seasonCycleIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = seasonCycleIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return Array.Empty<Gift>();
+        }
+
+        return await _context.Gifts
+            .Where(g =>
+                g.ReceptionApplied
+                && g.CountsTowardReception
+                && g.SeasonCycleId != null
+                && ids.Contains(g.SeasonCycleId.Value))
+            .OrderBy(g => g.CreatedAt)
+            .ThenBy(g => g.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Verified gifts targeting the given cycles that still need reception credit applied
+    /// (Verification committed but ApplyGiftReception never succeeded).
+    /// </summary>
+    public async Task<IReadOnlyList<Gift>> GetVerifiedUnappliedGiftsForCycleIdsAsync(
+        IEnumerable<int> seasonCycleIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = seasonCycleIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return Array.Empty<Gift>();
+        }
+
+        return await _context.Gifts
+            .Where(g =>
+                !g.ReceptionApplied
+                && g.CountsTowardReception
+                && g.SeasonCycleId != null
+                && ids.Contains(g.SeasonCycleId.Value)
+                && g.VerificationStatus == GiftVerificationStatus.Verified
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))
             .OrderBy(g => g.CreatedAt)
             .ThenBy(g => g.Id)
             .ToListAsync(cancellationToken);

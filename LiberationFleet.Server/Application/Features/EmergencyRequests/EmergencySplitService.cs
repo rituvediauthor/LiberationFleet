@@ -58,10 +58,9 @@ public class EmergencySplitService(
 
         if (!IsOffererEligibleForRequest(request, viewerUserId))
         {
-            // Legacy requests without a snapshot: fall back to live queue order.
+            // Legacy requests without a snapshot: fall back to live queue order (read-only).
             if (!HasEligibilitySnapshot(request))
             {
-                await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
                 var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(
                     request.CrewId,
                     cancellationToken);
@@ -94,7 +93,9 @@ public class EmergencySplitService(
             };
         }
 
-        var offererRemaining = await GetOffererRemainingAsync(request.CrewId, viewerUserId, cancellationToken);
+        // Read-only: do not EnsureNextSeasonCyclesAsync here — detail GET must not mutate season state.
+        // ApplySplitAsync still ensures future seasons before applying.
+        var offererRemaining = await GetPrimaryRemainingAsync(request.CrewId, viewerUserId, cancellationToken);
         if (offererRemaining <= 0m)
         {
             return new EmergencySplitEligibility
@@ -104,10 +105,23 @@ public class EmergencySplitService(
             };
         }
 
+        var requesterRemaining = await GetPrimaryRemainingAsync(
+            request.CrewId,
+            request.RequesterUserId,
+            cancellationToken);
+        if (requesterRemaining <= 0m)
+        {
+            return new EmergencySplitEligibility
+            {
+                CanSplit = false,
+                Message = "The requester does not have enough cycle capacity for this split."
+            };
+        }
+
         return new EmergencySplitEligibility
         {
             CanSplit = true,
-            MaxSplitAmount = Math.Min(uncovered, offererRemaining),
+            MaxSplitAmount = Math.Min(uncovered, Math.Min(offererRemaining, requesterRemaining)),
             EligibleOffererUserIds = ParseEligibleUserIds(request.SplitEligibleOffererUserIds)
         };
     }
@@ -539,9 +553,9 @@ public class EmergencySplitService(
         return ParseEligibleUserIds(request.SplitEligibleOffererUserIds).Contains(offererUserId);
     }
 
-    private async Task<decimal> GetOffererRemainingAsync(
+    private async Task<decimal> GetPrimaryRemainingAsync(
         int crewId,
-        int offererUserId,
+        int userId,
         CancellationToken cancellationToken)
     {
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
@@ -550,7 +564,7 @@ public class EmergencySplitService(
             return 0m;
         }
 
-        var membership = await membershipRepository.GetMembershipAsync(offererUserId, crewId, cancellationToken);
+        var membership = await membershipRepository.GetMembershipAsync(userId, crewId, cancellationToken);
         if (membership is null)
         {
             return 0m;
@@ -559,10 +573,10 @@ public class EmergencySplitService(
         var cyclesBySeason = await LoadCyclesBySeasonAsync(crewId, crew.CurrentSeasonStartDate.Value, cancellationToken);
         var frozenCapacity = await BuildCapacityContextAsync(crew, useFrozenSeasonCaps: true, cancellationToken);
         var liveCapacity = await BuildCapacityContextAsync(crew, useFrozenSeasonCaps: false, cancellationToken);
-        var isMember = await mutualAidService.IsFinancialMemberAsync(offererUserId, crewId, membership, cancellationToken);
+        var isMember = await mutualAidService.IsFinancialMemberAsync(userId, crewId, membership, cancellationToken);
         var (primary, _, capacity) = FindPrimaryAcrossSeasons(
             cyclesBySeason,
-            offererUserId,
+            userId,
             isMember,
             frozenCapacity,
             liveCapacity);

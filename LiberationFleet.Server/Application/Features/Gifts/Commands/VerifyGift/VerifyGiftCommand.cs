@@ -125,6 +125,34 @@ public class VerifyGiftCommandHandler(
                     "Post-verify reception apply failed for gift {GiftId} in crew {CrewId}",
                     gift.Id,
                     membership.CrewId);
+
+                // Verification is already committed. Retry once, then still return success so the
+                // UI does not dead-end with Verified + !ReceptionApplied and no retry actions.
+                try
+                {
+                    await ApplyReceptionAfterConfirmAsync(gift, cancellationToken);
+                }
+                catch (Exception retryEx)
+                {
+                    logger.LogError(
+                        retryEx,
+                        "Post-verify reception apply retry failed for gift {GiftId} in crew {CrewId}",
+                        gift.Id,
+                        membership.CrewId);
+                }
+
+                var savedAfterFail = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+                var applied = savedAfterFail?.ReceptionApplied == true;
+                return new GiftOperationResponse
+                {
+                    Success = true,
+                    Message = applied
+                        ? "Gift verification updated."
+                        : "Gift was verified. Refresh the reception order shortly if a pay-back or emergency cycle still shows the same need.",
+                    Entry = savedAfterFail is not null
+                        ? GiftMapper.MapGift(savedAfterFail, viewerUserId: userId, completedChild: completedChild, initiatedParent: initiatedParent)
+                        : null
+                };
             }
         }
 
@@ -178,8 +206,11 @@ public class VerifyGiftCommandHandler(
 
     private async Task ApplyReceptionAfterConfirmAsync(Gift gift, CancellationToken cancellationToken)
     {
-        if ((gift.Type is GiftType.Direct or GiftType.Completed) && !gift.ReceptionApplied)
+        if (gift.Type is GiftType.Direct or GiftType.Completed)
         {
+            // Always call apply: first confirm credits the cycle; re-entry also repairs
+            // legacy misfires where ReceptionApplied was set but a payback/emergency segment
+            // never received CycleReceived (silent primary fallback).
             await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
         }
     }
