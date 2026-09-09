@@ -2,6 +2,7 @@
   <div class="form-container">
     <div class="form-card">
       <p class="hint">Describe why you need urgent aid and how much is required.</p>
+      <p class="error-text" role="alert" *ngIf="seasonBlockedMessage">{{ seasonBlockedMessage }}</p>
 
       <form [formGroup]="form">
         <div class="form-group">

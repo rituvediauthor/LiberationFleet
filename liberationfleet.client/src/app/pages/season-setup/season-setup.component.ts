@@ -285,6 +285,7 @@ export class SeasonSetupComponent implements OnInit {
     this.captureInitialState();
 
     if (readyResult.status?.userInSeason) {
+      this.crewService.clearMembershipCache();
       if (this.isOnSeasonSetupRoute()) {
         void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
       }

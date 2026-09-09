@@ -37,7 +37,8 @@ public class EmergencySplitService(
         int requesterUserId,
         CancellationToken cancellationToken)
     {
-        await mutualAidService.EnsureNextSeasonCyclesAsync(crewId, cancellationToken);
+        // Read-only snapshot of the current locked queue. Do not EnsureNextSeasonCycles here —
+        // create must not mutate season state (unique-index SaveChanges failures block submit).
         var lockedUserIds = await mutualAidService.GetLockedCycleUserIdsAsync(crewId, cancellationToken);
         return lockedUserIds.Where(id => id != requesterUserId).ToList();
     }
@@ -540,8 +541,12 @@ public class EmergencySplitService(
             .ToList();
     }
 
+    /// <summary>
+    /// Legacy rows leave <see cref="EmergencyRequest.SplitEligibleOffererUserIds"/> null.
+    /// New requests always set it (including empty when nobody was eligible at create time).
+    /// </summary>
     private static bool HasEligibilitySnapshot(EmergencyRequest request) =>
-        !string.IsNullOrWhiteSpace(request.SplitEligibleOffererUserIds);
+        request.SplitEligibleOffererUserIds is not null;
 
     private static bool IsOffererEligibleForRequest(EmergencyRequest request, int offererUserId)
     {

@@ -18,7 +18,6 @@ public class CreateEmergencyRequestCommandHandler(
     IEmergencyRequestRepository emergencyRequestRepository,
     IUserRepository userRepository,
     EmergencySplitService emergencySplitService,
-    IMutualAidService mutualAidService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateEmergencyRequestCommand, EmergencyRequestOperationResponse>
 {
@@ -31,7 +30,7 @@ public class CreateEmergencyRequestCommandHandler(
             return new EmergencyRequestOperationResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var purpose = request.Purpose.Trim();
+        var purpose = (request.Purpose ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(purpose))
         {
             return new EmergencyRequestOperationResponse { Success = false, Message = "Purpose is required." };
@@ -52,7 +51,9 @@ public class CreateEmergencyRequestCommandHandler(
             };
         }
 
-        await mutualAidService.EnsureNextSeasonCyclesAsync(membership.CrewId, cancellationToken);
+        // Do not EnsureNextSeasonCycles here — that SaveChanges path can fail on the unique
+        // primary-cycle index and block create. Eligibility only needs the current locked queue;
+        // ApplySplitAsync still Ensures before mutating cycles.
 
         var requester = await userRepository.GetByIdWithProfileAsync(currentUser.UserId.Value, cancellationToken);
         var requesterName = requester?.Username ?? "A crewmate";
@@ -73,6 +74,7 @@ public class CreateEmergencyRequestCommandHandler(
             AmountSplitCommitted = 0m,
             Status = EmergencyRequestStatus.Open,
             CreatedAt = DateTime.UtcNow,
+            // Always set (possibly empty) so empty ≠ legacy null for split eligibility.
             SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(eligibleOfferers)
         };
 
@@ -80,15 +82,22 @@ public class CreateEmergencyRequestCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var purposePreview = purpose.Length > 80 ? purpose[..77] + "..." : purpose;
-        await notificationService.NotifyCrewAsync(
-            membership.CrewId,
-            NotificationKind.NewEmergencyRequest,
-            "Emergency request",
-            $"{requesterName} needs ${amountNeeded:0} for: {purposePreview}",
-            $"/app/crew/emergency-requests/{emergencyRequest.Id}?highlightId={emergencyRequest.Id}",
-            relatedEntityId: emergencyRequest.Id,
-            excludeUserId: currentUser.UserId.Value,
-            cancellationToken: cancellationToken);
+        try
+        {
+            await notificationService.NotifyCrewAsync(
+                membership.CrewId,
+                NotificationKind.NewEmergencyRequest,
+                "Emergency request",
+                $"{requesterName} needs ${amountNeeded:0} for: {purposePreview}",
+                $"/app/crew/emergency-requests/{emergencyRequest.Id}?highlightId={emergencyRequest.Id}",
+                relatedEntityId: emergencyRequest.Id,
+                excludeUserId: currentUser.UserId.Value,
+                cancellationToken: cancellationToken);
+        }
+        catch
+        {
+            // Request is already persisted; do not fail the submit on notify/realtime errors.
+        }
 
         return new EmergencyRequestOperationResponse
         {

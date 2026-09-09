@@ -120,6 +120,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Prefer membership for fast path when season is already known started; if cached
     // as not started, re-check /api/season/status (season can start mid-session).
+    // When season is started, still refresh userInSeason — joining mid-session leaves
+    // a stale membership cache with isInSeason=false.
     this.crewService.getMembership().subscribe({
       next: async membership => {
         if (!membership.seasonStarted) {
@@ -147,7 +149,22 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        await this.bootstrapGiftLogAfterSeasonConfirmed(membership);
+        this.giftService.getSeasonStatus().subscribe({
+          next: status => {
+            const inSeason = !!status.userInSeason;
+            if (inSeason !== !!membership.isInSeason) {
+              this.crewService.clearMembershipCache();
+            }
+            void this.bootstrapGiftLogAfterSeasonConfirmed({
+              ...membership,
+              seasonStarted: true,
+              isInSeason: inSeason
+            } as CrewMembershipStatus);
+          },
+          error: () => {
+            void this.bootstrapGiftLogAfterSeasonConfirmed(membership);
+          }
+        });
       },
       error: () => {
         this.errorMessage = 'Failed to load crew membership';

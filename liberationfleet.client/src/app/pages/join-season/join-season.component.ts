@@ -226,6 +226,8 @@ export class JoinSeasonComponent implements OnInit {
                   return;
                 }
                 this.toastService.success(result.message);
+                // Drop cached membership so gift-log shows Record Gift, not Join season.
+                this.crewService.clearMembershipCache();
                 if (this.isOnJoinSeasonRoute()) {
                   void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
                 }

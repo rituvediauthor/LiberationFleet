@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { EmergencyRequestService } from '../../../services/emergency-request.service';
+import { GiftService } from '../../../services/gift.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
@@ -20,6 +21,7 @@ import { TextFieldLimits } from '../../../utils/text-field-limits';
 export class EmergencyRequestCreateComponent implements OnInit {
   form!: FormGroup;
   submitting = false;
+  seasonBlockedMessage = '';
   backButton!: ActionBarButton;
   submitButton!: ActionBarButton;
 
@@ -30,6 +32,7 @@ export class EmergencyRequestCreateComponent implements OnInit {
 
   private navigation = inject(NavigationService);
   private emergencyRequestService = inject(EmergencyRequestService);
+  private giftService = inject(GiftService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -42,6 +45,21 @@ export class EmergencyRequestCreateComponent implements OnInit {
 
     this.updateSubmitButton();
     this.form.statusChanges.subscribe(() => this.updateSubmitButton());
+
+    this.giftService.getSeasonStatus().subscribe({
+      next: status => {
+        if (!status.seasonStarted || !status.userInSeason) {
+          this.seasonBlockedMessage =
+            'You must join the active giving season before creating an emergency request.';
+        } else {
+          this.seasonBlockedMessage = '';
+        }
+        this.updateSubmitButton();
+      },
+      error: () => {
+        // Server still enforces season membership on submit.
+      }
+    });
   }
 
   isInvalid(controlName: string): boolean {
@@ -52,13 +70,13 @@ export class EmergencyRequestCreateComponent implements OnInit {
     this.submitButton = {
       label: 'Submit Request',
       type: 'primary',
-      disabled: this.submitting || this.form.invalid,
+      disabled: this.submitting || this.form.invalid || !!this.seasonBlockedMessage,
       onClick: () => this.onSubmit()
     };
   }
 
   private onSubmit() {
-    if (this.form.invalid || this.submitting) return;
+    if (this.form.invalid || this.submitting || this.seasonBlockedMessage) return;
 
     const purpose = String(this.form.get('purpose')?.value ?? '').trim();
     const amountNeeded = Number(this.form.get('amountNeeded')?.value);
