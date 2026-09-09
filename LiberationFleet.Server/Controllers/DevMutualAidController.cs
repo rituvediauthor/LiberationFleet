@@ -74,12 +74,14 @@ public class DevMutualAidController : ControllerBase
     }
 
     /// <summary>
-    /// Dev/staging only. Staging Azure often still runs with ASPNETCORE_ENVIRONMENT=Production,
-    /// so also honor an explicit config flag and staging hostnames.
+    /// Non-production only. Covers Development, Staging, local Docker, explicit config,
+    /// and staging hostnames (Azure staging often still runs as Production).
     /// </summary>
     private bool IsDevToolsEnabled()
     {
-        if (_environment.IsDevelopment() || _environment.IsStaging())
+        if (_environment.IsDevelopment()
+            || _environment.IsStaging()
+            || _environment.IsEnvironment("Docker"))
         {
             return true;
         }

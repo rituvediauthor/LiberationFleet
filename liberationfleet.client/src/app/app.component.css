@@ -13,5 +13,6 @@
 }
 
 .app-container.with-dev-toolbar {
-  padding-top: 40px;
+  /* Match .dev-toolbar offset + height so content clears the notch/status bar. */
+  padding-top: calc(40px + var(--lf-safe-top, env(safe-area-inset-top, 0px)));
 }

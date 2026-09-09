@@ -4,8 +4,10 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { DevMutualAidService } from './dev-mutual-aid.service';
 import { ToastService } from '../toast/toast.component';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { DevToolsService } from '../../services/dev-tools.service';
 import { CrewService } from '../../services/crew.service';
+import { AuthService } from '../../services/auth.service';
 
 interface DevToolbarAction {
   label: string;
@@ -18,7 +20,7 @@ const COLLAPSED_STORAGE_KEY = 'dev-toolbar-collapsed';
 @Component({
   selector: 'app-dev-toolbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ConfirmDialogComponent],
   templateUrl: './dev-toolbar.component.html',
   styleUrl: './dev-toolbar.component.css'
 })
@@ -28,10 +30,12 @@ export class DevToolbarComponent implements OnInit {
   eligible = false;
   collapsed = sessionStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true';
   busy = false;
+  showNukeDialog = false;
 
   private devService = inject(DevMutualAidService);
   private devTools = inject(DevToolsService);
   private crewService = inject(CrewService);
+  private authService = inject(AuthService);
   private router = inject(Router);
   private toastService = inject(ToastService);
 
@@ -42,7 +46,8 @@ export class DevToolbarComponent implements OnInit {
     { label: 'New Season', run: () => this.invoke(() => this.devService.newSeason()) },
     { label: 'Complete Cycles', run: () => this.invoke(() => this.devService.completeCycles()) },
     { label: 'Recalculate Caps', run: () => this.invoke(() => this.devService.recalculateCaps()) },
-    { label: 'Reset Season', run: () => this.invoke(() => this.devService.resetSeason()), destructive: true }
+    { label: 'Reset Season', run: () => this.invoke(() => this.devService.resetSeason()), destructive: true },
+    { label: 'Nuke App Data', run: () => this.openNukeDialog(), destructive: true }
   ];
 
   ngOnInit() {
@@ -66,6 +71,47 @@ export class DevToolbarComponent implements OnInit {
     this.collapsed = !this.collapsed;
     sessionStorage.setItem(COLLAPSED_STORAGE_KEY, String(this.collapsed));
     this.emitVisibility();
+  }
+
+  openNukeDialog() {
+    if (this.busy) {
+      return;
+    }
+    this.showNukeDialog = true;
+  }
+
+  closeNukeDialog() {
+    if (this.busy) {
+      return;
+    }
+    this.showNukeDialog = false;
+  }
+
+  confirmNuke() {
+    if (this.busy) {
+      return;
+    }
+
+    this.busy = true;
+    this.devService.resetApp().subscribe({
+      next: result => {
+        this.busy = false;
+        this.showNukeDialog = false;
+        if (result.success) {
+          this.authService.logout();
+          this.toastService.success(result.message, 6000);
+          void this.router.navigate(['/']);
+        } else {
+          this.toastService.error(result.message, 6000);
+        }
+      },
+      error: err => {
+        this.busy = false;
+        this.showNukeDialog = false;
+        const message = err.error?.message || 'App reset failed';
+        this.toastService.error(message, 6000);
+      }
+    });
   }
 
   private refreshMembership() {

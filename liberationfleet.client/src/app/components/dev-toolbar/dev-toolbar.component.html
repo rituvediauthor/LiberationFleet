@@ -27,3 +27,14 @@
     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
   </button>
 </div>
+
+<app-confirm-dialog
+  [visible]="showNukeDialog"
+  title="Nuke all app data?"
+  message="This permanently deletes every database record and deep-freeze/blob file in this environment, then recreates a first-run schema. You will be signed out. This cannot be undone."
+  confirmLabel="Delete everything"
+  cancelLabel="Cancel"
+  (confirmed)="confirmNuke()"
+  (cancelled)="closeNukeDialog()"
+  (dismissed)="closeNukeDialog()">
+</app-confirm-dialog>

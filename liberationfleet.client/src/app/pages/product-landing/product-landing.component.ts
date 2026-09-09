@@ -6,6 +6,7 @@ import { BrandLogoComponent } from '../../components/brand-logo/brand-logo.compo
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { DevMutualAidService } from '../../components/dev-toolbar/dev-mutual-aid.service';
 import { DevToolsService } from '../../services/dev-tools.service';
+import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
 
 @Component({
@@ -23,6 +24,7 @@ export class ProductLandingComponent implements OnInit {
 
   private readonly devMutualAidService = inject(DevMutualAidService);
   private readonly devToolsService = inject(DevToolsService);
+  private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
 
   constructor(private router: Router) {
@@ -34,16 +36,22 @@ export class ProductLandingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Staging hostnames may still report ASPNETCORE_ENVIRONMENT=Production; mirror donate page.
-    const isStagingHost =
-      typeof location !== 'undefined' && /staging/i.test(location.hostname);
+    // Local Docker/dev and Azure staging are non-production hosts for this control.
+    const isNonProductionHost =
+      typeof location !== 'undefined'
+      && (/staging/i.test(location.hostname)
+        || location.hostname === 'localhost'
+        || location.hostname === '127.0.0.1');
+
+    // Prefer an already-loaded enable flag (e.g. after visiting a crew page first).
+    this.nukeEnabled = this.devToolsService.isEnabled || isNonProductionHost;
 
     this.devToolsService.load().subscribe({
       next: status => {
-        this.nukeEnabled = status.enabled || isStagingHost;
+        this.nukeEnabled = status.enabled || isNonProductionHost;
       },
       error: () => {
-        this.nukeEnabled = isStagingHost;
+        this.nukeEnabled = this.devToolsService.isEnabled || isNonProductionHost;
       }
     });
   }
@@ -75,6 +83,7 @@ export class ProductLandingComponent implements OnInit {
         this.nukeBusy = false;
         this.showNukeDialog = false;
         if (result.success) {
+          this.authService.logout();
           this.toastService.success(result.message, 6000);
         } else {
           this.toastService.error(result.message, 6000);
@@ -93,3 +102,4 @@ export class ProductLandingComponent implements OnInit {
     this.router.navigate(['/sign-in']);
   }
 }
+

@@ -32,6 +32,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:8080
+      DevTools__Enabled: "true"
       ConnectionStrings__DefaultConnection: Server=db;Database=LiberationFleetDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
       Jwt__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in a .env file}
       Jwt__Issuer: LiberationFleet
