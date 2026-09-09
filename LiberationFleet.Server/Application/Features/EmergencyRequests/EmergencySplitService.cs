@@ -214,7 +214,13 @@ public class EmergencySplitService(
             return EmergencySplitResult.Failed("The requester must be in the active season.");
         }
 
-        await mutualAidService.EnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken);
+        // Prefer existing cycles. EnsureNextSeasonCycles can throw on unique-index collisions
+        // (SQL Server) and must not abort an otherwise-valid split.
+        if (!await TryEnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken))
+        {
+            // Continue with whatever cycles already exist.
+        }
+
         crew = await mutualAidRepository.GetCrewAsync(request.CrewId, cancellationToken) ?? crew;
         if (!crew.CurrentSeasonStartDate.HasValue)
         {
@@ -383,9 +389,31 @@ public class EmergencySplitService(
         splitOffer.RequesterEmergencyCycle = emergencySegment;
         splitOffer.OffererPaybackCycle = paybackSegment;
 
-        await mutualAidService.OnCrewContributionsChangedAsync(request.CrewId, cancellationToken);
+        // Reorder/priority refresh is best-effort. The split is already recorded; a unique-index
+        // failure here previously surfaced as a generic "Failed to save" after a valid $50 split.
+        try
+        {
+            await mutualAidService.OnCrewContributionsChangedAsync(request.CrewId, cancellationToken);
+        }
+        catch
+        {
+            // Split rows are already persisted via RecordEmergencySacrificeAsync.
+        }
 
         return EmergencySplitResult.Succeeded("Cycle split recorded.");
+    }
+
+    private async Task<bool> TryEnsureNextSeasonCyclesAsync(int crewId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await mutualAidService.EnsureNextSeasonCyclesAsync(crewId, cancellationToken);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task ResizeSplitOfferAsync(

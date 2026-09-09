@@ -342,6 +342,101 @@ public class EmergencySplitServiceTests
         ok.Success.Should().BeTrue(because: ok.Message);
     }
 
+    [Fact]
+    public async Task ApplySplit_UnlockedRequester_NeedExceedsCap_RunnerUpFifty_SucceedsOnSqlite()
+    {
+        // User report: 4-person crew, cycle $110, unlocked requester asks $150,
+        // runner-up offers a $50 split — previously failed to save (Ensure/reorder SaveChanges).
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 110m, useSqlite: true);
+        var dave = new User
+        {
+            Username = "dave",
+            Email = "dave@example.com",
+            PasswordHash = "x",
+            CreatedAt = DateTime.UtcNow,
+            InNeedOfAid = true
+        };
+        fx.Context.Users.Add(dave);
+        await fx.Context.SaveChangesAsync();
+
+        fx.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = dave.Id,
+            CrewId = fx.Crew.Id,
+            IsBanned = false,
+            JoinedAt = DateTime.UtcNow,
+            EstimatedMonthlyContribution = 100m,
+            IsSeasonReady = true,
+            IsInSeason = true,
+            GivingSeasonJoinedAt = fx.SeasonStart,
+            IsHonoraryMember = true,
+            CurrentPriorityScore = 50m
+        });
+        fx.Context.SeasonCycles.AddRange(
+            new SeasonCycle
+            {
+                CrewId = fx.Crew.Id,
+                UserId = dave.Id,
+                SeasonStartDate = fx.SeasonStart,
+                CycleCapAtStart = 110m,
+                CapIsProvisional = false,
+                TotalReceptionAmount = 0m,
+                SurvivalThresholdReceived = 0m,
+                CycleReceived = 0m,
+                CycleCompleted = false,
+                PriorityScoreAtSeasonStart = 50m,
+                ReceptionOrderPosition = 3,
+                HasCycleStarted = false
+            },
+            new SeasonCycle
+            {
+                CrewId = fx.Crew.Id,
+                UserId = dave.Id,
+                SeasonStartDate = fx.Crew.NextSeasonStartDate!.Value,
+                CycleCapAtStart = 0m,
+                CapIsProvisional = true,
+                TotalReceptionAmount = 0m,
+                SurvivalThresholdReceived = 0m,
+                CycleReceived = 0m,
+                CycleCompleted = false,
+                PriorityScoreAtSeasonStart = 50m,
+                ReceptionOrderPosition = 3,
+                HasCycleStarted = false
+            },
+            new SeasonCycle
+            {
+                CrewId = fx.Crew.Id,
+                UserId = dave.Id,
+                SeasonStartDate = fx.Crew.FollowingSeasonStartDate!.Value,
+                CycleCapAtStart = 0m,
+                CapIsProvisional = true,
+                TotalReceptionAmount = 0m,
+                SurvivalThresholdReceived = 0m,
+                CycleReceived = 0m,
+                CycleCompleted = false,
+                PriorityScoreAtSeasonStart = 50m,
+                ReceptionOrderPosition = 3,
+                HasCycleStarted = false
+            });
+        await fx.Context.SaveChangesAsync();
+
+        // Dave is unlocked (position 3). Locked are Bob (leader) + Alice (runner-up).
+        var request = await AddEmergencyRequestAsync(fx, dave, amountNeeded: 150m, fx.Bob, fx.Alice);
+        var splitService = CreateSplitService(fx);
+
+        var eligibility = await splitService.GetViewerSplitEligibilityAsync(
+            request, fx.Alice.Id, CancellationToken.None);
+        eligibility.CanSplit.Should().BeTrue(because: eligibility.Message);
+        eligibility.MaxSplitAmount.Should().Be(110m);
+
+        var result = await splitService.ApplySplitAsync(request, fx.Alice.Id, 50m, CancellationToken.None);
+        result.Success.Should().BeTrue(because: result.Message);
+        await fx.Context.SaveChangesAsync();
+
+        request.AmountSplitCommitted.Should().Be(50m);
+        await AssertSplitLinkedAsync(fx, request, fx.Alice.Id, 50m, EmergencyOffererQueueRole.RunnerUp);
+    }
+
     private static EmergencySplitService CreateSplitService(MutualAidSeasonFixture fx) =>
         new(
             new MutualAidRepository(fx.Context),
