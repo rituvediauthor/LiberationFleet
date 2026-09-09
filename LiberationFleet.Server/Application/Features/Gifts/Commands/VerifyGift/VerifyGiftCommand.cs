@@ -125,6 +125,17 @@ public class VerifyGiftCommandHandler(
                     "Post-verify reception apply failed for gift {GiftId} in crew {CrewId}",
                     gift.Id,
                     membership.CrewId);
+                // Verification already committed; surface the failure so callers know reception
+                // (and cycle completion) may not have applied — silent swallow left payback /
+                // emergency segments stuck in reception order after confirm.
+                return new GiftOperationResponse
+                {
+                    Success = false,
+                    Message = "Gift was verified, but applying it to the reception cycle failed. Please retry or contact an accountant.",
+                    Entry = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken) is { } savedAfterFail
+                        ? GiftMapper.MapGift(savedAfterFail, viewerUserId: userId, completedChild: completedChild, initiatedParent: initiatedParent)
+                        : null
+                };
             }
         }
 

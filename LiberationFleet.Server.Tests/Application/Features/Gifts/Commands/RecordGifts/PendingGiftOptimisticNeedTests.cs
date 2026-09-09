@@ -1,4 +1,6 @@
+using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
@@ -181,4 +183,85 @@ public class PendingGiftOptimisticNeedTests
         newerEntry.AmountNeeded.Should().Be(newerBefore.AmountNeeded - 10m);
         newerEntry.PendingUnverifiedAmount.Should().Be(10m);
     }
+
+    [Fact]
+    public async Task Verify_FullPaybackGift_CompletesPaybackSegment()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = new EmergencyRequest
+        {
+            CrewId = fixture.Crew.Id,
+            RequesterUserId = fixture.Carol.Id,
+            Purpose = "Verify payback",
+            AmountNeeded = 12m,
+            AmountReceived = 0m,
+            AmountSplitCommitted = 0m,
+            Status = EmergencyRequestStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            SplitEligibleOffererUserIds = EmergencySplitService.FormatEligibleOffererUserIds(
+                [fixture.Bob.Id, fixture.Alice.Id])
+        };
+        fixture.Context.EmergencyRequests.Add(request);
+        await fixture.Context.SaveChangesAsync();
+
+        var splitService = new EmergencySplitService(
+            new MutualAidRepository(fixture.Context),
+            new CrewMembershipRepository(fixture.Context),
+            new EmergencyRequestRepository(fixture.Context),
+            fixture.Service);
+        (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
+            .Success.Should().BeTrue();
+        await fixture.Context.SaveChangesAsync();
+
+        var payback = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.EmergencySplitOfferId != null && c.UserId == fixture.Alice.Id && !c.CycleCompleted);
+
+        var recordHandler = CreateRecordHandler(fixture, fixture.Bob.Id);
+        var recordResult = await recordHandler.Handle(
+            new RecordGiftsCommand(
+            [
+                new GiftRecordItem(
+                    12,
+                    fixture.Platforms["PayPal"].Id,
+                    fixture.Alice.Id,
+                    null,
+                    false,
+                    "cycle",
+                    payback.Id)
+            ]),
+            CancellationToken.None);
+        recordResult.Success.Should().BeTrue();
+
+        var gift = await fixture.Context.Gifts.SingleAsync(g => g.Type == GiftType.Direct);
+        gift.SeasonCycleId.Should().Be(payback.Id);
+
+        var verifyHandler = new VerifyGiftCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Alice.Id).Object,
+            new CrewMembershipRepository(fixture.Context),
+            new GiftRepository(fixture.Context),
+            new CrewPaymentPlatformRepository(fixture.Context),
+            fixture.Service,
+            fixture.Context,
+            NullLogger<VerifyGiftCommandHandler>.Instance);
+
+        var verifyResult = await verifyHandler.Handle(
+            new VerifyGiftCommand(gift.Id, GiftVerificationAction.ConfirmReceived),
+            CancellationToken.None);
+        verifyResult.Success.Should().BeTrue();
+
+        gift = await fixture.Context.Gifts.SingleAsync(g => g.Id == gift.Id);
+        gift.ReceptionApplied.Should().BeTrue();
+
+        payback = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == payback.Id);
+        payback.CycleReceived.Should().Be(12m);
+        payback.CycleCompleted.Should().BeTrue();
+
+        var after = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Bob.Id,
+            limit: 30,
+            forRecordGift: true,
+            excludeSelfAsRecipient: false);
+        after.Should().NotContain(e => e.SeasonCycleId == payback.Id);
+    }
+
 }
