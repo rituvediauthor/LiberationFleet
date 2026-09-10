@@ -252,6 +252,25 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  categoryLabel(entry: GiftLogEntry): string {
+    switch (entry.customGiftCategory) {
+      case 'cycle':
+        return 'Cycle';
+      case 'survivalThreshold':
+        return 'Survival threshold';
+      case 'emergency':
+        return 'Emergency';
+      case 'payback':
+        return 'Pay-back';
+      case 'representative':
+        return 'Representative';
+      case 'other':
+        return 'Other';
+      default:
+        return '';
+    }
+  }
+
   hasAction(action: GiftVerificationAction): boolean {
     return this.gift?.availableActions?.includes(action) ?? false;
   }

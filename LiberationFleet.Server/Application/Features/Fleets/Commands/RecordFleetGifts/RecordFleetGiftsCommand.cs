@@ -133,6 +133,16 @@ public class RecordFleetGiftsCommandHandler(
             var isRepresentativeGift = !item.IsCustom
                 && string.Equals(item.EntryType, "representative", StringComparison.OrdinalIgnoreCase);
             var countsTowardReception = !item.MiddlemanId.HasValue;
+            CustomGiftCategory? category = null;
+            if (item.IsCustom)
+            {
+                category = CustomGiftRecordingService.ParseCategory(item.EntryType);
+            }
+            else if (isSurvivalThreshold)
+            {
+                category = CustomGiftCategory.SurvivalThreshold;
+            }
+            // Cycle / payback / emergency segment categories are derived from SeasonCycle at map time.
 
             var gift = new Gift
             {
@@ -146,6 +156,7 @@ public class RecordFleetGiftsCommandHandler(
                 IsSurvivalThreshold = isSurvivalThreshold,
                 IsRepresentativeGift = isRepresentativeGift,
                 IsCustomGift = item.IsCustom,
+                CustomGiftCategory = category,
                 CountsTowardReception = countsTowardReception,
                 CountsTowardContribution = true,
                 SeasonCycleId = item.SeasonCycleId,

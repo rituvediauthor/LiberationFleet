@@ -172,6 +172,18 @@ public class CustomGiftRecordingService(
             _ => "Other"
         };
 
+    public static string ToDisplayLabelFromApiValue(string? apiValue) =>
+        apiValue?.Trim().ToLowerInvariant() switch
+        {
+            "cycle" => "Cycle",
+            "survivalthreshold" or "survival" or "survival_threshold" => "Survival threshold",
+            "emergency" => "Emergency",
+            "payback" => "Pay-back",
+            "representative" => "Representative",
+            "other" => "Other",
+            _ => string.IsNullOrWhiteSpace(apiValue) ? string.Empty : apiValue
+        };
+
     private async Task<decimal> GetSurvivalApplyAmountAsync(
         int crewId,
         int recipientUserId,

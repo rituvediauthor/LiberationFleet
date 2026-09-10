@@ -249,6 +249,25 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       || type === 'survivalthresholdsrefreshed';
   }
 
+  categoryLabel(entry: GiftLogEntry): string {
+    switch (entry.customGiftCategory) {
+      case 'cycle':
+        return 'Cycle';
+      case 'survivalThreshold':
+        return 'Survival threshold';
+      case 'emergency':
+        return 'Emergency';
+      case 'payback':
+        return 'Pay-back';
+      case 'representative':
+        return 'Representative';
+      case 'other':
+        return 'Other';
+      default:
+        return '';
+    }
+  }
+
   formatTimestamp(date: Date): string {
     return new Date(date).toLocaleString(undefined, {
       month: 'short',
@@ -658,6 +677,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     const header = [
       'Timestamp',
       'Type',
+      'Category',
       'Giver',
       'Recipient',
       'Middleman',
@@ -669,6 +689,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     const rows = entries.map(entry => [
       this.csvCell(entry.timestamp instanceof Date ? entry.timestamp.toISOString() : String(entry.timestamp ?? '')),
       this.csvCell(entry.type),
+      this.csvCell(this.categoryLabel(entry)),
       this.csvCell(entry.giverName),
       this.csvCell(entry.recipientName),
       this.csvCell(entry.middlemanName ?? ''),

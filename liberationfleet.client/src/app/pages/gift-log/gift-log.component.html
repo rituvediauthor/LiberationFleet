@@ -31,7 +31,10 @@
             aria-hidden="true"></div>
           <button type="button" class="log-entry-open" (click)="openGiftDetail(entry)">
             <p class="log-message">{{ entry.message }}</p>
-            <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>
+            <div class="log-meta-badges">
+              <span *ngIf="categoryLabel(entry)" class="category-badge">{{ categoryLabel(entry) }}</span>
+              <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>
+            </div>
             <time class="log-time">{{ formatTimestamp(entry.timestamp) }}</time>
           </button>
 

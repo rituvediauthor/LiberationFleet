@@ -33,6 +33,7 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
             .Include(g => g.CrewPaymentPlatform)
+            .Include(g => g.SeasonCycle)
             .Where(g => g.CrewId == crewId);
 
         if (beforeCreatedAt.HasValue && beforeId.HasValue)
@@ -82,6 +83,7 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
             .Include(g => g.CrewPaymentPlatform)
+            .Include(g => g.SeasonCycle)
             .Where(g => crewIds.Contains(g.CrewId));
 
         if (beforeCreatedAt.HasValue && beforeId.HasValue)

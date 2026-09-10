@@ -170,6 +170,13 @@ public class RecordGiftsCommandHandler(
 
                 if (applyAmount > 0m)
                 {
+                    CustomGiftCategory? category = null;
+                    if (isSurvivalThreshold)
+                    {
+                        category = CustomGiftCategory.SurvivalThreshold;
+                    }
+                    // Cycle / payback / emergency segment categories are derived from SeasonCycle at map time.
+
                     var gift = new Gift
                     {
                         CrewId = membership.CrewId,
@@ -182,6 +189,7 @@ public class RecordGiftsCommandHandler(
                         IsSurvivalThreshold = isSurvivalThreshold,
                         IsRepresentativeGift = isRepresentativeGift,
                         IsCustomGift = false,
+                        CustomGiftCategory = category,
                         CountsTowardReception = countsTowardReception,
                         CountsTowardContribution = true,
                         SeasonCycleId = item.SeasonCycleId,

@@ -10,7 +10,13 @@ export type GiftLogType =
   | 'cyclestarted'
   | 'survivalthresholdsrefreshed';
 export type ReceptionEntryType = 'survivalThreshold' | 'cycle' | 'catchUp' | 'representative';
-export type CustomGiftCategory = 'cycle' | 'survivalThreshold' | 'emergency' | 'other';
+export type CustomGiftCategory =
+  | 'cycle'
+  | 'survivalThreshold'
+  | 'emergency'
+  | 'payback'
+  | 'other'
+  | 'representative';
 export type GiftEntryStatus = 'pending' | 'completed' | 'cantComplete' | 'unverified';
 export type GiftDisplayFlag = 'notComplete' | 'cantComplete' | 'unverified';
 export type GiftVerificationAction =

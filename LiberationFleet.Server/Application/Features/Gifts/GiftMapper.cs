@@ -76,9 +76,7 @@ public static class GiftMapper
             Status = entryStatus,
             VerificationStatus = gift.VerificationStatus.ToString(),
             DisplayFlag = displayFlag,
-            CustomGiftCategory = gift.CustomGiftCategory.HasValue
-                ? CustomGiftRecordingService.ToApiValue(gift.CustomGiftCategory.Value)
-                : null,
+            CustomGiftCategory = ResolveCustomGiftCategory(gift),
             AvailableActions = availableActions,
             CompletionPlatformOptions = completionPlatformOptions is null
                 ? Array.Empty<GiftPlatformOptionDto>()
@@ -144,6 +142,57 @@ public static class GiftMapper
             or GiftType.CycleCompleted
             or GiftType.SurvivalThresholdsRefreshed;
 
+    /// <summary>
+    /// Category for gift-log display. Uses stored custom category when present; otherwise
+    /// derives from reception flags so cycle / survival / emergency / payback gifts label correctly.
+    /// </summary>
+    private static string? ResolveCustomGiftCategory(Gift gift)
+    {
+        if (IsCelebratory(gift.Type))
+        {
+            return null;
+        }
+
+        // Payback before stored Cycle — reception gifts to payback segments often store Cycle.
+        if (gift.SeasonCycle?.EmergencySplitOfferId.HasValue == true)
+        {
+            return "payback";
+        }
+
+        if (gift.CustomGiftCategory.HasValue)
+        {
+            return CustomGiftRecordingService.ToApiValue(gift.CustomGiftCategory.Value);
+        }
+
+        if (gift.IsSurvivalThreshold)
+        {
+            return CustomGiftRecordingService.ToApiValue(CustomGiftCategory.SurvivalThreshold);
+        }
+
+        if (gift.EmergencyRequestId.HasValue
+            || gift.SeasonCycle?.EmergencyRequestId.HasValue == true)
+        {
+            return CustomGiftRecordingService.ToApiValue(CustomGiftCategory.Emergency);
+        }
+
+        if (gift.IsRepresentativeGift)
+        {
+            return "representative";
+        }
+
+        if (gift.SeasonCycleId.HasValue)
+        {
+            return CustomGiftRecordingService.ToApiValue(CustomGiftCategory.Cycle);
+        }
+
+        if (gift.IsCustomGift)
+        {
+            return CustomGiftRecordingService.ToApiValue(CustomGiftCategory.Other);
+        }
+
+        return null;
+    }
+
     private static string FormatMessage(Gift gift, string status, string? displayFlag)
     {
         var celebratoryMessage = gift.Type switch
@@ -195,11 +244,7 @@ public static class GiftMapper
             };
         }
 
-        if (gift.CustomGiftCategory.HasValue)
-        {
-            var label = CustomGiftRecordingService.ToDisplayLabel(gift.CustomGiftCategory.Value);
-            baseMessage = $"{baseMessage} [{label}]";
-        }
+        // Category is exposed via CustomGiftCategory for the gift-log UI (not duplicated in message).
 
         if (displayFlag == GiftVerificationUiHelper.FlagNotComplete)
         {

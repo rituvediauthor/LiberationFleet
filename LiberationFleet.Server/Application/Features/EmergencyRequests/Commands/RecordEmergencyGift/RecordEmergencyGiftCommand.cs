@@ -197,6 +197,7 @@ public class RecordEmergencyGiftCommandHandler(
             CrewPaymentPlatformId = paymentPlatformId,
             IsSurvivalThreshold = false,
             IsCustomGift = true,
+            CustomGiftCategory = CustomGiftCategory.Emergency,
             // Cycle fill + request burn-down already applied in EmergencyReconciliationService.
             CountsTowardReception = false,
             CountsTowardContribution = true,
@@ -223,6 +224,7 @@ public class RecordEmergencyGiftCommandHandler(
             CrewPaymentPlatformId = paymentPlatformId,
             IsSurvivalThreshold = false,
             IsCustomGift = true,
+            CustomGiftCategory = CustomGiftCategory.Other,
             CountsTowardReception = false,
             CountsTowardContribution = true,
             VerificationStatus = GiftVerificationStatus.Verified,

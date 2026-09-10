@@ -123,13 +123,34 @@
 
 .unverified-badge {
   display: inline-block;
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--lf-color-text-secondary);
   background: var(--lf-color-bg-hover);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.log-meta-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 6px;
+}
+
+.category-badge {
+  display: inline-block;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lf-color-text-body);
+  background: var(--lf-color-bg-muted, #eef1f5);
+  border: 1px solid var(--lf-color-border, #d5dbe5);
   padding: 2px 8px;
   border-radius: 999px;
 }
