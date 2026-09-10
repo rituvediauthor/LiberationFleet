@@ -328,8 +328,8 @@ label {
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;
-    /* Reach the screen edges: card padding + page-layout content gutter. */
-    --lf-collapsible-inset: calc(24px + var(--lf-content-gutter, 16px));
+    /* Span to the card edges (match card padding), not the screen. */
+    --lf-collapsible-inset: 24px;
   }
 
   h1 {
