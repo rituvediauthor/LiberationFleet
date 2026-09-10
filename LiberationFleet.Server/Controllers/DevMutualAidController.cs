@@ -65,12 +65,23 @@ public class DevMutualAidController : ControllerBase
             return NotFound();
         }
 
-        await _resetService.ResetAsync(CancellationToken.None);
-        return Ok(new DevActionResultDto
+        try
         {
-            Success = true,
-            Message = "All app data and deep-freeze storage were cleared. The app is back to first-run state."
-        });
+            await _resetService.ResetAsync(CancellationToken.None);
+            return Ok(new DevActionResultDto
+            {
+                Success = true,
+                Message = "All app data and deep-freeze storage were cleared. The app is back to first-run state."
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new DevActionResultDto
+            {
+                Success = false,
+                Message = $"Reset failed: {ex.Message}"
+            });
+        }
     }
 
     /// <summary>

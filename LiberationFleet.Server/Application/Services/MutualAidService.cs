@@ -14,6 +14,7 @@ public partial class MutualAidService(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
+    EmergencyReconciliationService emergencyReconciliationService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IMutualAidService, IMutualAidDevService
 {
@@ -806,6 +807,30 @@ public partial class MutualAidService(
             if (representativeMembership is not null)
             {
                 representativeMembership.RepresentativeReceivedAmount += gift.Amount;
+            }
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        // Direct emergency-request gifts: reconcile on confirm (fill emergency cycles / uncovered cash).
+        // Do not fall through to primary-cycle reception — that would credit the wrong row.
+        if (gift.EmergencyRequestId.HasValue
+            && gift.CustomGiftCategory == CustomGiftCategory.Emergency)
+        {
+            var emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(
+                gift.EmergencyRequestId.Value,
+                cancellationToken);
+            if (emergencyRequest is not null)
+            {
+                var reconciliation = await emergencyReconciliationService.ApplyDirectGiftAsync(
+                    emergencyRequest,
+                    gift.Amount,
+                    cancellationToken);
+                if (reconciliation.PrimarySeasonCycleId.HasValue)
+                {
+                    gift.SeasonCycleId ??= reconciliation.PrimarySeasonCycleId;
+                }
             }
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -2575,8 +2600,8 @@ public partial class MutualAidService(
     }
 
     /// <summary>
-    /// Queue gifts to emergency segments credit AmountReceived. Direct emergency gifts already
-    /// reconcile via EmergencyReconciliationService and set Gift.EmergencyRequestId first.
+    /// Queue gifts to emergency segments credit AmountReceived. Direct emergency custom gifts
+    /// reconcile via EmergencyReconciliationService on confirm instead.
     /// </summary>
     private async Task CreditEmergencyRequestForSegmentReceptionAsync(
         Gift gift,

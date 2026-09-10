@@ -22,7 +22,8 @@ public class CreateEmergencyRequestCommandTests
                 new MutualAidRepository(fx.Context),
                 new CrewMembershipRepository(fx.Context),
                 new EmergencyRequestRepository(fx.Context),
-                fx.Service),
+                fx.Service,
+                fx.Context),
             HandlerTestFixture.CreateNotificationService(fx.Context),
             fx.Context);
 
@@ -58,7 +59,8 @@ public class CreateEmergencyRequestCommandTests
                 new MutualAidRepository(fx.Context),
                 new CrewMembershipRepository(fx.Context),
                 new EmergencyRequestRepository(fx.Context),
-                fx.Service),
+                fx.Service,
+                fx.Context),
             HandlerTestFixture.CreateNotificationService(fx.Context),
             fx.Context);
 

@@ -11,7 +11,8 @@ public record GetEmergencyRequestsQuery : IRequest<EmergencyRequestListResponse>
 public class GetEmergencyRequestsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IEmergencyRequestRepository emergencyRequestRepository) : IRequestHandler<GetEmergencyRequestsQuery, EmergencyRequestListResponse>
+    IEmergencyRequestRepository emergencyRequestRepository,
+    IGiftRepository giftRepository) : IRequestHandler<GetEmergencyRequestsQuery, EmergencyRequestListResponse>
 {
     public async Task<EmergencyRequestListResponse> Handle(
         GetEmergencyRequestsQuery request,
@@ -35,12 +36,15 @@ public class GetEmergencyRequestsQueryHandler(
             .Where(m => !m.IsPlaceholderMember)
             .Select(m => m.UserId)
             .ToHashSet();
+        var visible = requests.Where(r => activeMemberIds.Contains(r.RequesterUserId)).ToList();
+        var pendingByRequest = await giftRepository.GetPendingAmountsByEmergencyRequestIdsAsync(
+            visible.Select(r => r.Id),
+            cancellationToken);
         var crewName = membership.Crew?.Name ?? string.Empty;
-        var items = requests
-            .Where(r => activeMemberIds.Contains(r.RequesterUserId))
-            .Select(r =>
+        var items = visible.Select(r =>
         {
-            var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
+            pendingByRequest.TryGetValue(r.Id, out var pending);
+            var amounts = EmergencyRequestDtoMapper.MapAmounts(r, pending);
             return new EmergencyRequestListItemDto
             {
                 Id = r.Id,

@@ -30,7 +30,8 @@ public class EmergencySplitService(
     IMutualAidRepository mutualAidRepository,
     ICrewMembershipRepository membershipRepository,
     IEmergencyRequestRepository emergencyRequestRepository,
-    IMutualAidService mutualAidService)
+    IMutualAidService mutualAidService,
+    IUnitOfWork unitOfWork)
 {
     public async Task<IReadOnlyList<int>> CaptureEligibleOffererUserIdsAsync(
         int crewId,
@@ -216,10 +217,15 @@ public class EmergencySplitService(
 
         // Prefer existing cycles. EnsureNextSeasonCycles can throw on unique-index collisions
         // (SQL Server) and must not abort an otherwise-valid split.
+        var requestId = request.Id;
         if (!await TryEnsureNextSeasonCyclesAsync(request.CrewId, cancellationToken))
         {
             // Continue with whatever cycles already exist.
         }
+
+        // TryEnsure may ClearTrackedChanges after a failed SaveChanges; reload the request.
+        request = await emergencyRequestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken)
+            ?? request;
 
         crew = await mutualAidRepository.GetCrewAsync(request.CrewId, cancellationToken) ?? crew;
         if (!crew.CurrentSeasonStartDate.HasValue)
@@ -388,6 +394,7 @@ public class EmergencySplitService(
         splitOffer.OffererPaybackCycleId = paybackSegment.Id;
         splitOffer.RequesterEmergencyCycle = emergencySegment;
         splitOffer.OffererPaybackCycle = paybackSegment;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Reorder/priority refresh is best-effort. The split is already recorded; a unique-index
         // failure here previously surfaced as a generic "Failed to save" after a valid $50 split.
@@ -397,7 +404,9 @@ public class EmergencySplitService(
         }
         catch
         {
-            // Split rows are already persisted via RecordEmergencySacrificeAsync.
+            // Drop failed Ensure/reorder inserts so the outer handler SaveChanges cannot fail
+            // after the split itself already committed.
+            unitOfWork.ClearTrackedChanges();
         }
 
         return EmergencySplitResult.Succeeded("Cycle split recorded.");
@@ -412,6 +421,9 @@ public class EmergencySplitService(
         }
         catch
         {
+            // Failed SaveChanges leaves Added SeasonCycles in the tracker; clear so the split
+            // insert is not blocked by the same unique-index collision.
+            unitOfWork.ClearTrackedChanges();
             return false;
         }
     }

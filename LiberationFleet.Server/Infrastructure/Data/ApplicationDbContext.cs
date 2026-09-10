@@ -12,6 +12,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     {
     }
 
+    public void ClearTrackedChanges() => ChangeTracker.Clear();
+
     public DbSet<User> Users => Set<User>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Crew> Crews => Set<Crew>();

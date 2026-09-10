@@ -313,7 +313,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Bob.Id, 100m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -1552,7 +1553,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -1624,7 +1626,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -1690,7 +1693,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -1778,7 +1782,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -1842,7 +1847,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -1913,7 +1919,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 50m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -2001,7 +2008,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -2045,7 +2053,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();
@@ -2120,7 +2129,8 @@ public class MutualAidServiceTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         var split = await splitService.ApplySplitAsync(request, fixture.Alice.Id, 50m, CancellationToken.None);
         split.Success.Should().BeTrue(because: split.Message);
         await fixture.Context.SaveChangesAsync();

@@ -257,7 +257,8 @@ public class PendingGiftOptimisticNeedTests
             new MutualAidRepository(fixture.Context),
             new CrewMembershipRepository(fixture.Context),
             new EmergencyRequestRepository(fixture.Context),
-            fixture.Service);
+            fixture.Service,
+            fixture.Context);
         (await splitService.ApplySplitAsync(request, fixture.Alice.Id, 12m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fixture.Context.SaveChangesAsync();

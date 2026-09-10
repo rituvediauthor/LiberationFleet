@@ -12,7 +12,8 @@ public class GetFleetEmergenciesQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
-    IEmergencyRequestRepository emergencyRequestRepository) : IRequestHandler<GetFleetEmergenciesQuery, EmergencyRequestListResponse>
+    IEmergencyRequestRepository emergencyRequestRepository,
+    IGiftRepository giftRepository) : IRequestHandler<GetFleetEmergenciesQuery, EmergencyRequestListResponse>
 {
     public async Task<EmergencyRequestListResponse> Handle(
         GetFleetEmergenciesQuery request,
@@ -48,11 +49,14 @@ public class GetFleetEmergenciesQueryHandler(
                 .Where(m => !m.IsPlaceholderMember)
                 .Select(m => m.UserId)
                 .ToHashSet();
-            items.AddRange(requests
-                .Where(r => activeMemberIds.Contains(r.RequesterUserId))
-                .Select(r =>
+            var visible = requests.Where(r => activeMemberIds.Contains(r.RequesterUserId)).ToList();
+            var pendingByRequest = await giftRepository.GetPendingAmountsByEmergencyRequestIdsAsync(
+                visible.Select(r => r.Id),
+                cancellationToken);
+            items.AddRange(visible.Select(r =>
             {
-                var amounts = EmergencyRequestDtoMapper.MapAmounts(r);
+                pendingByRequest.TryGetValue(r.Id, out var pending);
+                var amounts = EmergencyRequestDtoMapper.MapAmounts(r, pending);
                 return new EmergencyRequestListItemDto
                 {
                     Id = r.Id,

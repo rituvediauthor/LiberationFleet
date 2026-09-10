@@ -45,6 +45,7 @@ public sealed class DevEnvironmentResetService
         {
             await _deepFreezeBlobStore.ClearAllAsync(resetCt);
             await DropAndRecreateDatabaseAsync(resetCt);
+            await VerifyResetSucceededAsync(resetCt);
         }
         catch (Exception ex)
         {
@@ -68,10 +69,17 @@ public sealed class DevEnvironmentResetService
 
     private async Task DropAndRecreateDatabaseAsync(CancellationToken cancellationToken)
     {
+        var dropSucceeded = false;
         await using (var deleteScope = _scopeFactory.CreateAsyncScope())
         {
             var deleteContext = deleteScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await ForceDropDatabaseAsync(deleteContext, cancellationToken);
+            dropSucceeded = await ForceDropDatabaseAsync(deleteContext, cancellationToken);
+            if (!dropSucceeded)
+            {
+                _logger.LogWarning(
+                    "DROP DATABASE did not remove the catalog (common on locked Azure SQL). Wiping application tables instead.");
+                await WipeAllApplicationTablesAsync(deleteContext, cancellationToken);
+            }
         }
 
         // Pooled connections can keep pointing at the dropped database.
@@ -91,11 +99,24 @@ public sealed class DevEnvironmentResetService
             cancellationToken);
     }
 
+    private async Task VerifyResetSucceededAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userCount = await db.Users.CountAsync(cancellationToken);
+        if (userCount > 0)
+        {
+            throw new InvalidOperationException(
+                $"Environment reset reported success but {userCount} user(s) still exist. DROP/wipe did not clear accounts.");
+        }
+    }
+
     /// <summary>
     /// Background hosted services keep SQL connections open, so plain EnsureDeleted can hang.
     /// Force SINGLE_USER + DROP, then clear the pool before migrating.
+    /// Returns true when the database catalog is gone after the attempt.
     /// </summary>
-    private async Task ForceDropDatabaseAsync(
+    private async Task<bool> ForceDropDatabaseAsync(
         ApplicationDbContext dbContext,
         CancellationToken cancellationToken)
     {
@@ -103,14 +124,14 @@ public sealed class DevEnvironmentResetService
         if (connection is not SqlConnection sqlConnection)
         {
             await dbContext.Database.EnsureDeletedAsync(cancellationToken);
-            return;
+            return true;
         }
 
         var databaseName = sqlConnection.Database;
         if (string.IsNullOrWhiteSpace(databaseName))
         {
             await dbContext.Database.EnsureDeletedAsync(cancellationToken);
-            return;
+            return true;
         }
 
         var builder = new SqlConnectionStringBuilder(sqlConnection.ConnectionString)
@@ -132,10 +153,91 @@ public sealed class DevEnvironmentResetService
                 END
                 """;
             forceCmd.CommandTimeout = 120;
-            await forceCmd.ExecuteNonQueryAsync(cancellationToken);
+            try
+            {
+                await forceCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "DROP DATABASE {DatabaseName} failed.", databaseName);
+            }
+        }
+
+        await using (var checkCmd = master.CreateCommand())
+        {
+            checkCmd.CommandText = $"SELECT CASE WHEN DB_ID(N'{escapedName}') IS NULL THEN 0 ELSE 1 END";
+            var stillExists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync(cancellationToken)) == 1;
+            if (stillExists)
+            {
+                _logger.LogWarning(
+                    "Database {DatabaseName} still exists after DROP attempt.",
+                    databaseName);
+                return false;
+            }
         }
 
         _logger.LogWarning("Dropped database {DatabaseName} for environment reset.", databaseName);
         SqlConnection.ClearAllPools();
+        return true;
+    }
+
+    /// <summary>
+    /// Azure SQL often cannot DROP the app database from the app login. Delete all user tables
+    /// while keeping migration history and static HasData lookup tables.
+    /// </summary>
+    private async Task WipeAllApplicationTablesAsync(
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        await dbContext.Database.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(
+                """
+                DECLARE @sql NVARCHAR(MAX) = N'';
+
+                SELECT @sql += N'ALTER TABLE '
+                    + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id))
+                    + N'.' + QUOTENAME(OBJECT_NAME(parent_object_id))
+                    + N' NOCHECK CONSTRAINT ALL;'
+                FROM sys.foreign_keys;
+
+                IF LEN(@sql) > 0
+                    EXEC sp_executesql @sql;
+
+                SET @sql = N'';
+                SELECT @sql += N'DELETE FROM '
+                    + QUOTENAME(SCHEMA_NAME(schema_id))
+                    + N'.' + QUOTENAME(name) + N';'
+                FROM sys.tables
+                WHERE type = 'U'
+                  AND name NOT IN (
+                      N'__EFMigrationsHistory',
+                      N'PaymentPlatforms',
+                      N'LibraryCategories',
+                      N'FallibleClickStats');
+
+                IF LEN(@sql) > 0
+                    EXEC sp_executesql @sql;
+
+                SET @sql = N'';
+                SELECT @sql += N'ALTER TABLE '
+                    + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id))
+                    + N'.' + QUOTENAME(OBJECT_NAME(parent_object_id))
+                    + N' WITH CHECK CHECK CONSTRAINT ALL;'
+                FROM sys.foreign_keys;
+
+                IF LEN(@sql) > 0
+                    EXEC sp_executesql @sql;
+                """,
+                cancellationToken);
+        }
+        finally
+        {
+            await dbContext.Database.CloseConnectionAsync();
+        }
+
+        dbContext.ChangeTracker.Clear();
+        _logger.LogWarning("Wiped all application tables for environment reset.");
     }
 }

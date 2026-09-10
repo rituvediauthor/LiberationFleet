@@ -56,6 +56,9 @@ public interface IGiftRepository
         int crewId,
         DateTime? currentSeasonStartDate,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, decimal>> GetPendingAmountsByEmergencyRequestIdsAsync(
+        IEnumerable<int> emergencyRequestIds,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Gift>> GetGiftsDueForAutoVerificationAsync(
         DateTime createdBeforeUtc,
         int limit = 100,
@@ -124,6 +127,7 @@ public sealed class PendingReceptionCredit
     public int RecipientUserId { get; init; }
     public int? SeasonCycleId { get; init; }
     public int? MonthlySurvivalThresholdId { get; init; }
+    public int? EmergencyRequestId { get; init; }
     public bool IsSurvivalThreshold { get; init; }
     public bool IsRepresentativeGift { get; init; }
     public decimal Amount { get; init; }

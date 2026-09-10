@@ -106,6 +106,14 @@ public class EmergencyReconciliationService(IMutualAidRepository mutualAidReposi
         };
     }
 
+    public async Task<int?> GetFirstOpenEmergencySegmentIdAsync(
+        EmergencyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var open = await GetOpenEmergencySegmentsAsync(request, cancellationToken);
+        return open.FirstOrDefault()?.Id;
+    }
+
     private async Task<IReadOnlyList<SeasonCycle>> GetOpenEmergencySegmentsAsync(
         EmergencyRequest request,
         CancellationToken cancellationToken)

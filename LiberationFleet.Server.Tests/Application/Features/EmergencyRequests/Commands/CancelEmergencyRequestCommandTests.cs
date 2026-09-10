@@ -34,7 +34,8 @@ public class CancelEmergencyRequestCommandTests
             new MutualAidRepository(fx.Context),
             new CrewMembershipRepository(fx.Context),
             new EmergencyRequestRepository(fx.Context),
-            fx.Service);
+                fx.Service,
+                fx.Context);
         (await splitService.ApplySplitAsync(request, fx.Alice.Id, 25m, CancellationToken.None))
             .Success.Should().BeTrue();
         await fx.Context.SaveChangesAsync();

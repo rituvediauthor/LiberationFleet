@@ -442,7 +442,8 @@ public class EmergencySplitServiceTests
             new MutualAidRepository(fx.Context),
             new CrewMembershipRepository(fx.Context),
             new EmergencyRequestRepository(fx.Context),
-            fx.Service);
+                fx.Service,
+                fx.Context);
 
     private static async Task AssertSplitLinkedAsync(
         MutualAidSeasonFixture fx,

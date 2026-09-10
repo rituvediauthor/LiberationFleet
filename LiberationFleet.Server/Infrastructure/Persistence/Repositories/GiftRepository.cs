@@ -487,11 +487,42 @@ public class GiftRepository : IGiftRepository
                 RecipientUserId = g.RecipientUserId,
                 SeasonCycleId = g.SeasonCycleId,
                 MonthlySurvivalThresholdId = g.MonthlySurvivalThresholdId,
+                EmergencyRequestId = g.EmergencyRequestId,
                 IsSurvivalThreshold = g.IsSurvivalThreshold,
                 IsRepresentativeGift = g.IsRepresentativeGift,
                 Amount = g.Amount
             })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<int, decimal>> GetPendingAmountsByEmergencyRequestIdsAsync(
+        IEnumerable<int> emergencyRequestIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = emergencyRequestIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, decimal>();
+        }
+
+        var rows = await _context.Gifts
+            .AsNoTracking()
+            .Where(g => g.EmergencyRequestId != null
+                && ids.Contains(g.EmergencyRequestId.Value)
+                && g.CountsTowardReception
+                && !g.ReceptionApplied
+                && g.CustomGiftCategory == CustomGiftCategory.Emergency
+                && (
+                    (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)
+                    || (g.Type == GiftType.Completed
+                        && g.VerificationStatus == GiftVerificationStatus.AwaitingRecipientVerification)
+                    || (g.VerificationStatus == GiftVerificationStatus.Verified
+                        && (g.Type == GiftType.Direct || g.Type == GiftType.Completed))))
+            .GroupBy(g => g.EmergencyRequestId!.Value)
+            .Select(g => new { EmergencyRequestId = g.Key, Amount = g.Sum(x => x.Amount) })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.EmergencyRequestId, r => r.Amount);
     }
 
     public async Task<IReadOnlyList<Gift>> GetGiftsDueForAutoVerificationAsync(
@@ -508,7 +539,8 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.Crew)
             .Where(g => g.CountsTowardReception
                 && !g.ReceptionApplied
-                && !g.IsCustomGift
+                && (!g.IsCustomGift
+                    || (g.CustomGiftCategory == CustomGiftCategory.Emergency && g.EmergencyRequestId != null))
                 && g.CreatedAt <= createdBeforeUtc
                 && (
                     (g.Type == GiftType.Direct && g.VerificationStatus == GiftVerificationStatus.Pending)

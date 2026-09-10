@@ -362,6 +362,7 @@ public static class HandlerTestFixture
             membershipRepository,
             new GiftRepository(context),
             new EmergencyRequestRepository(context),
+            new EmergencyReconciliationService(new MutualAidRepository(context)),
             CreateNotificationService(context),
             context);
     }

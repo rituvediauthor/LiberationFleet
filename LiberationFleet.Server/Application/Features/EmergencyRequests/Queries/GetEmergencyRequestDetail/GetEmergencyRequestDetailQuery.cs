@@ -17,6 +17,7 @@ public class GetEmergencyRequestDetailQueryHandler(
     IFleetRepository fleetRepository,
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
+    IGiftRepository giftRepository,
     EmergencySplitService emergencySplitService) : IRequestHandler<GetEmergencyRequestDetailQuery, EmergencyRequestDetailResponse>
 {
     public async Task<EmergencyRequestDetailResponse> Handle(
@@ -137,7 +138,11 @@ public class GetEmergencyRequestDetailQueryHandler(
             };
         }
 
-        var amounts = EmergencyRequestDtoMapper.MapAmounts(emergencyRequest);
+        var pendingByRequest = await giftRepository.GetPendingAmountsByEmergencyRequestIdsAsync(
+            [emergencyRequest.Id],
+            cancellationToken);
+        pendingByRequest.TryGetValue(emergencyRequest.Id, out var pending);
+        var amounts = EmergencyRequestDtoMapper.MapAmounts(emergencyRequest, pending);
         var requestCrew = await mutualAidRepository.GetCrewAsync(requestCrewId, cancellationToken);
 
         return new EmergencyRequestDetailResponse

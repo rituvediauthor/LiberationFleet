@@ -63,7 +63,8 @@ public class GetEmergencyRequestDetailQueryTests
             mutualAidRepo,
             membershipRepo,
             emergencyRepo,
-            fx.Service);
+            fx.Service,
+            fx.Context);
 
         return new GetEmergencyRequestDetailQueryHandler(
             currentUser.Object,
@@ -72,6 +73,7 @@ public class GetEmergencyRequestDetailQueryTests
             fleetRepo,
             mutualAidRepo,
             fx.Service,
+            new GiftRepository(fx.Context),
             splitService);
     }
 

@@ -112,25 +112,29 @@ public class RecordEmergencyGiftCommandHandler(
             }
         }
 
-        var reconciliation = await reconciliationService.ApplyDirectGiftAsync(
-            emergencyRequest,
-            request.Amount,
-            cancellationToken);
+        // Cap against remaining need only — burn-down happens on confirmation via ApplyDirectGift.
+        var remaining = EmergencyRequestAccounting.GetAmountRemainingToReceive(emergencyRequest);
+        var applyAmount = Math.Min(request.Amount, remaining);
+        var overflowAmount = request.Amount - applyAmount;
 
         Gift? emergencyGift = null;
-        if (reconciliation.AmountAppliedToNeed > 0m)
+        if (applyAmount > 0m)
         {
-            // Reception into emergency cycles (and AmountReceived) was applied in reconciliation.
-            // Do not re-run ApplyGiftReception or CycleReceived would double-count.
+            var seasonCycleId = await reconciliationService.GetFirstOpenEmergencySegmentIdAsync(
+                emergencyRequest,
+                cancellationToken);
+            // Pending like other reception gifts: recipient confirms, then cycles / AmountReceived update.
+            var countsTowardReception = !request.MiddlemanId.HasValue;
             emergencyGift = CreateEmergencyGift(
                 requestCrewId,
                 giverId,
                 emergencyRequest.RequesterUserId,
-                reconciliation.AmountAppliedToNeed,
+                applyAmount,
                 request.PaymentPlatformId,
                 request.MiddlemanId,
                 emergencyRequest.Id,
-                reconciliation.PrimarySeasonCycleId);
+                seasonCycleId,
+                countsTowardReception);
 
             await giftRepository.AddAsync(emergencyGift, cancellationToken);
             await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
@@ -138,27 +142,32 @@ public class RecordEmergencyGiftCommandHandler(
                 EmergencyRequest = emergencyRequest,
                 GiverUserId = giverId,
                 Gift = emergencyGift,
-                Amount = reconciliation.AmountAppliedToNeed,
+                Amount = applyAmount,
                 CreatedAt = DateTime.UtcNow
             }, cancellationToken);
         }
 
-        if (reconciliation.OverflowAmount > 0m)
+        if (overflowAmount > 0m)
         {
             var overflowGift = CreateUncategorizedGift(
                 requestCrewId,
                 giverId,
                 emergencyRequest.RequesterUserId,
-                reconciliation.OverflowAmount,
+                overflowAmount,
                 request.PaymentPlatformId);
             await giftRepository.AddAsync(overflowGift, cancellationToken);
         }
 
-        // Sacrifice counter lives on the giver's home-crew membership.
-        await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        if (applyAmount > 0m)
+        {
+            await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
+        }
+        else
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
-        if (reconciliation.AmountAppliedToNeed > 0m || reconciliation.OverflowAmount > 0m)
+        if (applyAmount > 0m || overflowAmount > 0m)
         {
             await mutualAidService.OnCrewContributionsChangedAsync(requestCrewId, cancellationToken);
             if (membership.CrewId != requestCrewId)
@@ -170,9 +179,11 @@ public class RecordEmergencyGiftCommandHandler(
         return new EmergencyRequestOperationResponse
         {
             Success = true,
-            Message = reconciliation.OverflowAmount > 0m
-                ? "Emergency gift recorded; excess amount logged as an uncategorized gift."
-                : "Emergency gift recorded.",
+            Message = overflowAmount > 0m
+                ? applyAmount > 0m
+                    ? "Emergency gift recorded; excess amount logged as an uncategorized gift. Awaiting confirmation."
+                    : "Amount exceeds remaining emergency need; logged as an uncategorized gift."
+                : "Emergency gift recorded; awaiting confirmation.",
             RequestId = emergencyRequest.Id
         };
     }
@@ -185,7 +196,8 @@ public class RecordEmergencyGiftCommandHandler(
         int paymentPlatformId,
         int? middlemanId,
         int emergencyRequestId,
-        int? seasonCycleId) =>
+        int? seasonCycleId,
+        bool countsTowardReception) =>
         new()
         {
             CrewId = crewId,
@@ -198,13 +210,12 @@ public class RecordEmergencyGiftCommandHandler(
             IsSurvivalThreshold = false,
             IsCustomGift = true,
             CustomGiftCategory = CustomGiftCategory.Emergency,
-            // Cycle fill + request burn-down already applied in EmergencyReconciliationService.
-            CountsTowardReception = false,
+            CountsTowardReception = countsTowardReception,
             CountsTowardContribution = true,
-            VerificationStatus = GiftVerificationStatus.Verified,
+            VerificationStatus = GiftVerificationStatus.Pending,
             EmergencyRequestId = emergencyRequestId,
             SeasonCycleId = seasonCycleId,
-            ReceptionApplied = true,
+            ReceptionApplied = false,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -228,6 +239,7 @@ public class RecordEmergencyGiftCommandHandler(
             CountsTowardReception = false,
             CountsTowardContribution = true,
             VerificationStatus = GiftVerificationStatus.Verified,
+            ReceptionApplied = true,
             CreatedAt = DateTime.UtcNow
         };
 }

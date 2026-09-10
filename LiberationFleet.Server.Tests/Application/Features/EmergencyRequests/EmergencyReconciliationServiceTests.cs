@@ -204,7 +204,8 @@ public class EmergencyReconciliationServiceTests
             new MutualAidRepository(fx.Context),
             new CrewMembershipRepository(fx.Context),
             new EmergencyRequestRepository(fx.Context),
-            fx.Service);
+                fx.Service,
+                fx.Context);
 
     private static EmergencyReconciliationService CreateReconciliationService(MutualAidSeasonFixture fx) =>
         new(new MutualAidRepository(fx.Context));
