@@ -372,18 +372,12 @@ public static class HandlerTestFixture
     {
         mutualAidService ??= CreateMutualAidService(context);
         var mutualAidRepository = new MutualAidRepository(context);
-        var membershipRepository = new CrewMembershipRepository(context);
         var emergencyRequestRepository = new EmergencyRequestRepository(context);
         return new CustomGiftRecordingService(
             new GiftRepository(context),
             mutualAidRepository,
             emergencyRequestRepository,
-            new EmergencyReconciliationService(
-                new EmergencySplitService(
-                    mutualAidRepository,
-                    membershipRepository,
-                    emergencyRequestRepository,
-                    mutualAidService)),
+            new EmergencyReconciliationService(mutualAidRepository),
             mutualAidService,
             context);
     }

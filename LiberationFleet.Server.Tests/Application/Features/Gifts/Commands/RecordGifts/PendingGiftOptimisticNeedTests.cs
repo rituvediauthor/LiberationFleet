@@ -83,6 +83,55 @@ public class PendingGiftOptimisticNeedTests
     }
 
     [Fact]
+    public async Task RecordGifts_AmountAboveCycleRemaining_SplitsUncategorizedOverflow()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id && c.SeasonStartDate == fixture.SeasonStart);
+        bobCycle.CycleCapAtStart = 100m;
+        bobCycle.CycleReceived = 60m;
+        bobCycle.CycleCompleted = false;
+        await fixture.Context.SaveChangesAsync();
+
+        var recordHandler = CreateRecordHandler(fixture, fixture.Alice.Id);
+        var result = await recordHandler.Handle(
+            new RecordGiftsCommand(
+            [
+                new GiftRecordItem(
+                    50m,
+                    fixture.Platforms["PayPal"].Id,
+                    fixture.Bob.Id,
+                    null,
+                    false,
+                    "cycle",
+                    bobCycle.Id)
+            ]),
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Message.Should().Be("2 gifts recorded.");
+
+        var gifts = await fixture.Context.Gifts.OrderBy(g => g.Id).ToListAsync();
+        gifts.Should().HaveCount(2);
+
+        var cycleGift = gifts.Single(g => !g.IsCustomGift);
+        cycleGift.Amount.Should().Be(40m);
+        cycleGift.SeasonCycleId.Should().Be(bobCycle.Id);
+        cycleGift.CountsTowardReception.Should().BeTrue();
+        cycleGift.VerificationStatus.Should().Be(GiftVerificationStatus.Pending);
+
+        var otherGift = gifts.Single(g => g.IsCustomGift);
+        otherGift.Amount.Should().Be(10m);
+        otherGift.CustomGiftCategory.Should().Be(CustomGiftCategory.Other);
+        otherGift.CountsTowardReception.Should().BeFalse();
+        otherGift.CountsTowardContribution.Should().BeTrue();
+        otherGift.SeasonCycleId.Should().BeNull();
+
+        bobCycle = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == bobCycle.Id);
+        bobCycle.CycleReceived.Should().Be(60m);
+    }
+
+    [Fact]
     public async Task Verify_AppliesReceptionAndCanCompleteCycle()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

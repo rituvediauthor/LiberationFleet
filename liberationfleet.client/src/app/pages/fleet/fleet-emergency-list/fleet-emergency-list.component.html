@@ -15,7 +15,7 @@
         </p>
         <p class="card-status">
           ${{ item.amountFulfilled }} of ${{ item.amountNeeded }}
-          <span *ngIf="(item.amountUncovered ?? item.amountRemaining) > 0"> · ${{ item.amountUncovered ?? item.amountRemaining }} remaining</span>
+          <span *ngIf="item.amountRemaining > 0"> · ${{ item.amountRemaining }} remaining</span>
         </p>
       </article>
     </div>

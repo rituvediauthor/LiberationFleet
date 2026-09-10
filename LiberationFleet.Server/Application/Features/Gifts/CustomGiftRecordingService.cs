@@ -66,7 +66,8 @@ public class CustomGiftRecordingService(
         var otherAmount = Math.Max(0m, amount - appliedAmount);
         Gift? appliedGift = null;
         Gift? otherGift = null;
-        var countsTowardReception = !middlemanId.HasValue;
+        // Emergency reconciliation already fills emergency cycles / AmountReceived.
+        var countsTowardReception = !middlemanId.HasValue && category != CustomGiftCategory.Emergency;
 
         if (appliedAmount > 0m)
         {
@@ -82,6 +83,10 @@ public class CustomGiftRecordingService(
                 isSurvivalThreshold: isSurvival,
                 emergencyRequestId,
                 seasonCycleId);
+            if (category == CustomGiftCategory.Emergency)
+            {
+                appliedGift.ReceptionApplied = true;
+            }
             await giftRepository.AddAsync(appliedGift, cancellationToken);
 
             if (category == CustomGiftCategory.Emergency && emergencyRequestId.HasValue)
@@ -248,21 +253,7 @@ public class CustomGiftRecordingService(
             return (0m, null, null);
         }
 
-        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-        int? seasonCycleId = null;
-        if (crew?.CurrentSeasonStartDate is not null)
-        {
-            var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
-                crewId,
-                crew.CurrentSeasonStartDate.Value,
-                cancellationToken);
-            seasonCycleId = cycles
-                .Where(c => c.EmergencyRequestId == detailed.Id && !c.CycleCompleted)
-                .OrderBy(c => c.ReceptionOrderPosition)
-                .FirstOrDefault()?.Id;
-        }
-
-        return (reconciliation.AmountAppliedToNeed, detailed.Id, seasonCycleId);
+        return (reconciliation.AmountAppliedToNeed, detailed.Id, reconciliation.PrimarySeasonCycleId);
     }
 
     private static Gift CreateGift(

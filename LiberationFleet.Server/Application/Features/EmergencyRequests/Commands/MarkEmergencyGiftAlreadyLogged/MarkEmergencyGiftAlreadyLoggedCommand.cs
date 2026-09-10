@@ -123,7 +123,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
                 IsSurvivalThreshold = false,
                 IsCustomGift = true,
                 CountsTowardReception = false,
-                CountsTowardContribution = false,
+                CountsTowardContribution = true,
                 VerificationStatus = GiftVerificationStatus.Verified,
                 CreatedAt = DateTime.UtcNow
             }, cancellationToken);
@@ -132,7 +132,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
         await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (reconciliation.AmountAppliedToNeed > 0m)
+        if (reconciliation.AmountAppliedToNeed > 0m || reconciliation.OverflowAmount > 0m)
         {
             await mutualAidService.OnCrewContributionsChangedAsync(requestCrewId, cancellationToken);
             if (membership.CrewId != requestCrewId)

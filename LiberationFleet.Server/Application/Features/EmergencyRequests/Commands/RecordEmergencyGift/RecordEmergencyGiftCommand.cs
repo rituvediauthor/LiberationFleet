@@ -21,7 +21,6 @@ public class RecordEmergencyGiftCommandHandler(
     IFleetRepository fleetRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IGiftRepository giftRepository,
-    IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
     EmergencyReconciliationService reconciliationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordEmergencyGiftCommand, EmergencyRequestOperationResponse>
@@ -121,20 +120,8 @@ public class RecordEmergencyGiftCommandHandler(
         Gift? emergencyGift = null;
         if (reconciliation.AmountAppliedToNeed > 0m)
         {
-            int? seasonCycleId = null;
-            var requestCrew = await mutualAidRepository.GetCrewAsync(requestCrewId, cancellationToken);
-            if (requestCrew?.CurrentSeasonStartDate is not null)
-            {
-                var cycles = await mutualAidRepository.GetSeasonCyclesAsync(
-                    requestCrewId,
-                    requestCrew.CurrentSeasonStartDate.Value,
-                    cancellationToken);
-                seasonCycleId = cycles
-                    .Where(c => c.EmergencyRequestId == emergencyRequest.Id && !c.CycleCompleted)
-                    .OrderBy(c => c.ReceptionOrderPosition)
-                    .FirstOrDefault()?.Id;
-            }
-
+            // Reception into emergency cycles (and AmountReceived) was applied in reconciliation.
+            // Do not re-run ApplyGiftReception or CycleReceived would double-count.
             emergencyGift = CreateEmergencyGift(
                 requestCrewId,
                 giverId,
@@ -143,7 +130,7 @@ public class RecordEmergencyGiftCommandHandler(
                 request.PaymentPlatformId,
                 request.MiddlemanId,
                 emergencyRequest.Id,
-                seasonCycleId);
+                reconciliation.PrimarySeasonCycleId);
 
             await giftRepository.AddAsync(emergencyGift, cancellationToken);
             await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
@@ -171,12 +158,7 @@ public class RecordEmergencyGiftCommandHandler(
         await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (emergencyGift?.CountsTowardReception == true)
-        {
-            await mutualAidService.ApplyGiftReceptionAsync(emergencyGift, cancellationToken);
-        }
-
-        if (reconciliation.AmountAppliedToNeed > 0m)
+        if (reconciliation.AmountAppliedToNeed > 0m || reconciliation.OverflowAmount > 0m)
         {
             await mutualAidService.OnCrewContributionsChangedAsync(requestCrewId, cancellationToken);
             if (membership.CrewId != requestCrewId)
@@ -215,11 +197,13 @@ public class RecordEmergencyGiftCommandHandler(
             CrewPaymentPlatformId = paymentPlatformId,
             IsSurvivalThreshold = false,
             IsCustomGift = true,
-            CountsTowardReception = !middlemanId.HasValue,
+            // Cycle fill + request burn-down already applied in EmergencyReconciliationService.
+            CountsTowardReception = false,
             CountsTowardContribution = true,
             VerificationStatus = GiftVerificationStatus.Verified,
             EmergencyRequestId = emergencyRequestId,
             SeasonCycleId = seasonCycleId,
+            ReceptionApplied = true,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -240,7 +224,7 @@ public class RecordEmergencyGiftCommandHandler(
             IsSurvivalThreshold = false,
             IsCustomGift = true,
             CountsTowardReception = false,
-            CountsTowardContribution = false,
+            CountsTowardContribution = true,
             VerificationStatus = GiftVerificationStatus.Verified,
             CreatedAt = DateTime.UtcNow
         };

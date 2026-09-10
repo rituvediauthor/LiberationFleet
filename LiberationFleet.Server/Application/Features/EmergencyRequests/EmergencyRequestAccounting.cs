@@ -6,10 +6,18 @@ namespace LiberationFleet.Server.Application.Features.EmergencyRequests;
 
 public static class EmergencyRequestAccounting
 {
+    /// <summary>
+    /// Need still lacking both confirmed gifts and active split coverage.
+    /// Used to cap new splits / uncovered direct cash — not the UI "remaining" burn-down.
+    /// </summary>
     public static decimal GetAmountUncovered(EmergencyRequest request) =>
         MutualAidCalculationService.CeilingToWholeDollar(
             Math.Max(0m, request.AmountNeeded - request.AmountReceived - request.AmountSplitCommitted));
 
+    /// <summary>
+    /// Need still awaiting confirmed gifts. Splits do not reduce this until their emergency
+    /// cycles receive gifts (which credit <see cref="EmergencyRequest.AmountReceived"/>).
+    /// </summary>
     public static decimal GetAmountRemainingToReceive(EmergencyRequest request) =>
         MutualAidCalculationService.CeilingToWholeDollar(
             Math.Max(0m, request.AmountNeeded - request.AmountReceived));

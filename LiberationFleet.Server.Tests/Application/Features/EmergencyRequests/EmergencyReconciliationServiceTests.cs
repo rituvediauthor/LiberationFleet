@@ -10,7 +10,7 @@ namespace LiberationFleet.Server.Tests.Application.Features.EmergencyRequests;
 public class EmergencyReconciliationServiceTests
 {
     [Fact]
-    public async Task ApplyDirectGift_AfterPartialSplit_CoversUncoveredThenShrinksSplit()
+    public async Task ApplyDirectGift_WithOpenEmergencyCycle_FillsCycleBeforeUncovered()
     {
         await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
         var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
@@ -22,6 +22,8 @@ public class EmergencyReconciliationServiceTests
 
         request = (await ReloadRequestAsync(fx, request.Id))!;
         request.AmountSplitCommitted.Should().Be(50m);
+        request.AmountReceived.Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(100m);
         EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(50m);
 
         var result = await reconciliation.ApplyDirectGiftAsync(request, 75m, CancellationToken.None);
@@ -29,22 +31,21 @@ public class EmergencyReconciliationServiceTests
 
         result.AmountAppliedToNeed.Should().Be(75m);
         result.OverflowAmount.Should().Be(0m);
+        // $50 filled the emergency cycle; $25 covered uncovered cash need.
         request.AmountReceived.Should().Be(75m);
-        request.AmountSplitCommitted.Should().Be(25m);
+        request.AmountSplitCommitted.Should().Be(0m);
         request.Status.Should().Be(EmergencyRequestStatus.Open);
-        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(25m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(25m);
+
+        var emergencySegment = await fx.Context.SeasonCycles.SingleAsync(c =>
+            c.EmergencyRequestId == request.Id);
+        emergencySegment.CycleReceived.Should().Be(50m);
+        emergencySegment.CycleCompleted.Should().BeTrue();
 
         var split = await fx.Context.EmergencySplitOffers.SingleAsync(o => o.EmergencyRequestId == request.Id);
-        split.Amount.Should().Be(25m);
-        split.IsCancelled.Should().BeFalse();
-
-        var alicePrimary = await fx.Context.SeasonCycles.SingleAsync(c =>
-            c.UserId == fx.Alice.Id
-            && c.SeasonStartDate == fx.SeasonStart
-            && !c.EmergencyRequestId.HasValue
-            && !c.EmergencySplitOfferId.HasValue
-            && !c.CycleCompleted);
-        alicePrimary.CycleCapAtStart.Should().Be(75m);
+        split.Amount.Should().Be(0m);
+        split.IsCancelled.Should().BeTrue();
     }
 
     [Fact]
@@ -60,11 +61,12 @@ public class EmergencyReconciliationServiceTests
         request = (await ReloadRequestAsync(fx, request.Id))!;
         request.AmountSplitCommitted.Should().Be(100m);
         request.AmountReceived.Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(100m);
         request.Status.Should().Be(EmergencyRequestStatus.Open);
     }
 
     [Fact]
-    public async Task ApplyDirectGift_ShrinksRunnerUpSplitBeforeActiveCycleSplit()
+    public async Task ApplyDirectGift_FillsEmergencyCyclesInReceptionOrder()
     {
         await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
         var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
@@ -77,23 +79,28 @@ public class EmergencyReconciliationServiceTests
 
         request = (await ReloadRequestAsync(fx, request.Id))!;
         request.AmountSplitCommitted.Should().Be(100m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(100m);
 
         await reconciliation.ApplyDirectGiftAsync(request, 75m, CancellationToken.None);
         await fx.Context.SaveChangesAsync();
 
-        var aliceSplit = await fx.Context.EmergencySplitOffers.SingleAsync(o => o.OffererUserId == fx.Alice.Id);
-        var bobSplit = await fx.Context.EmergencySplitOffers.SingleAsync(o => o.OffererUserId == fx.Bob.Id);
+        var segments = await fx.Context.SeasonCycles
+            .Where(c => c.EmergencyRequestId == request.Id)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .ToListAsync();
+        segments.Should().HaveCount(2);
+        segments[0].CycleReceived.Should().Be(segments[0].CycleCapAtStart);
+        segments[0].CycleCompleted.Should().BeTrue();
+        var secondTake = 75m - segments[0].CycleCapAtStart;
+        segments[1].CycleReceived.Should().Be(secondTake);
+        segments[1].CycleCompleted.Should().Be(secondTake >= segments[1].CycleCapAtStart);
 
-        aliceSplit.IsCancelled.Should().BeTrue();
-        aliceSplit.Amount.Should().Be(0m);
-        bobSplit.Amount.Should().Be(25m);
-        request.AmountSplitCommitted.Should().Be(25m);
         request.AmountReceived.Should().Be(75m);
-        EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(25m);
     }
 
     [Fact]
-    public async Task ApplyDirectGift_WhenFullySplit_CreditsReceivedInsteadOfReopeningUncovered()
+    public async Task ApplyDirectGift_WhenFullySplit_FillsOpenCycleWithoutReopeningUncovered()
     {
         await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 110m);
         var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
@@ -106,6 +113,7 @@ public class EmergencyReconciliationServiceTests
         request = (await ReloadRequestAsync(fx, request.Id))!;
         request.AmountSplitCommitted.Should().Be(100m);
         EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(100m);
 
         var result = await reconciliation.ApplyDirectGiftAsync(request, 50m, CancellationToken.None);
         await fx.Context.SaveChangesAsync();
@@ -115,10 +123,63 @@ public class EmergencyReconciliationServiceTests
         request.AmountReceived.Should().Be(50m);
         request.AmountSplitCommitted.Should().Be(50m);
         EmergencyRequestAccounting.GetAmountUncovered(request).Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(50m);
 
         var eligibility = await splitService.GetViewerSplitEligibilityAsync(
             request, fx.Alice.Id, CancellationToken.None);
         eligibility.CanSplit.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ApplyDirectGift_OverflowBeyondRequestRemaining_EvenWhenCycleRoomLarger()
+    {
+        // Request has $40 left to receive but emergency cycle still has $50 room (e.g. prior
+        // uncovered cash). A $50 direct gift must apply $40 and overflow $10 — not fill the cycle.
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 50m);
+        var splitService = CreateSplitService(fx);
+        var reconciliation = CreateReconciliationService(fx);
+
+        (await splitService.ApplySplitAsync(request, fx.Alice.Id, 50m, CancellationToken.None)).Success.Should().BeTrue();
+        await fx.Context.SaveChangesAsync();
+
+        request = (await ReloadRequestAsync(fx, request.Id))!;
+        // Prior uncovered cash reduced request remaining without filling the cycle.
+        request.AmountReceived = 10m;
+        request.AmountSplitCommitted = 40m;
+        var emergency = await fx.Context.SeasonCycles.SingleAsync(c =>
+            c.EmergencyRequestId == request.Id && !c.CycleCompleted);
+        emergency.CycleCapAtStart = 50m;
+        emergency.CycleReceived = 0m;
+        await fx.Context.SaveChangesAsync();
+
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(40m);
+
+        var result = await reconciliation.ApplyDirectGiftAsync(request, 50m, CancellationToken.None);
+        await fx.Context.SaveChangesAsync();
+
+        result.AmountAppliedToNeed.Should().Be(40m);
+        result.OverflowAmount.Should().Be(10m);
+        request.AmountReceived.Should().Be(50m);
+        emergency = await fx.Context.SeasonCycles.SingleAsync(c => c.Id == emergency.Id);
+        emergency.CycleReceived.Should().Be(40m);
+        emergency.CycleCompleted.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ApplyDirectGift_WithoutSplits_BurnsUncoveredOnly()
+    {
+        await using var fx = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var request = await AddEmergencyRequestAsync(fx, fx.Carol, amountNeeded: 100m);
+        var reconciliation = CreateReconciliationService(fx);
+
+        var result = await reconciliation.ApplyDirectGiftAsync(request, 40m, CancellationToken.None);
+        await fx.Context.SaveChangesAsync();
+
+        result.AmountAppliedToNeed.Should().Be(40m);
+        request.AmountReceived.Should().Be(40m);
+        request.AmountSplitCommitted.Should().Be(0m);
+        EmergencyRequestAccounting.GetAmountRemainingToReceive(request).Should().Be(60m);
     }
 
     [Fact]
@@ -146,7 +207,7 @@ public class EmergencyReconciliationServiceTests
             fx.Service);
 
     private static EmergencyReconciliationService CreateReconciliationService(MutualAidSeasonFixture fx) =>
-        new(CreateSplitService(fx));
+        new(new MutualAidRepository(fx.Context));
 
     private static Task<EmergencyRequest?> ReloadRequestAsync(MutualAidSeasonFixture fx, int requestId) =>
         fx.Context.EmergencyRequests

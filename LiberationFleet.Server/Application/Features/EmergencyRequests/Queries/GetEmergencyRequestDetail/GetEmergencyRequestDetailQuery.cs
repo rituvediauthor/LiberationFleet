@@ -47,18 +47,6 @@ public class GetEmergencyRequestDetailQueryHandler(
             return new EmergencyRequestDetailResponse { Success = false, Message = accessError ?? "Emergency request not found." };
         }
 
-        try
-        {
-            await mutualAidService.RepairEmergencyQueueFundedCreditsAsync(emergencyRequest.Id, cancellationToken);
-            emergencyRequest = await emergencyRequestRepository.GetByIdWithDetailsAsync(
-                emergencyRequest.Id,
-                cancellationToken) ?? emergencyRequest;
-        }
-        catch
-        {
-            // Repair is best-effort; never block opening the request.
-        }
-
         var requestCrewId = emergencyRequest.CrewId;
         var viewer = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
         var viewerMember = viewer.FirstOrDefault(m => m.UserId == viewerId);

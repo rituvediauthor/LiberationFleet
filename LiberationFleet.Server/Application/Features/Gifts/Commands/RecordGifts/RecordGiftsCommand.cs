@@ -162,32 +162,79 @@ public class RecordGiftsCommandHandler(
                     }
                 }
 
-                var gift = new Gift
+                var (applyAmount, overflowAmount) = await SplitAmountAgainstEntryNeedAsync(
+                    membership.CrewId,
+                    item,
+                    isRepresentativeGift,
+                    cancellationToken);
+
+                if (applyAmount > 0m)
                 {
-                    CrewId = membership.CrewId,
-                    GiverUserId = userId,
-                    RecipientUserId = item.RecipientId,
-                    MiddlemanUserId = item.MiddlemanId,
-                    Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
-                    Amount = item.Amount,
-                    CrewPaymentPlatformId = item.PaymentPlatformId,
-                    IsSurvivalThreshold = isSurvivalThreshold,
-                    IsRepresentativeGift = isRepresentativeGift,
-                    IsCustomGift = false,
-                    CountsTowardReception = countsTowardReception,
-                    CountsTowardContribution = true,
-                    SeasonCycleId = item.SeasonCycleId,
-                    MonthlySurvivalThresholdId = isSurvivalThreshold ? item.ThresholdId : null,
-                    VerificationStatus = GiftVerificationStatus.Pending,
-                    CreatedAt = DateTime.UtcNow
-                };
+                    var gift = new Gift
+                    {
+                        CrewId = membership.CrewId,
+                        GiverUserId = userId,
+                        RecipientUserId = item.RecipientId,
+                        MiddlemanUserId = item.MiddlemanId,
+                        Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
+                        Amount = applyAmount,
+                        CrewPaymentPlatformId = item.PaymentPlatformId,
+                        IsSurvivalThreshold = isSurvivalThreshold,
+                        IsRepresentativeGift = isRepresentativeGift,
+                        IsCustomGift = false,
+                        CountsTowardReception = countsTowardReception,
+                        CountsTowardContribution = true,
+                        SeasonCycleId = item.SeasonCycleId,
+                        MonthlySurvivalThresholdId = isSurvivalThreshold ? item.ThresholdId : null,
+                        VerificationStatus = GiftVerificationStatus.Pending,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                _ = isCatchUp;
+                    _ = isCatchUp;
 
-                await giftRepository.AddAsync(gift, cancellationToken);
-                await unitOfWork.SaveChangesAsync(cancellationToken);
-                recordedCount++;
-                lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+                    await giftRepository.AddAsync(gift, cancellationToken);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                    recordedCount++;
+                    lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+                }
+
+                if (overflowAmount > 0m)
+                {
+                    // Excess over the entry's remaining need: logged only, burns nothing.
+                    var overflowGift = new Gift
+                    {
+                        CrewId = membership.CrewId,
+                        GiverUserId = userId,
+                        RecipientUserId = item.RecipientId,
+                        MiddlemanUserId = item.MiddlemanId,
+                        Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
+                        Amount = overflowAmount,
+                        CrewPaymentPlatformId = item.PaymentPlatformId,
+                        IsSurvivalThreshold = false,
+                        IsRepresentativeGift = false,
+                        IsCustomGift = true,
+                        CustomGiftCategory = CustomGiftCategory.Other,
+                        CountsTowardReception = false,
+                        CountsTowardContribution = true,
+                        VerificationStatus = GiftVerificationStatus.Verified,
+                        ReceptionApplied = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await giftRepository.AddAsync(overflowGift, cancellationToken);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                    recordedCount++;
+                    lastSaved = await giftRepository.GetByIdWithUsersAsync(overflowGift.Id, cancellationToken)
+                        ?? lastSaved;
+                }
+
+                if (applyAmount <= 0m && overflowAmount <= 0m)
+                {
+                    return new GiftOperationResponse
+                    {
+                        Success = false,
+                        Message = "Gift amount must be greater than zero."
+                    };
+                }
             }
 
             if (notifiedRecipients.Add(item.RecipientId))
@@ -241,5 +288,74 @@ public class RecordGiftsCommandHandler(
             Message = recordedCount == 1 ? "Gift recorded." : $"{recordedCount} gifts recorded.",
             Entry = lastSaved is not null ? GiftMapper.MapGift(lastSaved) : null
         };
+    }
+
+    /// <summary>
+    /// Caps the gift against the targeted entry's remaining need; excess becomes uncategorized.
+    /// Representative / unlimited entries accept the full amount.
+    /// </summary>
+    private async Task<(decimal ApplyAmount, decimal OverflowAmount)> SplitAmountAgainstEntryNeedAsync(
+        int crewId,
+        GiftRecordItem item,
+        bool isRepresentativeGift,
+        CancellationToken cancellationToken)
+    {
+        if (item.Amount <= 0m || isRepresentativeGift)
+        {
+            return (item.Amount, 0m);
+        }
+
+        decimal? remainingNeed = null;
+
+        if (item.SeasonCycleId.HasValue)
+        {
+            var cycle = await mutualAidRepository.GetSeasonCycleByIdAsync(
+                item.SeasonCycleId.Value,
+                cancellationToken);
+            if (cycle is null || cycle.CrewId != crewId || cycle.UserId != item.RecipientId)
+            {
+                return (item.Amount, 0m);
+            }
+
+            var room = Math.Max(0m, cycle.CycleCapAtStart - cycle.CycleReceived);
+            var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+            var pending = await giftRepository.GetPendingReceptionCreditsAsync(
+                crewId,
+                crew?.CurrentSeasonStartDate,
+                cancellationToken);
+            var pendingForCycle = pending
+                .Where(p => p.SeasonCycleId == cycle.Id)
+                .Sum(p => p.Amount);
+            remainingNeed = Math.Max(0m, room - pendingForCycle);
+        }
+        else if (item.ThresholdId.HasValue)
+        {
+            var threshold = await mutualAidRepository.GetThresholdByIdAsync(
+                item.ThresholdId.Value,
+                cancellationToken);
+            if (threshold is null || threshold.CrewId != crewId || threshold.UserId != item.RecipientId)
+            {
+                return (item.Amount, 0m);
+            }
+
+            var room = Math.Max(0m, threshold.ThresholdAmount - threshold.ReceivedAmount);
+            var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+            var pending = await giftRepository.GetPendingReceptionCreditsAsync(
+                crewId,
+                crew?.CurrentSeasonStartDate,
+                cancellationToken);
+            var pendingForThreshold = pending
+                .Where(p => p.MonthlySurvivalThresholdId == threshold.Id)
+                .Sum(p => p.Amount);
+            remainingNeed = Math.Max(0m, room - pendingForThreshold);
+        }
+
+        if (remainingNeed is null)
+        {
+            return (item.Amount, 0m);
+        }
+
+        var apply = Math.Min(item.Amount, remainingNeed.Value);
+        return (apply, item.Amount - apply);
     }
 }

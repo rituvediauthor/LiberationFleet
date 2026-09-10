@@ -61,27 +61,6 @@ public interface IGiftRepository
         int limit = 100,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Reception-applied gifts tied to emergency segments that were never attributed to the request.
-    /// </summary>
-    Task<IReadOnlyList<Gift>> GetUnattributedEmergencySegmentGiftsAsync(
-        int emergencyRequestId,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Verified/applied gifts that target the given season cycle ids (for healing misfired segment credits).
-    /// </summary>
-    Task<IReadOnlyList<Gift>> GetReceptionAppliedGiftsForCycleIdsAsync(
-        IEnumerable<int> seasonCycleIds,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Verified Direct/Completed gifts targeting cycles where ReceptionApplied is still false.
-    /// </summary>
-    Task<IReadOnlyList<Gift>> GetVerifiedUnappliedGiftsForCycleIdsAsync(
-        IEnumerable<int> seasonCycleIds,
-        CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<GiftComment>> GetCommentsByGiftIdAsync(int giftId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GiftComment>> GetRepliesByParentCommentIdAsync(
         int giftId,

@@ -148,7 +148,7 @@ public class VerifyGiftCommandHandler(
                     Success = true,
                     Message = applied
                         ? "Gift verification updated."
-                        : "Gift was verified. Refresh the reception order shortly if a pay-back or emergency cycle still shows the same need.",
+                        : "Gift was verified, but reception credit could not be applied. Try confirming again.",
                     Entry = savedAfterFail is not null
                         ? GiftMapper.MapGift(savedAfterFail, viewerUserId: userId, completedChild: completedChild, initiatedParent: initiatedParent)
                         : null
@@ -206,11 +206,13 @@ public class VerifyGiftCommandHandler(
 
     private async Task ApplyReceptionAfterConfirmAsync(Gift gift, CancellationToken cancellationToken)
     {
+        if (gift.ReceptionApplied)
+        {
+            return;
+        }
+
         if (gift.Type is GiftType.Direct or GiftType.Completed)
         {
-            // Always call apply: first confirm credits the cycle; re-entry also repairs
-            // legacy misfires where ReceptionApplied was set but a payback/emergency segment
-            // never received CycleReceived (silent primary fallback).
             await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
         }
     }
