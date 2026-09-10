@@ -275,3 +275,11 @@ export function normalizePostalCode(value: string | null | undefined): string | 
 export function isValidPostalCode(value: string | null | undefined): boolean {
   return normalizePostalCode(value) !== null;
 }
+
+export function isValidCountryCode(value: string | null | undefined): boolean {
+  if (!value?.trim()) {
+    return false;
+  }
+  const code = value.trim().toUpperCase();
+  return COUNTRY_OPTIONS.some(c => c.code === code);
+}

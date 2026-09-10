@@ -42,19 +42,16 @@ public class UpdateProfileCommandValidator : AbstractValidator<UpdateProfileComm
             .MaximumLength(64)
             .When(x => !string.IsNullOrWhiteSpace(x.AvatarResourceId));
 
-        RuleFor(x => x.ZipCode)
-            .Must(zip => string.IsNullOrWhiteSpace(zip) || ZipCodeList.IsValidZip(zip))
-            .WithMessage("Postal code must be 2–12 letters or digits (spaces and hyphens allowed).");
-
-        RuleFor(x => x.CountryCode)
-            .Must(c => string.IsNullOrWhiteSpace(c) || CountryCodes.IsValid(c))
-            .WithMessage("Country must be a valid ISO country code.");
-
-        When(x => !string.IsNullOrWhiteSpace(x.ZipCode), () =>
+        When(x => x.EncryptedLocation is not null && !x.ClearLocation, () =>
         {
-            RuleFor(x => x.CountryCode)
-                .Must(c => CountryCodes.IsValid(c))
-                .WithMessage("Country is required when a postal code is set.");
+            RuleFor(x => x.EncryptedLocation!.Nonce)
+                .NotEmpty().WithMessage("Location encryption nonce is required")
+                .MaximumLength(64);
+            RuleFor(x => x.EncryptedLocation!.Ciphertext)
+                .NotEmpty().WithMessage("Location ciphertext is required")
+                .MaximumLength(2048);
+            RuleFor(x => x.EncryptedLocation!.KeyVersion)
+                .GreaterThan(0).WithMessage("Location key version is required");
         });
 
         RuleForEach(x => x.PaymentPlatforms).ChildRules(platform =>

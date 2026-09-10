@@ -111,7 +111,8 @@ export function buildMentionBackdropHtml(text: string, knownUsernames: ReadonlyS
   const html = segments
     .map(segment => {
       if (segment.type === 'mention') {
-        return `<strong class="mention-highlight">${escapeHtml(segment.value)}</strong>`;
+        // Use <span>, not <strong>: bold glyphs change advance width and desync the caret.
+        return `<span class="mention-highlight">${escapeHtml(segment.value)}</span>`;
       }
       return escapeHtml(segment.value).replace(/\n/g, '<br>');
     })

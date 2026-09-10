@@ -243,7 +243,7 @@ app-root {
 }
 
 .mention-composer-shell {
-  /* Textarea alone sizes the shell; backdrop is painted on top and must not grow the row. */
+  /* Textarea alone sizes the shell; backdrop is painted underneath and must not grow the row. */
   position: relative;
   display: block;
   flex: 1;
@@ -256,6 +256,8 @@ app-root {
   position: relative;
   z-index: 1;
   width: 100%;
+  /* Match backdrop layout when a scrollbar appears. */
+  scrollbar-gutter: stable;
 }
 
 .mention-composer-backdrop {
@@ -271,6 +273,8 @@ app-root {
   border: 1px solid transparent;
   background: transparent;
   box-sizing: border-box;
+  /* Keep metrics identical to the textarea (no bold / no scrollbar gutter mismatch). */
+  scrollbar-gutter: stable;
 }
 
 textarea.mention-composer-input {
@@ -280,7 +284,10 @@ textarea.mention-composer-input {
 }
 
 .mention-highlight {
-  font-weight: 700;
+  /* Color-only highlight — changing font-weight shifts glyph width and offsets the caret. */
+  font-weight: inherit;
+  font-style: inherit;
+  color: var(--lf-color-accent);
 }
 
 .mention-text {

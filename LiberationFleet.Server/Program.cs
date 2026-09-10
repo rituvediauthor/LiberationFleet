@@ -158,7 +158,13 @@ builder.Services.AddControllers()
     });
 builder.Services.AddSingleton<LiberationFleet.Server.Infrastructure.Data.DatabaseReadyState>();
 builder.Services.AddOpenApi();
-builder.Services.AddSignalR();
+// Match MVC JSON so hub payloads use camelCase + string enums (client matches kinds by name).
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 var app = builder.Build();
 
@@ -217,6 +223,24 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Ephemeral viewer location for Local matching (never from stored profile plaintext).
+app.Use(async (context, next) =>
+{
+    var location = context.RequestServices.GetRequiredService<LiberationFleet.Server.Infrastructure.Services.ViewerLocationAccessor>();
+    if (context.Request.Headers.TryGetValue("X-LF-Viewer-Country", out var countryHeader))
+    {
+        location.CountryCode = LiberationFleet.Server.Application.Common.CountryCodes.Normalize(countryHeader.ToString());
+    }
+
+    if (context.Request.Headers.TryGetValue("X-LF-Viewer-Postal", out var postalHeader))
+    {
+        location.ZipCode = LiberationFleet.Server.Application.Common.ZipCodeList.NormalizeZip(postalHeader.ToString());
+    }
+
+    await next();
+});
+
 // Liveness for Azure App Service / Docker before (and while) migrations run.
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();

@@ -34,6 +34,11 @@ describe('crew-join-approval.util', () => {
     expect(isCrewJoinRequestApprovedNotification(notification({
       kind: 'NewProposal'
     }))).toBe(false);
+    // SignalR historically sent Kind as a number (ProposalAccepted = 3).
+    expect(isCrewJoinRequestApprovedNotification(notification({
+      kind: 3 as unknown as NotificationItem['kind'],
+      title: JOIN_REQUEST_APPROVED_TITLE
+    }))).toBe(true);
   });
 
   it('detects new season notifications', () => {

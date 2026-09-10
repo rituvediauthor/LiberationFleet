@@ -5,20 +5,19 @@
   </label>
   <p class="hint-text" *ngIf="hint">{{ hint }}</p>
 
-  <div class="country-control">
+  <div class="country-control" (focusout)="onControlFocusOut($event)">
     <div
-      class="country-trigger form-input"
-      role="button"
+      class="country-trigger"
+      role="combobox"
       tabindex="0"
       [class.open]="open"
       [attr.aria-expanded]="open"
       [attr.aria-invalid]="showError"
+      aria-haspopup="listbox"
       (click)="toggleOpen()"
-      (keydown.enter)="toggleOpen()"
-      (keydown.space)="$event.preventDefault(); toggleOpen()"
-      (blur)="onBlur()">
+      (keydown)="onTriggerKeydown($event)">
       <span class="country-value" [class.placeholder]="!countryCode">
-        {{ selectedLabel || 'Search countries…' }}
+        {{ selectedLabel || 'Select a country…' }}
       </span>
       <span class="country-actions">
         <button
@@ -35,12 +34,15 @@
 
     <div class="country-panel" *ngIf="open" role="listbox">
       <input
+        #searchInput
         type="search"
-        class="form-input country-search"
+        class="country-search"
         placeholder="Type to search"
         [(ngModel)]="query"
         (click)="$event.stopPropagation()"
-        autocomplete="off" />
+        (keydown)="onSearchKeydown($event)"
+        autocomplete="off"
+        aria-label="Search countries" />
       <ul class="country-list">
         <li *ngFor="let option of filtered">
           <button

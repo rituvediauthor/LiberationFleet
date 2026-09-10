@@ -67,6 +67,8 @@ export interface SearchFleetsRequest {
   scope: FleetScope;
   page: number;
   pageSize: number;
+  countryCode?: string | null;
+  zipCode?: string | null;
 }
 
 export interface FleetSearchResult {

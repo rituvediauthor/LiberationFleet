@@ -3,13 +3,20 @@ import { debounceTime } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
+import { CountrySelectComponent } from '../../components/country-select/country-select.component';
+import { CryptoUnlockDialogComponent } from '../../components/crypto-unlock-dialog/crypto-unlock-dialog.component';
 import { CrewService } from '../../services/crew.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { ProfileService } from '../../services/profile.service';
+import { ProfileLocationService } from '../../services/profile-location.service';
+import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { Crew, CrewScope, PublicCrewRule } from '../../models/crew.model';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
+import { isValidPostalCode, normalizePostalCode } from '../../constants/countries';
 
 type JoinMode = 'find' | 'code';
 type JoinStep = 'select' | 'rules';
@@ -18,7 +25,15 @@ const JOIN_CODE_LENGTH = 8;
 @Component({
   selector: 'app-join-crew',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, RouterLink, HubLoadingComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    RouterLink,
+    HubLoadingComponent,
+    CountrySelectComponent,
+    CryptoUnlockDialogComponent
+  ],
   templateUrl: './join-crew.component.html',
   styleUrl: './join-crew.component.css'
 })
@@ -40,6 +55,8 @@ export class JoinCrewComponent implements OnInit {
   isLoadingRules = false;
   isSubmitting = false;
   hasSearched = false;
+  showUnlockDialog = false;
+  locationError = '';
 
   targetCrewId = 0;
   targetCrewName = '';
@@ -52,12 +69,18 @@ export class JoinCrewComponent implements OnInit {
   private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private profileService = inject(ProfileService);
+  private profileLocation = inject(ProfileLocationService);
+  private cryptoSession = inject(CryptoSessionService);
 
   constructor() {
+    const cached = this.profileLocation.current;
     this.form = this.fb.group({
       mode: ['find' as JoinMode, Validators.required],
       joinCode: [''],
-      scope: ['Online' as CrewScope, Validators.required]
+      scope: ['Online' as CrewScope, Validators.required],
+      countryCode: [cached?.countryCode ?? null],
+      zipCode: [cached?.zipCode ?? '']
     });
 
     this.backButton = {
@@ -69,6 +92,7 @@ export class JoinCrewComponent implements OnInit {
 
   ngOnInit() {
     this.updatePrimaryButton();
+    void this.prefetchLocation();
 
     this.form.get('mode')?.valueChanges.subscribe(() => {
       this.resetSearch();
@@ -83,7 +107,7 @@ export class JoinCrewComponent implements OnInit {
 
     this.form.valueChanges.pipe(debounceTime(400)).subscribe(() => {
       if (this.isFindMode && this.canSearch()) {
-        this.runSearch(1);
+        void this.runSearch(1);
       }
       this.updatePrimaryButton();
     });
@@ -128,6 +152,16 @@ export class JoinCrewComponent implements OnInit {
     }
   }
 
+  onCountryCodeChange(code: string | null) {
+    this.form.patchValue({ countryCode: code });
+    this.locationError = '';
+  }
+
+  onUnlockCompleted() {
+    this.showUnlockDialog = false;
+    void this.prefetchLocation().then(() => this.refreshSearchIfNeeded());
+  }
+
   private onBack() {
     if (this.joinStep === 'rules') {
       this.joinStep = 'select';
@@ -169,16 +203,75 @@ export class JoinCrewComponent implements OnInit {
   }
 
   canSearch(): boolean {
-    return this.isFindMode;
+    if (!this.isFindMode) {
+      return false;
+    }
+    if (!this.isLocal) {
+      return true;
+    }
+    const country = this.form.get('countryCode')?.value;
+    const zip = normalizePostalCode(this.form.get('zipCode')?.value);
+    return !!country && !!zip;
   }
 
   private refreshSearchIfNeeded() {
     if (this.canSearch()) {
-      this.runSearch(1);
+      void this.runSearch(1);
     }
   }
 
-  runSearch(page: number) {
+  private async prefetchLocation(): Promise<void> {
+    try {
+      const profile = await firstValueFrom(this.profileService.getProfile());
+      if (profile.encryptedLocation && this.cryptoSession.isUnlocked()) {
+        const location = await this.profileLocation.decrypt(profile.encryptedLocation);
+        if (location) {
+          this.form.patchValue({
+            countryCode: location.countryCode,
+            zipCode: location.zipCode
+          }, { emitEvent: false });
+        }
+      }
+    } catch {
+      // Prefill is best-effort.
+    }
+  }
+
+  private async ensureLocationSaved(): Promise<{ countryCode: string; zipCode: string } | null> {
+    const countryCode = String(this.form.get('countryCode')?.value ?? '').trim().toUpperCase();
+    const zipCode = normalizePostalCode(this.form.get('zipCode')?.value);
+    if (!countryCode || !zipCode || !isValidPostalCode(zipCode)) {
+      this.locationError = 'Enter a country and postal code for Local search.';
+      return null;
+    }
+
+    if (!this.cryptoSession.isUnlocked()) {
+      this.showUnlockDialog = true;
+      this.locationError = 'Unlock encryption to save your location to your profile.';
+      return null;
+    }
+
+    try {
+      const encryptedLocation = await this.profileLocation.encrypt(countryCode, zipCode);
+      if (!encryptedLocation) {
+        this.locationError = 'Enter a country and postal code for Local search.';
+        return null;
+      }
+      const result = await firstValueFrom(this.profileService.updateLocation({ encryptedLocation }));
+      if (!result.success) {
+        this.locationError = result.message || 'Could not save location.';
+        return null;
+      }
+      this.profileLocation.setPlaintext({ countryCode, zipCode });
+      this.locationError = '';
+      return { countryCode, zipCode };
+    } catch (error) {
+      this.locationError = error instanceof Error ? error.message : 'Could not save location.';
+      return null;
+    }
+  }
+
+  async runSearch(page: number) {
     if (!this.canSearch() || this.isSearching) {
       return;
     }
@@ -187,10 +280,30 @@ export class JoinCrewComponent implements OnInit {
     this.currentPage = page;
     const scope = this.form.get('scope')?.value as CrewScope;
 
+    let countryCode: string | null = null;
+    let zipCode: string | null = null;
+    if (scope === 'Local') {
+      const saved = await this.ensureLocationSaved();
+      if (!saved) {
+        this.isSearching = false;
+        this.hasSearched = true;
+        this.searchResults = [];
+        this.searchMessage = this.locationError || 'Location required';
+        this.totalCount = 0;
+        this.totalPages = 0;
+        this.updatePrimaryButton();
+        return;
+      }
+      countryCode = saved.countryCode;
+      zipCode = saved.zipCode;
+    }
+
     this.crewService.search({
       scope,
       page,
-      pageSize: 10
+      pageSize: 10,
+      countryCode,
+      zipCode
     }).subscribe({
       next: (result) => {
         this.hasSearched = true;
@@ -218,7 +331,7 @@ export class JoinCrewComponent implements OnInit {
     if (page < 1 || page > this.totalPages || page === this.currentPage) {
       return;
     }
-    this.runSearch(page);
+    void this.runSearch(page);
   }
 
   resetSearch() {
@@ -229,6 +342,7 @@ export class JoinCrewComponent implements OnInit {
     this.totalCount = 0;
     this.searchMessage = '';
     this.hasSearched = false;
+    this.locationError = '';
   }
 
   onContinueToRules() {

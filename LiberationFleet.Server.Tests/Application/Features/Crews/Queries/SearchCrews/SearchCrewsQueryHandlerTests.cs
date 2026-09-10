@@ -78,10 +78,6 @@ public class SearchCrewsQueryHandlerTests
 
         var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
-        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
-        userRepository
-            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(HandlerTestFixture.CreateUser(id: userId, zipCode: "10001", countryCode: "US"));
 
         crewRepository
             .Setup(r => r.SearchPublicAsync(CrewScope.Local, It.IsAny<CancellationToken>()))
@@ -98,14 +94,15 @@ public class SearchCrewsQueryHandlerTests
         var handler = CreateHandler(
             currentUserId: userId,
             crewRepository: crewRepository,
-            membershipRepository: membershipRepository,
-            userRepository: userRepository);
+            membershipRepository: membershipRepository);
 
         var result = await handler.Handle(new SearchCrewsQuery
         {
             Scope = "Local",
             Page = 1,
-            PageSize = 10
+            PageSize = 10,
+            CountryCode = "US",
+            ZipCode = "10001"
         }, CancellationToken.None);
 
         result.Success.Should().BeTrue();
@@ -114,20 +111,14 @@ public class SearchCrewsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenLocalSearchWithoutProfileZip_ReturnsError()
+    public async Task Handle_WhenLocalSearchWithoutZip_ReturnsError()
     {
-        var userId = 2;
-        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
-        userRepository
-            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(HandlerTestFixture.CreateUser(id: userId));
-
-        var handler = CreateHandler(currentUserId: userId, userRepository: userRepository);
+        var handler = CreateHandler(currentUserId: 2);
 
         var result = await handler.Handle(new SearchCrewsQuery { Scope = "Local" }, CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("profile");
+        result.Message.Should().Contain("postal");
     }
 
     [Fact]
@@ -153,17 +144,14 @@ public class SearchCrewsQueryHandlerTests
     private static SearchCrewsQueryHandler CreateHandler(
         int? currentUserId = 1,
         Mock<ICrewRepository>? crewRepository = null,
-        Mock<ICrewMembershipRepository>? membershipRepository = null,
-        Mock<IUserRepository>? userRepository = null)
+        Mock<ICrewMembershipRepository>? membershipRepository = null)
     {
         crewRepository ??= HandlerTestFixture.CreateCrewRepositoryMock();
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
-        userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
 
         return new SearchCrewsQueryHandler(
             crewRepository.Object,
             membershipRepository.Object,
-            userRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
     }
 }

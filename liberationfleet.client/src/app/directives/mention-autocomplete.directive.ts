@@ -11,7 +11,7 @@ import {
   inject
 } from '@angular/core';
 import { NgControl } from '@angular/forms';
-import { Subject, debounceTime, switchMap, takeUntil } from 'rxjs';
+import { Subject, catchError, debounceTime, of, switchMap, takeUntil } from 'rxjs';
 import { CrewmateService } from '../services/crewmate.service';
 import {
   MentionCandidate,
@@ -39,6 +39,7 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   private candidates: MentionCandidate[] = [];
   private selectedIndex = 0;
   private mentionQueryActive = false;
+  private lastQuery = '';
   private usernameToId = new Map<string, number>();
   private search$ = new Subject<string>();
   private destroy$ = new Subject<void>();
@@ -70,13 +71,24 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     this.search$
       .pipe(
         debounceTime(150),
-        switchMap(query => this.crewmateService.searchForMention(query)),
+        switchMap(query =>
+          this.crewmateService.searchForMention(query).pipe(
+            // Keep the stream alive — a single 4xx/5xx must not disable @mentions for the session.
+            catchError(() => of({ success: false, message: '', items: [] as MentionCandidate[] }))
+          )
+        ),
         takeUntil(this.destroy$)
       )
       .subscribe(response => {
-        this.candidates = response.success ? (response.items ?? []).slice(0, 3) : [];
+        if (!this.mentionQueryActive) {
+          return;
+        }
+
+        const remote = response.success ? (response.items ?? []).slice(0, 3) : [];
+        // Prefer API results; fall back to the already-loaded crewmate list.
+        this.candidates = remote.length > 0 ? remote : this.localCandidates(this.lastQuery);
         this.selectedIndex = 0;
-        if (this.candidates.length > 0 && this.mentionQueryActive) {
+        if (this.candidates.length > 0) {
           this.renderDropdown();
         } else {
           this.hideDropdown();
@@ -116,13 +128,23 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     this.syncComposerFromValue(textarea.value);
 
     const query = findActiveMentionQuery(textarea.value, textarea.selectionStart ?? textarea.value.length);
-    if (query === null || query.length === 0) {
+    if (query === null) {
       this.mentionQueryActive = false;
+      this.lastQuery = '';
       this.hideDropdown();
       return;
     }
 
+    // Empty string after `@` is still an active mention (show suggestions).
     this.mentionQueryActive = true;
+    this.lastQuery = query;
+    this.candidates = this.localCandidates(query);
+    this.selectedIndex = 0;
+    if (this.candidates.length > 0) {
+      this.renderDropdown();
+    } else {
+      this.hideDropdown(false);
+    }
     this.search$.next(query);
   }
 
@@ -184,8 +206,15 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       'fontSize',
       'fontFamily',
       'fontWeight',
+      'fontStyle',
       'lineHeight',
       'padding',
+      'paddingTop',
+      'paddingRight',
+      'paddingBottom',
+      'paddingLeft',
+      'borderWidth',
+      'borderStyle',
       'letterSpacing',
       'wordSpacing',
       'textIndent',
@@ -203,6 +232,9 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     props.forEach(prop => {
       this.renderer.setStyle(this.backdrop, prop, styles[prop]);
     });
+    // Keep border transparent so only the textarea chrome shows, but widths must match.
+    this.renderer.setStyle(this.backdrop, 'borderColor', 'transparent');
+    this.renderer.setStyle(this.backdrop, 'background', 'transparent');
 
     this.backdrop.scrollTop = textarea.scrollTop;
     this.backdrop.scrollLeft = textarea.scrollLeft;
@@ -274,6 +306,27 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       this.mentionQueryActive = false;
       this.hideDropdown();
     }
+  }
+
+  private localCandidates(query: string): MentionCandidate[] {
+    const q = query.trim().toLowerCase();
+    const ranked = [...this.usernameToId.entries()]
+      .map(([username, userId]) => ({ username, userId, lower: username.toLowerCase() }))
+      .filter(item => !q || item.lower.startsWith(q) || item.lower.includes(q))
+      .sort((a, b) => {
+        if (!q) {
+          return a.lower.localeCompare(b.lower);
+        }
+        const aStarts = a.lower.startsWith(q) ? 0 : 1;
+        const bStarts = b.lower.startsWith(q) ? 0 : 1;
+        if (aStarts !== bStarts) {
+          return aStarts - bStarts;
+        }
+        return a.lower.localeCompare(b.lower);
+      })
+      .slice(0, 3);
+
+    return ranked.map(({ username, userId }) => ({ username, userId }));
   }
 
   private isMenuOpen(): boolean {

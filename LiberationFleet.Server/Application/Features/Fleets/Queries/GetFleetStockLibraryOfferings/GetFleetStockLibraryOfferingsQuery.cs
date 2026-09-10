@@ -19,7 +19,7 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
-    IUserRepository userRepository,
+    IViewerLocationAccessor viewerLocation,
     LibraryPriorityTierService priorityTierService) : IRequestHandler<GetFleetStockLibraryOfferingsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
@@ -63,9 +63,8 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
             .Select(fc => fc.CrewId)
             .ToList();
 
-        var viewer = await userRepository.GetByIdAsync(currentUser.UserId.Value, cancellationToken);
-        var viewerCountry = viewer?.CountryCode;
-        var viewerZip = viewer?.ZipCode;
+        var viewerCountry = viewerLocation.CountryCode;
+        var viewerZip = viewerLocation.ZipCode;
         var viewerUserId = currentUser.UserId.Value;
         var tierByOfferingCrewId = new Dictionary<int, int>();
 

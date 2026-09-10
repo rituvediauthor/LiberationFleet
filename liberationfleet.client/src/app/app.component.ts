@@ -128,8 +128,30 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.crewService.clearMembershipCache();
+    void this.recoverMembershipAfterForeground();
+  }
+
+  /**
+   * Backgrounded tabs often miss the live join-approval SignalR event.
+   * On resume, refetch membership and land on the crew dashboard if we just joined.
+   */
+  private async recoverMembershipAfterForeground() {
     void this.connectNotificationsIfInApp();
+
+    const previous = await firstValueFrom(
+      this.crewService.getMembership().pipe(catchError(() => of(null)))
+    ).catch(() => null);
+
+    this.crewService.clearMembershipCache();
+
+    const next = await firstValueFrom(
+      this.crewService.getMembership(true).pipe(catchError(() => of(null)))
+    ).catch(() => null);
+
+    const joinedWhileAway = !previous?.hasCrew && !!next?.hasCrew;
+    if (joinedWhileAway && this.router.url.startsWith('/app')) {
+      void this.router.navigate(['/app/crew'], { replaceUrl: true });
+    }
   }
 
   private focusMainContent() {
@@ -223,8 +245,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Always land on the crew dashboard after acceptance (replace so back does not
     // return to join/prep surfaces that no longer apply).
-    if (this.router.url.startsWith('/app')) {
-      void this.router.navigate(['/app/crew'], { replaceUrl: true });
+    if (!this.router.url.startsWith('/app')) {
+      return;
     }
+
+    const alreadyOnCrewHome = this.router.url.split('?')[0] === '/app/crew';
+    if (alreadyOnCrewHome) {
+      // Same-URL navigate is a no-op; membershipChanged$ already refreshed crew-home.
+      return;
+    }
+
+    void this.router.navigate(['/app/crew'], { replaceUrl: true });
   }
 }

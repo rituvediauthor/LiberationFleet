@@ -5,7 +5,7 @@
   <div class="zip-add-row">
     <input
       type="text"
-      class="form-input zip-draft"
+      class="zip-draft"
       maxlength="16"
       inputmode="text"
       placeholder="Postal code"
@@ -13,10 +13,10 @@
       (keydown)="onDraftKeydown($event)"
       [attr.aria-invalid]="!!draftError || showError"
       [attr.aria-describedby]="draftError || showError ? 'zip-list-error' : null" />
-    <button type="button" class="btn-secondary zip-add-btn" (click)="addZip()">Add</button>
+    <button type="button" class="zip-add-btn lf-btn-secondary" (click)="addZip()">Add</button>
   </div>
 
-  <ul class="zip-chip-list" *ngIf="zipCodes.length > 0" aria-label="Selected zip codes">
+  <ul class="zip-chip-list" *ngIf="zipCodes.length > 0" aria-label="Selected postal codes">
     <li class="zip-chip" *ngFor="let zip of zipCodes">
       <span>{{ zip }}</span>
       <button type="button" class="zip-remove" (click)="removeZip(zip)" [attr.aria-label]="'Remove ' + zip">

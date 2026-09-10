@@ -33,7 +33,8 @@ import { FleetService } from '../../services/fleet.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
-import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
+import { ProfileLocationService } from '../../services/profile-location.service';
+import { CUSTOM_PLATFORM_OPTION_ID, EncryptedLocation, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { PendingAttachment } from '../../models/proposal.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
@@ -163,6 +164,7 @@ export class ProfileComponent implements OnInit {
   private proposalCrypto = inject(ProposalCryptoService);
   private images = inject(EncryptedImageCacheService);
   private toastService = inject(ToastService);
+  private profileLocation = inject(ProfileLocationService);
 
   ngOnInit() {
     this.loadPlatformOptions();
@@ -197,6 +199,9 @@ export class ProfileComponent implements OnInit {
       this.encryptionUnlocked = unlocked;
       if (unlocked) {
         this.showUnlockDialog = false;
+        void this.decryptLocationIntoForm();
+      } else {
+        this.profileLocation.clear();
       }
       void this.refreshAvatarPreview();
       this.updateSaveButton();
@@ -486,6 +491,22 @@ export class ProfileComponent implements OnInit {
       const v = this.form.getRawValue();
       const zipNormalized = normalizePostalCode(String(v.zipCode ?? ''));
       const countryRaw = (v.countryCode as string | null) || null;
+      let encryptedLocation: EncryptedLocation | null | undefined;
+      let clearLocation = false;
+      if (!this.encryptionUnlocked && (zipNormalized || countryRaw)) {
+        this.toastService.error('Unlock encryption to save your country and postal code.');
+        return;
+      }
+      if (this.encryptionUnlocked) {
+        if (!zipNormalized && !countryRaw) {
+          clearLocation = true;
+          encryptedLocation = null;
+        } else {
+          encryptedLocation = await this.profileLocation.encrypt(countryRaw, zipNormalized);
+        }
+      }
+      // When locked, omit location fields so an empty form does not wipe ciphertext.
+
       const payload = {
         username: String(v.username).trim(),
         email: String(v.email).trim(),
@@ -496,9 +517,9 @@ export class ProfileComponent implements OnInit {
         disabilityLevel: Number(v.disabilityLevel),
         identityGroups: normalizeIdentityGroups(v.identityGroups),
         needsSurvivalAid: !!v.needsSurvivalAid,
-        countryCode: countryRaw,
-        zipCode: zipNormalized,
-        paymentPlatforms: this.getPaymentPlatformsForSave()
+        encryptedLocation,
+        clearLocation,
+        paymentPlatforms: this.crewId > 0 ? this.getPaymentPlatformsForSave() : []
       };
 
       const result = await firstValueFrom(this.profileService.updateProfile(payload));
@@ -522,10 +543,17 @@ export class ProfileComponent implements OnInit {
           peopleRepresentedCount: result.profile.peopleRepresentedCount,
           disabilityLevel: result.profile.disabilityLevel,
           identityGroups: normalizeIdentityGroups(result.profile.identityGroups),
-          needsSurvivalAid: result.profile.needsSurvivalAid,
-          countryCode: result.profile.countryCode ?? null,
-          zipCode: result.profile.zipCode ?? ''
+          needsSurvivalAid: result.profile.needsSurvivalAid
         });
+        if (clearLocation) {
+          this.form.patchValue({ countryCode: null, zipCode: '' });
+          this.profileLocation.clear();
+        } else if (encryptedLocation && countryRaw && zipNormalized) {
+          this.profileLocation.setPlaintext({
+            countryCode: countryRaw.toUpperCase(),
+            zipCode: zipNormalized
+          });
+        }
         this.syncInNeedControl(result.profile.inNeedOfAid);
         this.captureInitialState();
         void this.refreshAvatarPreview();
@@ -592,6 +620,7 @@ export class ProfileComponent implements OnInit {
         this.buildForm(profile);
         this.captureInitialState();
         void this.refreshAvatarPreview();
+        void this.decryptLocationIntoForm();
         this.isLoading = false;
         this.updateSaveButton();
       },
@@ -601,6 +630,25 @@ export class ProfileComponent implements OnInit {
         this.updateSaveButton();
       }
     });
+  }
+
+  private async decryptLocationIntoForm(): Promise<void> {
+    if (!this.profile?.encryptedLocation || !this.encryptionUnlocked || !this.form) {
+      return;
+    }
+    try {
+      const location = await this.profileLocation.decrypt(this.profile.encryptedLocation);
+      if (location) {
+        this.form.patchValue({
+          countryCode: location.countryCode,
+          zipCode: location.zipCode
+        }, { emitEvent: false });
+        this.captureInitialState();
+        this.updateSaveButton();
+      }
+    } catch {
+      this.toastService.error('Could not decrypt your saved country and postal code.');
+    }
   }
 
   private avatarCryptoScope(): { crewId?: number } {
@@ -637,11 +685,12 @@ export class ProfileComponent implements OnInit {
   }
 
   private buildForm(profile: UserProfile) {
+    const cached = this.profileLocation.current;
     this.form = this.fb.group({
       username: [profile.username, usernameValidators()],
       email: [profile.email, [Validators.required, Validators.email]],
-      countryCode: [profile.countryCode ?? null],
-      zipCode: [profile.zipCode ?? '', [optionalPostalCodeValidator]],
+      countryCode: [cached?.countryCode ?? null],
+      zipCode: [cached?.zipCode ?? '', [optionalPostalCodeValidator]],
       inNeedOfAid: [this.canToggleInNeedOff ? profile.inNeedOfAid : true],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(1), Validators.max(99)]],
@@ -794,6 +843,10 @@ export class ProfileComponent implements OnInit {
   }
 
   private getPaymentPlatformValidationError(): string | null {
+    if (this.crewId <= 0) {
+      return null;
+    }
+
     const hasPartial = this.paymentPlatforms.some(p => {
       const hasHandle = !!p.handle.trim();
       const hasPlatform = p.platformId > 0 || !!p.customPlatformName?.trim();

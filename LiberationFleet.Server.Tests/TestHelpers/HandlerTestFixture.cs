@@ -407,14 +407,14 @@ public static class HandlerTestFixture
         string? zipCode = null,
         string? countryCode = null)
     {
+        _ = zipCode;
+        _ = countryCode;
         return new User
         {
             Id = id,
             Username = username,
             Email = email,
             PasswordHash = passwordHash,
-            ZipCode = zipCode,
-            CountryCode = countryCode,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Services;
@@ -72,10 +73,6 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         }
 
         var membership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
-        if (membership is null)
-        {
-            return new ProfileOperationResponse { Success = false, Message = "You must be in a crew to manage payment platforms." };
-        }
 
         var previousEmergencyLevel = user.EmergencyLevel;
         var previousInNeedOfAid = user.InNeedOfAid;
@@ -85,11 +82,52 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
 
         user.Username = request.Username.Trim();
         user.Email = request.Email.Trim();
-        user.ZipCode = ZipCodeList.NormalizeZip(request.ZipCode);
-        user.CountryCode = CountryCodes.Normalize(request.CountryCode);
+        if (request.ClearLocation)
+        {
+            user.LocationNonce = null;
+            user.LocationCiphertext = null;
+            user.LocationKeyVersion = null;
+        }
+        else if (request.EncryptedLocation is not null)
+        {
+            user.LocationNonce = request.EncryptedLocation.Nonce.Trim();
+            user.LocationCiphertext = request.EncryptedLocation.Ciphertext.Trim();
+            user.LocationKeyVersion = request.EncryptedLocation.KeyVersion;
+        }
+
         user.AvatarResourceId = string.IsNullOrWhiteSpace(request.AvatarResourceId)
             ? null
             : request.AvatarResourceId.Trim();
+
+        if (membership is null)
+        {
+            user.InNeedOfAid = request.InNeedOfAid;
+            user.EmergencyLevel = request.EmergencyLevel;
+            user.PeopleRepresentedCount = request.PeopleRepresentedCount;
+            user.DisabilityLevel = request.DisabilityLevel;
+            user.IdentityGroups = IdentityGroupKeys.Serialize(request.IdentityGroups);
+            user.NeedsSurvivalAid = request.NeedsSurvivalAid;
+
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var solo = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
+            return new ProfileOperationResponse
+            {
+                Success = true,
+                Message = "Profile updated successfully",
+                Profile = solo is null
+                    ? null
+                    : ProfileMapper.MapUser(
+                        solo,
+                        new CrewmateGiftStatsDto(),
+                        membership: null,
+                        isFinancialMember: false,
+                        priorityScore: 0,
+                        percentBoost: 0,
+                        isSurvivalThresholdRecipient: false)
+            };
+        }
 
         var crew = await _crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
         var inNeedThreshold = crew?.InNeedDefaultThreshold ?? 0m;

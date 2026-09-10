@@ -79,7 +79,7 @@
           </p>
         </app-collapsible-section>
 
-        <app-collapsible-section title="Payment platforms">
+        <app-collapsible-section title="Payment platforms" *ngIf="crewId > 0">
           <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
           <app-payment-platform-editor
             [platforms]="paymentPlatforms"
@@ -91,6 +91,10 @@
             (preferredChange)="setPreferredPlatform($event)">
           </app-payment-platform-editor>
         </app-collapsible-section>
+
+        <p class="section-hint" *ngIf="crewId <= 0">
+          Payment platforms unlock after you join a crew.
+        </p>
 
         <section class="section avatar-section">
           <h2>Profile picture</h2>
@@ -162,7 +166,7 @@
             [required]="hasPostalCode"
             [showError]="countryRequiredForPostalError"
             errorText="Select a country when a postal code is set."
-            hint="Used with your postal code for Local discovery and postal-gated offerings.">
+            hint="Encrypted on your device. Used only when you search for Local crews, fleets, or postal-gated offerings — others cannot find you by location.">
           </app-country-select>
         </div>
 
@@ -179,7 +183,7 @@
             [attr.aria-invalid]="isInvalid('zipCode')"
             [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error zipCode-hint' : 'zipCode-hint'">
           <span class="hint-text" id="zipCode-hint">
-            Used for Local crew/fleet discovery and postal-gated library offerings — must match the country of the crew, fleet, or offering.
+            Encrypted with your recovery key. Unlock encryption to view or save. Used one-way for Local search and offering access — you cannot be discovered by postal code.
           </span>
           <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
             Enter a postal code of 2–12 letters or digits (spaces and hyphens OK), or leave blank

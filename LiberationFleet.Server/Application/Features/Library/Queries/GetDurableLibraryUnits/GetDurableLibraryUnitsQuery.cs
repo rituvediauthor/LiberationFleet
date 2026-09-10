@@ -17,7 +17,7 @@ public class GetDurableLibraryUnitsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
-    IUserRepository userRepository) : IRequestHandler<GetDurableLibraryUnitsQuery, LibraryUnitListResponse>
+    IViewerLocationAccessor viewerLocation) : IRequestHandler<GetDurableLibraryUnitsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
         GetDurableLibraryUnitsQuery request,
@@ -41,9 +41,8 @@ public class GetDurableLibraryUnitsQueryHandler(
             fleetRepository,
             cancellationToken);
 
-        var viewer = await userRepository.GetByIdAsync(currentUser.UserId.Value, cancellationToken);
-        var viewerCountry = viewer?.CountryCode;
-        var viewerZip = viewer?.ZipCode;
+        var viewerCountry = viewerLocation.CountryCode;
+        var viewerZip = viewerLocation.ZipCode;
 
         var fetchLimit = Math.Clamp(request.Limit, 1, 100);
         var fetchOffset = Math.Max(request.Offset, 0);

@@ -6,12 +6,13 @@
 
 .zip-label {
   font-size: 14px;
-  color: var(--lf-color-text-primary);
+  font-weight: 600;
+  color: var(--lf-color-text-body);
 }
 
 .hint-text {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--lf-color-text-secondary);
   line-height: 1.4;
 }
@@ -19,17 +20,45 @@
 .zip-add-row {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .zip-draft {
   flex: 1;
   min-width: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--lf-color-input-border, var(--lf-color-border-subtle));
+  border-radius: 4px;
+  background: var(--lf-color-input-bg, var(--lf-color-bg-surface));
+  color: var(--lf-color-text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.zip-draft::placeholder {
+  color: var(--lf-color-text-muted);
+}
+
+.zip-draft:focus-visible {
+  outline: var(--lf-focus-ring-width, 3px) solid var(--lf-focus-ring-color, var(--lf-color-accent-strong));
+  outline-offset: var(--lf-focus-ring-offset, 2px);
+  border-color: var(--lf-color-input-focus, var(--lf-color-accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lf-color-input-focus, var(--lf-color-accent)) 20%, transparent);
+}
+
+.zip-draft:focus:not(:focus-visible) {
+  outline: none;
+  border-color: var(--lf-color-input-focus, var(--lf-color-accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lf-color-input-focus, var(--lf-color-accent)) 20%, transparent);
 }
 
 .zip-add-btn {
   flex-shrink: 0;
   white-space: nowrap;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .zip-chip-list {
@@ -45,10 +74,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  border: 1px solid var(--lf-color-border, #ccc);
-  background: var(--lf-color-bg-hover, #f3f3f3);
-  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-text-body);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .zip-remove {
@@ -62,11 +93,11 @@
 
 .zip-remove:hover,
 .zip-remove:focus-visible {
-  color: var(--lf-color-text-primary);
+  color: var(--lf-color-text-body);
 }
 
 .error-text {
   margin: 0;
-  font-size: 13px;
-  color: var(--lf-color-danger, #b00020);
+  font-size: 12px;
+  color: var(--lf-color-danger);
 }

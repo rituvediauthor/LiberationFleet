@@ -8,6 +8,7 @@ import {
 describe('mention.util', () => {
   it('findActiveMentionQuery reads the token before the cursor', () => {
     expect(findActiveMentionQuery('hi @ja', 6)).toBe('ja');
+    expect(findActiveMentionQuery('hi @', 4)).toBe('');
     expect(findActiveMentionQuery('hi there', 8)).toBeNull();
   });
 

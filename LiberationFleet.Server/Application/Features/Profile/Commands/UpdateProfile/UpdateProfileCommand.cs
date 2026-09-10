@@ -7,8 +7,9 @@ public class UpdateProfileCommand : IRequest<ProfileOperationResponse>
 {
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string? ZipCode { get; set; }
-    public string? CountryCode { get; set; }
+    /// <summary>Null clears location. Ciphertext-only; server does not validate plaintext country/zip.</summary>
+    public EncryptedLocationDto? EncryptedLocation { get; set; }
+    public bool ClearLocation { get; set; }
     public string? AvatarResourceId { get; set; }
     public bool InNeedOfAid { get; set; }
     public int EmergencyLevel { get; set; }

@@ -25,6 +25,7 @@ public class RecordLibraryAcquisitionCommandHandler(
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
     IUserRepository userRepository,
+    IViewerLocationAccessor viewerLocation,
     IGiftRepository giftRepository,
     LibraryContributionGiftService contributionGiftService,
     IMutualAidService mutualAidService,
@@ -93,14 +94,13 @@ public class RecordLibraryAcquisitionCommandHandler(
             };
         }
 
-        var viewerUser = await userRepository.GetByIdAsync(userId, cancellationToken);
         if (!LibraryOfferingRules.IsVisibleToViewerZip(
-                offering, viewerUser?.CountryCode, viewerUser?.ZipCode))
+                offering, viewerLocation.CountryCode, viewerLocation.ZipCode))
         {
             return new LibraryCompleteRequestResponse
             {
                 Success = false,
-                Message = "This offering is not available in your zip code."
+                Message = "This offering is not available in your postal area."
             };
         }
 

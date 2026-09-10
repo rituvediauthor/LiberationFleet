@@ -6,6 +6,7 @@ import {
   CUSTOM_PLATFORM_OPTION_ID,
   PaymentPlatformAccount,
   ProfileOperationResult,
+  UpdateLocationRequest,
   UpdateProfileRequest,
   UserProfile
 } from '../models/profile.model';
@@ -56,6 +57,16 @@ export class ProfileService {
         if (result.success && result.profile) {
           this.setCachedProfile(result.profile);
         } else if (result.success) {
+          this.clearProfileCache();
+        }
+      })
+    );
+  }
+
+  updateLocation(request: UpdateLocationRequest): Observable<ProfileOperationResult> {
+    return this.http.put<ProfileOperationResult>(`${this.apiUrl}/location`, request).pipe(
+      tap(result => {
+        if (result.success) {
           this.clearProfileCache();
         }
       })

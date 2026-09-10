@@ -70,8 +70,15 @@ public static class ProfileMapper
             Id = user.Id,
             Username = user.Username,
             Email = user.Email,
-            ZipCode = user.ZipCode,
-            CountryCode = user.CountryCode,
+            EncryptedLocation = string.IsNullOrWhiteSpace(user.LocationCiphertext)
+                || string.IsNullOrWhiteSpace(user.LocationNonce)
+                ? null
+                : new EncryptedLocationDto
+                {
+                    Nonce = user.LocationNonce!,
+                    Ciphertext = user.LocationCiphertext!,
+                    KeyVersion = user.LocationKeyVersion ?? 1
+                },
             AvatarResourceId = user.AvatarResourceId,
             PaymentPlatforms = user.PaymentPlatforms
                 .OrderBy(p => p.Id)

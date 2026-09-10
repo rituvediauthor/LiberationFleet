@@ -26,7 +26,7 @@ public class CreateLibraryRequestCommandHandler(
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
-    IUserRepository userRepository,
+    IViewerLocationAccessor viewerLocation,
     NotificationService notificationService,
     LibraryPriorityTierService priorityTierService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateLibraryRequestCommand, LibraryRequestOperationResponse>
@@ -106,14 +106,13 @@ public class CreateLibraryRequestCommandHandler(
             };
         }
 
-        var viewerUser = await userRepository.GetByIdAsync(userId, cancellationToken);
         if (!LibraryOfferingRules.IsVisibleToViewerZip(
-                unit.Offering, viewerUser?.CountryCode, viewerUser?.ZipCode))
+                unit.Offering, viewerLocation.CountryCode, viewerLocation.ZipCode))
         {
             return new LibraryRequestOperationResponse
             {
                 Success = false,
-                Message = "This offering is not available in your zip code."
+                Message = "This offering is not available in your postal area."
             };
         }
 

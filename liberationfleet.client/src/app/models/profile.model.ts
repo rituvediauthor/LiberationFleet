@@ -58,8 +58,19 @@ export interface UserProfile {
   libraryOfThingsPriority?: PriorityScoreBreakdown | null;
   libraryPriorityTier?: number;
   libraryPriorityAverage?: number;
-  countryCode?: string | null;
-  zipCode?: string | null;
+  /** Client-encrypted location; decrypt with user content key. */
+  encryptedLocation?: EncryptedLocation | null;
+}
+
+export interface EncryptedLocation {
+  nonce: string;
+  ciphertext: string;
+  keyVersion: number;
+}
+
+export interface ProfileLocationPayload {
+  countryCode: string;
+  zipCode: string;
 }
 
 export interface UserProfileStats {
@@ -88,8 +99,13 @@ export interface UpdateProfileRequest {
   disabilityLevel: number;
   identityGroups: string[];
   needsSurvivalAid: boolean;
-  countryCode?: string | null;
-  zipCode?: string | null;
+  encryptedLocation?: EncryptedLocation | null;
+  clearLocation?: boolean;
+}
+
+export interface UpdateLocationRequest {
+  encryptedLocation?: EncryptedLocation | null;
+  clearLocation?: boolean;
 }
 
 export interface ProfileOperationResult {

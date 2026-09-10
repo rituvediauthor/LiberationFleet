@@ -126,8 +126,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
             entity.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
             entity.Property(e => e.AvatarResourceId).HasMaxLength(64);
-            entity.Property(e => e.ZipCode).HasMaxLength(16);
-            entity.Property(e => e.CountryCode).HasMaxLength(2);
+            entity.Property(e => e.LocationNonce).HasMaxLength(64);
+            entity.Property(e => e.LocationCiphertext).HasMaxLength(2048);
+            entity.Property(e => e.LocationKeyVersion);
         });
 
         modelBuilder.Entity<UserRegisteredDevice>(entity =>

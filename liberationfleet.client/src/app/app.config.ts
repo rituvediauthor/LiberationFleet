@@ -4,6 +4,7 @@ import { provideRouter, TitleStrategy, withInMemoryScrolling } from '@angular/ro
 import { routes } from './app.routes';
 import { AuthInterceptor } from './services/auth.interceptor';
 import { ApiBaseUrlInterceptor } from './services/api-base-url.interceptor';
+import { ViewerLocationInterceptor } from './services/viewer-location.interceptor';
 import { APP_ENVIRONMENT } from './config/app-environment';
 import { environment } from '../environments/environment';
 import { LiberationFleetTitleStrategy } from './services/liberation-fleet-title.strategy';
@@ -22,6 +23,11 @@ export const appConfig: ApplicationConfig = {
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ViewerLocationInterceptor,
       multi: true
     }
   ]

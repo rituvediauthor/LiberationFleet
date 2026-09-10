@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Queries.SearchCrewmatesForMention;
@@ -24,16 +25,6 @@ public class SearchCrewmatesForMentionQueryHandler(
         }
 
         var query = request.Query?.Trim() ?? string.Empty;
-        if (query.Length == 0)
-        {
-            return new CrewmateMentionSearchResponse
-            {
-                Success = true,
-                Message = "Enter at least one character after @.",
-                Items = Array.Empty<CrewmateMentionCandidateDto>()
-            };
-        }
-
         var viewerId = currentUser.UserId.Value;
         var membership = await membershipRepository.GetActiveMembershipAsync(viewerId, cancellationToken);
         if (membership is null)
@@ -44,12 +35,21 @@ public class SearchCrewmatesForMentionQueryHandler(
         var members = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
         var items = new List<CrewmateMentionCandidateDto>();
 
-        foreach (var member in members
-                     .Where(m => m.UserId != viewerId)
-                     .Where(m => m.User.Username.StartsWith(query, StringComparison.OrdinalIgnoreCase)
-                         || m.User.Username.Contains(query, StringComparison.OrdinalIgnoreCase))
-                     .OrderBy(m => m.User.Username.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                     .ThenBy(m => m.User.Username, StringComparer.OrdinalIgnoreCase))
+        IEnumerable<CrewMembership> ranked = members.Where(m => m.UserId != viewerId);
+        if (query.Length > 0)
+        {
+            ranked = ranked
+                .Where(m => m.User.Username.StartsWith(query, StringComparison.OrdinalIgnoreCase)
+                    || m.User.Username.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(m => m.User.Username.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(m => m.User.Username, StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            ranked = ranked.OrderBy(m => m.User.Username, StringComparer.OrdinalIgnoreCase);
+        }
+
+        foreach (var member in ranked)
         {
             if (items.Count >= MaxResults)
             {

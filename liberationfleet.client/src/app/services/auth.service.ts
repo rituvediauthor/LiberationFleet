@@ -24,6 +24,7 @@ import { ProfileService } from './profile.service';
 import { EncryptedImageCacheService } from './encrypted-image-cache.service';
 import { ContentPreferenceService } from './content-preference.service';
 import { NotificationService } from './notification.service';
+import { ProfileLocationService } from './profile-location.service';
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -51,6 +52,7 @@ export class AuthService {
   private imageCache = inject(EncryptedImageCacheService);
   private contentPreferences = inject(ContentPreferenceService);
   private notificationService = inject(NotificationService);
+  private profileLocation = inject(ProfileLocationService);
 
   constructor(
     private http: HttpClient,
@@ -104,6 +106,7 @@ export class AuthService {
     this.crewService.clearSessionCache();
     this.fleetService.clearSessionCache();
     this.profileService.clearSessionCache();
+    this.profileLocation.clear();
     this.imageCache.clear();
     this.contentPreferences.clearSessionCache();
     this.notificationService.clearSessionCache();

@@ -53,9 +53,28 @@
               </select>
             </div>
 
-            <p class="hint-text" *ngIf="isLocal">
-              Local search uses your profile country and postal code — set them on your Profile page if missing.
-            </p>
+            <div class="form-group" *ngIf="isLocal">
+              <app-country-select
+                [countryCode]="form.get('countryCode')?.value"
+                (countryCodeChange)="onCountryCodeChange($event)"
+                [required]="true"
+                hint="Saved encrypted to your profile and used to find Local crews near you.">
+              </app-country-select>
+            </div>
+
+            <div class="form-group" *ngIf="isLocal">
+              <label for="zipCode">Postal code</label>
+              <input
+                id="zipCode"
+                type="text"
+                formControlName="zipCode"
+                class="form-input"
+                maxlength="20"
+                autocomplete="postal-code"
+                placeholder="Your postal code">
+              <span class="hint-text">Encrypted on your device. Others cannot find you by postal code.</span>
+              <span class="error-text" role="alert" *ngIf="locationError">{{ locationError }}</span>
+            </div>
 
             <div class="search-status" role="status" *ngIf="isSearching">Searching...</div>
 
@@ -115,3 +134,8 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-crypto-unlock-dialog
+  [visible]="showUnlockDialog"
+  (unlocked)="onUnlockCompleted()">
+</app-crypto-unlock-dialog>

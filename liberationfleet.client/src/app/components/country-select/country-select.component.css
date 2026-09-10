@@ -6,17 +6,18 @@
 
 .country-label {
   font-size: 14px;
-  color: var(--lf-color-text-primary);
+  font-weight: 600;
+  color: var(--lf-color-text-body);
 }
 
 .required-mark {
-  color: var(--lf-color-danger, #b00020);
+  color: var(--lf-color-danger);
   margin-left: 2px;
 }
 
 .hint-text {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--lf-color-text-secondary);
   line-height: 1.4;
 }
@@ -31,8 +32,24 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--lf-color-input-border, var(--lf-color-border-subtle));
+  border-radius: 4px;
+  background: var(--lf-color-input-bg, var(--lf-color-bg-surface));
+  color: var(--lf-color-text-primary);
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.country-trigger.open,
+.country-trigger:focus-visible {
+  outline: var(--lf-focus-ring-width, 3px) solid var(--lf-focus-ring-color, var(--lf-color-accent-strong));
+  outline-offset: var(--lf-focus-ring-offset, 2px);
+  border-color: var(--lf-color-input-focus, var(--lf-color-accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lf-color-input-focus, var(--lf-color-accent)) 20%, transparent);
 }
 
 .country-value {
@@ -41,10 +58,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--lf-color-text-primary);
 }
 
 .country-value.placeholder {
-  color: var(--lf-color-text-secondary);
+  color: var(--lf-color-text-muted);
 }
 
 .country-actions {
@@ -57,9 +75,15 @@
 .clear-btn {
   border: none;
   background: transparent;
-  padding: 0;
+  padding: 2px;
   cursor: pointer;
   color: var(--lf-color-text-secondary);
+  line-height: 1;
+}
+
+.clear-btn:hover,
+.clear-btn:focus-visible {
+  color: var(--lf-color-text-body);
 }
 
 .chevron {
@@ -73,26 +97,45 @@
   left: 0;
   right: 0;
   top: calc(100% + 4px);
-  border: 1px solid var(--lf-color-border, #ccc);
-  background: var(--lf-color-bg, #fff);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-elevated, var(--lf-color-bg-surface));
+  box-shadow: var(--lf-shadow-dropdown, 0 4px 12px rgba(0, 0, 0, 0.1));
   max-height: 280px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .country-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px;
   border: none;
-  border-bottom: 1px solid var(--lf-color-border, #ccc);
+  border-bottom: 1px solid var(--lf-color-border);
   border-radius: 0;
+  background: var(--lf-color-input-bg, var(--lf-color-bg-surface));
+  color: var(--lf-color-text-primary);
+  font-size: 14px;
+}
+
+.country-search::placeholder {
+  color: var(--lf-color-text-muted);
+}
+
+.country-search:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--lf-color-input-focus, var(--lf-color-accent));
 }
 
 .country-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px;
   overflow-y: auto;
   max-height: 220px;
+  background: var(--lf-color-bg-elevated, var(--lf-color-bg-surface));
 }
 
 .country-option {
@@ -102,16 +145,23 @@
   gap: 12px;
   padding: 10px 12px;
   border: none;
+  border-radius: 6px;
   background: transparent;
   cursor: pointer;
   text-align: left;
+  color: var(--lf-color-text-primary);
+  font-size: 14px;
+}
+
+.option-name {
   color: var(--lf-color-text-primary);
 }
 
 .country-option:hover,
 .country-option:focus-visible,
 .country-option[aria-selected='true'] {
-  background: var(--lf-color-bg-hover, #f3f3f3);
+  background: var(--lf-color-bg-hover);
+  outline: none;
 }
 
 .option-code {
@@ -128,6 +178,6 @@
 
 .error-text {
   margin: 0;
-  font-size: 13px;
-  color: var(--lf-color-danger, #b00020);
+  font-size: 12px;
+  color: var(--lf-color-danger);
 }

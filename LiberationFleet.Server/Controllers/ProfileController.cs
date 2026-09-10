@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
+using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateLocation;
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateContentPreferences;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Queries.GetContentPreferences;
@@ -30,6 +31,13 @@ public class ProfileController : ControllerBase
 
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UpdateProfileCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("location")]
+    public async Task<IActionResult> UpdateLocation([FromBody] UpdateLocationCommand command)
     {
         var result = await _mediator.Send(command);
         return result.Success ? Ok(result) : BadRequest(result);

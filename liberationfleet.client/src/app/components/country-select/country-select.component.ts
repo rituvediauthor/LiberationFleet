@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { COUNTRY_OPTIONS, CountryOption } from '../../constants/countries';
@@ -19,6 +19,8 @@ export class CountrySelectComponent {
   @Input() errorText = 'Select a country.';
   @Input() allowClear = true;
   @Output() countryCodeChange = new EventEmitter<string | null>();
+
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
 
   query = '';
   open = false;
@@ -47,6 +49,7 @@ export class CountrySelectComponent {
     this.open = !this.open;
     if (this.open) {
       this.query = '';
+      this.focusSearch();
     }
   }
 
@@ -63,10 +66,42 @@ export class CountrySelectComponent {
     this.query = '';
   }
 
-  onBlur(): void {
-    // Delay so option click registers before close.
+  onControlFocusOut(event: FocusEvent): void {
+    const host = event.currentTarget as HTMLElement | null;
+    const next = event.relatedTarget as Node | null;
+    if (host && next && host.contains(next)) {
+      return;
+    }
+
+    // Option buttons use mousedown; relatedTarget can be null briefly.
     setTimeout(() => {
+      if (!host?.contains(document.activeElement)) {
+        this.open = false;
+      }
+    }, 0);
+  }
+
+  onTriggerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && this.open) {
+      event.preventDefault();
       this.open = false;
-    }, 150);
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.toggleOpen();
+    }
+  }
+
+  onSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.open = false;
+    }
+  }
+
+  private focusSearch(): void {
+    setTimeout(() => this.searchInput?.nativeElement.focus(), 0);
   }
 }

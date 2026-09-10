@@ -41,10 +41,13 @@ public class User
     public int DonationCampaignPhaseTarget { get; set; }
     public int DonationCampaignPhaseShownCount { get; set; }
     public string? AvatarResourceId { get; set; }
-    /// <summary>Optional 5–12 character postal code (alphanumeric) used with <see cref="CountryCode"/> for Local discovery and offering access.</summary>
-    public string? ZipCode { get; set; }
-    /// <summary>ISO 3166-1 alpha-2 country paired with <see cref="ZipCode"/>.</summary>
-    public string? CountryCode { get; set; }
+    /// <summary>
+    /// Client-encrypted personal location ({ countryCode, zipCode }) under the user content key.
+    /// Server never stores plaintext location; Local matching uses ephemeral request values.
+    /// </summary>
+    public string? LocationNonce { get; set; }
+    public string? LocationCiphertext { get; set; }
+    public int? LocationKeyVersion { get; set; }
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();

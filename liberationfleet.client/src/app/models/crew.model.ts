@@ -79,6 +79,8 @@ export interface SearchCrewsRequest {
   scope: CrewScope;
   page: number;
   pageSize: number;
+  countryCode?: string | null;
+  zipCode?: string | null;
 }
 
 export interface CrewSearchResult {

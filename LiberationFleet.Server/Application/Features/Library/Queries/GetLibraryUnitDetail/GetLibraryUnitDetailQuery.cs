@@ -13,7 +13,7 @@ public class GetLibraryUnitDetailQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
-    IUserRepository userRepository,
+    IViewerLocationAccessor viewerLocation,
     LibraryPriorityTierService priorityTierService) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
 {
     public async Task<LibraryUnitDetailResponse> Handle(
@@ -51,9 +51,8 @@ public class GetLibraryUnitDetailQueryHandler(
             userId,
             unit.Offering.CrewId,
             cancellationToken);
-        var viewerUser = await userRepository.GetByIdAsync(userId, cancellationToken);
-        var viewerCountry = viewerUser?.CountryCode;
-        var viewerZip = viewerUser?.ZipCode;
+        var viewerCountry = viewerLocation.CountryCode;
+        var viewerZip = viewerLocation.ZipCode;
 
         if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
             || !LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))

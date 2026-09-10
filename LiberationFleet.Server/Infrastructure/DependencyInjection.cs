@@ -6,6 +6,7 @@ using LiberationFleet.Server.Infrastructure.Data;
 using LiberationFleet.Server.Infrastructure.Email;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Infrastructure.Security;
+using LiberationFleet.Server.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LiberationFleet.Server.Infrastructure;
@@ -85,6 +86,8 @@ public static class DependencyInjection
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ViewerLocationAccessor>();
+        services.AddScoped<IViewerLocationAccessor>(sp => sp.GetRequiredService<ViewerLocationAccessor>());
         services.AddScoped<Application.Services.MutualAidService>();
         services.AddScoped<IMutualAidService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());
         services.AddScoped<IMutualAidDevService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());
