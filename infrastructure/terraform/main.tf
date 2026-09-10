@@ -97,17 +97,14 @@ module "app_service" {
   livekit_host                           = var.livekit_host
   application_insights_connection_string = module.monitoring.application_insights_connection_string
   key_vault_secret_uris                  = module.key_vault.secret_uris
-  extra_app_settings = merge(
-    {
-      "MediaDeepFreeze__Enabled"               = "true"
-      "MediaDeepFreeze__AgeDays"               = "60"
-      "MediaDeepFreeze__Provider"              = "azure"
-      "MediaDeepFreeze__AzureContainerName"    = module.deep_freeze_storage.container_name
-      "MediaDeepFreeze__AzureConnectionString" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.deep_freeze_connection.versionless_id})"
-      # Hide Fallible attribution app-wide for now (can re-enable later).
-      "Client__ShowFallibleAttribution"        = "false"
-    },
-    var.environment == "staging" ? { "DevTools__Enabled" = "true" } : {}
-  )
+  extra_app_settings = {
+    "MediaDeepFreeze__Enabled"               = "true"
+    "MediaDeepFreeze__AgeDays"               = "60"
+    "MediaDeepFreeze__Provider"              = "azure"
+    "MediaDeepFreeze__AzureContainerName"    = module.deep_freeze_storage.container_name
+    "MediaDeepFreeze__AzureConnectionString" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.deep_freeze_connection.versionless_id})"
+    # Hide Fallible attribution app-wide for now (can re-enable later).
+    "Client__ShowFallibleAttribution"        = "false"
+  }
   tags = local.common_tags
 }

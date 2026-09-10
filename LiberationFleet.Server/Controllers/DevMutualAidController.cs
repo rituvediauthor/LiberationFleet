@@ -85,26 +85,30 @@ public class DevMutualAidController : ControllerBase
     }
 
     /// <summary>
-    /// Non-production only. Covers Development, Staging, local Docker, explicit config,
-    /// and staging hostnames (Azure staging often still runs as Production).
+    /// Local/dev only (Development, Docker, or explicit DevTools:Enabled).
+    /// Staging is never enabled — including leftover App Settings or staging hostnames.
     /// </summary>
     private bool IsDevToolsEnabled()
     {
+        if (_environment.IsStaging())
+        {
+            return false;
+        }
+
+        var host = HttpContext.Request.Host.Host;
+        if (host.Contains("staging", StringComparison.OrdinalIgnoreCase)
+            && !host.Contains("production", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         if (_environment.IsDevelopment()
-            || _environment.IsStaging()
             || _environment.IsEnvironment("Docker"))
         {
             return true;
         }
 
-        if (_configuration.GetValue("DevTools:Enabled", false))
-        {
-            return true;
-        }
-
-        var host = HttpContext.Request.Host.Host;
-        return host.Contains("staging", StringComparison.OrdinalIgnoreCase)
-            && !host.Contains("production", StringComparison.OrdinalIgnoreCase);
+        return _configuration.GetValue("DevTools:Enabled", false);
     }
 
     private async Task<IActionResult> RunAsync(Func<int, CancellationToken, Task<DevActionResultDto>> action)

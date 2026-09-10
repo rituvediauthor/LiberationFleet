@@ -36,22 +36,16 @@ export class ProductLandingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Local Docker/dev and Azure staging are non-production hosts for this control.
-    const isNonProductionHost =
-      typeof location !== 'undefined'
-      && (/staging/i.test(location.hostname)
-        || location.hostname === 'localhost'
-        || location.hostname === '127.0.0.1');
-
     // Prefer an already-loaded enable flag (e.g. after visiting a crew page first).
-    this.nukeEnabled = this.devToolsService.isEnabled || isNonProductionHost;
+    // Server enables this only for local/dev — not staging.
+    this.nukeEnabled = this.devToolsService.isEnabled;
 
     this.devToolsService.load().subscribe({
       next: status => {
-        this.nukeEnabled = status.enabled || isNonProductionHost;
+        this.nukeEnabled = status.enabled;
       },
       error: () => {
-        this.nukeEnabled = this.devToolsService.isEnabled || isNonProductionHost;
+        this.nukeEnabled = false;
       }
     });
   }
