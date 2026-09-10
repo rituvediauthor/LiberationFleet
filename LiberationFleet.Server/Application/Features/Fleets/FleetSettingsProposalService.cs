@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleet;
 using LiberationFleet.Server.Application.Features.Notifications;
@@ -143,8 +144,16 @@ public class FleetSettingsProposalService(
         fleet.Name = request.Name.Trim();
         fleet.Privacy = privacy;
         fleet.Scope = scope;
-        fleet.ZipCode = scope == CrewScope.Local ? request.ZipCode?.Trim() : null;
-        fleet.RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null;
+        if (scope == CrewScope.Local)
+        {
+            fleet.CountryCode = CountryCodes.Normalize(request.CountryCode);
+            AllowedZipCodeSync.SetFleetZips(fleet, request.AllowedZipCodes);
+        }
+        else
+        {
+            fleet.CountryCode = null;
+            AllowedZipCodeSync.SetFleetZips(fleet, Array.Empty<string>());
+        }
         fleet.RequireApprovalForEdits = request.RequireApprovalForEdits;
         fleet.DuoVoteTimeoutMode = Enum.TryParse<DuoVoteTimeoutMode>(request.DuoVoteTimeoutMode, true, out var duo)
             && Enum.IsDefined(duo)
@@ -180,15 +189,21 @@ public class FleetSettingsProposalService(
                 fleet.Scope = scope;
                 if (scope == CrewScope.Online)
                 {
-                    fleet.ZipCode = null;
-                    fleet.RadiusMiles = null;
+                    fleet.CountryCode = null;
+                    AllowedZipCodeSync.SetFleetZips(fleet, Array.Empty<string>());
                 }
                 break;
-            case FleetSettingField.ZipCode:
-                fleet.ZipCode = string.IsNullOrEmpty(change.NewValue) ? null : change.NewValue;
+            case FleetSettingField.CountryCode:
+                fleet.CountryCode = string.IsNullOrWhiteSpace(change.NewValue)
+                    ? null
+                    : CountryCodes.Normalize(change.NewValue);
+                break;
+            case FleetSettingField.AllowedZipCodes:
+                // Legacy ZipCode proposals (enum value 3) stored a single zip; Deserialize handles that.
+                AllowedZipCodeSync.SetFleetZips(fleet, ZipCodeList.Deserialize(change.NewValue));
                 break;
             case FleetSettingField.RadiusMiles:
-                fleet.RadiusMiles = string.IsNullOrEmpty(change.NewValue) ? null : int.Parse(change.NewValue);
+                // Legacy field; no longer applied.
                 break;
             case FleetSettingField.RequireApprovalForEdits:
                 fleet.RequireApprovalForEdits = bool.Parse(change.NewValue);

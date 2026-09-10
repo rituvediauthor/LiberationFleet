@@ -70,6 +70,8 @@ public static class ProfileMapper
             Id = user.Id,
             Username = user.Username,
             Email = user.Email,
+            ZipCode = user.ZipCode,
+            CountryCode = user.CountryCode,
             AvatarResourceId = user.AvatarResourceId,
             PaymentPlatforms = user.PaymentPlatforms
                 .OrderBy(p => p.Id)

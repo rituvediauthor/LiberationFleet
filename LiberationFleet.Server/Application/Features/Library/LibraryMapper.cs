@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
@@ -53,6 +54,8 @@ public static class LibraryMapper
             OfferingKind = unit.Offering.Kind.ToString(),
             FulfillmentMode = unit.Offering.FulfillmentMode.ToString(),
             Visibility = unit.Offering.Visibility.ToString(),
+            CountryCode = unit.Offering.CountryCode,
+            AllowedZipCodes = AllowedZipCodeSync.GetOfferingZips(unit.Offering).ToList(),
             OfferingUnitCount = unit.Offering.Units
                 .Count(u => !u.IsRetired && u.Status != LibraryUnitStatus.Broken)
         };
@@ -79,6 +82,8 @@ public static class LibraryMapper
             IsOutOfStock = LibraryOfferingRules.IsOutOfStock(offering),
             ValuePerUnit = offering.ValuePerUnit,
             UnitLabel = offering.UnitLabel,
+            CountryCode = offering.CountryCode,
+            AllowedZipCodes = AllowedZipCodeSync.GetOfferingZips(offering).ToList(),
             CreatedAt = offering.CreatedAt
         };
 
@@ -122,6 +127,8 @@ public static class LibraryMapper
             Visibility = unit.Offering.Visibility.ToString(),
             BrokenPendingConfirmation = unit.BrokenPendingConfirmation,
             IsRetired = unit.IsRetired,
+            CountryCode = unit.Offering.CountryCode,
+            AllowedZipCodes = AllowedZipCodeSync.GetOfferingZips(unit.Offering).ToList(),
             Viewer = viewer
         };
     }

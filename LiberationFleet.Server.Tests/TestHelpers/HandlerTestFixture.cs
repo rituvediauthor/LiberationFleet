@@ -174,14 +174,6 @@ public static class HandlerTestFixture
         return mock;
     }
 
-    public static Mock<IZipCodeDistanceService> CreateZipCodeDistanceServiceMock(double distanceMiles = 10)
-    {
-        var mock = new Mock<IZipCodeDistanceService>(MockBehavior.Strict);
-        mock.Setup(z => z.TryGetDistanceMiles(It.IsAny<string>(), It.IsAny<string>(), out distanceMiles))
-            .Returns(true);
-        return mock;
-    }
-
     public static Mock<IMutualAidService> CreateMutualAidServiceMock()
     {
         var mock = new Mock<IMutualAidService>(MockBehavior.Loose);
@@ -411,7 +403,9 @@ public static class HandlerTestFixture
         int id = 1,
         string username = "testuser",
         string email = "test@example.com",
-        string passwordHash = "hashed-password")
+        string passwordHash = "hashed-password",
+        string? zipCode = null,
+        string? countryCode = null)
     {
         return new User
         {
@@ -419,6 +413,8 @@ public static class HandlerTestFixture
             Username = username,
             Email = email,
             PasswordHash = passwordHash,
+            ZipCode = zipCode,
+            CountryCode = countryCode,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };
@@ -451,21 +447,36 @@ public static class HandlerTestFixture
         string? zipCode = null,
         int? radiusMiles = null,
         string joinCode = "ABC12345",
-        int createdByUserId = 1)
+        int createdByUserId = 1,
+        IEnumerable<string>? allowedZipCodes = null,
+        string? countryCode = null)
     {
-        return new Crew
+        var crew = new Crew
         {
             Id = id,
             Name = name,
             MaxSize = maxSize,
             Privacy = privacy,
             Scope = scope,
-            ZipCode = zipCode,
-            RadiusMiles = radiusMiles,
+            CountryCode = countryCode,
             JoinCode = joinCode,
             CreatedByUserId = createdByUserId,
             CreatedAt = DateTime.UtcNow
         };
+
+        var zips = allowedZipCodes?.ToList()
+            ?? (zipCode is not null ? [zipCode] : Array.Empty<string>().ToList());
+        if (zips.Count > 0 && crew.CountryCode is null)
+        {
+            crew.CountryCode = "US";
+        }
+
+        foreach (var zip in zips)
+        {
+            crew.AllowedZipCodes.Add(new CrewAllowedZipCode { ZipCode = zip, CrewId = id });
+        }
+
+        return crew;
     }
 
     public static CrewMembership CreateMembership(User user, Crew crew, bool isBanned = false)

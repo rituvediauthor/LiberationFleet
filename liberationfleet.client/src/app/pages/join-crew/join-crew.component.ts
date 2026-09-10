@@ -57,9 +57,7 @@ export class JoinCrewComponent implements OnInit {
     this.form = this.fb.group({
       mode: ['find' as JoinMode, Validators.required],
       joinCode: [''],
-      scope: ['Online' as CrewScope, Validators.required],
-      zipCode: [''],
-      radiusMiles: [25]
+      scope: ['Online' as CrewScope, Validators.required]
     });
 
     this.backButton = {
@@ -74,13 +72,11 @@ export class JoinCrewComponent implements OnInit {
 
     this.form.get('mode')?.valueChanges.subscribe(() => {
       this.resetSearch();
-      this.updateLocalValidators();
       this.updatePrimaryButton();
       this.refreshSearchIfNeeded();
     });
 
     this.form.get('scope')?.valueChanges.subscribe(() => {
-      this.updateLocalValidators();
       this.resetSearch();
       this.refreshSearchIfNeeded();
     });
@@ -92,7 +88,6 @@ export class JoinCrewComponent implements OnInit {
       this.updatePrimaryButton();
     });
 
-    this.updateLocalValidators();
     this.refreshSearchIfNeeded();
   }
 
@@ -145,26 +140,6 @@ export class JoinCrewComponent implements OnInit {
     this.navigation.back(['/app/crew']);
   }
 
-  private updateLocalValidators() {
-    if (!this.isFindMode) {
-      return;
-    }
-
-    const zip = this.form.get('zipCode');
-    const radius = this.form.get('radiusMiles');
-
-    if (this.isLocal) {
-      zip?.setValidators([Validators.required, Validators.pattern(/^\d{5}$/)]);
-      radius?.setValidators([Validators.required, Validators.min(1), Validators.max(500)]);
-    } else {
-      zip?.clearValidators();
-      radius?.clearValidators();
-    }
-
-    zip?.updateValueAndValidity({ emitEvent: false });
-    radius?.updateValueAndValidity({ emitEvent: false });
-  }
-
   private updatePrimaryButton() {
     if (this.joinStep === 'rules') {
       const disabled = this.isSubmitting || this.isLoadingRules || !this.allRulesAccepted;
@@ -194,17 +169,7 @@ export class JoinCrewComponent implements OnInit {
   }
 
   canSearch(): boolean {
-    if (!this.isFindMode) {
-      return false;
-    }
-
-    if (this.isLocal) {
-      const zipValid = /^\d{5}$/.test(this.form.get('zipCode')?.value ?? '');
-      const radius = Number(this.form.get('radiusMiles')?.value);
-      return zipValid && radius >= 1 && radius <= 500;
-    }
-
-    return true;
+    return this.isFindMode;
   }
 
   private refreshSearchIfNeeded() {
@@ -224,8 +189,6 @@ export class JoinCrewComponent implements OnInit {
 
     this.crewService.search({
       scope,
-      zipCode: scope === 'Local' ? String(this.form.get('zipCode')?.value).padStart(5, '0') : undefined,
-      radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
       page,
       pageSize: 10
     }).subscribe({

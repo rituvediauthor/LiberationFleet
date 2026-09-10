@@ -7,6 +7,8 @@ import { PageLayoutComponent, ActionBarButton } from '../../components/page-layo
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { ProposalAttachmentPickerComponent } from '../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
+import { ZipCodeListEditorComponent } from '../../components/zip-code-list-editor/zip-code-list-editor.component';
+import { CountrySelectComponent } from '../../components/country-select/country-select.component';
 import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
@@ -29,7 +31,9 @@ import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.ut
     PageLayoutComponent,
     ConfirmDialogComponent,
     ProposalAttachmentPickerComponent,
-    CharCounterComponent
+    CharCounterComponent,
+    CountrySelectComponent,
+    ZipCodeListEditorComponent
   ],
   templateUrl: './edit-crew.component.html',
   styleUrl: './edit-crew.component.css'
@@ -42,7 +46,7 @@ export class EditCrewComponent implements OnInit {
   requireApprovalForEdits = true;
   monthlyGivingCapacity = 0;
   libraryPriorityAverage = 0;
-  libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0];
+  libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0, 0];
   loading = true;
   loadError = '';
   isSaving = false;
@@ -75,8 +79,8 @@ export class EditCrewComponent implements OnInit {
       maxSize: [30, [Validators.required, Validators.min(2), Validators.max(50)]],
       privacy: ['Public' as CrewPrivacy, Validators.required],
       scope: ['Online' as CrewScope, Validators.required],
-      zipCode: [''],
-      radiusMiles: [25],
+      countryCode: [null as string | null],
+      allowedZipCodes: [[] as string[]],
       allowSurvivalThresholds: [true],
       allowCrossCrewGiving: [false],
       requireApprovalForEdits: [true],
@@ -156,6 +160,18 @@ export class EditCrewComponent implements OnInit {
 
   isInvalid(controlName: string): boolean {
     return isControlInvalidForA11y(this.form?.get(controlName));
+  }
+
+  onCountryCodeChange(code: string | null) {
+    this.form.patchValue({ countryCode: code });
+    this.form.get('countryCode')?.markAsTouched();
+    this.updateSaveButton();
+  }
+
+  onAllowedZipCodesChange(zips: string[]) {
+    this.form.patchValue({ allowedZipCodes: zips });
+    this.form.get('allowedZipCodes')?.markAsTouched();
+    this.updateSaveButton();
   }
 
   onImageAttachmentsChange() {
@@ -363,9 +379,7 @@ export class EditCrewComponent implements OnInit {
         this.memberCount = result.crew.memberCount;
         this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? 0;
         this.libraryPriorityAverage = result.crew.libraryPriorityAverage ?? 0;
-        this.libraryPriorityTierCounts = result.crew.libraryPriorityTierCounts?.length === 5
-          ? [...result.crew.libraryPriorityTierCounts]
-          : [0, 0, 0, 0, 0];
+        this.libraryPriorityTierCounts = this.normalizeTierCounts(result.crew.libraryPriorityTierCounts);
         this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
         this.imageResourceId = result.crew.imageResourceId ?? null;
         this.patchFormFromCrew(result.crew);
@@ -404,8 +418,8 @@ export class EditCrewComponent implements OnInit {
     maxSize: number;
     privacy: CrewPrivacy | string;
     scope: CrewScope | string;
-    zipCode?: string;
-    radiusMiles?: number;
+    countryCode?: string | null;
+    allowedZipCodes?: string[];
     allowSurvivalThresholds?: boolean;
     allowCrossCrewGiving?: boolean;
     requireApprovalForEdits?: boolean;
@@ -436,8 +450,8 @@ export class EditCrewComponent implements OnInit {
       maxSize: crew.maxSize,
       privacy: crew.privacy,
       scope: crew.scope,
-      zipCode: crew.zipCode ?? '',
-      radiusMiles: crew.radiusMiles ?? 25,
+      countryCode: crew.countryCode ?? null,
+      allowedZipCodes: [...(crew.allowedZipCodes ?? [])],
       allowSurvivalThresholds: crew.allowSurvivalThresholds ?? true,
       allowCrossCrewGiving: crew.allowCrossCrewGiving ?? false,
       requireApprovalForEdits: crew.requireApprovalForEdits ?? true,
@@ -470,13 +484,14 @@ export class EditCrewComponent implements OnInit {
 
   private buildPayload(): UpdateCrewRequest {
     const scope = this.form.get('scope')?.value as CrewScope;
+    const isLocal = scope === 'Local';
     return {
       name: String(this.form.get('name')?.value).trim(),
       maxSize: Number(this.form.get('maxSize')?.value),
       privacy: this.form.get('privacy')?.value as CrewPrivacy,
       scope,
-      zipCode: scope === 'Local' ? String(this.form.get('zipCode')?.value).trim() : undefined,
-      radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
+      countryCode: isLocal ? (this.form.get('countryCode')?.value as string) : null,
+      allowedZipCodes: isLocal ? [...(this.form.get('allowedZipCodes')?.value ?? [])] : [],
       allowSurvivalThresholds: !!this.form.get('allowSurvivalThresholds')?.value,
       allowCrossCrewGiving: !!this.form.get('allowCrossCrewGiving')?.value,
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
@@ -504,19 +519,21 @@ export class EditCrewComponent implements OnInit {
   }
 
   private updateLocalValidators() {
-    const zip = this.form.get('zipCode');
-    const radius = this.form.get('radiusMiles');
+    const country = this.form.get('countryCode');
+    const zips = this.form.get('allowedZipCodes');
 
     if (this.isLocal) {
-      zip?.setValidators([Validators.required, Validators.pattern(/^\d{5}$/)]);
-      radius?.setValidators([Validators.required, Validators.min(1), Validators.max(500)]);
+      country?.setValidators([Validators.required]);
+      zips?.setValidators([Validators.minLength(1)]);
     } else {
-      zip?.clearValidators();
-      radius?.clearValidators();
+      country?.clearValidators();
+      country?.setValue(null, { emitEvent: false });
+      zips?.clearValidators();
+      zips?.setValue([] as string[], { emitEvent: false });
     }
 
-    zip?.updateValueAndValidity({ emitEvent: false });
-    radius?.updateValueAndValidity({ emitEvent: false });
+    country?.updateValueAndValidity({ emitEvent: false });
+    zips?.updateValueAndValidity({ emitEvent: false });
     this.updateSaveButton();
   }
 
@@ -539,6 +556,17 @@ export class EditCrewComponent implements OnInit {
     ]);
     maxSize?.updateValueAndValidity({ emitEvent: false });
     this.updateSaveButton();
+  }
+
+  private normalizeTierCounts(counts: number[] | null | undefined): number[] {
+    const normalized = [0, 0, 0, 0, 0, 0];
+    if (!counts?.length) {
+      return normalized;
+    }
+    for (let i = 0; i < Math.min(6, counts.length); i++) {
+      normalized[i] = Number(counts[i]) || 0;
+    }
+    return normalized;
   }
 }
 

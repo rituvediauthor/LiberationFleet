@@ -5,7 +5,6 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Infrastructure.Data;
 using LiberationFleet.Server.Infrastructure.Email;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
-using LiberationFleet.Server.Infrastructure.Geocoding;
 using LiberationFleet.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 
@@ -89,7 +88,6 @@ public static class DependencyInjection
         services.AddScoped<Application.Services.MutualAidService>();
         services.AddScoped<IMutualAidService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());
         services.AddScoped<IMutualAidDevService>(sp => sp.GetRequiredService<Application.Services.MutualAidService>());
-        services.AddSingleton<IZipCodeDistanceService, ZipCodeDistanceService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 

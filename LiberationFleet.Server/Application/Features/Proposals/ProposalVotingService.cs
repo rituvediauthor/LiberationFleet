@@ -129,23 +129,25 @@ public static class ProposalVotingService
     {
         var settings = autoResolveSettings ?? ProposalAutoResolveSettings.Defaults;
 
-        // Duo ResolveOnFirstVote: author auto-approve alone must not settle.
-        // A disapproval or a second approval settles immediately (matches duo thresholds).
+        // Duo "resolve on next vote": settle only once one side leads.
+        // Author auto-approve alone (1–0) does not settle early; timer expiry still approves a lead.
         if (eligibleVoterCount == 2 && duoMode == DuoVoteTimeoutMode.ResolveOnFirstVote)
         {
-            if (proposal.DisapproveCount > 0)
+            if (proposal.DisapproveCount > proposal.ApproveCount)
             {
                 proposal.Status = ProposalStatus.Rejected;
                 proposal.ApprovalTimerEndsAt = null;
                 return;
             }
 
-            if (proposal.ApproveCount >= 2)
+            if (proposal.ApproveCount > proposal.DisapproveCount && proposal.ApproveCount >= 2)
             {
                 proposal.Status = ProposalStatus.Approved;
                 proposal.ApprovalTimerEndsAt = null;
                 return;
             }
+
+            // Tied (including 1–1) or author-only approve: stay pending for timer / next vote.
         }
         else
         {
@@ -166,11 +168,19 @@ public static class ProposalVotingService
             }
         }
 
-        // Two eligible voters at 1–1: apply tie preference immediately (before timer).
+        // Two eligible voters at 1–1: AutoApprove / AutoReject settle immediately.
+        // Resolve-on-next-vote holds the tie until a later vote tips it (or timer path).
         if (eligibleVoterCount == 2
             && proposal.ApproveCount == 1
             && proposal.DisapproveCount == 1)
         {
+            if (duoMode == DuoVoteTimeoutMode.ResolveOnFirstVote)
+            {
+                proposal.Status = ProposalStatus.Pending;
+                TryResolveOnTimer(proposal, utcNow, duoMode, settings, eligibleVoterCount);
+                return;
+            }
+
             proposal.Status = duoMode == DuoVoteTimeoutMode.AutoApprove
                 ? ProposalStatus.Approved
                 : ProposalStatus.Rejected;
@@ -193,8 +203,8 @@ public static class ProposalVotingService
     /// <summary>
     /// Resolve a still-pending proposal once UtcNow is at or past ApprovalTimerEndsAt.
     /// Cast-vote majority wins (approve count &gt; disapprove → approve, and vice versa).
-    /// Equal tallies of any size (including 0–0) follow DuoVoteTimeoutMode AutoApprove / AutoReject
-    /// (ResolveOnFirstVote treats ties as reject).
+    /// Equal tallies: AutoApprove / AutoReject pick a side; ResolveOnFirstVote (next-vote mode)
+    /// leaves the proposal pending until a later vote tips the tally.
     /// </summary>
     public static void TryResolveOnTimer(
         Proposal proposal,
@@ -214,6 +224,13 @@ public static class ProposalVotingService
 
         if (proposal.ApproveCount == proposal.DisapproveCount)
         {
+            if (duoMode == DuoVoteTimeoutMode.ResolveOnFirstVote)
+            {
+                // Hold ties (including 0–0 / 1–1) until a later vote creates a lead.
+                proposal.ApprovalTimerEndsAt = null;
+                return;
+            }
+
             proposal.Status = duoMode == DuoVoteTimeoutMode.AutoApprove
                 ? ProposalStatus.Approved
                 : ProposalStatus.Rejected;
@@ -221,6 +238,7 @@ public static class ProposalVotingService
             return;
         }
 
+        // Includes author auto-approve alone (1–0): resolve toward approval.
         if (proposal.ApproveCount > proposal.DisapproveCount)
         {
             proposal.Status = ProposalStatus.Approved;

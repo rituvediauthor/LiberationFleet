@@ -1,12 +1,41 @@
 .form-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   width: 100%;
+}
+
+.pull-refresh {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--lf-color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: height 0.12s ease;
+  flex-shrink: 0;
+}
+
+.pull-refresh-top {
+  align-items: flex-end;
+}
+
+.pull-refresh-bottom {
+  align-items: flex-start;
+}
+
+.pull-refresh-top.active {
+  padding-bottom: 6px;
+}
+
+.pull-refresh-bottom.active {
+  padding-top: 6px;
 }
 
 .form-card {
   width: 100%;
   max-width: var(--lf-content-max-width, 560px);
+  margin: 0 auto;
   background: var(--lf-color-bg-surface);
   padding: 32px;
   border-radius: 8px;

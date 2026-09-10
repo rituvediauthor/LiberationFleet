@@ -104,8 +104,8 @@ public class FleetsController : ControllerBase
             body.Name,
             body.Privacy,
             body.Scope,
-            body.ZipCode,
-            body.RadiusMiles));
+            body.CountryCode,
+            body.AllowedZipCodes));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -163,8 +163,8 @@ public class FleetsController : ControllerBase
             body.Name,
             body.Privacy,
             body.Scope,
-            body.ZipCode,
-            body.RadiusMiles,
+            body.CountryCode,
+            body.AllowedZipCodes,
             body.RequireApprovalForEdits,
             body.DuoVoteTimeoutMode,
             body.AutoResolveOverTime,

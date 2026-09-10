@@ -1,9 +1,7 @@
-using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Queries.SearchCrews;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
-using LiberationFleet.Server.Infrastructure.Geocoding;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Moq;
 
@@ -64,15 +62,26 @@ public class SearchCrewsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenLocalSearch_FiltersByDistance()
+    public async Task Handle_WhenLocalSearch_FiltersByAllowedZipCodes()
     {
         var userId = 2;
-        var nearbyCrew = HandlerTestFixture.CreateCrew(id: 1, name: "Nearby", scope: CrewScope.Local, zipCode: "10002", radiusMiles: 25);
-        var farCrew = HandlerTestFixture.CreateCrew(id: 2, name: "Far", scope: CrewScope.Local, zipCode: "90210", radiusMiles: 25);
+        var nearbyCrew = HandlerTestFixture.CreateCrew(
+            id: 1,
+            name: "Nearby",
+            scope: CrewScope.Local,
+            allowedZipCodes: ["10001", "10002"]);
+        var farCrew = HandlerTestFixture.CreateCrew(
+            id: 2,
+            name: "Far",
+            scope: CrewScope.Local,
+            allowedZipCodes: ["90210"]);
 
         var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
         var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
-        var zipService = new ZipCodeDistanceService();
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        userRepository
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HandlerTestFixture.CreateUser(id: userId, zipCode: "10001", countryCode: "US"));
 
         crewRepository
             .Setup(r => r.SearchPublicAsync(CrewScope.Local, It.IsAny<CancellationToken>()))
@@ -86,20 +95,39 @@ public class SearchCrewsQueryHandlerTests
             .Setup(r => r.CountMembersAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        var handler = CreateHandler(currentUserId: userId, crewRepository: crewRepository, membershipRepository: membershipRepository, zipService: zipService);
+        var handler = CreateHandler(
+            currentUserId: userId,
+            crewRepository: crewRepository,
+            membershipRepository: membershipRepository,
+            userRepository: userRepository);
 
         var result = await handler.Handle(new SearchCrewsQuery
         {
             Scope = "Local",
-            ZipCode = "10001",
-            RadiusMiles = 5,
             Page = 1,
             PageSize = 10
         }, CancellationToken.None);
 
         result.Success.Should().BeTrue();
         result.Items.Should().ContainSingle(c => c.Name == "Nearby");
-        result.Items[0].DistanceMiles.Should().NotBeNull();
+        result.Items[0].AllowedZipCodes.Should().Contain("10001");
+    }
+
+    [Fact]
+    public async Task Handle_WhenLocalSearchWithoutProfileZip_ReturnsError()
+    {
+        var userId = 2;
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        userRepository
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HandlerTestFixture.CreateUser(id: userId));
+
+        var handler = CreateHandler(currentUserId: userId, userRepository: userRepository);
+
+        var result = await handler.Handle(new SearchCrewsQuery { Scope = "Local" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("profile");
     }
 
     [Fact]
@@ -126,16 +154,16 @@ public class SearchCrewsQueryHandlerTests
         int? currentUserId = 1,
         Mock<ICrewRepository>? crewRepository = null,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
-        IZipCodeDistanceService? zipService = null)
+        Mock<IUserRepository>? userRepository = null)
     {
         crewRepository ??= HandlerTestFixture.CreateCrewRepositoryMock();
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
-        zipService ??= new ZipCodeDistanceService();
+        userRepository ??= HandlerTestFixture.CreateUserRepositoryMock();
 
         return new SearchCrewsQueryHandler(
             crewRepository.Object,
             membershipRepository.Object,
-            zipService,
+            userRepository.Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object);
     }
 }

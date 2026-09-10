@@ -43,37 +43,23 @@
 
         <ng-container *ngIf="isLocal">
           <div class="form-group">
-            <label for="zipCode">Zip Code</label>
-            <input
-              id="zipCode"
-              type="text"
-              formControlName="zipCode"
-              class="form-input"
-              maxlength="5"
-              inputmode="numeric"
-              placeholder="5-digit zip"
-              [attr.aria-invalid]="isInvalid('zipCode')"
-              [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
-            <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
-              Enter a valid 5-digit zip code
-            </span>
+            <app-country-select
+              [countryCode]="form.get('countryCode')?.value"
+              (countryCodeChange)="onCountryCodeChange($event)"
+              [required]="true"
+              [allowClear]="false"
+              [showError]="isInvalid('countryCode')"
+              hint="Must match members' profile country for Local discovery.">
+            </app-country-select>
           </div>
 
           <div class="form-group">
-            <label for="radiusMiles">Distance (miles)</label>
-            <input
-              id="radiusMiles"
-              type="number"
-              formControlName="radiusMiles"
-              class="form-input"
-              min="1"
-              max="500"
-              step="1"
-              [attr.aria-invalid]="isInvalid('radiusMiles')"
-              [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
-            <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
-              Distance must be between 1 and 500 miles
-            </span>
+            <app-zip-code-list-editor
+              [zipCodes]="form.get('allowedZipCodes')?.value || []"
+              (zipCodesChange)="onAllowedZipCodesChange($event)"
+              [showError]="isInvalid('allowedZipCodes')"
+              hint="People whose profile country and postal code match an entry in this list can find and join this Local fleet.">
+            </app-zip-code-list-editor>
           </div>
         </ng-container>
       </form>

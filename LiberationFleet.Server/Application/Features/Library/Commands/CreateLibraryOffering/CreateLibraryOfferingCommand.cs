@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -21,7 +22,10 @@ public record CreateLibraryOfferingCommand(
     int? StockTier3,
     int? StockTier4,
     int? StockTier5,
+    int? StockTier6,
     int MinimumViewerTier,
+    string? CountryCode,
+    IReadOnlyList<string>? AllowedZipCodes,
     string? ThumbnailResourceId,
     LibraryOfferingKind Kind,
     LibraryFulfillmentMode FulfillmentMode,
@@ -71,6 +75,12 @@ public class CreateLibraryOfferingCommandHandler(
         if (request.ValuePerUnit <= 0)
         {
             return new LibraryOfferingOperationResponse { Success = false, Message = "Value per unit must be greater than zero." };
+        }
+
+        if (!ZipCodeList.TryValidateOptional(
+                request.CountryCode, request.AllowedZipCodes, out var country, out var allowedZips, out var zipError))
+        {
+            return new LibraryOfferingOperationResponse { Success = false, Message = zipError };
         }
 
         if (!request.QuantityNotApplicable && request.Kind != LibraryOfferingKind.Consumable
@@ -195,10 +205,14 @@ public class CreateLibraryOfferingCommandHandler(
                 .ToList()
         };
 
+        offering.CountryCode = country;
+        AllowedZipCodeSync.SetOfferingZips(offering, allowedZips);
+
         if (request.Kind == LibraryOfferingKind.Consumable && !quantityNotApplicable)
         {
             var tiers = ResolveConsumableTier(request)!;
-            LibraryOfferingRules.SetTierStocks(offering, tiers[0], tiers[1], tiers[2], tiers[3], tiers[4]);
+            LibraryOfferingRules.SetTierStocks(
+                offering, tiers[0], tiers[1], tiers[2], tiers[3], tiers[4], tiers[5]);
         }
         else if (isStock && !quantityNotApplicable)
         {
@@ -267,7 +281,8 @@ public class CreateLibraryOfferingCommandHandler(
             || request.StockTier2.HasValue
             || request.StockTier3.HasValue
             || request.StockTier4.HasValue
-            || request.StockTier5.HasValue;
+            || request.StockTier5.HasValue
+            || request.StockTier6.HasValue;
 
         int[] tiers;
         if (anyExplicit)
@@ -278,7 +293,8 @@ public class CreateLibraryOfferingCommandHandler(
                 request.StockTier2 ?? 0,
                 request.StockTier3 ?? 0,
                 request.StockTier4 ?? 0,
-                request.StockTier5 ?? 0
+                request.StockTier5 ?? 0,
+                request.StockTier6 ?? 0
             ];
         }
         else
@@ -288,7 +304,7 @@ public class CreateLibraryOfferingCommandHandler(
                 return null;
             }
 
-            tiers = [request.Quantity, 0, 0, 0, 0];
+            tiers = [request.Quantity, 0, 0, 0, 0, 0];
         }
 
         if (tiers.Any(t => t < 0 || t > MaxQuantity) || tiers.Sum() < 1)

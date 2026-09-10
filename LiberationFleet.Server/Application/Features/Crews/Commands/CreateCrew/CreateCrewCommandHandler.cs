@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
@@ -81,8 +82,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             MaxSize = request.MaxSize,
             Privacy = privacy,
             Scope = scope,
-            ZipCode = scope == CrewScope.Local ? request.ZipCode : null,
-            RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null,
+            CountryCode = scope == CrewScope.Local ? CountryCodes.Normalize(request.CountryCode) : null,
             JoinCode = await GenerateUniqueJoinCodeAsync(cancellationToken),
             CreatedByUserId = userId.Value,
             CreatedAt = DateTime.UtcNow,
@@ -90,6 +90,10 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             RequireApprovalForEdits = true,
             InNeedDefaultThreshold = 20m
         };
+
+        AllowedZipCodeSync.SetCrewZips(
+            crew,
+            scope == CrewScope.Local ? request.AllowedZipCodes : Array.Empty<string>());
 
         await _crewRepository.AddAsync(crew, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

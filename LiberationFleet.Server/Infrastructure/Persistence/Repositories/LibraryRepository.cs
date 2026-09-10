@@ -141,6 +141,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)
             .Include(u => u.Offering)
+                .ThenInclude(o => o.AllowedZipCodes)
+            .Include(u => u.Offering)
                 .ThenInclude(o => o.Crew)
             .Include(u => u.CurrentPossessorUser)
             .Where(u => crewIds.Contains(u.Offering.CrewId)
@@ -256,6 +258,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)
             .Include(u => u.Offering)
+                .ThenInclude(o => o.AllowedZipCodes)
+            .Include(u => u.Offering)
                 .ThenInclude(o => o.CreatorUser)
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Crew)
@@ -296,6 +300,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .AsNoTracking()
             .Include(o => o.Categories)
                 .ThenInclude(c => c.Category)
+            .Include(o => o.AllowedZipCodes)
             .Include(o => o.CreatorUser)
             .Include(o => o.Units)
             .Where(o => o.CrewId == crewId && o.CreatorUserId == creatorUserId && !o.IsDeleted);
@@ -340,6 +345,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         CancellationToken cancellationToken = default) =>
         await context.LibraryOfferings
             .Include(o => o.Units)
+            .Include(o => o.AllowedZipCodes)
             .FirstOrDefaultAsync(o => o.Id == offeringId, cancellationToken);
 
     private async Task<LibraryUnitListPage> ToUnitListPageAsync(
@@ -452,6 +458,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.AllowedZipCodes)
             .Include(u => u.Offering)
                 .ThenInclude(o => o.CreatorUser)
             .Include(u => u.Offering)

@@ -30,8 +30,24 @@ public class CreateCrewCommandValidatorTests
             MaxSize = 5,
             Privacy = "Private",
             Scope = "Local",
-            ZipCode = "90210",
-            RadiusMiles = 25
+            CountryCode = "US",
+            AllowedZipCodes = ["90210"]
+        };
+
+        _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Validate_WhenLocalCrewHasAlphanumericPostal_ShouldNotHaveErrors()
+    {
+        var command = new CreateCrewCommand
+        {
+            Name = "London Crew",
+            MaxSize = 5,
+            Privacy = "Public",
+            Scope = "Local",
+            CountryCode = "GB",
+            AllowedZipCodes = ["SW1A 1AA"]
         };
 
         _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
@@ -96,7 +112,7 @@ public class CreateCrewCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_WhenLocalScopeMissingZipCode_ShouldHaveZipCodeError()
+    public void Validate_WhenLocalScopeMissingZipCodes_ShouldHaveAllowedZipCodesError()
     {
         var command = new CreateCrewCommand
         {
@@ -104,14 +120,29 @@ public class CreateCrewCommandValidatorTests
             MaxSize = 10,
             Privacy = "Public",
             Scope = "Local",
-            RadiusMiles = 25
+            CountryCode = "US"
         };
 
-        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.ZipCode);
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.AllowedZipCodes);
     }
 
     [Fact]
-    public void Validate_WhenOnlineScopeHasZipCode_ShouldHaveZipCodeError()
+    public void Validate_WhenLocalScopeMissingCountry_ShouldHaveAllowedZipCodesError()
+    {
+        var command = new CreateCrewCommand
+        {
+            Name = "Local Fleet",
+            MaxSize = 10,
+            Privacy = "Public",
+            Scope = "Local",
+            AllowedZipCodes = ["90210"]
+        };
+
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.AllowedZipCodes);
+    }
+
+    [Fact]
+    public void Validate_WhenOnlineScopeHasZipCodes_ShouldHaveAllowedZipCodesError()
     {
         var command = new CreateCrewCommand
         {
@@ -119,9 +150,9 @@ public class CreateCrewCommandValidatorTests
             MaxSize = 10,
             Privacy = "Public",
             Scope = "Online",
-            ZipCode = "90210"
+            AllowedZipCodes = ["90210"]
         };
 
-        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.ZipCode);
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.AllowedZipCodes);
     }
 }

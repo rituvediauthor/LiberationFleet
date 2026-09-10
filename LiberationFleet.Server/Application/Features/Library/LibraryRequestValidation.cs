@@ -60,7 +60,9 @@ internal static class LibraryRequestValidation
         bool hasOpenRequest,
         LibraryRequest? activeRequest,
         int viewerUserId,
-        int viewerTier = 1)
+        int viewerTier = 1,
+        string? viewerCountryCode = null,
+        string? viewerZip = null)
     {
         var offering = unit.Offering;
         var tierStock = LibraryOfferingRules.UsesPerTierStock(offering)
@@ -83,7 +85,9 @@ internal static class LibraryRequestValidation
             CanReportLost = LibraryUnitAccess.CanReportLost(unit, viewerUserId)
         };
 
-        if (unit.IsRetired || !LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier))
+        if (unit.IsRetired
+            || !LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier)
+            || !LibraryOfferingRules.IsVisibleToViewerZip(offering, viewerCountryCode, viewerZip))
         {
             viewer.CanRequest = false;
             viewer.CanRecordAcquisition = false;

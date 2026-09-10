@@ -14,9 +14,10 @@ public enum DuoVoteTimeoutMode
     AutoReject = 1,
 
     /// <summary>
-    /// When exactly two eligible voters can vote: one reject rejects immediately;
-    /// a second approve approves immediately (author auto-approve alone does not settle).
-    /// Timer expiry ties still follow AutoReject.
+    /// UI label: “Resolve on next vote”. Tied tallies stay pending after timer expiry until a
+    /// later vote tips approve or reject. With exactly two eligible voters, settle early only
+    /// once one side leads (author auto-approve alone does not settle early; on timer expiry a
+    /// 1–0 lead still approves).
     /// </summary>
     ResolveOnFirstVote = 2
 }

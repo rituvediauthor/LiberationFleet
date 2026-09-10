@@ -30,6 +30,68 @@
       </app-priority-score-algorithms>
 
       <form [formGroup]="form">
+        <app-collapsible-section title="Crewmate stats">
+          <div class="readonly-grid" *ngIf="stats">
+            <div class="readonly-item">
+              <span class="readonly-label">Sacrifices last season</span>
+              <span class="readonly-value">{{ stats.sacrificeCountLastSeason }}</span>
+              <span class="hint-text">Explains your percent boost this season (+10% per sacrifice).</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Sacrifices this season</span>
+              <span class="readonly-value">{{ stats.sacrificeCountThisSeason }}</span>
+              <span class="hint-text">Emergency responses this season; become next season’s percent boost.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
+              <span class="readonly-value">${{ stats.averageMonthlyContributions }}</span>
+              <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Lifetime contributions</span>
+              <span class="readonly-value">${{ stats.lifetimeContributions }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Reception this year</span>
+              <span class="readonly-value">${{ stats.receptionThisYear }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Percent boost</span>
+              <span class="readonly-value">+{{ stats.percentBoost }}%</span>
+              <span class="hint-text">From sacrifices last season; multiplies your priority score.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">App donations {{ stats.previousTaxYear || (currentYear - 1) }}</span>
+              <span class="readonly-value">${{ stats.donationsPreviousTaxYearUsd ?? 0 }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">App donations {{ stats.currentTaxYear || currentYear }}</span>
+              <span class="readonly-value">${{ stats.donationsCurrentTaxYearUsd ?? 0 }}</span>
+            </div>
+          </div>
+
+          <p class="section-hint donation-hint">
+            App donations support Liberation Fleet (hosting/development), not crew mutual aid.
+            <a routerLink="/app/donate">Donate</a>
+          </p>
+          <p class="hint-text priority-hint">
+            Live mutual-aid priority is on your Crewmate ID. Organizers use −1 for Giving Season cycle order so they receive concentrated aid last when in need. Library of Things uses the full formula as if you were not the organizer. Not-in-need members leave the active concentrated-aid queue without changing the formula score.
+          </p>
+        </app-collapsible-section>
+
+        <app-collapsible-section title="Payment platforms">
+          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
+          <app-payment-platform-editor
+            [platforms]="paymentPlatforms"
+            [platformOptions]="platformOptions"
+            [showPreferred]="true"
+            (changed)="onPaymentPlatformChange()"
+            (add)="addPaymentPlatform()"
+            (remove)="removePaymentPlatform($event)"
+            (preferredChange)="setPreferredPlatform($event)">
+          </app-payment-platform-editor>
+        </app-collapsible-section>
+
         <section class="section avatar-section">
           <h2>Profile picture</h2>
           <p class="section-hint">
@@ -90,6 +152,37 @@
           </span>
           <span class="error-text" role="alert" *ngIf="isInvalid('email') && form.get('email')?.hasError('email')">
             Enter a valid email address
+          </span>
+        </div>
+
+        <div class="form-group">
+          <app-country-select
+            [countryCode]="form.get('countryCode')?.value"
+            (countryCodeChange)="onCountryCodeChange($event)"
+            [required]="hasPostalCode"
+            [showError]="countryRequiredForPostalError"
+            errorText="Select a country when a postal code is set."
+            hint="Used with your postal code for Local discovery and postal-gated offerings.">
+          </app-country-select>
+        </div>
+
+        <div class="form-group">
+          <label for="zipCode">Postal code</label>
+          <input
+            id="zipCode"
+            type="text"
+            formControlName="zipCode"
+            class="form-input"
+            maxlength="20"
+            autocomplete="postal-code"
+            placeholder="Optional"
+            [attr.aria-invalid]="isInvalid('zipCode')"
+            [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error zipCode-hint' : 'zipCode-hint'">
+          <span class="hint-text" id="zipCode-hint">
+            Used for Local crew/fleet discovery and postal-gated library offerings — must match the country of the crew, fleet, or offering.
+          </span>
+          <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
+            Enter a postal code of 2–12 letters or digits (spaces and hyphens OK), or leave blank
           </span>
         </div>
 
@@ -177,19 +270,6 @@
           </app-identity-groups-editor>
         </app-collapsible-section>
 
-        <app-collapsible-section title="Payment platforms">
-          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
-          <app-payment-platform-editor
-            [platforms]="paymentPlatforms"
-            [platformOptions]="platformOptions"
-            [showPreferred]="true"
-            (changed)="onPaymentPlatformChange()"
-            (add)="addPaymentPlatform()"
-            (remove)="removePaymentPlatform($event)"
-            (preferredChange)="setPreferredPlatform($event)">
-          </app-payment-platform-editor>
-        </app-collapsible-section>
-
         <section class="section encryption-section">
           <h2>Encryption</h2>
           <p class="section-hint">
@@ -220,55 +300,6 @@
             Generate new recovery key
           </button>
         </section>
-
-        <app-collapsible-section title="Crewmate stats">
-          <div class="readonly-grid" *ngIf="stats">
-            <div class="readonly-item">
-              <span class="readonly-label">Sacrifices last season</span>
-              <span class="readonly-value">{{ stats.sacrificeCountLastSeason }}</span>
-              <span class="hint-text">Explains your percent boost this season (+10% per sacrifice).</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Sacrifices this season</span>
-              <span class="readonly-value">{{ stats.sacrificeCountThisSeason }}</span>
-              <span class="hint-text">Emergency responses this season; become next season’s percent boost.</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
-              <span class="readonly-value">${{ stats.averageMonthlyContributions }}</span>
-              <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Lifetime contributions</span>
-              <span class="readonly-value">${{ stats.lifetimeContributions }}</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Reception this year</span>
-              <span class="readonly-value">${{ stats.receptionThisYear }}</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Percent boost</span>
-              <span class="readonly-value">+{{ stats.percentBoost }}%</span>
-              <span class="hint-text">From sacrifices last season; multiplies your priority score.</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">App donations {{ stats.previousTaxYear || (currentYear - 1) }}</span>
-              <span class="readonly-value">${{ stats.donationsPreviousTaxYearUsd ?? 0 }}</span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">App donations {{ stats.currentTaxYear || currentYear }}</span>
-              <span class="readonly-value">${{ stats.donationsCurrentTaxYearUsd ?? 0 }}</span>
-            </div>
-          </div>
-
-          <p class="section-hint donation-hint">
-            App donations support Liberation Fleet (hosting/development), not crew mutual aid.
-            <a routerLink="/app/donate">Donate</a>
-          </p>
-          <p class="hint-text priority-hint">
-            Live mutual-aid priority is on your Crewmate ID. Organizers use −1 for Giving Season cycle order so they receive concentrated aid last when in need. Library of Things uses the full formula as if you were not the organizer. Not-in-need members leave the active concentrated-aid queue without changing the formula score.
-          </p>
-        </app-collapsible-section>
 
       </form>
 

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -84,6 +85,8 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
 
         user.Username = request.Username.Trim();
         user.Email = request.Email.Trim();
+        user.ZipCode = ZipCodeList.NormalizeZip(request.ZipCode);
+        user.CountryCode = CountryCodes.Normalize(request.CountryCode);
         user.AvatarResourceId = string.IsNullOrWhiteSpace(request.AvatarResourceId)
             ? null
             : request.AvatarResourceId.Trim();

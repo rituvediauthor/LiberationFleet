@@ -8,8 +8,8 @@ public class Fleet
     public string Name { get; set; } = string.Empty;
     public CrewPrivacy Privacy { get; set; }
     public CrewScope Scope { get; set; }
-    public string? ZipCode { get; set; }
-    public int? RadiusMiles { get; set; }
+    /// <summary>ISO 3166-1 alpha-2 country for Local postal-code matching.</summary>
+    public string? CountryCode { get; set; }
     public string JoinCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -33,4 +33,5 @@ public class Fleet
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<FleetCrew> Crews { get; set; } = new List<FleetCrew>();
+    public ICollection<FleetAllowedZipCode> AllowedZipCodes { get; set; } = new List<FleetAllowedZipCode>();
 }

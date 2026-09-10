@@ -9,10 +9,9 @@ public class FleetDto
     public int CrewCount { get; set; }
     public string Privacy { get; set; } = string.Empty;
     public string Scope { get; set; } = string.Empty;
-    public string? ZipCode { get; set; }
-    public int? RadiusMiles { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
     public string JoinCode { get; set; } = string.Empty;
-    public double? DistanceMiles { get; set; }
     public bool RequireApprovalForEdits { get; set; } = true;
     public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
     public bool AutoResolveOverTime { get; set; } = true;
@@ -27,7 +26,7 @@ public class FleetDto
     public decimal MinimumContributionForProposals { get; set; }
     public string? ImageResourceId { get; set; }
     public decimal LibraryPriorityAverage { get; set; }
-    public int[] LibraryPriorityTierCounts { get; set; } = [0, 0, 0, 0, 0];
+    public int[] LibraryPriorityTierCounts { get; set; } = [0, 0, 0, 0, 0, 0];
 }
 
 public class UpdateFleetRequest
@@ -35,8 +34,8 @@ public class UpdateFleetRequest
     public string Name { get; set; } = string.Empty;
     public string Privacy { get; set; } = "Public";
     public string Scope { get; set; } = "Online";
-    public string? ZipCode { get; set; }
-    public int? RadiusMiles { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
     public bool RequireApprovalForEdits { get; set; } = true;
     public string DuoVoteTimeoutMode { get; set; } = "AutoReject";
     public bool AutoResolveOverTime { get; set; } = true;
@@ -57,8 +56,8 @@ public class CreateFleetRequest
     public string Name { get; set; } = string.Empty;
     public string Privacy { get; set; } = "Public";
     public string Scope { get; set; } = "Online";
-    public string? ZipCode { get; set; }
-    public int? RadiusMiles { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
 }
 
 public class FleetMembershipStatusDto

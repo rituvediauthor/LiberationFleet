@@ -9,8 +9,8 @@ public class Crew
     public int MaxSize { get; set; }
     public CrewPrivacy Privacy { get; set; }
     public CrewScope Scope { get; set; }
-    public string? ZipCode { get; set; }
-    public int? RadiusMiles { get; set; }
+    /// <summary>ISO 3166-1 alpha-2 country for Local postal-code matching.</summary>
+    public string? CountryCode { get; set; }
     public string JoinCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -62,4 +62,5 @@ public class Crew
 
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CrewMembership> Memberships { get; set; } = new List<CrewMembership>();
+    public ICollection<CrewAllowedZipCode> AllowedZipCodes { get; set; } = new List<CrewAllowedZipCode>();
 }

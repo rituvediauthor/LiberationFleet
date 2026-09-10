@@ -99,36 +99,23 @@
 
         <ng-container *ngIf="isLocal">
           <div class="form-group">
-            <label for="zipCode">Zip code</label>
-            <input
-              id="zipCode"
-              type="text"
-              formControlName="zipCode"
-              class="form-input"
-              maxlength="5"
-              inputmode="numeric"
-              [attr.aria-invalid]="isInvalid('zipCode')"
-              [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
-            <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
-              Enter a valid 5-digit zip code
-            </span>
+            <app-country-select
+              [countryCode]="form.get('countryCode')?.value"
+              (countryCodeChange)="onCountryCodeChange($event)"
+              [required]="true"
+              [allowClear]="false"
+              [showError]="isInvalid('countryCode')"
+              hint="Must match members' profile country for Local discovery.">
+            </app-country-select>
           </div>
 
           <div class="form-group">
-            <label for="radiusMiles">Distance (miles)</label>
-            <input
-              id="radiusMiles"
-              type="number"
-              formControlName="radiusMiles"
-              class="form-input"
-              min="1"
-              max="500"
-              step="1"
-              [attr.aria-invalid]="isInvalid('radiusMiles')"
-              [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
-            <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
-              Distance must be between 1 and 500 miles
-            </span>
+            <app-zip-code-list-editor
+              [zipCodes]="form.get('allowedZipCodes')?.value || []"
+              (zipCodesChange)="onAllowedZipCodesChange($event)"
+              [showError]="isInvalid('allowedZipCodes')"
+              hint="People whose profile country and postal code match an entry in this list can find and join this Local crew.">
+            </app-zip-code-list-editor>
           </div>
         </ng-container>
 
@@ -159,9 +146,9 @@
           <select id="duoVoteTimeoutMode" formControlName="duoVoteTimeoutMode" class="form-input">
             <option value="AutoApprove">Auto approve</option>
             <option value="AutoReject">Auto reject</option>
-            <option value="ResolveOnFirstVote">Resolve on first vote</option>
+            <option value="ResolveOnFirstVote">Resolve on next vote</option>
           </select>
-          <span class="hint-text">Proposals can settle early once approve or reject reaches a majority of eligible voters (half, rounded up). When the timer expires instead, whichever side has more votes wins; equal approve/reject counts (including 0–0) auto-approve or auto-reject per this setting. With exactly two eligible voters, “Resolve on first vote” also settles immediately on one reject or a second approve (the author’s automatic approve alone does not settle).</span>
+          <span class="hint-text">Proposals can settle early once approve or reject reaches a majority of eligible voters (half, rounded up). When the timer expires instead, whichever side has more votes wins — including the author’s automatic approve alone (for example 1–0). Equal approve/reject counts (including 0–0) auto-approve or auto-reject per this setting, except “Resolve on next vote”, which keeps ties pending after expiry until a later vote tips approve or reject. With exactly two eligible voters, “Resolve on next vote” also settles early once one side leads (a second approve, or reject ahead of approve); a 1–1 tie stays pending.</span>
         </div>
 
         <div class="form-group checkbox-group">
@@ -261,8 +248,8 @@
             <span class="group-label">Priority tiers</span>
             <p class="hint-text">
               Average LoT score: {{ libraryPriorityAverage | number:'1.0-1' }}.
-              Counts use the fleet average when this crew is in a fleet; otherwise the crew average.
-              Tier 5 is the highest score band; Tier 1 is the lowest.
+              Counts use offering-relative bands: Tier 1–3 for fleet-mates (excluding this crew), Tier 4–6 for crewmates.
+              Tier 6 is the highest score band; Tier 1 is the lowest.
             </p>
             <ul class="tier-count-list" aria-label="Library priority tier counts">
               <li *ngFor="let count of libraryPriorityTierCounts; let i = index">

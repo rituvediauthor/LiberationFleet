@@ -10,6 +10,8 @@ import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confi
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { LibraryCategoryPickerComponent } from '../../../components/library-category-picker/library-category-picker.component';
 import { LibraryTierAudienceDialogComponent } from '../../../components/library-tier-audience-dialog/library-tier-audience-dialog.component';
+import { ZipCodeListEditorComponent } from '../../../components/zip-code-list-editor/zip-code-list-editor.component';
+import { CountrySelectComponent } from '../../../components/country-select/country-select.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -40,7 +42,9 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
     LibraryCategoryPickerComponent,
     CharCounterComponent,
     ConfirmDialogComponent,
-    LibraryTierAudienceDialogComponent
+    LibraryTierAudienceDialogComponent,
+    CountrySelectComponent,
+    ZipCodeListEditorComponent
   ],
   templateUrl: './create-library-offering.component.html',
   styleUrl: './create-library-offering.component.css'
@@ -60,12 +64,14 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   canAttachFiles = false;
   authorDisplayName = '';
   /** Scope-average tier counts (fleet when in a fleet). */
-  scopeTierCounts: number[] = [0, 0, 0, 0, 0];
+  scopeTierCounts: number[] = [0, 0, 0, 0, 0, 0];
   /** Home-crew members only (same average as scope). */
-  homeCrewTierCounts: number[] = [0, 0, 0, 0, 0];
+  homeCrewTierCounts: number[] = [0, 0, 0, 0, 0, 0];
   /** Fleet-wide member tier counts when the crew is in a fleet. */
-  fleetTierCounts: number[] = [0, 0, 0, 0, 0];
+  fleetTierCounts: number[] = [0, 0, 0, 0, 0, 0];
   hasFleet = false;
+  readonly stockTierNumbers = [1, 2, 3, 4, 5, 6];
+  readonly minimumViewerTierOptions = [1, 2, 3, 4, 5, 6];
   /** Bound for template so visibility/min-tier changes always refresh the hint. */
   audienceCustomerHint = '';
   audienceDialogOpen = false;
@@ -111,6 +117,8 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       offeringKind: [initialKind, Validators.required],
       fulfillmentMode: [{ value: initialFulfillment, disabled: initialKind === 'Durable' || initialKind === 'Digital' }, Validators.required],
       visibility: ['CrewOnly' as LibraryOfferingVisibility, Validators.required],
+      countryCode: [null as string | null],
+      allowedZipCodes: [[] as string[]],
       title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
       description: ['', [Validators.required, Validators.maxLength(this.descriptionMaxLength)]],
       valuePerUnit: [null, [Validators.required, Validators.min(0.01)]],
@@ -122,7 +130,8 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
       stockTier3: [0, [Validators.min(0), Validators.max(100)]],
       stockTier4: [0, [Validators.min(0), Validators.max(100)]],
       stockTier5: [0, [Validators.min(0), Validators.max(100)]],
-      minimumViewerTier: [1, [Validators.required, Validators.min(1), Validators.max(5)]]
+      stockTier6: [0, [Validators.min(0), Validators.max(100)]],
+      minimumViewerTier: [1, [Validators.required, Validators.min(1), Validators.max(6)]]
     });
 
     this.applyKindRules(initialKind);
@@ -232,6 +241,34 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     return isControlInvalidForA11y(this.form.get(controlName));
   }
 
+  onCountryCodeChange(code: string | null) {
+    this.form.patchValue({ countryCode: code });
+    this.form.get('countryCode')?.markAsTouched();
+    this.updatePostalCountryValidators();
+    this.updateCreateButton();
+  }
+
+  onAllowedZipCodesChange(zips: string[]) {
+    const patch: { allowedZipCodes: string[]; countryCode?: string | null } = { allowedZipCodes: zips };
+    if (zips.length === 0) {
+      patch.countryCode = null;
+    }
+    this.form.patchValue(patch);
+    this.updatePostalCountryValidators();
+    this.updateCreateButton();
+  }
+
+  private updatePostalCountryValidators() {
+    const country = this.form.get('countryCode');
+    const zips = this.form.get('allowedZipCodes')?.value as string[] | undefined;
+    if ((zips?.length ?? 0) > 0) {
+      country?.setValidators([Validators.required]);
+    } else {
+      country?.clearValidators();
+    }
+    country?.updateValueAndValidity({ emitEvent: false });
+  }
+
   get fulfillmentMode(): LibraryFulfillmentMode {
     return this.form.getRawValue().fulfillmentMode ?? 'OnRequest';
   }
@@ -268,16 +305,29 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   }
 
   customersForTier(tier: number): number {
-    const index = Math.min(5, Math.max(1, tier)) - 1;
+    const index = Math.min(6, Math.max(1, tier)) - 1;
     return this.audienceTierCounts[index] ?? 0;
   }
 
   /** Visible when viewer tier >= minimum (selected tier and all higher tiers). */
   customersForMinimumTier(minimumTier: number): number {
-    const min = Math.min(5, Math.max(1, minimumTier));
+    const min = Math.min(6, Math.max(1, minimumTier));
     return this.audienceTierCounts
       .slice(min - 1)
       .reduce((sum, count) => sum + (count || 0), 0);
+  }
+
+  tierAudienceLabel(tier: number): string {
+    if (tier >= 4) {
+      return 'crewmates';
+    }
+    return this.hasFleet ? 'fleet-mates (excl. your crew)' : 'fleet-mates';
+  }
+
+  tierBandHint(tier: number): string {
+    return tier <= 3
+      ? 'Fleet-mates outside your crew'
+      : 'Crewmates of your crew';
   }
 
   get selectedMinimumViewerTier(): number {
@@ -287,7 +337,6 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   viewTierAudience(tier: number, matchMode: 'Exact' | 'MinimumOrHigher' = 'Exact'): void {
     const seq = ++this.audienceLoadSeq;
     const visibility = this.visibility;
-    const audienceLabel = this.audienceLabel;
     this.audienceDialogOpen = true;
     this.audienceDialogLoading = true;
     this.audienceDialogError = null;
@@ -295,11 +344,11 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     this.audienceDialogCrewId = this.crewId > 0 ? this.crewId : null;
     this.audienceDialogFleetId = visibility === 'FleetWide' && this.hasFleet ? this.fleetId : null;
     this.audienceDialogTitle = matchMode === 'MinimumOrHigher'
-      ? `Tier ${tier}+ ${audienceLabel}`
-      : `Tier ${tier} ${audienceLabel}`;
+      ? `Tier ${tier}+ eligible members`
+      : `Tier ${tier} ${this.tierAudienceLabel(tier)}`;
     this.audienceDialogSubtitle = matchMode === 'MinimumOrHigher'
-      ? `People who can see a service set to Tier ${tier} or higher (${visibility === 'FleetWide' && this.hasFleet ? 'fleet-wide' : 'crew only'}). Blocked mates are excluded.`
-      : `People in Tier ${tier} who would see this stock pool (${visibility === 'FleetWide' && this.hasFleet ? 'fleet-wide' : 'crew only'}). Blocked mates are excluded.`;
+      ? `People who can see a service set to Tier ${tier} or higher (${visibility === 'FleetWide' && this.hasFleet ? 'fleet-wide' : 'crew only'}). Tier 1–3 = fleet-mates excl. your crew; Tier 4–6 = crewmates. Blocked mates are excluded.`
+      : `People in Tier ${tier} who would see this stock pool (${this.tierBandHint(tier)}; ${visibility === 'FleetWide' && this.hasFleet ? 'fleet-wide' : 'crew only'}). Blocked mates are excluded.`;
 
     this.libraryService.getPriorityTierAudience({
       visibility,
@@ -346,7 +395,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   get tierStockTotal(): number {
     const raw = this.form.getRawValue();
-    return [1, 2, 3, 4, 5].reduce((sum, tier) => sum + (Number(raw[`stockTier${tier}`]) || 0), 0);
+    return this.stockTierNumbers.reduce((sum, tier) => sum + (Number(raw[`stockTier${tier}`]) || 0), 0);
   }
 
   get valueLabel(): string {
@@ -455,11 +504,14 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
           stockTier3: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier3) || 0 : null,
           stockTier4: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier4) || 0 : null,
           stockTier5: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier5) || 0 : null,
+          stockTier6: offeringKind === 'Consumable' && !quantityNotApplicable ? Number(raw.stockTier6) || 0 : null,
           minimumViewerTier: offeringKind === 'Service' ? Number(raw.minimumViewerTier) || 1 : 1,
           thumbnailResourceId: encrypted.thumbnailResourceId,
           kind: offeringKind,
           fulfillmentMode,
           visibility: raw.visibility as LibraryOfferingVisibility,
+          countryCode: (raw.allowedZipCodes?.length ?? 0) > 0 ? (raw.countryCode as string) : null,
+          allowedZipCodes: [...(raw.allowedZipCodes ?? [])],
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
         }).subscribe({
@@ -532,7 +584,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
 
   private applyQuantityFieldState() {
     const quantityControl = this.form.get('quantity');
-    const tierControls = [1, 2, 3, 4, 5].map(t => this.form.get(`stockTier${t}`));
+    const tierControls = this.stockTierNumbers.map(t => this.form.get(`stockTier${t}`));
     if (this.offeringKind === 'Service' || this.offeringKind === 'Digital') {
       quantityControl?.disable();
       tierControls.forEach(c => c?.disable());
@@ -592,10 +644,14 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
   }
 
   private normalizeTierCounts(counts: number[] | null | undefined): number[] {
-    if (counts?.length === 5) {
-      return counts.map(c => Number(c) || 0);
+    const normalized = [0, 0, 0, 0, 0, 0];
+    if (!counts?.length) {
+      return normalized;
     }
-    return [0, 0, 0, 0, 0];
+    for (let i = 0; i < Math.min(6, counts.length); i++) {
+      normalized[i] = Number(counts[i]) || 0;
+    }
+    return normalized;
   }
 
   private updateCreateButton() {

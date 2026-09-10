@@ -105,12 +105,20 @@ public static class TestDbContextFactory
             MaxSize = 10,
             Privacy = privacy,
             Scope = scope,
-            ZipCode = zipCode,
-            RadiusMiles = scope == CrewScope.Local ? 25 : null,
             JoinCode = "JOIN1234",
             CreatedByUserId = user.Id,
             CreatedAt = DateTime.UtcNow
         };
+        if (scope == CrewScope.Local && !string.IsNullOrWhiteSpace(zipCode))
+        {
+            crew.CountryCode = "US";
+            crew.AllowedZipCodes.Add(new CrewAllowedZipCode { ZipCode = zipCode });
+        }
+        else if (scope == CrewScope.Local)
+        {
+            crew.CountryCode = "US";
+            crew.AllowedZipCodes.Add(new CrewAllowedZipCode { ZipCode = "90210" });
+        }
 
         context.Crews.Add(crew);
         await context.SaveChangesAsync();
@@ -173,11 +181,14 @@ public static class TestDbContextFactory
                 MaxSize = 10,
                 Privacy = CrewPrivacy.Public,
                 Scope = CrewScope.Local,
-                ZipCode = "90210",
-                RadiusMiles = 25,
+                CountryCode = "US",
                 JoinCode = "LOCAL001",
                 CreatedByUserId = user.Id,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                AllowedZipCodes =
+                {
+                    new CrewAllowedZipCode { ZipCode = "90210" }
+                }
             });
 
         await context.SaveChangesAsync();

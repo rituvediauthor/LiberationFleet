@@ -18,6 +18,7 @@
   border: 1px solid var(--lf-color-border);
   border-radius: 12px;
   padding: 20px;
+  --lf-collapsible-inset: 20px;
 }
 
 .profile-hero {
@@ -155,8 +156,10 @@
 
 .readonly-item {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
+  align-items: baseline;
+  gap: 4px 16px;
   padding: 10px 0;
   border-bottom: 1px solid var(--lf-color-bg-hover);
 }
@@ -171,6 +174,12 @@
   font-size: 14px;
   font-weight: 600;
   text-align: right;
+  margin-left: auto;
+}
+
+.readonly-item > .hint-text {
+  flex: 1 0 100%;
+  margin: 0;
 }
 
 .priority-hint {
@@ -374,4 +383,10 @@
 .aid-stat-checkbox input {
   width: 18px;
   height: 18px;
+}
+
+@media (max-width: 600px) {
+  .profile-card {
+    --lf-collapsible-inset: calc(20px + var(--lf-content-gutter, 16px));
+  }
 }

@@ -14,8 +14,8 @@ public record UpdateFleetCommand(
     string Name,
     string Privacy,
     string Scope,
-    string? ZipCode,
-    int? RadiusMiles,
+    string? CountryCode,
+    IReadOnlyList<string> AllowedZipCodes,
     bool RequireApprovalForEdits,
     string DuoVoteTimeoutMode,
     bool AutoResolveOverTime,
@@ -76,15 +76,25 @@ public class UpdateFleetCommandHandler(
             };
         }
 
-        if (scope == CrewScope.Local
-            && (string.IsNullOrWhiteSpace(request.ZipCode)
-                || !System.Text.RegularExpressions.Regex.IsMatch(request.ZipCode.Trim(), @"^\d{5}$")
-                || request.RadiusMiles is null or < 1 or > 500))
+        if (scope == CrewScope.Local)
+        {
+            if (!ZipCodeList.TryValidateLocalRequired(
+                    request.CountryCode, request.AllowedZipCodes, out _, out _, out var zipError))
+            {
+                return new FleetOperationResponse
+                {
+                    Success = false,
+                    Message = zipError
+                };
+            }
+        }
+        else if (ZipCodeList.Normalize(request.AllowedZipCodes).Count > 0
+            || !string.IsNullOrWhiteSpace(request.CountryCode))
         {
             return new FleetOperationResponse
             {
                 Success = false,
-                Message = "Local fleets require a 5-digit zip code and radius between 1 and 500 miles."
+                Message = "Country and allowed zip codes must be empty for online fleets."
             };
         }
 

@@ -61,6 +61,26 @@
       </div>
 
       <div class="form-group">
+        <app-country-select
+          [countryCode]="form.get('countryCode')?.value"
+          (countryCodeChange)="onCountryCodeChange($event)"
+          [required]="(form.get('allowedZipCodes')?.value?.length || 0) > 0"
+          [showError]="isInvalid('countryCode')"
+          errorText="Select a country when restricting by postal code."
+          hint="Required when you list allowed postal codes. Must match members' profile country.">
+        </app-country-select>
+      </div>
+
+      <div class="form-group">
+        <app-zip-code-list-editor
+          [zipCodes]="form.get('allowedZipCodes')?.value || []"
+          (zipCodesChange)="onAllowedZipCodesChange($event)"
+          label="Allowed postal codes (optional)"
+          hint="Only members whose profile country and postal code match an entry in this list can see this offering. Leave empty for no postal restriction.">
+        </app-zip-code-list-editor>
+      </div>
+
+      <div class="form-group">
         <label for="title">Name</label>
         <input
           id="title"
@@ -139,9 +159,10 @@
       <div class="form-group" *ngIf="showPerTierStock">
         <span class="group-label">Stock by priority tier</span>
         <p class="field-hint">
-          Each tier has its own pool. Browsers only see and deplete their tier’s stock. Total: {{ tierStockTotal }}
+          Each tier has its own pool. Browsers only see and deplete their tier’s stock. Total: {{ tierStockTotal }}.
+          Tier 1–3 = fleet-mates (excluding your crew); Tier 4–6 = crewmates.
         </p>
-        <div class="tier-stock-block" *ngFor="let tier of [1, 2, 3, 4, 5]">
+        <div class="tier-stock-block" *ngFor="let tier of stockTierNumbers">
           <div class="form-row tier-stock-row">
             <label [attr.for]="'stockTier' + tier">Tier {{ tier }}</label>
             <input
@@ -161,7 +182,8 @@
           </div>
           <p class="field-hint customer-count-hint">
             Number of customers: {{ customersForTier(tier) }}
-            {{ audienceLabel }} in Tier {{ tier }}
+            {{ tierAudienceLabel(tier) }} in Tier {{ tier }}
+            <span class="tier-band-note">({{ tierBandHint(tier) }})</span>
           </p>
         </div>
       </div>
@@ -175,11 +197,9 @@
         <label for="minimumViewerTier">Visible to Tier N or higher</label>
         <div class="tier-min-row">
           <select id="minimumViewerTier" class="form-input" formControlName="minimumViewerTier">
-            <option [ngValue]="1">Tier 1 or higher (everyone)</option>
-            <option [ngValue]="2">Tier 2 or higher</option>
-            <option [ngValue]="3">Tier 3 or higher</option>
-            <option [ngValue]="4">Tier 4 or higher</option>
-            <option [ngValue]="5">Tier 5 only</option>
+            <option *ngFor="let tier of minimumViewerTierOptions" [ngValue]="tier">
+              {{ tier === 1 ? 'Tier 1 or higher (everyone)' : (tier === 6 ? 'Tier 6 only' : ('Tier ' + tier + ' or higher')) }}
+            </option>
           </select>
           <button
             type="button"
@@ -188,7 +208,10 @@
             View
           </button>
         </div>
-        <p class="field-hint">Only members whose LoT priority tier is at least this high can see the service. Default Tier 1 includes everyone.</p>
+        <p class="field-hint tier-audience-hint">
+          Only members whose LoT priority tier relative to this offering is at least this high can see the service.
+          Tier 1–3 are fleet-mates outside your crew; Tier 4–6 are crewmates. Default Tier 1 includes everyone.
+        </p>
         <p class="field-hint customer-count-hint">{{ audienceCustomerHint }}</p>
       </div>
 

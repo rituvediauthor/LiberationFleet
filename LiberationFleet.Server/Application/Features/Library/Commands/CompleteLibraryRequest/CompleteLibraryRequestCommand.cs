@@ -69,14 +69,10 @@ public class CompleteLibraryRequestCommandHandler(
         CreatorContributionGiftDetails? receptionGift = null;
         if (LibraryOfferingRules.IsStockBased(offering))
         {
-            var requesterMembership = libraryRequest.RequesterUserId == userId
-                ? membership
-                : await membershipRepository.GetActiveMembershipAsync(libraryRequest.RequesterUserId, cancellationToken);
-            var requesterCrewId = requesterMembership?.CrewId ?? offering.CrewId;
-            var requesterTier = (await priorityTierService.GetSummaryForUserAsync(
+            var requesterTier = await priorityTierService.GetViewerTierForOfferingAsync(
                 libraryRequest.RequesterUserId,
-                requesterCrewId,
-                cancellationToken)).ViewerTier;
+                offering.CrewId,
+                cancellationToken);
 
             if (!LibraryOfferingRules.HasSufficientStockForTier(offering, libraryRequest.Quantity, requesterTier))
             {

@@ -293,14 +293,39 @@
   width: 100%;
   margin-top: 16px;
   padding: 10px 12px;
+  max-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--lf-color-accent-border);
   border-radius: 8px;
   background: var(--lf-color-accent-soft-bg-alt);
   color: var(--lf-color-accent);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.pull-refresh {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--lf-color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: height 0.12s ease;
+}
+
+.pull-refresh-bottom {
+  align-items: flex-start;
+}
+
+.pull-refresh.active {
+  padding-top: 6px;
 }
 
 @media (max-width: 600px) {

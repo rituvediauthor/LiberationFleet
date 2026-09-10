@@ -23,6 +23,7 @@ import { CrewmateIdCardComponent } from '../../components/crewmate-id-card/crewm
 import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
 import { PriorityScoreAlgorithmsComponent } from '../../components/priority-score-algorithms/priority-score-algorithms.component';
 import { CryptoUnlockDialogComponent } from '../../components/crypto-unlock-dialog/crypto-unlock-dialog.component';
+import { CountrySelectComponent } from '../../components/country-select/country-select.component';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { SecurityService } from '../../services/security.service';
@@ -42,6 +43,24 @@ import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 import { usernameValidators, USERNAME_MAX_LENGTH } from '../../utils/username.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
 import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.util';
+import { isValidPostalCode, normalizePostalCode } from '../../constants/countries';
+
+function optionalPostalCodeValidator(control: AbstractControl): ValidationErrors | null {
+  const value = String(control.value ?? '').trim();
+  if (!value) {
+    return null;
+  }
+  return isValidPostalCode(value) ? null : { postalCode: true };
+}
+
+function profileLocationValidator(group: AbstractControl): ValidationErrors | null {
+  const zip = String(group.get('zipCode')?.value ?? '').trim();
+  const country = group.get('countryCode')?.value;
+  if (zip && !country) {
+    return { countryRequiredForPostal: true };
+  }
+  return null;
+}
 
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
@@ -92,7 +111,8 @@ function optionalPasswordChangeValidator(control: AbstractControl): ValidationEr
     CrewmateIdCardComponent,
     CollapsibleSectionComponent,
     PriorityScoreAlgorithmsComponent,
-    CryptoUnlockDialogComponent
+    CryptoUnlockDialogComponent,
+    CountrySelectComponent
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
@@ -189,6 +209,15 @@ export class ProfileComponent implements OnInit {
 
   get displayAvatarUrl(): string | null {
     return this.avatarAttachments[0]?.previewUrl ?? this.avatarPreviewUrl;
+  }
+
+  get hasPostalCode(): boolean {
+    return !!String(this.form?.get('zipCode')?.value || '').trim();
+  }
+
+  get countryRequiredForPostalError(): boolean {
+    return !!(this.form?.hasError('countryRequiredForPostal')
+      && (this.form.get('countryCode')?.touched || this.form.get('zipCode')?.touched));
   }
 
   clearAvatar() {
@@ -455,6 +484,8 @@ export class ProfileComponent implements OnInit {
       }
 
       const v = this.form.getRawValue();
+      const zipNormalized = normalizePostalCode(String(v.zipCode ?? ''));
+      const countryRaw = (v.countryCode as string | null) || null;
       const payload = {
         username: String(v.username).trim(),
         email: String(v.email).trim(),
@@ -465,6 +496,8 @@ export class ProfileComponent implements OnInit {
         disabilityLevel: Number(v.disabilityLevel),
         identityGroups: normalizeIdentityGroups(v.identityGroups),
         needsSurvivalAid: !!v.needsSurvivalAid,
+        countryCode: countryRaw,
+        zipCode: zipNormalized,
         paymentPlatforms: this.getPaymentPlatformsForSave()
       };
 
@@ -489,7 +522,9 @@ export class ProfileComponent implements OnInit {
           peopleRepresentedCount: result.profile.peopleRepresentedCount,
           disabilityLevel: result.profile.disabilityLevel,
           identityGroups: normalizeIdentityGroups(result.profile.identityGroups),
-          needsSurvivalAid: result.profile.needsSurvivalAid
+          needsSurvivalAid: result.profile.needsSurvivalAid,
+          countryCode: result.profile.countryCode ?? null,
+          zipCode: result.profile.zipCode ?? ''
         });
         this.syncInNeedControl(result.profile.inNeedOfAid);
         this.captureInitialState();
@@ -519,6 +554,12 @@ export class ProfileComponent implements OnInit {
 
   onIdentityGroupsChange(groups: string[]) {
     this.form.patchValue({ identityGroups: normalizeIdentityGroups(groups) });
+    this.updateSaveButton();
+  }
+
+  onCountryCodeChange(code: string | null) {
+    this.form.patchValue({ countryCode: code });
+    this.form.get('countryCode')?.markAsTouched();
     this.updateSaveButton();
   }
 
@@ -599,16 +640,19 @@ export class ProfileComponent implements OnInit {
     this.form = this.fb.group({
       username: [profile.username, usernameValidators()],
       email: [profile.email, [Validators.required, Validators.email]],
+      countryCode: [profile.countryCode ?? null],
+      zipCode: [profile.zipCode ?? '', [optionalPostalCodeValidator]],
       inNeedOfAid: [this.canToggleInNeedOff ? profile.inNeedOfAid : true],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [profile.disabilityLevel ?? 0, [Validators.min(0), Validators.max(3)]],
       identityGroups: [normalizeIdentityGroups(profile.identityGroups)],
       needsSurvivalAid: [profile.needsSurvivalAid]
-    });
+    }, { validators: [profileLocationValidator] });
     this.syncInNeedControl(this.canToggleInNeedOff ? profile.inNeedOfAid : true);
 
     this.form.statusChanges.subscribe(() => this.updateSaveButton());
+    this.form.valueChanges.subscribe(() => this.updateSaveButton());
     this.updateSaveButton();
   }
 

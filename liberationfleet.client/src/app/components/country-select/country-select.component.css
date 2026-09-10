@@ -1,0 +1,133 @@
+.country-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.country-label {
+  font-size: 14px;
+  color: var(--lf-color-text-primary);
+}
+
+.required-mark {
+  color: var(--lf-color-danger, #b00020);
+  margin-left: 2px;
+}
+
+.hint-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+  line-height: 1.4;
+}
+
+.country-control {
+  position: relative;
+}
+
+.country-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.country-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country-value.placeholder {
+  color: var(--lf-color-text-secondary);
+}
+
+.country-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.clear-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: var(--lf-color-text-secondary);
+}
+
+.chevron {
+  font-size: 12px;
+  color: var(--lf-color-text-secondary);
+}
+
+.country-panel {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  border: 1px solid var(--lf-color-border, #ccc);
+  background: var(--lf-color-bg, #fff);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.country-search {
+  border: none;
+  border-bottom: 1px solid var(--lf-color-border, #ccc);
+  border-radius: 0;
+}
+
+.country-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 220px;
+}
+
+.country-option {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--lf-color-text-primary);
+}
+
+.country-option:hover,
+.country-option:focus-visible,
+.country-option[aria-selected='true'] {
+  background: var(--lf-color-bg-hover, #f3f3f3);
+}
+
+.option-code {
+  color: var(--lf-color-text-secondary);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.empty-option {
+  padding: 12px;
+  color: var(--lf-color-text-secondary);
+  font-size: 13px;
+}
+
+.error-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-danger, #b00020);
+}

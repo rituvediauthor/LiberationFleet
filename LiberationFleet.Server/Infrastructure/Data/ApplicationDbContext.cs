@@ -17,10 +17,12 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<User> Users => Set<User>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Crew> Crews => Set<Crew>();
+    public DbSet<CrewAllowedZipCode> CrewAllowedZipCodes => Set<CrewAllowedZipCode>();
     public DbSet<CrewMembership> CrewMemberships => Set<CrewMembership>();
     public DbSet<UserCrewContentTenure> UserCrewContentTenures => Set<UserCrewContentTenure>();
     public DbSet<UserFleetContentTenure> UserFleetContentTenures => Set<UserFleetContentTenure>();
     public DbSet<Fleet> Fleets => Set<Fleet>();
+    public DbSet<FleetAllowedZipCode> FleetAllowedZipCodes => Set<FleetAllowedZipCode>();
     public DbSet<FleetCrew> FleetCrews => Set<FleetCrew>();
     public DbSet<FleetMembership> FleetMemberships => Set<FleetMembership>();
     public DbSet<FleetRule> FleetRules => Set<FleetRule>();
@@ -87,6 +89,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<FallibleClickUser> FallibleClickUsers => Set<FallibleClickUser>();
     public DbSet<LibraryCategory> LibraryCategories => Set<LibraryCategory>();
     public DbSet<LibraryOffering> LibraryOfferings => Set<LibraryOffering>();
+    public DbSet<LibraryOfferingAllowedZipCode> LibraryOfferingAllowedZipCodes => Set<LibraryOfferingAllowedZipCode>();
     public DbSet<LibraryOfferingCategory> LibraryOfferingCategories => Set<LibraryOfferingCategory>();
     public DbSet<LibraryUnit> LibraryUnits => Set<LibraryUnit>();
     public DbSet<LibraryRequest> LibraryRequests => Set<LibraryRequest>();
@@ -123,6 +126,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.LockSettingsWithPassword).HasDefaultValue(false);
             entity.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
             entity.Property(e => e.AvatarResourceId).HasMaxLength(64);
+            entity.Property(e => e.ZipCode).HasMaxLength(16);
+            entity.Property(e => e.CountryCode).HasMaxLength(2);
         });
 
         modelBuilder.Entity<UserRegisteredDevice>(entity =>
@@ -217,7 +222,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => e.JoinCode).IsUnique();
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.JoinCode).IsRequired().HasMaxLength(32);
-            entity.Property(e => e.ZipCode).HasMaxLength(10);
+            entity.Property(e => e.CountryCode).HasMaxLength(2);
             entity.Property(e => e.SeasonStarted).HasDefaultValue(false);
             entity.Property(e => e.SeasonMemberCycleCap).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.SeasonNonMemberCycleCap).HasPrecision(18, 2).HasDefaultValue(0m);
@@ -254,13 +259,24 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<CrewAllowedZipCode>(entity =>
+        {
+            entity.HasKey(e => new { e.CrewId, e.ZipCode });
+            entity.Property(e => e.ZipCode).IsRequired().HasMaxLength(16);
+            entity.HasIndex(e => e.ZipCode);
+            entity.HasOne(e => e.Crew)
+                .WithMany(c => c.AllowedZipCodes)
+                .HasForeignKey(e => e.CrewId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<Fleet>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.JoinCode).IsUnique();
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.JoinCode).IsRequired().HasMaxLength(32);
-            entity.Property(e => e.ZipCode).HasMaxLength(10);
+            entity.Property(e => e.CountryCode).HasMaxLength(2);
             entity.Property(e => e.RequireApprovalForEdits).HasDefaultValue(true);
             entity.Property(e => e.DuoVoteTimeoutMode)
                 .HasDefaultValue(DuoVoteTimeoutMode.AutoReject)
@@ -280,6 +296,17 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FleetAllowedZipCode>(entity =>
+        {
+            entity.HasKey(e => new { e.FleetId, e.ZipCode });
+            entity.Property(e => e.ZipCode).IsRequired().HasMaxLength(16);
+            entity.HasIndex(e => e.ZipCode);
+            entity.HasOne(e => e.Fleet)
+                .WithMany(f => f.AllowedZipCodes)
+                .HasForeignKey(e => e.FleetId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<FleetCrew>(entity =>
@@ -365,7 +392,6 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => new { e.CrewId, e.IsBanned, e.IsSeasonReady });
             entity.Property(e => e.IsOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsHonoraryMember).HasDefaultValue(false);
-            entity.Property(e => e.IsAdvocate).HasDefaultValue(false);
             entity.Property(e => e.IsDecentralizer).HasDefaultValue(false);
             entity.Property(e => e.IsCeremonialOrganizer).HasDefaultValue(false);
             entity.Property(e => e.IsModerator).HasDefaultValue(false);
@@ -1523,6 +1549,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.Visibility).HasDefaultValue(LibraryOfferingVisibility.CrewOnly);
             entity.Property(e => e.MinimumViewerTier).HasDefaultValue(1);
+            entity.Property(e => e.CountryCode).HasMaxLength(2);
             entity.HasOne(e => e.Crew)
                 .WithMany()
                 .HasForeignKey(e => e.CrewId)
@@ -1531,6 +1558,17 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.CreatorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LibraryOfferingAllowedZipCode>(entity =>
+        {
+            entity.HasKey(e => new { e.OfferingId, e.ZipCode });
+            entity.Property(e => e.ZipCode).IsRequired().HasMaxLength(16);
+            entity.HasIndex(e => e.ZipCode);
+            entity.HasOne(e => e.Offering)
+                .WithMany(o => o.AllowedZipCodes)
+                .HasForeignKey(e => e.OfferingId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<LibraryOfferingCategory>(entity =>

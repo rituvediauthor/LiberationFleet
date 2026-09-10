@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -16,8 +17,8 @@ public static class FleetMapper
         CrewCount = crewCount,
         Privacy = fleet.Privacy.ToString(),
         Scope = fleet.Scope.ToString(),
-        ZipCode = fleet.ZipCode,
-        RadiusMiles = fleet.RadiusMiles,
+        CountryCode = fleet.CountryCode,
+        AllowedZipCodes = AllowedZipCodeSync.GetFleetZips(fleet).ToList(),
         JoinCode = fleet.JoinCode,
         RequireApprovalForEdits = fleet.RequireApprovalForEdits,
         DuoVoteTimeoutMode = fleet.DuoVoteTimeoutMode.ToString(),
@@ -33,7 +34,7 @@ public static class FleetMapper
         MinimumContributionForProposals = fleet.MinimumContributionForProposals,
         ImageResourceId = fleet.ImageResourceId,
         LibraryPriorityAverage = libraryPriorityAverage,
-        LibraryPriorityTierCounts = libraryPriorityTierCounts ?? [0, 0, 0, 0, 0]
+        LibraryPriorityTierCounts = libraryPriorityTierCounts ?? [0, 0, 0, 0, 0, 0]
     };
 
     public static FleetRuleDto MapRule(FleetRule rule) => new()

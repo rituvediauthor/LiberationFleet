@@ -9,10 +9,9 @@ export interface Crew {
   memberCount: number;
   privacy: CrewPrivacy;
   scope: CrewScope;
-  zipCode?: string;
-  radiusMiles?: number;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   joinCode: string;
-  distanceMiles?: number;
   allowSurvivalThresholds?: boolean;
   allowCrossCrewGiving?: boolean;
   requireApprovalForEdits?: boolean;
@@ -72,14 +71,12 @@ export interface CreateCrewRequest {
   maxSize: number;
   privacy: CrewPrivacy;
   scope: CrewScope;
-  zipCode?: string;
-  radiusMiles?: number;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
 }
 
 export interface SearchCrewsRequest {
   scope: CrewScope;
-  zipCode?: string;
-  radiusMiles?: number;
   page: number;
   pageSize: number;
 }
@@ -107,8 +104,8 @@ export interface UpdateCrewRequest {
   maxSize: number;
   privacy: CrewPrivacy;
   scope: CrewScope;
-  zipCode?: string;
-  radiusMiles?: number;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   allowSurvivalThresholds: boolean;
   allowCrossCrewGiving: boolean;
   requireApprovalForEdits: boolean;

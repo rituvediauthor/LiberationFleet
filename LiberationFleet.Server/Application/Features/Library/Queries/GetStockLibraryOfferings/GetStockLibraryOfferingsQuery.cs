@@ -19,6 +19,7 @@ public class GetStockLibraryOfferingsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
+    IUserRepository userRepository,
     LibraryPriorityTierService priorityTierService) : IRequestHandler<GetStockLibraryOfferingsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
@@ -43,13 +44,13 @@ public class GetStockLibraryOfferingsQueryHandler(
             fleetRepository,
             cancellationToken);
 
-        var summary = await priorityTierService.GetSummaryForUserAsync(
-            currentUser.UserId.Value,
-            membership.CrewId,
-            cancellationToken);
-        var viewerTier = summary.ViewerTier;
+        var viewer = await userRepository.GetByIdAsync(currentUser.UserId.Value, cancellationToken);
+        var viewerCountry = viewer?.CountryCode;
+        var viewerZip = viewer?.ZipCode;
+        var viewerUserId = currentUser.UserId.Value;
+        var tierByOfferingCrewId = new Dictionary<int, int>();
 
-        // Over-fetch then filter by tier so paging still returns a full page when possible.
+        // Over-fetch then filter by tier/zip so paging still returns a full page when possible.
         var fetchLimit = Math.Clamp(request.Limit, 1, 100);
         var fetchOffset = Math.Max(request.Offset, 0);
         var page = await libraryRepository.GetStockUnitsForCrewIdsAsync(
@@ -62,14 +63,26 @@ public class GetStockLibraryOfferingsQueryHandler(
             fetchOffset,
             cancellationToken);
 
+        foreach (var offeringCrewId in page.Items.Select(u => u.Offering.CrewId).Distinct())
+        {
+            tierByOfferingCrewId[offeringCrewId] = await priorityTierService.GetViewerTierForOfferingAsync(
+                viewerUserId,
+                offeringCrewId,
+                cancellationToken);
+        }
+
         var items = page.Items
-            .Where(unit => LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier))
             .Where(unit =>
-                unit.Offering.QuantityNotApplicable
-                || !LibraryOfferingRules.UsesPerTierStock(unit.Offering)
-                || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier))
+            {
+                var viewerTier = tierByOfferingCrewId[unit.Offering.CrewId];
+                return LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
+                    && LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip)
+                    && (unit.Offering.QuantityNotApplicable
+                        || !LibraryOfferingRules.UsesPerTierStock(unit.Offering)
+                        || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier));
+            })
             .Take(fetchLimit)
-            .Select(unit => LibraryMapper.MapUnitListItem(unit, viewerTier))
+            .Select(unit => LibraryMapper.MapUnitListItem(unit, tierByOfferingCrewId[unit.Offering.CrewId]))
             .ToList();
 
         return new LibraryUnitListResponse

@@ -21,17 +21,6 @@
         [fleetName]="fleetName">
       </app-crewmate-id-card>
 
-      <app-collapsible-section title="Payment platforms">
-        <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
-        <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
-          <li *ngFor="let platform of profile.paymentPlatforms">
-            <span class="platform-name">{{ platform.platformName }}</span>
-            <span class="platform-handle">{{ platform.handle }}</span>
-            <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
-          </li>
-        </ul>
-      </app-collapsible-section>
-
       <app-collapsible-section title="Crewmate stats" [expanded]="true">
         <div class="readonly-grid">
           <div class="readonly-item">
@@ -43,9 +32,20 @@
             <span class="readonly-value">{{ profile.libraryPriorityTier }}</span>
           </div>
           <p class="hint-text priority-hint">
-            Used to rank Library of Things requests in their crew. Tier 5 is the highest score band; Tier 1 is the lowest.
+            Used to rank Library of Things requests in their crew. Profile tier is the crewmate band (4–6). Tier 6 is the highest score band.
           </p>
         </div>
+      </app-collapsible-section>
+
+      <app-collapsible-section title="Payment platforms">
+        <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
+        <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
+          <li *ngFor="let platform of profile.paymentPlatforms">
+            <span class="platform-name">{{ platform.platformName }}</span>
+            <span class="platform-handle">{{ platform.handle }}</span>
+            <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
+          </li>
+        </ul>
       </app-collapsible-section>
 
       <div class="moderation-actions" *ngIf="!profile.isSelf && profile.canSocialInteract">

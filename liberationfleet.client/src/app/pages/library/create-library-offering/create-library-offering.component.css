@@ -66,6 +66,10 @@
   line-height: 1.4;
 }
 
+.field-hint.tier-audience-hint {
+  margin-top: 10px;
+}
+
 .form-group {
   margin-bottom: 16px;
   display: flex;

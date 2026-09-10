@@ -7,6 +7,8 @@ public class UpdateProfileCommand : IRequest<ProfileOperationResponse>
 {
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? ZipCode { get; set; }
+    public string? CountryCode { get; set; }
     public string? AvatarResourceId { get; set; }
     public bool InNeedOfAid { get; set; }
     public int EmergencyLevel { get; set; }

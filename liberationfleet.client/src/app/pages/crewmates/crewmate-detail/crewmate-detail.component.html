@@ -27,6 +27,96 @@
         [givingSeason]="profile.givingSeasonPriority">
       </app-priority-score-algorithms>
 
+      <app-collapsible-section title="Crewmate stats">
+        <div class="readonly-grid">
+          <div class="readonly-item">
+            <span class="readonly-label">Sacrifices last season</span>
+            <span class="readonly-value">{{ profile.sacrificeCountLastSeason }}</span>
+            <span class="hint-text">Explains percent boost this season (+10% per sacrifice).</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Sacrifices this season</span>
+            <span class="readonly-value">{{ profile.sacrificeCountThisSeason }}</span>
+          </div>
+          <div class="readonly-item" *ngIf="profile.percentBoost != null">
+            <span class="readonly-label">Percent boost</span>
+            <span class="readonly-value">+{{ profile.percentBoost }}%</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
+            <span class="readonly-value">${{ profile.averageMonthlyContributions }}</span>
+            <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
+          </div>
+          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
+            <span class="readonly-label">Estimated monthly contribution</span>
+            <span class="readonly-value">
+              {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
+            </span>
+            <span class="hint-text">Self-estimate used for months before joining the season.</span>
+          </div>
+          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
+            <span class="readonly-label">Lifetime contributions</span>
+            <span class="readonly-value">${{ profile.lifetimeContributions }}</span>
+          </div>
+          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
+            <span class="readonly-label">Reception this year</span>
+            <span class="readonly-value">${{ profile.receptionThisYear }}</span>
+          </div>
+          <p class="hint-text priority-hint">
+            Live mutual-aid priority is shown on the Crewmate ID. Reception order freezes each member's score when their cycle starts — not this live value.
+          </p>
+          <div class="readonly-item">
+            <span class="readonly-label">Emergency level</span>
+            <span class="readonly-value">{{ profile.emergencyLevel }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">People represented</span>
+            <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Disability level</span>
+            <span class="readonly-value">{{ profile.disabilityLevel }}</span>
+          </div>
+          <ng-container *ngIf="!profile.canProposeAidStatEdits">
+            <div class="readonly-item">
+              <span class="readonly-label">Total reception (season)</span>
+              <span class="readonly-value">
+                {{ profile.totalReceptionAmount != null ? ('$' + profile.totalReceptionAmount) : '—' }}
+              </span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Survival reception (season)</span>
+              <span class="readonly-value">
+                {{ profile.survivalThresholdReceived != null ? ('$' + profile.survivalThresholdReceived) : '—' }}
+              </span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Cycle reception (season)</span>
+              <span class="readonly-value">
+                {{ profile.cycleReceived != null ? ('$' + profile.cycleReceived) : '—' }}
+              </span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Cycle completed this season</span>
+              <span class="readonly-value">
+                {{ profile.cycleCompleted == null ? '—' : (profile.cycleCompleted ? 'Yes' : 'No') }}
+              </span>
+            </div>
+          </ng-container>
+        </div>
+      </app-collapsible-section>
+
+      <app-collapsible-section title="Payment platforms">
+        <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
+        <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
+          <li *ngFor="let platform of profile.paymentPlatforms">
+            <span class="platform-name">{{ platform.platformName }}</span>
+            <span class="platform-handle">{{ platform.handle }}</span>
+            <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
+          </li>
+        </ul>
+      </app-collapsible-section>
+
       <section class="section claim-section" *ngIf="profile.canClaimIdentity">
         <h2>Is this you?</h2>
         <p class="hint-text">
@@ -118,96 +208,6 @@
         </div>
       </section>
 
-      <app-collapsible-section title="Payment platforms">
-        <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
-        <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
-          <li *ngFor="let platform of profile.paymentPlatforms">
-            <span class="platform-name">{{ platform.platformName }}</span>
-            <span class="platform-handle">{{ platform.handle }}</span>
-            <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
-          </li>
-        </ul>
-      </app-collapsible-section>
-
-      <app-collapsible-section title="Crewmate stats">
-        <div class="readonly-grid">
-          <div class="readonly-item">
-            <span class="readonly-label">Sacrifices last season</span>
-            <span class="readonly-value">{{ profile.sacrificeCountLastSeason }}</span>
-            <span class="hint-text">Explains percent boost this season (+10% per sacrifice).</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Sacrifices this season</span>
-            <span class="readonly-value">{{ profile.sacrificeCountThisSeason }}</span>
-          </div>
-          <div class="readonly-item" *ngIf="profile.percentBoost != null">
-            <span class="readonly-label">Percent boost</span>
-            <span class="readonly-value">+{{ profile.percentBoost }}%</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Avg. monthly contributions (3 mo)</span>
-            <span class="readonly-value">${{ profile.averageMonthlyContributions }}</span>
-            <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
-          </div>
-          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
-            <span class="readonly-label">Estimated monthly contribution</span>
-            <span class="readonly-value">
-              {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
-            </span>
-            <span class="hint-text">Self-estimate used for months before joining the season.</span>
-          </div>
-          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
-            <span class="readonly-label">Lifetime contributions</span>
-            <span class="readonly-value">${{ profile.lifetimeContributions }}</span>
-          </div>
-          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
-            <span class="readonly-label">Reception this year</span>
-            <span class="readonly-value">${{ profile.receptionThisYear }}</span>
-          </div>
-          <p class="hint-text priority-hint">
-            Live mutual-aid priority is shown on the Crewmate ID. Reception order freezes each member's score when their cycle starts — not this live value.
-          </p>
-          <div class="readonly-item">
-            <span class="readonly-label">Emergency level</span>
-            <span class="readonly-value">{{ profile.emergencyLevel }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">People represented</span>
-            <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Disability level</span>
-            <span class="readonly-value">{{ profile.disabilityLevel }}</span>
-          </div>
-          <ng-container *ngIf="!profile.canProposeAidStatEdits">
-            <div class="readonly-item">
-              <span class="readonly-label">Total reception (season)</span>
-              <span class="readonly-value">
-                {{ profile.totalReceptionAmount != null ? ('$' + profile.totalReceptionAmount) : '—' }}
-              </span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Survival reception (season)</span>
-              <span class="readonly-value">
-                {{ profile.survivalThresholdReceived != null ? ('$' + profile.survivalThresholdReceived) : '—' }}
-              </span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Cycle reception (season)</span>
-              <span class="readonly-value">
-                {{ profile.cycleReceived != null ? ('$' + profile.cycleReceived) : '—' }}
-              </span>
-            </div>
-            <div class="readonly-item">
-              <span class="readonly-label">Cycle completed this season</span>
-              <span class="readonly-value">
-                {{ profile.cycleCompleted == null ? '—' : (profile.cycleCompleted ? 'Yes' : 'No') }}
-              </span>
-            </div>
-          </ng-container>
-        </div>
-      </app-collapsible-section>
-
       <app-collapsible-section title="Targeted minority groups">
         <p *ngIf="identityGroupLabels.length === 0" class="empty-text">None listed.</p>
         <ul class="identity-group-list" *ngIf="identityGroupLabels.length > 0">
@@ -223,6 +223,13 @@
         </p>
 
         <div class="aid-stat-form">
+          <label class="aid-stat-field">
+            <span>Percent boost this season (%)</span>
+            <input type="number" min="0" max="1000" step="1" [(ngModel)]="aidDraft.percentBoost" class="form-input">
+          </label>
+          <p class="hint-text">
+            Active sacrifice boost applied to this crewmate’s priority score. Usually +10% per sacrifice last season.
+          </p>
           <label class="aid-stat-field">
             <span>Estimated monthly contribution ($)</span>
             <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.estimatedMonthlyContribution" class="form-input">

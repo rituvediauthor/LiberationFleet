@@ -21,8 +21,11 @@ public class LibraryOffering
     public int? RemainingStockTier3 { get; set; }
     public int? RemainingStockTier4 { get; set; }
     public int? RemainingStockTier5 { get; set; }
-    /// <summary>Services: minimum LoT priority tier that may view/request this offering (1–5).</summary>
+    public int? RemainingStockTier6 { get; set; }
+    /// <summary>Services: minimum LoT priority tier that may view/request this offering (1–6).</summary>
     public int MinimumViewerTier { get; set; } = 1;
+    /// <summary>ISO 3166-1 alpha-2; required when <see cref="AllowedZipCodes"/> is non-empty.</summary>
+    public string? CountryCode { get; set; }
     public bool QuantityNotApplicable { get; set; }
     public bool IsOutOfStock { get; set; }
     public string? ThumbnailResourceId { get; set; }
@@ -35,4 +38,8 @@ public class LibraryOffering
     public User CreatorUser { get; set; } = null!;
     public ICollection<LibraryUnit> Units { get; set; } = new List<LibraryUnit>();
     public ICollection<LibraryOfferingCategory> Categories { get; set; } = new List<LibraryOfferingCategory>();
+    /// <summary>
+    /// When empty, no zip gate. When non-empty, the viewer’s profile zip must be listed.
+    /// </summary>
+    public ICollection<LibraryOfferingAllowedZipCode> AllowedZipCodes { get; set; } = new List<LibraryOfferingAllowedZipCode>();
 }

@@ -6,7 +6,9 @@ public enum CrewSettingField
     MaxSize = 1,
     Privacy = 2,
     Scope = 3,
-    ZipCode = 4,
+    /// <summary>Comma-separated allowlist of postal codes (Local crews). Replaces legacy single ZipCode.</summary>
+    AllowedZipCodes = 4,
+    /// <summary>Legacy radius field; no longer written. Kept for historical proposal rows.</summary>
     RadiusMiles = 5,
     AllowSurvivalThresholds = 6,
     RequireApprovalForEdits = 7,
@@ -30,5 +32,7 @@ public enum CrewSettingField
     AutoResolveOverTime = 25,
     BaseAutoResolveHours = 26,
     ChangeAutoResolveTimerOnFirstReject = 27,
-    AutoResolveHoursAfterFirstReject = 28
+    AutoResolveHoursAfterFirstReject = 28,
+    /// <summary>ISO 3166-1 alpha-2 country for Local postal matching.</summary>
+    CountryCode = 29
 }

@@ -16,7 +16,8 @@ public class GetDurableLibraryUnitsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
-    ILibraryRepository libraryRepository) : IRequestHandler<GetDurableLibraryUnitsQuery, LibraryUnitListResponse>
+    ILibraryRepository libraryRepository,
+    IUserRepository userRepository) : IRequestHandler<GetDurableLibraryUnitsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
         GetDurableLibraryUnitsQuery request,
@@ -40,21 +41,33 @@ public class GetDurableLibraryUnitsQueryHandler(
             fleetRepository,
             cancellationToken);
 
+        var viewer = await userRepository.GetByIdAsync(currentUser.UserId.Value, cancellationToken);
+        var viewerCountry = viewer?.CountryCode;
+        var viewerZip = viewer?.ZipCode;
+
+        var fetchLimit = Math.Clamp(request.Limit, 1, 100);
+        var fetchOffset = Math.Max(request.Offset, 0);
         var page = await libraryRepository.GetDurableUnitsForCrewIdsAsync(
             crewIds,
             membership.CrewId,
             request.Search,
             request.CategoryIds,
-            Math.Clamp(request.Limit, 1, 100),
-            Math.Max(request.Offset, 0),
+            Math.Min(100, fetchLimit * 3),
+            fetchOffset,
             cancellationToken);
+
+        var items = page.Items
+            .Where(unit => LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))
+            .Take(fetchLimit)
+            .Select(unit => LibraryMapper.MapUnitListItem(unit))
+            .ToList();
 
         return new LibraryUnitListResponse
         {
             Success = true,
             Message = "Durable goods loaded.",
-            Items = page.Items.Select(unit => LibraryMapper.MapUnitListItem(unit)).ToList(),
-            HasMore = page.HasMore
+            Items = items,
+            HasMore = page.HasMore || page.Items.Count > items.Count
         };
     }
 }

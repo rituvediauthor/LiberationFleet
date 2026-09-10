@@ -13,6 +13,7 @@ public class GetLibraryUnitDetailQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
+    IUserRepository userRepository,
     LibraryPriorityTierService priorityTierService) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
 {
     public async Task<LibraryUnitDetailResponse> Handle(
@@ -46,12 +47,16 @@ public class GetLibraryUnitDetailQueryHandler(
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
 
-        var viewerTier = (await priorityTierService.GetSummaryForUserAsync(
+        var viewerTier = await priorityTierService.GetViewerTierForOfferingAsync(
             userId,
-            membership.CrewId,
-            cancellationToken)).ViewerTier;
+            unit.Offering.CrewId,
+            cancellationToken);
+        var viewerUser = await userRepository.GetByIdAsync(userId, cancellationToken);
+        var viewerCountry = viewerUser?.CountryCode;
+        var viewerZip = viewerUser?.ZipCode;
 
-        if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier))
+        if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
+            || !LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))
         {
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
@@ -79,7 +84,9 @@ public class GetLibraryUnitDetailQueryHandler(
             hasOpenRequest,
             activeRequest,
             userId,
-            viewerTier);
+            viewerTier,
+            viewerCountry,
+            viewerZip);
 
         return new LibraryUnitDetailResponse
         {

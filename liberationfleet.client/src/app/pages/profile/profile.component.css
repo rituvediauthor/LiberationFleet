@@ -11,6 +11,7 @@
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --lf-collapsible-inset: 32px;
 }
 
 h1 {
@@ -188,8 +189,10 @@ label {
 
 .readonly-item {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
+  align-items: baseline;
+  gap: 4px 12px;
   font-size: 14px;
 }
 
@@ -201,6 +204,12 @@ label {
   font-weight: 600;
   color: var(--lf-color-text-body);
   text-align: right;
+  margin-left: auto;
+}
+
+.readonly-item > .hint-text {
+  flex: 1 0 100%;
+  margin: 0;
 }
 
 .logout-btn {
@@ -319,6 +328,8 @@ label {
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;
+    /* Reach the screen edges: card padding + page-layout content gutter. */
+    --lf-collapsible-inset: calc(24px + var(--lf-content-gutter, 16px));
   }
 
   h1 {

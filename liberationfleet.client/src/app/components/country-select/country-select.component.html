@@ -1,0 +1,62 @@
+<div class="country-select">
+  <label class="country-label" *ngIf="label">
+    {{ label }}
+    <span *ngIf="required" class="required-mark" aria-hidden="true">*</span>
+  </label>
+  <p class="hint-text" *ngIf="hint">{{ hint }}</p>
+
+  <div class="country-control">
+    <div
+      class="country-trigger form-input"
+      role="button"
+      tabindex="0"
+      [class.open]="open"
+      [attr.aria-expanded]="open"
+      [attr.aria-invalid]="showError"
+      (click)="toggleOpen()"
+      (keydown.enter)="toggleOpen()"
+      (keydown.space)="$event.preventDefault(); toggleOpen()"
+      (blur)="onBlur()">
+      <span class="country-value" [class.placeholder]="!countryCode">
+        {{ selectedLabel || 'Search countries…' }}
+      </span>
+      <span class="country-actions">
+        <button
+          *ngIf="allowClear && countryCode"
+          type="button"
+          class="clear-btn"
+          (click)="clear($event)"
+          aria-label="Clear country">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
+      </span>
+    </div>
+
+    <div class="country-panel" *ngIf="open" role="listbox">
+      <input
+        type="search"
+        class="form-input country-search"
+        placeholder="Type to search"
+        [(ngModel)]="query"
+        (click)="$event.stopPropagation()"
+        autocomplete="off" />
+      <ul class="country-list">
+        <li *ngFor="let option of filtered">
+          <button
+            type="button"
+            class="country-option"
+            role="option"
+            [attr.aria-selected]="option.code === countryCode"
+            (mousedown)="select(option)">
+            <span class="option-name">{{ option.name }}</span>
+            <span class="option-code">{{ option.code }}</span>
+          </button>
+        </li>
+        <li *ngIf="filtered.length === 0" class="empty-option">No countries match.</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="error-text" role="alert" *ngIf="showError">{{ errorText }}</p>
+</div>

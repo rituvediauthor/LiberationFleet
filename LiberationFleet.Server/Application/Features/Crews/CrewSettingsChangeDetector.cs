@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -49,26 +50,28 @@ public static class CrewSettingsChangeDetector
                 scope.ToString()));
         }
 
-        if (scope == CrewScope.Local)
+        var requestedCountry = scope == CrewScope.Local
+            ? CountryCodes.Normalize(request.CountryCode) ?? string.Empty
+            : string.Empty;
+        var currentCountry = crew.CountryCode ?? string.Empty;
+        if (!string.Equals(currentCountry, requestedCountry, StringComparison.Ordinal))
         {
-            var newZip = request.ZipCode?.Trim();
-            var currentZip = crew.ZipCode;
-            if (!string.Equals(currentZip, newZip, StringComparison.Ordinal))
-            {
-                changes.Add(new CrewSettingChangeItem(
-                    CrewSettingField.ZipCode,
-                    currentZip ?? string.Empty,
-                    newZip ?? string.Empty));
-            }
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.CountryCode,
+                currentCountry,
+                requestedCountry));
+        }
 
-            var newRadius = request.RadiusMiles;
-            if (crew.RadiusMiles != newRadius)
-            {
-                changes.Add(new CrewSettingChangeItem(
-                    CrewSettingField.RadiusMiles,
-                    crew.RadiusMiles?.ToString() ?? string.Empty,
-                    newRadius?.ToString() ?? string.Empty));
-            }
+        var requestedZips = scope == CrewScope.Local
+            ? ZipCodeList.Normalize(request.AllowedZipCodes)
+            : Array.Empty<string>();
+        var currentZips = AllowedZipCodeSync.GetCrewZips(crew);
+        if (!ZipCodeList.SequenceEqual(currentZips, requestedZips))
+        {
+            changes.Add(new CrewSettingChangeItem(
+                CrewSettingField.AllowedZipCodes,
+                ZipCodeList.Serialize(currentZips),
+                ZipCodeList.Serialize(requestedZips)));
         }
 
         if (crew.AllowSurvivalThresholds != request.AllowSurvivalThresholds)
@@ -285,10 +288,12 @@ public static class CrewSettingsChangeDescriber
                 $"Proposal to change crew privacy from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.Scope =>
                 $"Proposal to change crew location type from {change.OldValue} to {change.NewValue}.",
-            CrewSettingField.ZipCode =>
-                $"Proposal to change zip code from \"{change.OldValue}\" to \"{change.NewValue}\".",
+            CrewSettingField.CountryCode =>
+                $"Proposal to change country from \"{FormatCountry(change.OldValue)}\" to \"{FormatCountry(change.NewValue)}\".",
+            CrewSettingField.AllowedZipCodes =>
+                $"Proposal to change allowed postal codes from \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.OldValue))}\" to \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.NewValue))}\".",
             CrewSettingField.RadiusMiles =>
-                $"Proposal to change distance from {change.OldValue} to {change.NewValue} miles.",
+                $"Proposal to change distance from {change.OldValue} to {change.NewValue} miles (legacy; no longer applied).",
             CrewSettingField.AllowSurvivalThresholds =>
                 $"Proposal to set \"Allow survival thresholds\" to \"{FormatBool(change.NewValue)}\".",
             CrewSettingField.RequireApprovalForEdits =>
@@ -345,11 +350,14 @@ public static class CrewSettingsChangeDescriber
     private static string FormatBool(string value) =>
         bool.TryParse(value, out var parsed) && parsed ? "True" : "False";
 
+    private static string FormatCountry(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "(none)" : value.Trim().ToUpperInvariant();
+
     private static string FormatDuoMode(string value) =>
         value switch
         {
             nameof(DuoVoteTimeoutMode.AutoApprove) => "Auto approve",
-            nameof(DuoVoteTimeoutMode.ResolveOnFirstVote) => "Resolve on first vote",
+            nameof(DuoVoteTimeoutMode.ResolveOnFirstVote) => "Resolve on next vote",
             _ => "Auto reject"
         };
 }

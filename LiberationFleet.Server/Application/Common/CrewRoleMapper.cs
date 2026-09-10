@@ -1,7 +1,7 @@
-using System.Text.Json;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using System.Text.Json;
 
 namespace LiberationFleet.Server.Application.Common;
 
@@ -13,11 +13,6 @@ public static class CrewRoleMapper
         if (membership.IsOrganizer)
         {
             roles.Add("Organizer");
-        }
-
-        if (membership.IsAdvocate)
-        {
-            roles.Add("Advocate");
         }
 
         if (membership.IsDecentralizer)
@@ -88,11 +83,6 @@ public static class CrewRoleMapper
             roles.Add(CrewRole.Organizer);
         }
 
-        if (membership.IsAdvocate)
-        {
-            roles.Add(CrewRole.Advocate);
-        }
-
         if (membership.IsDecentralizer)
         {
             roles.Add(CrewRole.Decentralizer);
@@ -128,7 +118,6 @@ public static class CrewRoleMapper
 
     public static bool HasAnyRole(CrewMembership membership) =>
         membership.IsOrganizer
-        || membership.IsAdvocate
         || membership.IsDecentralizer
         || membership.IsCeremonialOrganizer
         || membership.IsModerator
@@ -142,8 +131,7 @@ public static class CrewRoleMapper
     /// as if the member were not the organizer.
     /// </summary>
     public static bool HasAnyRoleExceptOrganizer(CrewMembership membership) =>
-        membership.IsAdvocate
-        || membership.IsDecentralizer
+        membership.IsDecentralizer
         || membership.IsCeremonialOrganizer
         || membership.IsModerator
         || membership.IsIntermediary
@@ -155,7 +143,6 @@ public static class CrewRoleMapper
         role switch
         {
             CrewRole.Organizer => membership.IsOrganizer,
-            CrewRole.Advocate => membership.IsAdvocate,
             CrewRole.Decentralizer => membership.IsDecentralizer,
             CrewRole.CeremonialOrganizer => membership.IsCeremonialOrganizer,
             CrewRole.Moderator => membership.IsModerator,
@@ -169,7 +156,6 @@ public static class CrewRoleMapper
         role switch
         {
             CrewRole.Organizer => "Organizer",
-            CrewRole.Advocate => "Advocate",
             CrewRole.Decentralizer => "Decentralizer",
             CrewRole.CeremonialOrganizer => "Ceremonial organizer",
             CrewRole.Moderator => "Moderator",
@@ -183,21 +169,19 @@ public static class CrewRoleMapper
         role switch
         {
             CrewRole.Organizer =>
-                "Can function as a holder of any of the other roles with access to all of the powers those roles entail.",
-            CrewRole.Advocate =>
-                "Resolve conflict and serve as a mouthpiece for anonymous crew opinions. Can toggle anonymous mode in crew chat channels.",
+                "Can function as a holder of any of the other roles with access to all of the powers those roles entail at the cost of being the last person to recieve aid in a giving season.",
             CrewRole.Decentralizer =>
                 "Responsible for identifying concentrations of power and decentralizing them through the creation of back-up systems, back-up records, and nominating crewmates to spread out powers. Can export the gift log and crewmate states.",
             CrewRole.CeremonialOrganizer =>
                 "Organize events, celebrations, and ceremonies for the crew. No special app powers.",
             CrewRole.Moderator =>
-                "Delete inappropriate file attachments and restrict a crewmate's ability to attach files.",
+                "Resolve conflict among crewmates. Delete inappropriate file attachments and restrict a crewmate's ability to attach files.",
             CrewRole.Intermediary =>
                 "Bridge gifts when giver and recipient do not share a payment platform. Automatically loses the role after failing to complete two gifts in a row, or two gifts in the same calendar month.",
             CrewRole.Representative =>
-                "Serve a fixed term receiving mutual aid (except survival thresholds) so they can take time off work to speak or vote for the crew at government functions. Nominations require a future start and end date.",
+                "Serve a fixed term receiving mutual aid (except survival thresholds) so they can take time off work to speak or vote for the crew at government functions. Nominations require a future start and end date. This role is only to be used in the event that finances are restricting all crewmates from voting and partacing in local governance (when one voice is better than no voice. Not to be used to reduce government perticipation by making many voices one voice).",
             CrewRole.Accountant =>
-                "Propose adjustments to crewmate contribution and reception totals, monthly giving capacity, and whether a season cycle is already completed—useful when a crew joins mid-season with existing mutual-aid history.",
+                "Propose adjustments to crewmate contribution and reception totals, monthly giving capacity, and whether a season cycle is already completed—useful when a crew joins mid-season with existing mutual-aid history or to correct mistakes.",
             _ => string.Empty
         };
 
@@ -264,8 +248,9 @@ public static class CrewRoleMapper
                 role = CrewRole.Organizer;
                 return true;
             case "advocate":
-                role = CrewRole.Advocate;
-                return true;
+                // Removed role — ignore legacy proposal / payload values.
+                role = default;
+                return false;
             case "decentralizer":
                 role = CrewRole.Decentralizer;
                 return true;
@@ -287,7 +272,8 @@ public static class CrewRoleMapper
                 return true;
             default:
                 role = default;
-                return Enum.TryParse(value, ignoreCase: true, out role);
+                return Enum.TryParse(value, ignoreCase: true, out role)
+                    && Enum.IsDefined(role);
         }
     }
 
@@ -325,9 +311,6 @@ public static class CrewRoleMapper
             {
                 case CrewRole.Organizer:
                     membership.IsOrganizer = assign;
-                    break;
-                case CrewRole.Advocate:
-                    membership.IsAdvocate = assign;
                     break;
                 case CrewRole.Decentralizer:
                     membership.IsDecentralizer = assign;

@@ -44,6 +44,26 @@
         </p>
       </div>
 
+      <div class="form-group">
+        <app-country-select
+          [countryCode]="countryCode"
+          (countryCodeChange)="onCountryCodeChange($event)"
+          [required]="countryRequired"
+          [showError]="countryInvalid"
+          errorText="Select a country when restricting by postal code."
+          hint="Required when you list allowed postal codes. Must match members' profile country.">
+        </app-country-select>
+      </div>
+
+      <div class="form-group">
+        <app-zip-code-list-editor
+          [zipCodes]="allowedZipCodes"
+          (zipCodesChange)="onAllowedZipCodesChange($event)"
+          label="Allowed postal codes (optional)"
+          hint="Only members whose profile country and postal code match an entry in this list can see this offering. Leave empty for no postal restriction.">
+        </app-zip-code-list-editor>
+      </div>
+
       <div class="toggle-row" *ngIf="canToggleOutOfStock">
         <div>
           <p class="toggle-label">Out of stock</p>

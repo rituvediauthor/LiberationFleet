@@ -79,10 +79,10 @@ public class RecordLibraryAcquisitionCommandHandler(
             return new LibraryCompleteRequestResponse { Success = false, Message = "Quantity must be at least 1." };
         }
 
-        var viewerTier = (await priorityTierService.GetSummaryForUserAsync(
+        var viewerTier = await priorityTierService.GetViewerTierForOfferingAsync(
             userId,
-            membership.CrewId,
-            cancellationToken)).ViewerTier;
+            offering.CrewId,
+            cancellationToken);
 
         if (!LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier))
         {
@@ -90,6 +90,17 @@ public class RecordLibraryAcquisitionCommandHandler(
             {
                 Success = false,
                 Message = "This service is not available at your priority tier."
+            };
+        }
+
+        var viewerUser = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (!LibraryOfferingRules.IsVisibleToViewerZip(
+                offering, viewerUser?.CountryCode, viewerUser?.ZipCode))
+        {
+            return new LibraryCompleteRequestResponse
+            {
+                Success = false,
+                Message = "This offering is not available in your zip code."
             };
         }
 

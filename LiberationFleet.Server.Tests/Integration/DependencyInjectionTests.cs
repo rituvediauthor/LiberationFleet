@@ -45,7 +45,6 @@ public class DependencyInjectionTests
         provider.GetService<IPasswordResetTokenRepository>().Should().NotBeNull();
         provider.GetService<ICrewRepository>().Should().NotBeNull();
         provider.GetService<ICrewMembershipRepository>().Should().NotBeNull();
-        provider.GetService<IZipCodeDistanceService>().Should().NotBeNull();
         provider.GetService<ITokenService>().Should().NotBeNull();
         provider.GetService<IPasswordHasher>().Should().NotBeNull();
         provider.GetService<IUnitOfWork>().Should().NotBeNull();

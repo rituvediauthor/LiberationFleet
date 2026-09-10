@@ -6,6 +6,8 @@ import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
+import { ZipCodeListEditorComponent } from '../../../components/zip-code-list-editor/zip-code-list-editor.component';
+import { CountrySelectComponent } from '../../../components/country-select/country-select.component';
 import { LibraryService } from '../../../services/library.service';
 import { LibraryCryptoService } from '../../../services/crypto/library-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -14,11 +16,20 @@ import { EncryptionContentService } from '../../../services/encryption-content.s
 import { LibraryOfferingListItem, LibraryOfferingVisibility, UpdateLibraryOfferingRequest } from '../../../models/library.model';
 import { PendingAttachment, ProposalEncryptedPayload } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
+import { valuesEqual } from '../../../utils/save-button.util';
 
 @Component({
   selector: 'app-edit-library-offering',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent, ConfirmDialogComponent, ProposalAttachmentPickerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    PageLayoutComponent,
+    ConfirmDialogComponent,
+    ProposalAttachmentPickerComponent,
+    CountrySelectComponent,
+    ZipCodeListEditorComponent
+  ],
   templateUrl: './edit-library-offering.component.html',
   styleUrl: './edit-library-offering.component.css'
 })
@@ -29,8 +40,13 @@ export class EditLibraryOfferingComponent implements OnInit {
   offering: LibraryOfferingListItem | null = null;
   isOutOfStock = false;
   visibility: LibraryOfferingVisibility = 'CrewOnly';
+  countryCode: string | null = null;
+  allowedZipCodes: string[] = [];
+  countryTouched = false;
   initialIsOutOfStock = false;
   initialVisibility: LibraryOfferingVisibility = 'CrewOnly';
+  initialCountryCode: string | null = null;
+  initialAllowedZipCodes: string[] = [];
   loading = true;
   saving = false;
   deleting = false;
@@ -101,9 +117,23 @@ export class EditLibraryOfferingComponent implements OnInit {
     }
 
     const visibilityChanged = this.visibility !== this.initialVisibility;
+    const countryChanged = this.countryCode !== this.initialCountryCode;
+    const zipChanged = !valuesEqual(this.allowedZipCodes, this.initialAllowedZipCodes);
     const stockChanged = this.canToggleOutOfStock && this.isOutOfStock !== this.initialIsOutOfStock;
     const filesChanged = this.isDigital && this.downloadAttachments.length > 0;
-    return visibilityChanged || stockChanged || filesChanged;
+    return visibilityChanged || countryChanged || zipChanged || stockChanged || filesChanged;
+  }
+
+  get countryRequired(): boolean {
+    return this.allowedZipCodes.length > 0;
+  }
+
+  get countryInvalid(): boolean {
+    return this.countryRequired && !this.countryCode && this.countryTouched;
+  }
+
+  get canSave(): boolean {
+    return this.hasChanges && !(this.countryRequired && !this.countryCode);
   }
 
   toggleOutOfStock() {
@@ -115,6 +145,20 @@ export class EditLibraryOfferingComponent implements OnInit {
   }
 
   onVisibilityChange() {
+    this.updateActionButtons();
+  }
+
+  onCountryCodeChange(code: string | null) {
+    this.countryCode = code;
+    this.countryTouched = true;
+    this.updateActionButtons();
+  }
+
+  onAllowedZipCodesChange(zips: string[]) {
+    this.allowedZipCodes = zips;
+    if (zips.length === 0) {
+      this.countryCode = null;
+    }
     this.updateActionButtons();
   }
 
@@ -159,6 +203,10 @@ export class EditLibraryOfferingComponent implements OnInit {
         this.initialIsOutOfStock = this.isOutOfStock;
         this.visibility = offering.visibility === 'FleetWide' ? 'FleetWide' : 'CrewOnly';
         this.initialVisibility = this.visibility;
+        this.countryCode = offering.countryCode ?? null;
+        this.initialCountryCode = this.countryCode;
+        this.allowedZipCodes = [...(offering.allowedZipCodes ?? [])];
+        this.initialAllowedZipCodes = [...this.allowedZipCodes];
         this.updateActionButtons();
 
         if (offering.offeringKind === 'Digital' && this.crewId > 0) {
@@ -191,7 +239,13 @@ export class EditLibraryOfferingComponent implements OnInit {
   }
 
   private save() {
-    if (!this.offering || this.saving || !this.hasChanges) {
+    if (!this.offering || this.saving || !this.canSave) {
+      return;
+    }
+
+    if (this.countryRequired && !this.countryCode) {
+      this.countryTouched = true;
+      this.updateActionButtons();
       return;
     }
 
@@ -217,7 +271,9 @@ export class EditLibraryOfferingComponent implements OnInit {
     }
 
     const payload: UpdateLibraryOfferingRequest = {
-      visibility: this.visibility
+      visibility: this.visibility,
+      countryCode: this.allowedZipCodes.length > 0 ? this.countryCode : null,
+      allowedZipCodes: [...this.allowedZipCodes]
     };
     if (this.canToggleOutOfStock) {
       payload.isOutOfStock = this.isOutOfStock;
@@ -301,7 +357,7 @@ export class EditLibraryOfferingComponent implements OnInit {
     this.saveButton = {
       label: 'Save',
       type: 'primary',
-      disabled: this.saving || this.deleting || !this.hasChanges,
+      disabled: this.saving || this.deleting || !this.canSave,
       onClick: () => this.save()
     };
 

@@ -1,0 +1,72 @@
+.zip-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zip-label {
+  font-size: 14px;
+  color: var(--lf-color-text-primary);
+}
+
+.hint-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+  line-height: 1.4;
+}
+
+.zip-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.zip-draft {
+  flex: 1;
+  min-width: 0;
+}
+
+.zip-add-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.zip-chip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.zip-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--lf-color-border, #ccc);
+  background: var(--lf-color-bg-hover, #f3f3f3);
+  font-size: 14px;
+}
+
+.zip-remove {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: var(--lf-color-text-secondary);
+  line-height: 1;
+}
+
+.zip-remove:hover,
+.zip-remove:focus-visible {
+  color: var(--lf-color-text-primary);
+}
+
+.error-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lf-color-danger, #b00020);
+}

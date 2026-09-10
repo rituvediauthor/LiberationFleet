@@ -42,7 +42,7 @@ Most crew, fleet, chat, forum/Space, proposal, private rules, DM, library payloa
 Attach only allowed media types. Do not attempt to upload executable, script, or HTML/SVG payloads. Prefer the default “encrypt attached files” setting for sensitive material. Honor adult-content labels and gates; 18+ material must still comply with these standards and the law.
 
 9. VOICE AND SOCIAL SPACES
-Voice rooms, text chats, forums/Spaces (social feeds), and direct messages are shared community spaces. Do not disrupt rooms, evade blocks, or use anonymous/advocate modes (where available) to harass others.
+Voice rooms, text chats, forums/Spaces (social feeds), and direct messages are shared community spaces. Do not disrupt rooms, evade blocks, or use anonymous mode (where available) to harass others.
 
 10. ENFORCEMENT
 We may freeze accounts (including pending a safety review), remove or quarantine content identifiers, preserve report evidence, and report apparent child sexual exploitation to NCMEC when we have actual knowledge (including through operator review of queued report evidence). We may refuse service to anyone who violates these standards or the Terms of Use.

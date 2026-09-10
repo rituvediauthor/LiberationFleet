@@ -95,15 +95,16 @@ public static class CrewUpdateValidator
 
         if (scope == CrewScope.Local)
         {
-            if (string.IsNullOrWhiteSpace(request.ZipCode) || request.ZipCode.Trim().Length != 5 || !request.ZipCode.All(char.IsDigit))
+            if (!ZipCodeList.TryValidateLocalRequired(
+                    request.CountryCode, request.AllowedZipCodes, out _, out _, out var zipError))
             {
-                return Failure("A valid 5-digit zip code is required for local crews.");
+                return Failure(zipError);
             }
-
-            if (!request.RadiusMiles.HasValue || request.RadiusMiles is < 1 or > 500)
-            {
-                return Failure("Distance must be between 1 and 500 miles.");
-            }
+        }
+        else if (ZipCodeList.Normalize(request.AllowedZipCodes).Count > 0
+            || !string.IsNullOrWhiteSpace(request.CountryCode))
+        {
+            return Failure("Country and allowed zip codes must be empty for online crews.");
         }
 
         return null;

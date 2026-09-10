@@ -16,16 +16,21 @@ public class FleetRepository : IFleetRepository
     }
 
     public Task<Fleet?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
-        _context.Fleets.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+        _context.Fleets
+            .Include(f => f.AllowedZipCodes)
+            .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
     public Task<Fleet?> GetByJoinCodeAsync(string joinCode, CancellationToken cancellationToken = default) =>
-        _context.Fleets.FirstOrDefaultAsync(f => f.JoinCode == joinCode, cancellationToken);
+        _context.Fleets
+            .Include(f => f.AllowedZipCodes)
+            .FirstOrDefaultAsync(f => f.JoinCode == joinCode, cancellationToken);
 
     public async Task AddAsync(Fleet fleet, CancellationToken cancellationToken = default) =>
         await _context.Fleets.AddAsync(fleet, cancellationToken);
 
     public async Task<IReadOnlyList<Fleet>> SearchPublicAsync(CrewScope scope, CancellationToken cancellationToken = default) =>
         await _context.Fleets
+            .Include(f => f.AllowedZipCodes)
             .Where(f => f.Privacy == CrewPrivacy.Public && f.Scope == scope)
             .ToListAsync(cancellationToken);
 
@@ -40,6 +45,7 @@ public class FleetRepository : IFleetRepository
     {
         var fleetCrew = await _context.FleetCrews
             .Include(fc => fc.Fleet)
+                .ThenInclude(f => f.AllowedZipCodes)
             .FirstOrDefaultAsync(fc => fc.CrewId == crewId, cancellationToken);
         return fleetCrew?.Fleet;
     }

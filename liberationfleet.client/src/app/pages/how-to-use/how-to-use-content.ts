@@ -1,3 +1,5 @@
+import { BRAND_LOGO_ASSETS } from '../../constants/brand-assets';
+
 export type HowToBlock =
   | { type: 'paragraph'; text: string }
   | { type: 'heading'; text: string }
@@ -6,7 +8,10 @@ export type HowToBlock =
 export interface HowToGuideTopic {
   id: string;
   title: string;
-  icon: string;
+  /** Font Awesome solid icon class without the fa-solid prefix, e.g. 'fa-gift'. */
+  icon?: string;
+  /** Optional image asset path; when set, used instead of the FA icon. */
+  imageSrc?: string;
   blocks: HowToBlock[];
 }
 
@@ -32,7 +37,7 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          'Engaging with the Giving season requires very little as a bare minimum. You need only have at least one payment platform registered to your profile along with an estimated monthly contribution amount (the amount you anticipate you will be able to gift financially to the system). After this you can either join an active giving season or vote to start the first for your crew.'
+          'Engaging with the Giving season requires very little as a bare minimum. You need only have at least one payment platform registered to your profile along with an estimated monthly contribution amount (the amount you anticipate you will be able to give financially to the system). After this you can either join an active giving season or vote to start the first for your crew.'
       },
       {
         type: 'paragraph',
@@ -64,12 +69,17 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          'The library of things (LoT) is not a market place despite the resemblance. LoT is a mechanism for resource sharing that helps keep funds and money within a community by enabling people to find goods and services they can access for free as opposed to spending money that will then leave the community and end up in some corporate pocket. The more money a community can save via resource sharing, the more aid they can provide to overcome hardships.'
+          'The library of things (LoT) is not a market place (where goods and services are exchanged for currency) despite the resemblance. LoT is a mechanism for resource sharing that helps keep funds and money within a community by enabling people to find goods and services they can access for free as opposed to spending money that will then leave the community and end up in some corporate pocket. The more money a community can save via resource sharing, the more aid they can provide to overcome hardships.'
       },
       {
         type: 'paragraph',
         text:
           'You can offer a variety of goods in the LoT be it services, durable goods, consumable goods, or digital goods.'
+      },
+      {
+        type: 'paragraph',
+        text:
+          'When creating an offering you may optionally limit who can see it to members whose profile country and postal code are on an allowlist you set. Leave the list empty if everyone who already has crew or fleet library access should see it.'
       },
       {
         type: 'paragraph',
@@ -84,7 +94,7 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          'From this point of each time the durable good exchanges hands the prior possessor is rewarded with a recorded contribution equal to 10% the recorded value of the item.'
+          'From this point on, each time the durable good exchanges hands, the prior possessor is rewarded with a recorded contribution equal to 10% the recorded value of the item.'
       },
       {
         type: 'paragraph',
@@ -94,7 +104,21 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
+          'Crewmates can also post different tasks they need done for them in the quest board. Anyone who is looking to contribute, but lacks money to contribute financially, can take up a quest and complete it as a contribution.'
+      },
+      {
+        type: 'paragraph',
+        text:
           'All recorded contributions increase your priority score, helping you receive aid sooner and giving you priority to receive a good or service when a LoT offering is in short supply.'
+      },
+      {
+        type: 'heading',
+        text: 'Priority tiers'
+      },
+      {
+        type: 'paragraph',
+        text:
+          'Your LoT priority score is split into six tiers relative to each offering. Higher scores land in higher thirds of the peer group. Tiers 4–6 are for crewmates of the offering’s crew; tiers 1–3 are for other fleet-mates (excluding that crew). Your profile shows your crewmate tier (4–6) in your home crew. Consumable stock can be reserved per tier, and services can require a minimum tier to appear.'
       }
     ]
   },
@@ -166,12 +190,6 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
         text:
           'In order to ensure crews run smoothly, crewmates can be elected to various roles with different responsibilities, most with special powers they can enact within the scope of the crew. These roles include the following:'
       },
-      { type: 'heading', text: 'Advocate' },
-      {
-        type: 'paragraph',
-        text:
-          'Resolve conflict and serve as a mouthpiece for anonymous crew opinions. Can toggle anonymous mode in crew chat channels.'
-      },
       { type: 'heading', text: 'Decentralizer' },
       {
         type: 'paragraph',
@@ -186,7 +204,8 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       { type: 'heading', text: 'Moderator' },
       {
         type: 'paragraph',
-        text: 'Delete inappropriate file attachments and restrict a crewmate\'s ability to attach files.'
+        text:
+          'Resolve conflict among crewmates. Delete inappropriate file attachments and restrict a crewmate\'s ability to attach files.'
       },
       { type: 'heading', text: 'Intermediary' },
       {
@@ -269,6 +288,12 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
         type: 'paragraph',
         text:
           '“Targeted Minority Groups” are more likely to be the target of discrimination and hate crimes, increasing the frequency and severity of hardships they are likely to face. Thus we must prioritize preventing and getting them out of situations of dangerous vulnerability. Each selected group is added into the priority multiplier (people represented + disability + minority groups + 1).'
+      },
+      { type: 'heading', text: 'Country and postal code' },
+      {
+        type: 'paragraph',
+        text:
+          'Set your country and postal code on your profile to find Local crews and fleets, and to see Library offerings that restrict access by postal code. Matching uses your country plus postal code together, so the same postal string in another country will not match.'
       }
     ]
   },
@@ -281,6 +306,12 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
         type: 'paragraph',
         text:
           'Apart from the more apparent settings you might find in the crew settings page, there are a few which are unique to the functions of this application.'
+      },
+      { type: 'heading', text: 'Location type (Online vs Local)' },
+      {
+        type: 'paragraph',
+        text:
+          'Online crews appear in Online search without using postal codes. Local crews require a country and a list of postal codes; people whose profile country and postal code are on that list can find the crew in Local search. Join-by-code still works regardless of postal matching.'
       },
       { type: 'heading', text: 'Allow survival thresholds' },
       {
@@ -340,12 +371,12 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
   {
     id: 'fleets',
     title: 'Fleets',
-    icon: 'fa-ship',
+    imageSrc: BRAND_LOGO_ASSETS.fleet,
     blocks: [
       {
         type: 'paragraph',
         text:
-          'Where a crew can only consist, at most, of up to 50 crewmates, a fleet can consist of a limitless number of crews, the crewmates of which can interact as if they are all a part of one big crew. However, crewmates who share a crew with each other should always try to prioritize each other in terms of providing aid.'
+          'Where a crew can only consist, at most, of up to 50 crewmates, a fleet can consist of a limitless number of crews, the crewmates of which can interact as if they are all a part of one big crew. However, crewmates who share a crew with each other should always try to prioritize each other in terms of providing aid. Local fleets use the same country and postal-code allowlist matching as Local crews.'
       }
     ]
   }

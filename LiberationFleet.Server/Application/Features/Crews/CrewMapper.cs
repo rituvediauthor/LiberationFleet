@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -19,8 +20,8 @@ public static class CrewMapper
         MemberCount = memberCount,
         Privacy = crew.Privacy.ToString(),
         Scope = crew.Scope.ToString(),
-        ZipCode = crew.ZipCode,
-        RadiusMiles = crew.RadiusMiles,
+        CountryCode = crew.CountryCode,
+        AllowedZipCodes = AllowedZipCodeSync.GetCrewZips(crew).ToList(),
         JoinCode = crew.JoinCode,
         AllowSurvivalThresholds = crew.AllowSurvivalThresholds,
         RequireApprovalForEdits = crew.RequireApprovalForEdits,
@@ -47,9 +48,9 @@ public static class CrewMapper
         MonthlyGivingCapacity = monthlyGivingCapacity,
         ImageResourceId = crew.ImageResourceId,
         LibraryPriorityAverage = libraryPriorityAverage,
-        LibraryPriorityTierCounts = libraryPriorityTierCounts ?? [0, 0, 0, 0, 0],
+        LibraryPriorityTierCounts = libraryPriorityTierCounts ?? [0, 0, 0, 0, 0, 0],
         HomeCrewLibraryPriorityTierCounts = homeCrewLibraryPriorityTierCounts
             ?? libraryPriorityTierCounts
-            ?? [0, 0, 0, 0, 0]
+            ?? [0, 0, 0, 0, 0, 0]
     };
 }

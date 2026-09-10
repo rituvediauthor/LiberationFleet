@@ -4,6 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
+import { CountrySelectComponent } from '../../components/country-select/country-select.component';
+import { ZipCodeListEditorComponent } from '../../components/zip-code-list-editor/zip-code-list-editor.component';
 import { CrewService } from '../../services/crew.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
@@ -15,7 +17,15 @@ import { CharCounterComponent } from '../../components/char-counter/char-counter
 @Component({
   selector: 'app-create-crew',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, HubLoadingComponent, CharCounterComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PageLayoutComponent,
+    HubLoadingComponent,
+    CharCounterComponent,
+    CountrySelectComponent,
+    ZipCodeListEditorComponent
+  ],
   templateUrl: './create-crew.component.html',
   styleUrl: './create-crew.component.css'
 })
@@ -38,8 +48,8 @@ export class CreateCrewComponent {
       maxSize: [30, [Validators.required, Validators.min(2), Validators.max(50)]],
       privacy: ['Public' as CrewPrivacy, Validators.required],
       scope: ['Online' as CrewScope, Validators.required],
-      zipCode: [''],
-      radiusMiles: [25]
+      countryCode: [null as string | null],
+      allowedZipCodes: [[] as string[]]
     });
 
     this.backButton = this.navigation.createBackButton(['/app/crew']);
@@ -64,22 +74,34 @@ export class CreateCrewComponent {
     return isControlInvalidForA11y(this.form.get(controlName));
   }
 
+  onCountryCodeChange(code: string | null) {
+    this.form.patchValue({ countryCode: code });
+    this.form.get('countryCode')?.markAsTouched();
+    this.updateCreateButton();
+  }
+
+  onAllowedZipCodesChange(zips: string[]) {
+    this.form.patchValue({ allowedZipCodes: zips });
+    this.form.get('allowedZipCodes')?.markAsTouched();
+    this.updateCreateButton();
+  }
+
   private updateLocalValidators() {
-    const zip = this.form.get('zipCode');
-    const radius = this.form.get('radiusMiles');
+    const country = this.form.get('countryCode');
+    const zips = this.form.get('allowedZipCodes');
 
     if (this.isLocal) {
-      zip?.setValidators([Validators.required, Validators.pattern(/^\d{5}$/)]);
-      radius?.setValidators([Validators.required, Validators.min(1), Validators.max(500)]);
+      country?.setValidators([Validators.required]);
+      zips?.setValidators([Validators.minLength(1)]);
     } else {
-      zip?.clearValidators();
-      radius?.clearValidators();
-      zip?.setValue('');
-      radius?.setValue(25);
+      country?.clearValidators();
+      country?.setValue(null, { emitEvent: false });
+      zips?.clearValidators();
+      zips?.setValue([] as string[], { emitEvent: false });
     }
 
-    zip?.updateValueAndValidity({ emitEvent: false });
-    radius?.updateValueAndValidity({ emitEvent: false });
+    country?.updateValueAndValidity({ emitEvent: false });
+    zips?.updateValueAndValidity({ emitEvent: false });
     this.updateCreateButton();
   }
 
@@ -96,13 +118,14 @@ export class CreateCrewComponent {
     this.updateCreateButton();
 
     const scope = this.form.get('scope')?.value as CrewScope;
+    const isLocal = scope === 'Local';
     const payload = {
       name: this.form.get('name')?.value,
       maxSize: Number(this.form.get('maxSize')?.value),
       privacy: this.form.get('privacy')?.value as CrewPrivacy,
       scope,
-      zipCode: scope === 'Local' ? this.form.get('zipCode')?.value : undefined,
-      radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined
+      countryCode: isLocal ? (this.form.get('countryCode')?.value as string) : null,
+      allowedZipCodes: isLocal ? [...(this.form.get('allowedZipCodes')?.value ?? [])] : []
     };
 
     this.crewService.create(payload).subscribe({
@@ -124,4 +147,3 @@ export class CreateCrewComponent {
     });
   }
 }
-

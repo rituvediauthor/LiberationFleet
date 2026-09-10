@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -20,6 +20,7 @@ import {
 } from '../../models/gift.model';
 import { EmergencyRequestListItem } from '../../models/emergency-request.model';
 import { EmergencyRequestService } from '../../services/emergency-request.service';
+import { PullRefreshController } from '../../utils/pull-refresh.controller';
 
 interface PlatformInfoLabel {
   prefix: 'Preferred' | 'Selected';
@@ -40,7 +41,9 @@ interface EntryFormValue {
   templateUrl: './record-gift.component.html',
   styleUrl: './record-gift.component.css'
 })
-export class RecordGiftComponent implements OnInit {
+export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild(PageLayoutComponent) pageLayout?: PageLayoutComponent;
+
   form!: FormGroup;
   backButton!: ActionBarButton;
   recordButton!: ActionBarButton;
@@ -54,9 +57,13 @@ export class RecordGiftComponent implements OnInit {
   showConfirmDialog = false;
   isRecording = false;
   loading = true;
+  refreshing = false;
+  pullDistance = 0;
+  pullEdge: 'top' | 'bottom' | null = null;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   private navigation = inject(NavigationService);
   private giftService = inject(GiftService);
@@ -65,6 +72,16 @@ export class RecordGiftComponent implements OnInit {
   private authService = inject(AuthService);
   private emergencyRequestService = inject(EmergencyRequestService);
   private toastService = inject(ToastService);
+  private readonly pullRefresh = new PullRefreshController({
+    edges: ['top', 'bottom'],
+    isBusy: () => this.loading || this.refreshing || this.isRecording,
+    onRefresh: () => this.refreshPage(),
+    onDistanceChange: (distance, edge) => {
+      this.pullDistance = distance;
+      this.pullEdge = edge;
+      this.cdr.markForCheck();
+    }
+  });
 
   ngOnInit() {
     this.form = this.fb.group({
@@ -119,6 +136,14 @@ export class RecordGiftComponent implements OnInit {
 
     this.form.statusChanges.subscribe(() => this.updateRecordButton());
     this.form.valueChanges.subscribe(() => this.updateRecordButton());
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => this.bindPullRefresh(), 0);
+  }
+
+  ngOnDestroy() {
+    this.pullRefresh.unbind();
   }
 
   get entries(): FormArray {
@@ -254,17 +279,28 @@ export class RecordGiftComponent implements OnInit {
     void this.router.navigate(['/app/crew/emergency-requests', item.id]);
   }
 
-  private loadReceptionOrder() {
-    this.loading = true;
+  private loadReceptionOrder(options?: { refreshing?: boolean }) {
+    const refreshing = !!options?.refreshing;
+    if (refreshing) {
+      this.refreshing = true;
+    } else {
+      this.loading = true;
+    }
+
     this.giftService.getReceptionOrder(30).subscribe({
       next: entries => {
         this.receptionEntries = entries;
         this.buildEntryForms(this.receptionEntries);
         this.loading = false;
+        this.refreshing = false;
+        this.pullRefresh.reset();
         this.updateRecordButton();
+        setTimeout(() => this.bindPullRefresh(), 0);
       },
       error: () => {
         this.loading = false;
+        this.refreshing = false;
+        this.pullRefresh.reset();
         this.toastService.error('Failed to load reception order');
       }
     });
@@ -277,6 +313,17 @@ export class RecordGiftComponent implements OnInit {
         this.emergencyRequests = [];
       }
     });
+  }
+
+  private refreshPage() {
+    if (this.loading || this.refreshing || this.isRecording) {
+      return;
+    }
+    this.loadReceptionOrder({ refreshing: true });
+  }
+
+  private bindPullRefresh() {
+    this.pullRefresh.bind(this.pageLayout?.scrollElement ?? null);
   }
 
   private buildEntryForms(entries: ReceptionOrderEntry[]) {

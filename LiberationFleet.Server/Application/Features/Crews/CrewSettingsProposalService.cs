@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Notifications;
@@ -132,8 +133,16 @@ public class CrewSettingsProposalService(
         crew.MaxSize = request.MaxSize;
         crew.Privacy = privacy;
         crew.Scope = scope;
-        crew.ZipCode = scope == CrewScope.Local ? request.ZipCode?.Trim() : null;
-        crew.RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null;
+        if (scope == CrewScope.Local)
+        {
+            crew.CountryCode = CountryCodes.Normalize(request.CountryCode);
+            AllowedZipCodeSync.SetCrewZips(crew, request.AllowedZipCodes);
+        }
+        else
+        {
+            crew.CountryCode = null;
+            AllowedZipCodeSync.SetCrewZips(crew, Array.Empty<string>());
+        }
         crew.AllowSurvivalThresholds = request.AllowSurvivalThresholds;
         crew.RequireApprovalForEdits = request.RequireApprovalForEdits;
         crew.DuoVoteTimeoutMode = Enum.TryParse<DuoVoteTimeoutMode>(request.DuoVoteTimeoutMode, true, out var duo)
@@ -184,17 +193,21 @@ public class CrewSettingsProposalService(
                 crew.Scope = scope;
                 if (scope == CrewScope.Online)
                 {
-                    crew.ZipCode = null;
-                    crew.RadiusMiles = null;
+                    crew.CountryCode = null;
+                    AllowedZipCodeSync.SetCrewZips(crew, Array.Empty<string>());
                 }
                 break;
-            case CrewSettingField.ZipCode:
-                crew.ZipCode = string.IsNullOrEmpty(change.NewValue) ? null : change.NewValue;
+            case CrewSettingField.CountryCode:
+                crew.CountryCode = string.IsNullOrWhiteSpace(change.NewValue)
+                    ? null
+                    : CountryCodes.Normalize(change.NewValue);
+                break;
+            case CrewSettingField.AllowedZipCodes:
+                // Legacy ZipCode proposals (enum value 4) stored a single zip; Deserialize handles that.
+                AllowedZipCodeSync.SetCrewZips(crew, ZipCodeList.Deserialize(change.NewValue));
                 break;
             case CrewSettingField.RadiusMiles:
-                crew.RadiusMiles = string.IsNullOrEmpty(change.NewValue)
-                    ? null
-                    : int.Parse(change.NewValue);
+                // Legacy field; no longer applied.
                 break;
             case CrewSettingField.AllowSurvivalThresholds:
                 crew.AllowSurvivalThresholds = bool.Parse(change.NewValue);

@@ -86,7 +86,7 @@ public class CreateCrewCommandHandlerTests
         capturedCrew.Should().NotBeNull();
         capturedCrew!.Privacy.Should().Be(CrewPrivacy.Public);
         capturedCrew.Scope.Should().Be(CrewScope.Online);
-        capturedCrew.ZipCode.Should().BeNull();
+        capturedCrew.AllowedZipCodes.Should().BeEmpty();
         capturedCrew.JoinCode.Should().HaveLength(8);
 
         capturedMembership.Should().NotBeNull();
@@ -97,7 +97,7 @@ public class CreateCrewCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenValidLocalCrew_PersistsZipAndRadius()
+    public async Task Handle_WhenValidLocalCrew_PersistsAllowedZipCodes()
     {
         var user = HandlerTestFixture.CreateUser();
         var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
@@ -129,15 +129,15 @@ public class CreateCrewCommandHandlerTests
 
         var command = ValidCommand();
         command.Scope = "Local";
-        command.ZipCode = "90210";
-        command.RadiusMiles = 50;
+        command.CountryCode = "US";
+        command.AllowedZipCodes = ["90210", "10001"];
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.Success.Should().BeTrue();
         capturedCrew!.Scope.Should().Be(CrewScope.Local);
-        capturedCrew.ZipCode.Should().Be("90210");
-        capturedCrew.RadiusMiles.Should().Be(50);
+        capturedCrew.CountryCode.Should().Be("US");
+        capturedCrew.AllowedZipCodes.Select(z => z.ZipCode).Should().BeEquivalentTo("10001", "90210");
     }
 
     [Fact]

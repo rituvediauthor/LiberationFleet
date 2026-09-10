@@ -376,6 +376,9 @@ public class CrewmateAidStatProposalService(
                     cycle.CycleCapAtCompletion = effectiveCap > 0m ? effectiveCap : cycle.CycleCapAtStart;
                 }
                 break;
+            case CrewmateAidStatField.PercentBoost:
+                membership.PercentBonus = int.Parse(item.NewValue, CultureInfo.InvariantCulture);
+                break;
         }
     }
 
@@ -413,6 +416,25 @@ public class CrewmateAidStatProposalService(
             return false;
         }
 
+        if (field == CrewmateAidStatField.PercentBoost)
+        {
+            if (!int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var percent)
+                && !int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.CurrentCulture, out percent))
+            {
+                error = "Percent boost must be a whole number.";
+                return false;
+            }
+
+            if (percent < 0 || percent > 1000)
+            {
+                error = "Percent boost must be between 0 and 1000.";
+                return false;
+            }
+
+            normalized = percent.ToString(CultureInfo.InvariantCulture);
+            return true;
+        }
+
         if (!decimal.TryParse(trimmed, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
             && !decimal.TryParse(trimmed, NumberStyles.Number, CultureInfo.CurrentCulture, out amount))
         {
@@ -440,11 +462,15 @@ public class CrewmateAidStatProposalService(
             CrewmateAidStatField.SurvivalThresholdReceived => "Survival reception (season)",
             CrewmateAidStatField.CycleReceived => "Cycle reception (season)",
             CrewmateAidStatField.CycleCompleted => "Cycle completed",
+            CrewmateAidStatField.PercentBoost => "Percent boost (this season)",
             _ => field.ToString()
         };
 
     private static string FormatDisplayValue(CrewmateAidStatField field, string value) =>
-        field == CrewmateAidStatField.CycleCompleted
-            ? (value == "true" ? "Yes" : "No")
-            : $"${value}";
+        field switch
+        {
+            CrewmateAidStatField.CycleCompleted => value == "true" ? "Yes" : "No",
+            CrewmateAidStatField.PercentBoost => $"+{value}%",
+            _ => $"${value}"
+        };
 }

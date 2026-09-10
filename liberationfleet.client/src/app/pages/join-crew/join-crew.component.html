@@ -53,41 +53,9 @@
               </select>
             </div>
 
-            <ng-container *ngIf="isLocal">
-              <div class="form-group">
-                <label for="zipCode">Zip Code</label>
-                <input
-                  id="zipCode"
-                  type="text"
-                  formControlName="zipCode"
-                  class="form-input"
-                  maxlength="5"
-                  inputmode="numeric"
-                  placeholder="5-digit zip"
-                  [attr.aria-invalid]="isInvalid('zipCode')"
-                  [attr.aria-describedby]="isInvalid('zipCode') ? 'zipCode-error' : null">
-                <span id="zipCode-error" class="error-text" role="alert" *ngIf="isInvalid('zipCode')">
-                  Enter a valid 5-digit zip code
-                </span>
-              </div>
-
-              <div class="form-group">
-                <label for="radiusMiles">Max Radius (miles)</label>
-                <input
-                  id="radiusMiles"
-                  type="number"
-                  formControlName="radiusMiles"
-                  class="form-input"
-                  min="1"
-                  max="500"
-                  step="1"
-                  [attr.aria-invalid]="isInvalid('radiusMiles')"
-                  [attr.aria-describedby]="isInvalid('radiusMiles') ? 'radiusMiles-error' : null">
-                <span id="radiusMiles-error" class="error-text" role="alert" *ngIf="isInvalid('radiusMiles')">
-                  Distance must be between 1 and 500 miles
-                </span>
-              </div>
-            </ng-container>
+            <p class="hint-text" *ngIf="isLocal">
+              Local search uses your profile country and postal code — set them on your Profile page if missing.
+            </p>
 
             <div class="search-status" role="status" *ngIf="isSearching">Searching...</div>
 
@@ -105,7 +73,6 @@
                     <span class="result-name">{{ crew.name }}</span>
                     <span class="result-meta">
                       {{ crew.memberCount }}/{{ crew.maxSize }} members · {{ crew.scope }}
-                      <ng-container *ngIf="crew.distanceMiles != null"> · {{ crew.distanceMiles }} mi</ng-container>
                     </span>
                   </button>
                 </li>

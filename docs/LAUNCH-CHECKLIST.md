@@ -31,7 +31,7 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 9. **Native `apiBaseUrl` + sync** — [NATIVE-APPS.md](./NATIVE-APPS.md)  
 10. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
 11. **Store screenshots + review notes + submit**  
-12. **Follow-up** — MFA, push, geocoding, Sign in with Apple  
+12. **Follow-up** — MFA, push, Sign in with Apple  
 
 ---
 
@@ -130,11 +130,14 @@ Follow **[NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md)**.
 |---|---|
 | **Status today** | **Not implemented** (email/password + JWT only) |
 
-### B.11 Geocoding / ZIP distance
+### B.11 Local discovery (country + postal allowlists)
 
 | | |
 |---|---|
-| **Status today** | **Stub** (~15 hard-coded ZIPs) — replace `ZipCodeDistanceService` |
+| **How it works** | Local public crews/fleets match when the seeker’s **profile country + postal code** appear on the group’s allowlist. Offerings may optionally restrict by the same country + postal list (empty list = no postal gate). Online scope ignores postal lists. No third-party geocoder or radius math. |
+| **Status today** | **Implemented** — alphanumeric postal codes (2–12), ISO country on profile / Local crew & fleet / offerings; `ZipCodeDistanceService` removed |
+| **Launch checks** | Smoke Local create → profile country/postal → Find Local; confirm Online still finds without postal; confirm US vs other-country same code does **not** match |
+| **Optional later** | Richer country/region UX, autocomplete for postal formats, or map-assisted “suggest nearby codes” (still allowlist-based, not distance APIs) |
 
 ### B.12 Observability
 
@@ -180,7 +183,7 @@ Follow **[AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)** Steps 1–12.
 | Donations | Ready | External Checkout | Stripe live + policy review |
 | Reports / safety | Ready | Ready | Vendor + NCMEC ESP |
 | Push when backgrounded | N/A (web push later) | Missing | APNs/FCM |
-| Local discovery | Partial | Partial | Real geocoder |
+| Local discovery | Ready | Ready | Profile country + postal; Local allowlists |
 
 ---
 
@@ -193,4 +196,5 @@ Follow **[AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)** Steps 1–12.
 - [ ] Voice join (two clients)  
 - [ ] Donation Checkout (small live or final test)  
 - [ ] Create a content report; vendor/ops path works  
+- [ ] Profile country + postal; Local crew Find matches allowlist (and fails across countries with the same code)  
 - [ ] Native install from TestFlight / Play internal still talks to prod API  

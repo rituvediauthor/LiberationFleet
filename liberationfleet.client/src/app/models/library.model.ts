@@ -24,6 +24,8 @@ export interface LibraryUnitListItem {
   offeringKind?: string;
   fulfillmentMode?: string;
   visibility?: string;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   offeringUnitCount?: number;
   availableNow?: boolean;
   nextAvailableDate?: string | null;
@@ -60,11 +62,14 @@ export interface CreateLibraryOfferingRequest {
   stockTier3?: number | null;
   stockTier4?: number | null;
   stockTier5?: number | null;
+  stockTier6?: number | null;
   minimumViewerTier?: number;
   thumbnailResourceId?: string | null;
   kind?: string;
   fulfillmentMode?: string;
   visibility?: string;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   nonce: string;
   ciphertext: string;
   keyVersion?: number;
@@ -116,6 +121,8 @@ export interface LibraryUnitDetail {
   offeringKind?: string;
   fulfillmentMode?: string;
   visibility?: string;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   brokenPendingConfirmation?: boolean;
   isRetired?: boolean;
   imageUrls?: string[];
@@ -279,6 +286,8 @@ export interface LibraryOfferingListItem {
   isOutOfStock?: boolean;
   valuePerUnit: number;
   unitLabel?: string | null;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   createdAt: string;
 }
 
@@ -301,6 +310,8 @@ export interface UpdateLibraryOfferingRequest {
   nonce?: string | null;
   ciphertext?: string | null;
   keyVersion?: number | null;
+  countryCode?: string | null;
+  allowedZipCodes?: string[] | null;
 }
 
 export type LibraryOfferingKind = 'Durable' | 'Consumable' | 'Service' | 'Digital';

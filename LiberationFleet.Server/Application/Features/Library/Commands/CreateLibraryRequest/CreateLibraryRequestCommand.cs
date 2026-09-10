@@ -26,6 +26,7 @@ public class CreateLibraryRequestCommandHandler(
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
+    IUserRepository userRepository,
     NotificationService notificationService,
     LibraryPriorityTierService priorityTierService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateLibraryRequestCommand, LibraryRequestOperationResponse>
@@ -91,11 +92,10 @@ public class CreateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "On-demand offerings use record acquisition instead of requests." };
         }
 
-        var tierSummary = await priorityTierService.GetSummaryForUserAsync(
+        var viewerTier = await priorityTierService.GetViewerTierForOfferingAsync(
             userId,
-            membership.CrewId,
+            unit.Offering.CrewId,
             cancellationToken);
-        var viewerTier = tierSummary.ViewerTier;
 
         if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier))
         {
@@ -103,6 +103,17 @@ public class CreateLibraryRequestCommandHandler(
             {
                 Success = false,
                 Message = "This service is not available at your priority tier."
+            };
+        }
+
+        var viewerUser = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (!LibraryOfferingRules.IsVisibleToViewerZip(
+                unit.Offering, viewerUser?.CountryCode, viewerUser?.ZipCode))
+        {
+            return new LibraryRequestOperationResponse
+            {
+                Success = false,
+                Message = "This offering is not available in your zip code."
             };
         }
 

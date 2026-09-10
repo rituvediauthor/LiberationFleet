@@ -7,6 +7,8 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
+import { ZipCodeListEditorComponent } from '../../../components/zip-code-list-editor/zip-code-list-editor.component';
+import { CountrySelectComponent } from '../../../components/country-select/country-select.component';
 import { FleetService } from '../../../services/fleet.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -30,7 +32,9 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
     PageLayoutComponent,
     ConfirmDialogComponent,
     ProposalAttachmentPickerComponent,
-    CharCounterComponent
+    CharCounterComponent,
+    CountrySelectComponent,
+    ZipCodeListEditorComponent
   ],
   templateUrl: './edit-fleet.component.html',
   styleUrl: './edit-fleet.component.css'
@@ -49,7 +53,7 @@ export class EditFleetComponent implements OnInit {
   saveButton!: ActionBarButton;
   fleetId = 0;
   libraryPriorityAverage = 0;
-  libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0];
+  libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0, 0];
   canAttachFiles = false;
   imageAttachments: PendingAttachment[] = [];
   imageResourceId: string | null = null;
@@ -74,8 +78,8 @@ export class EditFleetComponent implements OnInit {
       name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
       privacy: ['Public' as FleetPrivacy, Validators.required],
       scope: ['Online' as FleetScope, Validators.required],
-      zipCode: [''],
-      radiusMiles: [25],
+      countryCode: [null as string | null],
+      allowedZipCodes: [[] as string[]],
       requireApprovalForEdits: [true],
       duoVoteTimeoutMode: ['AutoReject'],
       autoResolveOverTime: [true],
@@ -137,6 +141,18 @@ export class EditFleetComponent implements OnInit {
 
   isInvalid(controlName: string): boolean {
     return isControlInvalidForA11y(this.form?.get(controlName));
+  }
+
+  onCountryCodeChange(code: string | null) {
+    this.form.patchValue({ countryCode: code });
+    this.form.get('countryCode')?.markAsTouched();
+    this.updateSaveButton();
+  }
+
+  onAllowedZipCodesChange(zips: string[]) {
+    this.form.patchValue({ allowedZipCodes: zips });
+    this.form.get('allowedZipCodes')?.markAsTouched();
+    this.updateSaveButton();
   }
 
   onImageAttachmentsChange() {
@@ -323,9 +339,7 @@ export class EditFleetComponent implements OnInit {
         this.requireApprovalForEdits = result.fleet.requireApprovalForEdits ?? true;
         this.imageResourceId = result.fleet.imageResourceId ?? null;
         this.libraryPriorityAverage = result.fleet.libraryPriorityAverage ?? 0;
-        this.libraryPriorityTierCounts = result.fleet.libraryPriorityTierCounts?.length === 5
-          ? [...result.fleet.libraryPriorityTierCounts]
-          : [0, 0, 0, 0, 0];
+        this.libraryPriorityTierCounts = this.normalizeTierCounts(result.fleet.libraryPriorityTierCounts);
         this.patchFormFromFleet(result.fleet);
         this.updateLocalValidators();
         this.captureInitialState();
@@ -360,8 +374,8 @@ export class EditFleetComponent implements OnInit {
     name: string;
     privacy: FleetPrivacy | string;
     scope: FleetScope | string;
-    zipCode?: string;
-    radiusMiles?: number;
+    countryCode?: string | null;
+    allowedZipCodes?: string[];
     requireApprovalForEdits?: boolean;
     duoVoteTimeoutMode?: string;
     autoResolveOverTime?: boolean;
@@ -381,8 +395,8 @@ export class EditFleetComponent implements OnInit {
       name: fleet.name,
       privacy: fleet.privacy,
       scope: fleet.scope,
-      zipCode: fleet.zipCode ?? '',
-      radiusMiles: fleet.radiusMiles ?? 25,
+      countryCode: fleet.countryCode ?? null,
+      allowedZipCodes: [...(fleet.allowedZipCodes ?? [])],
       requireApprovalForEdits: fleet.requireApprovalForEdits ?? true,
       duoVoteTimeoutMode: fleet.duoVoteTimeoutMode ?? 'AutoReject',
       autoResolveOverTime: fleet.autoResolveOverTime ?? true,
@@ -405,12 +419,13 @@ export class EditFleetComponent implements OnInit {
 
   private buildPayload(): UpdateFleetRequest {
     const scope = this.form.get('scope')?.value as FleetScope;
+    const isLocal = scope === 'Local';
     return {
       name: String(this.form.get('name')?.value).trim(),
       privacy: this.form.get('privacy')?.value as FleetPrivacy,
       scope,
-      zipCode: scope === 'Local' ? String(this.form.get('zipCode')?.value).trim() : undefined,
-      radiusMiles: scope === 'Local' ? Number(this.form.get('radiusMiles')?.value) : undefined,
+      countryCode: isLocal ? (this.form.get('countryCode')?.value as string) : null,
+      allowedZipCodes: isLocal ? [...(this.form.get('allowedZipCodes')?.value ?? [])] : [],
       requireApprovalForEdits: !!this.form.get('requireApprovalForEdits')?.value,
       duoVoteTimeoutMode: String(this.form.get('duoVoteTimeoutMode')?.value || 'AutoReject'),
       autoResolveOverTime: !!this.form.get('autoResolveOverTime')?.value,
@@ -428,19 +443,21 @@ export class EditFleetComponent implements OnInit {
   }
 
   private updateLocalValidators() {
-    const zip = this.form.get('zipCode');
-    const radius = this.form.get('radiusMiles');
+    const country = this.form.get('countryCode');
+    const zips = this.form.get('allowedZipCodes');
 
     if (this.isLocal) {
-      zip?.setValidators([Validators.required, Validators.pattern(/^\d{5}$/)]);
-      radius?.setValidators([Validators.required, Validators.min(1), Validators.max(500)]);
+      country?.setValidators([Validators.required]);
+      zips?.setValidators([Validators.minLength(1)]);
     } else {
-      zip?.clearValidators();
-      radius?.clearValidators();
+      country?.clearValidators();
+      country?.setValue(null, { emitEvent: false });
+      zips?.clearValidators();
+      zips?.setValue([] as string[], { emitEvent: false });
     }
 
-    zip?.updateValueAndValidity({ emitEvent: false });
-    radius?.updateValueAndValidity({ emitEvent: false });
+    country?.updateValueAndValidity({ emitEvent: false });
+    zips?.updateValueAndValidity({ emitEvent: false });
     this.updateSaveButton();
   }
 
@@ -451,6 +468,17 @@ export class EditFleetComponent implements OnInit {
       disabled: this.isSaveDisabled,
       onClick: () => void this.onSave()
     };
+  }
+
+  private normalizeTierCounts(counts: number[] | null | undefined): number[] {
+    const normalized = [0, 0, 0, 0, 0, 0];
+    if (!counts?.length) {
+      return normalized;
+    }
+    for (let i = 0; i < Math.min(6, counts.length); i++) {
+      normalized[i] = Number(counts[i]) || 0;
+    }
+    return normalized;
   }
 }
 

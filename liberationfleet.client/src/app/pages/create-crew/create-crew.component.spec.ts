@@ -55,8 +55,8 @@ describe('CreateCrewComponent', () => {
       maxSize: 6,
       privacy: 'Public',
       scope: 'Online',
-      zipCode: '',
-      radiusMiles: 25
+      countryCode: null,
+      allowedZipCodes: []
     });
     component.onSubmit();
 
@@ -65,14 +65,14 @@ describe('CreateCrewComponent', () => {
       maxSize: 6,
       privacy: 'Public',
       scope: 'Online',
-      zipCode: undefined,
-      radiusMiles: undefined
+      countryCode: null,
+      allowedZipCodes: []
     });
     expect(toastService.success).toHaveBeenCalledWith('Crew created successfully');
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
-  it('should include zip and radius for local crews', () => {
+  it('should include country and allowed zip codes for local crews', () => {
     crewService.create.and.returnValue(of({ success: true, message: 'Crew created successfully' }));
 
     component.form.setValue({
@@ -80,15 +80,15 @@ describe('CreateCrewComponent', () => {
       maxSize: 6,
       privacy: 'Public',
       scope: 'Local',
-      zipCode: '90210',
-      radiusMiles: 30
+      countryCode: 'US',
+      allowedZipCodes: ['90210', '90001']
     });
     component.onSubmit();
 
     expect(crewService.create).toHaveBeenCalledWith(jasmine.objectContaining({
       scope: 'Local',
-      zipCode: '90210',
-      radiusMiles: 30
+      countryCode: 'US',
+      allowedZipCodes: ['90210', '90001']
     }));
   });
 
@@ -100,8 +100,8 @@ describe('CreateCrewComponent', () => {
       maxSize: 6,
       privacy: 'Public',
       scope: 'Online',
-      zipCode: '',
-      radiusMiles: 25
+      countryCode: null,
+      allowedZipCodes: []
     });
     component.onSubmit();
 
@@ -117,8 +117,8 @@ describe('CreateCrewComponent', () => {
       maxSize: 6,
       privacy: 'Public',
       scope: 'Online',
-      zipCode: '',
-      radiusMiles: 25
+      countryCode: null,
+      allowedZipCodes: []
     });
     component.onSubmit();
 

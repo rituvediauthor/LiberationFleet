@@ -43,7 +43,7 @@ You may also provide profile and mutual-aid information, including:
 If you create or join a crew or fleet, we collect:
 - Names, size limits, privacy settings (public, private, or invite-only), and scope (online or local)
 - Join codes
-- Optional location information such as zip code and search radius for local groups
+- Optional location information such as your profile country and postal code, and the country/postal codes used for local crew, fleet, and offering discovery
 - Your role and status (for example organizer, honorary member, season participation, estimated monthly contribution, priority scores, attachment/proposal permission gates, and related season or fleet settings)
 - Acceptance of fleet rules when joining a fleet
 - Voting, proposal status, kick, rejoin, and governance metadata needed to run crew/fleet features

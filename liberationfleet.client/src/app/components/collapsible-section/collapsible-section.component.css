@@ -1,8 +1,13 @@
+:host {
+  display: block;
+}
+
 .collapsible-section {
-  margin-bottom: 16px;
-  border: 1px solid var(--lf-color-border);
-  border-radius: 8px;
-  background: var(--lf-color-bg-surface);
+  /* Bleed to content-column / screen edges via --lf-collapsible-inset on ancestors. */
+  margin: 0 calc(-1 * var(--lf-collapsible-inset, 0px)) 16px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   overflow: hidden;
 }
 
@@ -12,8 +17,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 14px var(--lf-collapsible-inset, 16px);
   border: none;
+  border-block: 1px solid var(--lf-color-border);
+  border-radius: 0;
   background: var(--lf-color-bg-muted);
   color: var(--lf-color-text-body);
   font-size: 15px;
@@ -33,9 +40,10 @@
 .collapsible-header i {
   color: var(--lf-color-text-secondary);
   font-size: 12px;
+  margin-right: 0;
 }
 
 .collapsible-body {
-  padding: 16px;
-  border-top: 1px solid var(--lf-color-border);
+  padding: 16px var(--lf-collapsible-inset, 16px);
+  border-top: none;
 }

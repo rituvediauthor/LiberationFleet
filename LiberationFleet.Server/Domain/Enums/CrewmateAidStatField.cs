@@ -8,5 +8,7 @@ public enum CrewmateAidStatField
     TotalReceptionAmount = 4,
     SurvivalThresholdReceived = 5,
     CycleReceived = 6,
-    CycleCompleted = 7
+    CycleCompleted = 7,
+    /// <summary>Active percent boost applied to priority score this season (membership PercentBonus).</summary>
+    PercentBoost = 8
 }

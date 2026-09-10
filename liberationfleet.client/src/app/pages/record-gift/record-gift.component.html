@@ -1,5 +1,15 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="recordButton">
   <div class="form-container">
+    <div
+      class="pull-refresh pull-refresh-top"
+      [class.active]="(pullEdge === 'top' && pullDistance > 8) || (refreshing && pullEdge !== 'bottom')"
+      [style.height.px]="refreshing && pullEdge !== 'bottom' ? 36 : (pullEdge === 'top' ? pullDistance : 0)"
+      aria-live="polite">
+      <span *ngIf="refreshing && pullEdge !== 'bottom'">Refreshing…</span>
+      <span *ngIf="!refreshing && pullEdge === 'top' && pullDistance >= 56">Release to refresh</span>
+      <span *ngIf="!refreshing && pullEdge === 'top' && pullDistance > 8 && pullDistance < 56">Pull to refresh</span>
+    </div>
+
     <div class="form-card">
       <p *ngIf="loading" class="status-text">Loading reception order…</p>
 
@@ -12,7 +22,6 @@
 
       <section class="emergency-section" *ngIf="!loading && emergencyRequests.length > 0">
         <h2>Open emergency requests</h2>
-        <p class="entry-hint">Satisfy an urgent request, then return here to record regular gifts.</p>
         <div class="request-list">
           <button
             type="button"
@@ -118,6 +127,16 @@
           </ng-container>
         </div>
       </form>
+    </div>
+
+    <div
+      class="pull-refresh pull-refresh-bottom"
+      [class.active]="(pullEdge === 'bottom' && pullDistance > 8) || (refreshing && pullEdge === 'bottom')"
+      [style.height.px]="refreshing && pullEdge === 'bottom' ? 36 : (pullEdge === 'bottom' ? pullDistance : 0)"
+      aria-live="polite">
+      <span *ngIf="refreshing && pullEdge === 'bottom'">Refreshing…</span>
+      <span *ngIf="!refreshing && pullEdge === 'bottom' && pullDistance >= 56">Release to refresh</span>
+      <span *ngIf="!refreshing && pullEdge === 'bottom' && pullDistance > 8 && pullDistance < 56">Pull to refresh</span>
     </div>
   </div>
 </app-page-layout>

@@ -14,8 +14,8 @@ public record CreateFleetCommand(
     string Name,
     string Privacy,
     string Scope,
-    string? ZipCode,
-    int? RadiusMiles) : IRequest<FleetOperationResponse>;
+    string? CountryCode,
+    IReadOnlyList<string> AllowedZipCodes) : IRequest<FleetOperationResponse>;
 
 public class CreateFleetCommandHandler(
     ICurrentUserService currentUserService,
@@ -67,15 +67,24 @@ public class CreateFleetCommandHandler(
 
         if (scope == CrewScope.Local)
         {
-            if (string.IsNullOrWhiteSpace(request.ZipCode) || !System.Text.RegularExpressions.Regex.IsMatch(request.ZipCode.Trim(), @"^\d{5}$")
-                || request.RadiusMiles is null or < 1 or > 500)
+            if (!ZipCodeList.TryValidateLocalRequired(
+                    request.CountryCode, request.AllowedZipCodes, out _, out _, out var zipError))
             {
                 return new FleetOperationResponse
                 {
                     Success = false,
-                    Message = "Local fleets require a 5-digit zip code and radius between 1 and 500 miles."
+                    Message = zipError
                 };
             }
+        }
+        else if (ZipCodeList.Normalize(request.AllowedZipCodes).Count > 0
+            || !string.IsNullOrWhiteSpace(request.CountryCode))
+        {
+            return new FleetOperationResponse
+            {
+                Success = false,
+                Message = "Country and allowed zip codes must be empty for online fleets."
+            };
         }
 
         var crew = await crewRepository.GetByIdAsync(membership.CrewId, cancellationToken);
@@ -89,14 +98,17 @@ public class CreateFleetCommandHandler(
             Name = name,
             Privacy = privacy,
             Scope = scope,
-            ZipCode = scope == CrewScope.Local ? request.ZipCode!.Trim() : null,
-            RadiusMiles = scope == CrewScope.Local ? request.RadiusMiles : null,
+            CountryCode = scope == CrewScope.Local ? CountryCodes.Normalize(request.CountryCode) : null,
             JoinCode = await GenerateUniqueJoinCodeAsync(cancellationToken),
             CreatedByUserId = userId.Value,
             CreatedAt = DateTime.UtcNow,
             RequireApprovalForEdits = true,
             LibraryOfThingsEnabled = true
         };
+
+        AllowedZipCodeSync.SetFleetZips(
+            fleet,
+            scope == CrewScope.Local ? request.AllowedZipCodes : Array.Empty<string>());
 
         await fleetRepository.AddAsync(fleet, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

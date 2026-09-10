@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   inject,
@@ -34,6 +35,7 @@ import { ForumEngagementBarComponent } from '../../components/forum-engagement-b
 import { ContentLikersDialogComponent } from '../../components/content-likers-dialog/content-likers-dialog.component';
 import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../utils/location-header.util';
+import { PullRefreshController } from '../../utils/pull-refresh.controller';
 import { Observable, map } from 'rxjs';
 
 export type GiftLogScope = 'crew' | 'fleet';
@@ -71,6 +73,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   locationHeaderInfo: LocationHeaderInfo | null = injectLocationHeaderInfo();
   highlightId: number | null = null;
   notifyPrefix = '/app/crew/gift-log';
+  pullDistance = 0;
+  refreshing = false;
 
   private readonly pageSize = 25;
   private intersectionObserver?: IntersectionObserver;
@@ -78,6 +82,16 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
   private scrollToBottomOnNextRender = false;
   private highlightSeekPagesLeft = 0;
   private highlightSeekActive = false;
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly pullRefresh = new PullRefreshController({
+    edges: ['bottom'],
+    isBusy: () => this.loading || this.loadingMore || this.refreshing,
+    onRefresh: () => this.refreshFromBottom(),
+    onDistanceChange: (distance) => {
+      this.pullDistance = distance;
+      this.cdr.markForCheck();
+    }
+  });
 
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -225,12 +239,15 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.scrollToBottom();
       }
     });
+
+    this.bindPullRefresh();
   }
 
   ngOnDestroy() {
     this.intersectionObserver?.disconnect();
     this.sentinelChangesSubscription?.unsubscribe();
     this.encryptionReload?.subscription.unsubscribe();
+    this.pullRefresh.unbind();
   }
 
   get loadMoreTriggerIndex(): number {
@@ -548,6 +565,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           this.scrollToBottomOnNextRender = !this.highlightSeekActive;
           setTimeout(() => {
             this.observeLoadMoreSentinel();
+            this.bindPullRefresh();
             if (!this.highlightSeekActive) {
               this.scrollToBottom();
             }
@@ -557,13 +575,53 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           this.errorMessage = 'Failed to decrypt gift log';
         } finally {
           this.loading = false;
+          this.refreshing = false;
+          this.pullRefresh.reset();
         }
       },
       error: err => {
         this.loading = false;
+        this.refreshing = false;
+        this.pullRefresh.reset();
         this.errorMessage = err?.message ?? 'Failed to load gift log';
       }
     });
+  }
+
+  private refreshFromBottom() {
+    if (this.loading || this.loadingMore || this.refreshing) {
+      return;
+    }
+    this.refreshing = true;
+    this.fetchLogPage({ limit: this.pageSize }).subscribe({
+      next: async page => {
+        try {
+          const items = await this.decryptPageItems(page.items);
+          this.entries = items;
+          this.hasMore = page.hasMore;
+          this.applyCompletionDefaults(page.items);
+          setTimeout(() => {
+            this.observeLoadMoreSentinel();
+            this.bindPullRefresh();
+            this.scrollToBottom();
+          }, 0);
+        } catch {
+          this.toastService.error('Failed to refresh gift log');
+        } finally {
+          this.refreshing = false;
+          this.pullRefresh.reset();
+        }
+      },
+      error: err => {
+        this.refreshing = false;
+        this.pullRefresh.reset();
+        this.toastService.error(err?.message ?? 'Failed to refresh gift log');
+      }
+    });
+  }
+
+  private bindPullRefresh() {
+    this.pullRefresh.bind(this.logContainer?.nativeElement ?? null);
   }
 
   private loadOlderEntries(options?: { forHighlightSeek?: boolean }) {

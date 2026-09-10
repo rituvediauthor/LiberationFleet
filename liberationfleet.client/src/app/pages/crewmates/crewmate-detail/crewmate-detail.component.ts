@@ -59,7 +59,8 @@ export class CrewmateDetailComponent implements OnInit {
     totalReceptionAmount: '',
     survivalThresholdReceived: '',
     cycleReceived: '',
-    cycleCompleted: false
+    cycleCompleted: false,
+    percentBoost: ''
   };
 
   private route = inject(ActivatedRoute);
@@ -413,7 +414,8 @@ export class CrewmateDetailComponent implements OnInit {
     const pushIfChanged = (
       field: CrewmateAidStatField,
       draft: string,
-      current: number | null | undefined
+      current: number | null | undefined,
+      options?: { integer?: boolean }
     ) => {
       const trimmed = draft.trim();
       if (!trimmed) {
@@ -422,7 +424,11 @@ export class CrewmateDetailComponent implements OnInit {
 
       const next = Number(trimmed);
       if (!Number.isFinite(next) || next < 0) {
-        throw new Error(`Enter a valid non-negative amount for ${field}.`);
+        throw new Error(`Enter a valid non-negative value for ${field}.`);
+      }
+
+      if (options?.integer && !Number.isInteger(next)) {
+        throw new Error('Percent boost must be a whole number.');
       }
 
       const currentValue = current ?? null;
@@ -430,7 +436,10 @@ export class CrewmateDetailComponent implements OnInit {
         return;
       }
 
-      changes.push({ field, newValue: next.toFixed(2) });
+      changes.push({
+        field,
+        newValue: options?.integer ? String(Math.round(next)) : next.toFixed(2)
+      });
     };
 
     pushIfChanged(
@@ -447,6 +456,12 @@ export class CrewmateDetailComponent implements OnInit {
       'ReceptionThisYear',
       this.aidDraft.receptionThisYear,
       this.profile.receptionThisYear
+    );
+    pushIfChanged(
+      'PercentBoost',
+      this.aidDraft.percentBoost,
+      this.profile.percentBoost,
+      { integer: true }
     );
 
     if (this.profile.hasActiveSeasonCycle) {
@@ -493,7 +508,8 @@ export class CrewmateDetailComponent implements OnInit {
       totalReceptionAmount: money(this.profile.totalReceptionAmount),
       survivalThresholdReceived: money(this.profile.survivalThresholdReceived),
       cycleReceived: money(this.profile.cycleReceived),
-      cycleCompleted: this.profile.cycleCompleted === true
+      cycleCompleted: this.profile.cycleCompleted === true,
+      percentBoost: this.profile.percentBoost == null ? '' : String(this.profile.percentBoost)
     };
   }
 

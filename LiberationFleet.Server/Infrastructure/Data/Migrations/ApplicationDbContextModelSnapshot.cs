@@ -727,11 +727,6 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsAdvocate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("IsBanned")
                         .HasColumnType("bit");
 
@@ -2247,6 +2242,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<int?>("RemainingStockTier5")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RemainingStockTier6")
                         .HasColumnType("int");
 
                     b.Property<string>("ThumbnailResourceId")

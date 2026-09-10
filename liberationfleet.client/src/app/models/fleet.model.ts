@@ -34,10 +34,9 @@ export interface Fleet {
   name: string;
   privacy: FleetPrivacy;
   scope: FleetScope;
-  zipCode?: string;
-  radiusMiles?: number;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   joinCode: string;
-  distanceMiles?: number;
   crewCount?: number;
   requireApprovalForEdits?: boolean;
   duoVoteTimeoutMode?: string;
@@ -60,14 +59,12 @@ export interface CreateFleetRequest {
   name: string;
   privacy: FleetPrivacy;
   scope: FleetScope;
-  zipCode?: string;
-  radiusMiles?: number;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
 }
 
 export interface SearchFleetsRequest {
   scope: FleetScope;
-  zipCode?: string;
-  radiusMiles?: number;
   page: number;
   pageSize: number;
 }
@@ -94,8 +91,8 @@ export interface UpdateFleetRequest {
   name: string;
   privacy: FleetPrivacy;
   scope: FleetScope;
-  zipCode?: string;
-  radiusMiles?: number;
+  countryCode?: string | null;
+  allowedZipCodes?: string[];
   requireApprovalForEdits: boolean;
   duoVoteTimeoutMode: string;
   autoResolveOverTime: boolean;

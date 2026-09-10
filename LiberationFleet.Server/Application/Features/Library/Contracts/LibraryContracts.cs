@@ -28,6 +28,12 @@ public class LibraryUnitListItemDto
     public string FulfillmentMode { get; set; } = string.Empty;
     public string Visibility { get; set; } = string.Empty;
 
+    /// <summary>ISO country when postal allowlist is set.</summary>
+    public string? CountryCode { get; set; }
+
+    /// <summary>Optional postal allowlist; empty means no geographic gate.</summary>
+    public List<string> AllowedZipCodes { get; set; } = [];
+
     /// <summary>Number of active (non-retired, non-broken) units in this unit's offering.</summary>
     public int OfferingUnitCount { get; set; } = 1;
 
@@ -62,14 +68,17 @@ public class CreateLibraryOfferingRequest
     public string? UnitLabel { get; set; }
     public int Quantity { get; set; } = 1;
     public bool QuantityNotApplicable { get; set; }
-    /// <summary>Consumable tracked stock by LoT priority tier (1–5). When null, <see cref="Quantity"/> is assigned to Tier 1.</summary>
+    /// <summary>Consumable tracked stock by LoT priority tier (1–6). When null, <see cref="Quantity"/> is assigned to Tier 1.</summary>
     public int? StockTier1 { get; set; }
     public int? StockTier2 { get; set; }
     public int? StockTier3 { get; set; }
     public int? StockTier4 { get; set; }
     public int? StockTier5 { get; set; }
-    /// <summary>Services: minimum viewer tier (1–5). Default 1.</summary>
+    public int? StockTier6 { get; set; }
+    /// <summary>Services: minimum viewer tier (1–6). Default 1.</summary>
     public int MinimumViewerTier { get; set; } = 1;
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
     public string? ThumbnailResourceId { get; set; }
     public string Kind { get; set; } = "Durable";
     public string FulfillmentMode { get; set; } = "OnRequest";
@@ -129,6 +138,8 @@ public class LibraryUnitDetailDto
     public string Visibility { get; set; } = string.Empty;
     public bool BrokenPendingConfirmation { get; set; }
     public bool IsRetired { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
     public LibraryUnitViewerContextDto Viewer { get; set; } = new();
 }
 
@@ -145,7 +156,10 @@ public class UpdateLibraryOfferingRequest
     public int? StockTier3 { get; set; }
     public int? StockTier4 { get; set; }
     public int? StockTier5 { get; set; }
+    public int? StockTier6 { get; set; }
     public int? MinimumViewerTier { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string>? AllowedZipCodes { get; set; }
 }
 
 public class LibraryUnitDetailResponse
@@ -310,6 +324,8 @@ public class LibraryOfferingListItemDto
     public bool IsOutOfStock { get; set; }
     public decimal ValuePerUnit { get; set; }
     public string? UnitLabel { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
     public DateTime CreatedAt { get; set; }
 }
 

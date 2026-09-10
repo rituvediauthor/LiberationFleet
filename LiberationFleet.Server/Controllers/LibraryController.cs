@@ -179,7 +179,10 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.StockTier3,
             body.StockTier4,
             body.StockTier5,
-            body.MinimumViewerTier));
+            body.StockTier6,
+            body.MinimumViewerTier,
+            body.AllowedZipCodes,
+            body.CountryCode));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -419,7 +422,10 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.StockTier3,
             body.StockTier4,
             body.StockTier5,
+            body.StockTier6,
             body.MinimumViewerTier,
+            body.CountryCode,
+            body.AllowedZipCodes,
             body.ThumbnailResourceId,
             kind,
             fulfillmentMode,

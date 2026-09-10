@@ -9,6 +9,6 @@ public class CreateCrewCommand : IRequest<CrewOperationResponse>
     public int MaxSize { get; set; }
     public string Privacy { get; set; } = "Public";
     public string Scope { get; set; } = "Online";
-    public string? ZipCode { get; set; }
-    public int? RadiusMiles { get; set; }
+    public string? CountryCode { get; set; }
+    public List<string> AllowedZipCodes { get; set; } = [];
 }

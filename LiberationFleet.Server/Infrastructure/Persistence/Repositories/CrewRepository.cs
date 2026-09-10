@@ -16,10 +16,14 @@ public class CrewRepository : ICrewRepository
     }
 
     public Task<Crew?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
-        _context.Crews.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        _context.Crews
+            .Include(c => c.AllowedZipCodes)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public Task<Crew?> GetByJoinCodeAsync(string joinCode, CancellationToken cancellationToken = default) =>
-        _context.Crews.FirstOrDefaultAsync(c => c.JoinCode == joinCode, cancellationToken);
+        _context.Crews
+            .Include(c => c.AllowedZipCodes)
+            .FirstOrDefaultAsync(c => c.JoinCode == joinCode, cancellationToken);
 
     public async Task AddAsync(Crew crew, CancellationToken cancellationToken = default)
     {
@@ -29,6 +33,7 @@ public class CrewRepository : ICrewRepository
     public async Task<IReadOnlyList<Crew>> SearchPublicAsync(CrewScope scope, CancellationToken cancellationToken = default)
     {
         return await _context.Crews
+            .Include(c => c.AllowedZipCodes)
             .Where(c => c.Privacy == CrewPrivacy.Public && c.Scope == scope)
             .ToListAsync(cancellationToken);
     }

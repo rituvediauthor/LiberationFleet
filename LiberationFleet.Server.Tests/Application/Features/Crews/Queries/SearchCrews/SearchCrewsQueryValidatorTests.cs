@@ -21,8 +21,6 @@ public class SearchCrewsQueryValidatorTests
         var query = new SearchCrewsQuery
         {
             Scope = "Local",
-            ZipCode = "90210",
-            RadiusMiles = 25,
             Page = 1,
             PageSize = 10
         };
@@ -35,13 +33,6 @@ public class SearchCrewsQueryValidatorTests
     {
         _validator.TestValidate(new SearchCrewsQuery { Scope = "Global" })
             .ShouldHaveValidationErrorFor(x => x.Scope);
-    }
-
-    [Fact]
-    public void Validate_WhenLocalSearchMissingZipCode_ShouldHaveZipCodeError()
-    {
-        _validator.TestValidate(new SearchCrewsQuery { Scope = "Local", RadiusMiles = 25 })
-            .ShouldHaveValidationErrorFor(x => x.ZipCode);
     }
 
     [Theory]

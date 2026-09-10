@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -21,7 +22,10 @@ public record UpdateLibraryOfferingCommand(
     int? StockTier3 = null,
     int? StockTier4 = null,
     int? StockTier5 = null,
-    int? MinimumViewerTier = null)
+    int? StockTier6 = null,
+    int? MinimumViewerTier = null,
+    IReadOnlyList<string>? AllowedZipCodes = null,
+    string? CountryCode = null)
     : IRequest<LibraryOfferingOperationResponse>;
 
 public class UpdateLibraryOfferingCommandHandler(
@@ -85,7 +89,8 @@ public class UpdateLibraryOfferingCommandHandler(
             || request.StockTier2.HasValue
             || request.StockTier3.HasValue
             || request.StockTier4.HasValue
-            || request.StockTier5.HasValue;
+            || request.StockTier5.HasValue
+            || request.StockTier6.HasValue;
         if (anyStockTier)
         {
             if (offering.Kind != LibraryOfferingKind.Consumable || offering.QuantityNotApplicable)
@@ -103,7 +108,8 @@ public class UpdateLibraryOfferingCommandHandler(
                 request.StockTier2 ?? offering.RemainingStockTier2 ?? 0,
                 request.StockTier3 ?? offering.RemainingStockTier3 ?? 0,
                 request.StockTier4 ?? offering.RemainingStockTier4 ?? 0,
-                request.StockTier5 ?? offering.RemainingStockTier5 ?? 0);
+                request.StockTier5 ?? offering.RemainingStockTier5 ?? 0,
+                request.StockTier6 ?? offering.RemainingStockTier6 ?? 0);
             changed = true;
         }
 
@@ -119,6 +125,19 @@ public class UpdateLibraryOfferingCommandHandler(
             }
 
             offering.MinimumViewerTier = LibraryPriorityTier.ClampTier(request.MinimumViewerTier.Value);
+            changed = true;
+        }
+
+        if (request.AllowedZipCodes is not null)
+        {
+            if (!ZipCodeList.TryValidateOptional(
+                    request.CountryCode, request.AllowedZipCodes, out var country, out var allowedZips, out var zipError))
+            {
+                return new LibraryOfferingOperationResponse { Success = false, Message = zipError };
+            }
+
+            offering.CountryCode = country;
+            AllowedZipCodeSync.SetOfferingZips(offering, allowedZips);
             changed = true;
         }
 

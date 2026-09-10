@@ -58,6 +58,8 @@ export interface UserProfile {
   libraryOfThingsPriority?: PriorityScoreBreakdown | null;
   libraryPriorityTier?: number;
   libraryPriorityAverage?: number;
+  countryCode?: string | null;
+  zipCode?: string | null;
 }
 
 export interface UserProfileStats {
@@ -86,6 +88,8 @@ export interface UpdateProfileRequest {
   disabilityLevel: number;
   identityGroups: string[];
   needsSurvivalAid: boolean;
+  countryCode?: string | null;
+  zipCode?: string | null;
 }
 
 export interface ProfileOperationResult {

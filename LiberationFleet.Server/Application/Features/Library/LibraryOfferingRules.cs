@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -27,7 +28,8 @@ public static class LibraryOfferingRules
             2 => offering.RemainingStockTier2,
             3 => offering.RemainingStockTier3,
             4 => offering.RemainingStockTier4,
-            _ => offering.RemainingStockTier5
+            5 => offering.RemainingStockTier5,
+            _ => offering.RemainingStockTier6
         };
     }
 
@@ -47,8 +49,11 @@ public static class LibraryOfferingRules
             case 4:
                 offering.RemainingStockTier4 = value;
                 break;
-            default:
+            case 5:
                 offering.RemainingStockTier5 = value;
+                break;
+            default:
+                offering.RemainingStockTier6 = value;
                 break;
         }
     }
@@ -59,13 +64,15 @@ public static class LibraryOfferingRules
         int tier2,
         int tier3,
         int tier4,
-        int tier5)
+        int tier5,
+        int tier6)
     {
         offering.RemainingStockTier1 = Math.Max(0, tier1);
         offering.RemainingStockTier2 = Math.Max(0, tier2);
         offering.RemainingStockTier3 = Math.Max(0, tier3);
         offering.RemainingStockTier4 = Math.Max(0, tier4);
         offering.RemainingStockTier5 = Math.Max(0, tier5);
+        offering.RemainingStockTier6 = Math.Max(0, tier6);
         SyncAggregateRemainingStock(offering);
     }
 
@@ -76,6 +83,7 @@ public static class LibraryOfferingRules
         offering.RemainingStockTier3 = null;
         offering.RemainingStockTier4 = null;
         offering.RemainingStockTier5 = null;
+        offering.RemainingStockTier6 = null;
     }
 
     public static void SyncAggregateRemainingStock(LibraryOffering offering)
@@ -90,7 +98,8 @@ public static class LibraryOfferingRules
             + (offering.RemainingStockTier2 ?? 0)
             + (offering.RemainingStockTier3 ?? 0)
             + (offering.RemainingStockTier4 ?? 0)
-            + (offering.RemainingStockTier5 ?? 0);
+            + (offering.RemainingStockTier5 ?? 0)
+            + (offering.RemainingStockTier6 ?? 0);
     }
 
     public static bool IsOutOfStock(LibraryOffering offering) =>
@@ -213,6 +222,16 @@ public static class LibraryOfferingRules
 
         return viewerTier >= LibraryPriorityTier.ClampTier(offering.MinimumViewerTier);
     }
+
+    public static bool IsVisibleToViewerZip(
+        LibraryOffering offering,
+        string? viewerCountryCode,
+        string? viewerZip) =>
+        ZipCodeList.IsAccessible(
+            offering.CountryCode,
+            offering.AllowedZipCodes.Select(z => z.ZipCode),
+            viewerCountryCode,
+            viewerZip);
 
     public static decimal CalculateCreatorContributionAmount(LibraryOffering offering, int quantity) =>
         offering.ValuePerUnit * quantity;

@@ -8,7 +8,7 @@ using MediatR;
 namespace LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryPriorityTierAudience;
 
 /// <param name="Visibility">CrewOnly or FleetWide.</param>
-/// <param name="Tier">1–5. Exact match, or minimum when <paramref name="MatchMode"/> is MinimumOrHigher.</param>
+/// <param name="Tier">1–6. Exact match, or minimum when <paramref name="MatchMode"/> is MinimumOrHigher.</param>
 /// <param name="MatchMode">Exact (consumable stock tier) or MinimumOrHigher (service visibility).</param>
 public record GetLibraryPriorityTierAudienceQuery(
     string? Visibility,
