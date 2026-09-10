@@ -48,8 +48,10 @@ public class CustomGiftRecordingServiceTests
             .OrderBy(g => g.Amount)
             .ToListAsync();
         gifts.Should().HaveCount(2);
-        GiftMapper.MapGift(gifts[0]).Message.Should().Contain("[Survival threshold]");
-        GiftMapper.MapGift(gifts[1]).Message.Should().Contain("[Other]");
+        GiftMapper.MapGift(gifts[0]).CustomGiftCategory.Should().Be("survivalThreshold");
+        GiftMapper.MapGift(gifts[1]).CustomGiftCategory.Should().Be("other");
+        GiftMapper.MapGift(gifts[0]).Message.Should().NotContain("[");
+        GiftMapper.MapGift(gifts[1]).Message.Should().NotContain("[");
     }
 
     [Fact]
