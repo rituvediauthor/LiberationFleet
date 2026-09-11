@@ -1,4 +1,44 @@
 <app-page-layout [showFallibleFooter]="false" [backButton]="backButton">
+  <div actionBar class="voice-action-bar">
+    <ng-container *ngIf="connected">
+      <button
+        type="button"
+        class="voice-icon-btn"
+        [class.active]="isMuted"
+        [disabled]="isServerMuted"
+        [attr.aria-label]="isMuted ? 'Unmute' : 'Mute'"
+        [attr.title]="isMuted ? 'Unmute' : 'Mute'"
+        (click)="toggleMute()">
+        <i class="fa-solid" [class.fa-microphone-slash]="isMuted" [class.fa-microphone]="!isMuted" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="voice-icon-btn"
+        [class.active]="isDeafened"
+        [attr.aria-label]="isDeafened ? 'Undeafen' : 'Deafen'"
+        [attr.title]="isDeafened ? 'Undeafen' : 'Deafen'"
+        (click)="toggleDeafen()">
+        <i class="fa-solid" [class.fa-headphones-slash]="isDeafened" [class.fa-headphones]="!isDeafened" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="voice-icon-btn"
+        aria-label="Devices"
+        title="Devices"
+        (click)="openDeviceSettings()">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="voice-icon-btn danger"
+        aria-label="Disconnect"
+        title="Disconnect"
+        (click)="disconnectVoice()">
+        <i class="fa-solid fa-phone-slash" aria-hidden="true"></i>
+      </button>
+    </ng-container>
+  </div>
+
   <div class="chat-voice-page" *ngIf="contentRevealed">
     <h1>{{ roomName }}</h1>
     <p class="status-text" *ngIf="loading || connecting">Connecting to voice channel...</p>
@@ -30,17 +70,6 @@
         </li>
       </ul>
       <p class="empty-text" *ngIf="participants.length === 0">No one is in this channel yet.</p>
-    </div>
-
-    <div class="voice-controls" *ngIf="connected">
-      <button type="button" class="control-btn" [class.active]="isMuted" [disabled]="isServerMuted" (click)="toggleMute()">
-        {{ isMuted ? 'Unmute' : 'Mute' }}
-      </button>
-      <button type="button" class="control-btn" [class.active]="isDeafened" (click)="toggleDeafen()">
-        {{ isDeafened ? 'Undeafen' : 'Deafen' }}
-      </button>
-      <button type="button" class="control-btn" (click)="openDeviceSettings()">Devices</button>
-      <button type="button" class="control-btn danger" (click)="disconnectVoice()">Disconnect</button>
     </div>
   </div>
 </app-page-layout>

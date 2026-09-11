@@ -59,25 +59,33 @@ export class ProfileLocationService {
   }
 
   async decrypt(envelope: EncryptedLocation | null | undefined): Promise<ProfileLocationPayload | null> {
-    if (!envelope?.nonce || !envelope?.ciphertext) {
+    const nonce = envelope?.nonce?.trim() ?? '';
+    const ciphertext = envelope?.ciphertext?.trim() ?? '';
+    if (!nonce || !ciphertext) {
       this.clear();
       return null;
     }
 
     const key = await this.cryptoSession.ensureUserContentKeyReady();
-    const payload = await this.cryptoService.decryptJson<ProfileLocationPayload>(
-      key,
-      envelope.nonce,
-      envelope.ciphertext
-    );
-    const country = (payload.countryCode ?? '').trim().toUpperCase();
-    const zip = normalizePostalCode(payload.zipCode ?? '');
-    if (!country || !zip) {
+    try {
+      const payload = await this.cryptoService.decryptJson<ProfileLocationPayload>(
+        key,
+        nonce,
+        ciphertext
+      );
+      const country = (payload.countryCode ?? '').trim().toUpperCase();
+      const zip = normalizePostalCode(payload.zipCode ?? '');
+      if (!country || !zip) {
+        this.clear();
+        return null;
+      }
+      const location = { countryCode: country, zipCode: zip };
+      this.setPlaintext(location);
+      return location;
+    } catch {
+      // Corrupt ciphertext or wrong key material — treat as unset.
       this.clear();
       return null;
     }
-    const location = { countryCode: country, zipCode: zip };
-    this.setPlaintext(location);
-    return location;
   }
 }

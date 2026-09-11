@@ -11,6 +11,7 @@
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --lf-collapsible-inset: 32px;
 }
 
 h1 {
@@ -151,6 +152,18 @@ label {
   color: var(--lf-color-text-body);
 }
 
+.nested-settings {
+  margin: 8px 0 20px;
+  padding-top: 4px;
+}
+
+.nested-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
 .entity-image-preview {
   display: flex;
   align-items: center;
@@ -212,6 +225,7 @@ label {
 @media (max-width: 600px) {
   .form-card {
     padding: 24px;
+    --lf-collapsible-inset: 24px;
   }
 
   h1 {

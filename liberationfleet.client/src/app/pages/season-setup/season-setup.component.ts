@@ -1,6 +1,14 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../services/navigation.service';
 import { switchMap } from 'rxjs';
@@ -17,6 +25,19 @@ import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
+
+/** Allows 0; rejects empty/NaN/negative. */
+function nonNegativeAmountValidator(control: AbstractControl): ValidationErrors | null {
+  const raw = control.value;
+  if (raw === null || raw === undefined || raw === '') {
+    return { required: true };
+  }
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    return { min: { min: 0, actual: n } };
+  }
+  return null;
+}
 
 @Component({
   selector: 'app-season-setup',
@@ -59,7 +80,7 @@ export class SeasonSetupComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
-      estimatedMonthlyContribution: ['', [Validators.required, Validators.min(0)]],
+      estimatedMonthlyContribution: [0, [nonNegativeAmountValidator]],
       emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [0, [Validators.min(0), Validators.max(3)]],
@@ -227,6 +248,12 @@ export class SeasonSetupComponent implements OnInit {
 
     const v = this.form.getRawValue();
     const estimate = Number(v.estimatedMonthlyContribution);
+    if (!Number.isFinite(estimate) || estimate < 0) {
+      this.toastService.error('Enter an estimated monthly contribution of $0 or more.');
+      this.isSubmitting = false;
+      this.updateSaveButton();
+      return;
+    }
     const wantReady = this.seasonReady;
 
     this.profile = {

@@ -55,7 +55,10 @@ export class GiftService {
   }
 
   saveSeasonSetup(estimatedMonthlyContribution: number): Observable<SeasonSetupSaveResult> {
-    return this.http.post<SeasonSetupSaveResult>(`${this.seasonUrl}/setup`, { estimatedMonthlyContribution });
+    const amount = Number(estimatedMonthlyContribution);
+    return this.http.post<SeasonSetupSaveResult>(`${this.seasonUrl}/setup`, {
+      estimatedMonthlyContribution: Number.isFinite(amount) ? amount : 0
+    });
   }
 
   clearSeasonReady(): Observable<SeasonSetupSaveResult> {

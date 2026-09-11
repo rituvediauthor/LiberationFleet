@@ -118,16 +118,52 @@ h1 {
   color: var(--lf-color-danger);
 }
 
+.voice-action-bar {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.voice-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.voice-icon-btn:hover:not(:disabled) {
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.voice-icon-btn.active {
+  background: var(--lf-color-accent-soft-bg);
+  border-color: var(--lf-color-accent);
+  color: var(--lf-color-accent);
+}
+
+.voice-icon-btn.danger {
+  color: var(--lf-color-danger);
+}
+
+.voice-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .empty-text {
   color: var(--lf-color-text-secondary);
   font-size: 14px;
-}
-
-.voice-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 24px;
 }
 
 .control-btn {
@@ -140,20 +176,10 @@ h1 {
   cursor: pointer;
 }
 
-.control-btn.active {
-  background: var(--lf-color-accent-soft-bg);
-  border-color: var(--lf-color-accent);
-  color: var(--lf-color-accent);
-}
-
 .control-btn.primary {
   background: var(--lf-color-accent);
   border-color: var(--lf-color-accent);
   color: var(--lf-color-text-inverse);
-}
-
-.control-btn.danger {
-  color: var(--lf-color-danger);
 }
 
 .device-settings-panel {

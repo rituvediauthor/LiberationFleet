@@ -9,6 +9,7 @@ import { ProposalAttachmentPickerComponent } from '../../components/proposal-att
 import { CharCounterComponent } from '../../components/char-counter/char-counter.component';
 import { ZipCodeListEditorComponent } from '../../components/zip-code-list-editor/zip-code-list-editor.component';
 import { CountrySelectComponent } from '../../components/country-select/country-select.component';
+import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
 import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
@@ -33,7 +34,8 @@ import { pendingAttachmentsAllowSubmit } from '../../utils/pending-attachment.ut
     ProposalAttachmentPickerComponent,
     CharCounterComponent,
     CountrySelectComponent,
-    ZipCodeListEditorComponent
+    ZipCodeListEditorComponent,
+    CollapsibleSectionComponent
   ],
   templateUrl: './edit-crew.component.html',
   styleUrl: './edit-crew.component.css'

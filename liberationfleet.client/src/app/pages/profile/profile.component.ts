@@ -639,11 +639,14 @@ export class ProfileComponent implements OnInit {
   }
 
   private async decryptLocationIntoForm(): Promise<void> {
-    if (!this.profile?.encryptedLocation || !this.encryptionUnlocked || !this.form) {
+    const envelope = this.profile?.encryptedLocation;
+    const hadEnvelope = !!envelope?.nonce?.trim() && !!envelope?.ciphertext?.trim();
+    if (!hadEnvelope || !this.encryptionUnlocked || !this.form) {
       return;
     }
+
     try {
-      const location = await this.profileLocation.decrypt(this.profile.encryptedLocation);
+      const location = await this.profileLocation.decrypt(envelope);
       if (location) {
         this.form.patchValue({
           countryCode: location.countryCode,
@@ -651,10 +654,26 @@ export class ProfileComponent implements OnInit {
         }, { emitEvent: false });
         this.captureInitialState();
         this.updateSaveButton();
+        return;
       }
     } catch {
-      this.toastService.error('Could not decrypt your saved country and postal code.');
+      // Encryption not fully ready yet — skip without toasting.
+      return;
     }
+
+    // Unreadable or empty payload — leave fields blank and drop the bad envelope
+    // so unlock/sign-in does not keep failing.
+    this.form.patchValue({ countryCode: null, zipCode: '' }, { emitEvent: false });
+    if (this.profile) {
+      this.profile = { ...this.profile, encryptedLocation: null };
+    }
+    void firstValueFrom(this.profileService.updateLocation({ clearLocation: true }))
+      .then(result => {
+        if (result?.profile) {
+          this.profile = result.profile;
+        }
+      })
+      .catch(() => undefined);
   }
 
   private avatarCryptoScope(): { crewId?: number } {

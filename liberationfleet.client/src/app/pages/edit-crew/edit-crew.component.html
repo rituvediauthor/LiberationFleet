@@ -5,238 +5,228 @@
 
     <div class="form-card" *ngIf="!loading && !loadError">
       <form [formGroup]="form">
-        <div class="form-group readonly-group">
-          <label>Join code</label>
-          <div class="join-code-row">
-            <p class="join-code">{{ joinCode }}</p>
-            <button type="button" class="copy-btn" (click)="copyJoinCode()">Copy</button>
+        <app-collapsible-section title="General" [expanded]="true">
+          <div class="form-group readonly-group">
+            <label>Join code</label>
+            <div class="join-code-row">
+              <p class="join-code">{{ joinCode }}</p>
+              <button type="button" class="copy-btn" (click)="copyJoinCode()">Copy</button>
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="name">Crew name</label>
-          <input
-            id="name"
-            type="text"
-            formControlName="name"
-            class="form-input"
-            [maxlength]="nameMaxLength"
-            [attr.aria-invalid]="isInvalid('name')"
-            [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null">
-          <app-char-counter [current]="form.get('name')?.value?.length || 0" [max]="nameMaxLength"></app-char-counter>
-          <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
-            Crew name is required
-          </span>
-        </div>
+          <div class="form-group">
+            <label for="name">Crew name</label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              class="form-input"
+              [maxlength]="nameMaxLength"
+              [attr.aria-invalid]="isInvalid('name')"
+              [attr.aria-describedby]="isInvalid('name') ? 'name-error' : null">
+            <app-char-counter [current]="form.get('name')?.value?.length || 0" [max]="nameMaxLength"></app-char-counter>
+            <span id="name-error" class="error-text" role="alert" *ngIf="isInvalid('name')">
+              Crew name is required
+            </span>
+          </div>
 
-        <section class="settings-section">
-          <h2 class="section-title">Crew image</h2>
-          <p class="hint-text">One image shown on the crew hub. Requires file attachment permission.</p>
+          <div class="form-group">
+            <span class="group-label">Crew image</span>
+            <p class="hint-text">One image shown on the crew hub. Requires file attachment permission.</p>
 
-          <div class="entity-image-preview" *ngIf="displayImageUrl">
-            <img [src]="displayImageUrl" alt="Crew image preview">
-            <button
-              type="button"
-              class="text-btn"
+            <div class="entity-image-preview" *ngIf="displayImageUrl">
+              <img [src]="displayImageUrl" alt="Crew image preview">
+              <button
+                type="button"
+                class="text-btn"
+                *ngIf="canAttachFiles"
+                (click)="clearImage()">
+                Remove
+              </button>
+            </div>
+
+            <app-proposal-attachment-picker
               *ngIf="canAttachFiles"
-              (click)="clearImage()">
-              Remove
-            </button>
-          </div>
-
-          <app-proposal-attachment-picker
-            *ngIf="canAttachFiles"
-            [attachments]="imageAttachments"
-            [allowedKinds]="['image']"
-            [maxAttachments]="1"
-            [allowAudioRecording]="false"
-            [showEncryptToggle]="false"
-            (attachmentsChange)="onImageAttachmentsChange()">
-          </app-proposal-attachment-picker>
-          <p class="hint-text" *ngIf="!canAttachFiles">
-            You need crew file attachment permission to change the crew image.
-          </p>
-        </section>
-
-        <div class="form-group">
-          <label for="maxSize">Crew size</label>
-          <input
-            id="maxSize"
-            type="number"
-            formControlName="maxSize"
-            class="form-input"
-            [attr.min]="memberCount > 2 ? memberCount : 2"
-            max="50"
-            step="1"
-            [attr.aria-invalid]="isInvalid('maxSize')"
-            [attr.aria-describedby]="isInvalid('maxSize') ? 'maxSize-error maxSize-hint' : (memberCount > 0 ? 'maxSize-hint' : null)">
-          <span class="hint-text" id="maxSize-hint" *ngIf="memberCount > 0">Crew size cannot be less than the current member count ({{ memberCount }}).</span>
-          <span id="maxSize-error" class="error-text" role="alert" *ngIf="isInvalid('maxSize')">
-            Size must be between 2 and 50
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="privacy">Crew privacy</label>
-          <select id="privacy" formControlName="privacy" class="form-input">
-            <option value="Public">Public</option>
-            <option value="Private">Private</option>
-            <option value="InviteOnly">Invite Only</option>
-            <option value="FleetMembersOnly">Fleet members only</option>
-          </select>
-          <span class="hint-text">
-            Public appears in search. Private is findable only with the full join code. Invite Only cannot be searched — members must be invited. Fleet members only allows people already in your fleet (including No-Crew) to join.
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="scope">Crew location type</label>
-          <select id="scope" formControlName="scope" class="form-input">
-            <option value="Online">Online</option>
-            <option value="Local">Local</option>
-          </select>
-        </div>
-
-        <ng-container *ngIf="isLocal">
-          <div class="form-group">
-            <app-country-select
-              [countryCode]="form.get('countryCode')?.value"
-              (countryCodeChange)="onCountryCodeChange($event)"
-              [required]="true"
-              [allowClear]="false"
-              [showError]="isInvalid('countryCode')"
-              hint="Must match members' profile country for Local discovery.">
-            </app-country-select>
+              [attachments]="imageAttachments"
+              [allowedKinds]="['image']"
+              [maxAttachments]="1"
+              [allowAudioRecording]="false"
+              [showEncryptToggle]="false"
+              (attachmentsChange)="onImageAttachmentsChange()">
+            </app-proposal-attachment-picker>
+            <p class="hint-text" *ngIf="!canAttachFiles">
+              You need crew file attachment permission to change the crew image.
+            </p>
           </div>
 
           <div class="form-group">
-            <app-zip-code-list-editor
-              [zipCodes]="form.get('allowedZipCodes')?.value || []"
-              (zipCodesChange)="onAllowedZipCodesChange($event)"
-              [showError]="isInvalid('allowedZipCodes')"
-              hint="People whose profile country and postal code match an entry in this list can find and join this Local crew.">
-            </app-zip-code-list-editor>
+            <label for="maxSize">Crew size</label>
+            <input
+              id="maxSize"
+              type="number"
+              formControlName="maxSize"
+              class="form-input"
+              [attr.min]="memberCount > 2 ? memberCount : 2"
+              max="50"
+              step="1"
+              [attr.aria-invalid]="isInvalid('maxSize')"
+              [attr.aria-describedby]="isInvalid('maxSize') ? 'maxSize-error maxSize-hint' : (memberCount > 0 ? 'maxSize-hint' : null)">
+            <span class="hint-text" id="maxSize-hint" *ngIf="memberCount > 0">Crew size cannot be less than the current member count ({{ memberCount }}).</span>
+            <span id="maxSize-error" class="error-text" role="alert" *ngIf="isInvalid('maxSize')">
+              Size must be between 2 and 50
+            </span>
           </div>
-        </ng-container>
 
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="allowSurvivalThresholds">
-            Allow survival thresholds
-          </label>
-        </div>
+          <div class="form-group">
+            <label for="privacy">Crew privacy</label>
+            <select id="privacy" formControlName="privacy" class="form-input">
+              <option value="Public">Public</option>
+              <option value="Private">Private</option>
+              <option value="InviteOnly">Invite Only</option>
+              <option value="FleetMembersOnly">Fleet members only</option>
+            </select>
+            <span class="hint-text">
+              Public appears in search. Private is findable only with the full join code. Invite Only cannot be searched — members must be invited. Fleet members only allows people already in your fleet (including No-Crew) to join.
+            </span>
+          </div>
 
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="allowCrossCrewGiving">
-            Allow cross-crew giving
-          </label>
-          <span class="hint-text">When enabled, crewmates in this crew can give aid to crewmates in other crews in the same fleet. Your crew can still receive aid from other crews when this is off.</span>
-        </div>
+          <div class="form-group">
+            <label for="scope">Crew location type</label>
+            <select id="scope" formControlName="scope" class="form-input">
+              <option value="Online">Online</option>
+              <option value="Local">Local</option>
+            </select>
+          </div>
 
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="requireApprovalForEdits">
-            Require approval for crew edits
-          </label>
-        </div>
+          <ng-container *ngIf="isLocal">
+            <div class="form-group">
+              <app-country-select
+                [countryCode]="form.get('countryCode')?.value"
+                (countryCodeChange)="onCountryCodeChange($event)"
+                [required]="true"
+                [allowClear]="false"
+                [showError]="isInvalid('countryCode')"
+                hint="Must match members' profile country for Local discovery.">
+              </app-country-select>
+            </div>
 
-        <div class="form-group">
-          <label for="duoVoteTimeoutMode">Tied vote timeout</label>
-          <select id="duoVoteTimeoutMode" formControlName="duoVoteTimeoutMode" class="form-input">
-            <option value="AutoApprove">Auto approve</option>
-            <option value="AutoReject">Auto reject</option>
-            <option value="ResolveOnFirstVote">Resolve on next vote</option>
-          </select>
-          <span class="hint-text">Proposals can settle early once approve or reject reaches a majority of eligible voters (half, rounded up). When the timer expires instead, whichever side has more votes wins — including the author’s automatic approve alone (for example 1–0). Equal approve/reject counts (including 0–0) auto-approve or auto-reject per this setting, except “Resolve on next vote”, which keeps ties pending after expiry until a later vote tips approve or reject. With exactly two eligible voters, “Resolve on next vote” also settles early once one side leads (a second approve, or reject ahead of approve); a 1–1 tie stays pending.</span>
-        </div>
+            <div class="form-group">
+              <app-zip-code-list-editor
+                [zipCodes]="form.get('allowedZipCodes')?.value || []"
+                (zipCodesChange)="onAllowedZipCodesChange($event)"
+                [showError]="isInvalid('allowedZipCodes')"
+                hint="People whose profile country and postal code match an entry in this list can find and join this Local crew.">
+              </app-zip-code-list-editor>
+            </div>
+          </ng-container>
+        </app-collapsible-section>
 
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="autoResolveOverTime">
-            Auto-resolve over time
-          </label>
-          <span class="hint-text">When enabled, pending proposals resolve automatically when the approval timer expires. The side with more votes wins; equal counts use tied vote timeout above.</span>
-        </div>
+        <app-collapsible-section title="Giving Season">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="allowSurvivalThresholds">
+              Allow survival thresholds
+            </label>
+          </div>
 
-        <div class="form-group" *ngIf="autoResolveOverTime">
-          <label for="baseAutoResolveHours">Base auto-resolve (hours)</label>
-          <input
-            id="baseAutoResolveHours"
-            type="number"
-            formControlName="baseAutoResolveHours"
-            class="form-input"
-            min="1"
-            max="8760"
-            step="1"
-            [attr.aria-invalid]="isInvalid('baseAutoResolveHours')">
-          <span class="hint-text">Initial approval window before a pending proposal auto-resolves. If a reject vote is cast and “Change auto-resolve timer on first reject” is on, the timer switches to the post-reject duration instead.</span>
-          <span id="baseAutoResolveHours-error" class="error-text" role="alert" *ngIf="isInvalid('baseAutoResolveHours')">
-            Must be between 1 and 8760 hours
-          </span>
-        </div>
+          <div class="form-group">
+            <label for="inNeedDefaultThreshold">In-need threshold ($)</label>
+            <input
+              id="inNeedDefaultThreshold"
+              type="number"
+              formControlName="inNeedDefaultThreshold"
+              class="form-input"
+              min="0"
+              step="1"
+              [attr.aria-invalid]="isInvalid('inNeedDefaultThreshold')"
+              [attr.aria-describedby]="isInvalid('inNeedDefaultThreshold') ? 'inNeedDefaultThreshold-error inNeedDefaultThreshold-hint' : 'inNeedDefaultThreshold-hint'">
+            <span class="hint-text" id="inNeedDefaultThreshold-hint">Crewmates whose 3-month average contributions (excluding Library of Things) are at or below this cannot opt out of in-need and are automatically marked in need of aid.</span>
+            <span id="inNeedDefaultThreshold-error" class="error-text" role="alert" *ngIf="isInvalid('inNeedDefaultThreshold')">
+              Threshold must be 0 or greater
+            </span>
+          </div>
 
-        <div class="form-group checkbox-group" *ngIf="autoResolveOverTime">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="changeAutoResolveTimerOnFirstReject">
-            Change auto-resolve timer on first reject
-          </label>
-          <span class="hint-text">After the first reject vote, replace the remaining base timer with the post-reject duration below.</span>
-        </div>
+          <div class="form-group">
+            <label for="financialMembershipContributionFloor">Financial membership contribution floor ($)</label>
+            <input
+              id="financialMembershipContributionFloor"
+              type="number"
+              formControlName="financialMembershipContributionFloor"
+              class="form-input"
+              min="0"
+              step="1"
+              [attr.aria-invalid]="isInvalid('financialMembershipContributionFloor')"
+              [attr.aria-describedby]="isInvalid('financialMembershipContributionFloor') ? 'financialMembershipContributionFloor-error financialMembershipContributionFloor-hint' : 'financialMembershipContributionFloor-hint'">
+            <span class="hint-text" id="financialMembershipContributionFloor-hint">Crewmates without a crew role must keep a 3-month average contribution (including Library of Things) at or above this amount to remain financial members. Set to 0 to require any positive average.</span>
+            <span id="financialMembershipContributionFloor-error" class="error-text" role="alert" *ngIf="isInvalid('financialMembershipContributionFloor')">
+              Floor must be 0 or greater
+            </span>
+          </div>
 
-        <div class="form-group" *ngIf="autoResolveOverTime && changeAutoResolveTimerOnFirstReject">
-          <label for="autoResolveHoursAfterFirstReject">Auto-resolve after first reject (hours)</label>
-          <input
-            id="autoResolveHoursAfterFirstReject"
-            type="number"
-            formControlName="autoResolveHoursAfterFirstReject"
-            class="form-input"
-            min="1"
-            max="8760"
-            step="1"
-            [attr.aria-invalid]="isInvalid('autoResolveHoursAfterFirstReject')">
-          <span class="hint-text">When the first reject vote is cast, the approval timer resets to this duration.</span>
-          <span id="autoResolveHoursAfterFirstReject-error" class="error-text" role="alert" *ngIf="isInvalid('autoResolveHoursAfterFirstReject')">
-            Must be between 1 and 8760 hours
-          </span>
-        </div>
+          <div class="nested-settings">
+            <h3 class="nested-title">Member cycle cap</h3>
+            <div class="form-group">
+              <label for="memberCycleCapMode">Cap mode</label>
+              <select id="memberCycleCapMode" formControlName="memberCycleCapMode" class="form-input">
+                <option value="CapacityBased">Capacity based</option>
+                <option value="Fixed">Fixed amount</option>
+              </select>
+            </div>
 
-        <div class="form-group">
-          <label for="inNeedDefaultThreshold">In-need threshold ($)</label>
-          <input
-            id="inNeedDefaultThreshold"
-            type="number"
-            formControlName="inNeedDefaultThreshold"
-            class="form-input"
-            min="0"
-            step="1"
-            [attr.aria-invalid]="isInvalid('inNeedDefaultThreshold')"
-            [attr.aria-describedby]="isInvalid('inNeedDefaultThreshold') ? 'inNeedDefaultThreshold-error inNeedDefaultThreshold-hint' : 'inNeedDefaultThreshold-hint'">
-          <span class="hint-text" id="inNeedDefaultThreshold-hint">Crewmates whose 3-month average contributions (excluding Library of Things) are at or below this cannot opt out of in-need and are automatically marked in need of aid.</span>
-          <span id="inNeedDefaultThreshold-error" class="error-text" role="alert" *ngIf="isInvalid('inNeedDefaultThreshold')">
-            Threshold must be 0 or greater
-          </span>
-        </div>
+            <div class="form-group" *ngIf="!isMemberCapacityBased">
+              <label for="memberCycleCapFixedAmount">Fixed member cycle cap ($)</label>
+              <input id="memberCycleCapFixedAmount" type="number" formControlName="memberCycleCapFixedAmount" class="form-input" min="0" step="0.01">
+            </div>
 
-        <div class="form-group">
-          <label for="financialMembershipContributionFloor">Financial membership contribution floor ($)</label>
-          <input
-            id="financialMembershipContributionFloor"
-            type="number"
-            formControlName="financialMembershipContributionFloor"
-            class="form-input"
-            min="0"
-            step="1"
-            [attr.aria-invalid]="isInvalid('financialMembershipContributionFloor')"
-            [attr.aria-describedby]="isInvalid('financialMembershipContributionFloor') ? 'financialMembershipContributionFloor-error financialMembershipContributionFloor-hint' : 'financialMembershipContributionFloor-hint'">
-          <span class="hint-text" id="financialMembershipContributionFloor-hint">Crewmates without a crew role must keep a 3-month average contribution (including Library of Things) at or above this amount to remain financial members. Set to 0 to require any positive average.</span>
-          <span id="financialMembershipContributionFloor-error" class="error-text" role="alert" *ngIf="isInvalid('financialMembershipContributionFloor')">
-            Floor must be 0 or greater
-          </span>
-        </div>
+            <div class="form-group capacity-row" *ngIf="isMemberCapacityBased">
+              <label for="memberCycleCapMultiplier">Capacity multiplier</label>
+              <div class="capacity-input-row">
+                <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
+                <input id="memberCycleCapMultiplier" type="number" formControlName="memberCycleCapMultiplier" class="form-input" min="0" step="0.01">
+              </div>
+              <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
+            </div>
 
-        <section class="settings-section">
-          <h2 class="section-title">Library of Things</h2>
+            <p class="preview-text">Effective member cycle cap preview: ${{ memberCycleCapPreview | number:'1.0-2' }}</p>
+          </div>
+
+          <div class="nested-settings">
+            <h3 class="nested-title">Non-member cycle cap</h3>
+            <div class="form-group">
+              <label for="nonMemberCycleCapMode">Cap mode</label>
+              <select id="nonMemberCycleCapMode" formControlName="nonMemberCycleCapMode" class="form-input">
+                <option value="CapacityBased">Capacity based</option>
+                <option value="Fixed">Fixed amount</option>
+              </select>
+            </div>
+
+            <div class="form-group" *ngIf="!isNonMemberCapacityBased">
+              <label for="nonMemberCycleCapFixedAmount">Fixed non-member cycle cap ($)</label>
+              <input id="nonMemberCycleCapFixedAmount" type="number" formControlName="nonMemberCycleCapFixedAmount" class="form-input" min="0" step="0.01">
+            </div>
+
+            <div class="form-group capacity-row" *ngIf="isNonMemberCapacityBased">
+              <label for="nonMemberCycleCapMultiplier">Capacity multiplier</label>
+              <div class="capacity-input-row">
+                <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
+                <input id="nonMemberCycleCapMultiplier" type="number" formControlName="nonMemberCycleCapMultiplier" class="form-input" min="0" step="0.01">
+              </div>
+              <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
+            </div>
+
+            <p class="preview-text">Effective non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="allowCrossCrewGiving">
+              Allow cross-crew giving
+            </label>
+            <span class="hint-text">When enabled, crewmates in this crew can give aid to crewmates in other crews in the same fleet. Your crew can still receive aid from other crews when this is off.</span>
+          </div>
+        </app-collapsible-section>
+
+        <app-collapsible-section title="Library of Things">
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
               <input type="checkbox" formControlName="libraryOfThingsEnabled">
@@ -257,96 +247,113 @@
               </li>
             </ul>
           </div>
-        </section>
+        </app-collapsible-section>
 
-        <section class="settings-section">
-          <h2 class="section-title">Member cycle cap</h2>
-          <div class="form-group">
-            <label for="memberCycleCapMode">Cap mode</label>
-            <select id="memberCycleCapMode" formControlName="memberCycleCapMode" class="form-input">
-              <option value="CapacityBased">Capacity based</option>
-              <option value="Fixed">Fixed amount</option>
-            </select>
-          </div>
-
-          <div class="form-group" *ngIf="!isMemberCapacityBased">
-            <label for="memberCycleCapFixedAmount">Fixed member cycle cap ($)</label>
-            <input id="memberCycleCapFixedAmount" type="number" formControlName="memberCycleCapFixedAmount" class="form-input" min="0" step="0.01">
-          </div>
-
-          <div class="form-group capacity-row" *ngIf="isMemberCapacityBased">
-            <label for="memberCycleCapMultiplier">Capacity multiplier</label>
-            <div class="capacity-input-row">
-              <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
-              <input id="memberCycleCapMultiplier" type="number" formControlName="memberCycleCapMultiplier" class="form-input" min="0" step="0.01">
-            </div>
-            <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
-          </div>
-
-          <p class="preview-text">Effective member cycle cap preview: ${{ memberCycleCapPreview | number:'1.0-2' }}</p>
-        </section>
-
-        <section class="settings-section">
-          <h2 class="section-title">Non-member cycle cap</h2>
-          <div class="form-group">
-            <label for="nonMemberCycleCapMode">Cap mode</label>
-            <select id="nonMemberCycleCapMode" formControlName="nonMemberCycleCapMode" class="form-input">
-              <option value="CapacityBased">Capacity based</option>
-              <option value="Fixed">Fixed amount</option>
-            </select>
-          </div>
-
-          <div class="form-group" *ngIf="!isNonMemberCapacityBased">
-            <label for="nonMemberCycleCapFixedAmount">Fixed non-member cycle cap ($)</label>
-            <input id="nonMemberCycleCapFixedAmount" type="number" formControlName="nonMemberCycleCapFixedAmount" class="form-input" min="0" step="0.01">
-          </div>
-
-          <div class="form-group capacity-row" *ngIf="isNonMemberCapacityBased">
-            <label for="nonMemberCycleCapMultiplier">Capacity multiplier</label>
-            <div class="capacity-input-row">
-              <span class="capacity-prefix">${{ monthlyGivingCapacity | number:'1.0-2' }} ×</span>
-              <input id="nonMemberCycleCapMultiplier" type="number" formControlName="nonMemberCycleCapMultiplier" class="form-input" min="0" step="0.01">
-            </div>
-            <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
-          </div>
-
-          <p class="preview-text">Effective non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>
-        </section>
-
-        <section class="settings-section">
-          <h2 class="section-title">Crew content permissions</h2>
+        <app-collapsible-section title="Administrative">
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
-              <input type="checkbox" formControlName="allowCrewmateFileAttachments">
-              Allow crewmates to attach files to crew content
+              <input type="checkbox" formControlName="requireApprovalForEdits">
+              Require approval for crew edits
             </label>
-            <span class="hint-text">Applies to chats, posts, comments, and library offerings. Does not affect friend DMs.</span>
           </div>
 
-          <ng-container *ngIf="allowCrewmateFileAttachments">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="autoResolveOverTime">
+              Auto-resolve over time
+            </label>
+            <span class="hint-text">When enabled, pending proposals resolve automatically when the approval timer expires. The side with more votes wins; equal counts use tied vote timeout below.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="duoVoteTimeoutMode">Tied vote timeout</label>
+            <select id="duoVoteTimeoutMode" formControlName="duoVoteTimeoutMode" class="form-input">
+              <option value="AutoApprove">Auto approve</option>
+              <option value="AutoReject">Auto reject</option>
+              <option value="ResolveOnFirstVote">Resolve on next vote</option>
+            </select>
+            <span class="hint-text">Proposals can settle early once approve or reject reaches a majority of eligible voters (half, rounded up). When the timer expires instead, whichever side has more votes wins — including the author’s automatic approve alone (for example 1–0). Equal approve/reject counts (including 0–0) auto-approve or auto-reject per this setting, except “Resolve on next vote”, which keeps ties pending after expiry until a later vote tips approve or reject. With exactly two eligible voters, “Resolve on next vote” also settles early once one side leads (a second approve, or reject ahead of approve); a 1–1 tie stays pending.</span>
+          </div>
+
+          <ng-container *ngIf="autoResolveOverTime">
             <div class="form-group">
-              <label for="minimumCrewmateTenureDaysForAttachments">Minimum crewmate tenure for attachments (days)</label>
-              <input id="minimumCrewmateTenureDaysForAttachments" type="number" formControlName="minimumCrewmateTenureDaysForAttachments" class="form-input" min="0" step="1">
+              <label for="baseAutoResolveHours">Base auto-resolve (hours)</label>
+              <input
+                id="baseAutoResolveHours"
+                type="number"
+                formControlName="baseAutoResolveHours"
+                class="form-input"
+                min="1"
+                max="8760"
+                step="1"
+                [attr.aria-invalid]="isInvalid('baseAutoResolveHours')">
+              <span class="hint-text">Initial approval window before a pending proposal auto-resolves. If a reject vote is cast and “Change auto-resolve timer on first reject” is on, the timer switches to the post-reject duration instead.</span>
+              <span id="baseAutoResolveHours-error" class="error-text" role="alert" *ngIf="isInvalid('baseAutoResolveHours')">
+                Must be between 1 and 8760 hours
+              </span>
             </div>
 
-            <div class="form-group">
-              <label for="minimumContributionForAttachments">Minimum lifetime contribution for attachments ($)</label>
-              <input id="minimumContributionForAttachments" type="number" formControlName="minimumContributionForAttachments" class="form-input" min="0" step="0.01">
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="changeAutoResolveTimerOnFirstReject">
+                Change auto-resolve timer on first reject
+              </label>
+              <span class="hint-text">After the first reject vote, replace the remaining base timer with the post-reject duration below.</span>
+            </div>
+
+            <div class="form-group" *ngIf="changeAutoResolveTimerOnFirstReject">
+              <label for="autoResolveHoursAfterFirstReject">Auto-resolve after first reject (hours)</label>
+              <input
+                id="autoResolveHoursAfterFirstReject"
+                type="number"
+                formControlName="autoResolveHoursAfterFirstReject"
+                class="form-input"
+                min="1"
+                max="8760"
+                step="1"
+                [attr.aria-invalid]="isInvalid('autoResolveHoursAfterFirstReject')">
+              <span class="hint-text">When the first reject vote is cast, the approval timer resets to this duration.</span>
+              <span id="autoResolveHoursAfterFirstReject-error" class="error-text" role="alert" *ngIf="isInvalid('autoResolveHoursAfterFirstReject')">
+                Must be between 1 and 8760 hours
+              </span>
             </div>
           </ng-container>
 
-          <div class="form-group">
-            <label for="minimumCrewmateTenureDaysForProposals">Minimum crewmate tenure to create proposals (days)</label>
-            <input id="minimumCrewmateTenureDaysForProposals" type="number" formControlName="minimumCrewmateTenureDaysForProposals" class="form-input" min="0" step="1">
-          </div>
+          <div class="nested-settings">
+            <h3 class="nested-title">Crew content permissions</h3>
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="allowCrewmateFileAttachments">
+                Allow crewmates to attach files to crew content
+              </label>
+              <span class="hint-text">Applies to chats, posts, comments, and library offerings. Does not affect friend DMs.</span>
+            </div>
 
-          <div class="form-group">
-            <label for="minimumContributionForProposals">Minimum lifetime contribution to create proposals ($)</label>
-            <input id="minimumContributionForProposals" type="number" formControlName="minimumContributionForProposals" class="form-input" min="0" step="0.01">
-          </div>
+            <ng-container *ngIf="allowCrewmateFileAttachments">
+              <div class="form-group">
+                <label for="minimumCrewmateTenureDaysForAttachments">Minimum crewmate tenure for attachments (days)</label>
+                <input id="minimumCrewmateTenureDaysForAttachments" type="number" formControlName="minimumCrewmateTenureDaysForAttachments" class="form-input" min="0" step="1">
+              </div>
 
-          <span class="hint-text">Organizers bypass all requirements. Voting has no requirements. Individual overrides can be granted via proposal.</span>
-        </section>
+              <div class="form-group">
+                <label for="minimumContributionForAttachments">Minimum lifetime contribution for attachments ($)</label>
+                <input id="minimumContributionForAttachments" type="number" formControlName="minimumContributionForAttachments" class="form-input" min="0" step="0.01">
+              </div>
+            </ng-container>
+
+            <div class="form-group">
+              <label for="minimumCrewmateTenureDaysForProposals">Minimum crewmate tenure to create proposals (days)</label>
+              <input id="minimumCrewmateTenureDaysForProposals" type="number" formControlName="minimumCrewmateTenureDaysForProposals" class="form-input" min="0" step="1">
+            </div>
+
+            <div class="form-group">
+              <label for="minimumContributionForProposals">Minimum lifetime contribution to create proposals ($)</label>
+              <input id="minimumContributionForProposals" type="number" formControlName="minimumContributionForProposals" class="form-input" min="0" step="0.01">
+            </div>
+
+            <span class="hint-text">Organizers bypass all requirements. Voting has no requirements. Individual overrides can be granted via proposal.</span>
+          </div>
+        </app-collapsible-section>
       </form>
 
       <button type="button" class="leave-btn" (click)="onLeaveCrew()">Leave crew</button>

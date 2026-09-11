@@ -387,6 +387,7 @@
 
 @media (max-width: 600px) {
   .profile-card {
-    --lf-collapsible-inset: calc(20px + var(--lf-content-gutter, 16px));
+    /* Span to the card edges (match card padding), not the screen. */
+    --lf-collapsible-inset: 20px;
   }
 }

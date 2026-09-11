@@ -9,6 +9,7 @@ import { ProposalAttachmentPickerComponent } from '../../../components/proposal-
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { ZipCodeListEditorComponent } from '../../../components/zip-code-list-editor/zip-code-list-editor.component';
 import { CountrySelectComponent } from '../../../components/country-select/country-select.component';
+import { CollapsibleSectionComponent } from '../../../components/collapsible-section/collapsible-section.component';
 import { FleetService } from '../../../services/fleet.service';
 import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
@@ -34,7 +35,8 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
     ProposalAttachmentPickerComponent,
     CharCounterComponent,
     CountrySelectComponent,
-    ZipCodeListEditorComponent
+    ZipCodeListEditorComponent,
+    CollapsibleSectionComponent
   ],
   templateUrl: './edit-fleet.component.html',
   styleUrl: './edit-fleet.component.css'
