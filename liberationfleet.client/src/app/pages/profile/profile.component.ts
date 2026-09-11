@@ -38,6 +38,7 @@ import { CUSTOM_PLATFORM_OPTION_ID, EncryptedLocation, PaymentPlatformAccount, P
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { PendingAttachment } from '../../models/proposal.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
+import { navigateToDonate } from '../../utils/donation-nav.util';
 import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
@@ -371,6 +372,11 @@ export class ProfileComponent implements OnInit {
   onLogout() {
     this.authService.logout();
     this.router.navigate(['/sign-in']);
+  }
+
+  goToDonate(event?: Event) {
+    event?.preventDefault();
+    navigateToDonate(this.router);
   }
 
   openDeleteAccountDialog() {

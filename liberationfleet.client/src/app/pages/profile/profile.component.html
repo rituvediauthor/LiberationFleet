@@ -72,7 +72,7 @@
 
           <p class="section-hint donation-hint">
             App donations support Liberation Fleet (hosting/development), not crew mutual aid.
-            <a routerLink="/app/donate">Donate</a>
+            <a href="/app/donate" (click)="goToDonate($event)">Donate</a>
           </p>
           <p class="hint-text priority-hint">
             Live mutual-aid priority is on your Crewmate ID. Organizers use −1 for Giving Season cycle order so they receive concentrated aid last when in need. Library of Things uses the full formula as if you were not the organizer. Not-in-need members leave the active concentrated-aid queue without changing the formula score.

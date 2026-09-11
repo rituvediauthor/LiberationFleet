@@ -6,6 +6,7 @@ import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.compo
 import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { NotificationService } from '../../services/notification.service';
 import { CrewNotificationAreaCounts, emptyAreaCounts } from '../../utils/notification-area.util';
+import { navigateToDonate } from '../../utils/donation-nav.util';
 
 @Component({
   selector: 'app-user-home',
@@ -53,6 +54,6 @@ export class UserHomeComponent implements OnInit, OnDestroy {
   }
 
   goToDonate() {
-    this.router.navigate(['/app/donate']);
+    navigateToDonate(this.router);
   }
 }

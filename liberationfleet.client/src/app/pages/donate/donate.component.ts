@@ -7,6 +7,10 @@ import { NavigationService } from '../../services/navigation.service';
 import { DonationService } from '../../services/donation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { DONATION_PRESET_AMOUNTS_USD } from '../../models/donation.model';
+import {
+  isStagingDonationHost,
+  STAGING_GOFUNDME_DONATION_URL
+} from '../../utils/donation-nav.util';
 
 @Component({
   selector: 'app-donate',
@@ -23,9 +27,8 @@ export class DonateComponent implements OnInit {
   submitting = false;
   donationsEnabled = true;
   statusNote = '';
-  /** Staging hostnames cannot complete real donations; warn before checkout attempts. */
-  isStagingEnvironment =
-    typeof location !== 'undefined' && /staging/i.test(location.hostname);
+  /** Staging uses GoFundMe; Stripe amount page is production-only. */
+  isStagingEnvironment = isStagingDonationHost();
 
   private navigation = inject(NavigationService);
   private donationService = inject(DonationService);
@@ -33,11 +36,16 @@ export class DonateComponent implements OnInit {
   private route = inject(ActivatedRoute);
 
   ngOnInit() {
+    if (this.isStagingEnvironment) {
+      window.location.assign(STAGING_GOFUNDME_DONATION_URL);
+      return;
+    }
+
     this.backButton = this.navigation.createBackButton(['/app/profile']);
     this.donationService.getSummary().subscribe({
       next: summary => {
         this.donationsEnabled = summary.donationsEnabled;
-        if (!summary.donationsEnabled && !this.isStagingEnvironment) {
+        if (!summary.donationsEnabled) {
           this.statusNote = 'Donations are being set up. Please check back soon.';
         }
       }

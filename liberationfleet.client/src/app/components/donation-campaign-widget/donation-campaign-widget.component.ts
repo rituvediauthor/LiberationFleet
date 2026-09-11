@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { DonationService } from '../../services/donation.service';
 import { DonationCampaignUrgency } from '../../models/donation.model';
+import { navigateToDonate } from '../../utils/donation-nav.util';
 
 @Component({
   selector: 'app-donation-campaign-widget',
@@ -37,7 +38,7 @@ export class DonationCampaignWidgetComponent implements OnChanges {
   goDonate(event?: Event) {
     event?.stopPropagation();
     this.acknowledgeOnce();
-    void this.router.navigate(['/app/donate']);
+    navigateToDonate(this.router);
   }
 
   dismiss(event: Event) {
