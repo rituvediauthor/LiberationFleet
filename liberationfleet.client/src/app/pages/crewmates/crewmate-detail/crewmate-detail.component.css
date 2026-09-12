@@ -16,9 +16,12 @@
 .profile-card {
   background: var(--lf-color-bg-surface);
   border: 1px solid var(--lf-color-border);
-  border-radius: 12px;
-  padding: 20px;
-  --lf-collapsible-inset: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  /* Clip collapsible header bleed to the card — never the screen gutter. */
+  overflow: hidden;
+  --lf-collapsible-inset: 32px;
 }
 
 .profile-hero {
@@ -387,7 +390,8 @@
 
 @media (max-width: 600px) {
   .profile-card {
+    padding: 24px;
     /* Span to the card edges (match card padding), not the screen. */
-    --lf-collapsible-inset: 20px;
+    --lf-collapsible-inset: 24px;
   }
 }
