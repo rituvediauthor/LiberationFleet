@@ -38,6 +38,7 @@ import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { isMentionSelectionPending } from '../../../utils/mention-focus.util';
 import { NotificationTargetDirective } from '../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
@@ -337,13 +338,21 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onComposerBlur() {
     setTimeout(() => {
-      if (this.pickingFile) {
+      if (this.pickingFile || isMentionSelectionPending()) {
+        this.composerUiMinimized = false;
+        this.composerFocused = true;
         return;
       }
-      if (!this.messageText.trim() && this.messageAttachments.length === 0) {
-        this.composerFocused = false;
+      if (document.activeElement?.classList.contains('mention-composer-input')) {
+        this.composerFocused = true;
+        return;
       }
-    }, 150);
+      if (this.messageText.trim() || this.messageAttachments.length > 0 || this.editingMessageId != null) {
+        this.composerFocused = true;
+        return;
+      }
+      this.composerFocused = false;
+    }, 200);
   }
 
   onFileDialogOpenChange(open: boolean) {
@@ -371,7 +380,13 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.composerUiMinimized) {
       return false;
     }
-    return this.composerFocused || this.pickingFile || this.messageAttachments.length > 0 || this.editingMessageId != null;
+    return (
+      this.composerFocused ||
+      this.pickingFile ||
+      this.messageAttachments.length > 0 ||
+      this.editingMessageId != null ||
+      !!this.messageText.trim()
+    );
   }
 
   minimizeComposer() {

@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MentionAutocompleteDirective } from '../../../directives/mention-autocomplete.directive';
+import { isMentionSelectionPending } from '../../../utils/mention-focus.util';
 import { MentionTextComponent } from '../../../components/mention-text/mention-text.component';
 import { ProposalAttachmentDisplayComponent } from '../../../components/proposal-attachment-display/proposal-attachment-display.component';
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
@@ -204,13 +205,21 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
 
   onComposerBlur() {
     setTimeout(() => {
-      if (this.pickingFile) {
+      if (this.pickingFile || isMentionSelectionPending()) {
+        this.composerUiMinimized = false;
+        this.composerFocused = true;
         return;
       }
-      if (!this.messageText.trim() && this.messageAttachments.length === 0) {
-        this.composerFocused = false;
+      if (document.activeElement?.classList.contains('mention-composer-input')) {
+        this.composerFocused = true;
+        return;
       }
-    }, 150);
+      if (this.messageText.trim() || this.messageAttachments.length > 0) {
+        this.composerFocused = true;
+        return;
+      }
+      this.composerFocused = false;
+    }, 200);
   }
 
   onFileDialogOpenChange(open: boolean) {

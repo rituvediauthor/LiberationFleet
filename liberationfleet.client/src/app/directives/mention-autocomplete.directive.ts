@@ -20,6 +20,7 @@ import {
   insertMention,
   resolveActiveMentionQuery
 } from '../utils/mention.util';
+import { beginMentionSelection, isMentionSelectionPending } from '../utils/mention-focus.util';
 
 @Directive({
   selector: 'textarea[appMentionAutocomplete]',
@@ -51,6 +52,7 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   private classObserver: MutationObserver | null = null;
   private mentionProbeTimer: ReturnType<typeof setTimeout> | null = null;
   private blurHideTimer: ReturnType<typeof setTimeout> | null = null;
+  private selectingCandidate = false;
 
   ngOnInit() {
     this.setupComposerHighlight();
@@ -168,7 +170,7 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     // Delay so pointer/touch selection on the dropdown can run first.
     this.blurHideTimer = setTimeout(() => {
       this.blurHideTimer = null;
-      if (document.activeElement === this.host.nativeElement) {
+      if (isMentionSelectionPending() || document.activeElement === this.host.nativeElement) {
         return;
       }
       this.hideDropdown();
@@ -401,6 +403,11 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   }
 
   private selectCandidate(candidate: MentionCandidate) {
+    if (this.selectingCandidate) {
+      return;
+    }
+    this.selectingCandidate = true;
+    beginMentionSelection();
     if (this.blurHideTimer != null) {
       clearTimeout(this.blurHideTimer);
       this.blurHideTimer = null;
@@ -413,12 +420,33 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     const result = insertMention(textarea.value, insertAt, candidate.username);
     textarea.value = result.text;
     textarea.setSelectionRange(result.cursorIndex, result.cursorIndex);
+    this.ngControl?.control?.setValue(result.text, { emitEvent: true });
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     this.usernameToId.set(candidate.username.toLowerCase(), candidate.userId);
     this.mentionQueryActive = false;
     this.hideDropdown();
     this.syncComposerFromValue(textarea.value);
-    textarea.focus();
+    this.restoreTextareaFocus(textarea);
+    setTimeout(() => {
+      this.selectingCandidate = false;
+    }, 300);
+  }
+
+  private restoreTextareaFocus(textarea: HTMLTextAreaElement) {
+    const focus = () => {
+      beginMentionSelection();
+      textarea.focus({ preventScroll: true });
+      // Re-assert caret after focus; iOS often drops it.
+      try {
+        const pos = textarea.selectionStart ?? textarea.value.length;
+        textarea.setSelectionRange(pos, pos);
+      } catch {
+        // Ignore selection errors on unsupported hosts.
+      }
+    };
+    focus();
+    setTimeout(focus, 0);
+    setTimeout(focus, 50);
   }
 
   private syncMentionedUserIds(value = this.host.nativeElement.value) {
@@ -446,20 +474,23 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
 
       const text = this.renderer.createText(`@${candidate.username}`);
       this.renderer.appendChild(item, text);
-      // pointerdown fires before blur on touch devices; mousedown alone is unreliable on iOS.
-      this.renderer.listen(item, 'pointerdown', (event: Event) => {
+      // Prevent textarea blur (same pattern as composer chrome buttons). touchstart is
+      // needed on iOS, where blur can fire before pointerdown.
+      const pick = (event: Event) => {
         event.preventDefault();
+        event.stopPropagation();
+        beginMentionSelection();
         this.selectCandidate(candidate);
-      });
+      };
+      this.renderer.listen(item, 'touchstart', pick);
+      this.renderer.listen(item, 'mousedown', pick);
+      this.renderer.listen(item, 'pointerdown', pick);
       this.renderer.appendChild(this.dropdown, item);
     });
 
     this.renderer.appendChild(document.body, this.dropdown);
     this.addRepositionListeners();
-    requestAnimationFrame(() => {
-      this.updateDropdownPosition();
-      this.scrollActiveItemIntoView();
-    });
+    requestAnimationFrame(() => this.updateDropdownPosition());
   }
 
   private updateDropdownPosition() {
@@ -468,15 +499,19 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     }
 
     const textarea = this.host.nativeElement;
-    const rect = textarea.getBoundingClientRect();
+    const anchor =
+      (textarea.closest('.mention-composer-shell') as HTMLElement | null) ??
+      (textarea.closest('.composer') as HTMLElement | null) ??
+      textarea;
+    const rect = anchor.getBoundingClientRect();
     const gap = 6;
     const viewportPadding = 8;
     const vv = window.visualViewport;
     const viewTop = vv?.offsetTop ?? 0;
     const viewLeft = vv?.offsetLeft ?? 0;
-    const viewHeight = vv?.height ?? window.innerHeight;
     const viewWidth = vv?.width ?? window.innerWidth;
-    const viewBottom = viewTop + viewHeight;
+    // position:fixed is laid out in the layout viewport; match getBoundingClientRect.
+    const layoutHeight = window.innerHeight;
 
     this.renderer.setStyle(this.dropdown, 'position', 'fixed');
     this.renderer.setStyle(
@@ -490,38 +525,19 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       `${Math.min(Math.max(rect.width, 180), viewWidth - viewportPadding * 2)}px`
     );
     this.renderer.setStyle(this.dropdown, 'right', 'auto');
-    this.renderer.setStyle(this.dropdown, 'bottom', 'auto');
-    this.renderer.setStyle(this.dropdown, 'max-height', 'none');
+    this.renderer.setStyle(this.dropdown, 'top', 'auto');
 
-    const dropdownHeight = this.dropdown.offsetHeight;
-    const spaceAbove = rect.top - viewTop - viewportPadding;
-    const spaceBelow = viewBottom - rect.bottom - viewportPadding;
+    // Keep the menu in the visible band above the composer (keyboard / visualViewport).
+    const spaceAbove = Math.max(0, rect.top - viewTop - viewportPadding);
+    const maxHeight = Math.max(48, spaceAbove - gap);
+    this.renderer.setStyle(this.dropdown, 'max-height', `${maxHeight}px`);
+    this.renderer.setStyle(this.dropdown, 'overflow-y', 'auto');
 
-    let top: number;
-    // Prefer above the composer so the menu stays clear of the soft keyboard.
-    if (spaceAbove >= dropdownHeight + gap || spaceAbove >= spaceBelow) {
-      top = rect.top - dropdownHeight - gap;
-      this.renderer.addClass(this.dropdown, 'mention-dropdown-above');
-      this.renderer.removeClass(this.dropdown, 'mention-dropdown-below');
-    } else {
-      top = rect.bottom + gap;
-      this.renderer.addClass(this.dropdown, 'mention-dropdown-below');
-      this.renderer.removeClass(this.dropdown, 'mention-dropdown-above');
-    }
-
-    const minTop = viewTop + viewportPadding;
-    const maxTop = viewBottom - dropdownHeight - viewportPadding;
-    top = Math.min(Math.max(minTop, top), Math.max(minTop, maxTop));
-    this.renderer.setStyle(this.dropdown, 'top', `${top}px`);
-  }
-
-  private scrollActiveItemIntoView() {
-    if (!this.dropdown) {
-      return;
-    }
-
-    const active = this.dropdown.querySelector('.mention-dropdown-item.active');
-    active?.scrollIntoView({ block: 'nearest' });
+    // Hug the top of the composer: pin the dropdown's bottom edge just above the anchor.
+    const bottom = Math.max(gap, layoutHeight - rect.top + gap);
+    this.renderer.setStyle(this.dropdown, 'bottom', `${bottom}px`);
+    this.renderer.addClass(this.dropdown, 'mention-dropdown-above');
+    this.renderer.removeClass(this.dropdown, 'mention-dropdown-below');
   }
 
   private addRepositionListeners() {

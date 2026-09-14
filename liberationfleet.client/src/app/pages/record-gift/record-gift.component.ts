@@ -218,6 +218,12 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.platforms.filter(p => commonIds.includes(p.id));
   }
 
+  /** Prefer shared platforms; fall back to all crew platforms so the control is always usable. */
+  customPlatformOptions(): PaymentPlatformOption[] {
+    const common = this.customCommonPlatforms();
+    return common.length > 0 ? common : this.platforms;
+  }
+
   needsMiddlemanSelector(entry: ReceptionOrderEntry): boolean {
     return (entry.commonPlatformIds?.length ?? 0) === 0 && (entry.middlemanOptions?.length ?? 0) > 0;
   }
@@ -400,8 +406,10 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onCustomRecipientChange() {
-    const common = this.customCommonPlatforms();
-    const defaultId = common[0]?.id ?? '';
+    const options = this.customPlatformOptions();
+    const current = Number(this.form.get('customPaymentPlatformId')?.value);
+    const stillValid = current > 0 && options.some(p => p.id === current);
+    const defaultId = stillValid ? current : (options[0]?.id ?? '');
     this.form.patchValue({ customPaymentPlatformId: defaultId }, { emitEvent: true });
   }
 

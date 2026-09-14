@@ -28,6 +28,7 @@ import { ContentPreferenceService } from '../../../../services/content-preferenc
 import { ProfileService } from '../../../../services/profile.service';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../../services/encryption-content.service';
 import { MentionAutocompleteDirective } from '../../../../directives/mention-autocomplete.directive';
+import { isMentionSelectionPending } from '../../../../utils/mention-focus.util';
 import { NotificationTargetDirective } from '../../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../../components/report-content-dialog/report-content-dialog.component';
@@ -244,14 +245,22 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
   onCommentBlur() {
     setTimeout(() => {
-      if (this.pickingFile) {
+      if (this.pickingFile || isMentionSelectionPending()) {
+        this.commentUiMinimized = false;
+        this.commentFocused = true;
         return;
       }
-      if (!this.commentText.trim() && this.commentAttachments.length === 0) {
-        this.commentFocused = false;
-        this.replyParentId = null;
+      if (document.activeElement?.classList.contains('mention-composer-input')) {
+        this.commentFocused = true;
+        return;
       }
-    }, 150);
+      if (this.commentText.trim() || this.commentAttachments.length > 0 || this.editingCommentId != null || this.replyParentId != null) {
+        this.commentFocused = true;
+        return;
+      }
+      this.commentFocused = false;
+      this.replyParentId = null;
+    }, 200);
   }
 
   onFileDialogOpenChange(open: boolean) {
@@ -279,7 +288,13 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
     if (this.commentUiMinimized) {
       return false;
     }
-    return this.commentFocused || this.pickingFile || this.commentAttachments.length > 0 || this.editingCommentId != null;
+    return (
+      this.commentFocused ||
+      this.pickingFile ||
+      this.commentAttachments.length > 0 ||
+      this.editingCommentId != null ||
+      !!this.commentText.trim()
+    );
   }
 
   minimizeCommentComposer() {

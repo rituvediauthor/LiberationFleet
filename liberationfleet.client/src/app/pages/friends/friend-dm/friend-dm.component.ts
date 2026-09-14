@@ -30,6 +30,7 @@ import { NotificationContentService } from '../../../services/notification-conte
 import { DirectMessage } from '../../../models/friend.model';
 import { PendingAttachment, ProposalAttachment } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
+import { isMentionSelectionPending } from '../../../utils/mention-focus.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
@@ -191,13 +192,21 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onComposerBlur() {
     setTimeout(() => {
-      if (this.pickingFile) {
+      if (this.pickingFile || isMentionSelectionPending()) {
+        this.composerUiMinimized = false;
+        this.composerFocused = true;
         return;
       }
-      if (!this.messageText.trim() && this.messageAttachments.length === 0) {
-        this.composerFocused = false;
+      if (document.activeElement?.classList.contains('mention-composer-input')) {
+        this.composerFocused = true;
+        return;
       }
-    }, 150);
+      if (this.messageText.trim() || this.messageAttachments.length > 0 || this.editingMessageId != null) {
+        this.composerFocused = true;
+        return;
+      }
+      this.composerFocused = false;
+    }, 200);
   }
 
   onFileDialogOpenChange(open: boolean) {
@@ -224,7 +233,13 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.composerUiMinimized) {
       return false;
     }
-    return this.composerFocused || this.pickingFile || this.messageAttachments.length > 0 || this.editingMessageId != null;
+    return (
+      this.composerFocused ||
+      this.pickingFile ||
+      this.messageAttachments.length > 0 ||
+      this.editingMessageId != null ||
+      !!this.messageText.trim()
+    );
   }
 
   minimizeComposer() {

@@ -306,7 +306,8 @@ textarea.mention-composer-input {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   /* Above sticky composers / mobile chrome; toast layer can still sit higher if needed. */
   z-index: 20050;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 

@@ -108,12 +108,19 @@ describe('RecordGiftComponent', () => {
     expect(component.loading).toBeFalse();
   });
 
+  it('should show a platform dropdown on the custom gift form', () => {
+    fixture.detectChanges();
+    const platformSelect = fixture.nativeElement.querySelector('#customPaymentPlatformId') as HTMLSelectElement | null;
+    expect(platformSelect).toBeTruthy();
+    expect(component.customPlatformOptions().length).toBeGreaterThan(0);
+  });
+
   it('should enable record when a custom gift row is complete', () => {
     component.activeUserId = 1;
     component.form.patchValue({
-      customRecipientId: '2',
+      customRecipientId: 2,
       customAmount: 25,
-      customPaymentPlatformId: '1'
+      customPaymentPlatformId: 1
     });
     fixture.detectChanges();
 
@@ -123,9 +130,9 @@ describe('RecordGiftComponent', () => {
   it('should record custom gifts via recordGifts', () => {
     component.activeUserId = 1;
     component.form.patchValue({
-      customRecipientId: '2',
+      customRecipientId: 2,
       customAmount: 25,
-      customPaymentPlatformId: '1'
+      customPaymentPlatformId: 1
     });
 
     component.onConfirmRecord();
