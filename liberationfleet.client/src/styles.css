@@ -304,8 +304,10 @@ textarea.mention-composer-input {
   border: 1px solid var(--lf-color-border, #374151);
   border-radius: 0.5rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  z-index: 10000;
+  /* Above sticky composers / mobile chrome; toast layer can still sit higher if needed. */
+  z-index: 20050;
   overflow: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mention-dropdown-item {
@@ -314,6 +316,7 @@ textarea.mention-composer-input {
   color: var(--lf-color-text-primary, #f9fafb);
   line-height: 1.25;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 
 .mention-dropdown-item.active,

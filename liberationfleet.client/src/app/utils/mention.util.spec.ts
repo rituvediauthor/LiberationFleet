@@ -2,7 +2,8 @@ import {
   collectMentionedUserIds,
   findActiveMentionQuery,
   insertMention,
-  parseMentionSegments
+  parseMentionSegments,
+  resolveActiveMentionQuery
 } from './mention.util';
 
 describe('mention.util', () => {
@@ -10,6 +11,12 @@ describe('mention.util', () => {
     expect(findActiveMentionQuery('hi @ja', 6)).toBe('ja');
     expect(findActiveMentionQuery('hi @', 4)).toBe('');
     expect(findActiveMentionQuery('hi there', 8)).toBeNull();
+  });
+
+  it('resolveActiveMentionQuery recovers when the caret is stale', () => {
+    expect(resolveActiveMentionQuery('hi @ja', 0)).toBe('ja');
+    expect(resolveActiveMentionQuery('hi @', null)).toBe('');
+    expect(resolveActiveMentionQuery('hi there', 0)).toBeNull();
   });
 
   it('insertMention replaces the active query with a username', () => {

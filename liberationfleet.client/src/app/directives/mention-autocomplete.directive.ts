@@ -17,8 +17,8 @@ import {
   MentionCandidate,
   buildMentionBackdropHtml,
   collectMentionedUserIds,
-  findActiveMentionQuery,
-  insertMention
+  insertMention,
+  resolveActiveMentionQuery
 } from '../utils/mention.util';
 
 @Directive({
@@ -46,8 +46,11 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   private repositionDropdown = () => this.updateDropdownPosition();
   private keydownListener: (() => void) | null = null;
   private scrollListener: (() => void) | null = null;
+  private selectionChangeListener: (() => void) | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private classObserver: MutationObserver | null = null;
+  private mentionProbeTimer: ReturnType<typeof setTimeout> | null = null;
+  private blurHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit() {
     this.setupComposerHighlight();
@@ -65,6 +68,11 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
         );
         this.syncMentionedUserIds();
         this.updateBackdrop();
+
+        // Crewmate list can land after the first `@` on slow mobile networks.
+        if (this.mentionQueryActive) {
+          this.refreshMentionCandidates(this.lastQuery);
+        }
       }
     });
 
@@ -102,6 +110,14 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       (event: KeyboardEvent) => this.handleKeyDown(event)
     );
 
+    // iOS/Android often update the caret after `input`; selectionchange catches that.
+    this.selectionChangeListener = this.renderer.listen(document, 'selectionchange', () => {
+      if (document.activeElement !== textarea) {
+        return;
+      }
+      this.scheduleMentionProbe();
+    });
+
     this.ngControl?.valueChanges?.pipe(takeUntil(this.destroy$)).subscribe(value => {
       this.syncComposerFromValue(value == null ? '' : String(value));
     });
@@ -114,10 +130,20 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     this.keydownListener = null;
     this.scrollListener?.();
     this.scrollListener = null;
+    this.selectionChangeListener?.();
+    this.selectionChangeListener = null;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     this.classObserver?.disconnect();
     this.classObserver = null;
+    if (this.mentionProbeTimer != null) {
+      clearTimeout(this.mentionProbeTimer);
+      this.mentionProbeTimer = null;
+    }
+    if (this.blurHideTimer != null) {
+      clearTimeout(this.blurHideTimer);
+      this.blurHideTimer = null;
+    }
     this.removeRepositionListeners();
     this.hideDropdown();
   }
@@ -126,8 +152,47 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   onInput() {
     const textarea = this.host.nativeElement;
     this.syncComposerFromValue(textarea.value);
+    this.scheduleMentionProbe();
+  }
 
-    const query = findActiveMentionQuery(textarea.value, textarea.selectionStart ?? textarea.value.length);
+  @HostListener('keyup')
+  onKeyUp() {
+    this.scheduleMentionProbe();
+  }
+
+  @HostListener('blur')
+  onBlur() {
+    if (this.blurHideTimer != null) {
+      clearTimeout(this.blurHideTimer);
+    }
+    // Delay so pointer/touch selection on the dropdown can run first.
+    this.blurHideTimer = setTimeout(() => {
+      this.blurHideTimer = null;
+      if (document.activeElement === this.host.nativeElement) {
+        return;
+      }
+      this.hideDropdown();
+    }, 200);
+  }
+
+  private scheduleMentionProbe() {
+    if (this.mentionProbeTimer != null) {
+      clearTimeout(this.mentionProbeTimer);
+    }
+    // Double rAF + timeout: caret is often wrong on the same turn as `input` on mobile.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.mentionProbeTimer = setTimeout(() => {
+          this.mentionProbeTimer = null;
+          this.probeActiveMention();
+        }, 0);
+      });
+    });
+  }
+
+  private probeActiveMention() {
+    const textarea = this.host.nativeElement;
+    const query = resolveActiveMentionQuery(textarea.value, textarea.selectionStart);
     if (query === null) {
       this.mentionQueryActive = false;
       this.lastQuery = '';
@@ -136,8 +201,13 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     }
 
     // Empty string after `@` is still an active mention (show suggestions).
+    const queryChanged = !this.mentionQueryActive || query !== this.lastQuery;
     this.mentionQueryActive = true;
     this.lastQuery = query;
+    this.refreshMentionCandidates(query, queryChanged);
+  }
+
+  private refreshMentionCandidates(query: string, kickSearch = true) {
     this.candidates = this.localCandidates(query);
     this.selectedIndex = 0;
     if (this.candidates.length > 0) {
@@ -145,12 +215,9 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     } else {
       this.hideDropdown(false);
     }
-    this.search$.next(query);
-  }
-
-  @HostListener('blur')
-  onBlur() {
-    setTimeout(() => this.hideDropdown(), 150);
+    if (kickSearch) {
+      this.search$.next(query);
+    }
   }
 
   private setupComposerHighlight() {
@@ -334,9 +401,16 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   }
 
   private selectCandidate(candidate: MentionCandidate) {
+    if (this.blurHideTimer != null) {
+      clearTimeout(this.blurHideTimer);
+      this.blurHideTimer = null;
+    }
+
     const textarea = this.host.nativeElement;
-    const cursorIndex = textarea.selectionStart ?? textarea.value.length;
-    const result = insertMention(textarea.value, cursorIndex, candidate.username);
+    // Prefer caret if it sits in an active @token; otherwise insert at end (stale caret).
+    const insertAt =
+      findActiveAtIndex(textarea.value, textarea.selectionStart) ?? textarea.value.length;
+    const result = insertMention(textarea.value, insertAt, candidate.username);
     textarea.value = result.text;
     textarea.setSelectionRange(result.cursorIndex, result.cursorIndex);
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -361,6 +435,7 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
 
     this.dropdown = this.renderer.createElement('ul');
     this.renderer.addClass(this.dropdown, 'mention-dropdown');
+    this.renderer.setAttribute(this.dropdown, 'role', 'listbox');
 
     this.candidates.forEach((candidate, index) => {
       const item = this.renderer.createElement('li');
@@ -371,7 +446,8 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
 
       const text = this.renderer.createText(`@${candidate.username}`);
       this.renderer.appendChild(item, text);
-      this.renderer.listen(item, 'mousedown', (event: Event) => {
+      // pointerdown fires before blur on touch devices; mousedown alone is unreliable on iOS.
+      this.renderer.listen(item, 'pointerdown', (event: Event) => {
         event.preventDefault();
         this.selectCandidate(candidate);
       });
@@ -395,28 +471,47 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
     const rect = textarea.getBoundingClientRect();
     const gap = 6;
     const viewportPadding = 8;
+    const vv = window.visualViewport;
+    const viewTop = vv?.offsetTop ?? 0;
+    const viewLeft = vv?.offsetLeft ?? 0;
+    const viewHeight = vv?.height ?? window.innerHeight;
+    const viewWidth = vv?.width ?? window.innerWidth;
+    const viewBottom = viewTop + viewHeight;
 
     this.renderer.setStyle(this.dropdown, 'position', 'fixed');
-    this.renderer.setStyle(this.dropdown, 'left', `${Math.max(viewportPadding, rect.left)}px`);
-    this.renderer.setStyle(this.dropdown, 'width', `${Math.max(rect.width, 180)}px`);
+    this.renderer.setStyle(
+      this.dropdown,
+      'left',
+      `${Math.max(viewLeft + viewportPadding, rect.left)}px`
+    );
+    this.renderer.setStyle(
+      this.dropdown,
+      'width',
+      `${Math.min(Math.max(rect.width, 180), viewWidth - viewportPadding * 2)}px`
+    );
     this.renderer.setStyle(this.dropdown, 'right', 'auto');
     this.renderer.setStyle(this.dropdown, 'bottom', 'auto');
     this.renderer.setStyle(this.dropdown, 'max-height', 'none');
 
     const dropdownHeight = this.dropdown.offsetHeight;
-    let top = rect.top - dropdownHeight - gap;
+    const spaceAbove = rect.top - viewTop - viewportPadding;
+    const spaceBelow = viewBottom - rect.bottom - viewportPadding;
 
-    if (top < viewportPadding) {
+    let top: number;
+    // Prefer above the composer so the menu stays clear of the soft keyboard.
+    if (spaceAbove >= dropdownHeight + gap || spaceAbove >= spaceBelow) {
+      top = rect.top - dropdownHeight - gap;
+      this.renderer.addClass(this.dropdown, 'mention-dropdown-above');
+      this.renderer.removeClass(this.dropdown, 'mention-dropdown-below');
+    } else {
       top = rect.bottom + gap;
       this.renderer.addClass(this.dropdown, 'mention-dropdown-below');
       this.renderer.removeClass(this.dropdown, 'mention-dropdown-above');
-    } else {
-      this.renderer.addClass(this.dropdown, 'mention-dropdown-above');
-      this.renderer.removeClass(this.dropdown, 'mention-dropdown-below');
     }
 
-    const maxTop = window.innerHeight - dropdownHeight - viewportPadding;
-    top = Math.min(Math.max(viewportPadding, top), maxTop);
+    const minTop = viewTop + viewportPadding;
+    const maxTop = viewBottom - dropdownHeight - viewportPadding;
+    top = Math.min(Math.max(minTop, top), Math.max(minTop, maxTop));
     this.renderer.setStyle(this.dropdown, 'top', `${top}px`);
   }
 
@@ -432,11 +527,15 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
   private addRepositionListeners() {
     window.addEventListener('scroll', this.repositionDropdown, true);
     window.addEventListener('resize', this.repositionDropdown);
+    window.visualViewport?.addEventListener('resize', this.repositionDropdown);
+    window.visualViewport?.addEventListener('scroll', this.repositionDropdown);
   }
 
   private removeRepositionListeners() {
     window.removeEventListener('scroll', this.repositionDropdown, true);
     window.removeEventListener('resize', this.repositionDropdown);
+    window.visualViewport?.removeEventListener('resize', this.repositionDropdown);
+    window.visualViewport?.removeEventListener('scroll', this.repositionDropdown);
   }
 
   private hideDropdown(clearCandidates = true) {
@@ -450,4 +549,20 @@ export class MentionAutocompleteDirective implements OnInit, OnDestroy {
       this.selectedIndex = 0;
     }
   }
+}
+
+function findActiveAtIndex(text: string, cursorIndex: number | null | undefined): number | null {
+  const len = text.length;
+  const clamped =
+    typeof cursorIndex === 'number' && Number.isFinite(cursorIndex)
+      ? Math.max(0, Math.min(len, cursorIndex))
+      : len;
+  const before = text.slice(0, clamped);
+  if (/@([A-Za-z0-9_]*)$/.test(before)) {
+    return clamped;
+  }
+  if (clamped !== len && /@([A-Za-z0-9_]*)$/.test(text)) {
+    return len;
+  }
+  return /@([A-Za-z0-9_]*)$/.test(text) ? len : null;
 }

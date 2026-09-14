@@ -25,6 +25,36 @@ export function findActiveMentionQuery(text: string, cursorIndex: number): strin
   return match ? match[1] : null;
 }
 
+/**
+ * Mobile browsers (esp. iOS) often report a stale caret during `input`.
+ * Prefer the reported caret, then fall back to end-of-text / trailing @token.
+ */
+export function resolveActiveMentionQuery(
+  text: string,
+  cursorIndex: number | null | undefined
+): string | null {
+  const len = text.length;
+  const clamped =
+    typeof cursorIndex === 'number' && Number.isFinite(cursorIndex)
+      ? Math.max(0, Math.min(len, cursorIndex))
+      : len;
+
+  const atCaret = findActiveMentionQuery(text, clamped);
+  if (atCaret !== null) {
+    return atCaret;
+  }
+
+  if (clamped !== len) {
+    const atEnd = findActiveMentionQuery(text, len);
+    if (atEnd !== null) {
+      return atEnd;
+    }
+  }
+
+  const trailing = text.match(/@([A-Za-z0-9_]*)$/);
+  return trailing ? trailing[1] : null;
+}
+
 export function insertMention(
   text: string,
   cursorIndex: number,
