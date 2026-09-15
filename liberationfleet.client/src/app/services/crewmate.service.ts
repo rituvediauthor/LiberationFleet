@@ -203,6 +203,7 @@ export class CrewmateService {
       crewmateTenureDays: profile.crewmateTenureDays ?? 0,
       peopleRepresentedCount: profile.peopleRepresentedCount ?? 1,
       disabilityLevel: profile.disabilityLevel ?? 0,
+      needsSurvivalAid: !!profile.needsSurvivalAid,
       identityGroups: profile.identityGroups ?? [],
       canToggleCanAttachFiles: !!profile.canToggleCanAttachFiles,
       canModerateAttachments: !!profile.canModerateAttachments,

@@ -149,6 +149,7 @@ public static class CrewmateMapper
             ReceptionThisYear = receptionThisYear,
             PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),
             InNeedOfAid = crewmate.InNeedOfAid,
+            NeedsSurvivalAid = crewmate.NeedsSurvivalAid,
             EmergencyLevel = crewmate.EmergencyLevel,
             PeopleRepresentedCount = crewmate.PeopleRepresentedCount,
             DisabilityLevel = crewmate.DisabilityLevel,

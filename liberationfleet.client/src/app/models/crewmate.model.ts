@@ -73,6 +73,7 @@ export interface CrewmateProfile {
   receptionThisYear: number;
   priorityScore: number;
   inNeedOfAid: boolean;
+  needsSurvivalAid: boolean;
   emergencyLevel: number;
   peopleRepresentedCount: number;
   disabilityLevel: number;

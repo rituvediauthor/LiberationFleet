@@ -75,6 +75,7 @@ export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {
   const mock = jasmine.createSpyObj<GiftService>('GiftService', [
     'getNextAidInfo',
     'getSeasonStatus',
+    'saveSeasonSetup',
     'getReceptionOrder',
     'getCrewMembers',
     'getPaymentPlatforms',
@@ -95,6 +96,7 @@ export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {
     readyCount: 0,
     canStartSeason: false
   }));
+  mock.saveSeasonSetup.and.returnValue(of({ success: true, message: 'Season setup saved.' }));
   mock.getPaymentPlatforms.and.returnValue(of([
     { id: 1, name: 'PayPal' },
     { id: 2, name: 'Cash App' },

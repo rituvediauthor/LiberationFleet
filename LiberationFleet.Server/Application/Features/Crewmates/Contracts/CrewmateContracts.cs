@@ -84,6 +84,7 @@ public class CrewmateProfileDto
     public decimal ReceptionThisYear { get; set; }
     public int PriorityScore { get; set; }
     public bool InNeedOfAid { get; set; }
+    public bool NeedsSurvivalAid { get; set; }
     public int EmergencyLevel { get; set; }
     public int PeopleRepresentedCount { get; set; }
     public int DisabilityLevel { get; set; }

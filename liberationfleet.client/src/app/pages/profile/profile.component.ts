@@ -30,6 +30,7 @@ import { SecurityService } from '../../services/security.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { CrewService } from '../../services/crew.service';
 import { FleetService } from '../../services/fleet.service';
+import { GiftService } from '../../services/gift.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
 import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
@@ -161,6 +162,7 @@ export class ProfileComponent implements OnInit {
   private securityService = inject(SecurityService);
   private crewService = inject(CrewService);
   private fleetService = inject(FleetService);
+  private giftService = inject(GiftService);
   private cryptoSession = inject(CryptoSessionService);
   private proposalCrypto = inject(ProposalCryptoService);
   private images = inject(EncryptedImageCacheService);
@@ -185,6 +187,9 @@ export class ProfileComponent implements OnInit {
         this.crewId = membership.crewId ?? 0;
         this.crewName = membership.crewName ?? null;
         void this.refreshAvatarPreview();
+        if (this.crewId > 0) {
+          this.loadSeasonEstimate();
+        }
       }
     });
 
@@ -530,6 +535,15 @@ export class ProfileComponent implements OnInit {
 
       const result = await firstValueFrom(this.profileService.updateProfile(payload));
       if (result.success && result.profile) {
+        if (this.crewId > 0) {
+          const estimate = Number(v.estimatedMonthlyContribution);
+          if (Number.isFinite(estimate) && estimate >= 0) {
+            const setupResult = await firstValueFrom(this.giftService.saveSeasonSetup(estimate));
+            if (!setupResult.success) {
+              this.toastService.error(setupResult.message || 'Profile saved, but estimated contribution failed to update.');
+            }
+          }
+        }
         if (avatarResourceId) {
           this.images.invalidate(avatarResourceId, 'ProfileAvatar');
         }
@@ -717,17 +731,40 @@ export class ProfileComponent implements OnInit {
       countryCode: [cached?.countryCode ?? null],
       zipCode: [cached?.zipCode ?? '', [optionalPostalCodeValidator]],
       inNeedOfAid: [this.canToggleInNeedOff ? profile.inNeedOfAid : true],
+      needsSurvivalAid: [profile.needsSurvivalAid],
+      estimatedMonthlyContribution: [0, [Validators.min(0)]],
       emergencyLevel: [profile.emergencyLevel, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [profile.peopleRepresentedCount ?? 1, [Validators.min(1), Validators.max(99)]],
       disabilityLevel: [profile.disabilityLevel ?? 0, [Validators.min(0), Validators.max(3)]],
-      identityGroups: [normalizeIdentityGroups(profile.identityGroups)],
-      needsSurvivalAid: [profile.needsSurvivalAid]
+      identityGroups: [normalizeIdentityGroups(profile.identityGroups)]
     }, { validators: [profileLocationValidator] });
     this.syncInNeedControl(this.canToggleInNeedOff ? profile.inNeedOfAid : true);
 
     this.form.statusChanges.subscribe(() => this.updateSaveButton());
     this.form.valueChanges.subscribe(() => this.updateSaveButton());
     this.updateSaveButton();
+    if (this.crewId > 0) {
+      this.loadSeasonEstimate();
+    }
+  }
+
+  private loadSeasonEstimate() {
+    this.giftService.getSeasonStatus().subscribe({
+      next: status => {
+        if (!this.form) {
+          return;
+        }
+        const estimate = status.estimatedMonthlyContribution ?? 0;
+        this.form.patchValue({ estimatedMonthlyContribution: estimate }, { emitEvent: false });
+        if (this.initialFormValues && typeof this.initialFormValues === 'object') {
+          this.initialFormValues = {
+            ...(this.initialFormValues as Record<string, unknown>),
+            estimatedMonthlyContribution: estimate
+          };
+        }
+        this.updateSaveButton();
+      }
+    });
   }
 
   private syncInNeedControl(inNeedValue: boolean) {

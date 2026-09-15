@@ -30,6 +30,129 @@
       </app-priority-score-algorithms>
 
       <form [formGroup]="form">
+        <app-collapsible-section title="Mutual aid">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="inNeedOfAid">
+              In need of aid
+            </label>
+            <span class="hint-text">
+              When on, you can receive survival-threshold and concentrated cycle aid.
+            </span>
+            <span class="hint-text warning-text" *ngIf="!canToggleInNeedOff">
+              Your monthly contribution average (3 mo, excluding Library of Things) must exceed ${{ inNeedToggleThreshold }} to toggle this setting off
+            </span>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="needsSurvivalAid">
+              Needs survival aid
+            </label>
+            <span class="hint-text">
+              Survival aid is a small monthly gift to help cover basic needs. Turning this on can place you in the survival-threshold reception queue for your crew.
+            </span>
+          </div>
+
+          <div class="form-group" *ngIf="crewId > 0">
+            <label>Payment platforms</label>
+            <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
+            <app-payment-platform-editor
+              [platforms]="paymentPlatforms"
+              [platformOptions]="platformOptions"
+              [showPreferred]="true"
+              (changed)="onPaymentPlatformChange()"
+              (add)="addPaymentPlatform()"
+              (remove)="removePaymentPlatform($event)"
+              (preferredChange)="setPreferredPlatform($event)">
+            </app-payment-platform-editor>
+          </div>
+
+          <p class="section-hint" *ngIf="crewId <= 0">
+            Payment platforms unlock after you join a crew.
+          </p>
+
+          <div class="form-group" *ngIf="crewId > 0">
+            <label for="estimatedMonthlyContribution">Estimated monthly contribution ($)</label>
+            <input
+              id="estimatedMonthlyContribution"
+              type="number"
+              formControlName="estimatedMonthlyContribution"
+              class="form-input"
+              min="0"
+              step="0.01">
+            <span class="hint-text">
+              Used for mutual aid season planning. $0 is allowed if you do not expect to give cash.
+              Edit further mid-season from Gift log → My giving info.
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="emergencyLevel">Emergency level (0–3)</label>
+            <input
+              id="emergencyLevel"
+              type="number"
+              formControlName="emergencyLevel"
+              class="form-input"
+              min="0"
+              max="3"
+              step="1"
+              [attr.aria-invalid]="isInvalid('emergencyLevel')"
+              [attr.aria-describedby]="isInvalid('emergencyLevel') ? 'emergencyLevel-error' : null">
+            <span id="emergencyLevel-error" class="error-text" role="alert" *ngIf="isInvalid('emergencyLevel')">
+              Emergency level must be between 0 and 3
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="peopleRepresentedCount">Number of people represented</label>
+            <input
+              id="peopleRepresentedCount"
+              type="number"
+              formControlName="peopleRepresentedCount"
+              class="form-input"
+              min="1"
+              max="99"
+              step="1"
+              [attr.aria-invalid]="isInvalid('peopleRepresentedCount')"
+              [attr.aria-describedby]="isInvalid('peopleRepresentedCount') ? 'peopleRepresentedCount-error peopleRepresentedCount-hint' : 'peopleRepresentedCount-hint'">
+            <span class="hint-text" id="peopleRepresentedCount-hint">Individuals you provide for, including partner, children, or elders. Affects priority score.</span>
+            <span id="peopleRepresentedCount-error" class="error-text" role="alert" *ngIf="isInvalid('peopleRepresentedCount')">
+              Must be between 1 and 99
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="disabilityLevel">Level of disability (0–3)</label>
+            <input
+              id="disabilityLevel"
+              type="number"
+              formControlName="disabilityLevel"
+              class="form-input"
+              min="0"
+              max="3"
+              step="1"
+              [attr.aria-invalid]="isInvalid('disabilityLevel')"
+              [attr.aria-describedby]="isInvalid('disabilityLevel') ? 'disabilityLevel-error disabilityLevel-hint' : 'disabilityLevel-hint'">
+            <span class="hint-text" id="disabilityLevel-hint">
+              0 = none; 1 = minor but self-sufficient; 2 = reduced ability to provide for yourself;
+              3 = reliance on service workers or animals for daily life. Affects priority score.
+            </span>
+            <span id="disabilityLevel-error" class="error-text" role="alert" *ngIf="isInvalid('disabilityLevel')">
+              Disability level must be between 0 and 3
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label>Targeted minority groups</label>
+            <app-identity-groups-editor
+              [selected]="form.get('identityGroups')?.value || []"
+              [showHeading]="false"
+              (selectedChange)="onIdentityGroupsChange($event)">
+            </app-identity-groups-editor>
+          </div>
+        </app-collapsible-section>
+
         <app-collapsible-section title="Crewmate stats">
           <div class="readonly-grid" *ngIf="stats">
             <div class="readonly-item">
@@ -78,23 +201,6 @@
             Live mutual-aid priority is on your Crewmate ID. Organizers use −1 for Giving Season cycle order so they receive concentrated aid last when in need. Library of Things uses the full formula as if you were not the organizer. Not-in-need members leave the active concentrated-aid queue without changing the formula score.
           </p>
         </app-collapsible-section>
-
-        <app-collapsible-section title="Payment platforms" *ngIf="crewId > 0">
-          <p class="section-hint">Choose from platforms used by your crew, or add a custom platform.</p>
-          <app-payment-platform-editor
-            [platforms]="paymentPlatforms"
-            [platformOptions]="platformOptions"
-            [showPreferred]="true"
-            (changed)="onPaymentPlatformChange()"
-            (add)="addPaymentPlatform()"
-            (remove)="removePaymentPlatform($event)"
-            (preferredChange)="setPreferredPlatform($event)">
-          </app-payment-platform-editor>
-        </app-collapsible-section>
-
-        <p class="section-hint" *ngIf="crewId <= 0">
-          Payment platforms unlock after you join a crew.
-        </p>
 
         <section class="section avatar-section">
           <h2>Profile picture</h2>
@@ -189,90 +295,6 @@
             Enter a postal code of 2–12 letters or digits (spaces and hyphens OK), or leave blank
           </span>
         </div>
-
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="inNeedOfAid">
-            In need of aid
-          </label>
-          <span class="hint-text warning-text" *ngIf="!canToggleInNeedOff">
-            Your monthly contribution average (3 mo, excluding Library of Things) must exceed ${{ inNeedToggleThreshold }} to toggle this setting off
-          </span>
-        </div>
-
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="needsSurvivalAid">
-            Needs survival aid
-          </label>
-          <span class="hint-text">
-            Survival aid is a small monthly gift to help cover basic needs. Turning this on can place you in the survival-threshold reception queue for your crew.
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="emergencyLevel">Emergency level (0–3)</label>
-          <input
-            id="emergencyLevel"
-            type="number"
-            formControlName="emergencyLevel"
-            class="form-input"
-            min="0"
-            max="3"
-            step="1"
-            [attr.aria-invalid]="isInvalid('emergencyLevel')"
-            [attr.aria-describedby]="isInvalid('emergencyLevel') ? 'emergencyLevel-error' : null">
-          <span id="emergencyLevel-error" class="error-text" role="alert" *ngIf="isInvalid('emergencyLevel')">
-            Emergency level must be between 0 and 3
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="peopleRepresentedCount">Number of people represented</label>
-          <input
-            id="peopleRepresentedCount"
-            type="number"
-            formControlName="peopleRepresentedCount"
-            class="form-input"
-            min="1"
-            max="99"
-            step="1"
-            [attr.aria-invalid]="isInvalid('peopleRepresentedCount')"
-            [attr.aria-describedby]="isInvalid('peopleRepresentedCount') ? 'peopleRepresentedCount-error peopleRepresentedCount-hint' : 'peopleRepresentedCount-hint'">
-          <span class="hint-text" id="peopleRepresentedCount-hint">Individuals you provide for, including partner, children, or elders. Affects priority score.</span>
-          <span id="peopleRepresentedCount-error" class="error-text" role="alert" *ngIf="isInvalid('peopleRepresentedCount')">
-            Must be between 1 and 99
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="disabilityLevel">Level of disability (0–3)</label>
-          <input
-            id="disabilityLevel"
-            type="number"
-            formControlName="disabilityLevel"
-            class="form-input"
-            min="0"
-            max="3"
-            step="1"
-            [attr.aria-invalid]="isInvalid('disabilityLevel')"
-            [attr.aria-describedby]="isInvalid('disabilityLevel') ? 'disabilityLevel-error disabilityLevel-hint' : 'disabilityLevel-hint'">
-          <span class="hint-text" id="disabilityLevel-hint">
-            0 = none; 1 = minor but self-sufficient; 2 = reduced ability to provide for yourself;
-            3 = reliance on service workers or animals for daily life. Affects priority score.
-          </span>
-          <span id="disabilityLevel-error" class="error-text" role="alert" *ngIf="isInvalid('disabilityLevel')">
-            Disability level must be between 0 and 3
-          </span>
-        </div>
-
-        <app-collapsible-section title="Targeted minority groups">
-          <app-identity-groups-editor
-            [selected]="form.get('identityGroups')?.value || []"
-            [showHeading]="false"
-            (selectedChange)="onIdentityGroupsChange($event)">
-          </app-identity-groups-editor>
-        </app-collapsible-section>
 
         <section class="section encryption-section">
           <h2>Encryption</h2>

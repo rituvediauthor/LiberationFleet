@@ -63,6 +63,8 @@ export class SeasonSetupComponent implements OnInit {
   seasonStarted = false;
   isLoading = true;
   isSubmitting = false;
+  canToggleInNeedOff = true;
+  inNeedToggleThreshold = 0;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
   private initialFormValues: unknown = null;
@@ -80,6 +82,8 @@ export class SeasonSetupComponent implements OnInit {
 
   ngOnInit() {
     this.form = this.fb.group({
+      inNeedOfAid: [true],
+      needsSurvivalAid: [false],
       estimatedMonthlyContribution: [0, [nonNegativeAmountValidator]],
       emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
       peopleRepresentedCount: [1, [Validators.min(1), Validators.max(99)]],
@@ -122,12 +126,17 @@ export class SeasonSetupComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.profile = profile;
+        this.canToggleInNeedOff = profile.canToggleInNeedOff ?? true;
+        this.inNeedToggleThreshold = profile.inNeedToggleThreshold ?? 0;
         this.form.patchValue({
+          inNeedOfAid: this.canToggleInNeedOff ? !!profile.inNeedOfAid : true,
+          needsSurvivalAid: !!profile.needsSurvivalAid,
           emergencyLevel: profile.emergencyLevel ?? 0,
           peopleRepresentedCount: profile.peopleRepresentedCount ?? 1,
           disabilityLevel: profile.disabilityLevel ?? 0,
           identityGroups: normalizeIdentityGroups(profile.identityGroups)
         });
+        this.syncInNeedControl(profile.inNeedOfAid);
         this.syncPlatformOptions();
         this.isLoading = false;
         this.captureInitialState();
@@ -258,6 +267,8 @@ export class SeasonSetupComponent implements OnInit {
 
     this.profile = {
       ...this.profile,
+      inNeedOfAid: this.canToggleInNeedOff ? !!v.inNeedOfAid : true,
+      needsSurvivalAid: !!v.needsSurvivalAid,
       emergencyLevel: Number(v.emergencyLevel),
       peopleRepresentedCount: Number(v.peopleRepresentedCount),
       disabilityLevel: Number(v.disabilityLevel),
@@ -336,5 +347,19 @@ export class SeasonSetupComponent implements OnInit {
       this.basePlatformOptions,
       this.profile?.paymentPlatforms ?? []
     );
+  }
+
+  private syncInNeedControl(currentValue: boolean) {
+    const control = this.form.get('inNeedOfAid');
+    if (!control) {
+      return;
+    }
+    if (!this.canToggleInNeedOff) {
+      control.setValue(true, { emitEvent: false });
+      control.disable({ emitEvent: false });
+      return;
+    }
+    control.enable({ emitEvent: false });
+    control.setValue(!!currentValue, { emitEvent: false });
   }
 }

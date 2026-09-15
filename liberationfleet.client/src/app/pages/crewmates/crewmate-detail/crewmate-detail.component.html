@@ -27,6 +27,67 @@
         [givingSeason]="profile.givingSeasonPriority">
       </app-priority-score-algorithms>
 
+      <app-collapsible-section title="Mutual aid">
+        <div class="readonly-grid">
+          <div class="readonly-item">
+            <span class="readonly-label">In need of aid</span>
+            <span class="readonly-value">{{ profile.inNeedOfAid ? 'Yes' : 'No' }}</span>
+            <span class="hint-text">
+              When on, this crewmate can receive survival-threshold and concentrated cycle aid.
+            </span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Needs survival aid</span>
+            <span class="readonly-value">{{ profile.needsSurvivalAid ? 'Yes' : 'No' }}</span>
+            <span class="hint-text">
+              When on, they can receive a small monthly survival-threshold gift based on crew giving capacity.
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Payment platforms</label>
+          <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
+          <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
+            <li *ngFor="let platform of profile.paymentPlatforms">
+              <span class="platform-name">{{ platform.platformName }}</span>
+              <span class="platform-handle">{{ platform.handle }}</span>
+              <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="readonly-grid">
+          <div class="readonly-item">
+            <span class="readonly-label">Estimated monthly contribution</span>
+            <span class="readonly-value">
+              {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
+            </span>
+            <span class="hint-text">Self-estimate used for months before joining the season.</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Emergency level</span>
+            <span class="readonly-value">{{ profile.emergencyLevel }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Number of people represented</span>
+            <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Level of disability</span>
+            <span class="readonly-value">{{ profile.disabilityLevel }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Targeted minority groups</label>
+          <p *ngIf="identityGroupLabels.length === 0" class="empty-text">None listed.</p>
+          <ul class="identity-group-list" *ngIf="identityGroupLabels.length > 0">
+            <li *ngFor="let label of identityGroupLabels">{{ label }}</li>
+          </ul>
+        </div>
+      </app-collapsible-section>
+
       <app-collapsible-section title="Crewmate stats">
         <div class="readonly-grid">
           <div class="readonly-item">
@@ -48,13 +109,6 @@
             <span class="hint-text">Last three completed calendar months of gifts, excluding Library of Things; emergency aid is included. The current month is not counted. Months before joining the season use your estimate; completed months after joining with no gifts count as $0.</span>
           </div>
           <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
-            <span class="readonly-label">Estimated monthly contribution</span>
-            <span class="readonly-value">
-              {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
-            </span>
-            <span class="hint-text">Self-estimate used for months before joining the season.</span>
-          </div>
-          <div class="readonly-item" *ngIf="!profile.canProposeAidStatEdits">
             <span class="readonly-label">Lifetime contributions</span>
             <span class="readonly-value">${{ profile.lifetimeContributions }}</span>
           </div>
@@ -65,18 +119,6 @@
           <p class="hint-text priority-hint">
             Live mutual-aid priority is shown on the Crewmate ID. Reception order freezes each member's score when their cycle starts — not this live value.
           </p>
-          <div class="readonly-item">
-            <span class="readonly-label">Emergency level</span>
-            <span class="readonly-value">{{ profile.emergencyLevel }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">People represented</span>
-            <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Disability level</span>
-            <span class="readonly-value">{{ profile.disabilityLevel }}</span>
-          </div>
           <ng-container *ngIf="!profile.canProposeAidStatEdits">
             <div class="readonly-item">
               <span class="readonly-label">Total reception (season)</span>
@@ -104,17 +146,6 @@
             </div>
           </ng-container>
         </div>
-      </app-collapsible-section>
-
-      <app-collapsible-section title="Payment platforms">
-        <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
-        <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
-          <li *ngFor="let platform of profile.paymentPlatforms">
-            <span class="platform-name">{{ platform.platformName }}</span>
-            <span class="platform-handle">{{ platform.handle }}</span>
-            <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
-          </li>
-        </ul>
       </app-collapsible-section>
 
       <section class="section claim-section" *ngIf="profile.canClaimIdentity">
@@ -207,13 +238,6 @@
           </div>
         </div>
       </section>
-
-      <app-collapsible-section title="Targeted minority groups">
-        <p *ngIf="identityGroupLabels.length === 0" class="empty-text">None listed.</p>
-        <ul class="identity-group-list" *ngIf="identityGroupLabels.length > 0">
-          <li *ngFor="let label of identityGroupLabels">{{ label }}</li>
-        </ul>
-      </app-collapsible-section>
 
       <section class="section aid-stat-section" *ngIf="profile.canProposeAidStatEdits">
         <h2>Aid history adjustments</h2>
