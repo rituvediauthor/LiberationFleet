@@ -37,8 +37,9 @@ variable "min_capacity" {
 }
 
 variable "auto_pause_delay_in_minutes" {
-  type    = number
-  default = 60
+  type        = number
+  description = "Serverless idle minutes before pause. Azure minimum is 15."
+  default     = 15
 }
 
 variable "short_term_retention_days" {

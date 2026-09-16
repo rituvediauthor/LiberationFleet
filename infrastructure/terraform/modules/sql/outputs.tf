@@ -26,7 +26,7 @@ output "administrator_password" {
 output "ado_net_connection_string" {
   description = "SQL connection string for the app (Encrypt=True for Azure SQL)."
   value = format(
-    "Server=tcp:%s,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password=%s;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
+    "Server=tcp:%s,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password=%s;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Connection Lifetime=60;Max Pool Size=20;",
     azurerm_mssql_server.this.fully_qualified_domain_name,
     azurerm_mssql_database.this.name,
     azurerm_mssql_server.this.administrator_login,

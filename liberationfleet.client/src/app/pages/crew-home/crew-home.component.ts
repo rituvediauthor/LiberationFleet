@@ -28,6 +28,7 @@ import {
   emptyAreaCounts
 } from '../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
+import { CrewFindPanelComponent } from '../crew-find/crew-find-panel.component';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { TextFieldLimits } from '../../utils/text-field-limits';
 
@@ -46,7 +47,8 @@ const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
     BrandLogoComponent,
     HubLoadingComponent,
     ConfirmDialogComponent,
-    CharCounterComponent
+    CharCounterComponent,
+    CrewFindPanelComponent
   ],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
@@ -164,6 +166,14 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.loadError = false;
     this.crewService.clearMembershipCache();
+  }
+
+  goToCrewDashboard() {
+    if (!this.membership?.hasCrew) {
+      return;
+    }
+    this.crewService.clearMembershipCache();
+    void this.router.navigate(['/app/crew']);
   }
 
   private async refreshCrewImage() {

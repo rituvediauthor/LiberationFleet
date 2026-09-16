@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -22,6 +23,9 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
     private readonly FleetMembershipService _fleetMembershipService;
     private readonly DefaultOrgContentSeeder _defaultOrgContentSeeder;
     private readonly UserPaymentPlatformPortabilityService _paymentPlatformPortability;
+    private readonly LibraryMemberCleanupService _libraryMemberCleanupService;
+    private readonly EmptyCrewCleanupService _emptyCrewCleanupService;
+    private readonly IMutualAidService _mutualAidService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateCrewCommandHandler(
@@ -33,6 +37,9 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         FleetMembershipService fleetMembershipService,
         DefaultOrgContentSeeder defaultOrgContentSeeder,
         UserPaymentPlatformPortabilityService paymentPlatformPortability,
+        LibraryMemberCleanupService libraryMemberCleanupService,
+        EmptyCrewCleanupService emptyCrewCleanupService,
+        IMutualAidService mutualAidService,
         IUnitOfWork unitOfWork)
     {
         _crewRepository = crewRepository;
@@ -43,6 +50,9 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         _fleetMembershipService = fleetMembershipService;
         _defaultOrgContentSeeder = defaultOrgContentSeeder;
         _paymentPlatformPortability = paymentPlatformPortability;
+        _libraryMemberCleanupService = libraryMemberCleanupService;
+        _emptyCrewCleanupService = emptyCrewCleanupService;
+        _mutualAidService = mutualAidService;
         _unitOfWork = unitOfWork;
     }
 
@@ -57,7 +67,7 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
         var existingMembership = await _membershipRepository.GetActiveMembershipAsync(userId.Value, cancellationToken);
         if (existingMembership is not null)
         {
-            return new CrewOperationResponse { Success = false, Message = "You are already a member of a crew" };
+            await LeaveCurrentCrewAsync(userId.Value, existingMembership, cancellationToken);
         }
 
         var privacy = Enum.Parse<CrewPrivacy>(request.Privacy, ignoreCase: true);
@@ -118,6 +128,23 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             Message = "Crew created successfully",
             Crew = CrewMapper.MapCrew(crew, 1)
         };
+    }
+
+    private async Task LeaveCurrentCrewAsync(
+        int userId,
+        CrewMembership membership,
+        CancellationToken cancellationToken)
+    {
+        var crewId = membership.CrewId;
+        await _libraryMemberCleanupService.CleanupForDepartingMemberAsync(crewId, userId, cancellationToken);
+        await _mutualAidService.RemoveMemberFromSeasonAsync(crewId, userId, cancellationToken);
+        await _contentTenureService.OnLeftCrewAsync(userId, crewId, cancellationToken);
+        await _paymentPlatformPortability.DetachFromCrewAsync(userId, cancellationToken);
+        await _fleetMembershipService.RetainInFleetAsNoCrewAsync(userId, crewId, cancellationToken);
+        _membershipRepository.MarkLeft(membership, DateTime.UtcNow);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(crewId, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<string> GenerateUniqueJoinCodeAsync(CancellationToken cancellationToken)

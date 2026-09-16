@@ -18,7 +18,9 @@ export function createAuthServiceMock(): jasmine.SpyObj<AuthService> {
     'setToken',
     'removeToken',
     'isAuthenticated',
-    'updateCurrentUser'
+    'updateCurrentUser',
+    'isRememberLoginEnabled',
+    'setRememberLoginEnabled'
   ], {
     currentUser$: of(null)
   });

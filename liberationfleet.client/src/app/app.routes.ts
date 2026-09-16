@@ -15,6 +15,7 @@ import { GiftHistoryListComponent } from './pages/profile/gift-history-list/gift
 import { GiftHistoryDetailComponent } from './pages/profile/gift-history-detail/gift-history-detail.component';
 import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
+import { CrewFindComponent } from './pages/crew-find/crew-find.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
 import { MyInvitationsComponent } from './pages/my-invitations/my-invitations.component';
@@ -498,6 +499,13 @@ export const routes: Routes = [
     path: 'app/profile/settings/notifications',
     redirectTo: 'app/profile/preferences/notifications',
     pathMatch: 'full'
+  },
+  {
+    path: 'app/crew/find',
+    component: CrewFindComponent,
+    canActivate: [authGuard],
+    title: 'Join or create a crew',
+    data: { parentTab: 'crew', locationHeader: 'Join/Create a crew' }
   },
   {
     path: 'app/crew/create',

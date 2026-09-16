@@ -1,0 +1,18 @@
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton">
+  <div class="crew-find">
+    <app-hub-loading *ngIf="loading" variant="crew" label="Loading..."></app-hub-loading>
+
+    <app-crew-find-panel
+      *ngIf="!loading"
+      [hasCrew]="hasCrew"
+      [loadError]="loadError"
+      (retry)="retryMembership()"
+      (createCrew)="goToCreateCrew()"
+      (joinCrew)="goToJoinCrew()"
+      (invitations)="goToInvitations()"
+      (joinRequests)="goToJoinRequests()"
+      (crewDashboard)="goToCrewDashboard()"
+      (howToUse)="goToHowToUse()">
+    </app-crew-find-panel>
+  </div>
+</app-page-layout>

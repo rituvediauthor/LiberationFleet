@@ -34,7 +34,7 @@ variable "sku_name" {
 
 variable "always_on" {
   type        = bool
-  description = "Required for reliable SignalR and background jobs."
+  description = "Keep the worker process loaded. False on staging so SQL serverless can pause when idle."
   default     = true
 }
 

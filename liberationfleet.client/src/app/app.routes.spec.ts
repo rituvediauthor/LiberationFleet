@@ -9,6 +9,7 @@ import { FriendsComponent } from './pages/friends/friends.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { UserHomeComponent } from './pages/user-home/user-home.component';
 import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
+import { CrewFindComponent } from './pages/crew-find/crew-find.component';
 import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
 import { GiftLogComponent } from './pages/gift-log/gift-log.component';
 import { GiftLogDetailComponent } from './pages/gift-log/gift-log-detail/gift-log-detail.component';
@@ -36,7 +37,7 @@ describe('app.routes', () => {
   });
 
   it('should define authenticated app routes with authGuard', () => {
-    const appRoutes = ['app/crew', 'app/friends', 'app/profile', 'app/profile/user', 'app/profile/activity', 'app/profile/preferences', 'app/crew/create', 'app/crew/join'];
+    const appRoutes = ['app/crew', 'app/friends', 'app/profile', 'app/profile/user', 'app/profile/activity', 'app/profile/preferences', 'app/crew/find', 'app/crew/create', 'app/crew/join'];
 
     for (const path of appRoutes) {
       const route = routes.find(r => r.path === path);
@@ -49,6 +50,7 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'app/profile/user')?.component).toBe(ProfileComponent);
     expect(routes.find(r => r.path === 'app/profile/activity')?.component).toBe(ActivityCenterComponent);
     expect(routes.find(r => r.path === 'app/profile/preferences')?.component).toBe(ProfileSettingsComponent);
+    expect(routes.find(r => r.path === 'app/crew/find')?.component).toBe(CrewFindComponent);
     expect(routes.find(r => r.path === 'app/crew/create')?.component).toBe(CreateCrewComponent);
     expect(routes.find(r => r.path === 'app/crew/join')?.component).toBe(JoinCrewComponent);
     expect(routes.find(r => r.path === 'app/crew/gift-log')?.component).toBe(GiftLogComponent);

@@ -1,9 +1,11 @@
 using LiberationFleet.Server.Application.Features.Auth.Commands.Login;
+using LiberationFleet.Server.Application.Features.Auth.Commands.RefreshSession;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Register;
 using LiberationFleet.Server.Application.Features.Auth.Commands.RequestPasswordReset;
 using LiberationFleet.Server.Application.Features.Auth.Commands.ResetPassword;
 using LiberationFleet.Server.Application.Features.Auth.Queries.ValidateResetToken;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LiberationFleet.Server.Controllers;
@@ -30,6 +32,17 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         var result = await _mediator.Send(command);
+        return result.Success ? Ok(result) : Unauthorized(result);
+    }
+
+    /// <summary>
+    /// Re-issues a 24h JWT for the current session (sliding expiry while the user keeps opening the app).
+    /// </summary>
+    [Authorize]
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh()
+    {
+        var result = await _mediator.Send(new RefreshSessionCommand());
         return result.Success ? Ok(result) : Unauthorized(result);
     }
 

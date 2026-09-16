@@ -216,20 +216,6 @@ public class CrewJoinRequestProposalService(
             cancellationToken);
     }
 
-    /// <summary>
-    /// Re-applies approved join requests that never finished (e.g. applicant created/joined another crew first).
-    /// Sends Switch/Stay when they are still in another crew; completes the join when they are not.
-    /// </summary>
-    public async Task ReconcileApprovedUnappliedAsync(
-        IReadOnlyList<Proposal> proposals,
-        CancellationToken cancellationToken)
-    {
-        foreach (var proposal in proposals)
-        {
-            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        }
-    }
-
     private async Task OfferSwitchOrStayAsync(
         Proposal proposal,
         ProposalCrewJoinRequest joinRequest,

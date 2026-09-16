@@ -1,40 +1,47 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, of } from 'rxjs';
+import { catchError, startWith, switchMap } from 'rxjs/operators';
 import { NavLayoutComponent } from '../../components/nav-layout/nav-layout.component';
-import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
-import { NotificationService } from '../../services/notification.service';
-import { CrewNotificationAreaCounts, emptyAreaCounts } from '../../utils/notification-area.util';
+import { CrewService } from '../../services/crew.service';
 import { navigateToDonate } from '../../utils/donation-nav.util';
 
 @Component({
   selector: 'app-user-home',
   standalone: true,
-  imports: [CommonModule, NavLayoutComponent, ContentBadgeComponent],
+  imports: [CommonModule, NavLayoutComponent],
   templateUrl: './user-home.component.html',
   styleUrl: './user-home.component.css'
 })
 export class UserHomeComponent implements OnInit, OnDestroy {
-  areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
+  hasCrew = false;
 
   private router = inject(Router);
-  private notificationService = inject(NotificationService);
-  private subscription?: Subscription;
+  private crewService = inject(CrewService);
+  private subscription = new Subscription();
 
   ngOnInit() {
-    this.notificationService.refreshBadges();
-    this.subscription = this.notificationService.areaCounts$.subscribe(counts => {
-      this.areaCounts = counts;
-    });
+    this.subscription.add(
+      this.crewService.membershipChanged$.pipe(
+        startWith(undefined),
+        switchMap(() =>
+          this.crewService.getMembership().pipe(
+            catchError(() => of(null))
+          )
+        )
+      ).subscribe(status => {
+        this.hasCrew = !!status?.hasCrew;
+      })
+    );
   }
 
   ngOnDestroy() {
-    this.subscription?.unsubscribe();
+    this.subscription.unsubscribe();
   }
 
-  goToInvitations() {
-    this.router.navigate(['/app/crew/invitations']);
+  goToJoinOrCreateCrew() {
+    void this.router.navigate(['/app/crew/find']);
   }
 
   goToUserProfile() {

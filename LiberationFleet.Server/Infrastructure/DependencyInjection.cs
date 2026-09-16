@@ -66,6 +66,8 @@ public static class DependencyInjection
             configuration.GetSection(Application.Services.StripeDonationOptions.SectionName));
         services.Configure<Application.Services.MediaDeepFreezeOptions>(
             configuration.GetSection(Application.Services.MediaDeepFreezeOptions.SectionName));
+        services.Configure<Background.BackgroundJobsOptions>(
+            configuration.GetSection(Background.BackgroundJobsOptions.SectionName));
         services.AddSingleton<Application.Services.IReportEvidenceProtector, Application.Services.ReportEvidenceProtector>();
         services.AddHttpClient(nameof(Application.Services.ReportVendorNotifier));
         services.AddSingleton<Application.Services.IReportVendorNotifier, Application.Services.ReportVendorNotifier>();
@@ -74,6 +76,7 @@ public static class DependencyInjection
         services.AddSingleton<Storage.NullDeepFreezeBlobStore>();
         services.AddSingleton<IDeepFreezeBlobStore, Storage.DeepFreezeBlobStoreRouter>();
         services.AddScoped<Application.Services.IMediaDeepFreezeService, Application.Services.MediaDeepFreezeService>();
+        services.AddSingleton<Background.ActivityTriggeredBackgroundJobs>();
         services.AddHostedService<Background.ContentReportRetentionHostedService>();
         services.AddHostedService<Background.MediaDeepFreezeHostedService>();
         services.AddHostedService<Background.GiftAutoVerifyHostedService>();

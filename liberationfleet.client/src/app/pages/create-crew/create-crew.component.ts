@@ -1,11 +1,14 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { HubLoadingComponent } from '../../components/hub-loading/hub-loading.component';
 import { CountrySelectComponent } from '../../components/country-select/country-select.component';
 import { ZipCodeListEditorComponent } from '../../components/zip-code-list-editor/zip-code-list-editor.component';
+import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { CrewService } from '../../services/crew.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
@@ -24,16 +27,19 @@ import { CharCounterComponent } from '../../components/char-counter/char-counter
     HubLoadingComponent,
     CharCounterComponent,
     CountrySelectComponent,
-    ZipCodeListEditorComponent
+    ZipCodeListEditorComponent,
+    ConfirmDialogComponent
   ],
   templateUrl: './create-crew.component.html',
   styleUrl: './create-crew.component.css'
 })
-export class CreateCrewComponent {
+export class CreateCrewComponent implements OnInit, OnDestroy {
   form: FormGroup;
   backButton: ActionBarButton;
   createButton: ActionBarButton;
   isLoading = false;
+  hasCrew = false;
+  showLeaveConfirm = false;
   readonly nameMaxLength = TextFieldLimits.orgName;
 
   private fb = inject(FormBuilder);
@@ -41,6 +47,7 @@ export class CreateCrewComponent {
   private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private toastService = inject(ToastService);
+  private subscription = new Subscription();
 
   constructor() {
     this.form = this.fb.group({
@@ -58,12 +65,27 @@ export class CreateCrewComponent {
       label: 'Create',
       type: 'primary',
       disabled: true,
-      onClick: () => this.onSubmit()
+      onClick: () => this.onCreateClicked()
     };
 
     this.form.statusChanges.subscribe(() => this.updateCreateButton());
     this.form.get('scope')?.valueChanges.subscribe(() => this.updateLocalValidators());
     this.updateLocalValidators();
+  }
+
+  ngOnInit() {
+    this.subscription.add(
+      this.crewService.getMembership().pipe(catchError(() => of(null))).subscribe(status => {
+        this.hasCrew = !!status?.hasCrew;
+        this.backButton = this.navigation.createBackButton(
+          this.hasCrew ? ['/app/crew/find'] : ['/app/crew']
+        );
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 
   get isLocal(): boolean {
@@ -109,7 +131,33 @@ export class CreateCrewComponent {
     this.createButton.disabled = !this.form.valid || this.isLoading;
   }
 
+  onCreateClicked() {
+    if (this.form.invalid || this.isLoading) {
+      return;
+    }
+
+    if (this.hasCrew) {
+      this.showLeaveConfirm = true;
+      return;
+    }
+
+    this.submitCreate();
+  }
+
+  onLeaveConfirm() {
+    this.showLeaveConfirm = false;
+    this.submitCreate();
+  }
+
+  onLeaveCancel() {
+    this.showLeaveConfirm = false;
+  }
+
   onSubmit() {
+    this.onCreateClicked();
+  }
+
+  private submitCreate() {
     if (this.form.invalid || this.isLoading) {
       return;
     }
@@ -129,17 +177,17 @@ export class CreateCrewComponent {
     };
 
     this.crewService.create(payload).subscribe({
-      next: (result) => {
+      next: result => {
         if (result.success) {
           this.toastService.success(result.message);
-          this.router.navigate(['/app/crew']);
+          void this.router.navigate(['/app/crew']);
         } else {
           this.toastService.error(result.message);
           this.isLoading = false;
           this.updateCreateButton();
         }
       },
-      error: (error) => {
+      error: error => {
         this.toastService.error(error.error?.message || 'Failed to create crew');
         this.isLoading = false;
         this.updateCreateButton();

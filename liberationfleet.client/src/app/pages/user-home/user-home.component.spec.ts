@@ -4,9 +4,8 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { of } from 'rxjs';
 import { UserHomeComponent } from './user-home.component';
-import { NotificationService } from '../../services/notification.service';
-import { emptyAreaCounts } from '../../utils/notification-area.util';
-import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
+import { CrewService } from '../../services/crew.service';
+import { createCrewServiceMock } from '../../testing/test-helpers';
 
 @Component({
   selector: 'app-nav-layout',
@@ -21,24 +20,22 @@ describe('UserHomeComponent', () => {
   let fixture: ComponentFixture<UserHomeComponent>;
   let component: UserHomeComponent;
   let router: Router;
+  let crewService: jasmine.SpyObj<CrewService>;
 
   beforeEach(async () => {
+    crewService = createCrewServiceMock();
+    crewService.getMembership.and.returnValue(of({ hasCrew: false }));
+
     await TestBed.configureTestingModule({
       imports: [UserHomeComponent],
       providers: [
         provideRouter([]),
-        {
-          provide: NotificationService,
-          useValue: {
-            refreshBadges: jasmine.createSpy('refreshBadges'),
-            areaCounts$: of(emptyAreaCounts())
-          }
-        }
+        { provide: CrewService, useValue: crewService }
       ]
     })
       .overrideComponent(UserHomeComponent, {
         set: {
-          imports: [CommonModule, StubNavLayoutComponent, ContentBadgeComponent]
+          imports: [CommonModule, StubNavLayoutComponent]
         }
       })
       .compileComponents();
@@ -50,22 +47,35 @@ describe('UserHomeComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create with profile nav tab and menu links', () => {
+  it('should create with profile nav tab and menu links without join/create when not in a crew', () => {
     expect(component).toBeTruthy();
 
     const links = fixture.nativeElement.querySelectorAll('.menu-link');
-    expect(links.length).toBe(6);
+    expect(links.length).toBe(5);
     expect(links[0].textContent).toContain('User Profile');
     expect(links[1].textContent).toContain('Gift History');
     expect(links[2].textContent).toContain('Activity center');
     expect(links[3].textContent).toContain('Preferences');
-    expect(links[4].textContent).toContain('My Invitations');
-    expect(links[5].textContent).toContain('Donate');
+    expect(links[4].textContent).toContain('Donate');
   });
 
-  it('should navigate to invitations', () => {
-    component.goToInvitations();
-    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/invitations']);
+  it('should show Join/Create a crew when user has a crew', () => {
+    crewService.getMembership.and.returnValue(of({ hasCrew: true, crewId: 1 }));
+    fixture = TestBed.createComponent(UserHomeComponent);
+    component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    fixture.detectChanges();
+
+    const links = fixture.nativeElement.querySelectorAll('.menu-link');
+    expect(links.length).toBe(6);
+    expect(links[4].textContent).toContain('Join/Create a crew');
+  });
+
+  it('should navigate to join/create crew page', () => {
+    component.hasCrew = true;
+    component.goToJoinOrCreateCrew();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/find']);
   });
 
   it('should navigate to user profile page', () => {

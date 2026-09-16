@@ -87,7 +87,8 @@ module "app_service" {
   managed_identity_client_id             = azurerm_user_assigned_identity.app.client_id
   managed_identity_principal_id          = azurerm_user_assigned_identity.app.principal_id
   sku_name                               = var.app_service_sku
-  always_on                              = true
+  # Staging: allow the app to unload so SQL can auto-pause. Production stays warm for SignalR.
+  always_on                              = var.environment != "staging"
   docker_image_name                      = var.docker_image_name
   acr_login_server                       = module.container_registry.login_server
   acr_id                                 = module.container_registry.id
@@ -97,14 +98,24 @@ module "app_service" {
   livekit_host                           = var.livekit_host
   application_insights_connection_string = module.monitoring.application_insights_connection_string
   key_vault_secret_uris                  = module.key_vault.secret_uris
-  extra_app_settings = {
-    "MediaDeepFreeze__Enabled"               = "true"
-    "MediaDeepFreeze__AgeDays"               = "60"
-    "MediaDeepFreeze__Provider"              = "azure"
-    "MediaDeepFreeze__AzureContainerName"    = module.deep_freeze_storage.container_name
-    "MediaDeepFreeze__AzureConnectionString" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.deep_freeze_connection.versionless_id})"
-    # Hide Fallible attribution app-wide for now (can re-enable later).
-    "Client__ShowFallibleAttribution"        = "false"
-  }
+  extra_app_settings = merge(
+    {
+      "MediaDeepFreeze__Enabled"               = "true"
+      "MediaDeepFreeze__AgeDays"               = "60"
+      "MediaDeepFreeze__Provider"              = "azure"
+      "MediaDeepFreeze__AzureContainerName"    = module.deep_freeze_storage.container_name
+      "MediaDeepFreeze__AzureConnectionString" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.deep_freeze_connection.versionless_id})"
+      # Hide Fallible attribution app-wide for now (can re-enable later).
+      "Client__ShowFallibleAttribution"        = "false"
+    },
+    var.environment == "staging" ? {
+      # No idle SQL polling — sweeps run when related authenticated traffic arrives.
+      "BackgroundJobs__ProposalTimer"                   = "OnActivity"
+      "BackgroundJobs__GiftAutoVerify"                  = "OnActivity"
+      "BackgroundJobs__MediaDeepFreeze"                 = "OnActivity"
+      "BackgroundJobs__ContentReportRetentionEnabled"   = "false"
+      "BackgroundJobs__ActivityDebounceSeconds"         = "120"
+    } : {}
+  )
   tags = local.common_tags
 }

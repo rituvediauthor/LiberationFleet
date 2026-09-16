@@ -164,11 +164,14 @@ describe('CrewHomeComponent', () => {
 
   it('should show welcome actions when user has no crew', () => {
     const buttons = fixture.nativeElement.querySelectorAll('.action-btn');
-    expect(buttons.length).toBe(4);
+    expect(buttons.length).toBe(6);
     expect(buttons[0].textContent).toContain('Create Crew');
     expect(buttons[1].textContent).toContain('Join Crew');
     expect(buttons[2].textContent).toContain('My Invitations');
     expect(buttons[3].textContent).toContain('My Join Requests');
+    expect(buttons[4].textContent).toContain('Crew Dashboard');
+    expect(buttons[4].disabled).toBeTrue();
+    expect(buttons[5].textContent).toContain('How to use this app');
   });
 
   it('should show retry instead of create/join when membership fails to load', () => {

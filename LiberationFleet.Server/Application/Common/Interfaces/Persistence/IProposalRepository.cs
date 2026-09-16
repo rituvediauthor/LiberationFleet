@@ -16,13 +16,6 @@ public interface IProposalRepository
         int limit,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Approved crew-join proposals that never finished applying (e.g. applicant was already in another crew).
-    /// </summary>
-    Task<IReadOnlyList<Proposal>> GetApprovedUnappliedJoinProposalsAsync(
-        int limit,
-        CancellationToken cancellationToken = default);
-
     Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default);
     Task<ProposalVote?> GetVoteAsync(int proposalId, int userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProposalComment>> GetCommentsByProposalIdAsync(

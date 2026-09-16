@@ -83,4 +83,15 @@
       </form>
     </div>
   </div>
+
+  <app-confirm-dialog
+    [visible]="showLeaveConfirm"
+    title="Leave current crew?"
+    message="Creating a new crew will leave your current crew. You will become the organizer of the new crew."
+    confirmLabel="Create"
+    cancelLabel="Back"
+    (confirmed)="onLeaveConfirm()"
+    (cancelled)="onLeaveCancel()"
+    (dismissed)="onLeaveCancel()">
+  </app-confirm-dialog>
 </app-page-layout>

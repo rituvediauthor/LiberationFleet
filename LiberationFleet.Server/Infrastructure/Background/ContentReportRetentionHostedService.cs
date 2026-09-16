@@ -7,16 +7,23 @@ namespace LiberationFleet.Server.Infrastructure.Background;
 /// <summary>
 /// Purges sealed evidence from expired non-CSAM report packets per ReportEvidence:NonCsamRetentionDays.
 /// CSAM / QueuedForNcmec packets are never purged by this job.
+/// Disabled when <see cref="BackgroundJobsOptions.ContentReportRetentionEnabled"/> is false (e.g. staging).
 /// </summary>
 public sealed class ContentReportRetentionHostedService(
     IServiceScopeFactory scopeFactory,
     IOptions<ReportEvidenceOptions> options,
+    IOptions<BackgroundJobsOptions> jobOptions,
     ILogger<ContentReportRetentionHostedService> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(12);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!jobOptions.Value.ContentReportRetentionEnabled)
+        {
+            return;
+        }
+
         // Delay first run so startup migrations / health settle.
         try
         {

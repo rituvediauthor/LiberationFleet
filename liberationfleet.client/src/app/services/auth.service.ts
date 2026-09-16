@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap } from 'rxjs';
+import { Observable, BehaviorSubject, tap, of, catchError, finalize, shareReplay } from 'rxjs';
 import { AuthResult, User } from '../models/user.model';
 import { CryptoSessionService } from './crypto/crypto-session.service';
 import {
@@ -43,6 +43,7 @@ export class AuthService {
   private encryptionReadyPromise: Promise<void> | null = null;
   /** False until local session/device unlock has been attempted (or is unnecessary). */
   private encryptionBootstrapSettled = false;
+  private refreshInFlight: Observable<AuthResult | null> | null = null;
 
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -70,6 +71,45 @@ export class AuthService {
     );
   }
 
+  /**
+   * Re-issues a JWT so daily use keeps extending the 24h session.
+   * Does not clear crypto or session caches.
+   */
+  refreshSession(): Observable<AuthResult> {
+    return this.http.post<AuthResult>(`${this.apiUrl}/refresh`, {}).pipe(
+      tap(response => this.applyRefreshedSession(response))
+    );
+  }
+
+  /**
+   * When remember-me is on and a valid token exists, refresh it (fire-and-forget safe).
+   * Call on app open / foreground so daily use slides the expiry forward.
+   */
+  refreshSessionIfRemembered(): Observable<AuthResult | null> {
+    if (!this.isRememberLoginEnabled()) {
+      return of(null);
+    }
+
+    const token = this.getToken();
+    if (!token || isJwtExpired(token)) {
+      return of(null);
+    }
+
+    if (this.refreshInFlight) {
+      return this.refreshInFlight;
+    }
+
+    this.refreshInFlight = this.refreshSession().pipe(
+      catchError(() => of(null)),
+      finalize(() => {
+        this.refreshInFlight = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+
+    return this.refreshInFlight;
+  }
+
   establishSession(response: AuthResult): void {
     if (response.token) {
       // Drop any prior session caches so membership/fleet status cannot stick
@@ -82,6 +122,17 @@ export class AuthService {
       this.currentUserSubject.next(response.user ?? null);
       this.resetEncryptionReady();
       void this.getEncryptionReady();
+    }
+  }
+
+  private applyRefreshedSession(response: AuthResult): void {
+    if (!response.success || !response.token) {
+      return;
+    }
+
+    this.setToken(response.token);
+    if (response.user) {
+      this.currentUserSubject.next(response.user);
     }
   }
 
@@ -261,6 +312,8 @@ export class AuthService {
 
     this.currentUserSubject.next(null);
     void this.getEncryptionReady();
+    // Sliding expiry: extend the JWT when remember-me is on so daily use stays signed in.
+    this.refreshSessionIfRemembered().subscribe();
   }
 
   private async ensureEncryptionReady(): Promise<void> {

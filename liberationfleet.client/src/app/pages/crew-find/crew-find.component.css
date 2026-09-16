@@ -1,0 +1,26 @@
+.crew-find {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  margin: 0 auto;
+}
+
+.crew-find:has(> app-hub-loading) {
+  align-self: stretch;
+  max-width: none;
+  flex: 1 0 auto;
+  min-height: 100%;
+  justify-content: center;
+}
+
+.crew-find:has(> app-hub-loading) > app-hub-loading {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+app-crew-find-panel {
+  display: block;
+  width: 100%;
+}

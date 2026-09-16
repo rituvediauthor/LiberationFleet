@@ -223,6 +223,7 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<LiberationFleet.Server.Infrastructure.Background.ActivityTriggeredBackgroundJobsMiddleware>();
 
 // Ephemeral viewer location for Local matching (never from stored profile plaintext).
 app.Use(async (context, next) =>

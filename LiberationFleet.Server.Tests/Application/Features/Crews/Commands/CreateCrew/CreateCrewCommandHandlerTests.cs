@@ -1,6 +1,8 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -23,7 +25,7 @@ public class CreateCrewCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenUserAlreadyHasCrew_ReturnsFailure()
+    public async Task Handle_WhenUserAlreadyHasCrew_LeavesThenCreates()
     {
         var user = HandlerTestFixture.CreateUser();
         var crew = HandlerTestFixture.CreateCrew();
@@ -33,13 +35,34 @@ public class CreateCrewCommandHandlerTests
         membershipRepository
             .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(membership);
+        membershipRepository
+            .Setup(r => r.GetActiveMembersByCrewIdAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CrewMembership>());
+        membershipRepository
+            .Setup(r => r.AddAsync(It.IsAny<CrewMembership>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
-        var handler = CreateHandler(currentUserId: user.Id, membershipRepository: membershipRepository);
+        var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
+        crewRepository
+            .Setup(r => r.GetByJoinCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Crew?)null);
+        crewRepository
+            .Setup(r => r.AddAsync(It.IsAny<Crew>(), It.IsAny<CancellationToken>()))
+            .Callback<Crew, CancellationToken>((c, _) => c.Id = 99)
+            .Returns(Task.CompletedTask);
+
+        var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            crewRepository: crewRepository,
+            membershipRepository: membershipRepository,
+            unitOfWork: unitOfWork);
 
         var result = await handler.Handle(ValidCommand(), CancellationToken.None);
 
-        result.Success.Should().BeFalse();
-        result.Message.Should().Be("You are already a member of a crew");
+        result.Success.Should().BeTrue();
+        membershipRepository.Verify(r => r.MarkLeft(membership, It.IsAny<DateTime>()), Times.Once);
+        result.Crew!.Id.Should().Be(99);
     }
 
     [Fact]
@@ -212,6 +235,16 @@ public class CreateCrewCommandHandlerTests
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             unitOfWork.Object);
 
+        var libraryCleanup = new LibraryMemberCleanupService(
+            Mock.Of<ILibraryRepository>(),
+            Mock.Of<ICryptoRepository>(),
+            new LibraryRequestCleanupHelper(
+                Mock.Of<ILibraryRepository>(),
+                Mock.Of<ICryptoRepository>()));
+        var emptyCrewCleanup = new EmptyCrewCleanupService(
+            membershipRepository.Object,
+            Mock.Of<ICrewCleanupRepository>());
+
         return new CreateCrewCommandHandler(
             crewRepository.Object,
             membershipRepository.Object,
@@ -221,6 +254,9 @@ public class CreateCrewCommandHandlerTests
             fleetMembership,
             HandlerTestFixture.CreateDefaultOrgContentSeeder(),
             paymentPlatformPortability,
+            libraryCleanup,
+            emptyCrewCleanup,
+            HandlerTestFixture.CreateMutualAidServiceMock().Object,
             unitOfWork.Object);
     }
 }

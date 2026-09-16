@@ -6,10 +6,12 @@ namespace LiberationFleet.Server.Infrastructure.Background;
 /// <summary>
 /// Moves Image/Video/Audio ciphertext from SQL to cold storage.
 /// Video/audio are frozen immediately; images use MediaDeepFreeze:AgeDays (default 60).
+/// In OnActivity mode, batches run via <see cref="ActivityTriggeredBackgroundJobs"/> instead.
 /// </summary>
 public sealed class MediaDeepFreezeHostedService(
     IServiceScopeFactory scopeFactory,
-    IOptions<MediaDeepFreezeOptions> options,
+    IOptions<MediaDeepFreezeOptions> freezeOptions,
+    IOptions<BackgroundJobsOptions> jobOptions,
     ILogger<MediaDeepFreezeHostedService> logger) : BackgroundService
 {
     private static readonly TimeSpan StartupDelay = TimeSpan.FromMinutes(1);
@@ -17,6 +19,11 @@ public sealed class MediaDeepFreezeHostedService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (jobOptions.Value.MediaDeepFreeze != BackgroundJobRunMode.Polling)
+        {
+            return;
+        }
+
         try
         {
             await Task.Delay(StartupDelay, stoppingToken);
@@ -30,7 +37,7 @@ public sealed class MediaDeepFreezeHostedService(
         {
             try
             {
-                if (options.Value.Enabled)
+                if (freezeOptions.Value.Enabled)
                 {
                     using var scope = scopeFactory.CreateScope();
                     var service = scope.ServiceProvider.GetRequiredService<IMediaDeepFreezeService>();

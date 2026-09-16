@@ -54,11 +54,14 @@ export class AppComponent implements OnInit, OnDestroy {
   private appStateListener: PluginListenerHandle | null = null;
   private readonly onVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      this.refreshMembershipIfInApp();
+      this.onAppForeground();
     }
   };
 
   ngOnInit() {
+    // Extend JWT on cold start when remember-me kept a valid token.
+    this.authService.refreshSessionIfRemembered().subscribe();
+
     void this.authService.getEncryptionReady().then(() => {
       this.syncUnlockDialog();
       void this.syncCrewCryptoIfInApp();
@@ -100,7 +103,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (isNativeApp()) {
       void App.addListener('appStateChange', ({ isActive }) => {
         if (isActive) {
-          this.refreshMembershipIfInApp();
+          this.onAppForeground();
         }
       }).then(handle => {
         this.appStateListener = handle;
@@ -121,6 +124,13 @@ export class AppComponent implements OnInit, OnDestroy {
     this.syncUnlockDialog();
     void this.syncCrewCryptoIfInApp();
     void this.syncFleetCryptoIfInApp();
+  }
+
+  private onAppForeground() {
+    this.authService.refreshSessionIfRemembered().subscribe({
+      next: () => this.refreshMembershipIfInApp(),
+      error: () => this.refreshMembershipIfInApp()
+    });
   }
 
   private refreshMembershipIfInApp() {

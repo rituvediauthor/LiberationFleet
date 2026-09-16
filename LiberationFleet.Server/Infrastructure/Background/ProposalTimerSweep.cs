@@ -1,0 +1,93 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Chats;
+using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Fleets;
+using LiberationFleet.Server.Application.Features.Proposals;
+using LiberationFleet.Server.Application.Features.Rules;
+using LiberationFleet.Server.Domain.Enums;
+
+namespace LiberationFleet.Server.Infrastructure.Background;
+
+internal static class ProposalTimerSweep
+{
+    private const int BatchSize = 50;
+
+    public static async Task RunAsync(IServiceProvider sp, ILogger logger, CancellationToken cancellationToken)
+    {
+        var proposals = sp.GetRequiredService<IProposalRepository>();
+        var fleetRepository = sp.GetRequiredService<IFleetRepository>();
+        var crewRepository = sp.GetRequiredService<ICrewRepository>();
+        var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
+
+        var utcNow = DateTime.UtcNow;
+        var due = await proposals.GetPendingExpiredAsync(utcNow, BatchSize, cancellationToken);
+        if (due.Count == 0)
+        {
+            return;
+        }
+
+        var crewSettings = sp.GetRequiredService<CrewSettingsProposalService>();
+        var crewRules = sp.GetRequiredService<CrewRulesProposalService>();
+        var crewChats = sp.GetRequiredService<CrewChatsProposalService>();
+        var kicks = sp.GetRequiredService<CrewmateKickProposalService>();
+        var rejoins = sp.GetRequiredService<CrewmateRejoinProposalService>();
+        var joins = sp.GetRequiredService<CrewJoinRequestProposalService>();
+        var roles = sp.GetRequiredService<CrewRoleProposalService>();
+        var claims = sp.GetRequiredService<ClaimPlaceholderIdentityProposalService>();
+        var permissions = sp.GetRequiredService<CrewmatePermissionProposalService>();
+        var aidStats = sp.GetRequiredService<CrewmateAidStatProposalService>();
+        var applyFleet = sp.GetRequiredService<CrewApplyToFleetProposalService>();
+        var leaveFleet = sp.GetRequiredService<CrewLeaveFleetProposalService>();
+        var fleetJoins = sp.GetRequiredService<FleetJoinRequestProposalService>();
+        var fleetKicks = sp.GetRequiredService<FleetKickCrewProposalService>();
+        var fleetSettings = sp.GetRequiredService<FleetSettingsProposalService>();
+        var fleetRules = sp.GetRequiredService<FleetRulesProposalService>();
+
+        var resolved = 0;
+        foreach (var proposal in due)
+        {
+            var statusBefore = proposal.Status;
+            var eligible = await ProposalEligibility.GetEligibleVoterCountAsync(
+                proposal, proposals, fleetRepository, cancellationToken);
+            var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
+                proposal, crewRepository, fleetRepository, cancellationToken);
+            var autoResolveSettings = await ProposalEligibility.GetAutoResolveSettingsAsync(
+                proposal, crewRepository, fleetRepository, cancellationToken);
+            ProposalVotingService.TryResolveOnTimer(
+                proposal, utcNow, duoMode, autoResolveSettings, eligible);
+            if (proposal.Status == statusBefore)
+            {
+                continue;
+            }
+
+            resolved++;
+            await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
+                proposal,
+                statusBefore,
+                crewSettings,
+                crewRules,
+                crewChats,
+                kicks,
+                rejoins,
+                joins,
+                roles,
+                claims,
+                permissions,
+                aidStats,
+                applyFleet,
+                leaveFleet,
+                fleetJoins,
+                fleetKicks,
+                fleetSettings,
+                fleetRules,
+                cancellationToken);
+        }
+
+        if (resolved > 0)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Proposal timer resolved {Count} proposal(s).", resolved);
+        }
+    }
+}

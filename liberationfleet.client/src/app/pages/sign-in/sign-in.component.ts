@@ -34,7 +34,8 @@ export class SignInComponent {
   constructor() {
     this.form = this.fb.group({
       usernameOrEmail: ['', Validators.required],
-      password: ['', Validators.required]
+      password: ['', Validators.required],
+      rememberMe: [this.authService.isRememberLoginEnabled()]
     });
 
     this.backButton = {
@@ -71,8 +72,13 @@ export class SignInComponent {
     this.signInButton.disabled = true;
     this.signInButton.label = 'Signing in…';
 
+    const rememberMe = !!this.form.get('rememberMe')?.value;
+    this.authService.setRememberLoginEnabled(rememberMe);
+
+    const { usernameOrEmail, password } = this.form.value;
     const credentials = {
-      ...this.form.value,
+      usernameOrEmail,
+      password,
       deviceId: this.deviceIdentity.getDeviceId(),
       deviceName: this.deviceIdentity.getDeviceName(),
       userAgent: this.deviceIdentity.getUserAgent()

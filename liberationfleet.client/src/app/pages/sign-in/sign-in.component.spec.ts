@@ -18,6 +18,7 @@ describe('SignInComponent', () => {
 
   beforeEach(async () => {
     authService = createAuthServiceMock();
+    authService.isRememberLoginEnabled.and.returnValue(true);
     toastService = createToastServiceMock();
 
     await TestBed.configureTestingModule({
@@ -39,6 +40,7 @@ describe('SignInComponent', () => {
 
   it('should create with empty required fields', () => {
     expect(component.form.invalid).toBeTrue();
+    expect(component.form.get('rememberMe')?.value).toBeTrue();
   });
 
   it('should not submit when form is invalid', () => {
@@ -53,9 +55,14 @@ describe('SignInComponent', () => {
       user: { id: 1, username: 'user', email: 'user@example.com' }
     }));
 
-    component.form.setValue({ usernameOrEmail: 'user@example.com', password: 'password123' });
+    component.form.setValue({
+      usernameOrEmail: 'user@example.com',
+      password: 'password123',
+      rememberMe: true
+    });
     component.onSubmit();
 
+    expect(authService.setRememberLoginEnabled).toHaveBeenCalledWith(true);
     expect(authService.login).toHaveBeenCalledWith(jasmine.objectContaining({
       usernameOrEmail: 'user@example.com',
       password: 'password123'
@@ -64,10 +71,31 @@ describe('SignInComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew']);
   });
 
+  it('should persist remember-me preference as off when unchecked', () => {
+    authService.login.and.returnValue(of({
+      success: true,
+      token: 'jwt',
+      user: { id: 1, username: 'user', email: 'user@example.com' }
+    }));
+
+    component.form.setValue({
+      usernameOrEmail: 'user@example.com',
+      password: 'password123',
+      rememberMe: false
+    });
+    component.onSubmit();
+
+    expect(authService.setRememberLoginEnabled).toHaveBeenCalledWith(false);
+  });
+
   it('should show error toast on login failure', () => {
     authService.login.and.returnValue(throwError(() => ({ error: { message: 'Invalid credentials' } })));
 
-    component.form.setValue({ usernameOrEmail: 'user@example.com', password: 'wrong' });
+    component.form.setValue({
+      usernameOrEmail: 'user@example.com',
+      password: 'wrong',
+      rememberMe: true
+    });
     component.onSubmit();
 
     expect(toastService.error).toHaveBeenCalledWith('Invalid credentials');
