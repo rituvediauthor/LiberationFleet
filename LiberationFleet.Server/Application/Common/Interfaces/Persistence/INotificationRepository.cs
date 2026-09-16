@@ -60,6 +60,15 @@ public interface INotificationRepository
 
     Task<Notification?> GetByIdForUserAsync(int notificationId, int userId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Tracked notifications for a user matching kind and related entity (for in-place updates).
+    /// </summary>
+    Task<IReadOnlyList<Notification>> GetForUserByKindAndRelatedAsync(
+        int userId,
+        NotificationKind kind,
+        int relatedEntityId,
+        CancellationToken cancellationToken = default);
+
     Task MarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default);
 
     Task MarkAllReadAsync(int userId, CancellationToken cancellationToken = default);

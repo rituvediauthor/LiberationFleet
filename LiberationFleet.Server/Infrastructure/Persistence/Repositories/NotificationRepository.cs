@@ -211,6 +211,15 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
     public Task<Notification?> GetByIdForUserAsync(int notificationId, int userId, CancellationToken cancellationToken = default) =>
         context.Notifications.FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId, cancellationToken);
 
+    public async Task<IReadOnlyList<Notification>> GetForUserByKindAndRelatedAsync(
+        int userId,
+        NotificationKind kind,
+        int relatedEntityId,
+        CancellationToken cancellationToken = default) =>
+        await context.Notifications
+            .Where(n => n.UserId == userId && n.Kind == kind && n.RelatedEntityId == relatedEntityId)
+            .ToListAsync(cancellationToken);
+
     public async Task MarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default)
     {
         var notification = await context.Notifications

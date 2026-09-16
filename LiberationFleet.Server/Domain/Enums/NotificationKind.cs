@@ -60,5 +60,9 @@ public enum NotificationKind
     FriendRequestAccepted = 56,
     NewDirectMessage = 57,
     ChatMessageLiked = 58,
-    LibraryTaskScheduleChanged = 59
+    LibraryTaskScheduleChanged = 59,
+    /// <summary>
+    /// Join request approved while already in a crew — applicant must Switch or Stay.
+    /// </summary>
+    CrewJoinSwitchOffer = 60
 }

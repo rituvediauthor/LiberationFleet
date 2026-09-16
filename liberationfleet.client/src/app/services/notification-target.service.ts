@@ -22,7 +22,8 @@ const STATIC_ROUTES = new Set([
   '/app/fleet',
   '/app/fleet/gift-log',
   '/app/fleet/rules',
-  '/app/fleet/edit'
+  '/app/fleet/edit',
+  '/app/notifications'
 ]);
 
 @Injectable({

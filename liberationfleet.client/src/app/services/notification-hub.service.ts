@@ -175,7 +175,8 @@ export class NotificationHubService implements OnDestroy {
       56: 'FriendRequestAccepted',
       57: 'NewDirectMessage',
       58: 'ChatMessageLiked',
-      59: 'LibraryTaskScheduleChanged'
+      59: 'LibraryTaskScheduleChanged',
+      60: 'CrewJoinSwitchOffer'
     };
     return map[value] ?? String(value);
   }

@@ -840,6 +840,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.AcceptedRuleIdsJson).HasMaxLength(2000);
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.ApplicantDecision).HasDefaultValue(CrewJoinApplicantDecision.None);
             entity.HasOne(e => e.Proposal)
                 .WithOne(p => p.CrewJoinRequest)
                 .HasForeignKey<ProposalCrewJoinRequest>(e => e.ProposalId)

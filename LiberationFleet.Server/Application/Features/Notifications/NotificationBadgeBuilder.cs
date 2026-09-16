@@ -343,7 +343,7 @@ public static class NotificationBadgeBuilder
                 or NotificationKind.FleetForumPostLiked or NotificationKind.FleetForumCommentLiked => "fleetForums",
             NotificationKind.FleetMention when IsForumPath(notification.ActionUrl) => "fleetForums",
             NotificationKind.NewProposal or NotificationKind.ProposalRejected or NotificationKind.ProposalAccepted
-                or NotificationKind.NewProposalReply => "crewProposals",
+                or NotificationKind.NewProposalReply or NotificationKind.CrewJoinSwitchOffer => "crewProposals",
             NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted
                 or NotificationKind.FleetProposalRejected or NotificationKind.NewFleetProposalReply => "fleetProposals",
             NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason

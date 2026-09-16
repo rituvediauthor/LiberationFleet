@@ -17,13 +17,17 @@
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">No notifications yet.</p>
 
     <div class="notification-list" *ngIf="!loading && items.length > 0">
-      <button
-        type="button"
+      <div
         class="notification-card"
         [class.unread]="!item.isRead"
         [class.unavailable]="item.isTargetAvailable === false"
+        [class.actionable]="isPendingSwitchOffer(item)"
         *ngFor="let item of items"
-        (click)="openNotification(item)">
+        (click)="openNotification(item)"
+        role="button"
+        tabindex="0"
+        (keydown.enter)="openNotification(item)"
+        (keydown.space)="$event.preventDefault(); openNotification(item)">
         <app-user-avatar
           *ngIf="showActorAvatar(item)"
           class="notification-avatar"
@@ -35,6 +39,26 @@
         <div class="card-main">
           <h2>{{ item.title }}</h2>
           <p>{{ item.body }}</p>
+          <div
+            class="switch-offer-actions"
+            *ngIf="isPendingSwitchOffer(item)"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()">
+            <button
+              type="button"
+              class="offer-btn stay"
+              [disabled]="isRespondingToSwitchOffer(item)"
+              (click)="respondToSwitchOffer(item, false, $event)">
+              Stay
+            </button>
+            <button
+              type="button"
+              class="offer-btn switch"
+              [disabled]="isRespondingToSwitchOffer(item)"
+              (click)="respondToSwitchOffer(item, true, $event)">
+              Switch
+            </button>
+          </div>
           <time>{{ formatWhen(item.createdAt) }}</time>
         </div>
         <i
@@ -43,10 +67,10 @@
           aria-label="Content not available"
           title="Content not available"></i>
         <i
-          *ngIf="item.isTargetAvailable !== false"
+          *ngIf="item.isTargetAvailable !== false && !isPendingSwitchOffer(item)"
           class="fa-solid fa-angle-right chevron"
           aria-hidden="true"></i>
-      </button>
+      </div>
     </div>
   </div>
 </app-nav-layout>

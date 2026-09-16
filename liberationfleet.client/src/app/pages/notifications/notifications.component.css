@@ -72,6 +72,11 @@
   cursor: pointer;
 }
 
+.notification-card.actionable {
+  cursor: default;
+  align-items: flex-start;
+}
+
 .notification-card.unread {
   border-color: var(--lf-color-accent);
   background: var(--lf-color-accent-soft-bg-alt);
@@ -96,6 +101,39 @@
 .card-main time {
   color: var(--lf-color-text-muted);
   font-size: 12px;
+}
+
+.switch-offer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+
+.offer-btn {
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text);
+}
+
+.offer-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.offer-btn.stay {
+  border-color: var(--lf-color-border-subtle);
+}
+
+.offer-btn.switch {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent);
+  color: var(--lf-color-text-inverse);
 }
 
 .chevron {

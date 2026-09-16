@@ -143,6 +143,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'ProposalRejected':
     case 'ProposalAccepted':
     case 'NewProposalReply':
+    case 'CrewJoinSwitchOffer':
       return 'crewProposals';
     case 'NewFleetProposal':
     case 'FleetProposalAccepted':

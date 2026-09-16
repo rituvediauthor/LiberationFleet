@@ -3126,6 +3126,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("ApplicantDecision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2000)

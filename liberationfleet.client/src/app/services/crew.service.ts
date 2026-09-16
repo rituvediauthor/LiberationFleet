@@ -135,6 +135,20 @@ export class CrewService {
     return this.http.post<JoinRequestOperationResponse>(`${this.apiUrl}/join-request`, body);
   }
 
+  respondToJoinSwitchOffer(proposalId: number, switchCrews: boolean): Observable<JoinRequestOperationResponse> {
+    const action = switchCrews ? 'switch' : 'stay';
+    return this.http.post<JoinRequestOperationResponse>(
+      `${this.apiUrl}/join-requests/${proposalId}/${action}`,
+      {}
+    ).pipe(
+      tap(result => {
+        if (result.success && switchCrews) {
+          this.clearMembershipCache();
+        }
+      })
+    );
+  }
+
   getMyJoinRequests(): Observable<JoinRequestListResponse> {
     return this.http.get<JoinRequestListResponse>(`${this.apiUrl}/join-requests/mine`);
   }

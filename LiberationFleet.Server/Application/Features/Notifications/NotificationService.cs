@@ -218,6 +218,7 @@ public class NotificationService(
         NotificationKind.NewDirectMessage => "New direct message",
         NotificationKind.ChatMessageLiked => "Message liked",
         NotificationKind.LibraryTaskScheduleChanged => "Quest schedule updated",
+        NotificationKind.CrewJoinSwitchOffer => "Crew switch offer",
         _ => kind.ToString()
         };
 

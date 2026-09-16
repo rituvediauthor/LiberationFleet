@@ -48,6 +48,21 @@ public class ProposalRepository : IProposalRepository
             .Take(limit)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Proposal>> GetApprovedUnappliedJoinProposalsAsync(
+        int limit,
+        CancellationToken cancellationToken = default) =>
+        await _context.Proposals
+            .Include(p => p.AuthorUser)
+            .Where(p => !p.IsDeleted
+                        && p.Kind == ProposalKind.CrewJoinRequest
+                        && p.Status == ProposalStatus.Approved
+                        && p.CrewJoinRequest != null
+                        && !p.CrewJoinRequest.IsApplied
+                        && p.CrewJoinRequest.ApplicantDecision != CrewJoinApplicantDecision.Stayed)
+            .OrderBy(p => p.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
     public Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .CountAsync(

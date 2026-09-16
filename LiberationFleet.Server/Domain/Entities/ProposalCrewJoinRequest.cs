@@ -1,3 +1,5 @@
+using LiberationFleet.Server.Domain.Enums;
+
 namespace LiberationFleet.Server.Domain.Entities;
 
 public class ProposalCrewJoinRequest
@@ -11,6 +13,12 @@ public class ProposalCrewJoinRequest
     public string Description { get; set; } = string.Empty;
     public bool IsApplied { get; set; }
     public bool IsKeyPrepared { get; set; }
+
+    /// <summary>
+    /// When approval happens while the applicant is already in another crew,
+    /// set to <see cref="CrewJoinApplicantDecision.Pending"/> until they Switch or Stay.
+    /// </summary>
+    public CrewJoinApplicantDecision ApplicantDecision { get; set; }
 
     public Proposal Proposal { get; set; } = null!;
 }

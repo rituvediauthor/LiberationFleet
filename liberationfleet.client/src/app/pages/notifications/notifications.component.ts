@@ -15,7 +15,12 @@ import {
 import { CrewService } from '../../services/crew.service';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 import { NotificationCategoryMapperMatches } from '../../utils/notification-filter.util';
-import { isCrewJoinRequestApprovedNotification } from '../../utils/crew-join-approval.util';
+import {
+  CREW_JOIN_SWITCH_OFFER_STAYED,
+  CREW_JOIN_SWITCH_OFFER_SWITCHED,
+  isCrewJoinRequestApprovedNotification,
+  isPendingCrewJoinSwitchOffer
+} from '../../utils/crew-join-approval.util';
 
 @Component({
   selector: 'app-notifications',
@@ -31,6 +36,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   selectedFilter: NotificationFilterCategory = 'All';
   readonly filterOptions = NOTIFICATION_FILTER_OPTIONS;
   crewId = 0;
+  private respondingProposalIds = new Set<number>();
 
   private notificationService = inject(NotificationService);
   private notificationHub = inject(NotificationHubService);
@@ -63,12 +69,24 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     return !!item.actorUserId && !!item.actorAvatarResourceId?.trim();
   }
 
+  isPendingSwitchOffer(item: NotificationItem): boolean {
+    return isPendingCrewJoinSwitchOffer(item);
+  }
+
+  isRespondingToSwitchOffer(item: NotificationItem): boolean {
+    return !!item.relatedEntityId && this.respondingProposalIds.has(item.relatedEntityId);
+  }
+
   onFilterChange(value: string) {
     this.selectedFilter = value as NotificationFilterCategory;
     this.loadNotifications();
   }
 
   async openNotification(item: NotificationItem) {
+    if (this.isPendingSwitchOffer(item)) {
+      return;
+    }
+
     const available = item.isTargetAvailable ?? await firstValueFrom(
       this.notificationTargetService.isTargetAvailable(item.actionUrl)
     );
@@ -92,6 +110,40 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
     const url = this.buildNavigationUrl(item);
     void this.router.navigateByUrl(url);
+  }
+
+  respondToSwitchOffer(item: NotificationItem, switchCrews: boolean, event: Event) {
+    event.stopPropagation();
+    const proposalId = item.relatedEntityId;
+    if (!proposalId || this.respondingProposalIds.has(proposalId)) {
+      return;
+    }
+
+    this.respondingProposalIds.add(proposalId);
+    this.crewService.respondToJoinSwitchOffer(proposalId, switchCrews).subscribe({
+      next: result => {
+        this.respondingProposalIds.delete(proposalId);
+        if (!result.success) {
+          this.toastService.show(result.message || 'Could not update your choice.', 'error');
+          return;
+        }
+
+        item.secondaryEntityId = switchCrews
+          ? CREW_JOIN_SWITCH_OFFER_SWITCHED
+          : CREW_JOIN_SWITCH_OFFER_STAYED;
+        item.isRead = true;
+        item.body = result.message || item.body;
+        this.toastService.show(result.message || (switchCrews ? 'Switched crews.' : 'Staying in your crew.'), 'success');
+
+        if (switchCrews) {
+          void this.router.navigateByUrl('/app/crew');
+        }
+      },
+      error: () => {
+        this.respondingProposalIds.delete(proposalId);
+        this.toastService.show('Could not update your choice.', 'error');
+      }
+    });
   }
 
   markAllRead() {
@@ -151,6 +203,11 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
   private validateTargets() {
     for (const item of this.items) {
+      if (this.isPendingSwitchOffer(item)) {
+        item.isTargetAvailable = true;
+        continue;
+      }
+
       item.isTargetAvailable = null;
       this.notificationTargetService.isTargetAvailable(item.actionUrl).subscribe({
         next: available => {

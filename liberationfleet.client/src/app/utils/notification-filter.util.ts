@@ -25,7 +25,8 @@ const PROPOSAL_KINDS = new Set<NotificationKind>([
   'FleetProposalAccepted',
   'FleetProposalRejected',
   'NewProposalReply',
-  'NewFleetProposalReply'
+  'NewFleetProposalReply',
+  'CrewJoinSwitchOffer'
 ]);
 
 const RULE_KINDS = new Set<NotificationKind>([

@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Features.Crews.Commands.CreateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Commands.InviteCrewmate;
 using LiberationFleet.Server.Application.Features.Crews.Commands.LeaveCrew;
 using LiberationFleet.Server.Application.Features.Crews.Commands.RespondToCrewInvitation;
+using LiberationFleet.Server.Application.Features.Crews.Commands.RespondToCrewJoinSwitchOffer;
 using LiberationFleet.Server.Application.Features.Crews.Commands.SubmitJoinRequest;
 using LiberationFleet.Server.Application.Features.Crews.Commands.UpdateCrew;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
@@ -132,6 +133,20 @@ public class CrewsController : ControllerBase
             body.JoinCode,
             body.AcceptedRuleIds,
             body.InvitationId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("join-requests/{proposalId:int}/switch")]
+    public async Task<IActionResult> SwitchCrewFromJoinOffer(int proposalId)
+    {
+        var result = await _mediator.Send(new RespondToCrewJoinSwitchOfferCommand(proposalId, SwitchCrews: true));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("join-requests/{proposalId:int}/stay")]
+    public async Task<IActionResult> StayInCrewFromJoinOffer(int proposalId)
+    {
+        var result = await _mediator.Send(new RespondToCrewJoinSwitchOfferCommand(proposalId, SwitchCrews: false));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

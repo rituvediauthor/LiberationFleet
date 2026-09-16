@@ -24,6 +24,16 @@ public sealed class CrewJoinRequestResult
         new() { Success = false, Message = message, ProposalId = proposalId };
 }
 
+/// <summary>
+/// SecondaryEntityId values on <see cref="NotificationKind.CrewJoinSwitchOffer"/> notifications.
+/// Null/0 = pending Switch/Stay; 1 = stayed; 2 = switched.
+/// </summary>
+public static class CrewJoinSwitchOfferDecision
+{
+    public const int Stayed = 1;
+    public const int Switched = 2;
+}
+
 public class CrewJoinRequestProposalService(
     IProposalRepository proposalRepository,
     IFleetRepository fleetRepository,
@@ -31,6 +41,7 @@ public class CrewJoinRequestProposalService(
     ICrewRepository crewRepository,
     ICrewInvitationRepository invitationRepository,
     IUserRepository userRepository,
+    INotificationRepository notificationRepository,
     NotificationService notificationService,
     ContentTenureService contentTenureService,
     LibraryMemberCleanupService libraryMemberCleanupService,
@@ -104,7 +115,7 @@ public class CrewJoinRequestProposalService(
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
         var description = switchingCrews
-            ? $"{applicant.Username} accepted the crew's public rules and requested to join. If approved, they will leave their current crew and join this one. A crewmate should prepare an encryption key before approval when possible."
+            ? $"{applicant.Username} accepted the crew's public rules and requested to join. If approved while they are still in another crew, they will be asked whether to switch crews or stay. A crewmate should prepare an encryption key before approval when possible."
             : $"{applicant.Username} accepted the crew's public rules and requested to join. A crewmate should prepare an encryption key before approval when possible.";
 
         await proposalRepository.AddCrewJoinRequestAsync(new ProposalCrewJoinRequest
@@ -118,15 +129,12 @@ public class CrewJoinRequestProposalService(
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // Applicant is not a crewmate yet and must not cast the default author approve vote.
-        // Crewmates approve the request through normal voting / timer rules.
-
         await notificationService.NotifyCrewAsync(
             crewId,
             NotificationKind.JoinRequestFromPerson,
             "Join request",
             switchingCrews
-                ? $"{applicant.Username} requested to join (will leave their current crew if approved)."
+                ? $"{applicant.Username} requested to join (already in a crew; they will choose whether to switch if approved)."
                 : $"{applicant.Username} requested to join the crew.",
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
@@ -136,7 +144,7 @@ public class CrewJoinRequestProposalService(
         return CrewJoinRequestResult.Succeeded(
             proposal.Id,
             switchingCrews
-                ? "Join request submitted. You will leave your current crew only if this crew approves."
+                ? "Join request submitted. If approved while you are still in a crew, you will be asked whether to switch or stay."
                 : "Join request submitted.");
     }
 
@@ -153,12 +161,18 @@ public class CrewJoinRequestProposalService(
             return;
         }
 
+        if (joinRequest.ApplicantDecision == CrewJoinApplicantDecision.Stayed)
+        {
+            return;
+        }
+
         var activeMembership = await membershipRepository.GetActiveMembershipAsync(
             joinRequest.ApplicantUserId,
             cancellationToken);
         if (activeMembership is not null && activeMembership.CrewId == proposal.CrewId)
         {
             joinRequest.IsApplied = true;
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.None;
             joinRequest.Description = $"{joinRequest.ApplicantUsername} is already a member of this crew.";
             return;
         }
@@ -166,6 +180,7 @@ public class CrewJoinRequestProposalService(
         if (await membershipRepository.IsUserBannedFromCrewAsync(joinRequest.ApplicantUserId, proposal.CrewId!.Value, cancellationToken))
         {
             joinRequest.IsApplied = true;
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.None;
             joinRequest.Description = $"{joinRequest.ApplicantUsername} is banned from this crew.";
             return;
         }
@@ -180,28 +195,226 @@ public class CrewJoinRequestProposalService(
         if (memberCount >= crew.MaxSize)
         {
             joinRequest.IsApplied = true;
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.None;
             joinRequest.Description = "The crew was full when this request was approved.";
             return;
+        }
+
+        // Already in another crew: offer Switch/Stay instead of auto-moving.
+        if (activeMembership is not null)
+        {
+            await OfferSwitchOrStayAsync(proposal, joinRequest, crew, cancellationToken);
+            return;
+        }
+
+        await CompleteJoinAsync(
+            proposal,
+            joinRequest,
+            crew,
+            leftPreviousCrew: false,
+            notifyApplicantJoined: true,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Re-applies approved join requests that never finished (e.g. applicant created/joined another crew first).
+    /// Sends Switch/Stay when they are still in another crew; completes the join when they are not.
+    /// </summary>
+    public async Task ReconcileApprovedUnappliedAsync(
+        IReadOnlyList<Proposal> proposals,
+        CancellationToken cancellationToken)
+    {
+        foreach (var proposal in proposals)
+        {
+            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        }
+    }
+
+    private async Task OfferSwitchOrStayAsync(
+        Proposal proposal,
+        ProposalCrewJoinRequest joinRequest,
+        Crew crew,
+        CancellationToken cancellationToken)
+    {
+        joinRequest.ApplicantDecision = CrewJoinApplicantDecision.Pending;
+        joinRequest.Description =
+            $"{joinRequest.ApplicantUsername} was approved while already in another crew and must choose whether to switch.";
+        // Persist decision before notifying so a failed push does not leave a retryable None state that re-spams.
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var existingOffers = await notificationRepository.GetForUserByKindAndRelatedAsync(
+            joinRequest.ApplicantUserId,
+            NotificationKind.CrewJoinSwitchOffer,
+            proposal.Id,
+            cancellationToken);
+        var hasPendingOffer = existingOffers.Any(o =>
+            o.SecondaryEntityId is null or 0);
+        if (hasPendingOffer)
+        {
+            return;
+        }
+
+        await notificationService.NotifyUserAsync(new Application.Features.Notifications.Contracts.CreateNotificationRequest
+        {
+            UserId = joinRequest.ApplicantUserId,
+            CrewId = proposal.CrewId!.Value,
+            Kind = NotificationKind.CrewJoinSwitchOffer,
+            Title = "Join request approved",
+            Body =
+                $"Your request to join {crew.Name} was approved. Would you like to switch crews or stay in your present crew?",
+            ActionUrl = "/app/notifications",
+            RelatedEntityId = proposal.Id
+        }, cancellationToken);
+    }
+
+    public async Task<CrewJoinRequestResult> RespondToSwitchOfferAsync(
+        int applicantUserId,
+        int proposalId,
+        bool switchCrews,
+        CancellationToken cancellationToken)
+    {
+        var joinRequest = await proposalRepository.GetCrewJoinRequestByProposalIdAsync(proposalId, cancellationToken);
+        if (joinRequest is null)
+        {
+            return CrewJoinRequestResult.Failed("Join request not found.");
+        }
+
+        if (joinRequest.ApplicantUserId != applicantUserId)
+        {
+            return CrewJoinRequestResult.Failed("This join request is not yours.");
+        }
+
+        if (joinRequest.IsApplied || joinRequest.ApplicantDecision == CrewJoinApplicantDecision.Switched)
+        {
+            return CrewJoinRequestResult.Succeeded(proposalId, "You already joined that crew.");
+        }
+
+        if (joinRequest.ApplicantDecision == CrewJoinApplicantDecision.Stayed)
+        {
+            return CrewJoinRequestResult.Succeeded(proposalId, "You already chose to stay in your present crew.");
+        }
+
+        if (joinRequest.ApplicantDecision != CrewJoinApplicantDecision.Pending)
+        {
+            return CrewJoinRequestResult.Failed("This join request is not waiting for a switch decision.");
+        }
+
+        var proposal = await proposalRepository.GetByIdAsync(proposalId, cancellationToken);
+        if (proposal is null || proposal.Kind != ProposalKind.CrewJoinRequest || proposal.Status != ProposalStatus.Approved)
+        {
+            return CrewJoinRequestResult.Failed("This join request is no longer approved.");
+        }
+
+        if (!switchCrews)
+        {
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.Stayed;
+            joinRequest.Description =
+                $"{joinRequest.ApplicantUsername} chose to stay in their present crew after this join request was approved.";
+            await ResolveSwitchOfferNotificationsAsync(
+                applicantUserId,
+                proposalId,
+                CrewJoinSwitchOfferDecision.Stayed,
+                "You chose to stay in your present crew.",
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return CrewJoinRequestResult.Succeeded(proposalId, "You stayed in your present crew.");
+        }
+
+        if (await membershipRepository.IsUserBannedFromCrewAsync(applicantUserId, proposal.CrewId!.Value, cancellationToken))
+        {
+            joinRequest.IsApplied = true;
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.None;
+            joinRequest.Description = $"{joinRequest.ApplicantUsername} is banned from this crew.";
+            await ResolveSwitchOfferNotificationsAsync(
+                applicantUserId,
+                proposalId,
+                CrewJoinSwitchOfferDecision.Stayed,
+                "You could not switch because you are banned from that crew.",
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return CrewJoinRequestResult.Failed("You are banned from that crew.");
+        }
+
+        var crew = await crewRepository.GetByIdAsync(proposal.CrewId!.Value, cancellationToken);
+        if (crew is null)
+        {
+            return CrewJoinRequestResult.Failed("Crew not found.");
+        }
+
+        var memberCount = await crewRepository.CountMembersAsync(proposal.CrewId!.Value, cancellationToken);
+        if (memberCount >= crew.MaxSize)
+        {
+            joinRequest.IsApplied = true;
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.None;
+            joinRequest.Description = "The crew was full when the applicant tried to switch.";
+            await ResolveSwitchOfferNotificationsAsync(
+                applicantUserId,
+                proposalId,
+                CrewJoinSwitchOfferDecision.Stayed,
+                $"You could not switch because {crew.Name} is full.",
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return CrewJoinRequestResult.Failed("That crew is full.");
+        }
+
+        var activeMembership = await membershipRepository.GetActiveMembershipAsync(applicantUserId, cancellationToken);
+        if (activeMembership is not null && activeMembership.CrewId == proposal.CrewId)
+        {
+            joinRequest.IsApplied = true;
+            joinRequest.ApplicantDecision = CrewJoinApplicantDecision.Switched;
+            await ResolveSwitchOfferNotificationsAsync(
+                applicantUserId,
+                proposalId,
+                CrewJoinSwitchOfferDecision.Switched,
+                $"You are already in {crew.Name}.",
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return CrewJoinRequestResult.Succeeded(proposalId, "You are already in that crew.");
         }
 
         if (activeMembership is not null)
         {
             var sourceCrewId = activeMembership.CrewId;
-            var applicantId = joinRequest.ApplicantUserId;
             await libraryMemberCleanupService.CleanupForDepartingMemberAsync(
                 sourceCrewId,
-                applicantId,
+                applicantUserId,
                 cancellationToken);
-            await mutualAidService.RemoveMemberFromSeasonAsync(sourceCrewId, applicantId, cancellationToken);
-            await contentTenureService.OnLeftCrewAsync(applicantId, sourceCrewId, cancellationToken);
-            await paymentPlatformPortability.DetachFromCrewAsync(applicantId, cancellationToken);
-            await fleetMembershipService.RetainInFleetAsNoCrewAsync(applicantId, sourceCrewId, cancellationToken);
+            await mutualAidService.RemoveMemberFromSeasonAsync(sourceCrewId, applicantUserId, cancellationToken);
+            await contentTenureService.OnLeftCrewAsync(applicantUserId, sourceCrewId, cancellationToken);
+            await paymentPlatformPortability.DetachFromCrewAsync(applicantUserId, cancellationToken);
+            await fleetMembershipService.RetainInFleetAsNoCrewAsync(applicantUserId, sourceCrewId, cancellationToken);
             membershipRepository.MarkLeft(activeMembership, DateTime.UtcNow);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await emptyCrewCleanupService.TryCleanupIfNoActiveMembersAsync(sourceCrewId, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
+        await CompleteJoinAsync(
+            proposal,
+            joinRequest,
+            crew,
+            leftPreviousCrew: activeMembership is not null,
+            notifyApplicantJoined: false,
+            cancellationToken);
+        await ResolveSwitchOfferNotificationsAsync(
+            applicantUserId,
+            proposalId,
+            CrewJoinSwitchOfferDecision.Switched,
+            $"You switched crews and joined {crew.Name}.",
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return CrewJoinRequestResult.Succeeded(proposalId, $"You joined {crew.Name}.");
+    }
+
+    private async Task CompleteJoinAsync(
+        Proposal proposal,
+        ProposalCrewJoinRequest joinRequest,
+        Crew crew,
+        bool leftPreviousCrew,
+        bool notifyApplicantJoined,
+        CancellationToken cancellationToken)
+    {
         await membershipRepository.ReactivateOrCreateAsync(
             joinRequest.ApplicantUserId,
             proposal.CrewId!.Value,
@@ -235,7 +448,10 @@ public class CrewJoinRequestProposalService(
             cancellationToken);
 
         joinRequest.IsApplied = true;
-        joinRequest.Description = activeMembership is not null
+        joinRequest.ApplicantDecision = leftPreviousCrew
+            ? CrewJoinApplicantDecision.Switched
+            : CrewJoinApplicantDecision.None;
+        joinRequest.Description = leftPreviousCrew
             ? $"{joinRequest.ApplicantUsername} left their previous crew and joined this one."
             : $"{joinRequest.ApplicantUsername} was approved and joined the crew.";
 
@@ -249,16 +465,19 @@ public class CrewJoinRequestProposalService(
             pendingInvitation.RespondedAt = DateTime.UtcNow;
         }
 
-        await notificationService.NotifyUserAsync(new Application.Features.Notifications.Contracts.CreateNotificationRequest
+        if (notifyApplicantJoined)
         {
-            UserId = joinRequest.ApplicantUserId,
-            CrewId = proposal.CrewId!.Value,
-            Kind = NotificationKind.ProposalAccepted,
-            Title = "Join request approved",
-            Body = $"You were approved to join {crew.Name}.",
-            ActionUrl = "/app/crew",
-            RelatedEntityId = proposal.Id
-        }, cancellationToken);
+            await notificationService.NotifyUserAsync(new Application.Features.Notifications.Contracts.CreateNotificationRequest
+            {
+                UserId = joinRequest.ApplicantUserId,
+                CrewId = proposal.CrewId!.Value,
+                Kind = NotificationKind.ProposalAccepted,
+                Title = "Join request approved",
+                Body = $"You were approved to join {crew.Name}.",
+                ActionUrl = "/app/crew",
+                RelatedEntityId = proposal.Id
+            }, cancellationToken);
+        }
 
         await notificationService.NotifyCrewAsync(
             proposal.CrewId!.Value,
@@ -268,6 +487,26 @@ public class CrewJoinRequestProposalService(
             $"/app/crew/crewmates/{joinRequest.ApplicantUserId}",
             relatedEntityId: joinRequest.ApplicantUserId,
             cancellationToken: cancellationToken);
+    }
+
+    private async Task ResolveSwitchOfferNotificationsAsync(
+        int userId,
+        int proposalId,
+        int decisionCode,
+        string resolvedBody,
+        CancellationToken cancellationToken)
+    {
+        var offers = await notificationRepository.GetForUserByKindAndRelatedAsync(
+            userId,
+            NotificationKind.CrewJoinSwitchOffer,
+            proposalId,
+            cancellationToken);
+        foreach (var offer in offers)
+        {
+            offer.SecondaryEntityId = decisionCode;
+            offer.Body = NotificationPreview.Truncate(resolvedBody);
+            offer.IsRead = true;
+        }
     }
 
     public Task MarkKeyPreparedAsync(int crewId, int applicantUserId, CancellationToken cancellationToken) =>

@@ -1,6 +1,8 @@
 import {
   isCrewJoinRequestApprovedNotification,
+  isCrewJoinSwitchOfferNotification,
   isNewSeasonNotification,
+  isPendingCrewJoinSwitchOffer,
   JOIN_REQUEST_APPROVED_TITLE
 } from './crew-join-approval.util';
 import { NotificationItem } from '../models/notification.model';
@@ -39,6 +41,22 @@ describe('crew-join-approval.util', () => {
       kind: 3 as unknown as NotificationItem['kind'],
       title: JOIN_REQUEST_APPROVED_TITLE
     }))).toBe(true);
+  });
+
+  it('does not treat switch/stay offers as applied join approvals', () => {
+    const offer = notification({
+      kind: 'CrewJoinSwitchOffer',
+      body: 'Your request to join Alpha was approved. Would you like to switch crews or stay in your present crew?',
+      actionUrl: '/app/notifications',
+      secondaryEntityId: null
+    });
+    expect(isCrewJoinSwitchOfferNotification(offer)).toBe(true);
+    expect(isPendingCrewJoinSwitchOffer(offer)).toBe(true);
+    expect(isCrewJoinRequestApprovedNotification(offer)).toBe(false);
+    expect(isPendingCrewJoinSwitchOffer({
+      ...offer,
+      secondaryEntityId: 1
+    })).toBe(false);
   });
 
   it('detects new season notifications', () => {
