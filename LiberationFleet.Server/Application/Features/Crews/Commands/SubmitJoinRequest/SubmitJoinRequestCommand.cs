@@ -99,7 +99,10 @@ public class SubmitJoinRequestCommandHandler(
 
         var publicRules = await ruleRepository.GetPublicByCrewIdAsync(crew.Id, cancellationToken);
         var requiredRuleIds = publicRules.Select(r => r.Id).OrderBy(id => id).ToList();
-        var acceptedRuleIds = request.AcceptedRuleIds.Distinct().OrderBy(id => id).ToList();
+        var acceptedRuleIds = (request.AcceptedRuleIds ?? Array.Empty<int>())
+            .Distinct()
+            .OrderBy(id => id)
+            .ToList();
 
         if (!requiredRuleIds.SequenceEqual(acceptedRuleIds))
         {

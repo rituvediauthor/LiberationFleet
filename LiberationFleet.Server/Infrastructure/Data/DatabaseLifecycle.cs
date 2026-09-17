@@ -17,6 +17,7 @@ public static class DatabaseLifecycle
         await LotPlatformSchemaRepair.EnsureAsync(dbContext, logger);
         await DuoVoteTimeoutModeSchemaRepair.EnsureAsync(dbContext, logger);
         await ProposalAutoResolveSettingsSchemaRepair.EnsureAsync(dbContext, logger);
+        await CrewJoinApplicantDecisionSchemaRepair.EnsureAsync(dbContext, logger);
         readyState.MarkReady();
         logger.LogInformation("Database migrations applied successfully");
     }

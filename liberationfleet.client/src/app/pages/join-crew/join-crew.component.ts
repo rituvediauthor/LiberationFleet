@@ -420,7 +420,11 @@ export class JoinCrewComponent implements OnInit {
     });
   }
 
-  private extractErrorMessage(error: { error?: { message?: string; errors?: Record<string, string[]> } }): string {
+  private extractErrorMessage(error: {
+    error?: { message?: string; detail?: string; title?: string; errors?: Record<string, string[]> };
+    message?: string;
+    status?: number;
+  }): string {
     const validationErrors = error.error?.errors;
     if (validationErrors) {
       const firstError = Object.values(validationErrors).flat()[0];
@@ -429,6 +433,10 @@ export class JoinCrewComponent implements OnInit {
       }
     }
 
-    return error.error?.message || 'Request failed';
+    return error.error?.message
+      || error.error?.detail
+      || error.error?.title
+      || error.message
+      || 'Request failed';
   }
 }

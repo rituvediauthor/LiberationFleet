@@ -126,12 +126,21 @@ public class CrewsController : ControllerBase
     }
 
     [HttpPost("join-request")]
-    public async Task<IActionResult> SubmitJoinRequest([FromBody] SubmitJoinRequestBody body)
+    public async Task<IActionResult> SubmitJoinRequest([FromBody] SubmitJoinRequestBody? body)
     {
+        if (body is null)
+        {
+            return BadRequest(new JoinRequestOperationResponse
+            {
+                Success = false,
+                Message = "Join request body is required."
+            });
+        }
+
         var result = await _mediator.Send(new SubmitJoinRequestCommand(
             body.CrewId,
             body.JoinCode,
-            body.AcceptedRuleIds,
+            body.AcceptedRuleIds ?? Array.Empty<int>(),
             body.InvitationId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
