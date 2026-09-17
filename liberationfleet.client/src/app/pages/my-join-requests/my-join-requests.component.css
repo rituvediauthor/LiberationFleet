@@ -44,11 +44,91 @@
   padding: 14px;
 }
 
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .card-title {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 18px;
   font-weight: 700;
   color: var(--lf-color-text-body);
+  flex: 1;
+  min-width: 0;
+}
+
+.card-actions {
+  position: relative;
+  flex-shrink: 0;
+  margin: -4px -4px 0 0;
+}
+
+.kebab-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+  cursor: pointer;
+}
+
+.kebab-btn:hover:not(:disabled) {
+  background: var(--lf-color-bg-hover);
+}
+
+.kebab-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.request-menu {
+  position: absolute;
+  top: calc(100% - 4px);
+  right: 0;
+  z-index: 10;
+  min-width: 148px;
+  padding: 6px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.request-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--lf-color-text-body);
+}
+
+.request-menu button.danger {
+  color: var(--lf-color-danger);
+}
+
+.request-menu button:hover:not(:disabled) {
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.request-menu button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.status-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
 }
 
 .card-meta {

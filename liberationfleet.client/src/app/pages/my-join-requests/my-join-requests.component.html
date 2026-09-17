@@ -10,7 +10,37 @@
 
     <div class="request-cards" *ngIf="!loading && items.length > 0">
       <article class="request-card" *ngFor="let item of items">
-        <h2 class="card-title">{{ item.crewName }}</h2>
+        <div class="card-header">
+          <h2 class="card-title">{{ item.crewName }}</h2>
+          <div class="card-actions">
+            <button
+              type="button"
+              class="kebab-btn"
+              aria-label="Join request options"
+              [attr.aria-expanded]="openMenuProposalId === item.proposalId"
+              aria-haspopup="menu"
+              [disabled]="cancellingProposalId === item.proposalId"
+              (click)="toggleMenu(item.proposalId, $event)">
+              <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+            </button>
+
+            <div
+              class="request-menu"
+              role="menu"
+              *ngIf="openMenuProposalId === item.proposalId"
+              (click)="$event.stopPropagation()"
+              (keydown.escape)="closeMenus()">
+              <button
+                type="button"
+                role="menuitem"
+                class="danger"
+                [disabled]="cancellingProposalId === item.proposalId"
+                (click)="cancelRequest(item, $event)">
+                {{ cancellingProposalId === item.proposalId ? 'Cancelling…' : 'Cancel request' }}
+              </button>
+            </div>
+          </div>
+        </div>
         <p class="card-meta">Requested {{ formatCreatedAt(item.createdAt) }}</p>
         <p class="status-line">Status: Pending</p>
         <p class="key-status" [class.ready]="item.isKeyPrepared">

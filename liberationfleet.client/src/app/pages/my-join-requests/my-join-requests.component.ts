@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../services/navigation.service';
@@ -20,6 +20,8 @@ export class MyJoinRequestsComponent implements OnInit {
   loading = true;
   errorMessage = '';
   items: JoinRequestListItem[] = [];
+  openMenuProposalId: number | null = null;
+  cancellingProposalId: number | null = null;
 
   private router = inject(Router);
 
@@ -30,11 +32,16 @@ export class MyJoinRequestsComponent implements OnInit {
   private toastService = inject(ToastService);
 
   constructor() {
-    this.backButton = this.navigation.createBackButton(['/app/crew/join']);
+    this.backButton = this.navigation.createBackButton(['/app/crew']);
   }
 
   ngOnInit() {
     this.loadRequests();
+  }
+
+  @HostListener('document:click')
+  closeMenus() {
+    this.openMenuProposalId = null;
   }
 
   loadRequests() {
@@ -57,6 +64,37 @@ export class MyJoinRequestsComponent implements OnInit {
         this.loading = false;
         this.errorMessage = error.error?.message || 'Failed to load join requests';
         this.toastService.error(this.errorMessage);
+      }
+    });
+  }
+
+  toggleMenu(proposalId: number, event: Event) {
+    event.stopPropagation();
+    this.openMenuProposalId = this.openMenuProposalId === proposalId ? null : proposalId;
+  }
+
+  cancelRequest(item: JoinRequestListItem, event: Event) {
+    event.stopPropagation();
+    this.openMenuProposalId = null;
+
+    if (this.cancellingProposalId != null) {
+      return;
+    }
+
+    this.cancellingProposalId = item.proposalId;
+    this.proposalService.deleteProposal(item.proposalId).subscribe({
+      next: result => {
+        this.cancellingProposalId = null;
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to cancel join request');
+          return;
+        }
+        this.items = this.items.filter(existing => existing.proposalId !== item.proposalId);
+        this.toastService.success('Join request cancelled');
+      },
+      error: () => {
+        this.cancellingProposalId = null;
+        this.toastService.error('Failed to cancel join request');
       }
     });
   }
