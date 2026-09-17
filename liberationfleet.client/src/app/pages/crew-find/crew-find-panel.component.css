@@ -1,5 +1,7 @@
 .hero {
   text-align: center;
+  width: 100%;
+  margin-bottom: 24px;
 }
 
 .hero h1 {
@@ -16,50 +18,57 @@
   line-height: 1.5;
 }
 
-.actions {
+.find-menu {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  margin-top: 32px;
 }
 
-.action-btn {
-  padding: 14px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: background 0.2s, transform 0.1s;
-}
-
-.action-btn.primary {
-  background: var(--lf-color-accent);
-  color: var(--lf-color-text-inverse);
-}
-
-.action-btn.primary:hover:not(:disabled) {
-  background: var(--lf-color-accent-hover);
-}
-
-.action-btn.secondary {
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 12px;
   background: var(--lf-color-bg-surface);
-  color: var(--lf-color-accent);
-  border: 2px solid var(--lf-color-accent);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.action-btn.secondary:hover:not(:disabled) {
-  background: var(--lf-color-accent-soft-bg);
+.menu-link:hover:not(:disabled) {
+  background: var(--lf-color-accent-soft-bg-alt);
+  border-color: var(--lf-color-accent);
 }
 
-.action-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.action-btn:disabled {
+.menu-link:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.menu-icon {
+  font-size: 18px;
+  color: var(--lf-color-accent);
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.menu-label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.menu-chevron {
+  font-size: 16px;
+  color: var(--lf-color-text-subtle);
+  flex-shrink: 0;
 }
 
 @media (max-width: 600px) {

@@ -3,9 +3,13 @@
     <h1>Couldn't load your crew</h1>
     <p class="subtitle">We couldn't confirm your crew membership. Try again before creating or joining another crew.</p>
   </div>
-  <div class="actions">
-    <button type="button" class="action-btn primary" (click)="retry.emit()">Try again</button>
-  </div>
+  <nav class="find-menu" aria-label="Crew recovery actions">
+    <button type="button" class="menu-link" (click)="retry.emit()">
+      <i class="fa-solid fa-rotate-right menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">Try again</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+    </button>
+  </nav>
 </ng-container>
 
 <ng-template #ready>
@@ -14,18 +18,45 @@
     <p class="subtitle">{{ subtitle }}</p>
   </div>
 
-  <div class="actions">
-    <button type="button" class="action-btn primary" (click)="createCrew.emit()">Create Crew</button>
-    <button type="button" class="action-btn secondary" (click)="joinCrew.emit()">Join Crew</button>
-    <button type="button" class="action-btn secondary" (click)="invitations.emit()">My Invitations</button>
-    <button type="button" class="action-btn secondary" (click)="joinRequests.emit()">My Join Requests</button>
+  <nav class="find-menu" aria-label="Join or create crew actions">
+    <button type="button" class="menu-link" (click)="createCrew.emit()">
+      <i class="fa-solid fa-plus menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">Create Crew</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+    </button>
+
+    <button type="button" class="menu-link" (click)="joinCrew.emit()">
+      <i class="fa-solid fa-user-plus menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">Join Crew</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+    </button>
+
+    <button type="button" class="menu-link" (click)="invitations.emit()">
+      <i class="fa-solid fa-envelope-open-text menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">My Invitations</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+    </button>
+
+    <button type="button" class="menu-link" (click)="joinRequests.emit()">
+      <i class="fa-solid fa-inbox menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">My Join Requests</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+    </button>
+
     <button
       type="button"
-      class="action-btn secondary"
+      class="menu-link"
       [disabled]="!hasCrew"
       (click)="crewDashboard.emit()">
-      Crew Dashboard
+      <i class="fa-solid fa-people-group menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">Crew Dashboard</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
     </button>
-    <button type="button" class="action-btn secondary" (click)="howToUse.emit()">How to use this app</button>
-  </div>
+
+    <button type="button" class="menu-link" (click)="howToUse.emit()">
+      <i class="fa-solid fa-circle-question menu-icon" aria-hidden="true"></i>
+      <span class="menu-label">How to use this app</span>
+      <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+    </button>
+  </nav>
 </ng-template>

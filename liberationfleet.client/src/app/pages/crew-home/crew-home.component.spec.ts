@@ -163,7 +163,7 @@ describe('CrewHomeComponent', () => {
   });
 
   it('should show welcome actions when user has no crew', () => {
-    const buttons = fixture.nativeElement.querySelectorAll('.action-btn');
+    const buttons = fixture.nativeElement.querySelectorAll('.menu-link');
     expect(buttons.length).toBe(6);
     expect(buttons[0].textContent).toContain('Create Crew');
     expect(buttons[1].textContent).toContain('Join Crew');
@@ -183,7 +183,7 @@ describe('CrewHomeComponent', () => {
 
     expect(component.loadError).toBeTrue();
     expect(component.membership).toBeNull();
-    const buttons = fixture.nativeElement.querySelectorAll('.action-btn');
+    const buttons = fixture.nativeElement.querySelectorAll('.menu-link');
     expect(buttons.length).toBe(1);
     expect(buttons[0].textContent).toContain('Try again');
     expect(fixture.nativeElement.textContent).toContain("Couldn't load your crew");
