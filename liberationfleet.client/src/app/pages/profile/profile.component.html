@@ -98,7 +98,8 @@
               max="3"
               step="1"
               [attr.aria-invalid]="isInvalid('emergencyLevel')"
-              [attr.aria-describedby]="isInvalid('emergencyLevel') ? 'emergencyLevel-error' : null">
+              [attr.aria-describedby]="isInvalid('emergencyLevel') ? 'emergencyLevel-hint emergencyLevel-error' : 'emergencyLevel-hint'">
+            <span class="hint-text" id="emergencyLevel-hint">{{ emergencyLevelHint }}</span>
             <span id="emergencyLevel-error" class="error-text" role="alert" *ngIf="isInvalid('emergencyLevel')">
               Emergency level must be between 0 and 3
             </span>

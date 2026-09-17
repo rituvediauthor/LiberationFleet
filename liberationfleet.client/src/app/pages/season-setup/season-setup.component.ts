@@ -25,6 +25,7 @@ import { formValuesChanged, valuesEqual } from '../../utils/save-button.util';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
+import { EMERGENCY_LEVEL_HINT } from '../../constants/emergency-level';
 
 /** Allows 0; rejects empty/NaN/negative. */
 function nonNegativeAmountValidator(control: AbstractControl): ValidationErrors | null {
@@ -54,6 +55,7 @@ function nonNegativeAmountValidator(control: AbstractControl): ValidationErrors 
   styleUrl: './season-setup.component.css'
 })
 export class SeasonSetupComponent implements OnInit {
+  readonly emergencyLevelHint = EMERGENCY_LEVEL_HINT;
   form!: FormGroup;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];

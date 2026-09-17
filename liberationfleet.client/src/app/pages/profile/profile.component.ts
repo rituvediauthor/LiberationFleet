@@ -36,6 +36,7 @@ import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.ser
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { ProfileLocationService } from '../../services/profile-location.service';
 import { CUSTOM_PLATFORM_OPTION_ID, EncryptedLocation, PaymentPlatformAccount, PaymentPlatformSnapshot, UserProfile } from '../../models/profile.model';
+import { EMERGENCY_LEVEL_HINT } from '../../constants/emergency-level';
 import { PaymentPlatformOption } from '../../models/gift.model';
 import { PendingAttachment } from '../../models/proposal.model';
 import { generateRecoveryPhrase } from '../../services/crypto/recovery-key.util';
@@ -121,6 +122,7 @@ function optionalPasswordChangeValidator(control: AbstractControl): ValidationEr
   styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit {
+  readonly emergencyLevelHint = EMERGENCY_LEVEL_HINT;
   form!: FormGroup;
   passwordForm!: FormGroup;
   readonly usernameMaxLength = USERNAME_MAX_LENGTH;

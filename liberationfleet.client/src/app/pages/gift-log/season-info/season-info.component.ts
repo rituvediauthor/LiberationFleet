@@ -15,6 +15,7 @@ import { PaymentPlatformAccount } from '../../../models/profile.model';
 import { mergePaymentPlatformOptions } from '../../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
+import { EMERGENCY_LEVEL_HINT } from '../../../constants/emergency-level';
 
 @Component({
   selector: 'app-season-info',
@@ -31,6 +32,7 @@ import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
   styleUrl: './season-info.component.css'
 })
 export class SeasonInfoComponent implements OnInit {
+  readonly emergencyLevelHint = EMERGENCY_LEVEL_HINT;
   form!: FormGroup;
   profile: SeasonProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];

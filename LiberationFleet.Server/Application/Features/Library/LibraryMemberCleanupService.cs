@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Library;
@@ -17,7 +18,7 @@ public class LibraryMemberCleanupService(
         var requesterRequests = await libraryRepository.GetTrackedRequestsByRequesterAsync(
             crewId,
             userId,
-            cancellationToken);
+            cancellationToken) ?? Array.Empty<LibraryRequest>();
         foreach (var request in requesterRequests)
         {
             await requestCleanupHelper.CancelRequestWithMessagesAsync(request.Id, cancellationToken);
@@ -28,7 +29,7 @@ public class LibraryMemberCleanupService(
         var possessedUnits = await libraryRepository.GetTrackedUnitsPossessedByUserAsync(
             crewId,
             userId,
-            cancellationToken);
+            cancellationToken) ?? Array.Empty<LibraryUnit>();
         foreach (var unit in possessedUnits)
         {
             await requestCleanupHelper.CancelActiveRequestsForUnitAsync(unit.Id, cancellationToken);

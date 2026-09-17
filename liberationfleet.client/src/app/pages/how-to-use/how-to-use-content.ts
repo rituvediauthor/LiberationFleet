@@ -269,7 +269,7 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          'The “Emergency level” toggle indicates how close you are to debilitating hardships as the result of insufficient finances. This can range from losing access to essential needs like housing, healthcare, food, water, electricity, and the like. This value is multiplied by your crew’s total financial contributions and then added to your priority score. This ensures that no one can take priority from those experiencing emergencies through their contributions.'
+          'The “Emergency level” field indicates how close you are to debilitating hardships from insufficient finances (housing, healthcare, food, water, electricity, and the like). 0 = no emergency. 1 = if nothing changes in the next ~6 months, significant financial setbacks that could endanger basic needs. 2 = the same within ~3 months. 3 = the same within ~1½ months. This value is multiplied by your crew’s total financial contributions and then added to your priority score, so contributions alone cannot outrank people in emergency.'
       },
       { type: 'heading', text: 'Number of people represented' },
       {

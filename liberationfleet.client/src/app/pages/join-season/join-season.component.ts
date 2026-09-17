@@ -24,6 +24,7 @@ import { PaymentPlatformOption } from '../../models/gift.model';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
+import { EMERGENCY_LEVEL_HINT } from '../../constants/emergency-level';
 
 /** Allows 0; rejects empty/NaN/negative. */
 function nonNegativeAmountValidator(control: AbstractControl): ValidationErrors | null {
@@ -55,6 +56,7 @@ function nonNegativeAmountValidator(control: AbstractControl): ValidationErrors 
 export class JoinSeasonComponent implements OnInit {
   @ViewChild('logContainer') logContainer?: ElementRef<HTMLDivElement>;
 
+  readonly emergencyLevelHint = EMERGENCY_LEVEL_HINT;
   form!: FormGroup;
   profile: UserProfile | null = null;
   platformOptions: PaymentPlatformOption[] = [];

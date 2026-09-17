@@ -16,6 +16,7 @@ import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { TextFieldLimits } from '../../../utils/text-field-limits';
+import { EMERGENCY_LEVEL_HINT } from '../../../constants/emergency-level';
 
 @Component({
   selector: 'app-add-non-crewmate',
@@ -39,6 +40,7 @@ export class AddNonCrewmateComponent implements OnInit {
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
   readonly nameMaxLength = TextFieldLimits.placeholderDisplayName;
+  readonly emergencyLevelHint = EMERGENCY_LEVEL_HINT;
 
   private fb = inject(FormBuilder);
   private router = inject(Router);

@@ -41,6 +41,8 @@ public class CreateCrewCommandHandlerTests
         membershipRepository
             .Setup(r => r.AddAsync(It.IsAny<CrewMembership>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        membershipRepository
+            .Setup(r => r.MarkLeft(It.IsAny<CrewMembership>(), It.IsAny<DateTime>()));
 
         var crewRepository = HandlerTestFixture.CreateCrewRepositoryMock();
         crewRepository
@@ -202,6 +204,15 @@ public class CreateCrewCommandHandlerTests
         crewRepository.Verify(r => r.GetByJoinCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
+    private static Mock<ICrewCleanupRepository> CreateCrewCleanupRepositoryMock()
+    {
+        var mock = new Mock<ICrewCleanupRepository>();
+        mock
+            .Setup(r => r.CleanupCrewExceptGiftsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return mock;
+    }
+
     private static CreateCrewCommand ValidCommand() => new()
     {
         Name = "My Crew",
@@ -235,15 +246,26 @@ public class CreateCrewCommandHandlerTests
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             unitOfWork.Object);
 
+        var libraryRepository = new Mock<ILibraryRepository>();
+        libraryRepository
+            .Setup(r => r.GetTrackedRequestsByRequesterAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<LibraryRequest>());
+        libraryRepository
+            .Setup(r => r.GetTrackedUnitsPossessedByUserAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<LibraryUnit>());
+        libraryRepository
+            .Setup(r => r.CleanupMemberLibraryDataAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         var libraryCleanup = new LibraryMemberCleanupService(
-            Mock.Of<ILibraryRepository>(),
+            libraryRepository.Object,
             Mock.Of<ICryptoRepository>(),
             new LibraryRequestCleanupHelper(
-                Mock.Of<ILibraryRepository>(),
+                libraryRepository.Object,
                 Mock.Of<ICryptoRepository>()));
         var emptyCrewCleanup = new EmptyCrewCleanupService(
             membershipRepository.Object,
-            Mock.Of<ICrewCleanupRepository>());
+            CreateCrewCleanupRepositoryMock().Object);
 
         return new CreateCrewCommandHandler(
             crewRepository.Object,
