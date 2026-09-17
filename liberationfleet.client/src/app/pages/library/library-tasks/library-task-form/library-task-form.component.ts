@@ -266,10 +266,10 @@ export class LibraryTaskFormComponent implements OnInit {
       const nextId = result.taskId ?? this.taskId;
       if (nextId) {
         void this.router.navigate(['/app/crew/library-of-things/tasks', nextId]);
-      } else if (!basePayload.hasDeadline) {
-        void this.router.navigate(['/app/crew/library-of-things/tasks/no-deadline']);
       } else {
-        void this.router.navigate(['/app/crew/library-of-things/tasks']);
+        void this.router.navigate(['/app/crew/library-of-things/tasks'], {
+          queryParams: { tab: basePayload.hasDeadline ? 'deadline' : 'no-deadline' }
+        });
       }
     } catch (err: unknown) {
       this.submitting = false;

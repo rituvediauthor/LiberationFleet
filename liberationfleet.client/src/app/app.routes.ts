@@ -760,7 +760,7 @@ export const routes: Routes = [
     path: 'app/crew/library-of-things/tasks/no-deadline',
     component: LibraryTaskNoDeadlineComponent,
     canActivate: [authGuard, libraryAccessGuard],
-    data: { parentTab: 'crew', locationHeader: 'No-Deadline Quests' }
+    data: { parentTab: 'crew', locationHeader: 'Quest Board' }
   },
   {
     path: 'app/crew/library-of-things/tasks/:id/edit',

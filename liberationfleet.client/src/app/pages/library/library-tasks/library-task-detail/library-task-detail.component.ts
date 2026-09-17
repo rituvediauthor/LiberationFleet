@@ -172,9 +172,11 @@ export class LibraryTaskDetailComponent implements OnInit {
   }
 
   private tasksListPath(): string[] {
-    return this.isNoDeadline
-      ? ['/app/crew/library-of-things/tasks/no-deadline']
-      : ['/app/crew/library-of-things/tasks'];
+    return ['/app/crew/library-of-things/tasks'];
+  }
+
+  private tasksListQueryParams(): { tab: string } {
+    return { tab: this.isNoDeadline ? 'no-deadline' : 'deadline' };
   }
 
   private refreshActionButtons() {
@@ -379,7 +381,9 @@ export class LibraryTaskDetailComponent implements OnInit {
             this.selectedIds.clear();
             this.selectionMode = null;
             this.actionBusy = false;
-            void this.router.navigate(this.tasksListPath());
+            void this.router.navigate(this.tasksListPath(), {
+              queryParams: this.tasksListQueryParams()
+            });
             return;
           }
 
@@ -448,7 +452,14 @@ export class LibraryTaskDetailComponent implements OnInit {
           this.task = task;
         }
         this.loading = false;
-        this.backButton = this.navigation.createBackButton(this.tasksListPath());
+        this.backButton = {
+          label: '←',
+          type: 'back',
+          onClick: () =>
+            void this.router.navigate(this.tasksListPath(), {
+              queryParams: this.tasksListQueryParams()
+            })
+        };
         this.pruneSelection();
         this.refreshActionButtons();
       },
@@ -477,7 +488,9 @@ export class LibraryTaskDetailComponent implements OnInit {
           return;
         }
         this.toastService.success(response.message || 'Quest deleted.');
-        void this.router.navigate(this.tasksListPath());
+        void this.router.navigate(this.tasksListPath(), {
+          queryParams: this.tasksListQueryParams()
+        });
       },
       error: (err: unknown) => this.onActionError(err)
     });

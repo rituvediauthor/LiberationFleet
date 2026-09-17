@@ -1,23 +1,44 @@
 <app-page-layout [backButton]="backButton" [primaryButton]="createButton" [fillHeight]="true">
   <div class="library-list-page">
-    <div class="board-top-actions">
-      <button type="button" class="no-deadline-link" (click)="openNoDeadlineTasks()">
-        No-Deadline Quests
+    <div class="quest-tabs" role="tablist" aria-label="Quest board">
+      <button
+        type="button"
+        role="tab"
+        class="quest-tab"
+        [class.active]="activeTab === 'deadline'"
+        [attr.aria-selected]="activeTab === 'deadline'"
+        (click)="selectTab('deadline')">
+        Deadline Quests ({{ deadlineCountLabel }})
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="quest-tab"
+        [class.active]="activeTab === 'no-deadline'"
+        [attr.aria-selected]="activeTab === 'no-deadline'"
+        (click)="selectTab('no-deadline')">
+        No-deadline Quests ({{ noDeadlineCountLabel }})
       </button>
     </div>
-    <p class="page-note">Crew quests ordered by soonest due</p>
+
+    <p class="page-note" *ngIf="activeTab === 'deadline'">Crew quests ordered by soonest due</p>
+    <p class="page-note" *ngIf="activeTab === 'no-deadline'">No-deadline quests, ordered alphabetically</p>
 
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
-    <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
+    <p *ngIf="!loading && !errorMessage && items.length === 0 && activeTab === 'deadline'" class="state-text">
       No open deadline quests yet. Create one to get started.
+    </p>
+    <p *ngIf="!loading && !errorMessage && items.length === 0 && activeTab === 'no-deadline'" class="state-text">
+      No open no-deadline quests yet.
     </p>
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">
       <button type="button" class="task-card" *ngFor="let item of items" (click)="openTask(item)">
         <p class="task-meta">{{ item.creatorUsername }}</p>
         <h2 class="task-title">{{ item.title }}</h2>
-        <p class="task-schedule" *ngIf="formatDue(item)">{{ formatDue(item) }}</p>
+        <p class="task-schedule" *ngIf="activeTab === 'deadline' && formatDue(item)">{{ formatDue(item) }}</p>
+        <p class="task-schedule" *ngIf="activeTab === 'no-deadline'">When you can</p>
         <p class="task-value">${{ formatValue(item.value) }}</p>
       </button>
     </div>

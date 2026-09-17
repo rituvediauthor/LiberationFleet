@@ -38,7 +38,7 @@
       <div
         class="offering-entry"
         *ngFor="let row of displayItems"
-        [class.disabled]="!row.offering.unitId"
+        [class.disabled]="!canOpen(row.offering)"
         role="button"
         tabindex="0"
         (click)="openItem(row.offering)"
@@ -52,24 +52,6 @@
               <span class="meta-chip">{{ visibilityLabel(row.offering.visibility) }}</span>
               <span class="meta-chip out-of-stock" *ngIf="row.offering.isOutOfStock">Out of stock</span>
               <span class="meta-chip" *ngIf="row.offering.unitLabel">{{ row.offering.unitLabel }}</span>
-            </div>
-            <div class="offering-actions" *ngIf="canEdit(row.offering)" (click)="$event.stopPropagation()">
-              <button
-                type="button"
-                class="kebab-btn"
-                aria-label="Offering options"
-                [attr.aria-expanded]="openMenuOfferingId === row.offering.offeringId"
-                aria-haspopup="menu"
-                (click)="toggleMenu(row.offering.offeringId, $event)">
-                <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
-              </button>
-              <div
-                class="offering-menu"
-                role="menu"
-                *ngIf="openMenuOfferingId === row.offering.offeringId"
-                (click)="$event.stopPropagation()">
-                <button type="button" role="menuitem" (click)="editOffering($event, row.offering)">Edit</button>
-              </div>
             </div>
           </div>
         </app-library-item-card>
