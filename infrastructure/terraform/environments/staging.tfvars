@@ -9,7 +9,7 @@ app_service_sku = "B1"
 sql_sku_name    = "S0"
 sql_max_size_gb = 5
 acr_sku         = "Basic"
-log_retention_days = 7
+log_retention_days = 30
 
 # LiveKit Cloud WSS URL (Path B). Keys go in Key Vault, not here.
 livekit_host = "wss://liberation-fleet-lsb02tua.livekit.cloud"

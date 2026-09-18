@@ -82,6 +82,12 @@ variable "key_vault_purge_protection_enabled" {
 }
 
 variable "log_retention_days" {
-  type    = number
-  default = 30
+  type        = number
+  description = "Log Analytics retention days. Azure requires 30–730 for PerGB2018 workspaces."
+  default     = 30
+
+  validation {
+    condition     = var.log_retention_days >= 30 && var.log_retention_days <= 730
+    error_message = "log_retention_days must be between 30 and 730 (Log Analytics workspace limit)."
+  }
 }
