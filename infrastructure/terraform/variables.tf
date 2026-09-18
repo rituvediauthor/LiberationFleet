@@ -33,8 +33,14 @@ variable "app_service_sku" {
 
 variable "sql_sku_name" {
   type        = string
-  description = "Azure SQL database SKU."
-  default     = "GP_S_Gen5_1"
+  description = "Azure SQL database SKU. Prefer DTU (S0/Basic) for low monthly cost; GP_S_* serverless only if it truly stays paused most hours."
+  default     = "S0"
+}
+
+variable "sql_max_size_gb" {
+  type        = number
+  description = "Max database size in GB. Basic allows 2; S0 allows up to 250."
+  default     = 5
 }
 
 variable "acr_sku" {

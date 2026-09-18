@@ -139,9 +139,14 @@
   transition: background 0.2s, border-color 0.2s;
 }
 
-.menu-link:hover {
+.menu-link:hover:not(:disabled) {
   background: var(--lf-color-accent-soft-bg-alt);
   border-color: var(--lf-color-accent);
+}
+
+.menu-link:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .menu-icon-wrap {
@@ -188,6 +193,8 @@
 
 .hero {
   text-align: center;
+  width: 100%;
+  margin-bottom: 24px;
 }
 
 .hero h1 {
@@ -202,47 +209,6 @@
   color: var(--lf-color-text-secondary);
   margin: 0;
   line-height: 1.5;
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  margin-top: 32px;
-}
-
-.action-btn {
-  padding: 14px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: background 0.2s, transform 0.1s;
-}
-
-.action-btn.primary {
-  background: var(--lf-color-accent);
-  color: var(--lf-color-text-inverse);
-}
-
-.action-btn.primary:hover {
-  background: var(--lf-color-accent-hover);
-}
-
-.action-btn.secondary {
-  background: var(--lf-color-bg-surface);
-  color: var(--lf-color-accent);
-  border: 2px solid var(--lf-color-accent);
-}
-
-.action-btn.secondary:hover {
-  background: var(--lf-color-accent-soft-bg);
-}
-
-.action-btn:active {
-  transform: scale(0.98);
 }
 
 @media (max-width: 600px) {

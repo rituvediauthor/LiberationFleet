@@ -22,13 +22,14 @@ variable "administrator_login" {
 
 variable "sku_name" {
   type        = string
-  description = "Database SKU. GP_S_Gen5_1 is serverless Gen5 1 vCore (cost-conscious)."
-  default     = "GP_S_Gen5_1"
+  description = "Database SKU. S0 (~flat monthly) for budget; GP_S_* only when idle pause dominates the month."
+  default     = "S0"
 }
 
 variable "max_size_gb" {
-  type    = number
-  default = 32
+  type        = number
+  description = "Max data size GB. Must match SKU limits (Basic=2, S0<=250)."
+  default     = 5
 }
 
 variable "min_capacity" {

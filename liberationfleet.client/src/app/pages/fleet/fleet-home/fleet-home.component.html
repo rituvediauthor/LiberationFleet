@@ -133,9 +133,13 @@
           <h1>Couldn't load your fleet</h1>
           <p class="subtitle">We couldn't confirm your fleet membership. Try again before creating or joining another fleet.</p>
         </div>
-        <div class="actions">
-          <button type="button" class="action-btn primary" (click)="retryStatus()">Try again</button>
-        </div>
+        <nav class="fleet-menu" aria-label="Fleet recovery actions">
+          <button type="button" class="menu-link" (click)="retryStatus()">
+            <i class="fa-solid fa-rotate-right menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Try again</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+        </nav>
       </ng-container>
       <ng-container *ngIf="!loading && !loadError">
         <div class="hero">
@@ -145,12 +149,31 @@
             while still belonging to their crews with unique rules and cultures.
           </p>
         </div>
-        <div class="actions">
-          <button type="button" class="action-btn primary" (click)="goToCreateFleet()">Create fleet</button>
-          <button type="button" class="action-btn secondary" (click)="goToJoinFleet()">Join Fleet</button>
-          <button type="button" class="action-btn secondary" (click)="goToInvitations()">My Invitations</button>
-          <button type="button" class="action-btn secondary" (click)="goToJoinRequests()">Our Join Requests</button>
-        </div>
+        <nav class="fleet-menu" aria-label="Join or create fleet actions">
+          <button type="button" class="menu-link" (click)="goToCreateFleet()">
+            <i class="fa-solid fa-plus menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Create Fleet</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToJoinFleet()">
+            <i class="fa-solid fa-user-plus menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Join Fleet</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToInvitations()">
+            <i class="fa-solid fa-envelope-open-text menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">My Invitations</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="menu-link" (click)="goToJoinRequests()">
+            <i class="fa-solid fa-inbox menu-icon" aria-hidden="true"></i>
+            <span class="menu-label">Our Join Requests</span>
+            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+          </button>
+        </nav>
       </ng-container>
     </ng-template>
   </div>

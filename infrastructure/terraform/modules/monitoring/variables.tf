@@ -19,6 +19,12 @@ variable "retention_in_days" {
   default = 30
 }
 
+variable "daily_quota_gb" {
+  type        = number
+  description = "Log Analytics daily ingestion cap in GB. Use a small value on staging to bound App Insights cost."
+  default     = 1
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

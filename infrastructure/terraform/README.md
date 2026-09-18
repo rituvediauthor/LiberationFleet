@@ -89,6 +89,30 @@ terraform apply -var-file="environments/production.tfvars"
 3. **Stripe webhook** → `https://<app>/api/donations/stripe/webhook` ([DONATION-SETUP.md](../../docs/DONATION-SETUP.md)).
 4. Optional: set `livekit_host` in `*.tfvars` and re-apply.
 
+## Cost notes (budget ~$60/mo)
+
+Auto-pause on **serverless** SQL only zeros compute while paused. While awake, `GP_S_Gen5_1` still bills a **0.5 vCore floor** (~low hundreds/month if often online). Cost Management **forecasts lag** — they keep projecting the old daily burn for several days after you pause or change SKUs.
+
+This repo’s staging/production tfvars use **DTU `S0` + App Service `B1`** for a flat, predictable bill (same class as a ~$36/mo hobby stack):
+
+| Piece | Typical order of magnitude |
+|-------|----------------------------|
+| App Service B1 | ~$13–15 |
+| SQL S0 | ~$15 |
+| ACR Basic + Key Vault + blob | ~$5–10 |
+| App Insights / Log Analytics (capped) | a few dollars if quiet |
+
+**Apply staging after pulling these changes**, then judge success by **daily cost** for 2–3 days — not the month forecast.
+
+```bash
+cd infrastructure/terraform
+terraform init -backend-config="environments/staging.backend.hcl"
+terraform plan  -var-file="environments/staging.tfvars"
+terraform apply -var-file="environments/staging.tfvars"
+```
+
+SKU change (`GP_S_*` → `S0`) keeps data; expect a short outage while Azure resizes the database.
+
 ## Secrets map
 
 | Key Vault secret | App setting |

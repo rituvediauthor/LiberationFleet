@@ -4,6 +4,8 @@ resource "azurerm_log_analytics_workspace" "this" {
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
   retention_in_days   = var.retention_in_days
+  # Cap ingestion so App Insights / LAW cannot quietly become a second SQL bill.
+  daily_quota_gb      = var.daily_quota_gb
   tags                = var.tags
 }
 

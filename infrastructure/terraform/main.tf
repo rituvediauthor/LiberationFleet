@@ -21,6 +21,7 @@ module "monitoring" {
   log_analytics_name  = local.names.law
   app_insights_name   = local.names.appi
   retention_in_days   = var.log_retention_days
+  daily_quota_gb      = var.environment == "staging" ? 0.25 : 1
   tags                = local.common_tags
 }
 
@@ -42,7 +43,8 @@ module "sql" {
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   sku_name            = var.sql_sku_name
-  firewall_rules     = var.sql_firewall_rules
+  max_size_gb         = var.sql_max_size_gb
+  firewall_rules      = var.sql_firewall_rules
   tags                = local.common_tags
 }
 
