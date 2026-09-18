@@ -827,11 +827,16 @@ export class ProfileComponent implements OnInit {
     }
 
     const values = this.passwordForm.getRawValue();
-    return !!(
-      String(values.currentPassword ?? '').length
-      || String(values.newPassword ?? '').length
-      || String(values.confirmPassword ?? '').length
-    );
+    const current = String(values.currentPassword ?? '');
+    const next = String(values.newPassword ?? '');
+    const confirm = String(values.confirmPassword ?? '');
+    // Firefox / Waterfox password managers often autofill only "current password".
+    // That must not count as starting a password change (it would keep Save disabled).
+    if (!next && !confirm) {
+      return false;
+    }
+
+    return !!(current || next || confirm);
   }
 
   private captureInitialState() {

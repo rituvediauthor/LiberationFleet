@@ -7,7 +7,12 @@
     <span class="collapsible-title">{{ title }}</span>
     <i class="fa-solid" [class.fa-chevron-down]="!expanded" [class.fa-chevron-up]="expanded" aria-hidden="true"></i>
   </button>
-  <div class="collapsible-body" *ngIf="expanded">
+  <!--
+    Keep projected form controls in the DOM while collapsed.
+    Destroying them with *ngIf breaks dirty/save detection in some browsers
+    (notably Firefox-family) after expand → edit.
+  -->
+  <div class="collapsible-body" [hidden]="!expanded">
     <ng-content></ng-content>
   </div>
 </section>

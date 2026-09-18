@@ -16,6 +16,15 @@ import { mergePaymentPlatformOptions } from '../../../utils/payment-platform-opt
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
 import { EMERGENCY_LEVEL_HINT } from '../../../constants/emergency-level';
+import { formValuesChanged, valuesEqual } from '../../../utils/save-button.util';
+
+type PaymentPlatformSnapshot = {
+  id: number;
+  platformId: number;
+  customPlatformName: string;
+  handle: string;
+  isPreferred: boolean;
+};
 
 @Component({
   selector: 'app-season-info',
@@ -43,6 +52,8 @@ export class SeasonInfoComponent implements OnInit {
   canEditEstimatedContribution = true;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
+  private initialFormValues: unknown = null;
+  private initialPaymentPlatforms: PaymentPlatformSnapshot[] = [];
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -76,8 +87,8 @@ export class SeasonInfoComponent implements OnInit {
     this.giftService.getSeasonProfile().subscribe({
       next: profile => {
         this.applyProfile(profile);
+        this.captureInitialState();
         this.loading = false;
-        this.form.markAsPristine();
         this.updateSaveButton();
       },
       error: err => {
@@ -108,7 +119,6 @@ export class SeasonInfoComponent implements OnInit {
       paymentPlatforms: [...this.profile.paymentPlatforms, account]
     };
     this.syncPlatformOptions();
-    this.form.markAsDirty();
     this.updateSaveButton();
   }
 
@@ -121,23 +131,20 @@ export class SeasonInfoComponent implements OnInit {
       paymentPlatforms: this.profile.paymentPlatforms.filter(p => p.id !== accountId)
     };
     this.syncPlatformOptions();
-    this.form.markAsDirty();
     this.updateSaveButton();
   }
 
   onPaymentPlatformChange() {
-    this.form.markAsDirty();
     this.updateSaveButton();
   }
 
   onIdentityGroupsChange(groups: string[]) {
     this.form.patchValue({ identityGroups: normalizeIdentityGroups(groups) });
-    this.form.markAsDirty();
     this.updateSaveButton();
   }
 
   onSave() {
-    if (!this.profile || this.form.invalid || this.isSaving || this.form.pristine) {
+    if (!this.profile || this.form.invalid || this.isSaving || !this.hasChanges()) {
       return;
     }
 
@@ -175,7 +182,7 @@ export class SeasonInfoComponent implements OnInit {
           return;
         }
         this.applyProfile(result.profile);
-        this.form.markAsPristine();
+        this.captureInitialState();
         this.toastService.success(result.message || 'Season profile saved');
         this.updateSaveButton();
       },
@@ -203,6 +210,36 @@ export class SeasonInfoComponent implements OnInit {
     this.syncInNeedControl(this.canToggleInNeedOff ? profile.inNeedOfAid : true);
     this.syncEstimatedControl();
     this.syncPlatformOptions();
+  }
+
+  private captureInitialState() {
+    this.initialFormValues = this.form.getRawValue();
+    this.initialPaymentPlatforms = this.serializePlatforms(this.paymentPlatforms);
+  }
+
+  private hasChanges(): boolean {
+    if (!this.form || this.initialFormValues === null) {
+      return false;
+    }
+
+    const formChanged = formValuesChanged(this.form, this.initialFormValues);
+    const platformsChanged = !valuesEqual(
+      this.serializePlatforms(this.paymentPlatforms),
+      this.initialPaymentPlatforms
+    );
+    return formChanged || platformsChanged;
+  }
+
+  private serializePlatforms(platforms: PaymentPlatformAccount[]): PaymentPlatformSnapshot[] {
+    return platforms
+      .map(p => ({
+        id: p.id,
+        platformId: p.platformId,
+        customPlatformName: p.customPlatformName?.trim() ?? '',
+        handle: p.handle.trim(),
+        isPreferred: !!p.isPreferred
+      }))
+      .sort((a, b) => a.id - b.id);
   }
 
   private syncInNeedControl(inNeedValue: boolean) {
@@ -238,7 +275,7 @@ export class SeasonInfoComponent implements OnInit {
         const hasPlatform = p.platformId > 0 || !!p.customPlatformName?.trim();
         return hasHandle && hasPlatform;
       });
-    const disabled = this.isSaving || this.form.invalid || this.form.pristine || !hasPlatforms;
+    const disabled = this.isSaving || this.form.invalid || !this.hasChanges() || !hasPlatforms;
     this.saveButton = {
       label: 'Save',
       type: 'primary',

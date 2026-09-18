@@ -30,7 +30,7 @@
       </app-priority-score-algorithms>
 
       <form [formGroup]="form">
-        <app-collapsible-section title="Mutual aid">
+        <app-collapsible-section title="Mutual aid" [expanded]="true">
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
               <input type="checkbox" formControlName="inNeedOfAid">
@@ -330,7 +330,7 @@
 
       </form>
 
-      <section class="section password-section" [formGroup]="passwordForm">
+      <section class="section password-section" [formGroup]="passwordForm" autocomplete="off">
         <h2>Password</h2>
         <p class="section-hint">
           Leave blank to keep your current password. Fill all three fields to change it when you save.
@@ -343,7 +343,8 @@
             type="password"
             formControlName="currentPassword"
             class="form-input"
-            autocomplete="current-password"
+            name="profile-current-password"
+            autocomplete="off"
             [attr.aria-invalid]="isPasswordInvalid('currentPassword')"
             [attr.aria-describedby]="isPasswordInvalid('currentPassword') ? 'currentPassword-error' : null">
           <span
@@ -362,6 +363,7 @@
             type="password"
             formControlName="newPassword"
             class="form-input"
+            name="profile-new-password"
             autocomplete="new-password"
             [attr.aria-invalid]="isPasswordInvalid('newPassword')"
             [attr.aria-describedby]="isPasswordInvalid('newPassword') ? 'password-requirements newPassword-error' : 'password-requirements'">
@@ -391,6 +393,7 @@
             type="password"
             formControlName="confirmPassword"
             class="form-input"
+            name="profile-confirm-password"
             autocomplete="new-password"
             [attr.aria-invalid]="isPasswordInvalid('confirmPassword') || (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched)"
             [attr.aria-describedby]="(isPasswordInvalid('confirmPassword') || passwordForm.hasError('passwordMismatch')) && passwordForm.get('confirmPassword')?.touched ? 'confirmPassword-error' : null">

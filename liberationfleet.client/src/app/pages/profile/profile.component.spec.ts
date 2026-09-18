@@ -101,6 +101,26 @@ describe('ProfileComponent', () => {
     expect(component.saveButton.disabled).toBeTrue();
   });
 
+  it('should enable save when profile changes even if current password was autofilled alone', () => {
+    component.passwordForm.patchValue({ currentPassword: 'AutofilledLoginPassword1!' });
+    component.form.patchValue({ username: 'JamesUpdated' });
+    component['updateSaveButton']();
+
+    expect(component.saveButton.disabled).toBeFalse();
+  });
+
+  it('should keep save disabled when a password change is started but incomplete', () => {
+    component.form.patchValue({ username: 'JamesUpdated' });
+    component.passwordForm.patchValue({
+      currentPassword: 'OldPassword1!',
+      newPassword: 'NewPassword1!',
+      confirmPassword: ''
+    });
+    component['updateSaveButton']();
+
+    expect(component.saveButton.disabled).toBeTrue();
+  });
+
   it('should save all edited profile fields to the API', () => {
     component.form.patchValue({
       username: 'JamesUpdated',

@@ -9,6 +9,11 @@ describe('save-button.util', () => {
     expect(valuesEqual({ a: 1 }, { a: 2 })).toBeFalse();
   });
 
+  it('valuesEqual treats numeric strings like numbers', () => {
+    expect(valuesEqual({ emergencyLevel: 2 }, { emergencyLevel: '2' })).toBeTrue();
+    expect(valuesEqual({ emergencyLevel: 2 }, { emergencyLevel: '3' })).toBeFalse();
+  });
+
   it('formValuesChanged detects edits to raw values', () => {
     const form = fb.group({ name: ['Crew'] });
     expect(formValuesChanged(form, { name: 'Crew' })).toBeFalse();
