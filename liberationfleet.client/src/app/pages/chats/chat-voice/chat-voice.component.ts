@@ -175,7 +175,7 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
     }
 
     if (this.isServerMuted) {
-      this.toastService.error('You have been server muted by a moderator');
+      // Mic control is disabled while server-muted; avoid stacking toasts on repeat taps.
       return;
     }
 
@@ -270,17 +270,25 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
   }
 
   private async applyServerMuteState(serverMuted: boolean) {
+    const wasServerMuted = this.isServerMuted;
     this.isServerMuted = serverMuted;
     if (!this.connected) {
+      return;
+    }
+
+    // Presence updates can fire often (speaking, local mute sync). Only act on transitions.
+    if (serverMuted === wasServerMuted) {
       return;
     }
 
     if (serverMuted) {
       this.isMuted = await this.voiceLiveKit.setMuted(true);
       this.toastService.info('You have been server muted');
+      await this.syncVoiceState();
+      return;
     }
 
-    await this.syncVoiceState();
+    this.toastService.info('Server mute lifted');
   }
 
   private async loadRoom() {

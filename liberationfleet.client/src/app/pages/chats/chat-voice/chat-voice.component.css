@@ -101,21 +101,16 @@ h1 {
 
 .moderator-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
-.mod-btn {
-  border: 1px solid var(--lf-color-border-subtle);
-  background: var(--lf-color-bg-surface);
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.mod-btn.danger {
-  color: var(--lf-color-danger);
+.moderator-actions .voice-icon-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
 }
 
 .voice-action-bar {

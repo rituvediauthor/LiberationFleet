@@ -62,10 +62,27 @@
             </span>
           </div>
           <div class="moderator-actions" *ngIf="canModerate && participant.userId !== currentUserId">
-            <button type="button" class="mod-btn" (click)="serverMuteParticipant(participant)">
-              {{ participant.isServerMuted ? 'Unmute' : 'Server mute' }}
+            <button
+              type="button"
+              class="voice-icon-btn"
+              [class.active]="participant.isServerMuted"
+              [attr.aria-label]="participant.isServerMuted ? 'Lift server mute' : 'Server mute'"
+              [attr.title]="participant.isServerMuted ? 'Lift server mute' : 'Server mute'"
+              (click)="serverMuteParticipant(participant)">
+              <i
+                class="fa-solid"
+                [class.fa-microphone-slash]="!participant.isServerMuted"
+                [class.fa-microphone]="participant.isServerMuted"
+                aria-hidden="true"></i>
             </button>
-            <button type="button" class="mod-btn danger" (click)="disconnectParticipant(participant)">Disconnect</button>
+            <button
+              type="button"
+              class="voice-icon-btn danger"
+              aria-label="Disconnect from voice"
+              title="Disconnect from voice"
+              (click)="disconnectParticipant(participant)">
+              <i class="fa-solid fa-phone-slash" aria-hidden="true"></i>
+            </button>
           </div>
         </li>
       </ul>
