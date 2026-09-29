@@ -390,7 +390,7 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
     const minTier = this.selectedMinimumViewerTier;
     const count = this.customersForMinimumTier(minTier);
     this.audienceCustomerHint =
-      `Number of customers: ${count} ${this.audienceLabel} at Tier ${minTier} or higher`;
+      `Viewers: ${count} ${this.audienceLabel} at Tier ${minTier} or higher`;
   }
 
   get tierStockTotal(): number {
@@ -517,7 +517,11 @@ export class CreateLibraryOfferingComponent implements OnInit, OnDestroy {
         }).subscribe({
           next: result => {
             if (result.success) {
-              this.toastService.success(result.message || 'Offering created');
+              this.toastService.success(
+                offeringKind === 'Durable'
+                  ? (result.message || 'Offering created')
+                  : `${result.message || 'Offering created'}. Use “Who can see this?” on My Offerings to review audience.`
+              );
               this.router.navigate([this.successRoute(offeringKind)]);
               return;
             }

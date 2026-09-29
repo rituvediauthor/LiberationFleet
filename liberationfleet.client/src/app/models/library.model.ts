@@ -159,6 +159,8 @@ export interface LibraryRequestListItem {
   requestId: number;
   unitId: number;
   offeringId: number;
+  crewId?: number;
+  crewName?: string;
   holderUserId: number;
   holderUsername: string;
   requesterUserId: number;
@@ -286,9 +288,22 @@ export interface LibraryOfferingListItem {
   isOutOfStock?: boolean;
   valuePerUnit: number;
   unitLabel?: string | null;
+  remainingStockTier1?: number | null;
+  remainingStockTier2?: number | null;
+  remainingStockTier3?: number | null;
+  remainingStockTier4?: number | null;
+  remainingStockTier5?: number | null;
+  remainingStockTier6?: number | null;
+  minimumViewerTier?: number;
   countryCode?: string | null;
   allowedZipCodes?: string[];
   createdAt: string;
+}
+
+export interface LibraryOfferingDetailResponse {
+  success: boolean;
+  message: string;
+  item?: LibraryOfferingListItem | null;
 }
 
 export interface LibraryOfferingListResponse {
@@ -310,6 +325,13 @@ export interface UpdateLibraryOfferingRequest {
   nonce?: string | null;
   ciphertext?: string | null;
   keyVersion?: number | null;
+  stockTier1?: number | null;
+  stockTier2?: number | null;
+  stockTier3?: number | null;
+  stockTier4?: number | null;
+  stockTier5?: number | null;
+  stockTier6?: number | null;
+  minimumViewerTier?: number | null;
   countryCode?: string | null;
   allowedZipCodes?: string[] | null;
 }
@@ -351,6 +373,7 @@ export type LibraryHubSection =
   | 'durable'
   | 'consumable'
   | 'services'
+  | 'digital'
   | 'mine';
 
 export type LibraryTaskFrequency = 'None' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';

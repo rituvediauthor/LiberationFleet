@@ -22,9 +22,22 @@ public static class LibraryRequestExpiryService
         return true;
     }
 
-    public static bool TryExpireOpenRequest(LibraryRequest request, DateTime utcNow)
+    public static bool TryExpireOpenRequest(
+        LibraryRequest request,
+        DateTime utcNow,
+        LibraryOfferingKind? offeringKind = null)
     {
         if (request.Status != LibraryRequestStatus.Open)
+        {
+            return false;
+        }
+
+        var kind = offeringKind
+            ?? request.Unit?.Offering?.Kind
+            ?? LibraryOfferingKind.Durable;
+
+        // Consumables (and other non–date-gated kinds) stay open until acted on.
+        if (!LibraryRequestLifecycle.IsDateGated(kind))
         {
             return false;
         }

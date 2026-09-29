@@ -12,7 +12,9 @@ public class GetFleetLibraryUnitDetailQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
-    ILibraryRepository libraryRepository) : IRequestHandler<GetFleetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
+    ILibraryRepository libraryRepository,
+    IViewerLocationAccessor viewerLocation,
+    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetFleetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
 {
     public async Task<LibraryUnitDetailResponse> Handle(
         GetFleetLibraryUnitDetailQuery request,
@@ -55,6 +57,26 @@ public class GetFleetLibraryUnitDetailQueryHandler(
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
 
+        var viewerTier = await priorityTierService.GetViewerTierForOfferingAsync(
+            userId,
+            unit.Offering.CrewId,
+            cancellationToken);
+        var viewerCountry = viewerLocation.CountryCode;
+        var viewerZip = viewerLocation.ZipCode;
+
+        if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
+            || !LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))
+        {
+            return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
+        }
+
+        if (LibraryOfferingRules.UsesPerTierStock(unit.Offering)
+            && !LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier)
+            && !unit.Offering.QuantityNotApplicable)
+        {
+            return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
+        }
+
         var isHolder = unit.CurrentPossessorUserId == userId;
         var hasOpenRequest = await libraryRepository.HasOpenRequestForUnitByUserAsync(
             unit.Id,
@@ -70,13 +92,16 @@ public class GetFleetLibraryUnitDetailQueryHandler(
             isHolder,
             hasOpenRequest,
             activeRequest,
-            userId);
+            userId,
+            viewerTier,
+            viewerCountry,
+            viewerZip);
 
         return new LibraryUnitDetailResponse
         {
             Success = true,
             Message = "Item loaded.",
-            Item = LibraryMapper.MapUnitDetail(unit, viewer)
+            Item = LibraryMapper.MapUnitDetail(unit, viewer, viewerTier)
         };
     }
 }

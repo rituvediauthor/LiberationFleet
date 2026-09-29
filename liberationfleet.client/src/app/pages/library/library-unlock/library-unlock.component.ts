@@ -78,13 +78,13 @@ export class LibraryUnlockComponent implements OnInit {
         break;
       case 'not-in-season':
         this.title = 'Join the season';
-        this.message = 'Join the current season of giving to unlock Library of Things functions.';
+        this.message = 'Join this season to unlock the Library of Things.';
         this.primaryLabel = 'Join season';
         this.secondaryLabel = null;
         break;
       default:
         this.title = 'Season not started';
-        this.message = 'Start or join a season of giving to unlock Library of Things functions.';
+        this.message = 'Start a season to unlock the Library of Things.';
         this.primaryLabel = 'Set up season';
         this.secondaryLabel = 'Join season';
         break;

@@ -59,6 +59,14 @@ export class FleetLibraryHubComponent implements OnInit {
     this.router.navigate(['/app/fleet/library', section]);
   }
 
+  openDigital() {
+    this.router.navigate(['/app/crew/library-of-things/digital']);
+  }
+
+  openQuestBoard() {
+    this.router.navigate(['/app/crew/library-of-things/tasks']);
+  }
+
   openRequests() {
     this.router.navigate(['/app/crew/library-of-things/requests']);
   }

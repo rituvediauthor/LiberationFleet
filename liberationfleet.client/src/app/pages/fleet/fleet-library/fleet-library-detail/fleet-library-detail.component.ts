@@ -74,8 +74,9 @@ export class FleetLibraryDetailComponent implements OnInit {
   }
 
   openFullDetail() {
+    const from = this.route.snapshot.queryParamMap.get('from') ?? 'durable';
     void this.router.navigate(['/app/crew/library-of-things/units', this.unitId], {
-      queryParams: { fromFleet: '1' }
+      queryParams: { fromFleet: '1', from }
     });
   }
 

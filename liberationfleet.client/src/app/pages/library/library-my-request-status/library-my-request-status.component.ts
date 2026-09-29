@@ -83,6 +83,8 @@ export class LibraryMyRequestStatusComponent implements OnInit {
     return this.libraryCrypto.toListItem({
       unitId: item.unitId,
       offeringId: item.offeringId,
+      crewId: item.crewId,
+      crewName: item.crewName,
       holderUserId: item.holderUserId,
       holderUsername: item.holderUsername,
       title: item.title,
@@ -91,6 +93,7 @@ export class LibraryMyRequestStatusComponent implements OnInit {
       thumbnailResourceId: item.thumbnailResourceId,
       thumbnailUrl: item.thumbnailUrl,
       hasEncryptedContent: item.hasEncryptedContent,
+      offeringKind: item.offeringKind,
       unitStatus: '',
       valuePerUnit: 0,
       unitLabel: null,
@@ -99,6 +102,9 @@ export class LibraryMyRequestStatusComponent implements OnInit {
   }
 
   formatDateRange(item: LibraryRequestListItem): string {
+    if (item.offeringKind === 'Consumable' || item.offeringKind === 'Digital') {
+      return this.formatDate(item.createdAt);
+    }
     return `${this.formatDate(item.neededByStart)} – ${this.formatDate(item.neededByEnd)}`;
   }
 

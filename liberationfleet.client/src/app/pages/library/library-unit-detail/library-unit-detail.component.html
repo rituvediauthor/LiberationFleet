@@ -19,6 +19,12 @@
         <h1 class="detail-title">{{ detail.title }}</h1>
         <p class="detail-meta">{{ holderLabel }}: {{ detail.holderUsername }}</p>
         <p class="out-of-stock-tag" *ngIf="detail.isOutOfStock">Out of stock</p>
+        <p class="out-of-stock-tag broken" *ngIf="detail.brokenPendingConfirmation && !detail.isOutOfStock">
+          Broken — pending confirmation
+        </p>
+        <p class="out-of-stock-tag broken" *ngIf="detail.unitStatus === 'Broken' && !detail.brokenPendingConfirmation && !detail.isOutOfStock && !detail.isRetired">
+          Broken
+        </p>
         <div class="category-tags" *ngIf="detail.categories.length > 0">
           <span class="category-tag" *ngFor="let category of detail.categories">{{ category }}</span>
         </div>

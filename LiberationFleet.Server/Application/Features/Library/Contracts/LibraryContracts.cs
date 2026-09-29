@@ -202,6 +202,8 @@ public class LibraryRequestListItemDto
     public int RequestId { get; set; }
     public int UnitId { get; set; }
     public int OfferingId { get; set; }
+    public int CrewId { get; set; }
+    public string CrewName { get; set; } = string.Empty;
     public int HolderUserId { get; set; }
     public string HolderUsername { get; set; } = string.Empty;
     public int RequesterUserId { get; set; }
@@ -324,9 +326,23 @@ public class LibraryOfferingListItemDto
     public bool IsOutOfStock { get; set; }
     public decimal ValuePerUnit { get; set; }
     public string? UnitLabel { get; set; }
+    public int? RemainingStockTier1 { get; set; }
+    public int? RemainingStockTier2 { get; set; }
+    public int? RemainingStockTier3 { get; set; }
+    public int? RemainingStockTier4 { get; set; }
+    public int? RemainingStockTier5 { get; set; }
+    public int? RemainingStockTier6 { get; set; }
+    public int MinimumViewerTier { get; set; } = 1;
     public string? CountryCode { get; set; }
     public List<string> AllowedZipCodes { get; set; } = [];
     public DateTime CreatedAt { get; set; }
+}
+
+public class LibraryOfferingDetailResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public LibraryOfferingListItemDto? Item { get; set; }
 }
 
 public class LibraryOfferingListResponse
@@ -482,6 +498,8 @@ public class LibraryTaskOperationResponse
 public class LibraryTaskInstanceIdsRequest
 {
     public IReadOnlyList<int> InstanceIds { get; set; } = Array.Empty<int>();
+    /// <summary>Plaintext quest title for gift-log display (client has decrypted content).</summary>
+    public string? TitlePreview { get; set; }
 }
 
 public class LibraryTaskConfirmResponse

@@ -31,7 +31,7 @@
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && displayItems.length === 0" class="state-text">
-      You have not created any offerings yet.
+      No offerings yet. Use Create Offering on the hub to add your first contribution.
     </p>
 
     <div class="offering-list" *ngIf="!loading && displayItems.length > 0">
@@ -53,6 +53,13 @@
               <span class="meta-chip out-of-stock" *ngIf="row.offering.isOutOfStock">Out of stock</span>
               <span class="meta-chip" *ngIf="row.offering.unitLabel">{{ row.offering.unitLabel }}</span>
             </div>
+            <button
+              type="button"
+              class="audience-btn"
+              *ngIf="canViewAudience(row.offering)"
+              (click)="openAudience($event, row.offering)">
+              Who can see this?
+            </button>
           </div>
         </app-library-item-card>
       </div>
@@ -61,3 +68,16 @@
     </div>
   </div>
 </app-page-layout>
+
+<app-library-tier-audience-dialog
+  [open]="audienceDialogOpen"
+  [items]="audienceDialogItems"
+  [loading]="audienceDialogLoading"
+  [error]="audienceDialogError"
+  [title]="audienceDialogTitle"
+  [subtitle]="audienceDialogSubtitle"
+  audienceLabel="viewers"
+  [crewId]="audienceDialogCrewId"
+  [fleetId]="audienceDialogFleetId"
+  (close)="closeAudienceDialog()">
+</app-library-tier-audience-dialog>

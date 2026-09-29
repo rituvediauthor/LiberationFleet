@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Library.Queries.GetDurableLibraryUnits;
@@ -55,10 +56,26 @@ public class GetDurableLibraryUnitsQueryHandler(
             fetchOffset,
             cancellationToken);
 
+        var now = DateTime.UtcNow;
         var items = page.Items
             .Where(unit => LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))
             .Take(fetchLimit)
-            .Select(unit => LibraryMapper.MapUnitListItem(unit))
+            .Select(unit =>
+            {
+                var dto = LibraryMapper.MapUnitListItem(unit);
+                var openWindows = unit.Requests
+                    .Where(r => r.Status == LibraryRequestStatus.Open)
+                    .ToList();
+                var reservedNow = openWindows.Any(r => r.NeededByStart <= now && r.NeededByEnd >= now);
+                dto.AvailableNow = !reservedNow;
+                dto.NextAvailableDate = reservedNow
+                    ? openWindows
+                        .Where(r => r.NeededByEnd >= now)
+                        .Select(r => (DateTime?)r.NeededByEnd)
+                        .Min()
+                    : null;
+                return dto;
+            })
             .ToList();
 
         return new LibraryUnitListResponse

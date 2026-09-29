@@ -667,7 +667,10 @@ public class CompleteLibraryTaskInstancesCommandHandler(
     }
 }
 
-public record ConfirmLibraryTaskInstancesCommand(int TaskId, IReadOnlyList<int> InstanceIds)
+public record ConfirmLibraryTaskInstancesCommand(
+    int TaskId,
+    IReadOnlyList<int> InstanceIds,
+    string? TitlePreview = null)
     : IRequest<LibraryTaskConfirmResponse>;
 
 public class ConfirmLibraryTaskInstancesCommandHandler(
@@ -729,13 +732,16 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
 
         var gifts = new List<LibraryCreatorContributionGiftDto>();
         var utcNow = DateTime.UtcNow;
+        var questTitle = !string.IsNullOrWhiteSpace(request.TitlePreview)
+            ? request.TitlePreview.Trim()
+            : (!string.IsNullOrWhiteSpace(task.Title) ? task.Title.Trim() : "Quest");
         foreach (var instance in instances)
         {
             var completerId = instance.ClaimedByUserId!.Value;
             var completerName = instance.ClaimedByUser?.Username ?? "Crewmate";
             var gift = await contributionGiftService.TryAwardTaskCompletionAsync(
                 membership.CrewId,
-                "Library quest",
+                questTitle,
                 task.Value,
                 completerId,
                 completerName,

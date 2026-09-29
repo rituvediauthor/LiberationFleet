@@ -8,13 +8,28 @@
     <nav class="section-menu" aria-label="Fleet library sections" *ngIf="!loading && libraryEnabled">
       <button type="button" class="menu-link" (click)="openRequests()">
         <i class="fa-solid fa-hand-holding-heart menu-icon" aria-hidden="true"></i>
-        <span class="menu-label">Requests</span>
+        <div class="menu-copy">
+          <span class="menu-label">Requests</span>
+          <span class="menu-sub">Requires crew Library of Things unlock / active season</span>
+        </div>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
 
       <button type="button" class="menu-link" (click)="openMyRequests()">
         <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
-        <span class="menu-label">My Requests</span>
+        <div class="menu-copy">
+          <span class="menu-label">My Requests</span>
+          <span class="menu-sub">Requires crew Library of Things unlock / active season</span>
+        </div>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openQuestBoard()">
+        <i class="fa-solid fa-clipboard-list menu-icon" aria-hidden="true"></i>
+        <div class="menu-copy">
+          <span class="menu-label">Quest Board</span>
+          <span class="menu-sub">Requires crew Library of Things unlock / active season</span>
+        </div>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
 
@@ -33,6 +48,15 @@
       <button type="button" class="menu-link" (click)="openSection('services')">
         <i class="fa-solid fa-screwdriver-wrench menu-icon" aria-hidden="true"></i>
         <span class="menu-label">Services</span>
+        <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+      </button>
+
+      <button type="button" class="menu-link" (click)="openDigital()">
+        <i class="fa-solid fa-file-arrow-down menu-icon" aria-hidden="true"></i>
+        <div class="menu-copy">
+          <span class="menu-label">Digital</span>
+          <span class="menu-sub">Requires crew Library of Things unlock / active season</span>
+        </div>
         <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
       </button>
 

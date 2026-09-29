@@ -74,7 +74,8 @@ public class CreateLibraryRequestCommandHandler(
 
         if (unit.Status == LibraryUnitStatus.InTransit)
         {
-            return new LibraryRequestOperationResponse { Success = false, Message = "This item is currently in transit." };
+            // Status is reserved for a future handoff flow; treat as unavailable today.
+            return new LibraryRequestOperationResponse { Success = false, Message = "This item is currently unavailable." };
         }
 
         if (unit.CurrentPossessorUserId == userId)
@@ -130,15 +131,14 @@ public class CreateLibraryRequestCommandHandler(
             return new LibraryRequestOperationResponse { Success = false, Message = "Not enough stock available." };
         }
 
-        // Consumables are "gone once you get it" — no borrowing window, so skip date
-        // validation and pin the window to today. Durable/Service still validate dates.
+        // Consumables are "gone once you get it" — no borrowing window.
         DateTime neededByStart;
         DateTime neededByEnd;
-        if (unit.Offering.Kind == LibraryOfferingKind.Consumable)
+        if (!LibraryRequestLifecycle.IsDateGated(unit.Offering))
         {
-            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
-            neededByStart = today;
-            neededByEnd = today;
+            var now = DateTime.UtcNow;
+            neededByStart = now;
+            neededByEnd = now;
         }
         else
         {

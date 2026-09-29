@@ -12,4 +12,22 @@ import { LibraryUnitListItem } from '../../models/library.model';
 export class LibraryItemCardComponent {
   @Input({ required: true }) item!: LibraryUnitListItem;
   @Input() holderLabel = 'Holder';
+
+  get showAvailableNow(): boolean {
+    return this.item.offeringKind === 'Durable'
+      && this.item.availableNow === true
+      && !this.item.isOutOfStock;
+  }
+
+  get showNextAvailable(): boolean {
+    return this.item.offeringKind === 'Durable'
+      && this.item.availableNow === false
+      && !!this.item.nextAvailableDate;
+  }
+
+  get showUnitCount(): boolean {
+    return this.item.offeringKind === 'Durable'
+      && (this.item.offeringUnitCount ?? 0) > 1
+      && this.item.availableNow !== true;
+  }
 }

@@ -26,7 +26,10 @@ import {
   LibraryOfferingListItem,
   LibraryOfferingListResponse,
   LibraryOfferingListPage,
+  LibraryOfferingDetailResponse,
   UpdateLibraryOfferingRequest,
+  LibraryOfferingDetailResponse,
+  LibraryOfferingListItem,
   RecordLibraryAcquisitionPayload,
   ReportLibraryUnitBrokenPayload,
   RecordLibraryMaintenancePayload,
@@ -187,6 +190,17 @@ export class LibraryService {
           throw new Error(response.message || 'Failed to load your offerings');
         }
         return { items: response.items, hasMore: response.hasMore };
+      })
+    );
+  }
+
+  getOfferingForEdit(offeringId: number): Observable<LibraryOfferingListItem> {
+    return this.http.get<LibraryOfferingDetailResponse>(`${this.basePath}/offerings/${offeringId}/edit`).pipe(
+      map(response => {
+        if (!response.success || !response.item) {
+          throw new Error(response.message || 'Failed to load offering');
+        }
+        return response.item;
       })
     );
   }
@@ -424,8 +438,15 @@ export class LibraryService {
     return this.http.post<LibraryTaskOperationResponse>(`${this.basePath}/tasks/${taskId}/complete-anytime`, {});
   }
 
-  confirmTaskInstances(taskId: number, instanceIds: number[]): Observable<LibraryTaskConfirmResponse> {
-    return this.http.post<LibraryTaskConfirmResponse>(`${this.basePath}/tasks/${taskId}/confirm`, { instanceIds });
+  confirmTaskInstances(
+    taskId: number,
+    instanceIds: number[],
+    titlePreview?: string | null
+  ): Observable<LibraryTaskConfirmResponse> {
+    return this.http.post<LibraryTaskConfirmResponse>(`${this.basePath}/tasks/${taskId}/confirm`, {
+      instanceIds,
+      titlePreview: titlePreview?.trim() || null
+    });
   }
 
   rejectTaskCompletion(taskId: number, instanceIds: number[]): Observable<LibraryTaskOperationResponse> {

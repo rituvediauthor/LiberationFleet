@@ -9,13 +9,51 @@
     <ng-container *ngIf="!loading && offering">
       <h2 class="offering-title">{{ offering.title }}</h2>
 
-      <p class="notice" *ngIf="offering.isOutOfStock && !canToggleOutOfStock">
+      <p class="notice" *ngIf="offering.isOutOfStock && !canToggleOutOfStock && !showPerTierStock">
         This offering is currently out of stock.
       </p>
 
       <p class="notice" *ngIf="showTrackedStockNotice">
-        Stock is tracked automatically. When quantity reaches zero, the offering is marked out of stock.
+        Stock is tracked automatically. When quantity reaches zero, the offering shows as out of stock (not broken).
       </p>
+
+      <div class="form-group" *ngIf="showPerTierStock">
+        <span class="group-label">Restock by priority tier</span>
+        <p class="toggle-note">
+          Each tier has its own pool. Total: {{ tierStockTotal }}.
+          Tier 1–3 = fleet-mates (excluding your crew); Tier 4–6 = crewmates.
+        </p>
+        <div class="tier-stock-block" *ngFor="let tier of stockTierNumbers">
+          <div class="tier-stock-row">
+            <label [attr.for]="'stockTier' + tier">Tier {{ tier }}</label>
+            <input
+              [id]="'stockTier' + tier"
+              class="form-input"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              [(ngModel)]="stockTiers[tier]"
+              (ngModelChange)="onStockTierChange()" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="isService">
+        <label for="minimumViewerTier">Visible to Tier N or higher</label>
+        <select
+          id="minimumViewerTier"
+          class="form-input"
+          [(ngModel)]="minimumViewerTier"
+          (ngModelChange)="onMinimumViewerTierChange()">
+          <option *ngFor="let tier of minimumViewerTierOptions" [ngValue]="tier">
+            {{ tier === 1 ? 'Tier 1 or higher (everyone)' : (tier === 6 ? 'Tier 6 only' : ('Tier ' + tier + ' or higher')) }}
+          </option>
+        </select>
+        <p class="toggle-note">
+          Only members whose LoT priority tier is at least this high can see the service.
+        </p>
+      </div>
 
       <div class="form-group">
         <span class="group-label">Visibility</span>

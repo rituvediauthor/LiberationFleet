@@ -66,7 +66,16 @@ public class DeleteLibraryOfferingCommandHandler(
 
         var utcNow = DateTime.UtcNow;
         offering.IsDeleted = true;
+        offering.IsOutOfStock = true;
         offering.UpdatedAt = utcNow;
+
+        foreach (var unit in offering.Units)
+        {
+            if (!unit.IsRetired)
+            {
+                unit.IsRetired = true;
+            }
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

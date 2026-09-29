@@ -96,7 +96,22 @@ export class LibraryUnitDetailComponent implements OnInit {
     this.form.valueChanges.subscribe(() => this.updateActionButtons());
     this.form.statusChanges.subscribe(() => this.updateActionButtons());
 
-    this.backButton = this.navigation.createBackButton([`/app/crew/library-of-things/${this.backSection}`]);
+    const fromFleet = this.route.snapshot.queryParamMap.get('fromFleet') === '1';
+    if (fromFleet) {
+      const fleetFrom = this.route.snapshot.queryParamMap.get('from') ?? this.backSection;
+      this.backButton = {
+        label: '←',
+        type: 'back',
+        onClick: () => {
+          void this.router.navigate(
+            ['/app/fleet/library/units', this.route.snapshot.paramMap.get('id')],
+            { queryParams: { from: fleetFrom } }
+          );
+        }
+      };
+    } else {
+      this.backButton = this.navigation.createBackButton([`/app/crew/library-of-things/${this.backSection}`]);
+    }
 
     this.unitId = Number(this.route.snapshot.paramMap.get('id'));
     if (!this.unitId) {
@@ -379,13 +394,22 @@ export class LibraryUnitDetailComponent implements OnInit {
           return;
         }
         this.toastService.success('Item reported lost');
-        this.router.navigate([`/app/crew/library-of-things/${this.backSection}`]);
+        this.navigateAwayFromUnit();
       },
       error: err => {
         this.isSubmitting = false;
         this.toastService.error(err?.message ?? 'Failed to report lost');
       }
     });
+  }
+
+  private navigateAwayFromUnit() {
+    if (this.route.snapshot.queryParamMap.get('fromFleet') === '1') {
+      const fleetFrom = this.route.snapshot.queryParamMap.get('from') ?? this.backSection;
+      void this.router.navigate([`/app/fleet/library/${fleetFrom}`]);
+      return;
+    }
+    void this.router.navigate([`/app/crew/library-of-things/${this.backSection}`]);
   }
 
   private submitReportFixed() {

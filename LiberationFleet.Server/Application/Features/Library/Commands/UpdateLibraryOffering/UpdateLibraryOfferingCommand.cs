@@ -110,6 +110,7 @@ public class UpdateLibraryOfferingCommandHandler(
                 request.StockTier4 ?? offering.RemainingStockTier4 ?? 0,
                 request.StockTier5 ?? offering.RemainingStockTier5 ?? 0,
                 request.StockTier6 ?? offering.RemainingStockTier6 ?? 0);
+            LibraryOfferingRules.TryRepairMistakenBrokenStockUnit(offering);
             changed = true;
         }
 

@@ -20,7 +20,10 @@ public class LibraryRequestPriorityService(IMutualAidService mutualAidService)
 
         var utcNow = DateTime.UtcNow;
         var openByUnit = sourceRequests
-            .Where(r => r.Status == LibraryRequestStatus.Open && r.NeededByStart > utcNow)
+            .Where(r => LibraryRequestLifecycle.IsOpenForFulfillment(
+                r,
+                r.Unit?.Offering?.Kind ?? LibraryOfferingKind.Durable,
+                utcNow))
             .GroupBy(r => r.UnitId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -74,7 +77,10 @@ public class LibraryRequestPriorityService(IMutualAidService mutualAidService)
 
         var utcNow = DateTime.UtcNow;
         var open = unitOpenRequests
-            .Where(r => r.Status == LibraryRequestStatus.Open && r.NeededByStart > utcNow)
+            .Where(r => LibraryRequestLifecycle.IsOpenForFulfillment(
+                r,
+                r.Unit?.Offering?.Kind ?? LibraryOfferingKind.Durable,
+                utcNow))
             .ToList();
         if (open.Count <= 1)
         {

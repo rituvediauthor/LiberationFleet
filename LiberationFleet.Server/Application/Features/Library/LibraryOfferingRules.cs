@@ -108,6 +108,34 @@ public static class LibraryOfferingRules
             && !offering.QuantityNotApplicable
             && offering.RemainingStock is <= 0);
 
+    /// <summary>
+    /// Clears mistaken Broken status on stock units when stock is available again
+    /// (stock emptiness must not use Broken).
+    /// </summary>
+    public static bool TryRepairMistakenBrokenStockUnit(LibraryOffering offering)
+    {
+        if (!IsStockBased(offering) || IsOutOfStock(offering))
+        {
+            return false;
+        }
+
+        var repaired = false;
+        foreach (var unit in offering.Units)
+        {
+            if (unit.IsRetired
+                || unit.BrokenPendingConfirmation
+                || unit.Status != LibraryUnitStatus.Broken)
+            {
+                continue;
+            }
+
+            unit.Status = LibraryUnitStatus.Available;
+            repaired = true;
+        }
+
+        return repaired;
+    }
+
     public static bool IsOutOfStockForTier(LibraryOffering offering, int viewerTier)
     {
         if (offering.IsOutOfStock)

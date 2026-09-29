@@ -11,6 +11,11 @@
     <p class="card-meta">{{ holderLabel }}: {{ item.holderUsername }}</p>
     <p class="card-stock out-of-stock" *ngIf="item.isOutOfStock">Out of stock</p>
     <p class="card-stock" *ngIf="!item.isOutOfStock && item.remainingStock != null">{{ item.remainingStock }} available</p>
+    <p class="card-stock available-now" *ngIf="showAvailableNow">Available now</p>
+    <p class="card-stock next-available" *ngIf="showNextAvailable">
+      Next available {{ item.nextAvailableDate | date:'mediumDate' }}
+    </p>
+    <p class="card-stock units-link" *ngIf="showUnitCount">{{ item.offeringUnitCount }} unit{{ item.offeringUnitCount === 1 ? '' : 's' }}</p>
     <h2 class="card-title">{{ item.title }}</h2>
     <p class="card-preview">{{ item.descriptionPreview }}</p>
     <ng-content></ng-content>

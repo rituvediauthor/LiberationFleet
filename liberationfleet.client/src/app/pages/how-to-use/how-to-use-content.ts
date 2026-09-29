@@ -84,6 +84,11 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
+          'Out of stock means a consumable, digital, or service offering has no remaining quantity (or was marked unavailable). Broken is separate: it is for durable units reported damaged and awaiting confirmation, not for empty stock.'
+      },
+      {
+        type: 'paragraph',
+        text:
           'Consumable goods, digital goods, and services are not generally things that exchange hands more than once. Therefore, the acquisition of such goods is treated more like a gift where the value of the good or service is recorded as the provider’s contribution (impacting their priority score).'
       },
       {
@@ -377,6 +382,11 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
         type: 'paragraph',
         text:
           'Where a crew can only consist, at most, of up to 50 crewmates, a fleet can consist of a limitless number of crews, the crewmates of which can interact as if they are all a part of one big crew. However, crewmates who share a crew with each other should always try to prioritize each other in terms of providing aid. Local fleets use the same country and postal-code allowlist matching as Local crews.'
+      },
+      {
+        type: 'paragraph',
+        text:
+          'When a fleet enables Library of Things, members can browse fleet-wide offerings from the fleet library hub. Creating offerings, fulfilling requests, Digital downloads, and the Quest Board still use your crew’s LoT unlock and active season.'
       }
     ]
   }

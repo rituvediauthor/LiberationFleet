@@ -34,6 +34,9 @@ import { valuesEqual } from '../../../utils/save-button.util';
   styleUrl: './edit-library-offering.component.css'
 })
 export class EditLibraryOfferingComponent implements OnInit {
+  readonly stockTierNumbers = [1, 2, 3, 4, 5, 6];
+  readonly minimumViewerTierOptions = [1, 2, 3, 4, 5, 6];
+
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
   deleteButton!: ActionBarButton;
@@ -43,6 +46,10 @@ export class EditLibraryOfferingComponent implements OnInit {
   countryCode: string | null = null;
   allowedZipCodes: string[] = [];
   countryTouched = false;
+  stockTiers: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  initialStockTiers: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  minimumViewerTier = 1;
+  initialMinimumViewerTier = 1;
   initialIsOutOfStock = false;
   initialVisibility: LibraryOfferingVisibility = 'CrewOnly';
   initialCountryCode: string | null = null;
@@ -103,12 +110,24 @@ export class EditLibraryOfferingComponent implements OnInit {
     return this.offering?.offeringKind === 'Digital';
   }
 
+  get isService(): boolean {
+    return this.offering?.offeringKind === 'Service';
+  }
+
+  get showPerTierStock(): boolean {
+    return this.offering?.offeringKind === 'Consumable' && !this.offering?.quantityNotApplicable;
+  }
+
   get canToggleOutOfStock(): boolean {
     return !!this.offering?.quantityNotApplicable && this.isStockBased;
   }
 
   get showTrackedStockNotice(): boolean {
-    return this.isStockBased && !this.offering?.quantityNotApplicable;
+    return this.isStockBased && !this.offering?.quantityNotApplicable && !this.showPerTierStock;
+  }
+
+  get tierStockTotal(): number {
+    return this.stockTierNumbers.reduce((sum, tier) => sum + (this.stockTiers[tier] || 0), 0);
   }
 
   get hasChanges(): boolean {
@@ -120,8 +139,17 @@ export class EditLibraryOfferingComponent implements OnInit {
     const countryChanged = this.countryCode !== this.initialCountryCode;
     const zipChanged = !valuesEqual(this.allowedZipCodes, this.initialAllowedZipCodes);
     const stockChanged = this.canToggleOutOfStock && this.isOutOfStock !== this.initialIsOutOfStock;
+    const tierStockChanged = this.showPerTierStock
+      && this.stockTierNumbers.some(tier => (this.stockTiers[tier] || 0) !== (this.initialStockTiers[tier] || 0));
+    const minTierChanged = this.isService && this.minimumViewerTier !== this.initialMinimumViewerTier;
     const filesChanged = this.isDigital && this.downloadAttachments.length > 0;
-    return visibilityChanged || countryChanged || zipChanged || stockChanged || filesChanged;
+    return visibilityChanged
+      || countryChanged
+      || zipChanged
+      || stockChanged
+      || tierStockChanged
+      || minTierChanged
+      || filesChanged;
   }
 
   get countryRequired(): boolean {
@@ -133,7 +161,16 @@ export class EditLibraryOfferingComponent implements OnInit {
   }
 
   get canSave(): boolean {
-    return this.hasChanges && !(this.countryRequired && !this.countryCode);
+    if (!this.hasChanges || (this.countryRequired && !this.countryCode)) {
+      return false;
+    }
+    if (this.showPerTierStock) {
+      return this.stockTierNumbers.every(tier => {
+        const value = this.stockTiers[tier] ?? 0;
+        return value >= 0 && value <= 100;
+      });
+    }
+    return true;
   }
 
   toggleOutOfStock() {
@@ -162,6 +199,14 @@ export class EditLibraryOfferingComponent implements OnInit {
     this.updateActionButtons();
   }
 
+  onStockTierChange() {
+    this.updateActionButtons();
+  }
+
+  onMinimumViewerTierChange() {
+    this.updateActionButtons();
+  }
+
   onDownloadsChange() {
     this.updateActionButtons();
   }
@@ -183,18 +228,12 @@ export class EditLibraryOfferingComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    this.libraryService.getMyOfferings({ limit: 100 }).subscribe({
-      next: page => {
-        const offering = page.items.find(item => item.offeringId === this.offeringId) ?? null;
-        if (!offering) {
-          this.loading = false;
-          this.errorMessage = 'Offering not found.';
-          return;
-        }
-
+    this.libraryService.getOfferingForEdit(this.offeringId).subscribe({
+      next: offering => {
         if (offering.offeringKind === 'Durable') {
           this.loading = false;
-          this.errorMessage = 'Durable goods cannot be deleted here. Report them broken or lost from the item page.';
+          this.errorMessage =
+            'Durable listings are managed from each unit’s page (broken, lost, maintenance). Title and value stay fixed after create.';
           return;
         }
 
@@ -207,6 +246,14 @@ export class EditLibraryOfferingComponent implements OnInit {
         this.initialCountryCode = this.countryCode;
         this.allowedZipCodes = [...(offering.allowedZipCodes ?? [])];
         this.initialAllowedZipCodes = [...this.allowedZipCodes];
+        this.minimumViewerTier = offering.minimumViewerTier ?? 1;
+        this.initialMinimumViewerTier = this.minimumViewerTier;
+        for (const tier of this.stockTierNumbers) {
+          const key = `remainingStockTier${tier}` as keyof LibraryOfferingListItem;
+          const value = Number(offering[key] ?? 0) || 0;
+          this.stockTiers[tier] = value;
+          this.initialStockTiers[tier] = value;
+        }
         this.updateActionButtons();
 
         if (offering.offeringKind === 'Digital' && this.crewId > 0) {
@@ -277,6 +324,17 @@ export class EditLibraryOfferingComponent implements OnInit {
     };
     if (this.canToggleOutOfStock) {
       payload.isOutOfStock = this.isOutOfStock;
+    }
+    if (this.showPerTierStock) {
+      payload.stockTier1 = this.stockTiers[1] || 0;
+      payload.stockTier2 = this.stockTiers[2] || 0;
+      payload.stockTier3 = this.stockTiers[3] || 0;
+      payload.stockTier4 = this.stockTiers[4] || 0;
+      payload.stockTier5 = this.stockTiers[5] || 0;
+      payload.stockTier6 = this.stockTiers[6] || 0;
+    }
+    if (this.isService) {
+      payload.minimumViewerTier = this.minimumViewerTier;
     }
 
     try {

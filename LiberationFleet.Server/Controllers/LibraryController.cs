@@ -24,6 +24,7 @@ using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryCate
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryPriorityTierAudience;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryRequestDetail;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryRequestMessages;
+using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryOfferingForEdit;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryOfferingUnits;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetLibraryUnitDetail;
 using LiberationFleet.Server.Application.Features.Library.Queries.GetMyLibraryOfferings;
@@ -145,6 +146,13 @@ public class LibraryController(IMediator mediator) : ControllerBase
         [FromQuery] int offset = 0)
     {
         var result = await mediator.Send(new GetMyLibraryOfferingsQuery(search, categoryIds, limit, offset));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("offerings/{id:int}/edit")]
+    public async Task<IActionResult> GetOfferingForEdit(int id)
+    {
+        var result = await mediator.Send(new GetLibraryOfferingForEditQuery(id));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -509,7 +517,10 @@ public class LibraryController(IMediator mediator) : ControllerBase
     [HttpPost("tasks/{taskId:int}/confirm")]
     public async Task<IActionResult> ConfirmTaskInstances(int taskId, [FromBody] LibraryTaskInstanceIdsRequest body)
     {
-        var result = await mediator.Send(new ConfirmLibraryTaskInstancesCommand(taskId, body.InstanceIds));
+        var result = await mediator.Send(new ConfirmLibraryTaskInstancesCommand(
+            taskId,
+            body.InstanceIds,
+            body.TitlePreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

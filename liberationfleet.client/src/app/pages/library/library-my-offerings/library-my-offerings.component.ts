@@ -16,8 +16,11 @@ import { NotificationContentService } from '../../../services/notification-conte
 import {
   LibraryCategory,
   LibraryOfferingListItem,
+  LibraryPriorityTierAudienceMember,
   LibraryUnitListItem
 } from '../../../models/library.model';
+import { LibraryTierAudienceDialogComponent } from '../../../components/library-tier-audience-dialog/library-tier-audience-dialog.component';
+import { FleetService } from '../../../services/fleet.service';
 
 @Component({
   selector: 'app-library-my-offerings',
@@ -27,7 +30,8 @@ import {
     FormsModule,
     PageLayoutComponent,
     LibraryItemCardComponent,
-    LibraryCategoryPickerComponent
+    LibraryCategoryPickerComponent,
+    LibraryTierAudienceDialogComponent
   ],
   templateUrl: './library-my-offerings.component.html',
   styleUrl: './library-my-offerings.component.css'
@@ -46,6 +50,17 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   errorMessage = '';
   showFilters = false;
   crewId = 0;
+  hasFleet = false;
+  fleetId = 0;
+  audienceDialogOpen = false;
+  audienceDialogLoading = false;
+  audienceDialogError: string | null = null;
+  audienceDialogTitle = 'Who can see this?';
+  audienceDialogSubtitle: string | null = null;
+  audienceDialogItems: LibraryPriorityTierAudienceMember[] = [];
+  audienceDialogCrewId: number | null = null;
+  audienceDialogFleetId: number | null = null;
+  private audienceLoadSeq = 0;
 
   private readonly pageSize = 30;
   private router = inject(Router);
@@ -57,6 +72,7 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
   private toastService = inject(ToastService);
   private encryptionContent = inject(EncryptionContentService);
   private notificationContent = inject(NotificationContentService);
+  private fleetService = inject(FleetService);
   private searchChanges$ = new Subject<string>();
   private destroy$ = new Subject<void>();
   private listObserver?: IntersectionObserver;
@@ -76,6 +92,22 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
       error: () => {
         this.loading = false;
         this.errorMessage = 'Failed to load crew membership.';
+      }
+    });
+
+    this.fleetService.getCurrent().subscribe({
+      next: result => {
+        if (!result.success || !result.fleet) {
+          this.hasFleet = false;
+          this.fleetId = 0;
+          return;
+        }
+        this.hasFleet = true;
+        this.fleetId = result.fleet.id;
+      },
+      error: () => {
+        this.hasFleet = false;
+        this.fleetId = 0;
       }
     });
 
@@ -158,6 +190,72 @@ export class LibraryMyOfferingsComponent implements OnInit, AfterViewInit, OnDes
 
   visibilityLabel(visibility: string | undefined): string {
     return visibility === 'FleetWide' ? 'Fleet-wide' : 'Crew only';
+  }
+
+  canViewAudience(offering: LibraryOfferingListItem): boolean {
+    return offering.offeringKind === 'Consumable'
+      || offering.offeringKind === 'Service'
+      || offering.offeringKind === 'Digital';
+  }
+
+  openAudience(event: Event, offering: LibraryOfferingListItem) {
+    event.stopPropagation();
+    if (!this.canViewAudience(offering)) {
+      return;
+    }
+
+    const seq = ++this.audienceLoadSeq;
+    const matchMode = offering.offeringKind === 'Service' ? 'MinimumOrHigher' : 'Exact';
+    const tier = offering.offeringKind === 'Service'
+      ? (offering.minimumViewerTier ?? 1)
+      : 1;
+    this.audienceDialogOpen = true;
+    this.audienceDialogLoading = true;
+    this.audienceDialogError = null;
+    this.audienceDialogItems = [];
+    this.audienceDialogCrewId = this.crewId > 0 ? this.crewId : null;
+    this.audienceDialogFleetId = offering.visibility === 'FleetWide' && this.hasFleet ? this.fleetId : null;
+    this.audienceDialogTitle = matchMode === 'MinimumOrHigher'
+      ? `Who can see this (Tier ${tier}+)?`
+      : 'Who can see this?';
+    this.audienceDialogSubtitle = matchMode === 'MinimumOrHigher'
+      ? 'Members at this tier or higher relative to your offering.'
+      : 'Members in each priority tier relative to your offering.';
+
+    this.libraryService.getPriorityTierAudience({
+      tier,
+      matchMode,
+      visibility: offering.visibility === 'FleetWide' ? 'FleetWide' : 'CrewOnly'
+    }).subscribe({
+      next: result => {
+        if (seq !== this.audienceLoadSeq) {
+          return;
+        }
+        this.audienceDialogLoading = false;
+        if (!result.success) {
+          this.audienceDialogError = result.message || 'Failed to load audience';
+          return;
+        }
+        this.audienceDialogItems = result.items ?? [];
+        this.audienceDialogCrewId = result.crewId ?? this.audienceDialogCrewId;
+        this.audienceDialogFleetId = result.fleetId ?? this.audienceDialogFleetId;
+      },
+      error: err => {
+        if (seq !== this.audienceLoadSeq) {
+          return;
+        }
+        this.audienceDialogLoading = false;
+        this.audienceDialogError = err?.error?.message || err?.message || 'Failed to load audience';
+      }
+    });
+  }
+
+  closeAudienceDialog() {
+    this.audienceLoadSeq++;
+    this.audienceDialogOpen = false;
+    this.audienceDialogLoading = false;
+    this.audienceDialogError = null;
+    this.audienceDialogItems = [];
   }
 
   private setupLoadMoreObserver() {

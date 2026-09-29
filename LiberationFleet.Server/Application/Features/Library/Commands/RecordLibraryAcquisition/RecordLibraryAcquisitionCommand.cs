@@ -153,10 +153,6 @@ public class RecordLibraryAcquisitionCommandHandler(
 
         trackedUnit.Offering.UpdatedAt = utcNow;
         LibraryOfferingRules.ReduceStockForTier(trackedUnit.Offering, quantity, viewerTier);
-        if (!trackedUnit.Offering.QuantityNotApplicable && trackedUnit.Offering.RemainingStock <= 0)
-        {
-            trackedUnit.Status = LibraryUnitStatus.Broken;
-        }
 
         var acquirer = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var acquirerUsername = acquirer?.Username ?? "Crewmate";

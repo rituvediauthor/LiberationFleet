@@ -136,6 +136,35 @@
   color: var(--lf-color-danger);
 }
 
+.tier-stock-block {
+  margin-bottom: 10px;
+}
+
+.tier-stock-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tier-stock-row label {
+  min-width: 56px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tier-stock-row .form-input {
+  max-width: 100px;
+}
+
+.form-input {
+  padding: 10px 12px;
+  border: 1px solid var(--lf-color-border-subtle);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  font-size: 14px;
+}
+
 .state-text {
   color: var(--lf-color-text-secondary);
 }

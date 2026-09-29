@@ -81,10 +81,6 @@ public class CompleteLibraryRequestCommandHandler(
 
             LibraryOfferingRules.ReduceStockForTier(offering, libraryRequest.Quantity, requesterTier);
             offering.UpdatedAt = utcNow;
-            if (!offering.QuantityNotApplicable && offering.RemainingStock <= 0)
-            {
-                libraryRequest.Unit.Status = LibraryUnitStatus.Broken;
-            }
 
             // Single gift-log entry: creator contribution (financial membership) + recipient reception.
             receptionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(

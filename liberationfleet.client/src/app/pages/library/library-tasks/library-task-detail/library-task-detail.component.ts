@@ -353,7 +353,7 @@ export class LibraryTaskDetailComponent implements OnInit {
     this.refreshActionButtons();
 
     if (action === 'confirm') {
-      this.libraryService.confirmTaskInstances(this.taskId, instanceIds).subscribe({
+      this.libraryService.confirmTaskInstances(this.taskId, instanceIds, this.task.title).subscribe({
         next: async response => {
           if (!response.success) {
             this.actionBusy = false;

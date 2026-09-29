@@ -5,7 +5,7 @@
     <p *ngIf="loading" class="state-text">Loading...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && items.length === 0" class="state-text">
-      No open requests for your held items.
+      No open requests for items you hold. Denied or expired requests appear under My Requests.
     </p>
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">

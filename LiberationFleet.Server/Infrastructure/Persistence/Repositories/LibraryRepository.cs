@@ -145,6 +145,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Crew)
             .Include(u => u.CurrentPossessorUser)
+            .Include(u => u.Requests.Where(r => r.Status == LibraryRequestStatus.Open))
             .Where(u => crewIds.Contains(u.Offering.CrewId)
                 && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
                 && !u.Offering.IsDeleted
@@ -521,8 +522,12 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)
             .Include(r => r.Unit)
+                .ThenInclude(u => u.Offering)
+                .ThenInclude(o => o.Crew)
+            .Include(r => r.Unit)
                 .ThenInclude(u => u.CurrentPossessorUser)
-            .Where(r => r.RequesterUserId == requesterUserId && r.Unit.Offering.CrewId == crewId)
+            .Include(r => r.RequesterUser)
+            .Where(r => r.RequesterUserId == requesterUserId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -536,7 +541,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             r => r.UnitId == unitId
                 && r.RequesterUserId == requesterUserId
                 && r.Status == LibraryRequestStatus.Open
-                && r.NeededByStart > utcNow,
+                && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
+                    || r.NeededByStart > utcNow),
             cancellationToken);
     }
 
@@ -551,6 +557,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         return await context.LibraryRequests.AnyAsync(
             r => r.UnitId == unitId
                 && r.Status == LibraryRequestStatus.Open
+                && r.Unit.Offering.Kind != LibraryOfferingKind.Consumable
                 && r.NeededByStart > utcNow
                 && (excludeRequestId == null || r.Id != excludeRequestId)
                 && r.NeededByStart <= neededByEnd
@@ -591,7 +598,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Include(r => r.Unit)
                 .ThenInclude(u => u.CurrentPossessorUser)
             .Where(r => r.Status == LibraryRequestStatus.Open
-                && r.NeededByStart > utcNow
+                && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
+                    || r.NeededByStart > utcNow)
                 && r.Unit.CurrentPossessorUserId == possessorUserId
                 && r.Unit.Offering.CrewId == crewId)
             .OrderBy(r => r.NeededByStart)
@@ -617,7 +625,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             .Where(r => r.UnitId == unitId
                 && r.Unit.Offering.CrewId == crewId
                 && r.Status == LibraryRequestStatus.Open
-                && r.NeededByStart > utcNow)
+                && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
+                    || r.NeededByStart > utcNow))
             .OrderBy(r => r.NeededByStart)
             .ThenBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -631,7 +640,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         return await context.LibraryRequests.CountAsync(
             r => r.UnitId == unitId
                 && r.Status == LibraryRequestStatus.Open
-                && r.NeededByStart > utcNow,
+                && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
+                    || r.NeededByStart > utcNow),
             cancellationToken);
     }
 
@@ -643,6 +653,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
         var stale = await context.LibraryRequests
             .Where(r => r.Status == LibraryRequestStatus.Open
                 && r.NeededByStart <= utcNow
+                && r.Unit.Offering.Kind != LibraryOfferingKind.Consumable
                 && r.Unit.Offering.CrewId == crewId)
             .ToListAsync(cancellationToken);
 
