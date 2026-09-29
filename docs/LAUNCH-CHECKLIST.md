@@ -26,12 +26,14 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 4. **Stripe test on staging + local** — [DONATION-SETUP.md](./DONATION-SETUP.md) Parts A–C  
 5. **LiveKit on staging** — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B  
 6. **Report vendor + NCMEC ESP** — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md), [NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md)  
-7. **Production Azure** — AZURE-GO-LIVE Step 11 (creates `lfleetproductionkv`, etc.)  
-8. **Stripe live + LiveKit production** — DONATION-SETUP Part D; LIVEKIT-SETUP Path C  
-9. **Native `apiBaseUrl` + sync** — [NATIVE-APPS.md](./NATIVE-APPS.md)  
-10. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
-11. **Store screenshots + review notes + submit**  
-12. **Follow-up** — MFA, push, Sign in with Apple  
+7. **Production Azure** — [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Step 11 (self-contained: tfvars, apply, secrets, Stripe/LiveKit, optional domain, **manual** first deploy)  
+8. **Verify + pause staging** — AZURE-GO-LIVE Steps 12–13 (destroy staging when idle so you mostly pay for production)  
+9. **Stripe live + LiveKit production** — already covered inside Step 11.4; detail: DONATION-SETUP Part D; LIVEKIT-SETUP Path C  
+10. **Native `apiBaseUrl` + sync** — AZURE-GO-LIVE Step 15 + [NATIVE-APPS.md](./NATIVE-APPS.md)  
+11. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
+12. **Store screenshots + review notes + submit**  
+13. **Follow-up** — MFA, push, Sign in with Apple  
+14. **GitHub access check** — AZURE-GO-LIVE Step 14 (public clone OK; strangers cannot push)
 
 ---
 

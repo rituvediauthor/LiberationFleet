@@ -1,16 +1,18 @@
 # Azure DevOps CI/CD for LiberationFleet
 
 Pipeline YAML: [`/azure-pipelines.yml`](../../azure-pipelines.yml)  
-End-to-end go-live (accounts → first URL): [`docs/AZURE-GO-LIVE.md`](../../docs/AZURE-GO-LIVE.md)
+End-to-end go-live (accounts → first URL → production): [`docs/AZURE-GO-LIVE.md`](../../docs/AZURE-GO-LIVE.md)
 
 ## What the pipeline does
 
 | Stage | When | What |
 |-------|------|------|
-| **Build** | PRs + `master` | Restore, build, test, Docker build (no push on PR) |
-| **Terraform plan (PR)** | Pull requests | `terraform plan` against staging backend |
-| **Deploy staging** | `master` | Terraform apply staging + push image to ACR + update App Service |
-| **Deploy production** | `master` after staging | Same for production; waits on Environment approval |
+| **Build** | `master` (non-PR) | Restore, build, test, Docker build (no push yet) |
+| **Deploy staging** | `master`, and `STAGING_ENABLED` ≠ `false` | Terraform apply staging + push image to ACR + update App Service |
+| **Deploy production** | **Only** when you **Run pipeline** and check **Deploy to production** | Same for production; still waits on Environment approval |
+| **PR gate** | Pull requests | Agentless acknowledge (real PR checks are GitHub Actions) |
+
+**Important:** a normal push to `master` never deploys production. Production is opt-in on a manual run, then Environment approval.
 
 ## One-time setup checklist
 
@@ -52,10 +54,11 @@ Create under **Pipelines → Library**.
 | `WEB_APP_NAME` | `web_app_name` |
 | `ACR_NAME` | `acr_name` |
 | `ACR_LOGIN_SERVER` | `acr_login_server` |
+| `STAGING_ENABLED` | `true` normally; set `false` when staging is destroyed/paused so pushes do not recreate it |
 
 #### `liberationfleet-production`
 
-Same keys as staging; values from **production** terraform outputs. Set `ENVIRONMENT` = `production`.
+Same keys as staging **except** do not add `STAGING_ENABLED`. Values from **production** terraform outputs. Set `ENVIRONMENT` = `production`.
 
 ### 4. Create the pipeline
 
@@ -64,15 +67,24 @@ Same keys as staging; values from **production** terraform outputs. Set `ENVIRON
 3. Link variable groups if the UI asks.
 4. First run on `master`: approve any “authorize resource” prompts for the service connection and environments.
 
+## Deploy workflow (after go-live)
+
+| Goal | Action |
+|------|--------|
+| Update staging | Push/merge to `master` (with `STAGING_ENABLED=true`) |
+| Ship production | **Run pipeline** on `master` → check **Deploy to production** → Approve Environment |
+| Pause staging (save cost) | See [AZURE-GO-LIVE Step 13](../../docs/AZURE-GO-LIVE.md#step-13--pause-staging-to-save-money-recommended-after-prod-is-healthy) |
+| Prod-only while staging destroyed | `STAGING_ENABLED=false` + Run pipeline with **Deploy to production** checked |
+
 ## First-run order (infra before green deploy)
 
 1. Bootstrap state — `infrastructure/terraform/bootstrap` ([AZURE-GO-LIVE Step 5](../../docs/AZURE-GO-LIVE.md#step-5--bootstrap-terraform-remote-state-one-time)).
 2. Local `terraform apply` for staging once (creates ACR + App Service).
-3. Fill `liberationfleet-shared` + `liberationfleet-staging`.
+3. Fill `liberationfleet-shared` + `liberationfleet-staging` (include `STAGING_ENABLED=true`).
 4. Create pipeline from `azure-pipelines.yml`.
 5. Set Stripe / LiveKit / report secrets in Key Vault.
-6. Run / push `master` for container deploy.
-7. Production: apply prod Terraform, fill `liberationfleet-production`, approve Environment.
+6. Run / push `master` for container deploy to staging.
+7. Production: apply prod Terraform, fill `liberationfleet-production`, then **Run pipeline** with **Deploy to production** and Approve.
 
 ## Templates
 

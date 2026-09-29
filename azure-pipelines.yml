@@ -1,29 +1,22 @@
 # LiberationFleet — Azure DevOps CI/CD
 #
-# Stages: Build → Test → Publish image → Terraform → Deploy
+# Stages: Build → Deploy staging (optional) → Deploy production (opt-in)
 #
-# Setup (once):
-# 1. Create service connections:
-#    - Azure Resource Manager: `azure-liberationfleet` (subscription used by Terraform + deploy)
-#    - Docker Registry (ACR): created automatically after first Terraform apply, or use
-#      `az acr credential` / managed service connection named `acr-liberationfleet`
-# 2. Variable groups:
-#    - `liberationfleet-shared`
-#        TF_STATE_RG, TF_STATE_STORAGE, TF_STATE_CONTAINER
-#    - `liberationfleet-staging`
-#        ENVIRONMENT=staging, AZURE_RESOURCE_GROUP (from terraform output),
-#        WEB_APP_NAME, ACR_NAME, ACR_LOGIN_SERVER
-#    - `liberationfleet-production`
-#        same keys for production
-# 3. Environments: `staging`, `production` (add approval checks on production)
-# 4. Pipeline variables (secret): none required if using service connections + Key Vault
+# Deploy model (cost + control):
+# - Push to master → Build + Deploy staging (unless STAGING_ENABLED=false).
+# - Production never deploys on push. Run the pipeline manually and check
+#   "Deploy to production" when you are ready (Environment approval still applies).
+# - When staging is paused/destroyed, set liberationfleet-staging → STAGING_ENABLED=false
+#   so master pushes do not recreate staging; then use a manual run with
+#   "Deploy to production" only.
 #
-# PR validation (compile + test) runs on GitHub Actions (.github/workflows/build-test.yml).
-# Azure PR builds use an agentless gate so they do not consume Microsoft-hosted parallel
-# jobs (recent PR runs were failing in ~0s with no step logs when the hosted pool
-# could not start jobs). Master pushes still run the full hosted Build + Deploy path.
-#
-# Triggers on master for staging; production is manual or via environment approval on master.
+# Setup (once): see docs/AZURE-GO-LIVE.md and .azure/pipelines/README.md
+
+parameters:
+  - name: deployProduction
+    displayName: Deploy to production (after build; only when you are ready)
+    type: boolean
+    default: false
 
 trigger:
   branches:
@@ -134,7 +127,14 @@ stages:
     - stage: DeployStaging
       displayName: Deploy staging
       dependsOn: Build
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+      # STAGING_ENABLED comes from liberationfleet-staging (linked on this stage).
+      # Missing/empty is treated as enabled. Set false when staging is destroyed (Step 13).
+      condition: |
+        and(
+          succeeded(),
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          ne(variables['STAGING_ENABLED'], 'false')
+        )
       variables:
         - group: liberationfleet-shared
         - group: liberationfleet-staging
@@ -152,6 +152,8 @@ stages:
           environment: staging
           pool:
             vmImage: ubuntu-latest
+          # Belt-and-suspenders if stage condition cannot see the variable group.
+          condition: ne(variables['STAGING_ENABLED'], 'false')
           strategy:
             runOnce:
               deploy:
@@ -187,7 +189,15 @@ stages:
       dependsOn:
         - Build
         - DeployStaging
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+      # Opt-in only: Run pipeline → check "Deploy to production". Never on plain push.
+      # Staging may be Skipped when STAGING_ENABLED=false (prod-only ship while staging paused).
+      condition: |
+        and(
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          eq('${{ parameters.deployProduction }}', 'true'),
+          in(dependencies.Build.result, 'Succeeded'),
+          in(dependencies.DeployStaging.result, 'Succeeded', 'Skipped')
+        )
       variables:
         - group: liberationfleet-shared
         - group: liberationfleet-production

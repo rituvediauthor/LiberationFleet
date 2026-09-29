@@ -14,7 +14,6 @@ log_retention_days = 30
 # LiveKit Cloud WSS URL (Path B). Keys go in Key Vault, not here.
 livekit_host = "wss://liberation-fleet-lsb02tua.livekit.cloud"
 
-# Optional: allow your office IP to manage SQL via SSMS / Azure Data Studio.
 sql_firewall_rules = [
   {
     name             = "Home"

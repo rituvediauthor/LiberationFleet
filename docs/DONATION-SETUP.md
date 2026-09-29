@@ -134,21 +134,40 @@ Prerequisites: production infra applied ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) 
 
 ### D.1 Production Key Vault keys
 
-1. Stripe Dashboard → turn **Test mode OFF** (Live).
-2. Developers → API keys → copy `sk_live_…`.
+1. Stripe Dashboard → stay in your **live business account** (not a Sandbox).  
+   In the current UI: account picker (often **upper left**) → if you see **Switch to sandbox**, you are already in **Live**. Do **not** open a sandbox for production keys.  
+   (Older docs said “Test mode OFF” — Stripe renamed that to Sandboxes.)
+2. Developers → API keys → copy `sk_live_…` (must start with `sk_live_`, not `sk_test_`).
 3. Portal → **`lfleetproductionkv`** → Secrets → `Stripe-SecretKey` → New version → paste `sk_live_…`.
-4. Production App Service → `Stripe__PublicAppBaseUrl` = production HTTPS origin (custom domain if you have one).
-5. Restart production Web App.
+
+4. Set **`Stripe__PublicAppBaseUrl`** on the production Web App (Azure Portal — this is an **App Service environment variable**, not a Key Vault secret):
+
+   1. Open [portal.azure.com](https://portal.azure.com) on subscription **LF_sub** (or whichever hosts production).
+   2. Resource group **`rg-lfleet-production`** → Web App **`app-lfleet-production`**.
+   3. Left menu → **Settings** → **Environment variables**  
+      (older UI: **Configuration** → **Application settings**).
+   4. Find **`Stripe__PublicAppBaseUrl`** in the list (use the search box if needed).  
+      If it is missing: **+ Add** → Name = `Stripe__PublicAppBaseUrl`.
+   5. Set **Value** to your production HTTPS origin with **no trailing slash**:
+      - Custom domain ready: e.g. `https://liberationfleet.org` (same as `terraform output app_public_url` when `custom_domain_url` is set)
+      - Otherwise: `https://app-lfleet-production.azurewebsites.net`
+   6. Click **Apply** / **Save**.
+
+5. Overview → **Restart** the production Web App (or wait until after D.2 webhook secret is saved, then restart once).
 
 ### D.2 Production webhook (new Event destination)
 
-1. Stripe Dashboard → **Live mode** → Developers → Webhooks → **Add destination** (do **not** edit the staging Test-mode destination).
-2. Same choices as staging C.2: scope **Your account**, default API version, same two `checkout.session.*` events.
-3. **Endpoint URL:**
+1. Open [https://dashboard.stripe.com](https://dashboard.stripe.com) → stay in your **live** business account (not a Sandbox).
+2. Left nav → **Developers** → **Webhooks** / **Event destinations**.
+3. **Add destination** (or **Add endpoint**) — do **not** edit the staging Test/Sandbox destination.
+4. Same choices as staging C.2: scope **Your account**, default API version, same two `checkout.session.*` events.
+5. **Endpoint URL:**
    ```
-   https://YOUR_PRODUCTION_HOST/api/donations/stripe/webhook
+   https://liberationfleet.org/api/donations/stripe/webhook
    ```
-4. New live `whsec_…` → production Key Vault `Stripe-WebhookSecret` → Restart production.
+   If you already added a live endpoint on `*.azurewebsites.net`, open it and **change the URL** to the custom domain instead of creating a second live destination.
+6. New live `whsec_…` (only if you created a **new** destination) → production Key Vault `Stripe-WebhookSecret` → Restart production.  
+   If you only edited the URL on an existing live destination, you usually keep the existing `whsec_…`.
 
 ### D.3 Verify production
 

@@ -75,11 +75,25 @@ If join returns a token but the UI says microphone/WebRTC failed with no Network
 
 Do this after staging infra exists ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Steps 6–7). Uses staging Key Vault (e.g. `lfleetstagingkv`).
 
-### B.1 Create or reuse a LiveKit Cloud project
+### B.1 Create or reuse a LiveKit Cloud project and copy credentials
 
-1. Go to [https://cloud.livekit.io](https://cloud.livekit.io) and sign up / sign in.
-2. **Create project** (or use a dedicated staging project).
-3. **Settings → Keys** — copy WebSocket URL (`wss://…`), API Key, API Secret.
+1. Open [https://cloud.livekit.io](https://cloud.livekit.io) in a browser and sign in (or create an account).
+2. If you have no project yet: **Create project** / **New project** → give it a clear name (e.g. `liberation-fleet-staging`) → finish the wizard.
+3. If you already have projects: open the project picker (top of the dashboard) and select the **staging** project — do not use the production project here.
+4. In the left sidebar (or project menu), open **Settings**.
+5. Open **Keys** (sometimes labeled **API keys**).
+6. You should see at least one key row. **Click the key name / row** (not just the copy icon on the list — open the key detail).
+7. A panel or modal shows three values. Copy each into a notepad temporarily:
+
+| What LiveKit shows | What you need | Example shape |
+|--------------------|---------------|---------------|
+| URL / WebSocket URL / Project URL | `wss://…` host for Terraform `livekit_host` | `wss://liberation-fleet-xxxxx.livekit.cloud` |
+| API Key | Key Vault `LiveKit-ApiKey` | Short string such as `APIxxxxxx` |
+| API Secret | Key Vault `LiveKit-ApiSecret` | Long secret — click **Reveal** if hidden |
+
+8. Confirm the URL starts with **`wss://`** (not `ws://`, not `https://`). If the UI only shows `https://….livekit.cloud`, change the scheme to `wss://` when you paste into `staging.tfvars`.
+
+If **Settings → Keys** is empty: click **Create key** / **Add key**, then open that key and copy the three values (the secret may only be shown once — save it).
 
 ### B.2 Wire staging
 
@@ -116,9 +130,25 @@ Do this after staging infra exists ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Steps
 
 Do this only after [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) **Step 11** (production Key Vault e.g. `lfleetproductionkv` exists). Prefer a **separate** LiveKit Cloud project from staging.
 
-### C.1 Production project keys
+### C.1 Create a production project and copy credentials
 
-1. LiveKit Cloud → production project → copy `wss://…`, API Key, API Secret.
+Same UI as Path B.1, but use a **dedicated production project**.
+
+1. Open [https://cloud.livekit.io](https://cloud.livekit.io) and sign in.
+2. Project picker (top) → **Create project** / **New project** (recommended name: `liberation-fleet-production` or similar).  
+   Do **not** reuse the staging project for production keys.
+3. Select that new production project so the dashboard header shows its name.
+4. Left sidebar → **Settings** → **Keys** (or **API keys**).
+5. **Click the key row** to open details (create a key first if the list is empty).
+6. Copy and keep these three values:
+
+| LiveKit field | Paste into |
+|---------------|------------|
+| WebSocket / Project URL (`wss://….livekit.cloud`) | `livekit_host` in `production.tfvars` |
+| API Key | Azure Key Vault **`lfleetproductionkv`** → secret **`LiveKit-ApiKey`** |
+| API Secret (Reveal if needed) | Azure Key Vault **`lfleetproductionkv`** → secret **`LiveKit-ApiSecret`** |
+
+7. Sanity check: URL must be `wss://…`. Key and secret must **not** be the same strings you used for staging.
 
 ### C.2 Wire production
 
@@ -135,8 +165,11 @@ Do this only after [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) **Step 11** (productio
    terraform apply -var-file="environments/production.tfvars"
    ```
 
-3. Portal → **production** Key Vault → `LiveKit-ApiKey` / `LiveKit-ApiSecret` → New versions.
-4. Restart the **production** Web App.
+3. Azure Portal → Key Vault **`lfleetproductionkv`** → **Secrets**:
+   - Open **`LiveKit-ApiKey`** → **New version** → paste the API Key → Create.
+   - Open **`LiveKit-ApiSecret`** → **New version** → paste the API Secret → Create.
+4. Portal → Web App **`app-lfleet-production`** → Overview → **Restart**.
+5. Confirm **`app-lfleet-production`** → **Environment variables** → **`LiveKit__Host`** equals your `wss://` URL (Terraform sets this; the Key/Secret app settings stay as `@Microsoft.KeyVault(...)` references — do not paste the secret into those).
 
 ### C.3 Verify on production
 

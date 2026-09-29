@@ -9,7 +9,7 @@ Hosts the combined ASP.NET + Angular container used by **web** and by **native a
 | [`.azure/pipelines/README.md`](../.azure/pipelines/README.md) | Variable groups & pipeline wiring |
 | [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) | Master list (legal, stores, third parties) |
 
-**What you will have when finished (staging):** an HTTPS App Service URL serving the SPA + API, Azure SQL, Key Vault, ACR, Application Insights, and (optionally) a CI/CD pipeline on `master`.
+**What you will have when finished:** staging URL first (Steps 1–9), then a separate production environment (Step 11+) with **manual** production deploys (push to `master` never ships production by itself). After go-live you can **pause/destroy staging** so you mostly pay for production only (Step 13).
 
 ---
 
@@ -269,6 +269,9 @@ Write these down:
 | `WEB_APP_NAME` | `web_app_name` |
 | `ACR_NAME` | `acr_name` |
 | `ACR_LOGIN_SERVER` | `acr_login_server` |
+| `STAGING_ENABLED` | `true` |
+
+`STAGING_ENABLED` controls whether pushes to `master` deploy staging. Set it to `false` later when you pause/destroy staging (Step 13) so the pipeline does not recreate it.
 
 3. **Save**. Link this group to your pipeline when prompted (or Pipeline → Edit → … → Variable groups).
 
@@ -445,11 +448,13 @@ The YAML already references:
 5. **Also create / authorize `liberationfleet-production` now** (required for the pipeline to validate, even if you will Reject production deploys until Step 11):
 
    1. Library → **+ Variable group** → Name: exactly `liberationfleet-production`.
-   2. Add the same five variables as staging (`ENVIRONMENT`, `AZURE_RESOURCE_GROUP`, `WEB_APP_NAME`, `ACR_NAME`, `ACR_LOGIN_SERVER`).
+   2. Add the same names as staging (`ENVIRONMENT`, `AZURE_RESOURCE_GROUP`, `WEB_APP_NAME`, `ACR_NAME`, `ACR_LOGIN_SERVER`). Do **not** add `STAGING_ENABLED` here.
    3. For now you can copy staging values or use placeholders (e.g. `ENVIRONMENT` = `production`, others = `pending`). Real production outputs come in Step 11.
    4. **Save** → **Pipeline permissions** → allow your LiberationFleet pipeline (or authorize when the run prompts).
 
    If you skip this group, the run fails immediately with: *Variable group liberationfleet-production could not be found*.
+
+   Also confirm `liberationfleet-staging` has **`STAGING_ENABLED` = `true`** (Step 6.4). Without it, staging still deploys (missing/empty is treated as enabled).
 
 #### A.3 Run a staging deploy
 
@@ -463,16 +468,11 @@ The YAML already references:
 4. If **Deploy staging** asks to use environment `staging` or a resource, **Permit**.
 5. Wait until **Deploy staging** is green (often 10–20+ minutes the first time: build, Terraform, Docker push, App Service restart).
 
-#### A.4 Production stage on the same run (what to do)
+#### A.4 Production does **not** run on a normal push
 
-On `master`, after staging succeeds, **Deploy production** also starts and will **wait for approval** on environment `production`.
+Production is **opt-in**. A normal push / Run pipeline leaves **Deploy to production** unchecked (default), so only **Build** + **Deploy staging** run. You will deploy production later in **Step 11.6** when you are ready.
 
-Until Step 11 is done (production Terraform + `liberationfleet-production` variable group):
-
-1. Open the run → find **Deploy production** waiting.
-2. Click **Reject** (or let it sit — do **not** Approve yet).
-
-That is normal. Staging is still deployed. Come back to Approve only after Step 11.
+If you accidentally check **Deploy to production** before Step 11 is done: **Reject** the Environment approval (or cancel the run). Staging is unaffected.
 
 #### A.5 Confirm the image and site
 
@@ -539,9 +539,11 @@ App Service pulls from ACR using its managed identity (Terraform configured this
 
 ---
 
-## Step 10 — Custom domain + TLS
+## Step 10 — Custom domain + TLS (optional; usually production)
 
-Do this when you own a domain (e.g. `liberationfleet.org`) and want a branded URL. Recommended before **production** Stripe live + store listings. Staging can stay on `*.azurewebsites.net`.
+Do this when you own a domain and want a branded URL. **Staging can stay on `*.azurewebsites.net`.**
+
+For **production** go-live, the same steps are repeated in full inside **Step 11.5** so you do not need to flip back here. Use this step if you want a branded **staging** host (e.g. `staging.yourdomain.org`) before production exists.
 
 ### 10.1 Add the hostname on App Service
 
@@ -583,87 +585,495 @@ App settings use the **full origin** including `https://`, no trailing slash —
 
 ---
 
-## Step 11 — Production
+## Step 11 — Production (full go-live)
 
-Do this only when staging (Steps 6–9) is healthy and you are ready for a separate production environment.
+Do this only when staging (Steps 6–9) is healthy and you are ready for a **separate** production stack.
 
-### 11.1 Apply production Terraform
+**How deploy works after this step**
 
-1. Edit `infrastructure/terraform/environments/production.tfvars` (SKUs, region, optional `livekit_host` / `custom_domain_url`). Prefer stronger SQL + backups for prod.
-2. Ensure `environments/production.backend.hcl` exists (from Step 5).
-3. PowerShell:
+| Action | What happens |
+|--------|----------------|
+| Push / merge to `master` | Build + deploy **staging** only (if `STAGING_ENABLED` is not `false`) |
+| Manual **Run pipeline** with **Deploy to production** checked | Build → staging (if enabled) → **production** (still needs Environment approval from Step 4) |
+| Manual run with staging paused (`STAGING_ENABLED=false`) + Deploy to production checked | Build → skip staging → production only |
+
+Production is **never** deployed by a plain push. You choose when.
+
+**Self-contained:** everything you need for production (infra, secrets, Stripe live, LiveKit, custom domain, first deploy, verify) is in this step and Step 12–13. You should not need to re-read Steps 1–10 except for lookup.
+
+---
+
+### 11.0 Before you start (checklist)
+
+Confirm each item. Fix anything missing first.
+
+| # | Check | Where / how |
+|---|--------|-------------|
+| 1 | Staging site works | Browser opens staging URL; login works (Step 9) |
+| 2 | `production.backend.hcl` exists on your machine | `infrastructure/terraform/environments/production.backend.hcl` (created in Step 5.3; **gitignored**) |
+| 3 | Variable group stub `liberationfleet-production` exists | ADO → Pipelines → Library (created in Step 8 A.2) |
+| 4 | Environment `production` has an **Approvals** check | ADO → Pipelines → Environments → `production` (Step 4.2) |
+| 5 | You are logged into Azure CLI on this machine | `az account show` prints your subscription |
+| 6 | Same region plan as staging | Staging uses `location` in `staging.tfvars` (yours is likely `westus`). Production should match unless you intentionally split regions. |
+
+---
+
+### 11.1 Review `production.tfvars` (usually little or no editing)
+
+**You are not starting from a blank file.** The repo already has:
+
+`infrastructure/terraform/environments/production.tfvars`
+
+Open it in your editor. For a first production go-live on a tight budget, the **defaults already in the file are intentional** (B1 App Service, S0 SQL, Basic ACR, purge protection on).
+
+#### 11.1.1 What each setting means — edit only if you need to
+
+| Line / setting | What it does | First go-live guidance |
+|----------------|--------------|-------------------------|
+| `project_name = "lfleet"` | Prefix for Azure resource names | **Do not change** (would rename everything) |
+| `environment = "production"` | Marks this stack as production | **Do not change** |
+| `location = "westus"` | Azure region for all prod resources | **Keep the same region as staging** unless you know you need otherwise. If staging is `westus` / `westus2`, match it. |
+| `app_service_sku = "B1"` | App Service plan size (main compute cost) | Leave `B1` until traffic requires more |
+| `sql_sku_name = "S0"` | Azure SQL tier | Leave `S0` for now (always-on DTU; predictable) |
+| `sql_max_size_gb = 10` | Max DB size | Leave unless you expect large media metadata growth |
+| `acr_sku = "Basic"` | Container registry tier | Leave `Basic` |
+| `key_vault_purge_protection_enabled = true` | Soft-deleted Key Vault cannot be instantly purged | **Leave `true` for production** |
+| `log_retention_days = 30` | App Insights / Log Analytics retention | Leave `30` unless compliance needs longer |
+| `# custom_domain_url = ...` | Commented optional public URL | Leave commented until DNS is ready (handled in §11.5) |
+| `# livekit_host = ...` | Commented LiveKit WSS URL | Leave commented until you do voice in §11.4 |
+| `tags = { ... }` | Cost/org tags | Optional; leave as-is |
+
+**Also optional (copy pattern from staging if you use SSMS):** add `sql_firewall_rules` with your home/office public IP so you can connect to production SQL from your PC. Example (use **your** IP, not this sample):
+
+```hcl
+sql_firewall_rules = [
+  {
+    name             = "Home"
+    start_ip_address = "YOUR.PUBLIC.IP.HERE"
+    end_ip_address   = "YOUR.PUBLIC.IP.HERE"
+  }
+]
+```
+
+To find your public IP: open [https://ifconfig.me](https://ifconfig.me) in a browser.
+
+**Bottom line for 11.1.1:** if `location` already matches staging and you are fine with B1/S0, **save nothing — go to 11.2**. You only edit this file when region, SKU, LiveKit host, custom domain URL, or SQL firewall need to change.
+
+---
+
+### 11.2 Apply production Terraform (creates empty Azure resources)
+
+This creates a **second** full stack: resource group, App Service, ACR, SQL, Key Vault, App Insights, etc. It does **not** copy staging data. It does **not** deploy your app image yet (that is §11.6).
+
+1. Open PowerShell.
+2. Confirm Azure login:
 
    ```powershell
-   cd infrastructure\terraform
+   az account show
+   ```
+
+   If that errors, run `az login` and pick the same subscription you used for staging.
+
+3. Go to the Terraform folder:
+
+   ```powershell
+   cd <path-to-your-clone>\infrastructure\terraform
+   ```
+
+4. Point Terraform at the **production** state file (not staging):
+
+   ```powershell
    terraform init -reconfigure -backend-config="environments/production.backend.hcl"
+   ```
+
+   You should see init succeed. The important part is backend key `production.terraform.tfstate` (inside that `.hcl` file).
+
+5. Preview what will be created (no changes yet):
+
+   ```powershell
    terraform plan -var-file="environments/production.tfvars"
+   ```
+
+   Expect many resources to **add** (App Service, SQL, Key Vault, ACR, …). If the plan looks wrong (destroying staging names, wrong region), **stop** and check that you used `production.backend.hcl` and `production.tfvars`.
+
+6. Apply:
+
+   ```powershell
    terraform apply -var-file="environments/production.tfvars"
    ```
 
-4. Capture outputs: `terraform output` → note `resource_group_name`, `web_app_name`, `acr_name`, `acr_login_server`, `key_vault_name`, `app_public_url`.
+   Type `yes` when prompted. First apply often takes **10–20+ minutes** (SQL is slow).
 
-### 11.2 Variable group `liberationfleet-production`
+7. When it finishes, capture outputs:
 
-1. ADO → **Pipelines** → **Library** → **+ Variable group**.
-2. Name: exactly `liberationfleet-production`.
-3. Add the **same variable names** as staging (§6.4), with **production** output values:
+   ```powershell
+   terraform output
+   ```
+
+   Write these down (you need them in the next subsection):
+
+| Output | Typical value | Used for |
+|--------|---------------|----------|
+| `resource_group_name` | `rg-lfleet-production` | ADO variable group |
+| `web_app_name` | `app-lfleet-production` | ADO + portal |
+| `acr_name` | `lfleetproductionacr` | ADO + Docker |
+| `acr_login_server` | `lfleetproductionacr.azurecr.io` | ADO |
+| `key_vault_name` | `lfleetproductionkv` | Secrets |
+| `app_public_url` | `https://app-lfleet-production.azurewebsites.net` | Browser, Stripe, CORS |
+| `web_app_default_hostname` | `app-lfleet-production.azurewebsites.net` | DNS CNAME target |
+
+#### If apply fails
+
+Same class of fixes as staging (Step 6.2): wrong region / SQL provisioning / App Service quota / Key Vault name soft-delete. For Key Vault name collision:
+
+```powershell
+az keyvault list-deleted -o table
+az keyvault purge --name lfleetproductionkv
+```
+
+Then re-run `terraform apply -var-file="environments/production.tfvars"`.
+
+#### If apply fails: Key Vault secret 403 (`ForbiddenByRbac`)
+
+Terraform created `lfleetproductionkv` but your user cannot write secrets yet. Grant yourself **Key Vault Secrets Officer**, wait ~1–2 minutes, re-apply (safe to re-run; it continues from state):
+
+```powershell
+$oid = az ad signed-in-user show --query id -o tsv
+az role assignment create `
+  --role "Key Vault Secrets Officer" `
+  --assignee-object-id $oid `
+  --assignee-principal-type User `
+  --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-lfleet-production/providers/Microsoft.KeyVault/vaults/lfleetproductionkv"
+
+Start-Sleep -Seconds 90
+terraform apply -var-file="environments/production.tfvars"
+```
+
+(This is the same role you already use on staging — production is a **new** vault, so it needs its own assignment.)
+
+---
+
+### 11.3 Fill variable group `liberationfleet-production` with real values
+
+You may already have a **stub** group from Step 8. Now replace placeholders with **production** terraform outputs (not staging names).
+
+1. Azure DevOps → **Pipelines** → **Library** → open **`liberationfleet-production`**.
+2. Set each variable:
 
 | Name | Value |
 |------|--------|
 | `ENVIRONMENT` | `production` |
-| `AZURE_RESOURCE_GROUP` | production `resource_group_name` |
-| `WEB_APP_NAME` | production `web_app_name` |
+| `AZURE_RESOURCE_GROUP` | production `resource_group_name` (e.g. `rg-lfleet-production`) |
+| `WEB_APP_NAME` | production `web_app_name` (e.g. `app-lfleet-production`) |
 | `ACR_NAME` | production `acr_name` |
 | `ACR_LOGIN_SERVER` | production `acr_login_server` |
 
-4. **Save** → **Pipeline permissions** → allow your LiberationFleet pipeline.
+3. **Save**.
+4. Tab **Pipeline permissions** → ensure your LiberationFleet pipeline is allowed (or authorize on first prod run).
 
-### 11.3 Secrets (production Key Vault only)
-
-Terraform created production Key Vault (typically **`lfleetproductionkv`**). This is **not** `lfleetstagingkv`.
-
-1. Portal → production Key Vault → **Secrets**.
-2. For each secret below: open → **New version** → paste → Create.
-
-| Secret | Production value |
-|--------|------------------|
-| `Stripe-SecretKey` | **Live** `sk_live_…` — [DONATION-SETUP.md](./DONATION-SETUP.md) **Part D** |
-| `Stripe-WebhookSecret` | **Live** `whsec_…` (new Event destination on the production URL) |
-| `LiveKit-ApiKey` / `LiveKit-ApiSecret` | Production LiveKit Cloud project — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path C |
-| `ReportEvidence-VendorApiKey` | Prod vendor key — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) |
-
-3. Production App Service → **Environment variables** → set `Stripe__PublicAppBaseUrl` to the production HTTPS origin (custom domain if you have one).
-4. If using LiveKit: set `livekit_host` in `production.tfvars`, re-apply, confirm `LiveKit__Host`.
-5. Restart the production Web App.
-
-Do **not** put live Stripe keys into the staging Key Vault.
-
-### 11.4 Deploy production via the pipeline
-
-1. Confirm §11.2 variable group is linked to the pipeline.
-2. Push to `master` or **Run pipeline** on `master`.
-3. Wait for **Deploy staging** to succeed.
-4. When **Deploy production** shows **Waiting for approval**:
-   - Open the run → open the approval → review → **Approve** (you configured approvers in Step 4).
-5. Wait for production deploy to finish.
-6. Open production `app_public_url` and repeat the Step 9 checklist.
-
-**Scale rule:** keep **one** App Service instance until Azure SignalR or a Redis backplane is added (in-process SignalR).
-
-### 11.5 SQL backups
-
-1. Portal → production SQL database → **Settings** → **Backup** (wording varies) / retention.
-2. Confirm **Point-in-time restore** is available; configure long-term retention if required for the nonprofit.
+Double-check you did **not** paste staging resource names (`rg-lfleet-staging`, `app-lfleet-staging`, `lfleetstagingacr`, …).
 
 ---
 
-## Step 12 — Point mobile apps at Azure
+### 11.4 Production Key Vault secrets + app settings
 
-1. In the repo, open `liberationfleet.client/src/environments/environment.native.ts`.
+Terraform created production Key Vault (typically **`lfleetproductionkv`**). This is a **different vault** from staging (`lfleetstagingkv`).
+
+#### 11.4.1 Open the production vault
+
+1. Portal → search for the `key_vault_name` from §11.2 outputs.
+2. If access denied: **Access control (IAM)** → add your user as **Key Vault Secrets Officer** → wait 1–2 minutes.
+3. Left menu → **Secrets**.
+
+#### 11.4.2 Set product secrets (New version on each)
+
+For each row: open the secret → **New version** → paste → **Create**.
+
+| Secret name | Required when | What to paste |
+|-------------|---------------|---------------|
+| `Stripe-SecretKey` | Before live donations | Stripe **Live** secret key `sk_live_…` (stay on your live business account — not a Sandbox → Developers → API keys). Full walkthrough: [DONATION-SETUP.md](./DONATION-SETUP.md) Part D |
+| `Stripe-WebhookSecret` | Before live donation totals update | Live webhook signing secret `whsec_…` from a **new** Event destination aimed at the **production** URL (see §11.4.4) |
+| `LiveKit-ApiKey` | Before production voice | API key from a **production** LiveKit Cloud project (prefer separate from staging) — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path C |
+| `LiveKit-ApiSecret` | Before production voice | Matching API secret |
+| `ReportEvidence-VendorApiKey` | Before vendor ops API in prod | Long random string you generate — **optional on day one** (you can be the reviewer). See [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) Path A |
+
+**Do not overwrite casually** (Terraform-managed): `ConnectionStrings-DefaultConnection`, `Jwt-SecretKey`, `ReportEvidence-AesKeyBase64`, deep-freeze storage connection.
+
+**Do not** put `sk_live_…` into the staging vault. **Do not** put `sk_test_…` into the production vault.
+
+If donations or voice are not ready on day one, you can leave Stripe/LiveKit placeholders and continue; those features will fail until filled.
+
+#### 11.4.3 Production App Service environment variables
+
+These live on the **Web App**, not in Key Vault. They are plain app settings (environment variables). The double underscore `__` is how .NET maps nested config (e.g. `Stripe:PublicAppBaseUrl`).
+
+1. Open [portal.azure.com](https://portal.azure.com) on the subscription that hosts production (**LF_sub** if that is yours).
+2. Resource group **`rg-lfleet-production`** → Web App **`app-lfleet-production`**.
+3. Left menu → **Settings** → **Environment variables**  
+   (older UI: **Configuration** → **Application settings**).
+4. Find each name below (use the search box). If a name is missing, **+ Add** it.
+5. Confirm / set:
+
+| Setting | Value |
+|---------|--------|
+| `Stripe__PublicAppBaseUrl` | Production HTTPS origin, **no trailing slash**. Prefer `terraform output app_public_url` (e.g. `https://liberationfleet.org` if `custom_domain_url` is set; otherwise `https://app-lfleet-production.azurewebsites.net`) |
+| `Cors__AllowedOrigins__0` | Same origin as `Stripe__PublicAppBaseUrl` (Terraform usually set this already) |
+
+6. Click **Apply** / **Save**.
+7. You can **Restart** now, or wait until after Key Vault Stripe/LiveKit secrets and the first image deploy (§11.6), then restart once.
+
+#### 11.4.4 Stripe live webhook (when enabling live donations)
+
+1. Stripe Dashboard → stay in your **live** business account (not a Sandbox).
+2. **Developers** → **Webhooks** / Event destinations → **Add**.
+3. Endpoint URL: `https://YOUR-PRODUCTION-ORIGIN/api/donations/stripe/webhook`  
+   - Without custom domain: `https://app-lfleet-production.azurewebsites.net/api/donations/stripe/webhook`  
+   - With custom domain (after §11.5): `https://your.domain/api/donations/stripe/webhook`
+4. Select the events required by [DONATION-SETUP.md](./DONATION-SETUP.md) Part D.
+5. Copy the signing secret → production Key Vault `Stripe-WebhookSecret` → New version.
+6. Restart the production Web App after the secret is saved.
+
+#### 11.4.5 LiveKit host on production (when enabling voice)
+
+Full click-path for finding keys: [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) **Path C.1**. Short version:
+
+1. Open [https://cloud.livekit.io](https://cloud.livekit.io) → create/select a **production** project (separate from staging).
+2. **Settings** → **Keys** → **click the key row** → copy WebSocket URL (`wss://…`), API Key, and API Secret (Reveal if needed).
+3. Edit `production.tfvars` and set (uncomment if needed):
+
+   ```hcl
+   livekit_host = "wss://your-production-project.livekit.cloud"
+   ```
+
+4. From `infrastructure/terraform` (production backend still selected from §11.2):
+
+   ```powershell
+   terraform apply -var-file="environments/production.tfvars"
+   ```
+
+5. Portal → **`lfleetproductionkv`** → Secrets → **`LiveKit-ApiKey`** / **`LiveKit-ApiSecret`** → New versions → paste.
+6. Portal → **`app-lfleet-production`** → Environment variables → confirm **`LiveKit__Host`** matches the `wss://` URL → **Restart** Web App.
+
+---
+
+### 11.5 Custom domain + TLS for production (optional but recommended)
+
+Skip this subsection if you will launch on `*.azurewebsites.net` first. You can add a domain later and then update Stripe/CORS.
+
+If you own a domain (e.g. `liberationfleet.org`) and want production on it:
+
+#### 11.5.1 Add hostname on the production Web App
+
+1. Portal → **`app-lfleet-production`** → **Settings** → **Custom domains** → **Add custom domain**.
+2. Domain provider: **All other domain services** (unless the domain was bought in Azure).
+3. Enter hostname (`liberationfleet.org`, `www.…`, or `app.…`).
+4. Leave the Azure tab open — it shows DNS records to create.
+
+#### 11.5.2 Create DNS at Cloudflare (or your registrar)
+
+Azure shows the exact records. Create them in **Cloudflare → your zone → DNS → Records**.
+
+| You want | Typical Cloudflare record |
+|----------|---------------------------|
+| `www.liberationfleet.org` | **CNAME** Name `www` → Target `app-lfleet-production.azurewebsites.net` (Proxy status: see note below) |
+| Apex `liberationfleet.org` | Follow Azure’s UI: usually a **TXT** for verification **plus** an **A** (or Cloudflare CNAME flattening) to the App Service host/IPs Azure shows |
+
+**Cloudflare proxy (orange cloud) tip:** for first-time **domain validation** and **App Service Managed Certificate**, set the record to **DNS only** (grey cloud). After Azure shows the domain as Secured, you can try turning the proxy back on if you want Cloudflare CDN/WAF — if TLS breaks, leave it DNS-only pointing at Azure.
+
+Save records. Wait a few minutes. In Azure Custom domains → **Validate** until it succeeds → **Add**.
+
+#### 11.5.3 Free TLS certificate
+
+1. Under **Custom domains** → for the new domain → **Add binding** / certificate.
+2. Type: **App Service Managed Certificate** (free) → create / validate.
+3. TLS/SSL binding: **SNI SSL** → save.
+4. Open `https://your.domain` and confirm the padlock (after the app is deployed in §11.6; before deploy you may still see Application Error).
+
+#### 11.5.4 Point the app at the custom origin
+
+Use the full origin including `https://`, **no trailing slash**.
+
+1. Production Web App → **Environment variables**:
+   - `Stripe__PublicAppBaseUrl` = `https://your.domain`
+   - Add `Cors__AllowedOrigins__5` = `https://your.domain` (use `__6` if you also serve `www`)
+2. Optional but recommended — keep Terraform in sync. In `production.tfvars`:
+
+   ```hcl
+   custom_domain_url = "https://your.domain"
+   ```
+
+   Then:
+
+   ```powershell
+   terraform apply -var-file="environments/production.tfvars"
+   ```
+
+3. Update the **Stripe live webhook** endpoint (Stripe Dashboard — not Azure):
+   1. Open [https://dashboard.stripe.com](https://dashboard.stripe.com).
+   2. Stay in your **live** business account (not a Sandbox — if you see **Switch to sandbox**, you are already live).
+   3. Left nav → **Developers** → **Webhooks** (or **Event destinations**).
+   4. If you already created a live destination for `*.azurewebsites.net`: open it → **Update details** / edit endpoint URL → set  
+      `https://liberationfleet.org/api/donations/stripe/webhook` → save.  
+      (Signing secret `whsec_…` usually **stays the same** when you only change the URL.)
+   5. If you have **no** live destination yet: **Add destination** / **Add endpoint** → URL  
+      `https://liberationfleet.org/api/donations/stripe/webhook` → same `checkout.session.*` events as staging → create → copy the new `whsec_…` into Key Vault **`lfleetproductionkv`** → **`Stripe-WebhookSecret`** → New version (see §11.4.4).
+   6. Do **not** edit your staging/sandbox webhook.
+4. **Restart** the Web App after deploy (and after any new webhook secret).
+
+---
+
+### 11.6 First production deploy (manual — you choose when)
+
+Prerequisites: §11.2–11.3 done. Secrets in §11.4 can be partial if you are only testing the SPA shell first.
+
+1. Merge or ensure the code you want live is on **`master`** (and staging has been tested with that code if staging is still up).
+2. Azure DevOps → **Pipelines** → your LiberationFleet pipeline → **Run pipeline**.
+3. Branch: **`master`**.
+4. Check the box **Deploy to production (after build; only when you are ready)** → **Run**.
+5. Watch stages:
+   - **Build and test** must go green.
+   - **Deploy staging** runs if `STAGING_ENABLED` is not `false`.
+   - **Deploy production** starts, then **Waiting for approval**.
+6. Open the approval → review → **Approve** (you set approvers in Step 4).
+7. Wait until **Deploy production** is green (often 10–20+ minutes the first time).
+8. Open production URL (`app_public_url` or custom domain). You should see the SPA, not a permanent Application Error.
+
+**Scale rule:** keep **one** App Service instance until Azure SignalR or a Redis backplane is added (in-process SignalR).
+
+#### Manual Docker alternative (only if the pipeline is unavailable)
+
+Same idea as staging Option B, but use **production** ACR / app / RG names from `terraform output` after the production backend init. Prefer the pipeline.
+
+---
+
+### 11.7 SQL backups (production)
+
+1. Portal → production SQL **database** (inside the production SQL server) → look for **Backup** / **Retention** / **Point-in-time restore** settings (wording varies).
+2. Confirm point-in-time restore is available.
+3. Optionally configure long-term retention if the nonprofit requires it.
+
+---
+
+## Step 12 — Verify production
+
+Work this checklist on the **production** URL (custom domain or `https://app-lfleet-production.azurewebsites.net/`).
+
+| Check | How |
+|-------|-----|
+| SPA loads | Home page renders; not Azure “Application Error” |
+| Register + login | Create a real/admin test user; land in the app |
+| SignalR | DevTools → Network → WS → `/hubs/...` connected after login |
+| Crew chat | Send a message in a crew chat |
+| Donations (if live keys set) | Small real charge only if you intend to; otherwise leave until Stripe Part D is done |
+| Voice (if LiveKit set) | Join a voice room |
+| CORS / native later | Capacitor origins should already be present from Terraform |
+
+**If the container will not start:** Portal → `app-lfleet-production` → **Log stream**. Common causes: empty ACR (re-run §11.6), bad Key Vault reference, SQL connection string.
+
+---
+
+## Step 13 — Pause staging to save money (recommended after prod is healthy)
+
+Goal: run **production only** most of the time. Spin staging up only when you need to test a major fix or feature.
+
+Your staging SQL SKU is **S0** (always billed while the database exists). **Stopping the Web App alone is not enough** to stop most staging cost — you should **destroy** the staging stack when idle.
+
+### 13.1 Soft pause (quick, partial savings)
+
+Use only for a short break (hours/days):
+
+1. Portal → `app-lfleet-staging` → **Stop**.
+2. SQL S0 and ACR **keep billing**.
+
+Prefer §13.2 for real savings.
+
+### 13.2 Hard pause — destroy staging (recommended)
+
+This deletes staging Azure resources but **keeps Terraform state** in the bootstrap storage account so you can recreate later.
+
+1. In ADO → **Pipelines** → **Library** → **`liberationfleet-staging`** → set **`STAGING_ENABLED`** = **`false`** → **Save**.  
+   This stops `master` pushes from trying to recreate staging.
+2. PowerShell — switch Terraform to the **staging** backend, then destroy:
+
+   ```powershell
+   cd <path-to-your-clone>\infrastructure\terraform
+   terraform init -reconfigure -backend-config="environments/staging.backend.hcl"
+   terraform destroy -var-file="environments/staging.tfvars"
+   ```
+
+   Type `yes` when prompted. Wait until finished.
+3. Confirm in Portal: resource group `rg-lfleet-staging` is gone (or empty).
+4. Leave production alone. Bootstrap / tfstate storage (`rg-lfleet-tfstate`) must **stay**.
+
+**Notes**
+
+- Staging Key Vault may soft-delete. If recreate fails later with `VaultAlreadyExists`, purge:  
+  `az keyvault purge --name lfleetstagingkv`
+- Staging **data** (users, messages) in that SQL database is deleted with destroy. That is expected for a throwaway test environment.
+- Production is untouched.
+
+### 13.3 Resume staging when you need to test
+
+1. ADO Library → **`liberationfleet-staging`** → set **`STAGING_ENABLED`** = **`true`** → **Save**.
+2. Recreate infra:
+
+   ```powershell
+   cd <path-to-your-clone>\infrastructure\terraform
+   terraform init -reconfigure -backend-config="environments/staging.backend.hcl"
+   terraform apply -var-file="environments/staging.tfvars"
+   ```
+
+3. Re-set staging Key Vault secrets if they were wiped (Stripe **test** keys, LiveKit, etc.) — same as Step 7.
+4. Confirm variable group `liberationfleet-staging` still has the correct ACR / app names from `terraform output` (names are usually stable).
+5. Deploy an image: push to `master`, or **Run pipeline** (leave **Deploy to production** unchecked).
+6. Verify with Step 9.
+7. When finished testing: deploy production if needed (§11.6), then hard-pause staging again (§13.2).
+
+### 13.4 Day-to-day deploy workflow (after go-live)
+
+| You want to… | Do this |
+|--------------|---------|
+| Ship a small fix you already trust | Prefer testing on a branch + PR; then merge to `master`. If staging is **up**, it auto-deploys for a smoke test. When happy: **Run pipeline** on `master` with **Deploy to production** checked → Approve. |
+| Build a major feature | Resume staging (§13.3) → develop/test there → production deploy when ready → pause staging (§13.2). |
+| Deploy production while staging is destroyed | Keep `STAGING_ENABLED=false`. **Run pipeline** → check **Deploy to production** → Approve. Staging stage is skipped. |
+
+---
+
+## Step 14 — GitHub repo access (clone OK, strangers cannot push)
+
+Your remote is `https://github.com/rituvediauthor/LiberationFleet.git`.
+
+**What the public API shows today:** the repo is **public** (`visibility: public`). That means:
+
+| Anyone on the internet | Can they? |
+|------------------------|-----------|
+| **Clone / fork / download** the code | **Yes** (what you want) |
+| **Push commits** directly to your repo | **No** — not unless you add them as a collaborator with Write (or higher) |
+| **Open a pull request** from a fork | **Yes** — you choose whether to merge |
+
+So “public” ≠ “anyone can commit to my main branch.” Commits to `rituvediauthor/LiberationFleet` require authenticated **Write** access.
+
+### 14.1 Confirm nobody unexpected can push
+
+1. Open [https://github.com/rituvediauthor/LiberationFleet/settings/access](https://github.com/rituvediauthor/LiberationFleet/settings/access) (repo **Settings** → **Collaborators and teams**).
+2. Remove anyone you do not recognize / do not want to have Write.
+3. Optional: **Settings** → **Branches** → add a branch protection rule on `master` (require PR, disallow force push). Useful even as a solo owner.
+
+### 14.2 If you ever want the code private
+
+**Settings** → **General** → **Danger Zone** → **Change repository visibility** → Private. Then only people you invite can clone. You said you are fine with public clones — leaving it **public** is correct for that goal.
+
+---
+
+## Step 15 — Point mobile apps at Azure production
+
+1. Open `liberationfleet.client/src/environments/environment.native.ts`.
 2. Set:
+
    ```ts
    apiBaseUrl: 'https://your-production-host'  // no trailing slash; custom domain or *.azurewebsites.net
    ```
+
 3. Follow [NATIVE-APPS.md](./NATIVE-APPS.md): `npm run cap:sync`, then smoke-test on a device/emulator against that API.
 4. Submit stores via [STORE-SUBMISSION.md](./STORE-SUBMISSION.md).
 
@@ -676,10 +1086,11 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 | Topic | Action |
 |-------|--------|
 | SignalR multi-instance | Add Azure SignalR or Redis before scaling out |
-| SQL | Serverless pause OK for staging; watch cold starts |
-| Backups | Enable Azure SQL PITR / LTR for prod |
+| Staging cost | Prefer destroy (§13.2) over Stop when idle; S0 SQL bills while it exists |
+| SQL prod backups | Enable PITR / LTR (§11.7) |
 | Deep freeze | Confirm `MediaDeepFreeze__Provider=azure` in prod — [MEDIA-DEEP-FREEZE.md](./MEDIA-DEEP-FREEZE.md) |
-| Cost | ACR Basic, App Service B1/P0v3, SQL serverless — review monthly |
+| Cost | ACR Basic, App Service B1, SQL S0 — review Cost Management monthly |
+| Production deploys | Always manual Run + **Deploy to production** + Environment approval |
 
 ---
 
@@ -698,3 +1109,5 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 | CORS errors from Capacitor | Keep Capacitor origins; add custom domain origin |
 | Stripe totals stay $0 | Webhook secret + destination URL wrong |
 | Voice join fails | `LiveKit__Host` must be `wss://…`; Key Vault API key/secret set |
+| Push to master tries to recreate staging after destroy | Set `STAGING_ENABLED`=`false` in variable group **`liberationfleet-staging`**, then re-run. |
+| Production never deploys | Expected on push. Use **Run pipeline** and check **Deploy to production**, then Approve. |

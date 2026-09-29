@@ -118,7 +118,7 @@ public class DefaultOrgContentSeeder(
 
             Consent cannot be given implicitly through the way a person is dressed, behaving, dancing, or whatever else. However, should there be explicit mutual understanding between parties that certain dress, behavior, dancing, or whatever else, is an expression of consent, then these things can be used.
 
-            Consent can, however, be implicitly withheld through a person’s visible discomfort, tone of voice, hesitancy, and so on. These things may not always be an indication of consent being withheld as it can vary based upon a person’s neurotype, sexuality, personality, or past communication. It is important that you know your partner well enough to know what to expect consent from them to look like.
+            Consent can, however, be implicitly withheld through a person’s visible discomfort, tone of voice, hesitancy, and so on. These things may not always be an indication of consent being withheld as it can vary based upon a person’s neurotype, sexuality, personality, or past communication. It is important that you know the other person well enough to know what to expect consent from them to look like.
 
             Consent can be indirectly withheld through displays of discomfort or a lack of enthusiasm.
 
