@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace LiberationFleet.Server.Application.Services;
@@ -34,7 +35,8 @@ public interface IReportEvidenceProtector
     string Open(string nonce, string ciphertext);
 }
 
-public class ReportEvidenceProtector(IOptions<ReportEvidenceOptions> options) : IReportEvidenceProtector
+public class ReportEvidenceProtector(IOptions<ReportEvidenceOptions> options, IHostEnvironment environment)
+    : IReportEvidenceProtector
 {
     public (string Nonce, string Ciphertext) Seal(string plaintextJson)
     {
@@ -74,6 +76,12 @@ public class ReportEvidenceProtector(IOptions<ReportEvidenceOptions> options) : 
         var configured = options.Value.AesKeyBase64;
         if (string.IsNullOrWhiteSpace(configured))
         {
+            if (environment.IsProduction() || environment.IsStaging())
+            {
+                throw new InvalidOperationException(
+                    "ReportEvidence:AesKeyBase64 must be set in Staging/Production (Key Vault ReportEvidence-AesKeyBase64).");
+            }
+
             // Dev fallback — replace in production via ReportEvidence:AesKeyBase64
             configured = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes("liberation-fleet-dev-report-evidence-key")));
         }

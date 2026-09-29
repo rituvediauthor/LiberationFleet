@@ -14,7 +14,10 @@ public static class TestConfiguration
             {
                 ["Jwt:SecretKey"] = secretKey,
                 ["Jwt:Issuer"] = issuer,
-                ["Jwt:Audience"] = audience
+                ["Jwt:Audience"] = audience,
+                // AddInfrastructure registers email; tests run as Production-like unless set.
+                ["ASPNETCORE_ENVIRONMENT"] = "Development",
+                ["Email:SmtpHost"] = ""
             })
             .Build();
     }

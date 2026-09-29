@@ -34,7 +34,7 @@ export class FleetJoinRequestsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.notificationContent.markVisited('/app/crew/proposals');
+    this.notificationContent.markVisited('/app/fleet/join-requests');
     this.loadRequests();
   }
 
@@ -63,7 +63,7 @@ export class FleetJoinRequestsComponent implements OnInit {
   }
 
   openRequest(item: FleetJoinRequestListItem) {
-    void this.router.navigate(['/app/crew/proposals', item.proposalId]);
+    void this.router.navigate(['/app/fleet/proposals', item.proposalId]);
   }
 
   countdownText(item: FleetJoinRequestListItem): string | null {

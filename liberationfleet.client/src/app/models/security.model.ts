@@ -5,6 +5,7 @@ export type SecurityAlertType =
 
 export interface SecuritySettingsDto {
   twoFactorEnabled: boolean;
+  mfaAvailable?: boolean;
   lockSettingsWithPassword: boolean;
   hasSettingsLockPassword: boolean;
 }

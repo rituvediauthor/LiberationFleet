@@ -18,6 +18,14 @@
     </nav>
 
     <section class="settings-section" *ngIf="!loading">
+      <h2>Two-factor authentication</h2>
+      <p class="state-text">
+        Authenticator MFA is not available yet. When it ships, enrollment and login challenges will appear here.
+        Password reset emails and device blocking already protect your account.
+      </p>
+    </section>
+
+    <section class="settings-section" *ngIf="!loading">
       <h2>Save login info</h2>
       <label class="toggle-row">
         <input

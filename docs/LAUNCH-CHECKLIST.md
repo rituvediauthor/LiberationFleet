@@ -22,17 +22,17 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 
 1. **Legal** — entity, privacy/terms URLs, support emails (Section A)  
 2. **Azure staging** — [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) through first verify (Steps 1–9)  
-3. **Email sender** — password reset end-to-end (Section B.1; code still stubbed)  
+3. **Email sender (SMTP)** — password reset end-to-end ([AZURE-GO-LIVE §7.5](./AZURE-GO-LIVE.md#75-wire-password-reset-email-smtp); Section B.1) — **required before Staging/Production will start** (app refuses `LogEmailSender` outside Development/Docker)  
 4. **Stripe test on staging + local** — [DONATION-SETUP.md](./DONATION-SETUP.md) Parts A–C  
 5. **LiveKit on staging** — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B  
-6. **Report vendor + NCMEC ESP** — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md), [NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md)  
-7. **Production Azure** — [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Step 11 (self-contained: tfvars, apply, secrets, Stripe/LiveKit, optional domain, **manual** first deploy)  
+6. **Report vendor + NCMEC ESP** — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md), [NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md); confirm AES key from Key Vault (no empty fallback in Staging/Prod)  
+7. **Production Azure** — [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) Step 11 (self-contained: tfvars, apply, secrets, **email SMTP**, Stripe/LiveKit, optional domain, **manual** first deploy)  
 8. **Verify + pause staging** — AZURE-GO-LIVE Steps 12–13 (destroy staging when idle so you mostly pay for production)  
 9. **Stripe live + LiveKit production** — already covered inside Step 11.4; detail: DONATION-SETUP Part D; LIVEKIT-SETUP Path C  
 10. **Native `apiBaseUrl` + sync** — AZURE-GO-LIVE Step 15 + [NATIVE-APPS.md](./NATIVE-APPS.md)  
 11. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
 12. **Store screenshots + review notes + submit**  
-13. **Follow-up** — MFA, push, Sign in with Apple  
+13. **Follow-up product** — MFA (TOTP), push (APNs/FCM), Sign in with Apple — [AZURE-GO-LIVE Step 16](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec)  
 14. **GitHub access check** — AZURE-GO-LIVE Step 14 (public clone OK; strangers cannot push)
 
 ---
@@ -56,19 +56,20 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 
 | | |
 |---|---|
-| **Why** | Password reset currently creates a token and **logs it** — no email is sent yet. |
-| **Register** | Azure Communication Services Email **or** SendGrid / Postmark / Amazon SES |
-| **Steps** | 1) Create sender domain + verify DNS (SPF/DKIM). 2) Create API key. 3) Store key in Key Vault. 4) Implement `IEmailSender` and wire `RequestPasswordReset` to send the link. 5) Set `Email__FromAddress`, `Email__AppBaseUrl`. |
-| **Status today** | **Missing / stub** |
+| **Why** | `RequestPasswordReset` already builds a token and calls `IEmailSender`. Staging/Production **require** SMTP or the API will not start. Local/Docker without `Email:SmtpHost` uses `LogEmailSender` (link in logs only). |
+| **Register** | Azure Communication Services Email (SMTP) **or** SendGrid / Postmark / Amazon SES SMTP |
+| **Steps** | Follow **[AZURE-GO-LIVE §7.5](./AZURE-GO-LIVE.md#75-wire-password-reset-email-smtp)** (staging) and **§11.4.6** (production): verify domain → SMTP host/user/password → App Service `Email__*` settings → smoke “Forgot password”. |
+| **App settings** | `Email__SmtpHost`, `Email__SmtpPort` (usually `587`), `Email__SmtpUser`, `Email__SmtpPassword`, `Email__FromAddress`, `Email__FromName`, `Email__AppPublicBaseUrl` (SPA origin used in the reset link) |
+| **Status today** | **Code ready** — must **wire SMTP** before staging/prod deploy |
 
 ### B.2 Two-factor authentication
 
 | | |
 |---|---|
-| **Why** | Security settings expose “two-factor” but login does **not** enforce MFA. |
-| **Register** | Prefer **TOTP** (no vendor) first; optional SMS via Twilio Verify / Azure ACS SMS |
-| **Steps** | 1) Enroll secrets per user. 2) Challenge on login when `TwoFactorEnabled`. 3) Recovery codes. |
-| **Status today** | **Flag only — not enforced** |
+| **Why** | Product-complete MFA (TOTP enroll + login challenge + recovery codes) is **not shipped**. Security settings show a “coming soon” note; API rejects enabling `TwoFactorEnabled` and always reports `mfaAvailable: false`. |
+| **Register** | Prefer **TOTP** (no vendor) first; optional SMS via Twilio Verify / Azure ACS SMS later |
+| **Steps (when building)** | 1) Enroll secrets per user. 2) Challenge on login when MFA enrolled. 3) Recovery codes. 4) Re-enable UI + `MfaAvailable`. See [AZURE-GO-LIVE Step 16](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec). |
+| **Status today** | **Intentionally unavailable** until TOTP ships (not a silent stub) |
 
 ### B.3 Donations (Stripe)
 
@@ -178,13 +179,13 @@ Follow **[AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)** Steps 1–12.
 
 | Feature | Web | iOS/Android | Blocker |
 |---------|-----|-------------|---------|
-| Auth (password) | Ready | Ready (same API) | Email for reset |
-| MFA | UI stub | Same | Implement TOTP/SMS |
+| Auth (password) | Ready | Ready (same API) | Wire SMTP (B.1 / AZURE-GO-LIVE §7.5) |
+| MFA | Hidden / rejected | Same | Implement TOTP then re-enable UI |
 | Chat / forums / E2EE | Ready | Ready | — |
 | Voice | Ready | Needs mic permissions | LiveKit Cloud |
 | Donations | Ready | External Checkout | Stripe live + policy review |
-| Reports / safety | Ready | Ready | Vendor + NCMEC ESP |
-| Push when backgrounded | N/A (web push later) | Missing | APNs/FCM |
+| Reports / safety | Ready | Ready | Vendor key + NCMEC ESP (manual filing) |
+| Push when backgrounded | N/A (web push later) | Missing | APNs/FCM (Step 16) |
 | Local discovery | Ready | Ready | Profile country + postal; Local allowlists |
 
 ---
@@ -193,7 +194,7 @@ Follow **[AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)** Steps 1–12.
 
 - [ ] `https://production-host/` loads  
 - [ ] Register / login  
-- [ ] Password reset email (when sender exists)  
+- [ ] Password reset email arrives (SMTP wired; not LogEmailSender)  
 - [ ] Chat send + image attach  
 - [ ] Voice join (two clients)  
 - [ ] Donation Checkout (small live or final test)  

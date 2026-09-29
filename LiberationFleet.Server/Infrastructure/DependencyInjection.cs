@@ -98,16 +98,43 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
-        var smtpHost = configuration.GetSection(EmailOptions.SectionName)["SmtpHost"];
-        if (string.IsNullOrWhiteSpace(smtpHost))
-        {
-            services.AddSingleton<IEmailSender, LogEmailSender>();
-        }
-        else
-        {
-            services.AddSingleton<IEmailSender, SmtpEmailSender>();
-        }
+        RegisterEmailSender(services, configuration);
 
         return services;
+    }
+
+    private static void RegisterEmailSender(IServiceCollection services, IConfiguration configuration)
+    {
+        var smtpHost = configuration.GetSection(EmailOptions.SectionName)["SmtpHost"];
+        var envName = configuration["ASPNETCORE_ENVIRONMENT"]
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? "Production";
+        var allowsLogOnly = string.Equals(envName, "Development", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(envName, "Docker", StringComparison.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(smtpHost))
+        {
+            if (!allowsLogOnly)
+            {
+                throw new InvalidOperationException(
+                    "Email:SmtpHost is required in Staging/Production. " +
+                    "Without it, password-reset emails are only logged and never delivered. " +
+                    "Set Email__SmtpHost (and related Email__* settings) on the App Service — see docs/AZURE-GO-LIVE.md.");
+            }
+
+            services.AddSingleton<IEmailSender, LogEmailSender>();
+            return;
+        }
+
+        var fromAddress = configuration.GetSection(EmailOptions.SectionName)["FromAddress"];
+        var appBaseUrl = configuration.GetSection(EmailOptions.SectionName)["AppPublicBaseUrl"];
+        if (!allowsLogOnly
+            && (string.IsNullOrWhiteSpace(fromAddress) || string.IsNullOrWhiteSpace(appBaseUrl)))
+        {
+            throw new InvalidOperationException(
+                "Email:FromAddress and Email:AppPublicBaseUrl are required when Email:SmtpHost is set in Staging/Production.");
+        }
+
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
     }
 }

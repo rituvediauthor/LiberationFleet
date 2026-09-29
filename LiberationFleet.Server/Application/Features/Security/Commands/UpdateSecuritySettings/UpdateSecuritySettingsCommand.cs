@@ -35,9 +35,20 @@ public class UpdateSecuritySettingsCommandHandler(
             return new SecuritySettingsResponse { Success = false, Message = lockCheck.Message };
         }
 
-        if (body.TwoFactorEnabled.HasValue)
+        // MFA is not implemented yet (no login challenge). Reject enable attempts so
+        // clients cannot persist a false sense of security. Clear any legacy flag.
+        if (body.TwoFactorEnabled == true)
         {
-            user.TwoFactorEnabled = body.TwoFactorEnabled.Value;
+            return new SecuritySettingsResponse
+            {
+                Success = false,
+                Message = "Two-factor authentication is not available yet."
+            };
+        }
+
+        if (user.TwoFactorEnabled)
+        {
+            user.TwoFactorEnabled = false;
         }
 
         if (body.LockSettingsWithPassword.HasValue)
@@ -84,7 +95,8 @@ public class UpdateSecuritySettingsCommandHandler(
             Message = "Security settings saved.",
             Settings = new SecuritySettingsDto
             {
-                TwoFactorEnabled = user.TwoFactorEnabled,
+                TwoFactorEnabled = false,
+                MfaAvailable = false,
                 LockSettingsWithPassword = user.LockSettingsWithPassword,
                 HasSettingsLockPassword = !string.IsNullOrWhiteSpace(user.SettingsLockPasswordHash)
             }

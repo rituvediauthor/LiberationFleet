@@ -65,6 +65,15 @@ In this product, actual knowledge typically arrives when:
 5. Log access is automatic via `ContentReportAccessLogs` when evidence is viewed.
 6. After filing, set `OpsNotes` via vendor webhook `label=csam` (already applied) or close after LE follow-up using `label=closed` when appropriate.
 
+### 3.1 Timestamp semantics (do not misread)
+
+| Field | Meaning |
+|-------|---------|
+| `status = QueuedForNcmec` | In-app queue for **manual** ESP filing — **not** confirmation that NCMEC received a report |
+| `escalatedToNcmecAt` | When the report entered that queue (create/label time) — **not** CyberTipline filing time |
+
+There is **no** automated CyberTipline API call in Phase 1. Treat every `QueuedForNcmec` row as “still need to file (or confirm already filed offline)” until your ops notes say otherwise.
+
 ## 4. Account freeze / quarantine (automated)
 
 On CSAM-category create or vendor `csam` label, the server:

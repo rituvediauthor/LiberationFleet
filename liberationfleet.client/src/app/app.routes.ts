@@ -272,6 +272,12 @@ export const routes: Routes = [
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Chat' }
   },
   {
+    path: 'app/fleet/chats/:id/edit',
+    component: ChatEditComponent,
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
+    data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Edit Chat' }
+  },
+  {
     path: 'app/fleet/chats/:id',
     component: ChatTextComponent,
     canActivate: [authGuard, fleetRulesAcceptedGuard],

@@ -7,6 +7,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../components/page-l
 import { ChatService } from '../../../services/chat.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
 import { CrewService } from '../../../services/crew.service';
+import { FleetService } from '../../../services/fleet.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomType } from '../../../models/chat.model';
@@ -29,6 +30,8 @@ export class ChatEditComponent implements OnInit {
   loading = true;
   loadError = '';
   crewId = 0;
+  fleetId = 0;
+  isFleetScope = false;
   roomId = 0;
   requireApprovalForEdits = true;
   backButton!: ActionBarButton;
@@ -51,11 +54,13 @@ export class ChatEditComponent implements OnInit {
   private chatService = inject(ChatService);
   private chatCrypto = inject(ChatCryptoService);
   private crewService = inject(CrewService);
+  private fleetService = inject(FleetService);
   private encryptionContent = inject(EncryptionContentService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
     this.roomId = Number(this.route.snapshot.paramMap.get('id'));
+    this.isFleetScope = this.route.snapshot.data['scope'] === 'fleet';
 
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
@@ -63,31 +68,56 @@ export class ChatEditComponent implements OnInit {
       roomType: ['Text', Validators.required]
     });
 
-    this.backButton = this.navigation.createBackButton(['/app/crew/chats']);
+    this.backButton = this.navigation.createBackButton(
+      this.isFleetScope ? ['/app/fleet/chats'] : ['/app/crew/chats']
+    );
 
     this.updateSaveButton();
 
-    this.crewService.getCurrentCrew().subscribe({
-      next: result => {
-        if (result.success && result.crew) {
-          this.crewId = result.crew.id;
-          this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
-          this.updateSaveButton();
+    if (this.isFleetScope) {
+      this.fleetService.getCurrent().subscribe({
+        next: result => {
+          if (result.success && result.fleet) {
+            this.fleetId = result.fleet.id;
+            this.requireApprovalForEdits = result.fleet.requireApprovalForEdits ?? true;
+            this.updateSaveButton();
+          }
         }
-      }
-    });
+      });
+      this.fleetService.getStatus().subscribe({
+        next: async status => {
+          this.fleetId = status.fleetId ?? this.fleetId;
+          await this.encryptionContent.whenReady();
+          this.loadRoom();
+        },
+        error: () => {
+          this.loading = false;
+          this.loadError = 'Failed to load fleet status';
+        }
+      });
+    } else {
+      this.crewService.getCurrentCrew().subscribe({
+        next: result => {
+          if (result.success && result.crew) {
+            this.crewId = result.crew.id;
+            this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
+            this.updateSaveButton();
+          }
+        }
+      });
 
-    this.crewService.getMembership().subscribe({
-      next: async membership => {
-        this.crewId = membership.crewId ?? this.crewId;
-        await this.encryptionContent.whenReady();
-        this.loadRoom();
-      },
-      error: () => {
-        this.loading = false;
-        this.loadError = 'Failed to load crew membership';
-      }
-    });
+      this.crewService.getMembership().subscribe({
+        next: async membership => {
+          this.crewId = membership.crewId ?? this.crewId;
+          await this.encryptionContent.whenReady();
+          this.loadRoom();
+        },
+        error: () => {
+          this.loading = false;
+          this.loadError = 'Failed to load crew membership';
+        }
+      });
+    }
 
     this.form.statusChanges.subscribe(() => this.updateSaveButton());
     this.form.valueChanges.subscribe(() => this.updateSaveButton());
@@ -102,12 +132,25 @@ export class ChatEditComponent implements OnInit {
     return type === 'Voice' ? 'Voice chat' : 'Text chat';
   }
 
+  get chatsListPath(): string[] {
+    return this.isFleetScope ? ['/app/fleet/chats'] : ['/app/crew/chats'];
+  }
+
+  get proposalsListPath(): string[] {
+    return this.isFleetScope
+      ? ['/app/fleet/proposals/list/pending']
+      : ['/app/crew/proposals/list/pending'];
+  }
+
   isInvalid(controlName: string): boolean {
     return isControlInvalidForA11y(this.form?.get(controlName));
   }
 
   async onSubmit() {
-    if (this.form.invalid || this.isSubmitting || this.crewId <= 0) {
+    if (this.form.invalid || this.isSubmitting) {
+      return;
+    }
+    if (this.isFleetScope ? this.fleetId <= 0 : this.crewId <= 0) {
       return;
     }
 
@@ -118,7 +161,9 @@ export class ChatEditComponent implements OnInit {
       const value = this.form.getRawValue();
       const name = String(value.name).trim();
       const purpose = String(value.purpose).trim();
-      const encrypted = await this.chatCrypto.encryptRoomName({ crewId: this.crewId }, name);
+      const encrypted = this.isFleetScope
+        ? await this.chatCrypto.encryptRoomName({ fleetId: this.fleetId }, name)
+        : await this.chatCrypto.encryptRoomName({ crewId: this.crewId }, name);
       const oldValues = this.initialFormValues ?? { name: '', purpose: '', roomType: 'Text' as ChatRoomType };
 
       this.chatService.updateRoom(this.roomId, {
@@ -132,13 +177,13 @@ export class ChatEditComponent implements OnInit {
       }).subscribe({
         next: response => {
           if (response.success && response.proposalsSubmitted) {
-            this.toastService.success(response.message || 'Proposal submitted for crew approval');
-            this.router.navigate(['/app/crew/proposals/list/pending']);
+            this.toastService.success(response.message || 'Proposal submitted for approval');
+            this.router.navigate(this.proposalsListPath);
             return;
           }
           if (response.success) {
             this.toastService.success('Chat room saved');
-            this.router.navigate(['/app/crew/chats']);
+            this.router.navigate(this.chatsListPath);
             return;
           }
           this.toastService.error(response.message || 'Failed to save chat room');
@@ -172,13 +217,13 @@ export class ChatEditComponent implements OnInit {
       next: response => {
         this.isDeleting = false;
         if (response.success && response.proposalsSubmitted) {
-          this.toastService.success(response.message || 'Proposal submitted for crew approval');
-          this.router.navigate(['/app/crew/proposals/list/pending']);
+          this.toastService.success(response.message || 'Proposal submitted for approval');
+          this.router.navigate(this.proposalsListPath);
           return;
         }
         if (response.success) {
           this.toastService.success('Chat room deleted');
-          this.router.navigate(['/app/crew/chats']);
+          this.router.navigate(this.chatsListPath);
           return;
         }
         this.toastService.error(response.message || 'Failed to delete chat room');
@@ -200,8 +245,11 @@ export class ChatEditComponent implements OnInit {
             this.loadError = response.message || 'Failed to load chat room';
             return;
           }
-          const decrypted = this.crewId > 0
-            ? await this.chatCrypto.decryptRoom(response.room, { crewId: this.crewId })
+          const scope = this.isFleetScope
+            ? (this.fleetId > 0 ? { fleetId: this.fleetId } : null)
+            : (this.crewId > 0 ? { crewId: this.crewId } : null);
+          const decrypted = scope
+            ? await this.chatCrypto.decryptRoom(response.room, scope)
             : response.room;
           this.form.patchValue({
             name: decrypted.name ?? '',
@@ -232,7 +280,7 @@ export class ChatEditComponent implements OnInit {
         initialValues: this.initialFormValues,
         isLoading: this.loading,
         isSaving: this.isSubmitting
-      }),
+      }) || (this.isFleetScope ? this.fleetId <= 0 : this.crewId <= 0),
       onClick: () => void this.onSubmit()
     };
   }

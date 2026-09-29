@@ -348,16 +348,17 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
 
     request.subscribe({
       next: result => {
+        const proposalBase = this.isFleetScope ? '/app/fleet/proposals' : '/app/crew/proposals';
         if (!result.success) {
           this.toastService.error(result.message || 'Failed to submit kick proposal');
           if (result.proposalId) {
-            this.router.navigate(['/app/crew/proposals', result.proposalId]);
+            this.router.navigate([proposalBase, result.proposalId]);
           }
           return;
         }
         this.toastService.success(result.message || 'Kick proposal submitted');
         if (result.proposalId) {
-          this.router.navigate(['/app/crew/proposals', result.proposalId]);
+          this.router.navigate([proposalBase, result.proposalId]);
         }
       },
       error: () => this.toastService.error('Failed to submit kick proposal')

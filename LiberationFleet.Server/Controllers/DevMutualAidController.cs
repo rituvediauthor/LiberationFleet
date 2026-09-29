@@ -85,25 +85,26 @@ public class DevMutualAidController : ControllerBase
     }
 
     /// <summary>
-    /// Local/dev only (Development, Docker, or explicit DevTools:Enabled).
-    /// Staging is never enabled — including leftover App Settings or staging hostnames.
+    /// Local/dev only: Development, or explicit DevTools:Enabled (docker-compose sets this).
+    /// Staging/production hostnames and Staging environment are never enabled.
+    /// Do not treat Environment=Docker alone as enough — a mis-set cloud env must not open these routes.
     /// </summary>
     private bool IsDevToolsEnabled()
     {
-        if (_environment.IsStaging())
+        if (_environment.IsStaging() || _environment.IsProduction())
         {
             return false;
         }
 
         var host = HttpContext.Request.Host.Host;
         if (host.Contains("staging", StringComparison.OrdinalIgnoreCase)
-            && !host.Contains("production", StringComparison.OrdinalIgnoreCase))
+            || host.Contains("production", StringComparison.OrdinalIgnoreCase)
+            || host.Contains("azurewebsites.net", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (_environment.IsDevelopment()
-            || _environment.IsEnvironment("Docker"))
+        if (_environment.IsDevelopment())
         {
             return true;
         }

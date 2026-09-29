@@ -11,6 +11,9 @@ public class AppDonationRepository(ApplicationDbContext context) : IAppDonationR
     public async Task AddAsync(AppDonation donation, CancellationToken cancellationToken = default) =>
         await context.AppDonations.AddAsync(donation, cancellationToken);
 
+    public Task<AppDonation?> GetByIdAsync(int donationId, CancellationToken cancellationToken = default) =>
+        context.AppDonations.FirstOrDefaultAsync(d => d.Id == donationId, cancellationToken);
+
     public Task<AppDonation?> GetByStripeCheckoutSessionIdAsync(string sessionId, CancellationToken cancellationToken = default) =>
         context.AppDonations.FirstOrDefaultAsync(d => d.StripeCheckoutSessionId == sessionId, cancellationToken);
 

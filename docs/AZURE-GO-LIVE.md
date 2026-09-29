@@ -4,10 +4,10 @@ Hosts the combined ASP.NET + Angular container used by **web** and by **native a
 
 | Doc | Role |
 |-----|------|
-| This file | End-to-end Azure account → first staging URL → production |
+| This file | End-to-end Azure account → first staging URL → production (incl. **§7.5 / §11.4.6 email SMTP**, **Step 16 MFA/push/NCMEC**) |
 | [`infrastructure/terraform/README.md`](../infrastructure/terraform/README.md) | Terraform modules & outputs reference |
 | [`.azure/pipelines/README.md`](../.azure/pipelines/README.md) | Variable groups & pipeline wiring |
-| [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) | Master list (legal, stores, third parties) |
+| [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) | Master list (legal, stores, third parties, email/MFA status) |
 
 **What you will have when finished:** staging URL first (Steps 1–9), then a separate production environment (Step 11+) with **manual** production deploys (push to `master` never ships production by itself). After go-live you can **pause/destroy staging** so you mostly pay for production only (Step 13).
 
@@ -382,6 +382,53 @@ Do **not** put production LiveKit values in `staging.tfvars`. When production in
 3. `terraform apply -var-file="environments/production.tfvars"` (production backend).
 4. Set production Key Vault `LiveKit-ApiKey` / `LiveKit-ApiSecret`, then restart the production Web App.
 
+### 7.5 Wire password-reset email (SMTP)
+
+**Required before Staging will keep running.** Without `Email__SmtpHost`, the API refuses to start in Staging/Production (so password reset cannot silently “succeed” while only logging the link). Local `Development` / Docker may omit SMTP and use `LogEmailSender`.
+
+`SmtpEmailSender` is already implemented. You only configure a real SMTP relay.
+
+#### 7.5.1 Choose a provider and verify the domain
+
+Pick one:
+
+| Provider | Notes |
+|----------|--------|
+| **Azure Communication Services Email** | Fits Azure go-live; enable Email + add/verify a custom domain → use ACS **SMTP** credentials |
+| **SendGrid / Postmark / Amazon SES** | Use their SMTP host + API user/password |
+
+1. Add and verify your sending domain (SPF/DKIM as the provider instructs).
+2. Create an SMTP user / password (or ACS SMTP key). Treat the password like a secret.
+3. Note: SMTP host, port (**587** with STARTTLS is the default in appsettings), username, password, and the From address you are allowed to send as.
+
+#### 7.5.2 Set staging App Service environment variables
+
+1. Portal → **`app-lfleet-staging`** → **Settings** → **Environment variables**.
+2. **+ Add** (or edit) each:
+
+| Setting | Example / value |
+|---------|-----------------|
+| `Email__SmtpHost` | e.g. `smtp.azurecomm.net` or `smtp.sendgrid.net` |
+| `Email__SmtpPort` | `587` |
+| `Email__SmtpUser` | Provider SMTP username |
+| `Email__SmtpPassword` | Provider SMTP password / key (mark as secret if the UI offers it) |
+| `Email__FromAddress` | Verified address, e.g. `noreply@yourdomain.org` |
+| `Email__FromName` | `Liberation Fleet` |
+| `Email__AppPublicBaseUrl` | Same as staging public SPA origin (**no trailing slash**), e.g. `https://app-lfleet-staging.azurewebsites.net` — used inside the reset link |
+
+3. **Apply** / **Save** → **Restart** the Web App.
+
+Optional hardening: store `Email__SmtpPassword` in Key Vault and reference it with `@Microsoft.KeyVault(SecretUri=…)` the same way Stripe secrets are wired — create a secret (e.g. `Email-SmtpPassword`) then point the app setting at it.
+
+#### 7.5.3 Smoke-test password reset on staging
+
+1. Register a user with an inbox you control (or use an existing test account).
+2. Sign out → **Forgot password** → enter that email.
+3. Confirm the message arrives and the link opens `{AppPublicBaseUrl}/reset-password?token=…`.
+4. Complete reset → sign in with the new password (existing JWTs for that user are invalidated via security stamp).
+
+If mail never arrives: check Log stream for `Failed to send password reset email` / SMTP auth errors; confirm SPF/DKIM and that `FromAddress` is allowed by the provider.
+
 ---
 
 ## Step 8 — Deploy the container image
@@ -529,13 +576,14 @@ App Service pulls from ACR using its managed identity (Terraform configured this
 |-------|-----|
 | SPA loads | Home page renders; not Azure “Application Error” / Docker default page |
 | Register + login | Create a test user; confirm you land in the app |
+| Password reset email | After §7.5: Forgot password → inbox receives link → reset succeeds |
 | SignalR / notifications | DevTools → **Network** → filter **WS**; after login you should see a WebSocket to `/hubs/...` that stays connected |
 | Crew chat | Create/open a crew → open a chat → send a message |
 | Database | If login/SQL errors: Portal → Key Vault `ConnectionStrings-DefaultConnection`; SQL server firewall allows Azure services / your IP |
 | Donations (optional) | Only after Stripe test keys — [DONATION-SETUP.md](./DONATION-SETUP.md) Part C → `/app/donate` |
 | Voice (optional) | Only after LiveKit Cloud + Key Vault keys — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B |
 
-**If the container will not start:** Portal → `app-lfleet-staging` → **Log stream** (or **Diagnose and solve problems**). Common causes: empty ACR (redo Step 8), bad Key Vault reference, SQL connection string.
+**If the container will not start:** Portal → `app-lfleet-staging` → **Log stream** (or **Diagnose and solve problems**). Common causes: empty ACR (redo Step 8), bad Key Vault reference, SQL connection string, **missing `Email__SmtpHost`** (Staging requires SMTP — §7.5).
 
 ---
 
@@ -854,6 +902,28 @@ Full click-path for finding keys: [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) **Path 
 5. Portal → **`lfleetproductionkv`** → Secrets → **`LiveKit-ApiKey`** / **`LiveKit-ApiSecret`** → New versions → paste.
 6. Portal → **`app-lfleet-production`** → Environment variables → confirm **`LiveKit__Host`** matches the `wss://` URL → **Restart** Web App.
 
+#### 11.4.6 Password-reset email (SMTP) on production
+
+Same mechanism as [§7.5](#75-wire-password-reset-email-smtp), with **production** values. Production will not start without `Email__SmtpHost`.
+
+1. Prefer a production From address on your live domain (e.g. `noreply@liberationfleet.org`).
+2. Portal → **`app-lfleet-production`** → **Environment variables** → set:
+
+| Setting | Value |
+|---------|--------|
+| `Email__SmtpHost` | Production SMTP host |
+| `Email__SmtpPort` | `587` |
+| `Email__SmtpUser` | SMTP username |
+| `Email__SmtpPassword` | SMTP password / key |
+| `Email__FromAddress` | Verified production From |
+| `Email__FromName` | `Liberation Fleet` |
+| `Email__AppPublicBaseUrl` | Production SPA origin (**no trailing slash**) — custom domain if you have one, else `https://app-lfleet-production.azurewebsites.net` |
+
+3. **Apply** → **Restart**.
+4. After first deploy (§11.6), smoke-test Forgot password end-to-end (Step 12).
+
+Do **not** reuse staging SMTP credentials if the provider isolates environments; do **not** point `Email__AppPublicBaseUrl` at staging.
+
 ---
 
 ### 11.5 Custom domain + TLS for production (optional but recommended)
@@ -985,13 +1055,14 @@ Work this checklist on the **production** URL (custom domain or `https://app-lfl
 |-------|-----|
 | SPA loads | Home page renders; not Azure “Application Error” |
 | Register + login | Create a real/admin test user; land in the app |
+| Password reset email | Forgot password → real inbox → reset link uses production `Email__AppPublicBaseUrl` |
 | SignalR | DevTools → Network → WS → `/hubs/...` connected after login |
 | Crew chat | Send a message in a crew chat |
 | Donations (if live keys set) | Small real charge only if you intend to; otherwise leave until Stripe Part D is done |
 | Voice (if LiveKit set) | Join a voice room |
 | CORS / native later | Capacitor origins should already be present from Terraform |
 
-**If the container will not start:** Portal → `app-lfleet-production` → **Log stream**. Common causes: empty ACR (re-run §11.6), bad Key Vault reference, SQL connection string.
+**If the container will not start:** Portal → `app-lfleet-production` → **Log stream**. Common causes: empty ACR (re-run §11.6), bad Key Vault reference, SQL connection string, **missing `Email__SmtpHost`** (§11.4.6).
 
 ---
 
@@ -1214,6 +1285,60 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 
 ---
 
+## Step 16 — Auth & safety service hookups (MFA, push, NCMEC)
+
+These are **product/ops** follow-ups after the Azure web stack is live. Email/password + JWT already work once SMTP is wired (§7.5 / §11.4.6).
+
+### 16.1 MFA (not shipped — intentionally unavailable)
+
+| Item | Status |
+|------|--------|
+| Security settings UI | Shows “Authenticator MFA is not available yet” — no toggle |
+| API | Rejects `twoFactorEnabled: true`; responses include `mfaAvailable: false` |
+| Login | No MFA challenge |
+
+**When you implement TOTP:**
+
+1. Enroll per-user secrets + recovery codes.
+2. Challenge on login when enrolled.
+3. Set `MfaAvailable = true` and restore UI.
+4. Document recovery (lost device) in support runbooks.
+
+Until then, rely on strong passwords, password-reset email, device block (JWT fails for blocked devices), and security-stamp revoke on password change/reset.
+
+### 16.2 Password reset (already hooked — configure only)
+
+No extra code. Complete §7.5 (staging) and §11.4.6 (production), then keep SPF/DKIM healthy ([LAUNCH-CHECKLIST B.1 / B.14](./LAUNCH-CHECKLIST.md)).
+
+### 16.3 Push notifications (native — not implemented)
+
+SignalR covers in-app alerts while the app is open. Background mute on iOS/Android needs:
+
+1. Apple APNs + Firebase Cloud Messaging (or Azure Notification Hubs in front of both).
+2. Device token registration API + server send path.
+3. Capacitor push plugin + permission prompts.
+
+Track under [LAUNCH-CHECKLIST B.9](./LAUNCH-CHECKLIST.md). Not required for web-only launch.
+
+### 16.4 Report vendor + NCMEC ESP
+
+| Piece | Where |
+|-------|--------|
+| Vendor API key | Key Vault `ReportEvidence-VendorApiKey` (§7.2 / §11.4.2) — replace placeholder before ops use |
+| AES evidence key | Terraform-managed `ReportEvidence-AesKeyBase64` (Staging/Prod refuse empty fallback) |
+| Ops polling | [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) |
+| CSAM filing | [NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md) — **`QueuedForNcmec` / `escalatedToNcmecAt` mean queued for manual ESP filing, not “already filed”** |
+
+### 16.5 Dev tools must stay off in cloud
+
+`DevMutualAidController` (`/api/dev/mutual-aid/*`) is **off** for Staging/Production and for Azure hostnames. Local Docker enables it only via `DevTools__Enabled=true` in `docker-compose.yml`. Never set `DevTools__Enabled` on App Service.
+
+### 16.6 Sign in with Apple / Google (optional)
+
+Not implemented. Revisit if store policy requires SIWA after other social logins, or for conversion. Email/password remains the launch path.
+
+---
+
 ## Scale / ops reminders
 
 | Topic | Action |
@@ -1242,5 +1367,7 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 | CORS errors from Capacitor | Keep Capacitor origins; add custom domain origin |
 | Stripe totals stay $0 | Webhook secret + destination URL wrong |
 | Voice join fails | `LiveKit__Host` must be `wss://…`; Key Vault API key/secret set |
+| Container exits immediately / email config error | Staging/Prod require `Email__SmtpHost` (+ From + AppPublicBaseUrl) — §7.5 / §11.4.6 |
+| Password reset “succeeds” but no mail | Confirm SMTP settings; check Log stream for send failures; verify SPF/DKIM |
 | Push to master tries to recreate staging after destroy | Set `STAGING_ENABLED`=`false` in variable group **`liberationfleet-staging`**, then re-run. |
 | Production never deploys | Expected on push. Use **Run pipeline** and check **Deploy to production**, then Approve. |

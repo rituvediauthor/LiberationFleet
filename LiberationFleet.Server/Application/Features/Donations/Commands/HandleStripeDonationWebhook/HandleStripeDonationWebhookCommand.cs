@@ -75,17 +75,21 @@ public class HandleStripeDonationWebhookCommandHandler(
         }
 
         var donation = await donationRepository.GetByStripeCheckoutSessionIdAsync(session.Id, cancellationToken);
+        if (donation is null
+            && session.Metadata != null
+            && session.Metadata.TryGetValue("donationId", out var idText)
+            && int.TryParse(idText, out var donationId))
+        {
+            donation = await donationRepository.GetByIdAsync(donationId, cancellationToken);
+            if (donation is not null
+                && string.IsNullOrEmpty(donation.StripeCheckoutSessionId))
+            {
+                donation.StripeCheckoutSessionId = session.Id;
+            }
+        }
+
         if (donation is null)
         {
-            // Session may have been created before we persisted the id — try metadata.
-            if (session.Metadata != null
-                && session.Metadata.TryGetValue("donationId", out var idText)
-                && int.TryParse(idText, out var donationId))
-            {
-                // Fall through via creating if missing is risky; leave noop for unknown.
-                _ = donationId;
-            }
-
             return;
         }
 

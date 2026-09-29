@@ -150,7 +150,7 @@ export const HOW_TO_USE_TOPICS: HowToGuideTopic[] = [
       {
         type: 'paragraph',
         text:
-          'There are also voice based chat rooms where anyone with a mic can hop on to what is essentially a crew-wide or fleet-wide phone call.'
+          'There are also voice based chat rooms where anyone with a mic can hop on to what is essentially a crew-wide phone call. Fleet chat is text-only today.'
       },
       {
         type: 'paragraph',
