@@ -1062,29 +1062,139 @@ This deletes staging Azure resources but **keeps Terraform state** in the bootst
 
 ---
 
-## Step 14 — GitHub repo access (clone OK, strangers cannot push)
+## Step 14 — Secure the GitHub repo (public clone OK; write only for people you approve)
 
 Your remote is `https://github.com/rituvediauthor/LiberationFleet.git`.
 
-**What the public API shows today:** the repo is **public** (`visibility: public`). That means:
+### What “public” means (and does not)
 
-| Anyone on the internet | Can they? |
-|------------------------|-----------|
-| **Clone / fork / download** the code | **Yes** (what you want) |
-| **Push commits** directly to your repo | **No** — not unless you add them as a collaborator with Write (or higher) |
-| **Open a pull request** from a fork | **Yes** — you choose whether to merge |
+| Anyone on the internet | Allowed? |
+|------------------------|----------|
+| **Clone / fork / download** the code for their own projects | **Yes** — what you want |
+| **Push commits** to *your* `rituvediauthor/LiberationFleet` | **No**, unless you add them as a collaborator with Write+ |
+| **Open a pull request** from a fork | **Yes** — they propose; **you** merge or close |
+| **Delete the repo / change visibility / add collaborators** | **No** — only you (repo owner / Admin) |
 
-So “public” ≠ “anyone can commit to my main branch.” Commits to `rituvediauthor/LiberationFleet` require authenticated **Write** access.
+So public hosting is fine for “copy for your own projects.” Write/delete control is about **collaborators**, **branch rules**, and **not sharing your GitHub password / tokens**.
 
-### 14.1 Confirm nobody unexpected can push
+---
 
-1. Open [https://github.com/rituvediauthor/LiberationFleet/settings/access](https://github.com/rituvediauthor/LiberationFleet/settings/access) (repo **Settings** → **Collaborators and teams**).
-2. Remove anyone you do not recognize / do not want to have Write.
-3. Optional: **Settings** → **Branches** → add a branch protection rule on `master` (require PR, disallow force push). Useful even as a solo owner.
+### 14.1 Keep the repo public (recommended for your goal)
 
-### 14.2 If you ever want the code private
+1. Open [https://github.com/rituvediauthor/LiberationFleet](https://github.com/rituvediauthor/LiberationFleet).
+2. Click **Settings** (repo tab; you must be signed in as the owner).
+3. Left sidebar → **General**.
+4. Scroll to **Danger Zone**.
+5. Confirm visibility is **Public**.  
+   Do **not** switch to Private unless you want to stop strangers from cloning.
 
-**Settings** → **General** → **Danger Zone** → **Change repository visibility** → Private. Then only people you invite can clone. You said you are fine with public clones — leaving it **public** is correct for that goal.
+---
+
+### 14.2 Collaborators — only people you approve get Write
+
+This is the main control for “who can push to my repo.”
+
+1. Repo → **Settings**.
+2. Left sidebar → **Collaborators** (sometimes **Collaborators and teams**).  
+   Direct link: [settings/access](https://github.com/rituvediauthor/LiberationFleet/settings/access).
+3. Review everyone listed.
+4. For anyone you do **not** want writing to the repo: **Remove**.
+5. To invite someone later:
+   1. **Add people**.
+   2. Search their GitHub username.
+   3. Choose permission carefully:
+      | Role | Can they… |
+      |------|-----------|
+      | **Read** | Clone/pull only (same as public for this repo) |
+      | **Triage** | Manage issues/PRs, not push code |
+      | **Write** | Push branches, merge (if allowed) — **only for people you trust** |
+      | **Maintain / Admin** | Settings, dangerous actions — **almost never** give this out |
+6. Prefer **Write** only when you actively need a co-maintainer. Prefer they work via **fork + PR** (no collaborator invite) whenever possible.
+
+**Do not** share your GitHub password. If you use a PAT (Personal Access Token) for `git push`, treat it like a password; revoke unused tokens under GitHub → your avatar → **Settings** → **Developer settings** → **Personal access tokens**.
+
+---
+
+### 14.3 Protect `master` (block force-push / accidental deletion of the branch)
+
+Public repos on GitHub Free can use branch protection / rulesets. Your default branch is **`master`**.
+
+#### Option A — Rulesets (current UI)
+
+1. Repo → **Settings**.
+2. Left sidebar → **Rules** → **Rulesets** (under “Code and automation”).
+3. **New ruleset** → **New branch ruleset**.
+4. **Ruleset name:** e.g. `Protect master`.
+5. **Enforcement status:** **Active**.
+6. **Target branches** → **Add target** → **Include by pattern** → enter `master`.
+7. Under rules, enable at least:
+   - **Restrict deletions** (stops deleting the `master` branch)
+   - **Block force pushes**
+   - **Require a pull request before merging** (optional but recommended if you want every change reviewed; as a solo owner you can allow yourself to bypass, or leave unchecked if you still push directly to `master` for speed)
+8. **Create** / **Save changes**.
+
+#### Option B — Classic branch protection
+
+1. Repo → **Settings** → **Branches**.
+2. **Add classic branch protection rule** (wording may vary).
+3. **Branch name pattern:** `master`.
+4. Enable:
+   - **Do not allow bypassing the above settings** (optional; as solo owner you may leave bypass for yourself)
+   - **Require a pull request before merging** (optional — see note above)
+   - **Do not allow force pushes**
+   - **Do not allow deletions**
+5. **Create** / **Save changes**.
+
+**Solo-owner note:** Requiring a PR with “1 approval” can block *you* from merging your own PRs unless you allow owner bypass or use “require PR” without approvals. For one person, **force-push block + restrict deletions** is the highest-value default; add “require PR” when you have a second trusted reviewer.
+
+---
+
+### 14.4 Pull requests from strangers (forks)
+
+You do **not** need to turn this off to stay safe.
+
+1. Anyone can open a PR from a fork.
+2. That does **not** change your code until **you** click **Merge**.
+3. If you get spam PRs: open the PR → **Close**. Optionally block the user (their profile → **Block**).
+
+Optional: **Settings** → **General** → **Features** / **Pull Requests** — leave PRs enabled so others can contribute proposals you control.
+
+---
+
+### 14.5 Actions and secrets (keep deploy credentials private)
+
+1. Repo → **Settings** → **Secrets and variables** → **Actions**.
+2. Confirm you are not storing Azure/Stripe/LiveKit secrets in GitHub if ADO Key Vault already holds them (your Azure pipeline is the main deploy path).
+3. **Settings** → **Actions** → **General**:
+   - Prefer **Allow LiberationFleet, and select non-LiberationFleet, actions** or a restrictive policy you understand.
+   - Under **Workflow permissions**, prefer **Read repository contents and packages permissions** unless a workflow truly needs write.
+
+---
+
+### 14.6 Account hygiene (stops “someone else altered my repo”)
+
+1. Enable **2FA** on your GitHub account: avatar → **Settings** → **Password and authentication** → **Two-factor authentication**.
+2. Review **Sessions** / signed-in devices periodically.
+3. Never commit `.env`, `*.backend.hcl` with secrets, or Key Vault dumps (your `.gitignore` already covers several of these).
+4. Only the **owner** can delete the repository (**Settings** → **General** → **Danger Zone** → **Delete this repository**). Do not give Admin to others.
+
+---
+
+### 14.7 Quick checklist
+
+- [ ] Repo is **Public** (clone/fork OK)
+- [ ] **Collaborators** list has only people you intentionally approved (ideally none besides you)
+- [ ] **`master`** protected: no force-push, no branch deletion
+- [ ] GitHub **2FA** on for your account
+- [ ] No unexpected Admin/Write collaborators
+- [ ] You alone control Merge on PRs from forks
+
+---
+
+### 14.8 If you ever want the code private
+
+**Settings** → **General** → **Danger Zone** → **Change repository visibility** → **Private**.  
+Then only invited people can clone. That conflicts with “anyone can copy for their own projects,” so stay **Public** for your stated goal.
 
 ---
 

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Services;
@@ -1774,7 +1775,14 @@ public partial class MutualAidService(
             return false;
         }
 
-        await StartFirstSeasonAsync(crew, readyMembers, cancellationToken);
+        var autoJoinMembers = await mutualAidRepository.GetAutoJoinSeasonMembersAsync(crew.Id, cancellationToken);
+        var participantsByUserId = readyMembers.ToDictionary(m => m.UserId);
+        foreach (var member in autoJoinMembers)
+        {
+            participantsByUserId.TryAdd(member.UserId, member);
+        }
+
+        await StartFirstSeasonAsync(crew, participantsByUserId.Values.ToList(), cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return true;
     }
@@ -2049,6 +2057,236 @@ public partial class MutualAidService(
         await EnsureCurrentSeasonPrimaryCycleAsync(crew, membership, cancellationToken);
     }
 
+    public async Task ApplyAidSeasonAccountingAsync(
+        int crewId,
+        CrewMembership membership,
+        AidSeasonAccountingDto accounting,
+        bool persistAsDraftWhenNoSeason,
+        CancellationToken cancellationToken = default) =>
+        await ApplyAidSeasonAccountingAsync(
+            crewId,
+            membership,
+            accounting,
+            persistAsDraftWhenNoSeason,
+            refreshCycleLocks: true,
+            cancellationToken);
+
+    private async Task ApplyAidSeasonAccountingAsync(
+        int crewId,
+        CrewMembership membership,
+        AidSeasonAccountingDto accounting,
+        bool persistAsDraftWhenNoSeason,
+        bool refreshCycleLocks,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(accounting);
+
+        membership.AutoJoinSeasonOnStart = accounting.AutoJoinSeasonOnStart;
+
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null)
+        {
+            return;
+        }
+
+        if (!crew.SeasonStarted || crew.CurrentSeasonStartDate is null)
+        {
+            if (persistAsDraftWhenNoSeason)
+            {
+                membership.AidStatDraftJson = AidStatDraftSerializer.Serialize(accounting);
+            }
+
+            return;
+        }
+
+        await EnsureCurrentSeasonPrimaryCycleAsync(crew, membership, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
+            crewId,
+            membership.UserId,
+            crew.CurrentSeasonStartDate.Value,
+            cancellationToken);
+        if (cycle is null)
+        {
+            return;
+        }
+
+        var isFinancialMember = await IsFinancialMemberAsync(
+            membership.UserId,
+            crewId,
+            membership,
+            cancellationToken);
+        var effectiveCap = EmergencySplitService.ResolveSegmentCap(
+            cycle,
+            isFinancialMember,
+            crew.SeasonMemberCycleCap,
+            crew.SeasonNonMemberCycleCap);
+
+        var cycleReceived = Math.Max(0m, accounting.CycleReceived);
+        if (effectiveCap > 0m && cycleReceived > effectiveCap)
+        {
+            cycleReceived = effectiveCap;
+        }
+
+        cycle.CycleReceived = cycleReceived;
+        cycle.HasCycleStarted = accounting.HasActiveCycle;
+
+        if (accounting.ReceptionOrder is int receptionOrder1Based && receptionOrder1Based > 0)
+        {
+            await ReorderPrimaryCycleAsync(
+                crew,
+                cycle,
+                Math.Max(0, receptionOrder1Based - 1),
+                cancellationToken);
+        }
+        else if (accounting.HasActiveCycle)
+        {
+            // Active draft cycles are pulled to the front; season-start finalize
+            // packs all actives ahead of priority-ordered peers.
+            await ReorderPrimaryCycleAsync(crew, cycle, desiredZeroBasedPosition: 0, cancellationToken);
+        }
+
+        await ApplySurvivalThresholdDraftsAsync(
+            crew,
+            membership.UserId,
+            accounting,
+            cancellationToken);
+
+        var thresholds = await mutualAidRepository.GetThresholdsForUserAsync(
+            crewId,
+            membership.UserId,
+            cancellationToken);
+        var survivalReceived = thresholds.Sum(t => t.ReceivedAmount);
+        cycle.SurvivalThresholdReceived = survivalReceived;
+        cycle.TotalReceptionAmount = cycle.CycleReceived + survivalReceived;
+
+        var utcNow = DateTime.UtcNow;
+        if (MutualAidCalculationService.IsCycleSatisfied(cycle, effectiveCap))
+        {
+            cycle.CycleCompleted = true;
+            cycle.CycleCompletedAt ??= utcNow;
+            cycle.CycleCapAtCompletion = effectiveCap > 0m ? effectiveCap : cycle.CycleCapAtStart;
+        }
+        else
+        {
+            cycle.CycleCompleted = false;
+            cycle.CycleCompletedAt = null;
+        }
+
+        membership.AidStatDraftJson = null;
+        if (refreshCycleLocks)
+        {
+            await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
+        }
+    }
+
+    private async Task ReorderPrimaryCycleAsync(
+        Crew crew,
+        SeasonCycle target,
+        int desiredZeroBasedPosition,
+        CancellationToken cancellationToken)
+    {
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate!.Value,
+            cancellationToken))
+            .Where(IsPrimaryCycle)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .ToList();
+
+        cycles.RemoveAll(c => c.Id == target.Id);
+        var insertAt = Math.Clamp(desiredZeroBasedPosition, 0, cycles.Count);
+        cycles.Insert(insertAt, target);
+
+        for (var i = 0; i < cycles.Count; i++)
+        {
+            cycles[i].ReceptionOrderPosition = i;
+        }
+    }
+
+    private async Task ApplySurvivalThresholdDraftsAsync(
+        Crew crew,
+        int userId,
+        AidSeasonAccountingDto accounting,
+        CancellationToken cancellationToken)
+    {
+        var existing = (await mutualAidRepository.GetThresholdsForUserAsync(
+            crew.Id,
+            userId,
+            cancellationToken)).ToList();
+        var existingById = existing.ToDictionary(t => t.Id);
+
+        foreach (var removeId in accounting.RemovedThresholdIds.Distinct())
+        {
+            if (existingById.TryGetValue(removeId, out var toRemove))
+            {
+                mutualAidRepository.RemoveThreshold(toRemove);
+                existingById.Remove(removeId);
+            }
+        }
+
+        var now = DateTime.UtcNow;
+        var nextPosition = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
+        var orderedDrafts = accounting.SurvivalThresholds
+            .OrderBy(t => t.Order <= 0 ? int.MaxValue : t.Order)
+            .ThenBy(t => t.Id ?? int.MaxValue)
+            .ToList();
+
+        var position = 0;
+        foreach (var draft in orderedDrafts)
+        {
+            var remaining = Math.Max(0m, draft.AmountRemaining);
+            MonthlySurvivalThreshold? row = null;
+            if (draft.Id is int id && existingById.TryGetValue(id, out var existingRow))
+            {
+                row = existingRow;
+            }
+            else
+            {
+                // One threshold per user per calendar month (unique index).
+                row = existingById.Values.FirstOrDefault(t => t.Year == now.Year && t.Month == now.Month);
+            }
+
+            if (row is not null)
+            {
+                var thresholdAmount = draft.ThresholdAmount > 0m
+                    ? draft.ThresholdAmount
+                    : Math.Max(row.ThresholdAmount, remaining);
+                row.ThresholdAmount = thresholdAmount;
+                row.ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount);
+            }
+            else
+            {
+                var thresholdAmount = draft.ThresholdAmount > 0m ? draft.ThresholdAmount : remaining;
+                if (thresholdAmount <= 0m)
+                {
+                    continue;
+                }
+
+                row = new MonthlySurvivalThreshold
+                {
+                    CrewId = crew.Id,
+                    UserId = userId,
+                    Year = now.Year,
+                    Month = now.Month,
+                    ThresholdAmount = thresholdAmount,
+                    ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount),
+                    ReceptionOrderPosition = nextPosition++
+                };
+                await mutualAidRepository.AddThresholdAsync(row, cancellationToken);
+                if (row.Id != 0)
+                {
+                    existingById[row.Id] = row;
+                }
+            }
+
+            row.ReceptionOrderPosition = position++;
+            row.Satisfied = row.ReceivedAmount >= row.ThresholdAmount;
+        }
+    }
+
+
     private static int GetInsertPositionForNewCycle(
         IReadOnlyList<SeasonCycle> cycles,
         decimal priorityScore)
@@ -2149,6 +2387,67 @@ public partial class MutualAidService(
         }
 
         await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
+
+        foreach (var member in participants)
+        {
+            var draft = AidStatDraftSerializer.Deserialize(member.AidStatDraftJson);
+            if (draft is null)
+            {
+                continue;
+            }
+
+            await ApplyAidSeasonAccountingAsync(
+                crew.Id,
+                member,
+                draft,
+                persistAsDraftWhenNoSeason: false,
+                refreshCycleLocks: false,
+                cancellationToken);
+        }
+
+        await FinalizeSeasonStartCycleLocksFromDraftsAsync(crew, cancellationToken);
+    }
+
+    /// <summary>
+    /// After aid-stat drafts apply: pack draft-active cycles to the front of reception order,
+    /// keep up to two started (leader + runner-up), and only then fall back to priority-based
+    /// activation when no draft marked an active cycle.
+    /// </summary>
+    private async Task FinalizeSeasonStartCycleLocksFromDraftsAsync(
+        Crew crew,
+        CancellationToken cancellationToken)
+    {
+        if (!crew.CurrentSeasonStartDate.HasValue)
+        {
+            return;
+        }
+
+        var cycles = (await mutualAidRepository.GetSeasonCyclesAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate.Value,
+            cancellationToken))
+            .Where(IsPrimaryCycle)
+            .OrderBy(c => c.ReceptionOrderPosition)
+            .ToList();
+
+        var incomplete = cycles.Where(c => !c.CycleCompleted).ToList();
+        var completed = cycles.Where(c => c.CycleCompleted).ToList();
+        var draftActives = incomplete.Where(c => c.HasCycleStarted).ToList();
+        var unlocked = incomplete.Where(c => !c.HasCycleStarted).ToList();
+
+        var reordered = draftActives.Concat(unlocked).Concat(completed).ToList();
+        for (var i = 0; i < reordered.Count; i++)
+        {
+            reordered[i].ReceptionOrderPosition = i;
+        }
+
+        // Cap started flags to leader + runner-up among draft actives before refresh.
+        for (var i = 0; i < draftActives.Count; i++)
+        {
+            draftActives[i].HasCycleStarted = i < 2;
+        }
+
+        await RefreshHasCycleStartedForCrewAsync(crew, cancellationToken);
     }
 
     private async Task TryCreateCurrentMonthThresholdsAsync(Crew crew, CancellationToken cancellationToken)
@@ -3482,16 +3781,29 @@ public partial class MutualAidService(
         IReadOnlyList<SeasonCycle> incompleteOrdered,
         CancellationToken cancellationToken)
     {
-        // Keep the currently started incomplete cycle active. Do not jump the "started"
-        // flag onto a later (e.g. runner-up) cycle while an earlier active cycle remains open.
-        var existingStarted = incompleteOrdered.FirstOrDefault(c => c.HasCycleStarted);
-        var frontmost = existingStarted
-            ?? incompleteOrdered.FirstOrDefault(c => c.User?.InNeedOfAid != false);
+        // Preserve draft/mid-season started cycles up to leader + runner-up (2).
+        // Only when none are started do we activate the frontmost in-need cycle.
+        var alreadyStarted = incompleteOrdered.Where(c => c.HasCycleStarted).ToList();
+        HashSet<int> shouldStartIds;
+        if (alreadyStarted.Count >= 2)
+        {
+            shouldStartIds = alreadyStarted.Take(2).Select(c => c.Id).ToHashSet();
+        }
+        else if (alreadyStarted.Count == 1)
+        {
+            shouldStartIds = [alreadyStarted[0].Id];
+        }
+        else
+        {
+            var frontmost = incompleteOrdered.FirstOrDefault(c => c.User?.InNeedOfAid != false);
+            shouldStartIds = frontmost is null ? [] : [frontmost.Id];
+        }
+
         var changed = false;
 
         foreach (var cycle in incompleteOrdered)
         {
-            var shouldBeStarted = frontmost is not null && cycle.Id == frontmost.Id;
+            var shouldBeStarted = shouldStartIds.Contains(cycle.Id);
             if (cycle.HasCycleStarted == shouldBeStarted)
             {
                 continue;

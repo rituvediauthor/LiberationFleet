@@ -7,6 +7,8 @@ public interface IMutualAidRepository
     Task<Crew?> GetCrewAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetSeasonParticipantsAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default);
+    /// <summary>Active members flagged to join when the season starts (tracked).</summary>
+    Task<IReadOnlyList<CrewMembership>> GetAutoJoinSeasonMembersAsync(int crewId, CancellationToken cancellationToken = default);
     /// <summary>Cheap ready-count for season status polls (no User/platform graph).</summary>
     Task<int> CountSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default);
     /// <summary>Count of in-season members with NeedsSurvivalAid (no payment-platform graph).</summary>
@@ -37,6 +39,11 @@ public interface IMutualAidRepository
         int crewId,
         int year,
         int month,
+        CancellationToken cancellationToken = default);
+    /// <summary>All survival threshold rows for one crewmate (any month), ordered by reception position.</summary>
+    Task<IReadOnlyList<MonthlySurvivalThreshold>> GetThresholdsForUserAsync(
+        int crewId,
+        int userId,
         CancellationToken cancellationToken = default);
     void RemoveThreshold(MonthlySurvivalThreshold threshold);
     Task<bool> HasThresholdForMonthAsync(int crewId, int userId, int year, int month, CancellationToken cancellationToken = default);

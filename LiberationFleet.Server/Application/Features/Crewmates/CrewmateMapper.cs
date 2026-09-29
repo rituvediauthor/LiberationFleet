@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Profile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
@@ -116,7 +117,8 @@ public static class CrewmateMapper
         PriorityScoreBreakdownDto? givingSeasonPriority = null,
         PriorityScoreBreakdownDto? libraryOfThingsPriority = null,
         int libraryPriorityTier = 1,
-        decimal libraryPriorityAverage = 0m)
+        decimal libraryPriorityAverage = 0m,
+        AidSeasonAccountingDto? seasonAccounting = null)
     {
         var lifetimeContributions = membership.LifetimeContributionOverride ?? giftStats.LifetimeContributions;
         var receptionThisYear = membership.ReceptionThisYearOverride ?? giftStats.ReceptionThisYear;
@@ -130,6 +132,12 @@ public static class CrewmateMapper
             membership,
             lifetimeContributions,
             tenureDays);
+
+        var accounting = seasonAccounting
+            ?? AidStatDraftSerializer.FromLiveState(
+                seasonCycle,
+                [],
+                membership.AutoJoinSeasonOnStart);
 
         return new CrewmateProfileDto
         {
@@ -175,11 +183,17 @@ public static class CrewmateMapper
             CanClaimIdentity = canClaimIdentity,
             CanProposeAidStatEdits = CrewRoleAuthorizationService.CanProposeCrewmateAidStatEdits(viewerMembership),
             EstimatedMonthlyContribution = membership.EstimatedMonthlyContribution,
-            TotalReceptionAmount = seasonCycle?.TotalReceptionAmount,
-            SurvivalThresholdReceived = seasonCycle?.SurvivalThresholdReceived,
-            CycleReceived = seasonCycle?.CycleReceived,
+            TotalReceptionAmount = accounting.TotalReceptionAmount,
+            SurvivalThresholdReceived = accounting.SurvivalReceivedTotal,
+            CycleReceived = accounting.CycleReceived,
             CycleCompleted = seasonCycle?.CycleCompleted,
             HasActiveSeasonCycle = seasonCycle is not null || crew.CurrentSeasonStartDate.HasValue,
+            SeasonStarted = crew.SeasonStarted,
+            AutoJoinSeasonOnStart = accounting.AutoJoinSeasonOnStart,
+            HasActiveCycle = accounting.HasActiveCycle,
+            ReceptionOrder = accounting.ReceptionOrder,
+            HasAidStatDraft = !string.IsNullOrWhiteSpace(membership.AidStatDraftJson),
+            SeasonAccounting = accounting,
             GivingSeasonPriority = givingSeasonPriority,
             LibraryOfThingsPriority = libraryOfThingsPriority,
             LibraryPriorityTier = libraryPriorityTier,

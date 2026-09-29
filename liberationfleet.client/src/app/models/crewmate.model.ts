@@ -102,20 +102,41 @@ export interface CrewmateProfile {
   cycleReceived?: number | null;
   cycleCompleted?: boolean | null;
   hasActiveSeasonCycle?: boolean;
+  seasonStarted?: boolean;
+  autoJoinSeasonOnStart?: boolean;
+  hasActiveCycle?: boolean;
+  receptionOrder?: number | null;
+  hasAidStatDraft?: boolean;
+  seasonAccounting?: AidSeasonAccounting | null;
   givingSeasonPriority?: PriorityScoreBreakdown | null;
   libraryOfThingsPriority?: PriorityScoreBreakdown | null;
   libraryPriorityTier?: number;
   libraryPriorityAverage?: number;
 }
 
+export interface AidSurvivalThresholdDraft {
+  id?: number | null;
+  thresholdAmount: number;
+  amountRemaining: number;
+  order: number;
+}
+
+export interface AidSeasonAccounting {
+  cycleReceived: number;
+  hasActiveCycle: boolean;
+  receptionOrder?: number | null;
+  autoJoinSeasonOnStart: boolean;
+  survivalThresholds: AidSurvivalThresholdDraft[];
+  removedThresholdIds?: number[];
+}
+
 export type CrewmateAidStatField =
   | 'EstimatedMonthlyContribution'
   | 'LifetimeContributions'
   | 'ReceptionThisYear'
-  | 'TotalReceptionAmount'
-  | 'SurvivalThresholdReceived'
   | 'CycleReceived'
-  | 'PercentBoost';
+  | 'PercentBoost'
+  | 'SeasonAccounting';
 
 export interface ProposeCrewmateAidStatChangeItem {
   field: CrewmateAidStatField;

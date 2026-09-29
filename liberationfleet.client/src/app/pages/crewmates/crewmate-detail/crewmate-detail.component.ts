@@ -14,7 +14,7 @@ import { CollapsibleSectionComponent } from '../../../components/collapsible-sec
 import { PriorityScoreAlgorithmsComponent } from '../../../components/priority-score-algorithms/priority-score-algorithms.component';
 import { FleetService } from '../../../services/fleet.service';
 import { formatIdentityGroupLabels } from '../../../utils/identity-groups.util';
-import { CrewmateAidStatField, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
+import { CrewmateAidStatField, AidSeasonAccounting, AidSurvivalThresholdDraft, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
 import { CrewService } from '../../../services/crew.service';
 
 @Component({
@@ -56,10 +56,13 @@ export class CrewmateDetailComponent implements OnInit {
     estimatedMonthlyContribution: '',
     lifetimeContributions: '',
     receptionThisYear: '',
-    totalReceptionAmount: '',
-    survivalThresholdReceived: '',
+    percentBoost: '',
     cycleReceived: '',
-    percentBoost: ''
+    hasActiveCycle: false,
+    receptionOrder: '',
+    autoJoinSeasonOnStart: false,
+    survivalThresholds: [] as AidSurvivalThresholdDraft[],
+    removedThresholdIds: [] as number[]
   };
 
   private route = inject(ActivatedRoute);
@@ -397,9 +400,17 @@ export class CrewmateDetailComponent implements OnInit {
           this.router.navigate(['/app/crew/proposals', response.proposalId]);
         }
       },
-      error: () => {
+      error: err => {
         this.actionLoading = false;
-        this.toastService.error('Failed to submit aid statistic proposal');
+        // API returns BadRequest({ success, message }) on business failures — surface that message.
+        const apiMessage =
+          err?.error?.message
+          || err?.error?.Message
+          || (typeof err?.error === 'string' ? err.error : null);
+        this.toastService.error(apiMessage || 'Failed to submit aid statistic proposal');
+        if (err?.error?.proposalId) {
+          this.router.navigate(['/app/crew/proposals', err.error.proposalId]);
+        }
       }
     });
   }
@@ -464,25 +475,158 @@ export class CrewmateDetailComponent implements OnInit {
       { integer: true }
     );
 
-    if (this.profile.hasActiveSeasonCycle) {
-      pushIfChanged(
-        'TotalReceptionAmount',
-        this.aidDraft.totalReceptionAmount,
-        this.profile.totalReceptionAmount
-      );
-      pushIfChanged(
-        'SurvivalThresholdReceived',
-        this.aidDraft.survivalThresholdReceived,
-        this.profile.survivalThresholdReceived
-      );
-      pushIfChanged(
-        'CycleReceived',
-        this.aidDraft.cycleReceived,
-        this.profile.cycleReceived
-      );
+    const seasonAccounting = this.buildSeasonAccountingPayload();
+    if (this.seasonAccountingChanged(seasonAccounting)) {
+      changes.push({
+        field: 'SeasonAccounting',
+        newValue: JSON.stringify(seasonAccounting)
+      });
     }
 
     return changes;
+  }
+
+  private buildSeasonAccountingPayload(): AidSeasonAccounting {
+    const cycleReceived = Number(String(this.aidDraft.cycleReceived ?? '').trim() || '0');
+    if (!Number.isFinite(cycleReceived) || cycleReceived < 0) {
+      throw new Error('Enter a valid non-negative cycle reception amount.');
+    }
+
+    let receptionOrder: number | null = null;
+    const orderRaw = String(this.aidDraft.receptionOrder ?? '').trim();
+    if (orderRaw) {
+      receptionOrder = Number(orderRaw);
+      if (!Number.isInteger(receptionOrder) || receptionOrder < 1) {
+        throw new Error('Reception order must be a whole number of 1 or greater.');
+      }
+    }
+
+    const survivalThresholds = this.aidDraft.survivalThresholds.map((row, index) => {
+      const amountRemaining = Number(row.amountRemaining);
+      const thresholdAmount = Number(row.thresholdAmount);
+      if (!Number.isFinite(amountRemaining) || amountRemaining < 0) {
+        throw new Error('Survival threshold remaining amounts must be non-negative.');
+      }
+      if (!Number.isFinite(thresholdAmount) || thresholdAmount < 0) {
+        throw new Error('Survival threshold amounts must be non-negative.');
+      }
+      return {
+        id: row.id ?? null,
+        thresholdAmount,
+        amountRemaining,
+        order: index + 1
+      };
+    });
+
+    return {
+      cycleReceived,
+      hasActiveCycle: !!this.aidDraft.hasActiveCycle,
+      receptionOrder,
+      autoJoinSeasonOnStart: !!this.aidDraft.autoJoinSeasonOnStart,
+      survivalThresholds,
+      removedThresholdIds: [...this.aidDraft.removedThresholdIds]
+    };
+  }
+
+  private seasonAccountingChanged(next: AidSeasonAccounting): boolean {
+    const current = this.profile?.seasonAccounting;
+    if (!current) {
+      return true;
+    }
+
+    if (Math.abs((current.cycleReceived ?? 0) - next.cycleReceived) >= 0.0001) {
+      return true;
+    }
+    if (!!current.hasActiveCycle !== next.hasActiveCycle) {
+      return true;
+    }
+    if ((current.receptionOrder ?? null) !== (next.receptionOrder ?? null)) {
+      return true;
+    }
+    if (!!current.autoJoinSeasonOnStart !== next.autoJoinSeasonOnStart) {
+      return true;
+    }
+    if ((next.removedThresholdIds?.length ?? 0) > 0) {
+      return true;
+    }
+
+    const currentRows = current.survivalThresholds ?? [];
+    if (currentRows.length !== next.survivalThresholds.length) {
+      return true;
+    }
+
+    for (let i = 0; i < next.survivalThresholds.length; i++) {
+      const a = currentRows[i];
+      const b = next.survivalThresholds[i];
+      if ((a?.id ?? null) !== (b.id ?? null)) {
+        return true;
+      }
+      if (Math.abs((a?.amountRemaining ?? 0) - b.amountRemaining) >= 0.0001) {
+        return true;
+      }
+      if (Math.abs((a?.thresholdAmount ?? 0) - b.thresholdAmount) >= 0.0001) {
+        return true;
+      }
+      if ((a?.order ?? i + 1) !== b.order) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  get derivedSurvivalReceived(): number {
+    return this.aidDraft.survivalThresholds.reduce((sum, row) => {
+      const remaining = Number(row.amountRemaining) || 0;
+      const threshold = Number(row.thresholdAmount) || 0;
+      return sum + Math.max(0, threshold - remaining);
+    }, 0);
+  }
+
+  get derivedTotalReception(): number {
+    const cycle = Number(String(this.aidDraft.cycleReceived ?? '').trim() || '0') || 0;
+    return cycle + this.derivedSurvivalReceived;
+  }
+
+  get hasCurrentMonthSurvivalThresholdDraft(): boolean {
+    return this.aidDraft.survivalThresholds.length > 0;
+  }
+
+  addSurvivalThresholdRow() {
+    if (this.hasCurrentMonthSurvivalThresholdDraft) {
+      return;
+    }
+    this.aidDraft.survivalThresholds = [
+      ...this.aidDraft.survivalThresholds,
+      {
+        id: null,
+        thresholdAmount: 0,
+        amountRemaining: 0,
+        order: this.aidDraft.survivalThresholds.length + 1
+      }
+    ];
+  }
+
+  removeSurvivalThresholdRow(index: number) {
+    const row = this.aidDraft.survivalThresholds[index];
+    if (!row) {
+      return;
+    }
+    if (row.id != null) {
+      this.aidDraft.removedThresholdIds = [...this.aidDraft.removedThresholdIds, row.id];
+    }
+    this.aidDraft.survivalThresholds = this.aidDraft.survivalThresholds.filter((_, i) => i !== index);
+  }
+
+  moveSurvivalThreshold(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= this.aidDraft.survivalThresholds.length) {
+      return;
+    }
+    const rows = [...this.aidDraft.survivalThresholds];
+    const [item] = rows.splice(index, 1);
+    rows.splice(target, 0, item);
+    this.aidDraft.survivalThresholds = rows;
   }
 
   private syncAidDraftFromProfile() {
@@ -493,14 +637,25 @@ export class CrewmateDetailComponent implements OnInit {
     const money = (value: number | null | undefined) =>
       value == null ? '' : String(value);
 
+    const accounting = this.profile.seasonAccounting;
     this.aidDraft = {
       estimatedMonthlyContribution: money(this.profile.estimatedMonthlyContribution),
       lifetimeContributions: money(this.profile.lifetimeContributions),
       receptionThisYear: money(this.profile.receptionThisYear),
-      totalReceptionAmount: money(this.profile.totalReceptionAmount),
-      survivalThresholdReceived: money(this.profile.survivalThresholdReceived),
-      cycleReceived: money(this.profile.cycleReceived),
-      percentBoost: this.profile.percentBoost == null ? '' : String(this.profile.percentBoost)
+      percentBoost: this.profile.percentBoost == null ? '' : String(this.profile.percentBoost),
+      cycleReceived: money(accounting?.cycleReceived ?? this.profile.cycleReceived),
+      hasActiveCycle: !!(accounting?.hasActiveCycle ?? this.profile.hasActiveCycle),
+      receptionOrder: accounting?.receptionOrder != null
+        ? String(accounting.receptionOrder)
+        : (this.profile.receptionOrder != null ? String(this.profile.receptionOrder) : ''),
+      autoJoinSeasonOnStart: !!(accounting?.autoJoinSeasonOnStart ?? this.profile.autoJoinSeasonOnStart),
+      survivalThresholds: (accounting?.survivalThresholds ?? []).map((row, index) => ({
+        id: row.id ?? null,
+        thresholdAmount: row.thresholdAmount ?? 0,
+        amountRemaining: row.amountRemaining ?? 0,
+        order: row.order ?? index + 1
+      })),
+      removedThresholdIds: []
     };
   }
 

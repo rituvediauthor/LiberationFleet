@@ -1,5 +1,6 @@
 using System.Text.Json;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
@@ -143,6 +144,138 @@ public class CrewmateAidStatProposalServiceTests
     }
 
     [Fact]
+    public async Task TryApply_WhenSeasonAccounting_UpdatesCycleOrderAndThresholds()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id
+            && c.SeasonStartDate == fixture.SeasonStart
+            && c.EmergencyRequestId == null
+            && c.EmergencySplitOfferId == null);
+        primary.ReceptionOrderPosition = 2;
+        primary.HasCycleStarted = false;
+
+        var existingForBob = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.UserId == fixture.Bob.Id)
+            .ToListAsync();
+        fixture.Context.MonthlySurvivalThresholds.RemoveRange(existingForBob);
+        fixture.Context.MonthlySurvivalThresholds.Add(new MonthlySurvivalThreshold
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Bob.Id,
+            Year = DateTime.UtcNow.Year,
+            Month = DateTime.UtcNow.Month,
+            ThresholdAmount = 50m,
+            ReceivedAmount = 10m,
+            ReceptionOrderPosition = 0,
+            Satisfied = false
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var existingThreshold = await fixture.Context.MonthlySurvivalThresholds
+            .SingleAsync(t => t.UserId == fixture.Bob.Id);
+        var accounting = new AidSeasonAccountingDto
+        {
+            CycleReceived = 35m,
+            HasActiveCycle = true,
+            ReceptionOrder = 1,
+            AutoJoinSeasonOnStart = true,
+            SurvivalThresholds =
+            [
+                new AidSurvivalThresholdDraftDto
+                {
+                    Id = existingThreshold.Id,
+                    ThresholdAmount = 50m,
+                    AmountRemaining = 20m,
+                    Order = 1
+                }
+            ]
+        };
+
+        var service = CreateService(fixture);
+        var proposal = await CreateApprovedProposalAsync(
+            fixture,
+            fixture.Bob.Id,
+            [
+                new CrewmateAidStatChangeItem
+                {
+                    Field = CrewmateAidStatField.SeasonAccounting,
+                    NewValue = AidStatDraftSerializer.Serialize(accounting)
+                }
+            ]);
+
+        await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
+        reloaded.CycleReceived.Should().Be(35m);
+        reloaded.HasCycleStarted.Should().BeTrue();
+        reloaded.ReceptionOrderPosition.Should().Be(0);
+        reloaded.SurvivalThresholdReceived.Should().Be(30m);
+        reloaded.TotalReceptionAmount.Should().Be(65m);
+
+        var membership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        membership.AutoJoinSeasonOnStart.Should().BeTrue();
+        membership.AidStatDraftJson.Should().BeNull();
+
+        var threshold = await fixture.Context.MonthlySurvivalThresholds
+            .SingleAsync(t => t.UserId == fixture.Bob.Id);
+        threshold.ReceivedAmount.Should().Be(30m);
+        threshold.ThresholdAmount.Should().BeGreaterThanOrEqualTo(30m);
+    }
+
+    [Fact]
+    public async Task TryApply_WhenSeasonAccountingBeforeSeason_PersistsDraft()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        fixture.Crew.SeasonStarted = false;
+        fixture.Crew.CurrentSeasonStartDate = null;
+        await fixture.Context.SaveChangesAsync();
+
+        var accounting = new AidSeasonAccountingDto
+        {
+            CycleReceived = 12m,
+            HasActiveCycle = false,
+            ReceptionOrder = 2,
+            AutoJoinSeasonOnStart = true,
+            SurvivalThresholds =
+            [
+                new AidSurvivalThresholdDraftDto
+                {
+                    ThresholdAmount = 25m,
+                    AmountRemaining = 15m,
+                    Order = 1
+                }
+            ]
+        };
+
+        var service = CreateService(fixture);
+        var proposal = await CreateApprovedProposalAsync(
+            fixture,
+            fixture.Bob.Id,
+            [
+                new CrewmateAidStatChangeItem
+                {
+                    Field = CrewmateAidStatField.SeasonAccounting,
+                    NewValue = AidStatDraftSerializer.Serialize(accounting)
+                }
+            ]);
+
+        await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var membership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        membership.AutoJoinSeasonOnStart.Should().BeTrue();
+        membership.AidStatDraftJson.Should().NotBeNullOrWhiteSpace();
+        var draft = AidStatDraftSerializer.Deserialize(membership.AidStatDraftJson);
+        draft.Should().NotBeNull();
+        draft!.CycleReceived.Should().Be(12m);
+        draft.SurvivalThresholds.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task TryApply_WhenPrimaryMissing_CreatesWithReceptionOrder()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
@@ -187,8 +320,6 @@ public class CrewmateAidStatProposalServiceTests
             new UserRepository(fixture.Context),
             new MutualAidRepository(fixture.Context),
             fixture.Service,
-            new GiftRepository(fixture.Context),
-            HandlerTestFixture.CreateContentTenureService(),
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);
 

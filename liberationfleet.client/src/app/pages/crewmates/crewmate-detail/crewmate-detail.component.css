@@ -388,6 +388,27 @@
   height: 18px;
 }
 
+.aid-stat-subtitle {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lf-color-text-primary);
+}
+
+.aid-stat-threshold {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--lf-color-border);
+}
+
+.aid-stat-threshold-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 600px) {
   .profile-card {
     padding: 24px;

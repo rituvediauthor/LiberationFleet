@@ -412,6 +412,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.LifetimeContributionOverride).HasPrecision(18, 2);
             entity.Property(e => e.ReceptionThisYearOverride).HasPrecision(18, 2);
             entity.Property(e => e.IsSeasonReady).HasDefaultValue(false);
+            entity.Property(e => e.AutoJoinSeasonOnStart).HasDefaultValue(false);
+            entity.Property(e => e.AidStatDraftJson);
             entity.Property(e => e.IsInSeason).HasDefaultValue(false);
             entity.Property(e => e.GivingSeasonJoinedAt);
             entity.Property(e => e.LeftAt);

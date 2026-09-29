@@ -793,6 +793,14 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("AutoJoinSeasonOnStart")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("AidStatDraftJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("datetime2");
 

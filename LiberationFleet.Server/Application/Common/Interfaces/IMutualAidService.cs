@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -76,6 +77,16 @@ public interface IMutualAidService
     Task EnsurePrimarySeasonCycleExistsAsync(
         int crewId,
         CrewMembership membership,
+        CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Applies season accounting (cycle reception/lock/order + survival thresholds) for a crewmate.
+    /// When no season is active, persists a draft on the membership instead.
+    /// </summary>
+    Task ApplyAidSeasonAccountingAsync(
+        int crewId,
+        CrewMembership membership,
+        AidSeasonAccountingDto accounting,
+        bool persistAsDraftWhenNoSeason,
         CancellationToken cancellationToken = default);
     Task RemoveMemberFromSeasonAsync(int crewId, int userId, CancellationToken cancellationToken = default);
     Task RecordEmergencySacrificeAsync(int crewId, int sacrificerUserId, CancellationToken cancellationToken = default);

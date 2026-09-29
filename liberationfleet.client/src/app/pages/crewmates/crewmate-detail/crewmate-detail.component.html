@@ -243,8 +243,11 @@
       <section class="section aid-stat-section" *ngIf="profile.canProposeAidStatEdits">
         <h2>Aid history adjustments</h2>
         <p class="hint-text">
-          Propose updates for crews joining mid-season with existing contribution and reception history.
-          Changes require crew approval.
+          Propose updates for crews joining mid-season with existing contribution and reception history,
+          or save pre-season drafts that apply when the season starts. Changes require crew approval.
+        </p>
+        <p class="hint-text" *ngIf="profile.hasAidStatDraft && !profile.seasonStarted">
+          A pre-season aid-stat draft is saved for this crewmate and will apply at season start.
         </p>
 
         <div class="aid-stat-form">
@@ -267,26 +270,64 @@
             <span>Reception this year ($)</span>
             <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.receptionThisYear" class="form-input">
           </label>
-          <ng-container *ngIf="profile.hasActiveSeasonCycle">
-            <label class="aid-stat-field">
-              <span>Total reception this season ($)</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.totalReceptionAmount" class="form-input">
-            </label>
-            <label class="aid-stat-field">
-              <span>Survival reception this season ($)</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.survivalThresholdReceived" class="form-input">
-            </label>
-            <label class="aid-stat-field">
-              <span>Cycle reception this season ($)</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" class="form-input">
-            </label>
-            <p class="hint-text">
-              Cycle completion is automatic: the cycle is complete when cycle reception meets the cycle cap.
-            </p>
-          </ng-container>
-          <p class="hint-text" *ngIf="!profile.hasActiveSeasonCycle">
-            Season cycle reception fields become available after the crew starts a season.
+
+          <h3 class="aid-stat-subtitle">Season accounting</h3>
+          <label class="aid-stat-checkbox">
+            <input type="checkbox" [(ngModel)]="aidDraft.autoJoinSeasonOnStart">
+            <span>Auto-join this crewmate when the season starts</span>
+          </label>
+          <label class="aid-stat-field">
+            <span>Cycle reception ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" class="form-input">
+          </label>
+          <label class="aid-stat-checkbox">
+            <input type="checkbox" [(ngModel)]="aidDraft.hasActiveCycle">
+            <span>Active / locked cycle</span>
+          </label>
+          <label class="aid-stat-field">
+            <span>Reception order (1 = front of queue)</span>
+            <input type="number" min="1" step="1" [(ngModel)]="aidDraft.receptionOrder" class="form-input">
+          </label>
+
+          <div class="readonly-item">
+            <span class="readonly-label">Survival reception (derived)</span>
+            <span class="readonly-value">${{ derivedSurvivalReceived | number:'1.2-2' }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Total reception (cycle + survival)</span>
+            <span class="readonly-value">${{ derivedTotalReception | number:'1.2-2' }}</span>
+          </div>
+          <p class="hint-text">
+            Cycle completion is automatic: the cycle is complete when cycle reception meets the cycle cap.
           </p>
+
+          <h3 class="aid-stat-subtitle">Survival thresholds</h3>
+          <p class="hint-text">
+            One threshold per calendar month. Edit remaining amount (received = threshold − remaining).
+            Order controls this crewmate’s place among survival recipients.
+          </p>
+          <div class="aid-stat-threshold" *ngFor="let row of aidDraft.survivalThresholds; let i = index">
+            <label class="aid-stat-field">
+              <span>Threshold amount ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="row.thresholdAmount" class="form-input">
+            </label>
+            <label class="aid-stat-field">
+              <span>Amount remaining ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="row.amountRemaining" class="form-input">
+            </label>
+            <div class="aid-stat-threshold-actions">
+              <button type="button" class="role-btn" (click)="moveSurvivalThreshold(i, -1)" [disabled]="i === 0">Up</button>
+              <button type="button" class="role-btn" (click)="moveSurvivalThreshold(i, 1)" [disabled]="i === aidDraft.survivalThresholds.length - 1">Down</button>
+              <button type="button" class="block-btn" (click)="removeSurvivalThresholdRow(i)">Remove</button>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="export-btn"
+            *ngIf="!hasCurrentMonthSurvivalThresholdDraft"
+            (click)="addSurvivalThresholdRow()">
+            Add survival threshold for this month
+          </button>
         </div>
 
         <button

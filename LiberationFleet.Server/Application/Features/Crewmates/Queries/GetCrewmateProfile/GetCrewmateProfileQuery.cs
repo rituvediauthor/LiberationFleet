@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Library;
@@ -113,6 +114,8 @@ public class GetCrewmateProfileQueryHandler(
             cancellationToken);
 
         SeasonCycle? seasonCycle = null;
+        IReadOnlyList<MonthlySurvivalThreshold> thresholds = [];
+        AidSeasonAccountingDto? seasonAccounting = null;
         if (crew.CurrentSeasonStartDate is DateTime seasonStartDate)
         {
             seasonCycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
@@ -120,6 +123,22 @@ public class GetCrewmateProfileQueryHandler(
                 request.UserId,
                 seasonStartDate,
                 cancellationToken);
+            thresholds = await mutualAidRepository.GetThresholdsForUserAsync(
+                viewerMembership.CrewId,
+                request.UserId,
+                cancellationToken);
+            seasonAccounting = AidStatDraftSerializer.FromLiveState(
+                seasonCycle,
+                thresholds,
+                targetMembership.AutoJoinSeasonOnStart);
+        }
+        else
+        {
+            seasonAccounting = AidStatDraftSerializer.Deserialize(targetMembership.AidStatDraftJson)
+                ?? AidStatDraftSerializer.FromLiveState(
+                    null,
+                    [],
+                    targetMembership.AutoJoinSeasonOnStart);
         }
 
         var tierSummary = await priorityTierService.GetSummaryForUserAsync(
@@ -158,7 +177,8 @@ public class GetCrewmateProfileQueryHandler(
                     libraryBreakdown,
                     ProfileMapper.LibraryOfThingsStatusReason(targetMembership)),
                 tierSummary.ViewerTier,
-                tierSummary.AverageScore)
+                tierSummary.AverageScore,
+                seasonAccounting)
         };
     }
 }

@@ -47,6 +47,16 @@ public class CrewMembership
     /// <summary>When set, replaces gift-derived reception this year for display.</summary>
     public decimal? ReceptionThisYearOverride { get; set; }
     public bool IsSeasonReady { get; set; }
+    /// <summary>
+    /// When true, this member is pulled into a new season at start even if they did not
+    /// manually mark season-ready (still requires the crew's normal ready threshold to fire).
+    /// </summary>
+    public bool AutoJoinSeasonOnStart { get; set; }
+    /// <summary>
+    /// JSON draft of season accounting (cycle / survival thresholds / order) applied when a season starts.
+    /// Cleared after successful apply at season start.
+    /// </summary>
+    public string? AidStatDraftJson { get; set; }
     public bool IsInSeason { get; set; }
     /// <summary>When the crewmate first joined the giving season (not crew join). Used for monthly giving capacity.</summary>
     public DateTime? GivingSeasonJoinedAt { get; set; }

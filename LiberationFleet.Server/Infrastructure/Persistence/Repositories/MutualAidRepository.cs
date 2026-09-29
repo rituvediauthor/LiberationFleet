@@ -36,6 +36,18 @@ public class MutualAidRepository : IMutualAidRepository
             .Where(m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && m.IsSeasonReady)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CrewMembership>> GetAutoJoinSeasonMembersAsync(int crewId, CancellationToken cancellationToken = default) =>
+        await _context.CrewMemberships
+            .Include(m => m.User)
+            .ThenInclude(u => u.PaymentPlatforms)
+                .ThenInclude(p => p.CrewPaymentPlatform)
+            .AsSplitQuery()
+            .Where(m => m.CrewId == crewId
+                && !m.IsBanned
+                && m.LeftAt == null
+                && m.AutoJoinSeasonOnStart)
+            .ToListAsync(cancellationToken);
+
     public Task<int> CountSeasonReadyMembersAsync(int crewId, CancellationToken cancellationToken = default) =>
         _context.CrewMemberships
             .AsNoTracking()
@@ -208,6 +220,17 @@ public class MutualAidRepository : IMutualAidRepository
             .Include(t => t.User)
             .Where(t => t.CrewId == crewId && t.Year == year && t.Month == month)
             .OrderBy(t => t.ReceptionOrderPosition)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<MonthlySurvivalThreshold>> GetThresholdsForUserAsync(
+        int crewId,
+        int userId,
+        CancellationToken cancellationToken = default) =>
+        await _context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == crewId && t.UserId == userId)
+            .OrderBy(t => t.Year)
+            .ThenBy(t => t.Month)
+            .ThenBy(t => t.ReceptionOrderPosition)
             .ToListAsync(cancellationToken);
 
     public void RemoveThreshold(MonthlySurvivalThreshold threshold) =>

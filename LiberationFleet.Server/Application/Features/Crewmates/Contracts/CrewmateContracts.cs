@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Contracts;
@@ -116,6 +117,14 @@ public class CrewmateProfileDto
     public decimal? CycleReceived { get; set; }
     public bool? CycleCompleted { get; set; }
     public bool HasActiveSeasonCycle { get; set; }
+    /// <summary>True when an accountant can edit season accounting (live or as a pre-season draft).</summary>
+    public bool SeasonStarted { get; set; }
+    public bool AutoJoinSeasonOnStart { get; set; }
+    public bool HasActiveCycle { get; set; }
+    /// <summary>1-based reception order for the primary cycle, when known.</summary>
+    public int? ReceptionOrder { get; set; }
+    public bool HasAidStatDraft { get; set; }
+    public AidSeasonAccountingDto? SeasonAccounting { get; set; }
     public PriorityScoreBreakdownDto? GivingSeasonPriority { get; set; }
     public PriorityScoreBreakdownDto? LibraryOfThingsPriority { get; set; }
     public int LibraryPriorityTier { get; set; } = 1;

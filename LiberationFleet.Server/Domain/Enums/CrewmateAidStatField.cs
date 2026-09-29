@@ -10,5 +10,10 @@ public enum CrewmateAidStatField
     CycleReceived = 6,
     CycleCompleted = 7,
     /// <summary>Active percent boost applied to priority score this season (membership PercentBonus).</summary>
-    PercentBoost = 8
+    PercentBoost = 8,
+    /// <summary>
+    /// JSON payload (<see cref="Application.Features.Crews.AidSeasonAccountingDto"/>) for cycle lock/order,
+    /// survival thresholds, auto-join, and pre-season drafts.
+    /// </summary>
+    SeasonAccounting = 9
 }

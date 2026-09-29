@@ -40,8 +40,6 @@ public class CrewmateAidStatProposalService(
     IUserRepository userRepository,
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
-    IGiftRepository giftRepository,
-    ContentTenureService contentTenureService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
 {
@@ -76,18 +74,6 @@ public class CrewmateAidStatProposalService(
             return CrewmateAidStatProposalResult.Failed("Crew not found.");
         }
 
-        var (canPropose, proposeError) = await ProposalCreationAuthorization.EnsureCrewMemberCanCreateAsync(
-            crewForAuth,
-            authorMembership,
-            giftRepository,
-            contentTenureService,
-            cancellationToken);
-        if (!canPropose)
-        {
-            return CrewmateAidStatProposalResult.Failed(
-                proposeError ?? "You are not allowed to create proposals yet.");
-        }
-
         var targetUser = await userRepository.GetByIdWithProfileAsync(targetUserId, cancellationToken);
         if (targetUser is null)
         {
@@ -109,6 +95,13 @@ public class CrewmateAidStatProposalService(
                     "Cycle completion is derived from cycle reception versus the cycle cap and cannot be set manually.");
             }
 
+            if (change.Field is CrewmateAidStatField.TotalReceptionAmount
+                or CrewmateAidStatField.SurvivalThresholdReceived)
+            {
+                return CrewmateAidStatProposalResult.Failed(
+                    "Total and survival reception are derived from cycle reception and survival thresholds. Use SeasonAccounting instead.");
+            }
+
             if (!TryNormalizeValue(change.Field, change.NewValue, out var normalizedValue, out var error))
             {
                 return CrewmateAidStatProposalResult.Failed(error);
@@ -122,39 +115,43 @@ public class CrewmateAidStatProposalService(
         }
 
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-        if (normalized.Any(i => IsCycleField(i.Field))
-            && crew?.CurrentSeasonStartDate is null)
+        var hasSeasonAccounting = normalized.Any(i => i.Field == CrewmateAidStatField.SeasonAccounting);
+        var hasLegacyCycleFields = normalized.Any(i => IsLegacyCycleField(i.Field));
+
+        if (hasLegacyCycleFields && !hasSeasonAccounting && crew?.CurrentSeasonStartDate is null)
         {
             return CrewmateAidStatProposalResult.Failed(
-                "Season cycle fields can only be edited after the crew has started a season.");
+                "Season cycle fields can only be edited after the crew has started a season, or via SeasonAccounting (pre-season draft).");
         }
 
         if (crew?.CurrentSeasonStartDate is DateTime seasonStart
-            && normalized.Any(i => i.Field == CrewmateAidStatField.CycleReceived))
+            && (hasSeasonAccounting || hasLegacyCycleFields))
         {
-            var cycleReceivedItem = normalized.First(i => i.Field == CrewmateAidStatField.CycleReceived);
-            var received = decimal.Parse(cycleReceivedItem.NewValue, CultureInfo.InvariantCulture);
-            var cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
-                crewId,
-                targetUserId,
-                seasonStart,
-                cancellationToken);
-            if (cycle is not null)
+            var cycleReceived = ResolveProposedCycleReceived(normalized);
+            if (cycleReceived is decimal received)
             {
-                var isMember = await mutualAidService.IsFinancialMemberAsync(
-                    targetUserId,
+                var cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
                     crewId,
-                    targetMembership,
+                    targetUserId,
+                    seasonStart,
                     cancellationToken);
-                var effectiveCap = EmergencySplitService.ResolveSegmentCap(
-                    cycle,
-                    isMember,
-                    crew.SeasonMemberCycleCap,
-                    crew.SeasonNonMemberCycleCap);
-                if (received > effectiveCap)
+                if (cycle is not null)
                 {
-                    return CrewmateAidStatProposalResult.Failed(
-                        $"Cycle reception cannot exceed the effective cycle cap (${effectiveCap.ToString(CultureInfo.InvariantCulture)}).");
+                    var isMember = await mutualAidService.IsFinancialMemberAsync(
+                        targetUserId,
+                        crewId,
+                        targetMembership,
+                        cancellationToken);
+                    var effectiveCap = EmergencySplitService.ResolveSegmentCap(
+                        cycle,
+                        isMember,
+                        crew.SeasonMemberCycleCap,
+                        crew.SeasonNonMemberCycleCap);
+                    if (received > effectiveCap)
+                    {
+                        return CrewmateAidStatProposalResult.Failed(
+                            $"Cycle reception cannot exceed the effective cycle cap (${effectiveCap.ToString(CultureInfo.InvariantCulture)}).");
+                    }
                 }
             }
         }
@@ -269,12 +266,33 @@ public class CrewmateAidStatProposalService(
             return;
         }
 
+        var seasonAccountingItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.SeasonAccounting);
+        if (seasonAccountingItem is not null)
+        {
+            var accounting = AidStatDraftSerializer.Deserialize(seasonAccountingItem.NewValue);
+            if (accounting is null)
+            {
+                change.IsApplied = true;
+                change.Description = $"{change.Description}\n(Could not apply: invalid season accounting payload.)";
+                return;
+            }
+
+            await mutualAidService.ApplyAidSeasonAccountingAsync(
+                proposal.CrewId.Value,
+                membership,
+                accounting,
+                persistAsDraftWhenNoSeason: true,
+                cancellationToken);
+        }
+
         var crew = await mutualAidRepository.GetCrewAsync(proposal.CrewId.Value, cancellationToken);
         SeasonCycle? cycle = null;
         var isFinancialMember = false;
         decimal effectiveCap = 0m;
+        var legacyCycleItems = items.Where(i => IsLegacyCycleField(i.Field)).ToList();
         if (crew?.CurrentSeasonStartDate is DateTime seasonStart
-            && items.Any(i => IsCycleField(i.Field)))
+            && legacyCycleItems.Count > 0
+            && seasonAccountingItem is null)
         {
             isFinancialMember = await mutualAidService.IsFinancialMemberAsync(
                 change.TargetUserId,
@@ -331,16 +349,18 @@ public class CrewmateAidStatProposalService(
         var utcNow = DateTime.UtcNow;
         foreach (var item in items)
         {
-            // Ignore legacy CycleCompleted rows; completion is synced from reception below.
-            if (item.Field == CrewmateAidStatField.CycleCompleted)
+            if (item.Field is CrewmateAidStatField.CycleCompleted
+                or CrewmateAidStatField.SeasonAccounting
+                or CrewmateAidStatField.TotalReceptionAmount
+                or CrewmateAidStatField.SurvivalThresholdReceived)
             {
                 continue;
             }
 
-            ApplyChange(membership, cycle, item);
+            ApplyMembershipOrLegacyCycleChange(membership, cycle, item);
         }
 
-        if (cycle is not null && items.Any(i => IsCycleField(i.Field)))
+        if (cycle is not null && legacyCycleItems.Count > 0 && seasonAccountingItem is null)
         {
             SyncCycleCompletedFromReception(cycle, effectiveCap, utcNow);
         }
@@ -351,13 +371,28 @@ public class CrewmateAidStatProposalService(
         await mutualAidService.TryEndSeasonIfCompleteAsync(proposal.CrewId.Value, cancellationToken);
     }
 
-    private static bool IsCycleField(CrewmateAidStatField field) =>
+    private static decimal? ResolveProposedCycleReceived(IReadOnlyList<CrewmateAidStatChangeItem> items)
+    {
+        var accountingItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.SeasonAccounting);
+        if (accountingItem is not null)
+        {
+            var accounting = AidStatDraftSerializer.Deserialize(accountingItem.NewValue);
+            return accounting?.CycleReceived;
+        }
+
+        var cycleReceivedItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.CycleReceived);
+        return cycleReceivedItem is null
+            ? null
+            : decimal.Parse(cycleReceivedItem.NewValue, CultureInfo.InvariantCulture);
+    }
+
+    private static bool IsLegacyCycleField(CrewmateAidStatField field) =>
         field is CrewmateAidStatField.TotalReceptionAmount
             or CrewmateAidStatField.SurvivalThresholdReceived
             or CrewmateAidStatField.CycleReceived
             or CrewmateAidStatField.CycleCompleted;
 
-    private static void ApplyChange(
+    private static void ApplyMembershipOrLegacyCycleChange(
         CrewMembership membership,
         SeasonCycle? cycle,
         CrewmateAidStatChangeItem item)
@@ -373,12 +408,6 @@ public class CrewmateAidStatProposalService(
             case CrewmateAidStatField.ReceptionThisYear:
                 membership.ReceptionThisYearOverride = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
-            case CrewmateAidStatField.TotalReceptionAmount when cycle is not null:
-                cycle.TotalReceptionAmount = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
-                break;
-            case CrewmateAidStatField.SurvivalThresholdReceived when cycle is not null:
-                cycle.SurvivalThresholdReceived = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
-                break;
             case CrewmateAidStatField.CycleReceived when cycle is not null:
                 cycle.CycleReceived = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
@@ -388,10 +417,6 @@ public class CrewmateAidStatProposalService(
         }
     }
 
-    /// <summary>
-    /// Aid-stat edits should mirror the user's rule: completed iff reception meets the effective cap.
-    /// (Unlike gift application catch-up, lowering reception below the cap reopens the cycle.)
-    /// </summary>
     private static void SyncCycleCompletedFromReception(SeasonCycle cycle, decimal effectiveCap, DateTime utcNow)
     {
         if (MutualAidCalculationService.IsCycleSatisfied(cycle, effectiveCap))
@@ -420,6 +445,40 @@ public class CrewmateAidStatProposalService(
         {
             error = "Cycle completion is derived from cycle reception versus the cycle cap and cannot be set manually.";
             return false;
+        }
+
+        if (field == CrewmateAidStatField.SeasonAccounting)
+        {
+            var accounting = AidStatDraftSerializer.Deserialize(trimmed);
+            if (accounting is null)
+            {
+                error = "Season accounting payload is invalid.";
+                return false;
+            }
+
+            if (accounting.CycleReceived < 0)
+            {
+                error = "Cycle reception cannot be negative.";
+                return false;
+            }
+
+            if (accounting.ReceptionOrder is < 1)
+            {
+                error = "Reception order must be 1 or greater.";
+                return false;
+            }
+
+            foreach (var threshold in accounting.SurvivalThresholds)
+            {
+                if (threshold.AmountRemaining < 0 || threshold.ThresholdAmount < 0)
+                {
+                    error = "Survival threshold amounts cannot be negative.";
+                    return false;
+                }
+            }
+
+            normalized = AidStatDraftSerializer.Serialize(accounting);
+            return true;
         }
 
         if (field == CrewmateAidStatField.PercentBoost)
@@ -469,14 +528,32 @@ public class CrewmateAidStatProposalService(
             CrewmateAidStatField.CycleReceived => "Cycle reception (season)",
             CrewmateAidStatField.CycleCompleted => "Cycle completed",
             CrewmateAidStatField.PercentBoost => "Percent boost (this season)",
+            CrewmateAidStatField.SeasonAccounting => "Season accounting",
             _ => field.ToString()
         };
 
-    private static string FormatDisplayValue(CrewmateAidStatField field, string value) =>
-        field switch
+    private static string FormatDisplayValue(CrewmateAidStatField field, string value)
+    {
+        if (field == CrewmateAidStatField.SeasonAccounting)
+        {
+            var accounting = AidStatDraftSerializer.Deserialize(value);
+            if (accounting is null)
+            {
+                return "(season accounting)";
+            }
+
+            return
+                $"cycle ${accounting.CycleReceived:0.##}, active={(accounting.HasActiveCycle ? "yes" : "no")}, " +
+                $"order={(accounting.ReceptionOrder?.ToString(CultureInfo.InvariantCulture) ?? "—")}, " +
+                $"auto-join={(accounting.AutoJoinSeasonOnStart ? "yes" : "no")}, " +
+                $"thresholds={accounting.SurvivalThresholds.Count}";
+        }
+
+        return field switch
         {
             CrewmateAidStatField.CycleCompleted => value == "true" ? "Yes" : "No",
             CrewmateAidStatField.PercentBoost => $"+{value}%",
             _ => $"${value}"
         };
+    }
 }
