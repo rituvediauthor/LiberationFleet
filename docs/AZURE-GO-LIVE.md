@@ -871,16 +871,39 @@ If you own a domain (e.g. `liberationfleet.org`) and want production on it:
 
 #### 11.5.2 Create DNS at Cloudflare (or your registrar)
 
-Azure shows the exact records. Create them in **Cloudflare → your zone → DNS → Records**.
+Azure shows the exact records. Create them in Cloudflare:
 
-| You want | Typical Cloudflare record |
-|----------|---------------------------|
-| `www.liberationfleet.org` | **CNAME** Name `www` → Target `app-lfleet-production.azurewebsites.net` (Proxy status: see note below) |
-| Apex `liberationfleet.org` | Follow Azure’s UI: usually a **TXT** for verification **plus** an **A** (or Cloudflare CNAME flattening) to the App Service host/IPs Azure shows |
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → select your zone (e.g. `liberationfleet.org`).
+2. Left sidebar → **DNS** → **Records**.
+3. Click **Add record** once for each Azure row.
 
-**Cloudflare proxy (orange cloud) tip:** for first-time **domain validation** and **App Service Managed Certificate**, set the record to **DNS only** (grey cloud). After Azure shows the domain as Secured, you can try turning the proxy back on if you want Cloudflare CDN/WAF — if TLS breaks, leave it DNS-only pointing at Azure.
+**TXT (domain verification)**
 
-Save records. Wait a few minutes. In Azure Custom domains → **Validate** until it succeeds → **Add**.
+| Cloudflare field | What to enter |
+|------------------|---------------|
+| **Type** | `TXT` |
+| **Name** | Azure’s host (often `asuid` or `asuid.www`). If Azure shows `asuid.liberationfleet.org`, use `asuid` — Cloudflare adds the zone name. |
+| **Content** | Azure’s Value (long token), pasted exactly |
+| **TTL** | Auto |
+
+**A (apex traffic)**
+
+Azure may show several IPs in one string, e.g. `,40.112.243.2,20.59.88.18`. That is **not** valid as a single Cloudflare A record. Create **one A record per IP** (ignore a leading empty comma):
+
+| Type | Name | IPv4 address | Proxy status |
+|------|------|--------------|--------------|
+| A | `@` (for apex) | `40.112.243.2` | **DNS only** (grey cloud) |
+| A | `@` | `20.59.88.18` | **DNS only** (grey cloud) |
+
+**www (optional)**
+
+| Type | Name | Target | Proxy |
+|------|------|--------|-------|
+| CNAME | `www` | `app-lfleet-production.azurewebsites.net` | **DNS only** for first validation/cert |
+
+**Proxy tip:** keep **DNS only** (grey cloud) until Azure validation + App Service Managed Certificate succeed. Orange-cloud proxy can break validation/TLS; turn it on later only if HTTPS still works.
+
+Save → wait a few minutes → Azure Custom domains → **Validate** → **Add**.
 
 #### 11.5.3 Free TLS certificate
 

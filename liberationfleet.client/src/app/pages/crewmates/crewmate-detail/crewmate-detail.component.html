@@ -143,6 +143,7 @@
               <span class="readonly-value">
                 {{ profile.cycleCompleted == null ? '—' : (profile.cycleCompleted ? 'Yes' : 'No') }}
               </span>
+              <span class="hint-text">Yes when cycle reception meets the cycle cap.</span>
             </div>
           </ng-container>
         </div>
@@ -279,10 +280,9 @@
               <span>Cycle reception this season ($)</span>
               <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" class="form-input">
             </label>
-            <label class="aid-stat-checkbox">
-              <input type="checkbox" [(ngModel)]="aidDraft.cycleCompleted">
-              <span>Cycle completed this season</span>
-            </label>
+            <p class="hint-text">
+              Cycle completion is automatic: the cycle is complete when cycle reception meets the cycle cap.
+            </p>
           </ng-container>
           <p class="hint-text" *ngIf="!profile.hasActiveSeasonCycle">
             Season cycle reception fields become available after the crew starts a season.

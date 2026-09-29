@@ -82,7 +82,7 @@ public class CrewmateAidStatProposalServiceTests
     }
 
     [Fact]
-    public async Task TryApply_WhenMarkingCompleted_UsesEffectiveCapAtCompletion()
+    public async Task TryApply_WhenCycleReceivedMeetsCap_MarksCompletedFromReception()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
         var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
@@ -93,21 +93,53 @@ public class CrewmateAidStatProposalServiceTests
         // Split reduced remaining primary via UsesSegmentCap.
         primary.UsesSegmentCap = true;
         primary.CycleCapAtStart = 60m;
-        primary.CycleReceived = 60m;
+        primary.CycleReceived = 10m;
+        primary.CycleCompleted = false;
         await fixture.Context.SaveChangesAsync();
 
         var service = CreateService(fixture);
         var proposal = await CreateApprovedProposalAsync(
             fixture,
             fixture.Bob.Id,
-            [new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.CycleCompleted, NewValue = "true" }]);
+            [new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.CycleReceived, NewValue = "60" }]);
 
         await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
         await fixture.Context.SaveChangesAsync();
 
         var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
+        reloaded.CycleReceived.Should().Be(60m);
         reloaded.CycleCompleted.Should().BeTrue();
         reloaded.CycleCapAtCompletion.Should().Be(60m);
+    }
+
+    [Fact]
+    public async Task TryApply_WhenCycleReceivedBelowCap_ClearsCompleted()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
+            c.UserId == fixture.Bob.Id
+            && c.SeasonStartDate == fixture.SeasonStart
+            && c.EmergencyRequestId == null
+            && c.EmergencySplitOfferId == null);
+        primary.CycleReceived = 100m;
+        primary.CycleCompleted = true;
+        primary.CycleCompletedAt = DateTime.UtcNow;
+        primary.CycleCapAtCompletion = 100m;
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreateService(fixture);
+        var proposal = await CreateApprovedProposalAsync(
+            fixture,
+            fixture.Bob.Id,
+            [new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.CycleReceived, NewValue = "40" }]);
+
+        await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
+        reloaded.CycleReceived.Should().Be(40m);
+        reloaded.CycleCompleted.Should().BeFalse();
+        reloaded.CycleCompletedAt.Should().BeNull();
     }
 
     [Fact]

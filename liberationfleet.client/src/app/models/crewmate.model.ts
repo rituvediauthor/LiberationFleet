@@ -115,7 +115,6 @@ export type CrewmateAidStatField =
   | 'TotalReceptionAmount'
   | 'SurvivalThresholdReceived'
   | 'CycleReceived'
-  | 'CycleCompleted'
   | 'PercentBoost';
 
 export interface ProposeCrewmateAidStatChangeItem {

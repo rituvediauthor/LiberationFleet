@@ -103,6 +103,12 @@ public class CrewmateAidStatProposalService(
         var normalized = new List<CrewmateAidStatChangeItem>();
         foreach (var change in changes)
         {
+            if (change.Field == CrewmateAidStatField.CycleCompleted)
+            {
+                return CrewmateAidStatProposalResult.Failed(
+                    "Cycle completion is derived from cycle reception versus the cycle cap and cannot be set manually.");
+            }
+
             if (!TryNormalizeValue(change.Field, change.NewValue, out var normalizedValue, out var error))
             {
                 return CrewmateAidStatProposalResult.Failed(error);
@@ -325,7 +331,18 @@ public class CrewmateAidStatProposalService(
         var utcNow = DateTime.UtcNow;
         foreach (var item in items)
         {
-            ApplyChange(membership, cycle, item, utcNow, effectiveCap);
+            // Ignore legacy CycleCompleted rows; completion is synced from reception below.
+            if (item.Field == CrewmateAidStatField.CycleCompleted)
+            {
+                continue;
+            }
+
+            ApplyChange(membership, cycle, item);
+        }
+
+        if (cycle is not null && items.Any(i => IsCycleField(i.Field)))
+        {
+            SyncCycleCompletedFromReception(cycle, effectiveCap, utcNow);
         }
 
         change.IsApplied = true;
@@ -343,9 +360,7 @@ public class CrewmateAidStatProposalService(
     private static void ApplyChange(
         CrewMembership membership,
         SeasonCycle? cycle,
-        CrewmateAidStatChangeItem item,
-        DateTime utcNow,
-        decimal effectiveCap)
+        CrewmateAidStatChangeItem item)
     {
         switch (item.Field)
         {
@@ -367,19 +382,28 @@ public class CrewmateAidStatProposalService(
             case CrewmateAidStatField.CycleReceived when cycle is not null:
                 cycle.CycleReceived = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
-            case CrewmateAidStatField.CycleCompleted when cycle is not null:
-                var completed = bool.Parse(item.NewValue);
-                cycle.CycleCompleted = completed;
-                cycle.CycleCompletedAt = completed ? utcNow : null;
-                if (completed)
-                {
-                    cycle.CycleCapAtCompletion = effectiveCap > 0m ? effectiveCap : cycle.CycleCapAtStart;
-                }
-                break;
             case CrewmateAidStatField.PercentBoost:
                 membership.PercentBonus = int.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Aid-stat edits should mirror the user's rule: completed iff reception meets the effective cap.
+    /// (Unlike gift application catch-up, lowering reception below the cap reopens the cycle.)
+    /// </summary>
+    private static void SyncCycleCompletedFromReception(SeasonCycle cycle, decimal effectiveCap, DateTime utcNow)
+    {
+        if (MutualAidCalculationService.IsCycleSatisfied(cycle, effectiveCap))
+        {
+            cycle.CycleCompleted = true;
+            cycle.CycleCompletedAt ??= utcNow;
+            cycle.CycleCapAtCompletion = effectiveCap > 0m ? effectiveCap : cycle.CycleCapAtStart;
+            return;
+        }
+
+        cycle.CycleCompleted = false;
+        cycle.CycleCompletedAt = null;
     }
 
     private static bool TryNormalizeValue(
@@ -394,25 +418,7 @@ public class CrewmateAidStatProposalService(
 
         if (field == CrewmateAidStatField.CycleCompleted)
         {
-            if (bool.TryParse(trimmed, out var flag))
-            {
-                normalized = flag ? "true" : "false";
-                return true;
-            }
-
-            if (trimmed is "1" or "yes" or "Yes")
-            {
-                normalized = "true";
-                return true;
-            }
-
-            if (trimmed is "0" or "no" or "No")
-            {
-                normalized = "false";
-                return true;
-            }
-
-            error = "Cycle completed must be true or false.";
+            error = "Cycle completion is derived from cycle reception versus the cycle cap and cannot be set manually.";
             return false;
         }
 

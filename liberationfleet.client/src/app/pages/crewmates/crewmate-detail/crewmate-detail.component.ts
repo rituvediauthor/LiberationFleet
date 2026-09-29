@@ -59,7 +59,6 @@ export class CrewmateDetailComponent implements OnInit {
     totalReceptionAmount: '',
     survivalThresholdReceived: '',
     cycleReceived: '',
-    cycleCompleted: false,
     percentBoost: ''
   };
 
@@ -413,11 +412,12 @@ export class CrewmateDetailComponent implements OnInit {
     const changes: ProposeCrewmateAidStatChangeItem[] = [];
     const pushIfChanged = (
       field: CrewmateAidStatField,
-      draft: string,
+      draft: string | number | null | undefined,
       current: number | null | undefined,
       options?: { integer?: boolean }
     ) => {
-      const trimmed = draft.trim();
+      // number inputs can bind as numbers via ngModel — coerce before trim.
+      const trimmed = String(draft ?? '').trim();
       if (!trimmed) {
         return;
       }
@@ -480,14 +480,6 @@ export class CrewmateDetailComponent implements OnInit {
         this.aidDraft.cycleReceived,
         this.profile.cycleReceived
       );
-
-      const currentCycleCompleted = this.profile.cycleCompleted === true;
-      if (this.aidDraft.cycleCompleted !== currentCycleCompleted) {
-        changes.push({
-          field: 'CycleCompleted',
-          newValue: this.aidDraft.cycleCompleted ? 'true' : 'false'
-        });
-      }
     }
 
     return changes;
@@ -508,7 +500,6 @@ export class CrewmateDetailComponent implements OnInit {
       totalReceptionAmount: money(this.profile.totalReceptionAmount),
       survivalThresholdReceived: money(this.profile.survivalThresholdReceived),
       cycleReceived: money(this.profile.cycleReceived),
-      cycleCompleted: this.profile.cycleCompleted === true,
       percentBoost: this.profile.percentBoost == null ? '' : String(this.profile.percentBoost)
     };
   }
