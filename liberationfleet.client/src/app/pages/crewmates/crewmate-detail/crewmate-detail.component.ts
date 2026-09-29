@@ -527,7 +527,7 @@ export class CrewmateDetailComponent implements OnInit {
       hasActiveCycle: !!this.aidDraft.hasActiveCycle,
       receptionOrder,
       // Only meaningful before a season starts; keep existing value so mid-season edits don't churn it.
-      autoJoinSeasonOnStart: this.profile.seasonStarted
+      autoJoinSeasonOnStart: this.profile?.seasonStarted
         ? !!this.profile.autoJoinSeasonOnStart
         : !!this.aidDraft.autoJoinSeasonOnStart,
       survivalThresholds,
