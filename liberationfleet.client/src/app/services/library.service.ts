@@ -28,8 +28,6 @@ import {
   LibraryOfferingListPage,
   LibraryOfferingDetailResponse,
   UpdateLibraryOfferingRequest,
-  LibraryOfferingDetailResponse,
-  LibraryOfferingListItem,
   RecordLibraryAcquisitionPayload,
   ReportLibraryUnitBrokenPayload,
   RecordLibraryMaintenancePayload,
