@@ -2124,11 +2124,6 @@ public partial class MutualAidService(
             crew.SeasonNonMemberCycleCap);
 
         var cycleReceived = Math.Max(0m, accounting.CycleReceived);
-        if (effectiveCap > 0m && cycleReceived > effectiveCap)
-        {
-            cycleReceived = effectiveCap;
-        }
-
         cycle.CycleReceived = cycleReceived;
         cycle.HasCycleStarted = accounting.HasActiveCycle;
 
@@ -2233,7 +2228,6 @@ public partial class MutualAidService(
             .ThenBy(t => t.Id ?? int.MaxValue)
             .ToList();
 
-        var position = 0;
         foreach (var draft in orderedDrafts)
         {
             var remaining = Math.Max(0m, draft.AmountRemaining);
@@ -2272,7 +2266,7 @@ public partial class MutualAidService(
                     Month = now.Month,
                     ThresholdAmount = thresholdAmount,
                     ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount),
-                    ReceptionOrderPosition = nextPosition++
+                    ReceptionOrderPosition = nextPosition
                 };
                 await mutualAidRepository.AddThresholdAsync(row, cancellationToken);
                 if (row.Id != 0)
@@ -2281,7 +2275,10 @@ public partial class MutualAidService(
                 }
             }
 
-            row.ReceptionOrderPosition = position++;
+            // Absolute crew-wide order from the editor (1-based → 0-based position).
+            row.ReceptionOrderPosition = draft.Order > 0
+                ? Math.Max(0, draft.Order - 1)
+                : nextPosition++;
             row.Satisfied = row.ReceivedAmount >= row.ThresholdAmount;
         }
     }

@@ -272,7 +272,7 @@
           </label>
 
           <h3 class="aid-stat-subtitle">Season accounting</h3>
-          <label class="aid-stat-checkbox">
+          <label class="aid-stat-checkbox" *ngIf="!profile.seasonStarted">
             <input type="checkbox" [(ngModel)]="aidDraft.autoJoinSeasonOnStart">
             <span>Auto-join this crewmate when the season starts</span>
           </label>
@@ -303,10 +303,10 @@
 
           <h3 class="aid-stat-subtitle">Survival thresholds</h3>
           <p class="hint-text">
-            One threshold per calendar month. Edit remaining amount (received = threshold − remaining).
-            Order controls this crewmate’s place among survival recipients.
+            Edit remaining amount (received = threshold − remaining).
+            Order is 1-based among all crewmates’ survival thresholds in the crew (1 = first).
           </p>
-          <div class="aid-stat-threshold" *ngFor="let row of aidDraft.survivalThresholds; let i = index">
+          <div class="aid-stat-threshold-card" *ngFor="let row of aidDraft.survivalThresholds; let i = index">
             <label class="aid-stat-field">
               <span>Threshold amount ($)</span>
               <input type="number" min="0" step="0.01" [(ngModel)]="row.thresholdAmount" class="form-input">
@@ -315,18 +315,19 @@
               <span>Amount remaining ($)</span>
               <input type="number" min="0" step="0.01" [(ngModel)]="row.amountRemaining" class="form-input">
             </label>
+            <label class="aid-stat-field">
+              <span>Reception order (1 = first among all thresholds)</span>
+              <input type="number" min="1" step="1" [(ngModel)]="row.order" class="form-input">
+            </label>
             <div class="aid-stat-threshold-actions">
-              <button type="button" class="role-btn" (click)="moveSurvivalThreshold(i, -1)" [disabled]="i === 0">Up</button>
-              <button type="button" class="role-btn" (click)="moveSurvivalThreshold(i, 1)" [disabled]="i === aidDraft.survivalThresholds.length - 1">Down</button>
               <button type="button" class="block-btn" (click)="removeSurvivalThresholdRow(i)">Remove</button>
             </div>
           </div>
           <button
             type="button"
             class="export-btn"
-            *ngIf="!hasCurrentMonthSurvivalThresholdDraft"
             (click)="addSurvivalThresholdRow()">
-            Add survival threshold for this month
+            Add survival threshold
           </button>
         </div>
 

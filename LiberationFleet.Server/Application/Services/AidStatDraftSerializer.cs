@@ -39,12 +39,13 @@ public static class AidStatDraftSerializer
     {
         var thresholdDtos = thresholds
             .OrderBy(t => t.ReceptionOrderPosition)
-            .Select((t, index) => new AidSurvivalThresholdDraftDto
+            .Select(t => new AidSurvivalThresholdDraftDto
             {
                 Id = t.Id,
                 ThresholdAmount = t.ThresholdAmount,
                 AmountRemaining = Math.Max(0m, t.ThresholdAmount - t.ReceivedAmount),
-                Order = index + 1
+                // Crew-wide 1-based order (not local index among this crewmate's rows).
+                Order = t.ReceptionOrderPosition + 1
             })
             .ToList();
 

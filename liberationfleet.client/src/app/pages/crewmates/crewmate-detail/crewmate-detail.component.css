@@ -395,18 +395,22 @@
   color: var(--lf-color-text-primary);
 }
 
-.aid-stat-threshold {
+.aid-stat-threshold-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 0;
-  border-top: 1px solid var(--lf-color-border);
+  padding: 14px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 6%, transparent);
 }
 
 .aid-stat-threshold-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 2px;
 }
 
 @media (max-width: 600px) {

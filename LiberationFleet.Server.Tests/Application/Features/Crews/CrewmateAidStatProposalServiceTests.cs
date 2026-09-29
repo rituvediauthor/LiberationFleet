@@ -17,7 +17,7 @@ public class CrewmateAidStatProposalServiceTests
     };
 
     [Fact]
-    public async Task TryApply_WhenCycleReceivedExceedsCap_DoesNotApply()
+    public async Task TryApply_WhenCycleReceivedExceedsCap_AppliesAndMarksCompleted()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
         var service = CreateService(fixture);
@@ -33,14 +33,15 @@ public class CrewmateAidStatProposalServiceTests
         var change = await fixture.Context.ProposalCrewmateAidStatChanges
             .SingleAsync(c => c.ProposalId == proposal.Id);
         change.IsApplied.Should().BeTrue();
-        change.Description.Should().Contain("exceeds effective cap");
+        change.Description.Should().NotContain("exceeds effective cap");
 
         var primary = await fixture.Context.SeasonCycles.SingleAsync(c =>
             c.UserId == fixture.Bob.Id
             && c.SeasonStartDate == fixture.SeasonStart
             && c.EmergencyRequestId == null
             && c.EmergencySplitOfferId == null);
-        primary.CycleReceived.Should().Be(0m);
+        primary.CycleReceived.Should().Be(150m);
+        primary.CycleCompleted.Should().BeTrue();
     }
 
     [Fact]

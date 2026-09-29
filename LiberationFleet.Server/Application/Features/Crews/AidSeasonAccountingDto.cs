@@ -31,6 +31,6 @@ public sealed class AidSurvivalThresholdDraftDto
     public decimal ThresholdAmount { get; set; }
     /// <summary>Money still due for this threshold.</summary>
     public decimal AmountRemaining { get; set; }
-    /// <summary>1-based order (1 = first among survival thresholds).</summary>
+    /// <summary>1-based crew-wide reception order among all survival thresholds (1 = front of queue).</summary>
     public int Order { get; set; }
 }

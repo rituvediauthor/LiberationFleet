@@ -124,38 +124,6 @@ public class CrewmateAidStatProposalService(
                 "Season cycle fields can only be edited after the crew has started a season, or via SeasonAccounting (pre-season draft).");
         }
 
-        if (crew?.CurrentSeasonStartDate is DateTime seasonStart
-            && (hasSeasonAccounting || hasLegacyCycleFields))
-        {
-            var cycleReceived = ResolveProposedCycleReceived(normalized);
-            if (cycleReceived is decimal received)
-            {
-                var cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
-                    crewId,
-                    targetUserId,
-                    seasonStart,
-                    cancellationToken);
-                if (cycle is not null)
-                {
-                    var isMember = await mutualAidService.IsFinancialMemberAsync(
-                        targetUserId,
-                        crewId,
-                        targetMembership,
-                        cancellationToken);
-                    var effectiveCap = EmergencySplitService.ResolveSegmentCap(
-                        cycle,
-                        isMember,
-                        crew.SeasonMemberCycleCap,
-                        crew.SeasonNonMemberCycleCap);
-                    if (received > effectiveCap)
-                    {
-                        return CrewmateAidStatProposalResult.Failed(
-                            $"Cycle reception cannot exceed the effective cycle cap (${effectiveCap.ToString(CultureInfo.InvariantCulture)}).");
-                    }
-                }
-            }
-        }
-
         var pending = await proposalRepository.GetPendingCrewmateAidStatChangeForTargetAsync(
             crewId,
             targetUserId,
@@ -331,19 +299,6 @@ public class CrewmateAidStatProposalService(
                 isFinancialMember,
                 crew.SeasonMemberCycleCap,
                 crew.SeasonNonMemberCycleCap);
-
-            var cycleReceivedItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.CycleReceived);
-            if (cycleReceivedItem is not null)
-            {
-                var received = decimal.Parse(cycleReceivedItem.NewValue, CultureInfo.InvariantCulture);
-                if (received > effectiveCap)
-                {
-                    change.IsApplied = true;
-                    change.Description =
-                        $"{change.Description}\n(Could not apply: cycle reception ${received.ToString(CultureInfo.InvariantCulture)} exceeds effective cap ${effectiveCap.ToString(CultureInfo.InvariantCulture)}.)";
-                    return;
-                }
-            }
         }
 
         var utcNow = DateTime.UtcNow;
@@ -369,21 +324,6 @@ public class CrewmateAidStatProposalService(
 
         await mutualAidService.OnCrewContributionsChangedAsync(proposal.CrewId.Value, cancellationToken);
         await mutualAidService.TryEndSeasonIfCompleteAsync(proposal.CrewId.Value, cancellationToken);
-    }
-
-    private static decimal? ResolveProposedCycleReceived(IReadOnlyList<CrewmateAidStatChangeItem> items)
-    {
-        var accountingItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.SeasonAccounting);
-        if (accountingItem is not null)
-        {
-            var accounting = AidStatDraftSerializer.Deserialize(accountingItem.NewValue);
-            return accounting?.CycleReceived;
-        }
-
-        var cycleReceivedItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.CycleReceived);
-        return cycleReceivedItem is null
-            ? null
-            : decimal.Parse(cycleReceivedItem.NewValue, CultureInfo.InvariantCulture);
     }
 
     private static bool IsLegacyCycleField(CrewmateAidStatField field) =>
@@ -473,6 +413,12 @@ public class CrewmateAidStatProposalService(
                 if (threshold.AmountRemaining < 0 || threshold.ThresholdAmount < 0)
                 {
                     error = "Survival threshold amounts cannot be negative.";
+                    return false;
+                }
+
+                if (threshold.Order < 1)
+                {
+                    error = "Survival threshold order must be 1 or greater.";
                     return false;
                 }
             }

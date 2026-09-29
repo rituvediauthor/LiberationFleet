@@ -504,17 +504,21 @@ export class CrewmateDetailComponent implements OnInit {
     const survivalThresholds = this.aidDraft.survivalThresholds.map((row, index) => {
       const amountRemaining = Number(row.amountRemaining);
       const thresholdAmount = Number(row.thresholdAmount);
+      const order = Number(row.order);
       if (!Number.isFinite(amountRemaining) || amountRemaining < 0) {
         throw new Error('Survival threshold remaining amounts must be non-negative.');
       }
       if (!Number.isFinite(thresholdAmount) || thresholdAmount < 0) {
         throw new Error('Survival threshold amounts must be non-negative.');
       }
+      if (!Number.isInteger(order) || order < 1) {
+        throw new Error(`Survival threshold #${index + 1}: order must be a whole number of 1 or greater.`);
+      }
       return {
         id: row.id ?? null,
         thresholdAmount,
         amountRemaining,
-        order: index + 1
+        order
       };
     });
 
@@ -522,7 +526,10 @@ export class CrewmateDetailComponent implements OnInit {
       cycleReceived,
       hasActiveCycle: !!this.aidDraft.hasActiveCycle,
       receptionOrder,
-      autoJoinSeasonOnStart: !!this.aidDraft.autoJoinSeasonOnStart,
+      // Only meaningful before a season starts; keep existing value so mid-season edits don't churn it.
+      autoJoinSeasonOnStart: this.profile.seasonStarted
+        ? !!this.profile.autoJoinSeasonOnStart
+        : !!this.aidDraft.autoJoinSeasonOnStart,
       survivalThresholds,
       removedThresholdIds: [...this.aidDraft.removedThresholdIds]
     };
@@ -588,21 +595,18 @@ export class CrewmateDetailComponent implements OnInit {
     return cycle + this.derivedSurvivalReceived;
   }
 
-  get hasCurrentMonthSurvivalThresholdDraft(): boolean {
-    return this.aidDraft.survivalThresholds.length > 0;
-  }
-
   addSurvivalThresholdRow() {
-    if (this.hasCurrentMonthSurvivalThresholdDraft) {
-      return;
-    }
+    const maxOrder = this.aidDraft.survivalThresholds.reduce(
+      (max, row) => Math.max(max, Number(row.order) || 0),
+      0
+    );
     this.aidDraft.survivalThresholds = [
       ...this.aidDraft.survivalThresholds,
       {
         id: null,
         thresholdAmount: 0,
         amountRemaining: 0,
-        order: this.aidDraft.survivalThresholds.length + 1
+        order: maxOrder + 1
       }
     ];
   }
@@ -616,17 +620,6 @@ export class CrewmateDetailComponent implements OnInit {
       this.aidDraft.removedThresholdIds = [...this.aidDraft.removedThresholdIds, row.id];
     }
     this.aidDraft.survivalThresholds = this.aidDraft.survivalThresholds.filter((_, i) => i !== index);
-  }
-
-  moveSurvivalThreshold(index: number, delta: number) {
-    const target = index + delta;
-    if (target < 0 || target >= this.aidDraft.survivalThresholds.length) {
-      return;
-    }
-    const rows = [...this.aidDraft.survivalThresholds];
-    const [item] = rows.splice(index, 1);
-    rows.splice(target, 0, item);
-    this.aidDraft.survivalThresholds = rows;
   }
 
   private syncAidDraftFromProfile() {
