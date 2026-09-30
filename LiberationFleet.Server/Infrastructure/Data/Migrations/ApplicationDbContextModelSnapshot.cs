@@ -2760,6 +2760,67 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("PasswordResetTokens");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EmailMfaChallenge", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChallengeToken")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastSentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChallengeToken")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Purpose", "ConsumedAt");
+
+                    b.ToTable("EmailMfaChallenges");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.PaymentPlatform", b =>
                 {
                     b.Property<int>("Id")
@@ -5407,6 +5468,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EmailMfaChallenge", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany("EmailMfaChallenges")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.Proposal", b =>
                 {
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "AuthorUser")
@@ -6120,6 +6192,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("AppDonations");
 
                     b.Navigation("CrewMemberships");
+
+                    b.Navigation("EmailMfaChallenges");
 
                     b.Navigation("PasswordResetTokens");
 

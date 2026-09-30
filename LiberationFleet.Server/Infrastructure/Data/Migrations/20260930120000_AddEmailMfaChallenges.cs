@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LiberationFleet.Server.Infrastructure.Data.Migrations;
 
+/// Email MFA OTP challenges. Schema is created in Up(); snapshot updated so
+/// MigrateAsync does not fail with PendingModelChangesWarning.
 [DbContext(typeof(ApplicationDbContext))]
 [Migration("20260930120000_AddEmailMfaChallenges")]
 public partial class AddEmailMfaChallenges : Migration
