@@ -51,22 +51,7 @@
   text-align: center;
 }
 
-.fallible-guide {
-  margin-top: 8px;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  color: var(--lf-color-text-muted);
-  text-decoration: none;
-}
-
-.fallible-guide:hover {
-  color: var(--lf-color-text-secondary);
-  text-decoration: underline;
-}
-
-.fallible-donate {
-  margin-top: 4px;
+.fallible-link {
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
@@ -74,6 +59,23 @@
   text-decoration: none;
 }
 
-.fallible-donate:hover {
+.fallible-link:hover {
   text-decoration: underline;
+}
+
+.fallible-guide {
+  margin-top: 12px;
+}
+
+.fallible-link-rule {
+  width: 7.5rem;
+  max-width: 40%;
+  margin: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--lf-color-border);
+  opacity: 0.85;
+}
+
+.fallible-donate {
+  margin-top: 0;
 }
