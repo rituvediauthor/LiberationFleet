@@ -1,9 +1,9 @@
 <app-page-layout [backButton]="backButton" [primaryButton]="signInButton">
   <div class="sign-in-container">
     <div class="form-card">
-      <h1>Sign In</h1>
+      <h1>{{ mfaStep ? 'Check your email' : 'Sign In' }}</h1>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <form *ngIf="!mfaStep" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
         <div class="form-group">
           <label for="username">Username or Email</label>
           <input
@@ -65,6 +65,42 @@
           After signing in, you will be prompted for your 12-word recovery key to decrypt crew content.
           This is separate from your login password.
         </p>
+      </form>
+
+      <form *ngIf="mfaStep" [formGroup]="mfaForm" (ngSubmit)="onVerifyMfa()" novalidate>
+        <p class="recovery-note">{{ mfaHint || 'Enter the 6-digit code we emailed you.' }}</p>
+
+        <div class="form-group">
+          <label for="mfaCode">Verification code</label>
+          <input
+            #mfaCodeInput
+            id="mfaCode"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            formControlName="code"
+            class="form-input"
+            placeholder="6-digit code"
+            [attr.aria-invalid]="isMfaInvalid('code')"
+            [attr.aria-describedby]="isMfaInvalid('code') ? 'mfa-code-error' : null">
+          <span
+            id="mfa-code-error"
+            class="error-text"
+            role="alert"
+            *ngIf="isMfaInvalid('code')">
+            Enter the 6-digit code from your email
+          </span>
+        </div>
+
+        <div class="links-section">
+          <button type="button" class="link-button" (click)="resendMfaCode()" [disabled]="isLoading">
+            Resend code
+          </button>
+          <button type="button" class="link-button" (click)="backToPassword()" [disabled]="isLoading">
+            Back to password
+          </button>
+        </div>
       </form>
     </div>
   </div>

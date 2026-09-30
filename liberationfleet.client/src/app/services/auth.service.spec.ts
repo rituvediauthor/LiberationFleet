@@ -51,6 +51,23 @@ describe('AuthService', () => {
     expect(service.getToken()).toBe('login-token');
   });
 
+  it('login should not store token when MFA is required', () => {
+    service.login({ usernameOrEmail: 'fleet@example.com', password: 'password123' }).subscribe(result => {
+      expect(result.requiresMfa).toBeTrue();
+      expect(result.mfaChallengeToken).toBe('challenge');
+    });
+
+    const req = httpMock.expectOne('/api/auth/login');
+    req.flush({
+      success: true,
+      requiresMfa: true,
+      mfaChallengeToken: 'challenge',
+      message: 'Code sent'
+    });
+
+    expect(service.getToken()).toBeNull();
+  });
+
   it('establishSession should store token and user', () => {
     let latestUser: unknown = 'unset';
     service.currentUser$.subscribe(user => latestUser = user);

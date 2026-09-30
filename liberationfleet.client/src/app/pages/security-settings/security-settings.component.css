@@ -122,6 +122,22 @@
   border: 1px solid var(--lf-color-border-subtle);
   border-radius: 8px;
   font-size: 14px;
+  color: var(--lf-color-text-body);
+  background: var(--lf-color-bg-surface);
+}
+
+.mfa-lead {
+  margin: 0 0 12px;
+}
+
+.mfa-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mfa-actions {
+  margin-top: 8px;
 }
 
 .device-list {

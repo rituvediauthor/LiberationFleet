@@ -4,11 +4,13 @@ namespace LiberationFleet.Server.Application.Features.Security.Contracts;
 
 public class SecuritySettingsDto
 {
-    /// <summary>Always false until TOTP MFA ships. Kept for API compatibility.</summary>
     public bool TwoFactorEnabled { get; set; }
 
-    /// <summary>False until MFA enrollment/challenge is implemented.</summary>
+    /// <summary>True when email OTP MFA can be enrolled and is enforced at login.</summary>
     public bool MfaAvailable { get; set; }
+
+    /// <summary>Currently "EmailOtp" when enabled; null when off.</summary>
+    public string? MfaMethod { get; set; }
 
     public bool LockSettingsWithPassword { get; set; }
     public bool HasSettingsLockPassword { get; set; }

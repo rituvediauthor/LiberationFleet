@@ -6,6 +6,7 @@ export type SecurityAlertType =
 export interface SecuritySettingsDto {
   twoFactorEnabled: boolean;
   mfaAvailable?: boolean;
+  mfaMethod?: string | null;
   lockSettingsWithPassword: boolean;
   hasSettingsLockPassword: boolean;
 }
@@ -82,4 +83,25 @@ export interface VerifySettingsPasswordRequest {
 export interface VerifySettingsPasswordResponse {
   success: boolean;
   message: string;
+}
+
+export interface BeginEmailMfaRequest {
+  settingsPassword?: string;
+}
+
+export interface ConfirmEmailMfaRequest {
+  mfaChallengeToken: string;
+  code: string;
+  settingsPassword?: string;
+}
+
+export interface EmailMfaChallengeResponse {
+  success: boolean;
+  message: string;
+  mfaChallengeToken?: string | null;
+  settings?: SecuritySettingsDto;
+}
+
+export interface ResendEmailMfaRequest {
+  mfaChallengeToken: string;
 }

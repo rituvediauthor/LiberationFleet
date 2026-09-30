@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Login;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Tests.TestHelpers;
 using MediatR;
 using Moq;
@@ -31,6 +32,7 @@ public class LoginCommandHandlerTests
             unitOfWork.Object,
             passwordHasher.Object,
             tokenService.Object,
+            new Mock<IEmailMfaService>().Object,
             new Mock<IMediator>().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
@@ -70,6 +72,7 @@ public class LoginCommandHandlerTests
             unitOfWork.Object,
             passwordHasher.Object,
             tokenService.Object,
+            new Mock<IEmailMfaService>().Object,
             new Mock<IMediator>().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 
@@ -105,6 +108,7 @@ public class LoginCommandHandlerTests
             unitOfWork.Object,
             passwordHasher.Object,
             tokenService.Object,
+            new Mock<IEmailMfaService>().Object,
             new Mock<IMediator>().Object,
             HandlerTestFixture.CreateNullLogger<LoginCommandHandler>());
 

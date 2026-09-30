@@ -19,10 +19,48 @@
 
     <section class="settings-section" *ngIf="!loading">
       <h2>Two-factor authentication</h2>
-      <p class="state-text">
-        Authenticator MFA is not available yet. When it ships, enrollment and login challenges will appear here.
-        Password reset emails and device blocking already protect your account.
+      <p class="toggle-description mfa-lead">
+        When email MFA is on, we send a 6-digit code to your account email after your password is accepted.
       </p>
+
+      <label class="toggle-row" *ngIf="!mfaChallengeToken">
+        <input
+          type="checkbox"
+          [checked]="settings.twoFactorEnabled"
+          [disabled]="mfaBusy || !(settings.mfaAvailable ?? true)"
+          (change)="onMfaToggle($any($event.target).checked)">
+        <span class="toggle-copy">
+          <span class="toggle-label">Email verification code at sign-in</span>
+          <span class="toggle-description">
+            {{ settings.twoFactorEnabled ? 'Enabled (Email OTP).' : 'Off — password only.' }}
+          </span>
+        </span>
+      </label>
+
+      <div *ngIf="mfaChallengeToken" class="mfa-confirm">
+        <p class="state-text">{{ mfaHint }}</p>
+        <label class="field">
+          <span>Verification code</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            [(ngModel)]="mfaCode"
+            [disabled]="mfaBusy">
+        </label>
+        <div class="device-actions mfa-actions">
+          <button type="button" class="device-action-btn" [disabled]="mfaBusy" (click)="confirmMfaChange()">
+            Confirm
+          </button>
+          <button type="button" class="device-action-btn" [disabled]="mfaBusy" (click)="resendMfaSettingsCode()">
+            Resend code
+          </button>
+          <button type="button" class="device-action-btn" [disabled]="mfaBusy" (click)="cancelMfaChallenge()">
+            Cancel
+          </button>
+        </div>
+      </div>
     </section>
 
     <section class="settings-section" *ngIf="!loading">

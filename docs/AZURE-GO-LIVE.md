@@ -1289,22 +1289,17 @@ Ensure App Service CORS still includes Capacitor origins (`capacitor://localhost
 
 These are **product/ops** follow-ups after the Azure web stack is live. Email/password + JWT already work once SMTP is wired (§7.5 / §11.4.6).
 
-### 16.1 MFA (not shipped — intentionally unavailable)
+### 16.1 MFA (email OTP — shipped)
 
 | Item | Status |
 |------|--------|
-| Security settings UI | Shows “Authenticator MFA is not available yet” — no toggle |
-| API | Rejects `twoFactorEnabled: true`; responses include `mfaAvailable: false` |
-| Login | No MFA challenge |
+| Security settings | Toggle **Email verification code at sign-in**; confirm with emailed 6-digit code |
+| Login | Password → email code → JWT |
+| Provider | Same SMTP as password reset (`Email__*` / Brevo). No extra Azure secret |
 
-**When you implement TOTP:**
+**Ops:** Wire SMTP (§7.5 / §11.4.6). No MFA-specific Brevo product. Users opt in from Security settings after deploy.
 
-1. Enroll per-user secrets + recovery codes.
-2. Challenge on login when enrolled.
-3. Set `MfaAvailable = true` and restore UI.
-4. Document recovery (lost device) in support runbooks.
-
-Until then, rely on strong passwords, password-reset email, device block (JWT fails for blocked devices), and security-stamp revoke on password change/reset.
+Optional later: TOTP authenticator apps, SMS, recovery codes.
 
 ### 16.2 Password reset (already hooked — configure only)
 

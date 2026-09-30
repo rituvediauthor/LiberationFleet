@@ -50,6 +50,7 @@ public class User
     public int? LocationKeyVersion { get; set; }
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+    public ICollection<EmailMfaChallenge> EmailMfaChallenges { get; set; } = new List<EmailMfaChallenge>();
     public ICollection<CrewMembership> CrewMemberships { get; set; } = new List<CrewMembership>();
     public ICollection<UserPaymentPlatform> PaymentPlatforms { get; set; } = new List<UserPaymentPlatform>();
     public ICollection<UserRegisteredDevice> RegisteredDevices { get; set; } = new List<UserRegisteredDevice>();

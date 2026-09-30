@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IEmailMfaChallengeRepository, EmailMfaChallengeRepository>();
         services.AddScoped<ICrewRepository, CrewRepository>();
         services.AddScoped<IFleetRepository, FleetRepository>();
         services.AddScoped<ICrewInvitationRepository, CrewInvitationRepository>();
@@ -98,6 +99,9 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<Application.Services.EmailMfaOptions>(
+            configuration.GetSection(Application.Services.EmailMfaOptions.SectionName));
+        services.AddScoped<Application.Services.IEmailMfaService, Application.Services.EmailMfaService>();
         RegisterEmailSender(services, configuration);
 
         return services;

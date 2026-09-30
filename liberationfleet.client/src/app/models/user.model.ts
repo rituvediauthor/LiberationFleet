@@ -22,6 +22,8 @@ export interface AuthResult {
   message?: string;
   token?: string;
   user?: User;
+  requiresMfa?: boolean;
+  mfaChallengeToken?: string;
 }
 
 export interface PasswordResetResult {

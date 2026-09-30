@@ -67,8 +67,22 @@ export class AuthService {
 
   login(data: LoginRequest): Observable<AuthResult> {
     return this.http.post<AuthResult>(`${this.apiUrl}/login`, data).pipe(
+      tap(response => {
+        if (response.success && response.token && !response.requiresMfa) {
+          this.establishSession(response);
+        }
+      })
+    );
+  }
+
+  verifyMfa(mfaChallengeToken: string, code: string): Observable<AuthResult> {
+    return this.http.post<AuthResult>(`${this.apiUrl}/verify-mfa`, { mfaChallengeToken, code }).pipe(
       tap(response => this.establishSession(response))
     );
+  }
+
+  resendMfa(mfaChallengeToken: string): Observable<AuthResult> {
+    return this.http.post<AuthResult>(`${this.apiUrl}/resend-mfa`, { mfaChallengeToken });
   }
 
   /**

@@ -1,9 +1,10 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
-using LiberationFleet.Server.Application.Features.Auth.Commands.Login;
 using LiberationFleet.Server.Application.Features.Auth.Contracts;
 using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Application.Features.Security.Commands.RecordLoginAttempt;
+using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Auth.Commands.Login;
@@ -15,6 +16,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
+    private readonly IEmailMfaService _emailMfaService;
     private readonly IMediator _mediator;
     private readonly ILogger<LoginCommandHandler> _logger;
 
@@ -24,6 +26,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
+        IEmailMfaService emailMfaService,
         IMediator mediator,
         ILogger<LoginCommandHandler> logger)
     {
@@ -32,6 +35,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
+        _emailMfaService = emailMfaService;
         _mediator = mediator;
         _logger = logger;
     }
@@ -82,25 +86,64 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
             }
         }
 
-        // Reset failure counters with LastLoginAt so RecordLoginAttempt can persist
-        // everything (including device upsert) in a single SaveChanges.
-        user!.LastLoginAt = DateTime.UtcNow;
+        if (user.TwoFactorEnabled)
+        {
+            var mfa = await _emailMfaService.CreateAndSendAsync(
+                user,
+                EmailMfaPurpose.Login,
+                request.DeviceId,
+                request.DeviceName,
+                request.UserAgent,
+                cancellationToken);
+
+            if (!mfa.Success || string.IsNullOrWhiteSpace(mfa.ChallengeToken))
+            {
+                return new LoginResponse
+                {
+                    Success = false,
+                    Message = mfa.Message
+                };
+            }
+
+            _logger.LogInformation("MFA challenge issued for user: {Email}", user.Email);
+
+            return new LoginResponse
+            {
+                Success = true,
+                RequiresMfa = true,
+                MfaChallengeToken = mfa.ChallengeToken,
+                Message = mfa.Message
+            };
+        }
+
+        return await CompleteLoginAsync(user, request.UsernameOrEmail, request.DeviceId, request.DeviceName, request.UserAgent, cancellationToken);
+    }
+
+    private async Task<LoginResponse> CompleteLoginAsync(
+        Domain.Entities.User user,
+        string usernameOrEmail,
+        string? deviceId,
+        string? deviceName,
+        string? userAgent,
+        CancellationToken cancellationToken)
+    {
+        user.LastLoginAt = DateTime.UtcNow;
         user.FailedLoginAttempts = 0;
         user.LastFailedLoginAt = null;
         await _userRepository.UpdateAsync(user, cancellationToken);
 
         await _mediator.Send(new RecordLoginAttemptCommand(
             user.Id,
-            request.UsernameOrEmail,
+            usernameOrEmail,
             Success: true,
-            request.DeviceId,
-            request.DeviceName,
-            request.UserAgent), cancellationToken);
+            deviceId,
+            deviceName,
+            userAgent), cancellationToken);
 
         int? registeredDevicePk = null;
-        if (!string.IsNullOrWhiteSpace(request.DeviceId))
+        if (!string.IsNullOrWhiteSpace(deviceId))
         {
-            var device = await _securityRepository.GetDeviceByDeviceIdAsync(user.Id, request.DeviceId.Trim(), cancellationToken);
+            var device = await _securityRepository.GetDeviceByDeviceIdAsync(user.Id, deviceId.Trim(), cancellationToken);
             registeredDevicePk = device?.Id;
         }
 

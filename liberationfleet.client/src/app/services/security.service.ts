@@ -4,7 +4,11 @@ import { Observable } from 'rxjs';
 import {
   ChangePasswordRequest,
   DeleteAccountRequest,
+  BeginEmailMfaRequest,
+  ConfirmEmailMfaRequest,
+  EmailMfaChallengeResponse,
   RegisteredDevicesResponse,
+  ResendEmailMfaRequest,
   SecurityAlertsResponse,
   SecurityOperationResponse,
   SecuritySettingsResponse,
@@ -27,6 +31,26 @@ export class SecurityService {
 
   updateSettings(request: UpdateSecuritySettingsRequest): Observable<SecuritySettingsResponse> {
     return this.http.put<SecuritySettingsResponse>(`${this.apiUrl}/settings`, request);
+  }
+
+  beginEnableEmailMfa(request: BeginEmailMfaRequest = {}): Observable<EmailMfaChallengeResponse> {
+    return this.http.post<EmailMfaChallengeResponse>(`${this.apiUrl}/mfa/email/begin-enable`, request);
+  }
+
+  confirmEnableEmailMfa(request: ConfirmEmailMfaRequest): Observable<EmailMfaChallengeResponse> {
+    return this.http.post<EmailMfaChallengeResponse>(`${this.apiUrl}/mfa/email/confirm-enable`, request);
+  }
+
+  beginDisableEmailMfa(request: BeginEmailMfaRequest = {}): Observable<EmailMfaChallengeResponse> {
+    return this.http.post<EmailMfaChallengeResponse>(`${this.apiUrl}/mfa/email/begin-disable`, request);
+  }
+
+  confirmDisableEmailMfa(request: ConfirmEmailMfaRequest): Observable<EmailMfaChallengeResponse> {
+    return this.http.post<EmailMfaChallengeResponse>(`${this.apiUrl}/mfa/email/confirm-disable`, request);
+  }
+
+  resendEmailMfa(request: ResendEmailMfaRequest): Observable<EmailMfaChallengeResponse> {
+    return this.http.post<EmailMfaChallengeResponse>(`${this.apiUrl}/mfa/email/resend`, request);
   }
 
   getAlerts(): Observable<SecurityAlertsResponse> {

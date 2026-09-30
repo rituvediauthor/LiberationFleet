@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Features.Security.Commands.ChangePassword;
 using LiberationFleet.Server.Application.Features.Security.Commands.DeleteAccount;
+using LiberationFleet.Server.Application.Features.Security.Commands.EmailMfa;
 using LiberationFleet.Server.Application.Features.Security.Commands.ManageDevice;
 using LiberationFleet.Server.Application.Features.Security.Commands.UpdateSecuritySettings;
 using LiberationFleet.Server.Application.Features.Security.Commands.VerifySettingsPassword;
@@ -29,6 +30,41 @@ public class SecurityController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateSecuritySettingsRequest body)
     {
         var result = await mediator.Send(new UpdateSecuritySettingsCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("mfa/email/begin-enable")]
+    public async Task<IActionResult> BeginEnableEmailMfa([FromBody] BeginEmailMfaRequest body)
+    {
+        var result = await mediator.Send(new BeginEnableEmailMfaCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("mfa/email/confirm-enable")]
+    public async Task<IActionResult> ConfirmEnableEmailMfa([FromBody] ConfirmEmailMfaRequest body)
+    {
+        var result = await mediator.Send(new ConfirmEnableEmailMfaCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("mfa/email/begin-disable")]
+    public async Task<IActionResult> BeginDisableEmailMfa([FromBody] BeginEmailMfaRequest body)
+    {
+        var result = await mediator.Send(new BeginDisableEmailMfaCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("mfa/email/confirm-disable")]
+    public async Task<IActionResult> ConfirmDisableEmailMfa([FromBody] ConfirmEmailMfaRequest body)
+    {
+        var result = await mediator.Send(new ConfirmDisableEmailMfaCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("mfa/email/resend")]
+    public async Task<IActionResult> ResendEmailMfa([FromBody] ResendMfaSettingsRequest body)
+    {
+        var result = await mediator.Send(new ResendEmailMfaSettingsCommand(body));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -23,6 +23,7 @@ import { RegisteredDeviceDto, SecuritySettingsDto } from '../../models/security.
 export class SecuritySettingsComponent implements OnInit {
   settings: SecuritySettingsDto = {
     twoFactorEnabled: false,
+    mfaAvailable: true,
     lockSettingsWithPassword: false,
     hasSettingsLockPassword: false
   };
@@ -38,6 +39,11 @@ export class SecuritySettingsComponent implements OnInit {
   showPasswordDialog = false;
   passwordDialogError = '';
   passwordDialogVerifying = false;
+  mfaBusy = false;
+  mfaChallengeToken = '';
+  mfaHint = '';
+  mfaCode = '';
+  mfaPendingEnable: boolean | null = null;
   backButton!: ActionBarButton;
   saveButton!: ActionBarButton;
 
@@ -88,6 +94,140 @@ export class SecuritySettingsComponent implements OnInit {
     this.updateSaveButton();
   }
 
+  onMfaToggle(enabled: boolean) {
+    if (this.mfaBusy || this.mfaChallengeToken) {
+      return;
+    }
+
+    if (enabled === this.settings.twoFactorEnabled) {
+      return;
+    }
+
+    void this.beginMfaChange(enabled);
+  }
+
+  confirmMfaChange() {
+    if (this.mfaBusy || !this.mfaChallengeToken || this.mfaPendingEnable === null) {
+      return;
+    }
+
+    const code = this.mfaCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      this.toastService.error('Enter the 6-digit code from your email.');
+      return;
+    }
+
+    this.mfaBusy = true;
+    const request = {
+      mfaChallengeToken: this.mfaChallengeToken,
+      code,
+      settingsPassword: this.pendingSettingsPassword
+    };
+    const call$ = this.mfaPendingEnable
+      ? this.securityService.confirmEnableEmailMfa(request)
+      : this.securityService.confirmDisableEmailMfa(request);
+
+    call$.subscribe({
+      next: response => {
+        this.mfaBusy = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Verification failed');
+          return;
+        }
+
+        if (response.settings) {
+          this.settings = response.settings;
+        } else {
+          this.settings.twoFactorEnabled = !!this.mfaPendingEnable;
+        }
+
+        this.cancelMfaChallenge();
+        this.toastService.success(response.message || 'MFA updated');
+      },
+      error: () => {
+        this.mfaBusy = false;
+        this.toastService.error('Verification failed');
+      }
+    });
+  }
+
+  resendMfaSettingsCode() {
+    if (this.mfaBusy || !this.mfaChallengeToken) {
+      return;
+    }
+
+    this.mfaBusy = true;
+    this.securityService.resendEmailMfa({ mfaChallengeToken: this.mfaChallengeToken }).subscribe({
+      next: response => {
+        this.mfaBusy = false;
+        if (response.mfaChallengeToken) {
+          this.mfaChallengeToken = response.mfaChallengeToken;
+        }
+        if (!response.success) {
+          this.toastService.error(response.message || 'Could not resend code');
+          return;
+        }
+        this.mfaHint = response.message || this.mfaHint;
+        this.toastService.success(response.message || 'Code resent');
+      },
+      error: () => {
+        this.mfaBusy = false;
+        this.toastService.error('Could not resend code');
+      }
+    });
+  }
+
+  cancelMfaChallenge() {
+    this.mfaChallengeToken = '';
+    this.mfaHint = '';
+    this.mfaCode = '';
+    this.mfaPendingEnable = null;
+  }
+
+  private async beginMfaChange(enable: boolean) {
+    const lockEnabled = await this.settingsLockService.isLockEnabled();
+    let settingsPassword = this.pendingSettingsPassword;
+    if (lockEnabled && !settingsPassword) {
+      this.showPasswordDialog = true;
+      // Re-entry after password dialog is not wired for MFA; ask user to unlock via Save flow first is awkward.
+      // Prompt inline: use verify dialog then continue.
+      this.mfaPendingEnable = enable;
+      return;
+    }
+
+    this.startMfaChallenge(enable, settingsPassword);
+  }
+
+  private startMfaChallenge(enable: boolean, settingsPassword?: string) {
+    this.mfaBusy = true;
+    this.mfaPendingEnable = enable;
+    const body = { settingsPassword };
+    const call$ = enable
+      ? this.securityService.beginEnableEmailMfa(body)
+      : this.securityService.beginDisableEmailMfa(body);
+
+    call$.subscribe({
+      next: response => {
+        this.mfaBusy = false;
+        if (!response.success || !response.mfaChallengeToken) {
+          this.mfaPendingEnable = null;
+          this.toastService.error(response.message || 'Could not start MFA change');
+          return;
+        }
+
+        this.mfaChallengeToken = response.mfaChallengeToken;
+        this.mfaHint = response.message || 'Enter the code we emailed you.';
+        this.mfaCode = '';
+        this.toastService.success(this.mfaHint);
+      },
+      error: () => {
+        this.mfaBusy = false;
+        this.mfaPendingEnable = null;
+        this.toastService.error('Could not start MFA change');
+      }
+    });
+  }
+
   onSave() {
     if (this.saving) {
       return;
@@ -109,6 +249,11 @@ export class SecuritySettingsComponent implements OnInit {
 
       this.showPasswordDialog = false;
       this.pendingSettingsPassword = password;
+      if (this.mfaPendingEnable !== null && !this.mfaChallengeToken) {
+        this.startMfaChallenge(this.mfaPendingEnable, password);
+        return;
+      }
+
       this.performSave(password);
     });
   }
@@ -117,6 +262,9 @@ export class SecuritySettingsComponent implements OnInit {
     this.showPasswordDialog = false;
     this.passwordDialogError = '';
     this.passwordDialogVerifying = false;
+    if (!this.mfaChallengeToken) {
+      this.mfaPendingEnable = null;
+    }
   }
 
   formatDate(value: string): string {

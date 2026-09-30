@@ -3,6 +3,9 @@ using LiberationFleet.Server.Application.Features.Auth.Commands.RefreshSession;
 using LiberationFleet.Server.Application.Features.Auth.Commands.Register;
 using LiberationFleet.Server.Application.Features.Auth.Commands.RequestPasswordReset;
 using LiberationFleet.Server.Application.Features.Auth.Commands.ResetPassword;
+using LiberationFleet.Server.Application.Features.Auth.Commands.ResendMfaLogin;
+using LiberationFleet.Server.Application.Features.Auth.Commands.VerifyMfaLogin;
+using LiberationFleet.Server.Application.Features.Auth.Contracts;
 using LiberationFleet.Server.Application.Features.Auth.Queries.ValidateResetToken;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +36,20 @@ public class AuthController : ControllerBase
     {
         var result = await _mediator.Send(command);
         return result.Success ? Ok(result) : Unauthorized(result);
+    }
+
+    [HttpPost("verify-mfa")]
+    public async Task<IActionResult> VerifyMfa([FromBody] VerifyMfaLoginRequest body)
+    {
+        var result = await _mediator.Send(new VerifyMfaLoginCommand(body));
+        return result.Success ? Ok(result) : Unauthorized(result);
+    }
+
+    [HttpPost("resend-mfa")]
+    public async Task<IActionResult> ResendMfa([FromBody] ResendMfaLoginRequest body)
+    {
+        var result = await _mediator.Send(new ResendMfaLoginCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>

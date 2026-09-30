@@ -35,20 +35,15 @@ public class UpdateSecuritySettingsCommandHandler(
             return new SecuritySettingsResponse { Success = false, Message = lockCheck.Message };
         }
 
-        // MFA is not implemented yet (no login challenge). Reject enable attempts so
-        // clients cannot persist a false sense of security. Clear any legacy flag.
-        if (body.TwoFactorEnabled == true)
+        // MFA enable/disable uses dedicated email-OTP endpoints (begin/confirm).
+        // Ignore TwoFactorEnabled on this PUT so clients cannot flip the flag without a code.
+        if (body.TwoFactorEnabled.HasValue)
         {
             return new SecuritySettingsResponse
             {
                 Success = false,
-                Message = "Two-factor authentication is not available yet."
+                Message = "Use the email MFA confirmation flow to turn MFA on or off."
             };
-        }
-
-        if (user.TwoFactorEnabled)
-        {
-            user.TwoFactorEnabled = false;
         }
 
         if (body.LockSettingsWithPassword.HasValue)
@@ -95,8 +90,9 @@ public class UpdateSecuritySettingsCommandHandler(
             Message = "Security settings saved.",
             Settings = new SecuritySettingsDto
             {
-                TwoFactorEnabled = false,
-                MfaAvailable = false,
+                TwoFactorEnabled = user.TwoFactorEnabled,
+                MfaAvailable = true,
+                MfaMethod = user.TwoFactorEnabled ? "EmailOtp" : null,
                 LockSettingsWithPassword = user.LockSettingsWithPassword,
                 HasSettingsLockPassword = !string.IsNullOrWhiteSpace(user.SettingsLockPasswordHash)
             }

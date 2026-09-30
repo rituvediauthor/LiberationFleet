@@ -32,7 +32,7 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 10. **Native `apiBaseUrl` + sync** — AZURE-GO-LIVE Step 15 + [NATIVE-APPS.md](./NATIVE-APPS.md)  
 11. **Internal TestFlight / Play internal** — [STORE-SUBMISSION.md](./STORE-SUBMISSION.md)  
 12. **Store screenshots + review notes + submit**  
-13. **Follow-up product** — MFA (TOTP), push (APNs/FCM), Sign in with Apple — [AZURE-GO-LIVE Step 16](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec)  
+13. **Follow-up product** — push (APNs/FCM), Sign in with Apple; optional TOTP upgrade — [AZURE-GO-LIVE Step 16](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec)  
 14. **GitHub access check** — AZURE-GO-LIVE Step 14 (public clone OK; strangers cannot push)
 
 ---
@@ -62,14 +62,14 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 | **App settings** | `Email__SmtpHost`, `Email__SmtpPort` (usually `587`), `Email__SmtpUser`, `Email__SmtpPassword`, `Email__FromAddress`, `Email__FromName`, `Email__AppPublicBaseUrl` (SPA origin used in the reset link) |
 | **Status today** | **Code ready** — must **wire SMTP** before staging/prod deploy |
 
-### B.2 Two-factor authentication
+### B.2 Two-factor authentication (email OTP)
 
 | | |
 |---|---|
-| **Why** | Product-complete MFA (TOTP enroll + login challenge + recovery codes) is **not shipped**. Security settings show a “coming soon” note; API rejects enabling `TwoFactorEnabled` and always reports `mfaAvailable: false`. |
-| **Register** | Prefer **TOTP** (no vendor) first; optional SMS via Twilio Verify / Azure ACS SMS later |
-| **Steps (when building)** | 1) Enroll secrets per user. 2) Challenge on login when MFA enrolled. 3) Recovery codes. 4) Re-enable UI + `MfaAvailable`. See [AZURE-GO-LIVE Step 16](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec). |
-| **Status today** | **Intentionally unavailable** until TOTP ships (not a silent stub) |
+| **Why** | Extra step after password: 6-digit code emailed to the account address. |
+| **Register** | Same SMTP as B.1 (Brevo etc.). No separate MFA vendor. |
+| **Steps** | 1) Wire `Email__*` (§7.5 / §11.4.6). 2) Deploy build with MFA. 3) User enables under Security settings → confirm emailed code. 4) Sign-in requires code when enabled. |
+| **Status today** | **Implemented** (email OTP). Optional later: TOTP / SMS. |
 
 ### B.3 Donations (Stripe)
 
@@ -180,7 +180,7 @@ Follow **[AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)** Steps 1–12.
 | Feature | Web | iOS/Android | Blocker |
 |---------|-----|-------------|---------|
 | Auth (password) | Ready | Ready (same API) | Wire SMTP (B.1 / AZURE-GO-LIVE §7.5) |
-| MFA | Hidden / rejected | Same | Implement TOTP then re-enable UI |
+| MFA | Email OTP ready | Same | Wire SMTP (B.1); user enables in Security |
 | Chat / forums / E2EE | Ready | Ready | — |
 | Voice | Ready | Needs mic permissions | LiveKit Cloud |
 | Donations | Ready | External Checkout | Stripe live + policy review |

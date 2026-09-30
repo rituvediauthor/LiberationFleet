@@ -30,9 +30,9 @@ public class GetSecuritySettingsQueryHandler(
             Message = "Security settings loaded.",
             Settings = new SecuritySettingsDto
             {
-                // Never advertise MFA as on until login enforces a challenge.
-                TwoFactorEnabled = false,
-                MfaAvailable = false,
+                TwoFactorEnabled = user.TwoFactorEnabled,
+                MfaAvailable = true,
+                MfaMethod = user.TwoFactorEnabled ? "EmailOtp" : null,
                 LockSettingsWithPassword = user.LockSettingsWithPassword,
                 HasSettingsLockPassword = !string.IsNullOrWhiteSpace(user.SettingsLockPasswordHash)
             }

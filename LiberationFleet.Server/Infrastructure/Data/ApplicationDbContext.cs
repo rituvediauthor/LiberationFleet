@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
 
     public DbSet<User> Users => Set<User>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmailMfaChallenge> EmailMfaChallenges => Set<EmailMfaChallenge>();
     public DbSet<Crew> Crews => Set<Crew>();
     public DbSet<CrewAllowedZipCode> CrewAllowedZipCodes => Set<CrewAllowedZipCode>();
     public DbSet<CrewMembership> CrewMemberships => Set<CrewMembership>();
@@ -215,6 +216,22 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Property(e => e.Token).IsRequired();
+        });
+
+        modelBuilder.Entity<EmailMfaChallenge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ChallengeToken).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.Purpose, e.ConsumedAt });
+            entity.Property(e => e.ChallengeToken).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.CodeHash).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.DeviceId).HasMaxLength(128);
+            entity.Property(e => e.DeviceName).HasMaxLength(128);
+            entity.Property(e => e.UserAgent).HasMaxLength(512);
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.EmailMfaChallenges)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Crew>(entity =>
