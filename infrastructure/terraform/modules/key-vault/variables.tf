@@ -56,6 +56,20 @@ variable "report_vendor_api_key" {
   default   = "change-me-report-vendor-key"
 }
 
+variable "email_smtp_user" {
+  type        = string
+  sensitive   = true
+  default     = "change-me-email-smtp-user"
+  description = "Placeholder only — set real Brevo SMTP login in Key Vault (Email-SmtpUser); ignore_changes keeps portal updates."
+}
+
+variable "email_smtp_password" {
+  type        = string
+  sensitive   = true
+  default     = "change-me-email-smtp-password"
+  description = "Placeholder only — set real Brevo SMTP key in Key Vault (Email-SmtpPassword); ignore_changes keeps portal updates."
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

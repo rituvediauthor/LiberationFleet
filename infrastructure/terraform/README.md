@@ -125,8 +125,10 @@ SKU change (`GP_S_*` → `S0`) keeps data; expect a short outage while Azure res
 | `LiveKit-ApiKey` | `LiveKit__ApiKey` |
 | `LiveKit-ApiSecret` | `LiveKit__ApiSecret` |
 | `ReportEvidence-VendorApiKey` | `ReportEvidence__VendorApiKey` |
+| `Email-SmtpUser` | `Email__SmtpUser` |
+| `Email-SmtpPassword` | `Email__SmtpPassword` |
 
-JWT and report AES keys are generated on first apply. SQL password is random and stored only in Key Vault.
+JWT and report AES keys are generated on first apply. SQL password is random and stored only in Key Vault. Stripe / LiveKit / report vendor / email SMTP placeholders use `ignore_changes` — set real values in the portal. Non-secret `Email__SmtpHost` / `From*` / `AppPublicBaseUrl` are set from `*.tfvars` (do not add Email settings only in the App Service portal; Terraform resets that map on apply).
 
 ## CORS (App Service)
 

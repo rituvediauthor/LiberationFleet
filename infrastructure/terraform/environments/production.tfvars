@@ -16,6 +16,12 @@ log_retention_days                 = 30
 custom_domain_url = "https://liberationfleet.org"
 livekit_host = "wss://lf-prod-p8i37iuy.livekit.cloud"
 
+# Transactional email (Brevo SMTP). User/password live in Key Vault Email-SmtpUser / Email-SmtpPassword.
+email_smtp_host    = "smtp-relay.brevo.com"
+email_smtp_port    = 587
+email_from_address = "noreply@liberationfleet.org"
+email_from_name    = "Liberation Fleet"
+
 sql_firewall_rules = [
   {
     name             = "Home"

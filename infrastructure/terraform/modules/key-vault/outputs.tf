@@ -21,5 +21,7 @@ output "secret_uris" {
     livekit_api_key             = azurerm_key_vault_secret.livekit_api_key.versionless_id
     livekit_api_secret          = azurerm_key_vault_secret.livekit_api_secret.versionless_id
     report_vendor_api_key       = azurerm_key_vault_secret.report_vendor_api_key.versionless_id
+    email_smtp_user             = azurerm_key_vault_secret.email_smtp_user.versionless_id
+    email_smtp_password         = azurerm_key_vault_secret.email_smtp_password.versionless_id
   }
 }

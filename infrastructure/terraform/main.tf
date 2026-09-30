@@ -100,6 +100,10 @@ module "app_service" {
   livekit_host                           = var.livekit_host
   application_insights_connection_string = module.monitoring.application_insights_connection_string
   key_vault_secret_uris                  = module.key_vault.secret_uris
+  email_smtp_host                        = var.email_smtp_host
+  email_smtp_port                        = var.email_smtp_port
+  email_from_address                     = var.email_from_address
+  email_from_name                        = var.email_from_name
   extra_app_settings = merge(
     {
       "MediaDeepFreeze__Enabled"               = "true"

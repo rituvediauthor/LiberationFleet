@@ -67,6 +67,13 @@ resource "azurerm_linux_web_app" "this" {
       "LiveKit__ApiKey"                      = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.livekit_api_key})"
       "LiveKit__ApiSecret"                   = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.livekit_api_secret})"
       "ReportEvidence__VendorApiKey"         = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.report_vendor_api_key})"
+      "Email__SmtpUser"                      = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.email_smtp_user})"
+      "Email__SmtpPassword"                  = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.email_smtp_password})"
+      "Email__SmtpHost"                      = var.email_smtp_host
+      "Email__SmtpPort"                      = tostring(var.email_smtp_port)
+      "Email__FromAddress"                   = var.email_from_address
+      "Email__FromName"                      = var.email_from_name
+      "Email__AppPublicBaseUrl"              = var.app_public_url
     },
     var.extra_app_settings
   )

@@ -97,7 +97,31 @@ variable "key_vault_secret_uris" {
     livekit_api_key         = string
     livekit_api_secret      = string
     report_vendor_api_key   = string
+    email_smtp_user         = string
+    email_smtp_password     = string
   })
+}
+
+variable "email_smtp_host" {
+  type        = string
+  description = "SMTP relay hostname (e.g. smtp-relay.brevo.com)."
+  default     = ""
+}
+
+variable "email_smtp_port" {
+  type    = number
+  default = 587
+}
+
+variable "email_from_address" {
+  type        = string
+  description = "Verified From address for transactional mail."
+  default     = ""
+}
+
+variable "email_from_name" {
+  type    = string
+  default = "Liberation Fleet"
 }
 
 variable "extra_app_settings" {

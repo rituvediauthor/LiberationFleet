@@ -81,6 +81,28 @@ variable "key_vault_purge_protection_enabled" {
   default = false
 }
 
+variable "email_smtp_host" {
+  type        = string
+  description = "Transactional SMTP host (e.g. smtp-relay.brevo.com). Required for Staging/Production boot."
+  default     = "smtp-relay.brevo.com"
+}
+
+variable "email_smtp_port" {
+  type    = number
+  default = 587
+}
+
+variable "email_from_address" {
+  type        = string
+  description = "Verified From address (must match Brevo sender domain)."
+  default     = "noreply@liberationfleet.org"
+}
+
+variable "email_from_name" {
+  type    = string
+  default = "Liberation Fleet"
+}
+
 variable "log_retention_days" {
   type        = number
   description = "Log Analytics retention days. Azure requires 30–730 for PerGB2018 workspaces."

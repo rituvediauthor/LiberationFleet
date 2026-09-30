@@ -307,6 +307,8 @@ For each secret below: open it → **New version** → paste value → Create.
 | `LiveKit-ApiKey` | Before staging voice | LiveKit Cloud — [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) Path B |
 | `LiveKit-ApiSecret` | Before staging voice | LiveKit Cloud |
 | `ReportEvidence-VendorApiKey` | Before vendor ops API | Generate a long random string — [REPORT-VENDOR-WEBHOOK.md](./REPORT-VENDOR-WEBHOOK.md) |
+| `Email-SmtpUser` | Before Staging boots (required) | Brevo SMTP login (`…@smtp-brevo.com`) — **New version** after first Terraform apply creates the placeholder |
+| `Email-SmtpPassword` | Before Staging boots (required) | Brevo SMTP key — same as above |
 
 **Created automatically by Terraform (do not overwrite casually):**
 
@@ -314,6 +316,8 @@ For each secret below: open it → **New version** → paste value → Create.
 - `Jwt-SecretKey`
 - `ReportEvidence-AesKeyBase64`
 - Deep-freeze storage connection (as configured in modules)
+
+**Also set by Terraform on the Web App (survive deploys):** `Email__SmtpHost`, `Email__SmtpPort`, `Email__FromAddress`, `Email__FromName`, `Email__AppPublicBaseUrl` (from `*.tfvars` + `app_public_url`). Do **not** rely on Portal-only Email settings — a pipeline Terraform apply resets App Service settings to the Terraform map and would wipe manual-only keys.
 
 ### 7.3 App settings that are not Key Vault secrets (staging)
 
@@ -384,9 +388,9 @@ Do **not** put production LiveKit values in `staging.tfvars`. When production in
 
 ### 7.5 Wire password-reset email (SMTP)
 
-**Required before Staging will keep running.** Without `Email__SmtpHost`, the API refuses to start in Staging/Production (so password reset cannot silently “succeed” while only logging the link). Local `Development` / Docker may omit SMTP and use `LogEmailSender`.
+**Required before Staging will keep running.** Without SMTP config, the API refuses to start in Staging/Production.
 
-`SmtpEmailSender` is already implemented. You only configure a real SMTP relay.
+Terraform now owns the Email App Settings (so deploys do not wipe them). You only fill the **Key Vault** credentials.
 
 #### 7.5.1 Choose a provider and verify the domain
 
@@ -395,39 +399,42 @@ Pick one:
 | Provider | Notes |
 |----------|--------|
 | **Azure Communication Services Email** | Fits Azure go-live; enable Email + add/verify a custom domain → use ACS **SMTP** credentials |
-| **SendGrid / Postmark / Amazon SES** | Use their SMTP host + API user/password |
+| **SendGrid / Postmark / Amazon SES / Brevo** | Use their SMTP host + API user/password |
 
 1. Add and verify your sending domain (SPF/DKIM as the provider instructs).
 2. Create an SMTP user / password (or ACS SMTP key). Treat the password like a secret.
-3. Note: SMTP host, port (**587** with STARTTLS is the default in appsettings), username, password, and the From address you are allowed to send as.
+3. Note: SMTP host, port (**587**), username, password, and the From address you are allowed to send as.
 
-#### 7.5.2 Set staging App Service environment variables
+#### 7.5.2 Non-secret values (`*.tfvars`)
 
-1. Portal → **`app-lfleet-staging`** → **Settings** → **Environment variables**.
-2. **+ Add** (or edit) each:
+In `environments/staging.tfvars` (and production):
 
-| Setting | Example / value |
-|---------|-----------------|
-| `Email__SmtpHost` | e.g. `smtp.azurecomm.net` or `smtp.sendgrid.net` |
-| `Email__SmtpPort` | `587` |
-| `Email__SmtpUser` | Provider SMTP username |
-| `Email__SmtpPassword` | Provider SMTP password / key (mark as secret if the UI offers it) |
-| `Email__FromAddress` | Verified address, e.g. `noreply@yourdomain.org` |
-| `Email__FromName` | `Liberation Fleet` |
-| `Email__AppPublicBaseUrl` | Same as staging public SPA origin (**no trailing slash**), e.g. `https://app-lfleet-staging.azurewebsites.net` — used inside the reset link |
+```hcl
+email_smtp_host    = "smtp-relay.brevo.com"
+email_smtp_port    = 587
+email_from_address = "noreply@yourdomain.org"
+email_from_name    = "Liberation Fleet"
+```
 
-3. **Apply** / **Save** → **Restart** the Web App.
+`Email__AppPublicBaseUrl` is set automatically from the environment’s public URL. Apply Terraform (or let the pipeline apply) so these land on the Web App.
 
-Optional hardening: store `Email__SmtpPassword` in Key Vault and reference it with `@Microsoft.KeyVault(SecretUri=…)` the same way Stripe secrets are wired — create a secret (e.g. `Email-SmtpPassword`) then point the app setting at it.
+#### 7.5.3 Set SMTP credentials in Key Vault (staging)
 
-#### 7.5.3 Smoke-test password reset on staging
+1. Portal → staging Key Vault (`lfleetstagingkv`) → **Secrets**.
+2. Open **`Email-SmtpUser`** → **New version** → paste Brevo SMTP login → Create.
+3. Open **`Email-SmtpPassword`** → **New version** → paste Brevo SMTP key → Create.
+4. Portal → **`app-lfleet-staging`** → **Restart**.
+
+Do **not** put the SMTP password only in App Service Environment variables — Terraform will replace the whole settings map on the next apply. Key Vault + `@Microsoft.KeyVault(...)` references are the durable path (same pattern as Stripe/LiveKit).
+
+#### 7.5.4 Smoke-test password reset on staging
 
 1. Register a user with an inbox you control (or use an existing test account).
 2. Sign out → **Forgot password** → enter that email.
 3. Confirm the message arrives and the link opens `{AppPublicBaseUrl}/reset-password?token=…`.
 4. Complete reset → sign in with the new password (existing JWTs for that user are invalidated via security stamp).
 
-If mail never arrives: check Log stream for `Failed to send password reset email` / SMTP auth errors; confirm SPF/DKIM and that `FromAddress` is allowed by the provider.
+If mail never arrives: check Log stream for `Failed to send password reset email` / SMTP auth errors; confirm SPF/DKIM and that `FromAddress` is allowed by the provider. Confirm Key Vault secrets are not still the `change-me-…` placeholders.
 
 ---
 
@@ -904,25 +911,14 @@ Full click-path for finding keys: [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md) **Path 
 
 #### 11.4.6 Password-reset email (SMTP) on production
 
-Same mechanism as [§7.5](#75-wire-password-reset-email-smtp), with **production** values. Production will not start without `Email__SmtpHost`.
+Same pattern as [§7.5](#75-wire-password-reset-email-smtp): Terraform sets non-secret `Email__*` on the Web App; credentials live in production Key Vault.
 
-1. Prefer a production From address on your live domain (e.g. `noreply@liberationfleet.org`).
-2. Portal → **`app-lfleet-production`** → **Environment variables** → set:
+1. Confirm `email_smtp_host` / `email_from_address` in `production.tfvars` (and apply if needed).
+2. Portal → **`lfleetproductionkv`** → Secrets → **`Email-SmtpUser`** / **`Email-SmtpPassword`** → New versions with production Brevo (or other) SMTP login/key.
+3. Restart **`app-lfleet-production`**.
+4. After deploy, smoke-test Forgot password (Step 12).
 
-| Setting | Value |
-|---------|--------|
-| `Email__SmtpHost` | Production SMTP host |
-| `Email__SmtpPort` | `587` |
-| `Email__SmtpUser` | SMTP username |
-| `Email__SmtpPassword` | SMTP password / key |
-| `Email__FromAddress` | Verified production From |
-| `Email__FromName` | `Liberation Fleet` |
-| `Email__AppPublicBaseUrl` | Production SPA origin (**no trailing slash**) — custom domain if you have one, else `https://app-lfleet-production.azurewebsites.net` |
-
-3. **Apply** → **Restart**.
-4. After first deploy (§11.6), smoke-test Forgot password end-to-end (Step 12).
-
-Do **not** reuse staging SMTP credentials if the provider isolates environments; do **not** point `Email__AppPublicBaseUrl` at staging.
+Do **not** put SMTP secrets only in App Service Environment variables — the next Terraform apply will reset the settings map.
 
 ---
 

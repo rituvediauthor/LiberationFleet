@@ -104,3 +104,23 @@ resource "azurerm_key_vault_secret" "report_vendor_api_key" {
     ignore_changes = [value]
   }
 }
+
+resource "azurerm_key_vault_secret" "email_smtp_user" {
+  name         = "Email-SmtpUser"
+  value        = var.email_smtp_user
+  key_vault_id = azurerm_key_vault.this.id
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
+resource "azurerm_key_vault_secret" "email_smtp_password" {
+  name         = "Email-SmtpPassword"
+  value        = var.email_smtp_password
+  key_vault_id = azurerm_key_vault.this.id
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
