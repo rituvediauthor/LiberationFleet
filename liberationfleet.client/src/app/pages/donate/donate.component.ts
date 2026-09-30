@@ -55,7 +55,7 @@ export class DonateComponent implements OnInit {
     const canceled = this.route.snapshot.queryParamMap.get('canceled');
     if (success === '1') {
       this.toast.success('Thank you — your donation was received.');
-      this.statusNote = 'Thank you for supporting Liberation Fleet. A receipt will come from Stripe/your card issuer.';
+      this.statusNote = 'Thank you for supporting Liberation Fleet Co. A donation acknowledgment email is on its way to the address on your account.';
     } else if (canceled === '1') {
       this.statusNote = 'Checkout canceled. You can still donate below whenever you are ready.';
     }

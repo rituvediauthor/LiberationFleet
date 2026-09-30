@@ -31,7 +31,8 @@ Optional polish (any time):
 - [ ] Customer emails / receipts in Stripe
 - [ ] Statement descriptor matching your brand
 - [ ] Refund note in Privacy Policy / Community Standards
-- [ ] Tax-deductibility claims: accountant / 501(c) counsel first — this app does **not** issue formal tax receipts
+- [ ] Set `Organization:Ein` (and optional mailing address) so acknowledgment emails include your EIN
+- [ ] Counsel review of `Organization:TaxExemptStatement` if you change the default copy
 
 ---
 
@@ -80,6 +81,26 @@ dotnet ef database update --project LiberationFleet.Server
 1. Confirm the donate page no longer says “Donations are being set up…”
 2. Complete a test Checkout with card `4242 4242 4242 4242`.
 3. Confirm profile donation totals update (requires webhook + matching `WebhookSecret`).
+4. Confirm the donor account email receives a **donation acknowledgment** (legal name, amount, date, “no goods or services” statement). Set `Organization:Ein` so the letter includes your EIN.
+
+### Donation acknowledgment emails
+
+On `checkout.session.completed` / `async_payment_succeeded`, the API emails the signed-in user’s account address a contemporaneous written acknowledgment (idempotent via `AppDonations.AcknowledgmentEmailSentAt`).
+
+Config (`Organization` section / `Organization__*` App Settings):
+
+| Setting | Purpose |
+|---------|---------|
+| `LegalName` | Default `Liberation Fleet Co.` |
+| `Ein` | EIN on the letter when set (`XX-XXXXXXX`) |
+| `MailingAddress` | Optional address line |
+| `TaxExemptStatement` | Short exemption / deductibility sentence (have counsel review) |
+
+Local example:
+
+```powershell
+dotnet user-secrets set "Organization:Ein" "XX-XXXXXXX" --project ".\LiberationFleet.Server\LiberationFleet.Server.csproj"
+```
 
 ---
 

@@ -19,4 +19,7 @@ public class AppDonation
     public string? StripePaymentIntentId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+
+    /// <summary>When the donor tax acknowledgment email was successfully accepted by the mail sender.</summary>
+    public DateTime? AcknowledgmentEmailSentAt { get; set; }
 }

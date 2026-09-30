@@ -113,6 +113,9 @@ module "app_service" {
       "MediaDeepFreeze__AzureConnectionString" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.deep_freeze_connection.versionless_id})"
       # Hide Fallible attribution app-wide for now (can re-enable later).
       "Client__ShowFallibleAttribution"        = "false"
+      "Organization__LegalName"                = var.organization_legal_name
+      "Organization__Ein"                      = var.organization_ein
+      "Organization__MailingAddress"           = var.organization_mailing_address
     },
     var.environment == "staging" ? {
       # No idle SQL polling — sweeps run when related authenticated traffic arrives.

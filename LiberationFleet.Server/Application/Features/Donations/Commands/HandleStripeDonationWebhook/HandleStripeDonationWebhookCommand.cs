@@ -1,9 +1,9 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Services;
-using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Stripe;
 using Stripe.Checkout;
@@ -23,7 +23,10 @@ public class HandleStripeDonationWebhookCommandHandler(
     IAppDonationRepository donationRepository,
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
-    IOptions<StripeDonationOptions> stripeOptions) : IRequestHandler<HandleStripeDonationWebhookCommand, HandleStripeDonationWebhookResponse>
+    IDonationAcknowledgmentEmailService acknowledgmentEmail,
+    IOptions<StripeDonationOptions> stripeOptions,
+    ILogger<HandleStripeDonationWebhookCommandHandler> logger)
+    : IRequestHandler<HandleStripeDonationWebhookCommand, HandleStripeDonationWebhookResponse>
 {
     public async Task<HandleStripeDonationWebhookResponse> Handle(
         HandleStripeDonationWebhookCommand request,
@@ -93,28 +96,51 @@ public class HandleStripeDonationWebhookCommandHandler(
             return;
         }
 
-        if (donation.Status == AppDonationStatus.Completed)
+        var newlyCompleted = donation.Status != AppDonationStatus.Completed;
+        if (newlyCompleted)
+        {
+            donation.Status = AppDonationStatus.Completed;
+            donation.CompletedAt = DateTime.UtcNow;
+            donation.StripePaymentIntentId = session.PaymentIntentId;
+            if (session.AmountTotal is long amount && amount > 0)
+            {
+                donation.AmountCents = amount;
+            }
+
+            var user = await userRepository.GetByIdWithProfileAsync(donation.UserId, cancellationToken);
+            if (user is not null)
+            {
+                user.DonationCampaignUrgencyPhase = 0;
+                user.DonationCampaignPhaseShownCount = 0;
+                user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
+                await userRepository.UpdateAsync(user, cancellationToken);
+            }
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        if (donation.AcknowledgmentEmailSentAt is not null)
         {
             return;
         }
 
-        donation.Status = AppDonationStatus.Completed;
-        donation.CompletedAt = DateTime.UtcNow;
-        donation.StripePaymentIntentId = session.PaymentIntentId;
-        if (session.AmountTotal is long amount && amount > 0)
+        var donor = await userRepository.GetByIdWithProfileAsync(donation.UserId, cancellationToken);
+        if (donor is null)
         {
-            donation.AmountCents = amount;
+            logger.LogWarning(
+                "Donation {DonationId} completed but user {UserId} was not found for acknowledgment email.",
+                donation.Id,
+                donation.UserId);
+            return;
         }
 
-        var user = await userRepository.GetByIdWithProfileAsync(donation.UserId, cancellationToken);
-        if (user is not null)
+        var sent = await acknowledgmentEmail.TrySendAsync(donation, donor, cancellationToken);
+        if (!sent)
         {
-            user.DonationCampaignUrgencyPhase = 0;
-            user.DonationCampaignPhaseShownCount = 0;
-            user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
-            await userRepository.UpdateAsync(user, cancellationToken);
+            return;
         }
 
+        donation.AcknowledgmentEmailSentAt = DateTime.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

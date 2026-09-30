@@ -103,6 +103,25 @@ variable "email_from_name" {
   default = "Liberation Fleet"
 }
 
+variable "organization_legal_name" {
+  type        = string
+  description = "Legal entity name on donation acknowledgment emails."
+  default     = "Liberation Fleet Co."
+}
+
+variable "organization_ein" {
+  type        = string
+  description = "Nonprofit EIN (XX-XXXXXXX) included on donation acknowledgments when set."
+  default     = ""
+  sensitive   = true
+}
+
+variable "organization_mailing_address" {
+  type        = string
+  description = "Optional mailing address on donation acknowledgments."
+  default     = ""
+}
+
 variable "log_retention_days" {
   type        = number
   description = "Log Analytics retention days. Azure requires 30–730 for PerGB2018 workspaces."

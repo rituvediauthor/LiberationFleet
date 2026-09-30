@@ -33,6 +33,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<long>("AmountCents")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("AcknowledgmentEmailSentAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 

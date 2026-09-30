@@ -22,6 +22,11 @@ email_smtp_port    = 587
 email_from_address = "noreply@liberationfleet.org"
 email_from_name    = "Liberation Fleet"
 
+# Donation acknowledgment letterhead (set organization_ein before go-live receipts).
+organization_legal_name = "Liberation Fleet Co."
+# organization_ein              = "XX-XXXXXXX"
+# organization_mailing_address = "Street, City, IN ZIP"
+
 sql_firewall_rules = [
   {
     name             = "Home"
