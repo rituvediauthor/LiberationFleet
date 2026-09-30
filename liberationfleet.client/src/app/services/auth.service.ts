@@ -228,7 +228,17 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) {
+      return false;
+    }
+
+    if (isJwtExpired(token)) {
+      this.removeToken();
+      return false;
+    }
+
+    return true;
   }
 
   /**

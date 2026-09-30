@@ -21,6 +21,7 @@ import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
 import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
 import { authGuard } from './guards/auth.guard';
+import { guestGuard } from './guards/guest.guard';
 
 describe('app.routes', () => {
   it('should define landing route at root', () => {
@@ -30,6 +31,7 @@ describe('app.routes', () => {
 
   it('should define auth-related routes', () => {
     expect(routes.find(r => r.path === 'sign-in')?.component).toBe(SignInComponent);
+    expect(routes.find(r => r.path === 'sign-in')?.canActivate).toContain(guestGuard);
     expect(routes.find(r => r.path === 'sign-up')?.component).toBe(SignUpComponent);
     expect(routes.find(r => r.path === 'forgot-password')?.component).toBe(ForgotPasswordComponent);
     expect(routes.find(r => r.path === 'reset-password')?.component).toBe(ResetPasswordComponent);

@@ -83,6 +83,7 @@ import { LibraryTaskFormComponent } from './pages/library/library-tasks/library-
 import { LibraryTaskDetailComponent } from './pages/library/library-tasks/library-task-detail/library-task-detail.component';
 import { LibraryTaskNoDeadlineComponent } from './pages/library/library-tasks/library-task-no-deadline/library-task-no-deadline.component';
 import { authGuard } from './guards/auth.guard';
+import { guestGuard } from './guards/guest.guard';
 import { libraryAccessGuard } from './guards/library-access.guard';
 import { fleetRulesAcceptedGuard } from './guards/fleet-rules-accepted.guard';
 import { FleetHomeComponent } from './pages/fleet/fleet-home/fleet-home.component';
@@ -119,6 +120,7 @@ export const routes: Routes = [
   {
     path: 'sign-in',
     component: SignInComponent,
+    canActivate: [guestGuard],
     title: 'Sign In'
   },
   {
