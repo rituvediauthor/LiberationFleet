@@ -38,9 +38,17 @@ describe('ProductLandingComponent', () => {
 
   it('should create and display landing content', () => {
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.textContent).toContain('LiberationFleet');
+    expect(element.textContent).toContain('Liberation Fleet');
     expect(element.textContent).toContain('Build resilient communities');
+    expect(element.textContent).toContain('How to use this app');
+    expect(element.textContent).toContain('financial sea monsters');
     expect(element.querySelector('app-brand-logo')).toBeTruthy();
+    expect(element.querySelectorAll('.menu-link').length).toBeGreaterThan(0);
+  });
+
+  it('should navigate to a public how-to topic when a menu button is clicked', () => {
+    fixture.componentInstance.openTopic('giving-season');
+    expect(router.navigate).toHaveBeenCalledWith(['/how-to', 'giving-season']);
   });
 
   it('should navigate to sign-in when primary button is clicked', () => {

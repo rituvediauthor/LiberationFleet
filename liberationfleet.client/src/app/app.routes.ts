@@ -139,6 +139,17 @@ export const routes: Routes = [
     title: 'Reset Password'
   },
   {
+    path: 'how-to',
+    component: HowToUseHubComponent,
+    pathMatch: 'full',
+    title: 'How to use this app'
+  },
+  {
+    path: 'how-to/:topicId',
+    component: HowToUseTopicComponent,
+    title: 'How to use this app'
+  },
+  {
     path: 'app/crew',
     component: CrewHomeComponent,
     pathMatch: 'full',

@@ -6,6 +6,36 @@
       <p class="subtitle">Build resilient communities and help those in need with the power of the fleet!</p>
     </div>
 
+    <section class="how-to-section" aria-labelledby="landing-how-to-heading">
+      <p class="how-to-body">
+        Many have tried to sail the seas of life alone, and many have drowned. This app is your ship and it is time to gather your crew of friends, family, and neighbors to set sail and fight for freedom from the financial sea monsters that threaten all of our lives.
+      </p>
+
+      <h2 id="landing-how-to-heading">How to use this app</h2>
+
+      <nav class="topic-menu" aria-label="How to use this app topics">
+        <button
+          type="button"
+          class="menu-link"
+          *ngFor="let topic of topics"
+          (click)="openTopic(topic.id)">
+          <img
+            *ngIf="topic.imageSrc"
+            class="menu-icon-img"
+            [src]="topic.imageSrc"
+            alt=""
+            aria-hidden="true" />
+          <i
+            *ngIf="!topic.imageSrc && topic.icon"
+            class="fa-solid menu-icon"
+            [ngClass]="topic.icon"
+            aria-hidden="true"></i>
+          <span class="menu-label">{{ topic.title }}</span>
+          <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+        </button>
+      </nav>
+    </section>
+
     <section class="nuke-panel" *ngIf="nukeEnabled">
       <h2>Dev / staging reset</h2>
       <p>

@@ -20,11 +20,19 @@ export class HowToUseHubComponent implements OnInit {
   private router = inject(Router);
   private navigation = inject(NavigationService);
 
+  private get isPublicGuide(): boolean {
+    return !this.router.url.startsWith('/app/');
+  }
+
   ngOnInit() {
-    this.backButton = this.navigation.createBackButton(['/app/crew']);
+    this.backButton = this.navigation.createBackButton(
+      this.isPublicGuide ? ['/'] : ['/app/crew']
+    );
   }
 
   openTopic(topicId: string) {
-    this.router.navigate(['/app/how-to', topicId]);
+    void this.router.navigate(
+      this.isPublicGuide ? ['/how-to', topicId] : ['/app/how-to', topicId]
+    );
   }
 }

@@ -36,6 +36,8 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'forgot-password')?.component).toBe(ForgotPasswordComponent);
     expect(routes.find(r => r.path === 'reset-password')?.component).toBe(ResetPasswordComponent);
     expect(routes.find(r => r.path === 'sign-in-success')).toBeUndefined();
+    expect(routes.find(r => r.path === 'how-to')?.canActivate).toBeUndefined();
+    expect(routes.find(r => r.path === 'how-to/:topicId')?.canActivate).toBeUndefined();
   });
 
   it('should define authenticated app routes with authGuard', () => {

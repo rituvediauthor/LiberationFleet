@@ -20,13 +20,21 @@ export class HowToUseTopicComponent implements OnInit {
   private router = inject(Router);
   private navigation = inject(NavigationService);
 
+  private get isPublicGuide(): boolean {
+    return !this.router.url.startsWith('/app/');
+  }
+
+  private get hubPath(): string[] {
+    return this.isPublicGuide ? ['/how-to'] : ['/app/how-to'];
+  }
+
   ngOnInit() {
-    this.backButton = this.navigation.createBackButton(['/app/how-to']);
+    this.backButton = this.navigation.createBackButton(this.hubPath);
     this.route.paramMap.subscribe(params => {
       const id = params.get('topicId') ?? '';
       this.topic = getHowToTopic(id) ?? null;
       if (!this.topic) {
-        void this.router.navigate(['/app/how-to']);
+        void this.router.navigate(this.hubPath);
       }
     });
   }

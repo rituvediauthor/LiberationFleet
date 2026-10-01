@@ -8,6 +8,7 @@ import { DevMutualAidService } from '../../components/dev-toolbar/dev-mutual-aid
 import { DevToolsService } from '../../services/dev-tools.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { HOW_TO_USE_TOPICS } from '../how-to-use/how-to-use-content';
 
 @Component({
   selector: 'app-product-landing',
@@ -17,6 +18,7 @@ import { ToastService } from '../../components/toast/toast.component';
   styleUrl: './product-landing.component.css'
 })
 export class ProductLandingComponent implements OnInit {
+  readonly topics = HOW_TO_USE_TOPICS;
   signInButton: ActionBarButton;
   showNukeDialog = false;
   nukeEnabled = false;
@@ -48,6 +50,10 @@ export class ProductLandingComponent implements OnInit {
         this.nukeEnabled = false;
       }
     });
+  }
+
+  openTopic(topicId: string): void {
+    void this.router.navigate(['/how-to', topicId]);
   }
 
   openNukeDialog(): void {
@@ -96,4 +102,3 @@ export class ProductLandingComponent implements OnInit {
     this.router.navigate(['/sign-in']);
   }
 }
-
