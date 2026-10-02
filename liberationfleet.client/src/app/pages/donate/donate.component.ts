@@ -8,8 +8,8 @@ import { DonationService } from '../../services/donation.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { DONATION_PRESET_AMOUNTS_USD } from '../../models/donation.model';
 import {
-  isStagingDonationHost,
-  STAGING_GOFUNDME_DONATION_URL
+  GOFUNDME_DONATION_URL,
+  shouldUseExternalDonationCheckout
 } from '../../utils/donation-nav.util';
 
 @Component({
@@ -27,8 +27,8 @@ export class DonateComponent implements OnInit {
   submitting = false;
   donationsEnabled = true;
   statusNote = '';
-  /** Staging uses GoFundMe; Stripe amount page is production-only. */
-  isStagingEnvironment = isStagingDonationHost();
+  /** Live hosts use GoFundMe until Stripe nonprofit review is clear. */
+  usesExternalDonationCheckout = shouldUseExternalDonationCheckout();
 
   private navigation = inject(NavigationService);
   private donationService = inject(DonationService);
@@ -36,8 +36,8 @@ export class DonateComponent implements OnInit {
   private route = inject(ActivatedRoute);
 
   ngOnInit() {
-    if (this.isStagingEnvironment) {
-      window.location.assign(STAGING_GOFUNDME_DONATION_URL);
+    if (this.usesExternalDonationCheckout) {
+      window.location.assign(GOFUNDME_DONATION_URL);
       return;
     }
 

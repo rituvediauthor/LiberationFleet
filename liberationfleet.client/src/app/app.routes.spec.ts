@@ -27,6 +27,7 @@ describe('app.routes', () => {
   it('should define landing route at root', () => {
     const route = routes.find(r => r.path === '');
     expect(route?.component).toBe(ProductLandingComponent);
+    expect(route?.canActivate).toContain(guestGuard);
   });
 
   it('should define auth-related routes', () => {

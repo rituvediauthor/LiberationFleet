@@ -2,6 +2,8 @@
 
 The app ships with donation UI and Stripe Checkout. **Card numbers never touch Liberation Fleet servers.**
 
+**Current live behavior:** while Stripe nonprofit/fundraising review is unresolved, production and staging donate CTAs open the GoFundMe campaign (`USE_GOFUNDME_FOR_LIVE_DONATIONS` in `donation-nav.util.ts`). Localhost still uses in-app Stripe Checkout for development. Set that flag to `false` and redeploy when Stripe payouts are confirmed safe.
+
 Related: [AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) (Key Vault + public URL), [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md).
 
 ### Which environment am I configuring?
@@ -142,7 +144,7 @@ Use a **separate** destination for staging vs production. Do not reuse a product
 
 ### C.3 Verify staging
 
-1. Open staging `/app/donate` → you should see a staging warning that donations will not work there.
+1. Open staging `/app/donate` → the client redirects to the GoFundMe campaign (same as production while `USE_GOFUNDME_FOR_LIVE_DONATIONS` is true). Stripe Checkout remains available on localhost for local testing.
    For Stripe test-key verification on a non-production host that still has Checkout configured, use test card `4242…`.
 2. Destination / webhook delivery shows 2xx; profile totals update.
 3. EF migrations run on App Service startup — confirm the app starts cleanly after deploy.

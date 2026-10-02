@@ -1,7 +1,9 @@
 import {
+  GOFUNDME_DONATION_URL,
+  isProductionDonationHost,
   isStagingDonationHost,
   navigateToDonate,
-  STAGING_GOFUNDME_DONATION_URL
+  shouldUseExternalDonationCheckout
 } from './donation-nav.util';
 
 describe('donation-nav.util', () => {
@@ -12,21 +14,46 @@ describe('donation-nav.util', () => {
     expect(isStagingDonationHost('localhost')).toBe(false);
   });
 
+  it('detects production donation hosts', () => {
+    expect(isProductionDonationHost('liberationfleet.org')).toBe(true);
+    expect(isProductionDonationHost('www.liberationfleet.org')).toBe(true);
+    expect(isProductionDonationHost('app.liberationfleet.org')).toBe(true);
+    expect(isProductionDonationHost('app-lfleet-production.azurewebsites.net')).toBe(true);
+    expect(isProductionDonationHost('localhost')).toBe(false);
+    expect(isProductionDonationHost('staging.liberationfleet.org')).toBe(false);
+  });
+
+  it('routes live hosts to external GoFundMe checkout', () => {
+    expect(shouldUseExternalDonationCheckout('liberationfleet.org')).toBe(true);
+    expect(shouldUseExternalDonationCheckout('staging.example.com')).toBe(true);
+    expect(shouldUseExternalDonationCheckout('localhost')).toBe(false);
+  });
+
+  it('assigns GoFundMe on production', () => {
+    const assignSpy = spyOn(window.location, 'assign');
+    const router = jasmine.createSpyObj('Router', ['navigate']);
+
+    navigateToDonate(router as never, 'liberationfleet.org');
+
+    expect(assignSpy).toHaveBeenCalledWith(GOFUNDME_DONATION_URL);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('assigns GoFundMe on staging', () => {
     const assignSpy = spyOn(window.location, 'assign');
     const router = jasmine.createSpyObj('Router', ['navigate']);
 
     navigateToDonate(router as never, 'staging.example.com');
 
-    expect(assignSpy).toHaveBeenCalledWith(STAGING_GOFUNDME_DONATION_URL);
+    expect(assignSpy).toHaveBeenCalledWith(GOFUNDME_DONATION_URL);
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it('navigates to in-app donate when not staging', () => {
+  it('navigates to in-app donate on localhost', () => {
     const assignSpy = spyOn(window.location, 'assign');
     const router = jasmine.createSpyObj('Router', ['navigate']);
 
-    navigateToDonate(router as never, 'liberationfleet.com');
+    navigateToDonate(router as never, 'localhost');
 
     expect(assignSpy).not.toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/app/donate']);

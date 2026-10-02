@@ -115,6 +115,7 @@ export const routes: Routes = [
   {
     path: '',
     component: ProductLandingComponent,
+    canActivate: [guestGuard],
     title: 'Home'
   },
   {
