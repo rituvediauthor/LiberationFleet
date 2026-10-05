@@ -44,6 +44,8 @@ describe('ProductLandingComponent', () => {
     expect(element.textContent).toContain('financial sea monsters');
     expect(element.querySelector('app-brand-logo')).toBeTruthy();
     expect(element.querySelectorAll('.menu-link').length).toBeGreaterThan(0);
+    expect(element.textContent).toContain('Guide to run a crew without the app');
+    expect(element.textContent).toContain('Donate to Liberation Fleet Co.');
   });
 
   it('should navigate to a public how-to topic when a menu button is clicked', () => {
