@@ -23,20 +23,20 @@ describe('donation-nav.util', () => {
     expect(isProductionDonationHost('staging.liberationfleet.org')).toBe(false);
   });
 
-  it('routes live hosts to external GoFundMe checkout', () => {
-    expect(shouldUseExternalDonationCheckout('liberationfleet.org')).toBe(true);
-    expect(shouldUseExternalDonationCheckout('staging.example.com')).toBe(true);
+  it('uses Stripe on production and localhost; GoFundMe on staging', () => {
+    expect(shouldUseExternalDonationCheckout('liberationfleet.org')).toBe(false);
     expect(shouldUseExternalDonationCheckout('localhost')).toBe(false);
+    expect(shouldUseExternalDonationCheckout('staging.example.com')).toBe(true);
   });
 
-  it('assigns GoFundMe on production', () => {
+  it('navigates to in-app donate on production', () => {
     const assignSpy = spyOn(window.location, 'assign');
     const router = jasmine.createSpyObj('Router', ['navigate']);
 
     navigateToDonate(router as never, 'liberationfleet.org');
 
-    expect(assignSpy).toHaveBeenCalledWith(GOFUNDME_DONATION_URL);
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(assignSpy).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/donate']);
   });
 
   it('assigns GoFundMe on staging', () => {

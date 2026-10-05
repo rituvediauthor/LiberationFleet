@@ -1,19 +1,17 @@
 import { Router } from '@angular/router';
 
-/**
- * Temporary external destination while Stripe nonprofit/fundraising review is unresolved.
- * Flip {@link USE_GOFUNDME_FOR_LIVE_DONATIONS} to false once Stripe payouts are confirmed safe.
- */
+/** Fallback campaign URL (staging / emergency bypass only). */
 export const GOFUNDME_DONATION_URL = 'https://gofund.me/b9940213d';
 
 /** @deprecated Use {@link GOFUNDME_DONATION_URL}. */
 export const STAGING_GOFUNDME_DONATION_URL = GOFUNDME_DONATION_URL;
 
 /**
- * When true, production (and staging) donate CTAs open GoFundMe instead of Stripe Checkout.
- * Localhost stays on the in-app Stripe flow for development.
+ * When true, production donate CTAs open GoFundMe instead of Stripe Checkout.
+ * Keep false while Stripe nonprofit donations are approved and live.
+ * Staging still uses GoFundMe when this is false (no live Stripe on staging).
  */
-export const USE_GOFUNDME_FOR_LIVE_DONATIONS = true;
+export const USE_GOFUNDME_FOR_LIVE_DONATIONS = false;
 
 export function isStagingDonationHost(
   hostname: string = typeof location !== 'undefined' ? location.hostname : ''
@@ -37,20 +35,20 @@ export function isProductionDonationHost(
   );
 }
 
-/** Live hosts send donors to GoFundMe until Stripe is explicitly re-enabled. */
+/** External GoFundMe when staging, or when the live bypass flag is on. */
 export function shouldUseExternalDonationCheckout(
   hostname: string = typeof location !== 'undefined' ? location.hostname : ''
 ): boolean {
-  if (!USE_GOFUNDME_FOR_LIVE_DONATIONS) {
-    return isStagingDonationHost(hostname);
+  if (USE_GOFUNDME_FOR_LIVE_DONATIONS && isProductionDonationHost(hostname)) {
+    return true;
   }
 
-  return isStagingDonationHost(hostname) || isProductionDonationHost(hostname);
+  return isStagingDonationHost(hostname);
 }
 
 /**
- * Live (prod/staging): open the GoFundMe campaign.
- * Local / other hosts: in-app amount picker → Stripe checkout.
+ * Staging (or live bypass): open GoFundMe.
+ * Production / local: in-app amount picker → Stripe checkout.
  */
 export function navigateToDonate(
   router: Router,

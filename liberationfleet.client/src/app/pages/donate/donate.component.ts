@@ -27,7 +27,7 @@ export class DonateComponent implements OnInit {
   submitting = false;
   donationsEnabled = true;
   statusNote = '';
-  /** Live hosts use GoFundMe until Stripe nonprofit review is clear. */
+  /** Staging (or live GoFundMe bypass) redirects away from this page. */
   usesExternalDonationCheckout = shouldUseExternalDonationCheckout();
 
   private navigation = inject(NavigationService);
