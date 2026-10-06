@@ -113,6 +113,11 @@ public static class CrewRoleMapper
             roles.Add(CrewRole.Accountant);
         }
 
+        if (membership.IsHonoraryMember)
+        {
+            roles.Add(CrewRole.HonoraryMember);
+        }
+
         return roles;
     }
 
@@ -149,6 +154,7 @@ public static class CrewRoleMapper
             CrewRole.Intermediary => membership.IsIntermediary,
             CrewRole.Representative => membership.IsRepresentative,
             CrewRole.Accountant => membership.IsAccountant,
+            CrewRole.HonoraryMember => membership.IsHonoraryMember,
             _ => false
         };
 
@@ -162,6 +168,7 @@ public static class CrewRoleMapper
             CrewRole.Intermediary => "Intermediary",
             CrewRole.Representative => "Representative",
             CrewRole.Accountant => "Accountant",
+            CrewRole.HonoraryMember => "Honorary member",
             _ => role.ToString()
         };
 
@@ -182,6 +189,8 @@ public static class CrewRoleMapper
                 "Serve a fixed term receiving mutual aid (except survival thresholds) so they can take time off work to speak or vote for the crew at government functions. Nominations require a future start and end date. This role is only to be used in the event that finances are restricting all crewmates from voting and partacing in local governance (when one voice is better than no voice. Not to be used to reduce government perticipation by making many voices one voice).",
             CrewRole.Accountant =>
                 "Propose adjustments to crewmate contribution and reception totals, monthly giving capacity, and whether a season cycle is already completed—useful when a crew joins mid-season with existing mutual-aid history or to correct mistakes.",
+            CrewRole.HonoraryMember =>
+                "For elderly, disabled, or otherwise incapable contributors the crew agrees to fully include. Grants financial membership (full aid eligibility and LoT participation) even below the contribution floor, and keeps their priority score paced with the crew's average contribution level. No special app powers.",
             _ => string.Empty
         };
 
@@ -270,6 +279,10 @@ public static class CrewRoleMapper
             case "accountant":
                 role = CrewRole.Accountant;
                 return true;
+            case "honorarymember":
+            case "honorary member":
+                role = CrewRole.HonoraryMember;
+                return true;
             default:
                 role = default;
                 return Enum.TryParse(value, ignoreCase: true, out role)
@@ -345,6 +358,9 @@ public static class CrewRoleMapper
                     break;
                 case CrewRole.Accountant:
                     membership.IsAccountant = assign;
+                    break;
+                case CrewRole.HonoraryMember:
+                    membership.IsHonoraryMember = assign;
                     break;
             }
         }

@@ -124,6 +124,9 @@ public class CrewmateProfileDto
     /// <summary>1-based reception order for the primary cycle, when known.</summary>
     public int? ReceptionOrder { get; set; }
     public bool HasAidStatDraft { get; set; }
+    public bool IsHonoraryMember { get; set; }
+    /// <summary>Any pending crew-role-change proposal targeting this crewmate (blocks honorary promote/demote).</summary>
+    public int? PendingRoleChangeProposalId { get; set; }
     public AidSeasonAccountingDto? SeasonAccounting { get; set; }
     public PriorityScoreBreakdownDto? GivingSeasonPriority { get; set; }
     public PriorityScoreBreakdownDto? LibraryOfThingsPriority { get; set; }

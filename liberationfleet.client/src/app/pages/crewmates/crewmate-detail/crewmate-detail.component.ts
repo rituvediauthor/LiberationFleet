@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../../components/page-layout/page-layout.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
@@ -23,6 +23,7 @@ import { CrewService } from '../../../services/crew.service';
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     PageLayoutComponent,
     ConfirmDialogComponent,
     KickReasonDialogComponent,
@@ -222,6 +223,75 @@ export class CrewmateDetailComponent implements OnInit {
 
   onNominate() {
     this.router.navigate(['/app/crew/crewmates', this.userId, 'nominate-roles']);
+  }
+
+  onPromoteHonorary() {
+    if (!this.profile || this.actionLoading || this.profile.isHonoraryMember || this.profile.pendingRoleChangeProposalId) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.nominateRoles(this.userId, ['HonoraryMember']).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to propose honorary membership');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(response.message || 'Honorary membership proposal submitted');
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else {
+          this.loadProfile();
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to propose honorary membership');
+      }
+    });
+  }
+
+  onDemoteHonorary() {
+    if (!this.profile || this.actionLoading || !this.profile.isHonoraryMember) {
+      return;
+    }
+
+    if (!this.profile.isSelf && this.profile.pendingRoleChangeProposalId) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.demoteRoles(this.userId, ['HonoraryMember']).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update honorary membership');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(
+          response.message
+            || (response.proposalId ? 'Honorary demotion proposal submitted' : 'Honorary membership removed')
+        );
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else {
+          this.loadProfile();
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to update honorary membership');
+      }
+    });
   }
 
   onClaimIdentity() {

@@ -3,6 +3,8 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Commands.DemoteCrewRoles;
@@ -13,6 +15,7 @@ public class DemoteCrewRolesCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     CrewRoleProposalService roleProposalService,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork) : IRequestHandler<DemoteCrewRolesCommand, CrewRoleChangeResponse>
 {
     public async Task<CrewRoleChangeResponse> Handle(DemoteCrewRolesCommand request, CancellationToken cancellationToken)
@@ -54,6 +57,14 @@ public class DemoteCrewRolesCommandHandler(
             }
 
             CrewRoleMapper.ApplyRoles(viewerMembership, roles, assign: false);
+            if (roles.Contains(CrewRole.HonoraryMember))
+            {
+                viewerMembership.CurrentPriorityScore = await mutualAidService.GetPriorityScoreForUserAsync(
+                    viewerMembership.UserId,
+                    viewerMembership.CrewId,
+                    cancellationToken);
+            }
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             var labels = string.Join(", ", roles.Select(CrewRoleMapper.GetDisplayName));

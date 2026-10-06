@@ -181,7 +181,30 @@
 
         <div class="role-actions">
           <button type="button" class="role-btn" (click)="onNominate()">Nominate</button>
+          <button
+            *ngIf="!profile.isHonoraryMember"
+            type="button"
+            class="role-btn honorary-promote"
+            [disabled]="actionLoading || !!profile.pendingRoleChangeProposalId || profile.isPlaceholderMember"
+            (click)="onPromoteHonorary()">
+            Promote to honorary member
+          </button>
+          <button
+            *ngIf="profile.isHonoraryMember"
+            type="button"
+            class="role-btn honorary-demote"
+            [disabled]="actionLoading || (!!profile.pendingRoleChangeProposalId && !profile.isSelf)"
+            (click)="onDemoteHonorary()">
+            Demote from honorary member
+          </button>
         </div>
+        <p class="role-hint" *ngIf="profile.pendingRoleChangeProposalId">
+          A role-change proposal is pending for this crewmate.
+          <a [routerLink]="['/app/crew/proposals', profile.pendingRoleChangeProposalId]">View proposal</a>
+        </p>
+        <p class="role-hint" *ngIf="!profile.isHonoraryMember">
+          Honorary membership is for elderly, disabled, or otherwise incapable contributors the crew agrees to fully include in aid and the Library of Things even below the contribution floor.
+        </p>
       </section>
 
       <section class="section" *ngIf="profile.canToggleCanAttachFiles">

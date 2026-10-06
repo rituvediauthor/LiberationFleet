@@ -8,5 +8,6 @@ public enum CrewRole
     Intermediary = 5,
     Organizer = 6,
     Representative = 7,
-    Accountant = 8
+    Accountant = 8,
+    HonoraryMember = 9
 }

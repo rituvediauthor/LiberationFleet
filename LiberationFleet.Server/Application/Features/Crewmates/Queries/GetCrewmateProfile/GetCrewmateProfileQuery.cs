@@ -146,6 +146,11 @@ public class GetCrewmateProfileQueryHandler(
             viewerMembership.CrewId,
             cancellationToken);
 
+        var pendingRoleChange = await proposalRepository.GetPendingCrewRoleChangeForTargetAsync(
+            viewerMembership.CrewId,
+            request.UserId,
+            cancellationToken);
+
         return new CrewmateProfileResponse
         {
             Success = true,
@@ -178,7 +183,8 @@ public class GetCrewmateProfileQueryHandler(
                     ProfileMapper.LibraryOfThingsStatusReason(targetMembership)),
                 tierSummary.ViewerTier,
                 tierSummary.AverageScore,
-                seasonAccounting)
+                seasonAccounting,
+                pendingRoleChange?.ProposalId)
         };
     }
 }

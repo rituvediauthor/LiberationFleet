@@ -267,11 +267,14 @@
 
 .role-actions {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .role-btn {
   flex: 1;
+  min-width: 140px;
   padding: 10px 12px;
   border: 1px solid var(--lf-color-accent-border);
   border-radius: 8px;
@@ -282,10 +285,16 @@
   cursor: pointer;
 }
 
-.role-btn.demote {
+.role-btn.demote,
+.role-btn.honorary-demote {
   border-color: var(--lf-color-danger-border);
   background: var(--lf-color-danger-soft-bg);
   color: var(--lf-color-danger);
+}
+
+.role-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .role-btn:hover {

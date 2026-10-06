@@ -118,7 +118,8 @@ public static class CrewmateMapper
         PriorityScoreBreakdownDto? libraryOfThingsPriority = null,
         int libraryPriorityTier = 1,
         decimal libraryPriorityAverage = 0m,
-        AidSeasonAccountingDto? seasonAccounting = null)
+        AidSeasonAccountingDto? seasonAccounting = null,
+        int? pendingRoleChangeProposalId = null)
     {
         var lifetimeContributions = membership.LifetimeContributionOverride ?? giftStats.LifetimeContributions;
         var receptionThisYear = membership.ReceptionThisYearOverride ?? giftStats.ReceptionThisYear;
@@ -193,6 +194,8 @@ public static class CrewmateMapper
             HasActiveCycle = accounting.HasActiveCycle,
             ReceptionOrder = accounting.ReceptionOrder,
             HasAidStatDraft = !string.IsNullOrWhiteSpace(membership.AidStatDraftJson),
+            IsHonoraryMember = membership.IsHonoraryMember,
+            PendingRoleChangeProposalId = pendingRoleChangeProposalId,
             SeasonAccounting = accounting,
             GivingSeasonPriority = givingSeasonPriority,
             LibraryOfThingsPriority = libraryOfThingsPriority,

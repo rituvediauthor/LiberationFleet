@@ -1612,6 +1612,22 @@ public partial class MutualAidService(
             crewId,
             contributionCutoff,
             cancellationToken);
+
+        // Honorary members keep pace with the crew: use at least the peer-average monthly
+        // contribution so their priority rises with the crew even when they cannot give.
+        if (membership.IsHonoraryMember)
+        {
+            var peerAverage = await GetHonoraryPeerAverageContributionsAsync(
+                crewId,
+                userId,
+                contributionCutoff,
+                cancellationToken);
+            if (peerAverage > userLifetime)
+            {
+                userLifetime = peerAverage;
+            }
+        }
+
         var capacityContext = crew is not null
             ? await BuildCapacityContextAsync(crew, cancellationToken)
             : new CapacityContext();
@@ -1632,7 +1648,38 @@ public partial class MutualAidService(
             demoteOrganizerToLastPlace: !assumeInNeedNonOrganizerForLot);
     }
 
-    public async Task<bool> IsFinancialMemberAsync(
+    
+    private async Task<decimal> GetHonoraryPeerAverageContributionsAsync(
+        int crewId,
+        int honoraryUserId,
+        DateTime? contributionCutoff,
+        CancellationToken cancellationToken)
+    {
+        var peers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crewId, cancellationToken);
+        var totals = new List<decimal>();
+        foreach (var peer in peers)
+        {
+            if (peer.UserId == honoraryUserId || peer.IsBanned)
+            {
+                continue;
+            }
+
+            totals.Add(await mutualAidRepository.GetLifetimeContributionsAsync(
+                peer.UserId,
+                crewId,
+                contributionCutoff,
+                cancellationToken));
+        }
+
+        if (totals.Count == 0)
+        {
+            return 0m;
+        }
+
+        return totals.Average();
+    }
+
+public async Task<bool> IsFinancialMemberAsync(
         int userId,
         int crewId,
         CrewMembership membership,

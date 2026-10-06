@@ -107,6 +107,8 @@ export interface CrewmateProfile {
   hasActiveCycle?: boolean;
   receptionOrder?: number | null;
   hasAidStatDraft?: boolean;
+  isHonoraryMember?: boolean;
+  pendingRoleChangeProposalId?: number | null;
   seasonAccounting?: AidSeasonAccounting | null;
   givingSeasonPriority?: PriorityScoreBreakdown | null;
   libraryOfThingsPriority?: PriorityScoreBreakdown | null;

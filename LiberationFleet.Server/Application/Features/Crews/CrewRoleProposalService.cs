@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
@@ -30,6 +31,7 @@ public class CrewRoleProposalService(
     IGiftRepository giftRepository,
     ContentTenureService contentTenureService,
     NotificationService notificationService,
+    IMutualAidService mutualAidService,
     IUnitOfWork unitOfWork)
 {
     public Task<CrewRoleProposalResult> CreateNominationAsync(
@@ -263,6 +265,14 @@ public class CrewRoleProposalService(
             representativeTermStartUtc: roleChange.RepresentativeTermStartUtc,
             representativeTermEndUtc: roleChange.RepresentativeTermEndUtc);
 
+        if (roles.Contains(CrewRole.HonoraryMember) && proposal.CrewId.HasValue)
+        {
+            membership.CurrentPriorityScore = await mutualAidService.GetPriorityScoreForUserAsync(
+                membership.UserId,
+                proposal.CrewId.Value,
+                cancellationToken);
+        }
+
         roleChange.IsApplied = true;
 
         var targetUser = await userRepository.GetByIdWithProfileAsync(roleChange.TargetUserId, cancellationToken);
@@ -318,6 +328,13 @@ public class CrewRoleProposalService(
             description +=
                 $" Representative term: {termStartUtc.Value:yyyy-MM-dd} through {termEndUtc.Value:yyyy-MM-dd} (UTC). " +
                 "During the term they receive mutual aid ahead of cycles (except survival thresholds) so they can attend government functions for the crew.";
+        }
+
+        if (roles.Contains(CrewRole.HonoraryMember))
+        {
+            description +=
+                " Honorary membership grants full financial membership (aid eligibility and LoT participation) even below the contribution floor, " +
+                "and keeps their priority score paced with the crew when they cannot contribute. It grants no special app powers.";
         }
 
         return description;
