@@ -118,11 +118,6 @@
   background: var(--lf-color-bg-muted);
 }
 
-.priority-hint {
-  margin: 4px 0 8px;
-  grid-column: 1 / -1;
-}
-
 .platform-list li {
   display: flex;
   flex-wrap: wrap;
@@ -186,6 +181,7 @@
 
 .priority-hint {
   margin: -4px 0 8px;
+  grid-column: 1 / -1;
 }
 
 .kick-btn {
@@ -200,9 +196,8 @@
   cursor: pointer;
 }
 
-.kick-btn:hover {
-  background: var(--lf-color-danger-soft-bg);
-  border-color: var(--lf-color-danger);
+.kick-btn:hover:not(:disabled) {
+  filter: brightness(0.98);
 }
 
 .moderation-actions {
@@ -247,13 +242,17 @@
   color: var(--lf-color-text-secondary);
 }
 
+.role-list,
+.role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .role-list {
   list-style: none;
   margin: 0 0 12px;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .role-list li {
@@ -266,15 +265,11 @@
 }
 
 .role-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   margin-top: 10px;
 }
 
 .role-btn {
   flex: 1;
-  min-width: 140px;
   padding: 10px 12px;
   border: 1px solid var(--lf-color-accent-border);
   border-radius: 8px;
@@ -282,23 +277,21 @@
   color: var(--lf-color-accent);
   font-size: 14px;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.role-btn.demote,
-.role-btn.honorary-demote {
+.role-btn.demote {
   border-color: var(--lf-color-danger-border);
   background: var(--lf-color-danger-soft-bg);
   color: var(--lf-color-danger);
 }
 
+.role-btn:hover:not(:disabled) {
+  filter: brightness(0.98);
+}
+
 .role-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-
-.role-btn:hover {
-  filter: brightness(0.98);
 }
 
 .role-hint {

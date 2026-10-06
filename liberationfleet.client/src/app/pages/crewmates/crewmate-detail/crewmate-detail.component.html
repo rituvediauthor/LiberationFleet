@@ -192,7 +192,7 @@
           <button
             *ngIf="profile.isHonoraryMember"
             type="button"
-            class="role-btn honorary-demote"
+            class="role-btn demote"
             [disabled]="actionLoading || (!!profile.pendingRoleChangeProposalId && !profile.isSelf)"
             (click)="onDemoteHonorary()">
             Demote from honorary member
