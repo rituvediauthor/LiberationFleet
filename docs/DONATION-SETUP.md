@@ -96,7 +96,7 @@ Config (`Organization` section / `Organization__*` App Settings):
 |---------|---------|
 | `LegalName` | Default `Liberation Fleet Co.` |
 | `Ein` | EIN on the letter when set (`XX-XXXXXXX`) |
-| `MailingAddress` | Optional address line |
+| `MailingAddress` | Optional; leave empty to omit from acknowledgments (recommended if the only address is a home address) |
 | `TaxExemptStatement` | Short exemption / deductibility sentence (have counsel review) |
 
 Local example:

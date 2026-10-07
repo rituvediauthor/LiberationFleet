@@ -16,19 +16,25 @@ public partial class AppDonationGuestReceiptEmail : Migration
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
+        // Separate batches: SQL Server compiles the whole batch before ALTER takes effect,
+        // so ADD + UPDATE in one Sql() fails with "Invalid column name 'ReceiptEmail'".
         migrationBuilder.Sql("""
             IF COL_LENGTH(N'AppDonations', N'ReceiptEmail') IS NULL
             BEGIN
                 ALTER TABLE [AppDonations] ADD [ReceiptEmail] nvarchar(256) NOT NULL
                     CONSTRAINT [DF_AppDonations_ReceiptEmail] DEFAULT (N'');
             END
+            """);
 
+        migrationBuilder.Sql("""
             UPDATE d
             SET d.[ReceiptEmail] = COALESCE(NULLIF(LTRIM(RTRIM(u.[Email])), N''), N'unknown@invalid.local')
             FROM [AppDonations] d
             INNER JOIN [Users] u ON u.[Id] = d.[UserId]
             WHERE d.[ReceiptEmail] = N'' OR d.[ReceiptEmail] IS NULL;
+            """);
 
+        migrationBuilder.Sql("""
             IF EXISTS (
                 SELECT 1 FROM sys.foreign_keys
                 WHERE name = N'FK_AppDonations_Users_UserId' AND parent_object_id = OBJECT_ID(N'AppDonations'))
@@ -65,7 +71,9 @@ public partial class AppDonationGuestReceiptEmail : Migration
 
             ALTER TABLE [AppDonations] WITH CHECK ADD CONSTRAINT [FK_AppDonations_Users_UserId]
                 FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE;
+            """);
 
+        migrationBuilder.Sql("""
             IF COL_LENGTH(N'AppDonations', N'ReceiptEmail') IS NOT NULL
             BEGIN
                 ALTER TABLE [AppDonations] DROP CONSTRAINT [DF_AppDonations_ReceiptEmail];
