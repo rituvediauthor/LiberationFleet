@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 {
+    /// <summary>
+    /// FCM/APNs device tokens. Snapshot updated so MigrateAsync does not fail with PendingModelChangesWarning.
+    /// </summary>
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20261006180000_AddDevicePushTokens")]
     public partial class AddDevicePushTokens : Migration
@@ -13,52 +16,42 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "DevicePushTokens",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    Platform = table.Column<int>(type: "int", nullable: false),
-                    Token = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
-                    DeviceId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastSeenAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDisabled = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DevicePushTokens", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DevicePushTokens_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            migrationBuilder.Sql("""
+                IF OBJECT_ID(N'[DevicePushTokens]', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [DevicePushTokens] (
+                        [Id] int NOT NULL IDENTITY,
+                        [UserId] int NOT NULL,
+                        [Platform] int NOT NULL,
+                        [Token] nvarchar(512) NOT NULL,
+                        [DeviceId] nvarchar(128) NULL,
+                        [CreatedAt] datetime2 NOT NULL,
+                        [LastSeenAt] datetime2 NOT NULL,
+                        [IsDisabled] bit NOT NULL,
+                        CONSTRAINT [PK_DevicePushTokens] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_DevicePushTokens_Users_UserId]
+                            FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE
+                    );
 
-            migrationBuilder.CreateIndex(
-                name: "IX_DevicePushTokens_Token",
-                table: "DevicePushTokens",
-                column: "Token",
-                unique: true);
+                    CREATE UNIQUE INDEX [IX_DevicePushTokens_Token]
+                        ON [DevicePushTokens] ([Token]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_DevicePushTokens_UserId_DeviceId",
-                table: "DevicePushTokens",
-                columns: new[] { "UserId", "DeviceId" });
+                    CREATE INDEX [IX_DevicePushTokens_UserId_DeviceId]
+                        ON [DevicePushTokens] ([UserId], [DeviceId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_DevicePushTokens_UserId_IsDisabled",
-                table: "DevicePushTokens",
-                columns: new[] { "UserId", "IsDisabled" });
+                    CREATE INDEX [IX_DevicePushTokens_UserId_IsDisabled]
+                        ON [DevicePushTokens] ([UserId], [IsDisabled]);
+                END
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "DevicePushTokens");
+            migrationBuilder.Sql("""
+                IF OBJECT_ID(N'[DevicePushTokens]', N'U') IS NOT NULL
+                    DROP TABLE [DevicePushTokens];
+                """);
         }
     }
 }

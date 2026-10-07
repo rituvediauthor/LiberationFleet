@@ -933,6 +933,50 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("CrewRules");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DevicePushToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("IsDisabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Platform")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "DeviceId");
+
+                    b.HasIndex("UserId", "IsDisabled");
+
+                    b.ToTable("DevicePushTokens");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DirectConversation", b =>
                 {
                     b.Property<int>("Id")
@@ -6017,6 +6061,17 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithOne()
                         .HasForeignKey("LiberationFleet.Server.Domain.Entities.UserPrivateKeyBackup", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DevicePushToken", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
