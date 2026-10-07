@@ -1301,15 +1301,15 @@ Optional later: TOTP authenticator apps, SMS, recovery codes.
 
 No extra code. Complete §7.5 (staging) and §11.4.6 (production), then keep SPF/DKIM healthy ([LAUNCH-CHECKLIST B.1 / B.14](./LAUNCH-CHECKLIST.md)).
 
-### 16.3 Push notifications (native — not implemented)
+### 16.3 Push notifications (native — code ready, credentials required)
 
-SignalR covers in-app alerts while the app is open. Background mute on iOS/Android needs:
+SignalR covers in-app alerts while the app is open. Background OS push:
 
-1. Apple APNs + Firebase Cloud Messaging (or Azure Notification Hubs in front of both).
-2. Device token registration API + server send path.
-3. Capacitor push plugin + permission prompts.
+1. **Code (done):** `DevicePushTokens` + `PUT/DELETE api/notifications/push-tokens` + FCM HTTP v1 / APNs sender hooked from `NotificationService`; Capacitor `@capacitor/push-notifications`.
+2. **You configure:** Apple APNs key + Firebase FCM service account — click-by-click in [NATIVE-APPS.md](./NATIVE-APPS.md) § Push notifications.
+3. **Azure:** Key Vault `Push-FcmServiceAccountJson`, `Push-ApnsKeyP8`; app settings `Push__FcmProjectId`, `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId`, `Push__ApnsUseSandbox` (Terraform placeholders).
 
-Track under [LAUNCH-CHECKLIST B.9](./LAUNCH-CHECKLIST.md). Not required for web-only launch.
+Track under [LAUNCH-CHECKLIST B.9](./LAUNCH-CHECKLIST.md). Web-only launch can ship before credentials are live.
 
 ### 16.4 Report vendor + NCMEC ESP
 

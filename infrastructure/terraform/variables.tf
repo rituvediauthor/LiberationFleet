@@ -103,6 +103,35 @@ variable "email_from_name" {
   default = "Liberation Fleet"
 }
 
+variable "push_fcm_project_id" {
+  type        = string
+  description = "Firebase project id for FCM. Leave empty until Firebase is configured."
+  default     = ""
+}
+
+variable "push_apns_key_id" {
+  type        = string
+  description = "APNs key id (Apple Developer → Keys)."
+  default     = ""
+}
+
+variable "push_apns_team_id" {
+  type        = string
+  description = "Apple Developer Team ID."
+  default     = ""
+}
+
+variable "push_apns_bundle_id" {
+  type    = string
+  default = "com.liberationfleet.app"
+}
+
+variable "push_apns_use_sandbox" {
+  type        = bool
+  description = "true for TestFlight/debug; false for App Store production APNs."
+  default     = false
+}
+
 variable "organization_legal_name" {
   type        = string
   description = "Legal entity name on donation acknowledgment emails."

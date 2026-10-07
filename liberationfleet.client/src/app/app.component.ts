@@ -16,6 +16,7 @@ import { CrewCryptoSyncService } from './services/crew-crypto-sync.service';
 import { FleetCryptoSyncService } from './services/fleet-crypto-sync.service';
 import { NotificationHubService } from './services/notification-hub.service';
 import { NotificationService } from './services/notification.service';
+import { PushNotificationRegistrationService } from './services/push-notification-registration.service';
 import { NotificationItem } from './models/notification.model';
 import {
   isCrewJoinRequestApprovedNotification,
@@ -48,6 +49,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private fleetCryptoSync = inject(FleetCryptoSyncService);
   private notificationHub = inject(NotificationHubService);
   private notificationService = inject(NotificationService);
+  private pushNotifications = inject(PushNotificationRegistrationService);
   private router = inject(Router);
   private notificationsBootstrapped = false;
   private readonly subscriptions = new Subscription();
@@ -215,6 +217,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     void this.notificationHub.connect();
+    void this.pushNotifications.start();
     if (!this.notificationsBootstrapped) {
       this.notificationsBootstrapped = true;
       this.notificationService.refreshBadges(true);

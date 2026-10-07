@@ -1,8 +1,10 @@
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkAllNotificationsRead;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkNotificationRead;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.MarkNotificationsReadByContent;
+using LiberationFleet.Server.Application.Features.Notifications.Commands.RegisterPushToken;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.SetHiddenContent;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.SetMutedContent;
+using LiberationFleet.Server.Application.Features.Notifications.Commands.UnregisterPushToken;
 using LiberationFleet.Server.Application.Features.Notifications.Commands.UpdateNotificationPreferences;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications.Queries.GetHiddenContent;
@@ -98,6 +100,20 @@ public class NotificationsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> SetHidden([FromBody] SetHiddenContentRequest body)
     {
         var result = await mediator.Send(new SetHiddenContentCommand(body.ContentType, body.ResourceId, body.Hidden));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("push-tokens")]
+    public async Task<IActionResult> RegisterPushToken([FromBody] RegisterPushTokenRequest body)
+    {
+        var result = await mediator.Send(new RegisterPushTokenCommand(body.Token, body.Platform, body.DeviceId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("push-tokens")]
+    public async Task<IActionResult> UnregisterPushToken([FromBody] UnregisterPushTokenRequest body)
+    {
+        var result = await mediator.Send(new UnregisterPushTokenCommand(body.Token, body.AllDevices));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

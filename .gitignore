@@ -382,6 +382,9 @@ data/
 **/database/backups/
 appsettings.*.local.json
 **/secrets.json
+# Firebase / FCM — download from Firebase Console; do not commit
+**/google-services.json
+**/GoogleService-Info.plist
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd

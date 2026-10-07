@@ -69,6 +69,13 @@ resource "azurerm_linux_web_app" "this" {
       "ReportEvidence__VendorApiKey"         = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.report_vendor_api_key})"
       "Email__SmtpUser"                      = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.email_smtp_user})"
       "Email__SmtpPassword"                  = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.email_smtp_password})"
+      "Push__FcmServiceAccountJson"          = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.push_fcm_service_account_json})"
+      "Push__ApnsKeyP8"                      = "@Microsoft.KeyVault(SecretUri=${var.key_vault_secret_uris.push_apns_key_p8})"
+      "Push__FcmProjectId"                   = var.push_fcm_project_id
+      "Push__ApnsKeyId"                      = var.push_apns_key_id
+      "Push__ApnsTeamId"                     = var.push_apns_team_id
+      "Push__ApnsBundleId"                   = var.push_apns_bundle_id
+      "Push__ApnsUseSandbox"                 = tostring(var.push_apns_use_sandbox)
       "Email__SmtpHost"                      = var.email_smtp_host
       "Email__SmtpPort"                      = tostring(var.email_smtp_port)
       "Email__FromAddress"                   = var.email_from_address

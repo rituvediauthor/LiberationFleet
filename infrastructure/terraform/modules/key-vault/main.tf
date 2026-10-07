@@ -124,3 +124,23 @@ resource "azurerm_key_vault_secret" "email_smtp_password" {
     ignore_changes = [value]
   }
 }
+
+resource "azurerm_key_vault_secret" "push_fcm_service_account_json" {
+  name         = "Push-FcmServiceAccountJson"
+  value        = var.push_fcm_service_account_json
+  key_vault_id = azurerm_key_vault.this.id
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
+resource "azurerm_key_vault_secret" "push_apns_key_p8" {
+  name         = "Push-ApnsKeyP8"
+  value        = var.push_apns_key_p8
+  key_vault_id = azurerm_key_vault.this.id
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}

@@ -124,8 +124,9 @@ Follow **[NCMEC-CSAM-runbook.md](./NCMEC-CSAM-runbook.md)**.
 | | |
 |---|---|
 | **Why** | SignalR only works while the app is open |
-| **Register** | Apple APNs; Firebase Cloud Messaging; optional Azure Notification Hubs |
-| **Status today** | **Not implemented** |
+| **Code** | **Implemented** — device token API, FCM/APNs sender, Capacitor plugin (see [NATIVE-APPS.md](./NATIVE-APPS.md) § Push) |
+| **You still must** | Create Firebase + APNs credentials; put secrets in Key Vault; add `google-services.json`; enable Push capability on iOS |
+| **Status today** | Code ready; **ops credentials pending** |
 
 ### B.10 Sign in with Apple / Google (optional)
 
@@ -185,7 +186,7 @@ Follow **[AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)** Steps 1–12.
 | Voice | Ready | Needs mic permissions | LiveKit Cloud |
 | Donations | Ready | External Checkout | Stripe live + policy review |
 | Reports / safety | Ready | Ready | Vendor key + NCMEC ESP (manual filing) |
-| Push when backgrounded | N/A (web push later) | Missing | APNs/FCM (Step 16) |
+| Push when backgrounded | N/A (web push later) | Code ready; needs FCM/APNs secrets | [NATIVE-APPS](./NATIVE-APPS.md) § Push |
 | Local discovery | Ready | Ready | Profile country + postal; Local allowlists |
 
 ---

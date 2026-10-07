@@ -104,6 +104,11 @@ module "app_service" {
   email_smtp_port                        = var.email_smtp_port
   email_from_address                     = var.email_from_address
   email_from_name                        = var.email_from_name
+  push_fcm_project_id                    = var.push_fcm_project_id
+  push_apns_key_id                       = var.push_apns_key_id
+  push_apns_team_id                      = var.push_apns_team_id
+  push_apns_bundle_id                    = var.push_apns_bundle_id
+  push_apns_use_sandbox                  = var.push_apns_use_sandbox
   extra_app_settings = merge(
     {
       "MediaDeepFreeze__Enabled"               = "true"

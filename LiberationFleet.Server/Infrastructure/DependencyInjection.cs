@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IUserBlockRepository, UserBlockRepository>();
         services.AddScoped<IDirectMessageRepository, DirectMessageRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IDevicePushTokenRepository, DevicePushTokenRepository>();
         services.AddScoped<IFallibleRepository, FallibleRepository>();
         services.AddScoped<ILibraryRepository, LibraryRepository>();
         services.AddScoped<ILibraryTaskRepository, LibraryTaskRepository>();
@@ -61,6 +62,8 @@ public static class DependencyInjection
         services.AddScoped<IAppDonationRepository, AppDonationRepository>();
         services.AddScoped<IVoicePresenceNotifier, VoicePresenceNotifier>();
         services.Configure<Infrastructure.LiveKit.LiveKitOptions>(configuration.GetSection(Infrastructure.LiveKit.LiveKitOptions.SectionName));
+        services.Configure<Application.Services.PushNotificationOptions>(
+            configuration.GetSection(Application.Services.PushNotificationOptions.SectionName));
         services.Configure<Application.Services.ReportEvidenceOptions>(
             configuration.GetSection(Application.Services.ReportEvidenceOptions.SectionName));
         services.Configure<Application.Services.StripeDonationOptions>(
@@ -90,6 +93,8 @@ public static class DependencyInjection
         services.AddHttpClient();
         services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();
         services.AddSingleton<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
+        services.AddHttpClient(nameof(Infrastructure.Push.FcmApnsPushNotificationSender));
+        services.AddScoped<IPushNotificationSender, Infrastructure.Push.FcmApnsPushNotificationSender>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

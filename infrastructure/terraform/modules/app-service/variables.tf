@@ -89,16 +89,18 @@ variable "application_insights_connection_string" {
 
 variable "key_vault_secret_uris" {
   type = object({
-    jwt_secret_key          = string
-    sql_connection_string   = string
-    report_evidence_aes_key = string
-    stripe_secret_key       = string
-    stripe_webhook_secret   = string
-    livekit_api_key         = string
-    livekit_api_secret      = string
-    report_vendor_api_key   = string
-    email_smtp_user         = string
-    email_smtp_password     = string
+    jwt_secret_key                = string
+    sql_connection_string         = string
+    report_evidence_aes_key       = string
+    stripe_secret_key             = string
+    stripe_webhook_secret         = string
+    livekit_api_key               = string
+    livekit_api_secret            = string
+    report_vendor_api_key         = string
+    email_smtp_user               = string
+    email_smtp_password           = string
+    push_fcm_service_account_json = string
+    push_apns_key_p8              = string
   })
 }
 
@@ -122,6 +124,35 @@ variable "email_from_address" {
 variable "email_from_name" {
   type    = string
   default = "Liberation Fleet"
+}
+
+variable "push_fcm_project_id" {
+  type        = string
+  default     = ""
+  description = "Firebase project id for FCM HTTP v1 (non-secret)."
+}
+
+variable "push_apns_key_id" {
+  type        = string
+  default     = ""
+  description = "APNs key id from Apple Developer (10 chars)."
+}
+
+variable "push_apns_team_id" {
+  type        = string
+  default     = ""
+  description = "Apple Developer Team ID."
+}
+
+variable "push_apns_bundle_id" {
+  type    = string
+  default = "com.liberationfleet.app"
+}
+
+variable "push_apns_use_sandbox" {
+  type        = bool
+  default     = false
+  description = "true for TestFlight/debug APNs; false for App Store production."
 }
 
 variable "extra_app_settings" {

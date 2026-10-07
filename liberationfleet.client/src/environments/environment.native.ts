@@ -5,5 +5,5 @@
  */
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://liberationfleet.api.azurewebsites.net'
+  apiBaseUrl: 'https://app-lfleet-production.azurewebsites.net'
 };

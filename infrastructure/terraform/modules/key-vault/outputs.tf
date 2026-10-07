@@ -23,5 +23,7 @@ output "secret_uris" {
     report_vendor_api_key       = azurerm_key_vault_secret.report_vendor_api_key.versionless_id
     email_smtp_user             = azurerm_key_vault_secret.email_smtp_user.versionless_id
     email_smtp_password         = azurerm_key_vault_secret.email_smtp_password.versionless_id
+    push_fcm_service_account_json = azurerm_key_vault_secret.push_fcm_service_account_json.versionless_id
+    push_apns_key_p8            = azurerm_key_vault_secret.push_apns_key_p8.versionless_id
   }
 }

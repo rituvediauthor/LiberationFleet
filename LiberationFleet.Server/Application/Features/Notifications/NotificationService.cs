@@ -9,6 +9,7 @@ namespace LiberationFleet.Server.Application.Features.Notifications;
 public class NotificationService(
     INotificationRepository notificationRepository,
     INotificationRealtimeNotifier realtimeNotifier,
+    IPushNotificationSender pushNotificationSender,
     NotificationBadgeSummaryService badgeSummaryService,
     IUnitOfWork unitOfWork)
 {
@@ -25,7 +26,8 @@ public class NotificationService(
 
         var dto = NotificationMapper.Map(notification);
         await realtimeNotifier.NotifyReceivedAsync(request.UserId, dto, cancellationToken);
-        await PushBadgeSummaryAsync(request.UserId, cancellationToken);
+        var summary = await PushBadgeSummaryAndGetAsync(request.UserId, cancellationToken);
+        await pushNotificationSender.SendAsync(request.UserId, dto, summary.UnreadCount, cancellationToken);
     }
 
     public async Task NotifyUsersAsync(
@@ -74,7 +76,12 @@ public class NotificationService(
 
         foreach (var userId in notifications.Select(n => n.UserId).Distinct())
         {
-            await PushBadgeSummaryAsync(userId, cancellationToken);
+            var summary = await PushBadgeSummaryAndGetAsync(userId, cancellationToken);
+            foreach (var notification in notifications.Where(n => n.UserId == userId))
+            {
+                var dto = NotificationMapper.Map(notification);
+                await pushNotificationSender.SendAsync(userId, dto, summary.UnreadCount, cancellationToken);
+            }
         }
     }
 

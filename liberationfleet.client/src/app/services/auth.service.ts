@@ -25,6 +25,8 @@ import { EncryptedImageCacheService } from './encrypted-image-cache.service';
 import { ContentPreferenceService } from './content-preference.service';
 import { NotificationService } from './notification.service';
 import { ProfileLocationService } from './profile-location.service';
+import { PushNotificationRegistrationService } from './push-notification-registration.service';
+import { NotificationHubService } from './notification-hub.service';
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -54,6 +56,8 @@ export class AuthService {
   private contentPreferences = inject(ContentPreferenceService);
   private notificationService = inject(NotificationService);
   private profileLocation = inject(ProfileLocationService);
+  private pushNotifications = inject(PushNotificationRegistrationService);
+  private notificationHub = inject(NotificationHubService);
 
   constructor(
     private http: HttpClient,
@@ -136,6 +140,7 @@ export class AuthService {
       this.currentUserSubject.next(response.user ?? null);
       this.resetEncryptionReady();
       void this.getEncryptionReady();
+      void this.pushNotifications.start();
     }
   }
 
@@ -151,6 +156,8 @@ export class AuthService {
   }
 
   logout(): void {
+    void this.pushNotifications.stopAndUnregister();
+    void this.notificationHub.disconnect();
     this.removeToken();
     this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
     this.cryptoSession.clearSession();

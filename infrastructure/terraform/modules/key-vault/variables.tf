@@ -70,6 +70,20 @@ variable "email_smtp_password" {
   description = "Placeholder only — set real Brevo SMTP key in Key Vault (Email-SmtpPassword); ignore_changes keeps portal updates."
 }
 
+variable "push_fcm_service_account_json" {
+  type        = string
+  sensitive   = true
+  default     = "change-me-push-fcm-service-account-json"
+  description = "Placeholder — paste Firebase service-account JSON into Key Vault Push-FcmServiceAccountJson."
+}
+
+variable "push_apns_key_p8" {
+  type        = string
+  sensitive   = true
+  default     = "change-me-push-apns-key-p8"
+  description = "Placeholder — paste APNs .p8 PEM into Key Vault Push-ApnsKeyP8."
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

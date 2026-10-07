@@ -35,6 +35,7 @@
     "@capacitor/filesystem": "6.0.2",
     "@capacitor/ios": "6.2.0",
     "@capacitor/keyboard": "6.0.3",
+    "@capacitor/push-notifications": "6.0.3",
     "@capacitor/splash-screen": "6.0.3",
     "@capacitor/status-bar": "6.0.2",
     "@fortawesome/fontawesome-free": "7.2.0",
