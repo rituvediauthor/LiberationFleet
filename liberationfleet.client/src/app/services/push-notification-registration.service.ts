@@ -122,12 +122,12 @@ export class PushNotificationRegistrationService {
   }
 
   private getOrCreateDeviceId(platform: string): string {
-    const existing = this.storage.get(StorageScope.Local, PUSH_DEVICE_ID_KEY);
+    const existing = this.storage.get(StorageScope.Persistent, PUSH_DEVICE_ID_KEY);
     if (existing) {
       return existing;
     }
     const id = `${platform}-${crypto.randomUUID()}`;
-    this.storage.set(StorageScope.Local, PUSH_DEVICE_ID_KEY, id);
+    this.storage.set(StorageScope.Persistent, PUSH_DEVICE_ID_KEY, id);
     return id;
   }
 
