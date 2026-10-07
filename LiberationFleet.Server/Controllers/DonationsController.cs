@@ -3,20 +3,36 @@ using LiberationFleet.Server.Application.Features.Donations.Commands.CreateDonat
 using LiberationFleet.Server.Application.Features.Donations.Commands.HandleStripeDonationWebhook;
 using LiberationFleet.Server.Application.Features.Donations.Queries.GetDonationCampaignPrompt;
 using LiberationFleet.Server.Application.Features.Donations.Queries.GetMyDonationSummary;
+using LiberationFleet.Server.Application.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace LiberationFleet.Server.Controllers;
 
 [ApiController]
 [Route("api/donations")]
-public class DonationsController(IMediator mediator) : ControllerBase
+public class DonationsController(
+    IMediator mediator,
+    IOptions<StripeDonationOptions> stripeOptions) : ControllerBase
 {
     public class CreateCheckoutBody
     {
         public long AmountCents { get; set; }
+        /// <summary>Required for guests; optional for signed-in users (defaults to account email).</summary>
+        public string? ReceiptEmail { get; set; }
     }
+
+    public class DonationStatusResponse
+    {
+        public bool DonationsEnabled { get; set; }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("status")]
+    public IActionResult GetStatus() =>
+        Ok(new DonationStatusResponse { DonationsEnabled = stripeOptions.Value.IsConfigured });
 
     [Authorize]
     [HttpGet("campaign-prompt")]
@@ -42,11 +58,11 @@ public class DonationsController(IMediator mediator) : ControllerBase
         return result.Success ? Ok(result) : Unauthorized(result);
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("checkout")]
     public async Task<IActionResult> CreateCheckout([FromBody] CreateCheckoutBody body)
     {
-        var result = await mediator.Send(new CreateDonationCheckoutCommand(body.AmountCents));
+        var result = await mediator.Send(new CreateDonationCheckoutCommand(body.AmountCents, body.ReceiptEmail));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

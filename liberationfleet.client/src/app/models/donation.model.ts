@@ -14,6 +14,10 @@ export interface DonationCheckoutResponse {
   checkoutUrl?: string | null;
 }
 
+export interface DonationStatus {
+  donationsEnabled: boolean;
+}
+
 export interface DonationSummary {
   success: boolean;
   message: string;

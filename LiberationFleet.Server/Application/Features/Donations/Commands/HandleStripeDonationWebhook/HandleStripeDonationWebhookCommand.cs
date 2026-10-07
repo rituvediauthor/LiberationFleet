@@ -107,13 +107,23 @@ public class HandleStripeDonationWebhookCommandHandler(
                 donation.AmountCents = amount;
             }
 
-            var user = await userRepository.GetByIdWithProfileAsync(donation.UserId, cancellationToken);
-            if (user is not null)
+            // Prefer Stripe-collected email if we somehow lack one.
+            var sessionEmail = session.CustomerDetails?.Email ?? session.CustomerEmail;
+            if (string.IsNullOrWhiteSpace(donation.ReceiptEmail) && !string.IsNullOrWhiteSpace(sessionEmail))
             {
-                user.DonationCampaignUrgencyPhase = 0;
-                user.DonationCampaignPhaseShownCount = 0;
-                user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
-                await userRepository.UpdateAsync(user, cancellationToken);
+                donation.ReceiptEmail = sessionEmail.Trim();
+            }
+
+            if (donation.UserId is int userId)
+            {
+                var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                if (user is not null)
+                {
+                    user.DonationCampaignUrgencyPhase = 0;
+                    user.DonationCampaignPhaseShownCount = 0;
+                    user.DonationCampaignPhaseTarget = Random.Shared.Next(2, 5);
+                    await userRepository.UpdateAsync(user, cancellationToken);
+                }
             }
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -124,23 +134,55 @@ public class HandleStripeDonationWebhookCommandHandler(
             return;
         }
 
-        var donor = await userRepository.GetByIdWithProfileAsync(donation.UserId, cancellationToken);
-        if (donor is null)
+        var receiptEmail = donation.ReceiptEmail;
+        if (string.IsNullOrWhiteSpace(receiptEmail))
+        {
+            receiptEmail = session.CustomerDetails?.Email ?? session.CustomerEmail ?? string.Empty;
+        }
+
+        bool sent;
+        if (donation.UserId is int donorUserId)
+        {
+            var donor = await userRepository.GetByIdWithProfileAsync(donorUserId, cancellationToken);
+            if (donor is not null)
+            {
+                sent = await acknowledgmentEmail.TrySendAsync(donation, donor, cancellationToken);
+            }
+            else if (!string.IsNullOrWhiteSpace(receiptEmail))
+            {
+                sent = await acknowledgmentEmail.TrySendAsync(donation, receiptEmail, "Friend", cancellationToken);
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Donation {DonationId} completed but no user/email was available for acknowledgment.",
+                    donation.Id);
+                return;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(receiptEmail))
+        {
+            sent = await acknowledgmentEmail.TrySendAsync(donation, receiptEmail, "Friend", cancellationToken);
+        }
+        else
         {
             logger.LogWarning(
-                "Donation {DonationId} completed but user {UserId} was not found for acknowledgment email.",
-                donation.Id,
-                donation.UserId);
+                "Guest donation {DonationId} completed but no receipt email was available.",
+                donation.Id);
             return;
         }
 
-        var sent = await acknowledgmentEmail.TrySendAsync(donation, donor, cancellationToken);
         if (!sent)
         {
             return;
         }
 
         donation.AcknowledgmentEmailSentAt = DateTime.UtcNow;
+        if (string.IsNullOrWhiteSpace(donation.ReceiptEmail) && !string.IsNullOrWhiteSpace(receiptEmail))
+        {
+            donation.ReceiptEmail = receiptEmail.Trim();
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

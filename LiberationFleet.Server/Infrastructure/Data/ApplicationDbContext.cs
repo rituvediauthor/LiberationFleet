@@ -1382,6 +1382,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Currency).HasMaxLength(8).IsRequired();
+            entity.Property(e => e.ReceiptEmail).HasMaxLength(256).IsRequired();
             entity.Property(e => e.Status).HasConversion<int>().IsRequired();
             entity.Property(e => e.StripeCheckoutSessionId).HasMaxLength(256);
             entity.Property(e => e.StripePaymentIntentId).HasMaxLength(256);
@@ -1390,7 +1391,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.User)
                 .WithMany(u => u.AppDonations)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<Notification>(entity =>

@@ -438,7 +438,7 @@ export const routes: Routes = [
   {
     path: 'app/donate',
     component: DonateComponent,
-    canActivate: [authGuard],
+    // Guests may donate with a receipt email; signed-in users use account email.
     title: 'Donate'
   ,
     data: { parentTab: 'profile', locationHeader: 'Donate' }

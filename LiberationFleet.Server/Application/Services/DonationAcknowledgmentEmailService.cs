@@ -11,17 +11,29 @@ public class DonationAcknowledgmentEmailService(
     IOptions<OrganizationOptions> organizationOptions,
     ILogger<DonationAcknowledgmentEmailService> logger) : IDonationAcknowledgmentEmailService
 {
-    public async Task<bool> TrySendAsync(
+    public Task<bool> TrySendAsync(
         AppDonation donation,
         User user,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(user.Email))
+        var name = string.IsNullOrWhiteSpace(user.Username) ? "Friend" : user.Username.Trim();
+        var email = !string.IsNullOrWhiteSpace(donation.ReceiptEmail)
+            ? donation.ReceiptEmail
+            : user.Email;
+        return TrySendAsync(donation, email, name, cancellationToken);
+    }
+
+    public async Task<bool> TrySendAsync(
+        AppDonation donation,
+        string receiptEmail,
+        string donorDisplayName,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(receiptEmail))
         {
             logger.LogWarning(
-                "Skipping donation acknowledgment for donation {DonationId}: user {UserId} has no email.",
-                donation.Id,
-                user.Id);
+                "Skipping donation acknowledgment for donation {DonationId}: no receipt email.",
+                donation.Id);
             return false;
         }
 
@@ -36,10 +48,11 @@ public class DonationAcknowledgmentEmailService(
             ? amount.ToString("C", CultureInfo.GetCultureInfo("en-US"))
             : $"{amount.ToString("0.00", CultureInfo.InvariantCulture)} {currency}";
 
+        var displayName = string.IsNullOrWhiteSpace(donorDisplayName) ? "Friend" : donorDisplayName.Trim();
         var body = BuildBody(
             legalName,
             org,
-            user.Username,
+            displayName,
             amountLine,
             completedAt,
             donation.Id,
@@ -48,7 +61,7 @@ public class DonationAcknowledgmentEmailService(
         try
         {
             await emailSender.SendAsync(
-                user.Email,
+                receiptEmail.Trim(),
                 $"Donation acknowledgment from {legalName}",
                 body,
                 cancellationToken);
@@ -60,7 +73,7 @@ public class DonationAcknowledgmentEmailService(
                 ex,
                 "Failed to send donation acknowledgment for donation {DonationId} to {Email}",
                 donation.Id,
-                user.Email);
+                receiptEmail);
             return false;
         }
     }

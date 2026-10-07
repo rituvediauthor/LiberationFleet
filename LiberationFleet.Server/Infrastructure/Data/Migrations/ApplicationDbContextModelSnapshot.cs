@@ -47,6 +47,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)");
 
+                    b.Property<string>("ReceiptEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -58,7 +63,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -4570,10 +4575,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
                         .WithMany("AppDonations")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.ChatMessageLike", b =>

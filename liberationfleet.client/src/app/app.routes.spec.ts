@@ -20,6 +20,7 @@ import { ActivityCenterComponent } from './pages/activity-center/activity-center
 import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
 import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
+import { DonateComponent } from './pages/donate/donate.component';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
 
@@ -68,6 +69,12 @@ describe('app.routes', () => {
     expect(routes.find(r => r.path === 'app/crew')?.pathMatch).toBe('full');
     expect(routes.find(r => r.path === 'app/crew/chats')?.pathMatch).toBe('full');
     expect(routes.find(r => r.path === 'app/profile/preferences/placeholder')).toBeUndefined();
+  });
+
+  it('should allow guest access to donate without authGuard', () => {
+    const route = routes.find(r => r.path === 'app/donate');
+    expect(route?.component).toBe(DonateComponent);
+    expect(route?.canActivate).toBeUndefined();
   });
 
   it('should redirect unknown paths to root', () => {

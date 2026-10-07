@@ -3,6 +3,7 @@
     <p class="lede" id="donate-lede">
       Support hosting and development of the Liberation Fleet app. This is separate from mutual-aid gifts to crewmates.
       Payment is processed by Stripe — Liberation Fleet does not store your card details.
+      You do not need an account to donate.
     </p>
 
     <p class="status-note" role="status" *ngIf="statusNote">{{ statusNote }}</p>
@@ -51,16 +52,39 @@
       Enter a whole-dollar amount between $1 and $5,000.
     </span>
 
+    <label class="custom-field" for="donation-receipt-email">
+      <span>{{ isLoggedIn ? 'Receipt email (optional — defaults to your account email)' : 'Email for donation receipt' }}</span>
+      <input
+        id="donation-receipt-email"
+        type="email"
+        name="receiptEmail"
+        autocomplete="email"
+        [(ngModel)]="receiptEmail"
+        [required]="!isLoggedIn"
+        [placeholder]="isLoggedIn ? 'Leave blank to use your account email' : 'you@example.com'"
+        [attr.aria-invalid]="receiptEmailInvalid"
+        [attr.aria-describedby]="receiptEmailInvalid ? 'donation-receipt-email-error' : 'donate-fine-print'" />
+    </label>
+    <span
+      id="donation-receipt-email-error"
+      class="error-text"
+      role="alert"
+      *ngIf="receiptEmailInvalid && (receiptEmailMissing || receiptEmail.trim().length > 0)">
+      Enter a valid email address for your receipt.
+    </span>
+
     <button
       type="button"
       class="checkout-btn"
-      [disabled]="submitting || !donationsEnabled || amountCents == null"
+      [disabled]="submitting || !donationsEnabled || amountCents == null || receiptEmailInvalid"
       (click)="startCheckout()">
       {{ submitting ? 'Redirecting…' : 'Continue to secure checkout' }}
     </button>
 
     <p class="fine-print" id="donate-fine-print">
-      You will complete payment on Stripe’s hosted page. After payment succeeds, Liberation Fleet Co. emails a written donation acknowledgment to your account email for your tax records. We also record the amount in your profile tax-year summary.
+      You will complete payment on Stripe’s hosted page. After payment succeeds, Liberation Fleet Co. emails a written donation acknowledgment to the address above for your tax records.
+      <ng-container *ngIf="isLoggedIn"> Signed-in donations are also recorded in your profile tax-year summary.</ng-container>
+      <ng-container *ngIf="!isLoggedIn"> Guest donations are not linked to a profile; create an account later if you want in-app tax-year totals.</ng-container>
     </p>
   </div>
 </app-page-layout>

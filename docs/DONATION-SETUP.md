@@ -83,11 +83,12 @@ dotnet ef database update --project LiberationFleet.Server
 1. Confirm the donate page no longer says “Donations are being set up…”
 2. Complete a test Checkout with card `4242 4242 4242 4242`.
 3. Confirm profile donation totals update (requires webhook + matching `WebhookSecret`).
-4. Confirm the donor account email receives a **donation acknowledgment** (legal name, amount, date, “no goods or services” statement). Set `Organization:Ein` so the letter includes your EIN.
+4. Confirm the receipt email receives a **donation acknowledgment** (legal name, amount, date, “no goods or services” statement). Set `Organization:Ein` so the letter includes your EIN.
+5. Optionally repeat as a guest (signed out): enter a receipt email on `/app/donate` and confirm the acknowledgment arrives there. Guest donations have no `UserId` and do not appear in profile tax-year totals.
 
 ### Donation acknowledgment emails
 
-On `checkout.session.completed` / `async_payment_succeeded`, the API emails the signed-in user’s account address a contemporaneous written acknowledgment (idempotent via `AppDonations.AcknowledgmentEmailSentAt`).
+On `checkout.session.completed` / `async_payment_succeeded`, the API emails a contemporaneous written acknowledgment to `AppDonations.ReceiptEmail` (guest-provided, or the signed-in user’s account email when left blank). Idempotent via `AppDonations.AcknowledgmentEmailSentAt`. Checkout and status endpoints are anonymous so guests can donate without an account.
 
 Config (`Organization` section / `Organization__*` App Settings):
 
@@ -207,7 +208,8 @@ Prerequisites: production infra applied ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md) 
   - Outside Dec 20–Jan 3 UTC: contributors only; every **30** days if not in need, every **60** if in need
   - Dec 20–Jan 3 UTC: everyone not in emergency (once per high-season window)
 - Donate page presets: $5 / $10 / $25 / $50 / $100 + custom whole dollars
-- Profile shows app donation totals for previous + current calendar year
+- Guests may donate without signing in (receipt email required); signed-in donors default to account email
+- Profile shows app donation totals for previous + current calendar year (signed-in donations only)
 
 ---
 

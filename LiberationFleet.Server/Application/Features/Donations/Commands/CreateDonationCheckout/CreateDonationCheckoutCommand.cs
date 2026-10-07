@@ -1,3 +1,4 @@
+using System.Net.Mail;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Services;
@@ -10,7 +11,8 @@ using Stripe.Checkout;
 
 namespace LiberationFleet.Server.Application.Features.Donations.Commands.CreateDonationCheckout;
 
-public record CreateDonationCheckoutCommand(long AmountCents) : IRequest<CreateDonationCheckoutResponse>;
+public record CreateDonationCheckoutCommand(long AmountCents, string? ReceiptEmail)
+    : IRequest<CreateDonationCheckoutResponse>;
 
 public class CreateDonationCheckoutResponse
 {
@@ -21,6 +23,7 @@ public class CreateDonationCheckoutResponse
 
 public class CreateDonationCheckoutCommandHandler(
     ICurrentUserService currentUser,
+    IUserRepository userRepository,
     IAppDonationRepository donationRepository,
     IUnitOfWork unitOfWork,
     IOptions<StripeDonationOptions> stripeOptions) : IRequestHandler<CreateDonationCheckoutCommand, CreateDonationCheckoutResponse>
@@ -31,11 +34,6 @@ public class CreateDonationCheckoutCommandHandler(
         CreateDonationCheckoutCommand request,
         CancellationToken cancellationToken)
     {
-        if (!currentUser.UserId.HasValue)
-        {
-            return Fail("Unauthorized.");
-        }
-
         var options = stripeOptions.Value;
         if (!options.IsConfigured)
         {
@@ -53,13 +51,41 @@ public class CreateDonationCheckoutCommandHandler(
             return Fail("Custom amounts must be whole dollars.");
         }
 
+        string receiptEmail;
+        int? userId = currentUser.UserId;
+        User? user = null;
+
+        if (userId.HasValue)
+        {
+            user = await userRepository.GetByIdAsync(userId.Value, cancellationToken);
+            if (user is null)
+            {
+                return Fail("Unauthorized.");
+            }
+
+            receiptEmail = !string.IsNullOrWhiteSpace(request.ReceiptEmail)
+                ? request.ReceiptEmail.Trim()
+                : user.Email?.Trim() ?? string.Empty;
+        }
+        else
+        {
+            receiptEmail = request.ReceiptEmail?.Trim() ?? string.Empty;
+        }
+
+        if (!TryNormalizeEmail(receiptEmail, out var normalizedEmail))
+        {
+            return Fail(userId.HasValue
+                ? "Your account needs a valid email, or enter one for the donation receipt."
+                : "Enter a valid email address for your donation receipt.");
+        }
+
         StripeConfiguration.ApiKey = options.SecretKey;
         var baseUrl = options.PublicAppBaseUrl.TrimEnd('/');
-        var userId = currentUser.UserId.Value;
 
         var donation = new AppDonation
         {
             UserId = userId,
+            ReceiptEmail = normalizedEmail,
             AmountCents = request.AmountCents,
             Currency = "usd",
             Status = AppDonationStatus.Pending,
@@ -72,19 +98,25 @@ public class CreateDonationCheckoutCommandHandler(
         Session session;
         try
         {
+            var metadata = new Dictionary<string, string>
+            {
+                ["donationId"] = donation.Id.ToString(),
+                ["purpose"] = "liberation_fleet_app"
+            };
+            if (userId.HasValue)
+            {
+                metadata["userId"] = userId.Value.ToString();
+            }
+
             var sessionOptions = new SessionCreateOptions
             {
                 Mode = "payment",
                 SubmitType = "donate",
                 SuccessUrl = $"{baseUrl}/app/donate?success=1&session_id={{CHECKOUT_SESSION_ID}}",
                 CancelUrl = $"{baseUrl}/app/donate?canceled=1",
-                ClientReferenceId = userId.ToString(),
-                Metadata = new Dictionary<string, string>
-                {
-                    ["userId"] = userId.ToString(),
-                    ["donationId"] = donation.Id.ToString(),
-                    ["purpose"] = "liberation_fleet_app"
-                },
+                CustomerEmail = normalizedEmail,
+                ClientReferenceId = userId?.ToString() ?? $"guest-{donation.Id}",
+                Metadata = metadata,
                 LineItems =
                 [
                     new SessionLineItemOptions
@@ -98,14 +130,12 @@ public class CreateDonationCheckoutCommandHandler(
                             {
                                 Name = "Liberation Fleet donation",
                                 Description = "Support development and hosting of the Liberation Fleet app. Not a mutual-aid gift to a crewmate.",
-                                // Required when Stripe Managed Payments defaults on; also set ExtraParam below.
                                 TaxCode = "txcd_00000000"
                             }
                         }
                     }
                 ]
             };
-            // Standard Checkout for org donations — not Stripe Managed Payments (merchant-of-record).
             sessionOptions.AddExtraParam("managed_payments[enabled]", false);
 
             session = await sessionService.CreateAsync(sessionOptions, cancellationToken: cancellationToken);
@@ -126,6 +156,31 @@ public class CreateDonationCheckoutCommandHandler(
             Message = "Checkout created.",
             CheckoutUrl = session.Url
         };
+    }
+
+    private static bool TryNormalizeEmail(string email, out string normalized)
+    {
+        normalized = string.Empty;
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 256)
+        {
+            return false;
+        }
+
+        try
+        {
+            var parsed = new MailAddress(email.Trim());
+            if (string.IsNullOrWhiteSpace(parsed.Address) || !parsed.Address.Contains('@'))
+            {
+                return false;
+            }
+
+            normalized = parsed.Address;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static CreateDonationCheckoutResponse Fail(string message) =>

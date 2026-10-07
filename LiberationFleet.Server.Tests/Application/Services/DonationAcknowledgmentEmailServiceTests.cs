@@ -80,4 +80,73 @@ public class DonationAcknowledgmentEmailServiceTests
             e => e.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task TrySendAsync_PrefersReceiptEmailOverAccountEmail()
+    {
+        var email = new Mock<IEmailSender>();
+        email.Setup(e => e.SendAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new DonationAcknowledgmentEmailService(
+            email.Object,
+            Options.Create(new OrganizationOptions { LegalName = "Liberation Fleet Co." }),
+            NullLogger<DonationAcknowledgmentEmailService>.Instance);
+
+        var sent = await sut.TrySendAsync(
+            new AppDonation
+            {
+                Id = 7,
+                AmountCents = 1000,
+                ReceiptEmail = "receipt@example.com",
+                CompletedAt = DateTime.UtcNow
+            },
+            new User { Id = 1, Email = "account@example.com", Username = "donor" });
+
+        Assert.True(sent);
+        email.Verify(e => e.SendAsync(
+            "receipt@example.com",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TrySendAsync_SendsToGuestReceiptEmail()
+    {
+        var email = new Mock<IEmailSender>();
+        email.Setup(e => e.SendAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new DonationAcknowledgmentEmailService(
+            email.Object,
+            Options.Create(new OrganizationOptions { LegalName = "Liberation Fleet Co." }),
+            NullLogger<DonationAcknowledgmentEmailService>.Instance);
+
+        var sent = await sut.TrySendAsync(
+            new AppDonation
+            {
+                Id = 9,
+                AmountCents = 500,
+                ReceiptEmail = "guest@example.com",
+                CompletedAt = DateTime.UtcNow
+            },
+            "guest@example.com",
+            "Friend");
+
+        Assert.True(sent);
+        email.Verify(e => e.SendAsync(
+            "guest@example.com",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

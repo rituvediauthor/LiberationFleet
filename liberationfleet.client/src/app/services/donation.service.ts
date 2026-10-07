@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import {
   DonationCampaignPrompt,
   DonationCheckoutResponse,
+  DonationStatus,
   DonationSummary
 } from '../models/donation.model';
 
@@ -26,11 +27,18 @@ export class DonationService {
     );
   }
 
+  getStatus(): Observable<DonationStatus> {
+    return this.http.get<DonationStatus>(`${this.apiUrl}/status`);
+  }
+
   getSummary(): Observable<DonationSummary> {
     return this.http.get<DonationSummary>(`${this.apiUrl}/summary`);
   }
 
-  createCheckout(amountCents: number): Observable<DonationCheckoutResponse> {
-    return this.http.post<DonationCheckoutResponse>(`${this.apiUrl}/checkout`, { amountCents });
+  createCheckout(amountCents: number, receiptEmail?: string | null): Observable<DonationCheckoutResponse> {
+    return this.http.post<DonationCheckoutResponse>(`${this.apiUrl}/checkout`, {
+      amountCents,
+      receiptEmail: receiptEmail?.trim() || undefined
+    });
   }
 }
