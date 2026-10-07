@@ -272,9 +272,19 @@ public static class HandlerTestFixture
             new NotificationRepository(context),
             blockRepository.Object);
 
+        var pushSender = new Mock<IPushNotificationSender>(MockBehavior.Loose);
+        pushSender
+            .Setup(s => s.SendAsync(
+                It.IsAny<int>(),
+                It.IsAny<NotificationDto>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         return new NotificationService(
             new NotificationRepository(context),
             realtimeNotifier.Object,
+            pushSender.Object,
             badgeSummaryService,
             context);
     }
@@ -339,9 +349,19 @@ public static class HandlerTestFixture
             notificationRepository.Object,
             blockRepository.Object);
 
+        var pushSender = new Mock<IPushNotificationSender>(MockBehavior.Loose);
+        pushSender
+            .Setup(s => s.SendAsync(
+                It.IsAny<int>(),
+                It.IsAny<NotificationDto>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         return new NotificationService(
             notificationRepository.Object,
             realtimeNotifier.Object,
+            pushSender.Object,
             badgeSummaryService,
             unitOfWork.Object);
     }
