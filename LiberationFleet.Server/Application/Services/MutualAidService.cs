@@ -1075,6 +1075,33 @@ public partial class MutualAidService(
                 before: null,
                 cancellationToken);
             var memberStatus = await BuildFinancialMemberStatusAsync(crew, participants, cancellationToken);
+            var isFirstSeason = await IsCrewFirstGivingSeasonAsync(
+                crewId,
+                currentSeasonStart,
+                cancellationToken);
+
+            Dictionary<int, decimal>? firstSeasonUserSeeds = null;
+            if (isFirstSeason)
+            {
+                var seedMembers = await mutualAidRepository.GetSeasonContributionMembersAsync(
+                    crewId,
+                    cancellationToken);
+                var seedLifetimes = await mutualAidRepository.GetLifetimeContributionsForUsersAsync(
+                    crewId,
+                    seedMembers.Select(m => m.UserId).ToList(),
+                    before: null,
+                    cancellationToken);
+                crewLifetime = 0m;
+                firstSeasonUserSeeds = new Dictionary<int, decimal>();
+                foreach (var member in seedMembers)
+                {
+                    var lifetime = seedLifetimes.GetValueOrDefault(member.UserId);
+                    var estimate = member.EstimatedMonthlyContribution ?? 0m;
+                    var seeded = Math.Max(lifetime, estimate);
+                    crewLifetime += seeded;
+                    firstSeasonUserSeeds[member.UserId] = seeded;
+                }
+            }
 
             foreach (var participant in participants)
             {
@@ -1083,12 +1110,17 @@ public partial class MutualAidService(
                     continue;
                 }
 
+                var userLifetime = firstSeasonUserSeeds is not null
+                    && firstSeasonUserSeeds.TryGetValue(participant.UserId, out var seededUser)
+                    ? seededUser
+                    : lifetimes.GetValueOrDefault(participant.UserId);
+
                 participant.CurrentPriorityScore = MutualAidCalculationService.CalculatePriorityScore(
                     participant.User,
                     participant,
                     memberStatus.GetValueOrDefault(participant.UserId),
                     crewLifetime,
-                    lifetimes.GetValueOrDefault(participant.UserId),
+                    userLifetime,
                     capacityContext.SurvivalThresholdAmount);
             }
         }
@@ -1547,14 +1579,16 @@ public partial class MutualAidService(
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false,
-        bool assumeInNeedNonOrganizerForLot = false)
+        bool assumeInNeedNonOrganizerForLot = false,
+        DateTime? seasonStartAnchor = null)
     {
         var breakdown = await GetPriorityScoreBreakdownForUserAsync(
             userId,
             crewId,
             cancellationToken,
             excludeActiveSeasonContributions,
-            assumeInNeedNonOrganizerForLot);
+            assumeInNeedNonOrganizerForLot,
+            seasonStartAnchor);
         return breakdown.Score;
     }
 
@@ -1563,7 +1597,8 @@ public partial class MutualAidService(
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false,
-        bool assumeInNeedNonOrganizerForLot = false)
+        bool assumeInNeedNonOrganizerForLot = false,
+        DateTime? seasonStartAnchor = null)
     {
         var membership = await mutualAidRepository.GetMembershipWithUserAsync(userId, crewId, cancellationToken);
         if (membership is null)
@@ -1604,6 +1639,20 @@ public partial class MutualAidService(
             contributionCutoff,
             cancellationToken);
 
+        var anchor = seasonStartAnchor
+            ?? crew?.CurrentSeasonStartDate
+            ?? DateTime.UtcNow;
+        if (await IsCrewFirstGivingSeasonAsync(crewId, anchor, cancellationToken))
+        {
+            (crewLifetime, userLifetime) = await ApplyFirstSeasonEstimateSeedsAsync(
+                crewId,
+                userId,
+                userLifetime,
+                membership.EstimatedMonthlyContribution,
+                contributionCutoff,
+                cancellationToken);
+        }
+
         // Honorary members keep pace with the crew: use at least the peer-average monthly
         // contribution so their priority rises with the crew even when they cannot give.
         if (membership.IsHonoraryMember)
@@ -1637,6 +1686,62 @@ public partial class MutualAidService(
             userLifetime,
             capacityContext.SurvivalThresholdAmount,
             demoteOrganizerToLastPlace: !assumeInNeedNonOrganizerForLot);
+    }
+
+    /// <summary>
+    /// True when the crew has never had a giving season that started before <paramref name="seasonAnchor"/>.
+    /// </summary>
+    private async Task<bool> IsCrewFirstGivingSeasonAsync(
+        int crewId,
+        DateTime seasonAnchor,
+        CancellationToken cancellationToken)
+    {
+        var previous = await mutualAidRepository.GetPreviousSeasonStartDateAsync(
+            crewId,
+            seasonAnchor,
+            cancellationToken);
+        return previous is null;
+    }
+
+    /// <summary>
+    /// On a crew's first season, seed priority inputs with estimated monthly contribution
+    /// (personal max + crew sum of per-member maxes) so emergency and relative giving matter
+    /// before lifetime gifts exist.
+    /// </summary>
+    private async Task<(decimal CrewLifetime, decimal UserLifetime)> ApplyFirstSeasonEstimateSeedsAsync(
+        int crewId,
+        int userId,
+        decimal userLifetime,
+        decimal? userEstimatedMonthlyContribution,
+        DateTime? contributionCutoff,
+        CancellationToken cancellationToken)
+    {
+        var members = await mutualAidRepository.GetSeasonContributionMembersAsync(crewId, cancellationToken);
+        if (members.Count == 0)
+        {
+            var estimate = userEstimatedMonthlyContribution ?? 0m;
+            return (Math.Max(userLifetime, estimate), Math.Max(userLifetime, estimate));
+        }
+
+        var lifetimes = await mutualAidRepository.GetLifetimeContributionsForUsersAsync(
+            crewId,
+            members.Select(m => m.UserId).ToList(),
+            contributionCutoff,
+            cancellationToken);
+
+        var seededCrew = 0m;
+        foreach (var member in members)
+        {
+            var lifetime = lifetimes.GetValueOrDefault(member.UserId);
+            var estimate = member.EstimatedMonthlyContribution ?? 0m;
+            seededCrew += Math.Max(lifetime, estimate);
+        }
+
+        var userEstimate = userEstimatedMonthlyContribution
+            ?? members.FirstOrDefault(m => m.UserId == userId)?.EstimatedMonthlyContribution
+            ?? 0m;
+        var seededUser = Math.Max(userLifetime, userEstimate);
+        return (seededCrew, seededUser);
     }
 
     
@@ -3118,7 +3223,13 @@ public async Task<bool> IsFinancialMemberAsync(
         var scored = new List<(CrewMembership Member, decimal Score)>();
         foreach (var member in nextParticipants)
         {
-            var score = await GetPriorityScoreForUserAsync(member.UserId, crew.Id, cancellationToken);
+            // Score against the season being promoted into so first-season estimate seeding
+            // does not apply once a prior season start date already exists.
+            var score = await GetPriorityScoreForUserAsync(
+                member.UserId,
+                crew.Id,
+                cancellationToken,
+                seasonStartAnchor: promotedSeasonStart);
             member.CurrentPriorityScore = score;
             scored.Add((member, score));
         }

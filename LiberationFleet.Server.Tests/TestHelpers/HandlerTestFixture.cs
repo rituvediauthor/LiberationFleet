@@ -203,14 +203,16 @@ public static class HandlerTestFixture
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()))
+                It.IsAny<bool>(),
+                It.IsAny<DateTime?>()))
             .ReturnsAsync(0m);
         mock.Setup(m => m.GetPriorityScoreBreakdownForUserAsync(
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()))
+                It.IsAny<bool>(),
+                It.IsAny<DateTime?>()))
             .ReturnsAsync(new PriorityScoreBreakdown(
                 Score: 0m,
                 CrewLifetimeContributions: 0m,

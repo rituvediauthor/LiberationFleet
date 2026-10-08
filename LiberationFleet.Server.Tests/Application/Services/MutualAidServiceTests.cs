@@ -704,6 +704,136 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task GetPriorityScoreBreakdown_FirstSeason_SeedsEstimatesForUserAndCrew()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.IsHonoraryMember = false;
+            membership.EstimatedMonthlyContribution = membership.UserId switch
+            {
+                var id when id == fixture.Alice.Id => 20m,
+                var id when id == fixture.Bob.Id => 15m,
+                _ => 20m
+            };
+            membership.IsOrganizer = membership.UserId == fixture.Alice.Id;
+        }
+
+        fixture.Alice.EmergencyLevel = 0;
+        fixture.Alice.PeopleRepresentedCount = 1;
+        fixture.Bob.EmergencyLevel = 0;
+        fixture.Bob.PeopleRepresentedCount = 4;
+        fixture.Carol.EmergencyLevel = 1;
+        fixture.Carol.PeopleRepresentedCount = 1;
+        await fixture.Context.SaveChangesAsync();
+
+        var bob = await fixture.Service.GetPriorityScoreBreakdownForUserAsync(
+            fixture.Bob.Id,
+            fixture.Crew.Id);
+        var carol = await fixture.Service.GetPriorityScoreBreakdownForUserAsync(
+            fixture.Carol.Id,
+            fixture.Crew.Id);
+        var alice = await fixture.Service.GetPriorityScoreBreakdownForUserAsync(
+            fixture.Alice.Id,
+            fixture.Crew.Id);
+
+        bob.CrewLifetimeContributions.Should().Be(55m);
+        bob.UserLifetimeContributions.Should().Be(15m);
+        bob.Score.Should().Be(80m);
+
+        carol.CrewLifetimeContributions.Should().Be(55m);
+        carol.UserLifetimeContributions.Should().Be(20m);
+        carol.Score.Should().Be(152m);
+        carol.Score.Should().BeGreaterThan(bob.Score);
+
+        alice.Score.Should().Be(-1m);
+    }
+
+    [Fact]
+    public async Task GetPriorityScoreBreakdown_WhenPriorSeasonExists_DoesNotSeedEstimates()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.IsHonoraryMember = false;
+            membership.EstimatedMonthlyContribution = 100m;
+            membership.IsOrganizer = false;
+        }
+
+        fixture.Context.SeasonCycles.Add(new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = fixture.Alice.Id,
+            SeasonStartDate = fixture.SeasonStart.AddMonths(-3),
+            CycleCapAtStart = 600m,
+            CycleCompleted = true,
+            ReceptionOrderPosition = 0
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var breakdown = await fixture.Service.GetPriorityScoreBreakdownForUserAsync(
+            fixture.Bob.Id,
+            fixture.Crew.Id);
+
+        breakdown.CrewLifetimeContributions.Should().Be(0m);
+        breakdown.UserLifetimeContributions.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task GetPriorityScoreBreakdown_FirstSeason_UsesMaxOfGiftsAndEstimate()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.IsHonoraryMember = false;
+            membership.EstimatedMonthlyContribution = 20m;
+            membership.IsOrganizer = false;
+        }
+
+        fixture.Context.Gifts.Add(new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Carol.Id,
+            RecipientUserId = fixture.Bob.Id,
+            Amount = 50m,
+            Type = GiftType.Direct,
+            CountsTowardContribution = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var carol = await fixture.Service.GetPriorityScoreBreakdownForUserAsync(
+            fixture.Carol.Id,
+            fixture.Crew.Id);
+
+        carol.UserLifetimeContributions.Should().Be(50m);
+        // 50 (carol gifts) + 20 + 20 for alice/bob estimates
+        carol.CrewLifetimeContributions.Should().Be(90m);
+    }
+
+    [Fact]
+    public async Task GetPriorityScoreBreakdown_WithPromotedSeasonAnchor_DoesNotSeedEstimates()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.IsHonoraryMember = false;
+            membership.EstimatedMonthlyContribution = 100m;
+            membership.IsOrganizer = false;
+        }
+
+        await fixture.Context.SaveChangesAsync();
+
+        var breakdown = await fixture.Service.GetPriorityScoreBreakdownForUserAsync(
+            fixture.Bob.Id,
+            fixture.Crew.Id,
+            seasonStartAnchor: fixture.Crew.NextSeasonStartDate);
+
+        breakdown.CrewLifetimeContributions.Should().Be(0m);
+        breakdown.UserLifetimeContributions.Should().Be(0m);
+    }
+
+    [Fact]
     public async Task GetCrewMonthlyGivingCapacity_ExcludesLibraryOfThingsAndUsesJoinMonthRules()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

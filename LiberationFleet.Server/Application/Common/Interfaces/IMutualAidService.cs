@@ -54,13 +54,15 @@ public interface IMutualAidService
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false,
-        bool assumeInNeedNonOrganizerForLot = false);
+        bool assumeInNeedNonOrganizerForLot = false,
+        DateTime? seasonStartAnchor = null);
     Task<PriorityScoreBreakdown> GetPriorityScoreBreakdownForUserAsync(
         int userId,
         int crewId,
         CancellationToken cancellationToken = default,
         bool excludeActiveSeasonContributions = false,
-        bool assumeInNeedNonOrganizerForLot = false);
+        bool assumeInNeedNonOrganizerForLot = false,
+        DateTime? seasonStartAnchor = null);
     Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default);
     Task<decimal> GetMonthlyContributionExcludingLotAsync(int userId, int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<int>> GetLockedCycleUserIdsAsync(int crewId, CancellationToken cancellationToken = default);

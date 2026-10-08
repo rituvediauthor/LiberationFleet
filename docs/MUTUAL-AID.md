@@ -25,17 +25,23 @@ Use `ReceptionEntryTypeExtensions.ToApiValue` / `TryParseApiValue` instead of ad
 
 ## Priority score and sacrifices
 
-Priority score (simplified):
+Priority score:
 
 ```
-base × (peopleRepresented + disabilityLevel + 1) × (1 + PercentBonus/100)
+(crewLifetime × emergency + membershipBonus + userLifetime + survival)
+  × (peopleRepresented + disability + targetedMinorityGroups + 1)
+  × (1 + PercentBonus/100)
 ```
 
+- **Crew / user lifetime** are gift totals that count toward contribution (not estimated monthly giving), except on the **crew’s first giving season**:
+  - `userLifetime = max(actualLifetime, EstimatedMonthlyContribution)`
+  - `crewLifetime = sum over season contribution members of max(actual_i, estimate_i)`
+  - After the crew has a prior season start date, estimates are ignored for priority.
+- **Giving Season organizers** use a fixed score of **−1** (last among positive scores) for concentrated cycle order. Library of Things ranking uses the full formula without that demotion.
+- Not-in-need members leave the active concentrated-aid queue; the formula score itself is unchanged.
 - **Sacrifices this season** (`CrewMembership.EmergencySacrificesThisSeason`) increment when a member responds to emergencies.
-- At season start/rollover those counts become **`User.PercentBonus`** (+10% per sacrifice) and the counter resets.
-- **Sacrifices last season** on the profile is derived from `PercentBonus` (count = bonus ÷ 10). That count **explains the percent boost** shown for the current season.
+- At season start/rollover those counts become **`CrewMembership.PercentBonus`** (+10% per sacrifice) and the counter resets.
 - Profile shows both last-season and this-season sacrifice counts; the live priority score is shown prominently near the avatar.
-- Organizer (−1) and not-in-need (−2) demotions apply only to **Library of Things** request ranking, not to profile display or giving/receiving season order.
 
 In-season priority for LoT requests excludes active-season contributions when the requester is already in season (aligned with profile).
 
