@@ -27,6 +27,10 @@ public interface IMutualAidService
     Task<SeasonReadyResultDto> MarkSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
     Task<SeasonSetupSaveResultDto> SaveSeasonSetupAsync(int userId, decimal estimatedMonthlyContribution, CancellationToken cancellationToken = default);
     Task<SeasonSetupSaveResultDto> ClearSeasonReadyAsync(int userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Starts the first season for a crew from ready + auto-join (primed) members. Requires at least 3 participants.
+    /// </summary>
+    Task<bool> StartSeasonFromReadyAndPrimedAsync(int crewId, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionForUserAsync(Gift gift, int recipientUserId, CancellationToken cancellationToken = default);
     Task OnCrewmatePriorityChangedAsync(int userId, CancellationToken cancellationToken = default);
@@ -102,7 +106,10 @@ public class SeasonStatusDto
     public bool UserInSeason { get; set; }
     public bool UserSeasonReady { get; set; }
     public int ReadyCount { get; set; }
+    /// <summary>True when at least 3 members are ready and no start-season proposal is pending.</summary>
     public bool CanStartSeason { get; set; }
+    public bool HasPendingStartSeasonProposal { get; set; }
+    public int? PendingStartSeasonProposalId { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
 }
 

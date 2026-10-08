@@ -1,6 +1,6 @@
 import { AsyncPipe, NgIf } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ClientConfigService } from '../../services/client-config.service';
 import { FallibleService } from '../../services/fallible.service';
 import { navigateToDonate } from '../../utils/donation-nav.util';
@@ -11,7 +11,7 @@ const FALLIBLE_DOC_URL =
 @Component({
   selector: 'app-fallible-footer',
   standalone: true,
-  imports: [AsyncPipe, NgIf],
+  imports: [AsyncPipe, NgIf, RouterLink],
   templateUrl: './fallible-footer.component.html',
   styleUrl: './fallible-footer.component.css'
 })

@@ -243,7 +243,15 @@ export interface SeasonStatus {
   userSeasonReady: boolean;
   readyCount: number;
   canStartSeason: boolean;
+  hasPendingStartSeasonProposal?: boolean;
+  pendingStartSeasonProposalId?: number | null;
   estimatedMonthlyContribution?: number;
+}
+
+export interface ProposeStartSeasonResult {
+  success: boolean;
+  message: string;
+  proposalId: number;
 }
 
 export interface SeasonSetupSaveResult {

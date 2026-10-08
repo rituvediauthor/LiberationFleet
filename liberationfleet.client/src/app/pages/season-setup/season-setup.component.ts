@@ -63,6 +63,10 @@ export class SeasonSetupComponent implements OnInit {
   readyCount = 0;
   seasonReady = false;
   seasonStarted = false;
+  canStartSeason = false;
+  hasPendingStartSeasonProposal = false;
+  pendingStartSeasonProposalId: number | null = null;
+  isProposingStart = false;
   isLoading = true;
   isSubmitting = false;
   canToggleInNeedOff = true;
@@ -106,9 +110,7 @@ export class SeasonSetupComponent implements OnInit {
 
     this.giftService.getSeasonStatus().subscribe({
       next: status => {
-        this.readyCount = status.readyCount;
-        this.seasonReady = status.userSeasonReady;
-        this.seasonStarted = status.seasonStarted;
+        this.applyStatus(status);
         if (status.estimatedMonthlyContribution != null) {
           this.form.patchValue({ estimatedMonthlyContribution: status.estimatedMonthlyContribution });
         }
@@ -338,10 +340,59 @@ export class SeasonSetupComponent implements OnInit {
     return this.router.url.split('?')[0] === '/app/crew/season-setup';
   }
 
-  private applyStatus(status: { readyCount: number; userSeasonReady: boolean; seasonStarted: boolean }) {
+  proposeStartSeason() {
+    if (this.isProposingStart || this.seasonStarted || !this.canStartSeason) {
+      return;
+    }
+
+    this.isProposingStart = true;
+    this.giftService.proposeStartSeason().subscribe({
+      next: result => {
+        this.isProposingStart = false;
+        if (!result.success) {
+          this.toastService.error(result.message || 'Unable to propose starting the season.');
+          if (result.proposalId) {
+            this.hasPendingStartSeasonProposal = true;
+            this.pendingStartSeasonProposalId = result.proposalId;
+            this.canStartSeason = false;
+          }
+          return;
+        }
+
+        this.toastService.success(result.message || 'Start-season proposal submitted.');
+        this.hasPendingStartSeasonProposal = true;
+        this.pendingStartSeasonProposalId = result.proposalId;
+        this.canStartSeason = false;
+        void this.router.navigate(['/app/crew/proposals', result.proposalId]);
+      },
+      error: err => {
+        this.isProposingStart = false;
+        this.toastService.error(err?.error?.message || 'Unable to propose starting the season.');
+      }
+    });
+  }
+
+  openPendingStartProposal() {
+    if (!this.pendingStartSeasonProposalId) {
+      return;
+    }
+    void this.router.navigate(['/app/crew/proposals', this.pendingStartSeasonProposalId]);
+  }
+
+  private applyStatus(status: {
+    readyCount: number;
+    userSeasonReady: boolean;
+    seasonStarted: boolean;
+    canStartSeason?: boolean;
+    hasPendingStartSeasonProposal?: boolean;
+    pendingStartSeasonProposalId?: number | null;
+  }) {
     this.readyCount = status.readyCount;
     this.seasonReady = status.userSeasonReady;
     this.seasonStarted = status.seasonStarted;
+    this.canStartSeason = !!status.canStartSeason;
+    this.hasPendingStartSeasonProposal = !!status.hasPendingStartSeasonProposal;
+    this.pendingStartSeasonProposalId = status.pendingStartSeasonProposalId ?? null;
   }
 
   private syncPlatformOptions() {

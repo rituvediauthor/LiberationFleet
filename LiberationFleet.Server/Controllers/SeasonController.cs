@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Features.Season.Commands.ClearSeasonReady;
 using LiberationFleet.Server.Application.Features.Season.Commands.MarkSeasonReady;
+using LiberationFleet.Server.Application.Features.Season.Commands.ProposeStartSeason;
 using LiberationFleet.Server.Application.Features.Season.Commands.SaveSeasonSetup;
 using LiberationFleet.Server.Application.Features.Season.Queries.GetSeasonStatus;
 using MediatR;
@@ -45,6 +46,16 @@ public class SeasonController : ControllerBase
     public async Task<IActionResult> ClearReady()
     {
         var result = await _mediator.Send(new ClearSeasonReadyCommand());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Creates a crew proposal to start the season once at least three members have marked ready.
+    /// </summary>
+    [HttpPost("propose-start")]
+    public async Task<IActionResult> ProposeStart()
+    {
+        var result = await _mediator.Send(new ProposeStartSeasonCommand());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 }

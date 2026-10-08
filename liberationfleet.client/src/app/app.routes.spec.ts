@@ -77,6 +77,14 @@ describe('app.routes', () => {
     expect(route?.canActivate).toBeUndefined();
   });
 
+  it('should expose public privacy and terms routes without authGuard', () => {
+    for (const path of ['privacy', 'terms', 'community-standards']) {
+      const route = routes.find(r => r.path === path);
+      expect(route?.canActivate).toBeUndefined();
+      expect(route?.data?.['assetPath']).toBeTruthy();
+    }
+  });
+
   it('should redirect unknown paths to root', () => {
     const wildcard = routes.find(r => r.path === '**');
     expect(wildcard?.redirectTo).toBe('');

@@ -1,0 +1,10 @@
+<app-page-layout [backButton]="backButton" [brandNavButton]="true">
+  <article class="legal-page">
+    <h1>{{ title }}</h1>
+    <p class="status-text" *ngIf="loading">Loading…</p>
+    <pre class="legal-body" *ngIf="!loading" [class.error]="loadError">{{ body }}</pre>
+    <nav class="legal-nav" aria-label="Related legal documents" *ngIf="!loading">
+      <a *ngFor="let doc of otherDocs" [routerLink]="doc.path">{{ doc.label }}</a>
+    </nav>
+  </article>
+</app-page-layout>

@@ -6,11 +6,12 @@
   <div class="form-container" *ngIf="!isLoading">
     <div class="form-card">
       <p class="intro-text">
-        In order to start using mutual aid functions, at least three crewmates need to:
-        have payment platforms registered to their profile and enter an estimate of how much
-        money they will be able to contribute on a monthly basis (which may be $0), then mark themselves as ready.
+        To prepare for mutual aid, crewmates register payment platforms, enter an estimate of how much
+        they can contribute monthly (which may be $0), then mark ready. At least three must be ready
+        before someone can propose starting the season. More than three may ready up first; primed
+        crewmates (auto-join) are included when the season starts.
       </p>
-      <p class="ready-count">{{ readyCount }} of 3 crewmates ready</p>
+      <p class="ready-count">{{ readyCount }} crewmate{{ readyCount === 1 ? '' : 's' }} ready (need 3+)</p>
 
       <form [formGroup]="form">
         <div class="form-group checkbox-group">
@@ -130,7 +131,28 @@
             [ngModelOptions]="{standalone: true}"
             [disabled]="seasonStarted || isSubmitting"
             (ngModelChange)="onSeasonReadyChange()">
-          <label for="season-ready">Ready to start the season</label>
+          <label for="season-ready">Ready for the season</label>
+        </div>
+
+        <div class="start-season-actions" *ngIf="!seasonStarted">
+          <button
+            type="button"
+            class="start-season-btn"
+            *ngIf="canStartSeason"
+            [disabled]="isProposingStart || isSubmitting"
+            (click)="proposeStartSeason()">
+            {{ isProposingStart ? 'Submitting…' : 'Propose start season' }}
+          </button>
+          <p class="start-season-pending" *ngIf="hasPendingStartSeasonProposal">
+            A start-season proposal is awaiting crew approval.
+            <button
+              type="button"
+              class="link-btn"
+              *ngIf="pendingStartSeasonProposalId"
+              (click)="openPendingStartProposal()">
+              View proposal
+            </button>
+          </p>
         </div>
       </form>
     </div>

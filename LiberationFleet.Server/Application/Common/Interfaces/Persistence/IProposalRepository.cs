@@ -172,6 +172,14 @@ public interface IProposalRepository
     Task<IReadOnlyDictionary<int, ProposalCrewLeaveFleet>> GetCrewLeaveFleetsByProposalIdsAsync(
         IEnumerable<int> proposalIds,
         CancellationToken cancellationToken = default);
+    Task<ProposalCrewStartSeason?> GetCrewStartSeasonByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
+    Task AddCrewStartSeasonAsync(ProposalCrewStartSeason startSeason, CancellationToken cancellationToken = default);
+    Task<ProposalCrewStartSeason?> GetPendingCrewStartSeasonAsync(
+        int crewId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalCrewStartSeason>> GetCrewStartSeasonsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default);
     Task<ProposalFleetJoinRequest?> GetFleetJoinRequestByProposalIdAsync(int proposalId, CancellationToken cancellationToken = default);
     Task AddFleetJoinRequestAsync(ProposalFleetJoinRequest joinRequest, CancellationToken cancellationToken = default);
     Task<ProposalFleetJoinRequest?> GetPendingFleetJoinRequestAsync(

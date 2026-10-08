@@ -34,6 +34,7 @@ public class Proposal
     public ProposalCrewmateAidStatChange? CrewmateAidStatChange { get; set; }
     public ProposalCrewApplyToFleet? CrewApplyToFleet { get; set; }
     public ProposalCrewLeaveFleet? CrewLeaveFleet { get; set; }
+    public ProposalCrewStartSeason? CrewStartSeason { get; set; }
     public ProposalFleetJoinRequest? FleetJoinRequest { get; set; }
     public ProposalFleetSettingChange? FleetSettingChange { get; set; }
     public ProposalFleetKickCrew? FleetKickCrew { get; set; }

@@ -737,6 +737,43 @@ public class ProposalRepository : IProposalRepository
             .ToDictionaryAsync(l => l.ProposalId, cancellationToken);
     }
 
+    public Task<ProposalCrewStartSeason?> GetCrewStartSeasonByProposalIdAsync(
+        int proposalId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewStartSeasons.FirstOrDefaultAsync(s => s.ProposalId == proposalId, cancellationToken);
+
+    public async Task AddCrewStartSeasonAsync(
+        ProposalCrewStartSeason startSeason,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProposalCrewStartSeasons.AddAsync(startSeason, cancellationToken);
+
+    public Task<ProposalCrewStartSeason?> GetPendingCrewStartSeasonAsync(
+        int crewId,
+        CancellationToken cancellationToken = default) =>
+        _context.ProposalCrewStartSeasons
+            .Include(s => s.Proposal)
+            .Where(s =>
+                s.Proposal.CrewId == crewId
+                && !s.Proposal.IsDeleted
+                && s.Proposal.Status == ProposalStatus.Pending
+                && s.Proposal.Kind == ProposalKind.CrewStartSeason)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalCrewStartSeason>> GetCrewStartSeasonsByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalCrewStartSeason>();
+        }
+
+        return await _context.ProposalCrewStartSeasons
+            .Where(s => ids.Contains(s.ProposalId))
+            .ToDictionaryAsync(s => s.ProposalId, cancellationToken);
+    }
+
     public Task<ProposalFleetJoinRequest?> GetFleetJoinRequestByProposalIdAsync(
         int proposalId,
         CancellationToken cancellationToken = default) =>

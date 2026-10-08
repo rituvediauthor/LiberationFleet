@@ -489,7 +489,7 @@ public class MutualAidServiceTests
     }
 
     [Fact]
-    public async Task GetSeasonStatusAsync_StartsSeasonWhenThreeMembersAlreadyReady()
+    public async Task GetSeasonStatusAsync_DoesNotAutoStartWhenThreeMembersAlreadyReady()
     {
         var context = TestDbContextFactory.Create();
         await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
@@ -536,29 +536,18 @@ public class MutualAidServiceTests
 
         var status = await service.GetSeasonStatusAsync(users[0].Id, CancellationToken.None);
 
-        status.SeasonStarted.Should().BeTrue();
-        status.UserInSeason.Should().BeTrue();
+        status.SeasonStarted.Should().BeFalse();
+        status.UserInSeason.Should().BeFalse();
         status.ReadyCount.Should().Be(3);
+        status.CanStartSeason.Should().BeTrue();
 
         var reloadedCrew = await context.Crews.SingleAsync(c => c.Id == crew.Id);
-        reloadedCrew.SeasonStarted.Should().BeTrue();
-        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(9);
-        reloadedCrew.NextSeasonStartDate.Should().NotBeNull();
-        reloadedCrew.FollowingSeasonStartDate.Should().NotBeNull();
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.CurrentSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.NextSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.FollowingSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id
-            && c.SeasonStartDate == reloadedCrew.NextSeasonStartDate
-            && c.CapIsProvisional)).Should().Be(3);
+        reloadedCrew.SeasonStarted.Should().BeFalse();
+        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(0);
     }
 
     [Fact]
-    public async Task MarkSeasonReadyAsync_StartsSeasonWhenThirdMemberMarksReady()
+    public async Task MarkSeasonReadyAsync_DoesNotAutoStartSeasonWhenThirdMemberMarksReady()
     {
         var context = TestDbContextFactory.Create();
         await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
@@ -606,34 +595,24 @@ public class MutualAidServiceTests
         var result = await service.MarkSeasonReadyAsync(users[2].Id, CancellationToken.None);
 
         result.Success.Should().BeTrue();
-        result.SeasonStarted.Should().BeTrue();
+        result.SeasonStarted.Should().BeFalse();
         result.Status.Should().NotBeNull();
-        result.Status!.UserInSeason.Should().BeTrue();
+        result.Status!.ReadyCount.Should().Be(3);
+        result.Status.CanStartSeason.Should().BeTrue();
+        result.Status.UserInSeason.Should().BeFalse();
 
         var reloadedCrew = await context.Crews.SingleAsync(c => c.Id == crew.Id);
-        reloadedCrew.SeasonStarted.Should().BeTrue();
-        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(9);
-        reloadedCrew.NextSeasonStartDate.Should().NotBeNull();
-        reloadedCrew.FollowingSeasonStartDate.Should().NotBeNull();
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.CurrentSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.NextSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.FollowingSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id
-            && c.SeasonStartDate == reloadedCrew.NextSeasonStartDate
-            && c.CapIsProvisional)).Should().Be(3);
+        reloadedCrew.SeasonStarted.Should().BeFalse();
+        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(0);
     }
 
     [Fact]
-    public async Task MarkSeasonReadyAsync_StartsSeasonWhenThreeMembersReady()
+    public async Task StartSeasonFromReadyAndPrimedAsync_StartsSeasonWithReadyAndPrimedMembers()
     {
         var context = TestDbContextFactory.Create();
         await TestDbContextFactory.SeedPaymentPlatformsAsync(context);
 
-        var users = new[] { "u1", "u2", "u3" }
+        var users = new[] { "u1", "u2", "u3", "u4" }
             .Select(name => new User
             {
                 Username = name,
@@ -652,47 +631,37 @@ public class MutualAidServiceTests
         await context.SaveChangesAsync();
 
         var platforms = await TestDbContextFactory.SeedCrewPaymentPlatformsAsync(context, crew.Id);
-        foreach (var user in users)
+        for (var i = 0; i < users.Count; i++)
         {
             context.CrewMemberships.Add(new CrewMembership
             {
-                UserId = user.Id,
+                UserId = users[i].Id,
                 CrewId = crew.Id,
                 EstimatedMonthlyContribution = 100m,
-                IsSeasonReady = true,
+                IsSeasonReady = i < 3,
+                AutoJoinSeasonOnStart = i == 3,
                 JoinedAt = DateTime.UtcNow
             });
             context.UserPaymentPlatforms.Add(new UserPaymentPlatform
             {
-                UserId = user.Id,
+                UserId = users[i].Id,
                 CrewPaymentPlatformId = platforms["PayPal"].Id,
-                Handle = $"@{user.Username}"
+                Handle = $"@{users[i].Username}"
             });
         }
         await context.SaveChangesAsync();
 
         var service = HandlerTestFixture.CreateMutualAidService(context);
 
-        var result = await service.MarkSeasonReadyAsync(users[2].Id, CancellationToken.None);
+        var started = await service.StartSeasonFromReadyAndPrimedAsync(crew.Id, CancellationToken.None);
 
-        result.Success.Should().BeTrue();
-        result.SeasonStarted.Should().BeTrue();
-
+        started.Should().BeTrue();
         var reloadedCrew = await context.Crews.SingleAsync(c => c.Id == crew.Id);
         reloadedCrew.SeasonStarted.Should().BeTrue();
-        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(9);
+        (await context.CrewMemberships.CountAsync(m => m.CrewId == crew.Id && m.IsInSeason)).Should().Be(4);
+        (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(12);
         reloadedCrew.NextSeasonStartDate.Should().NotBeNull();
         reloadedCrew.FollowingSeasonStartDate.Should().NotBeNull();
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.CurrentSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.NextSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id && c.SeasonStartDate == reloadedCrew.FollowingSeasonStartDate)).Should().Be(3);
-        (await context.SeasonCycles.CountAsync(c =>
-            c.CrewId == crew.Id
-            && c.SeasonStartDate == reloadedCrew.NextSeasonStartDate
-            && c.CapIsProvisional)).Should().Be(3);
     }
 
     [Fact]

@@ -39,6 +39,7 @@ internal static class ProposalTimerSweep
         var aidStats = sp.GetRequiredService<CrewmateAidStatProposalService>();
         var applyFleet = sp.GetRequiredService<CrewApplyToFleetProposalService>();
         var leaveFleet = sp.GetRequiredService<CrewLeaveFleetProposalService>();
+        var startSeason = sp.GetRequiredService<CrewStartSeasonProposalService>();
         var fleetJoins = sp.GetRequiredService<FleetJoinRequestProposalService>();
         var fleetKicks = sp.GetRequiredService<FleetKickCrewProposalService>();
         var fleetSettings = sp.GetRequiredService<FleetSettingsProposalService>();
@@ -77,6 +78,7 @@ internal static class ProposalTimerSweep
                 aidStats,
                 applyFleet,
                 leaveFleet,
+                startSeason,
                 fleetJoins,
                 fleetKicks,
                 fleetSettings,

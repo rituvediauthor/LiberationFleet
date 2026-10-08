@@ -30,6 +30,7 @@ public static class ProposalMapper
         ProposalFleetKickCrew? fleetKickCrew = null,
         ProposalCrewApplyToFleet? crewApplyToFleet = null,
         ProposalCrewLeaveFleet? crewLeaveFleet = null,
+        ProposalCrewStartSeason? crewStartSeason = null,
         ProposalFleetNotice? fleetNotice = null)
     {
         var dto = new ProposalListItemDto
@@ -45,6 +46,12 @@ public static class ProposalMapper
             ApprovalTimerEndsAt = proposal.ApprovalTimerEndsAt,
             CurrentUserVote = currentUserVote
         };
+
+        if (crewStartSeason is not null)
+        {
+            ApplyPlaintext(dto, crewStartSeason.Title, crewStartSeason.Description);
+            return dto;
+        }
 
         if (crewmateKick is not null)
         {
@@ -188,6 +195,7 @@ public static class ProposalMapper
         ProposalFleetKickCrew? fleetKickCrew = null,
         ProposalCrewApplyToFleet? crewApplyToFleet = null,
         ProposalCrewLeaveFleet? crewLeaveFleet = null,
+        ProposalCrewStartSeason? crewStartSeason = null,
         ProposalFleetNotice? fleetNotice = null)
     {
         var listItem = MapListItem(
@@ -210,6 +218,7 @@ public static class ProposalMapper
             fleetKickCrew,
             crewApplyToFleet,
             crewLeaveFleet,
+            crewStartSeason,
             fleetNotice);
         var isSystemProposal = IsSystemProposal(proposal.Kind);
         var plaintextDescription = crewmateKick?.Description
@@ -229,6 +238,7 @@ public static class ProposalMapper
             ?? fleetKickCrew?.Description
             ?? crewApplyToFleet?.Description
             ?? crewLeaveFleet?.Description
+            ?? crewStartSeason?.Description
             ?? fleetNotice?.Description
             ?? crewSettingChange?.Description;
         var usesAnonymousComments = true;
@@ -323,6 +333,7 @@ public static class ProposalMapper
             or ProposalKind.CrewmateAidStatChange
             or ProposalKind.CrewApplyToFleet
             or ProposalKind.CrewLeaveFleet
+            or ProposalKind.CrewStartSeason
             or ProposalKind.FleetJoinRequest
             or ProposalKind.FleetSettingChange
             or ProposalKind.FleetKickCrew

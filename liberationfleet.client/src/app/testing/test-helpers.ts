@@ -96,7 +96,9 @@ export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {
     userInSeason: false,
     userSeasonReady: false,
     readyCount: 0,
-    canStartSeason: false
+    canStartSeason: false,
+    hasPendingStartSeasonProposal: false,
+    pendingStartSeasonProposalId: null
   }));
   mock.saveSeasonSetup.and.returnValue(of({ success: true, message: 'Season setup saved.' }));
   mock.getPaymentPlatforms.and.returnValue(of([

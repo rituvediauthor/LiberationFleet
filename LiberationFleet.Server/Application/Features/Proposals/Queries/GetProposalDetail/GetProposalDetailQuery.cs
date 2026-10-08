@@ -30,6 +30,7 @@ public class GetProposalDetailQueryHandler(
     CrewmateAidStatProposalService crewmateAidStatProposalService,
     CrewApplyToFleetProposalService crewApplyToFleetProposalService,
     CrewLeaveFleetProposalService crewLeaveFleetProposalService,
+    CrewStartSeasonProposalService crewStartSeasonProposalService,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     FleetKickCrewProposalService fleetKickCrewProposalService,
     FleetSettingsProposalService fleetSettingsProposalService,
@@ -96,6 +97,7 @@ public class GetProposalDetailQueryHandler(
             crewmateAidStatProposalService,
             crewApplyToFleetProposalService,
             crewLeaveFleetProposalService,
+            crewStartSeasonProposalService,
             fleetJoinRequestProposalService,
             fleetKickCrewProposalService,
             fleetSettingsProposalService,
@@ -174,6 +176,10 @@ public class GetProposalDetailQueryHandler(
 
         var crewLeaveFleet = proposal.Kind == ProposalKind.CrewLeaveFleet
             ? await proposalRepository.GetCrewLeaveFleetByProposalIdAsync(proposal.Id, cancellationToken)
+            : null;
+
+        var crewStartSeason = proposal.Kind == ProposalKind.CrewStartSeason
+            ? await proposalRepository.GetCrewStartSeasonByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
         var fleetNotice = proposal.Kind == ProposalKind.General && proposal.FleetId.HasValue && proposalEnvelope is null
@@ -280,6 +286,7 @@ public class GetProposalDetailQueryHandler(
                 fleetKickCrew,
                 crewApplyToFleet,
                 crewLeaveFleet,
+                crewStartSeason,
                 fleetNotice)
         };
     }

@@ -54,6 +54,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
 
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;
+      this.refreshCrewmatesPresence();
     }, 60000);
 
     this.crewService.getMembership().subscribe({
@@ -124,6 +125,17 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.errorMessage = 'Failed to load crewmates';
         this.toastService.error(this.errorMessage);
+      }
+    });
+  }
+
+  /** Quiet refetch so Active now / last-active stay current while the page is open. */
+  private refreshCrewmatesPresence() {
+    this.crewmateService.getCrewmates().subscribe({
+      next: response => {
+        if (response.success) {
+          this.crewmates = response.items ?? [];
+        }
       }
     });
   }

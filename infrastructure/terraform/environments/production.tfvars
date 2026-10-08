@@ -27,6 +27,9 @@ organization_legal_name      = "Liberation Fleet Co."
 organization_ein             = "42-3969519"
 organization_mailing_address = ""
 
+# FCM (from google-services.json project_info.project_id)
+push_fcm_project_id = "liberationfleet-2bea7"
+
 sql_firewall_rules = [
   {
     name             = "Home"

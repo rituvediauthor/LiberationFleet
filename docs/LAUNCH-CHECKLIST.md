@@ -41,8 +41,8 @@ Master go-live list for **web + iOS + Android**. Use the linked guides for click
 
 - [ ] Form legal entity (LLC / nonprofit / etc.) and bank account — nonprofit path: [NONPROFIT-ENTITY-SETUP.md](./NONPROFIT-ENTITY-SETUP.md)  
 - [ ] Confirm US-first + 18+ assumptions with counsel ([JURISDICTION-ASSUMPTIONS.md](./JURISDICTION-ASSUMPTIONS.md))  
-- [ ] Publish **Privacy Policy** URL (HTTPS) — draft: `liberationfleet.client/src/assets/privacy-policy.txt`  
-- [ ] Publish **Terms of Use** URL — `.../terms-of-use.txt`  
+- [ ] Publish **Privacy Policy** URL (HTTPS) — `https://liberationfleet.org/privacy` (source: `liberationfleet.client/src/assets/privacy-policy.txt`)
+- [ ] Publish **Terms of Use** URL — `https://liberationfleet.org/terms` (source: `.../terms-of-use.txt`)
 - [ ] Publish **Community / Acceptable Use** — `.../community-standards.txt`  
 - [ ] Age gate / 18+ disclosure aligned with store questionnaires  
 - [ ] Designate `privacy@…` and `support@…` inboxes  

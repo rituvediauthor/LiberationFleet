@@ -76,6 +76,21 @@
   opacity: 0.85;
 }
 
+.fallible-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--lf-color-text-muted);
+}
+
+.fallible-legal .fallible-link {
+  font-size: 11px;
+}
+
 .fallible-donate {
   margin-top: 0;
 }

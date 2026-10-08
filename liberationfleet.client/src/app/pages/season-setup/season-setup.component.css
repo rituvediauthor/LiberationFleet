@@ -79,6 +79,47 @@ label {
   margin-top: 0;
 }
 
+.start-season-actions {
+  margin-top: 20px;
+}
+
+.start-season-btn {
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: var(--lf-color-accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.start-season-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.start-season-pending {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
+}
+
+.link-btn {
+  display: inline;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-left: 4px;
+  color: var(--lf-color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .season-ready-separator {
   border: none;
   border-top: 2px solid var(--lf-color-border);

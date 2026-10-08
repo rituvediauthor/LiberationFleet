@@ -33,7 +33,8 @@ const CREW_KIND_OPTIONS: { value: string; label: string }[] = [
   { value: 'CrewmatePermissionGrant', label: 'Permission grant' },
   { value: 'CrewmateAidStatChange', label: 'Aid stat' },
   { value: 'CrewApplyToFleet', label: 'Apply to fleet' },
-  { value: 'CrewLeaveFleet', label: 'Leave fleet' }
+  { value: 'CrewLeaveFleet', label: 'Leave fleet' },
+  { value: 'CrewStartSeason', label: 'Start season' }
 ];
 
 const FLEET_KIND_OPTIONS: { value: string; label: string }[] = [

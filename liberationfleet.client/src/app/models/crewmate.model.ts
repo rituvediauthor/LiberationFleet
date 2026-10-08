@@ -199,7 +199,7 @@ export function formatLastActive(lastLoginAt: string | null, isSelf = false, isP
   }
 
   if (!lastLoginAt) {
-    return 'No recent login';
+    return 'No recent activity';
   }
 
   const then = new Date(lastLoginAt).getTime();
@@ -208,20 +208,20 @@ export function formatLastActive(lastLoginAt: string | null, isSelf = false, isP
   const diffMinutes = Math.floor(diffMs / 60000);
 
   if (diffMinutes < 5) {
-    return 'Last login just now';
+    return 'Active now';
   }
 
   if (diffMinutes < 60) {
-    return `Last login ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    return `Active ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 48) {
-    return `Last login ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    return `Last active ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return `Last login ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  return `Last active ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 }
 
 export function formatPlatformDisplay(platform: CrewmatePlatformDisplay | null): string {

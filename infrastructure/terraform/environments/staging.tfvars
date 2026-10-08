@@ -20,6 +20,9 @@ email_smtp_port    = 587
 email_from_address = "noreply@liberationfleet.org"
 email_from_name    = "Liberation Fleet"
 
+# FCM (from google-services.json project_info.project_id)
+push_fcm_project_id = "liberationfleet-2bea7"
+
 sql_firewall_rules = [
   {
     name             = "Home"

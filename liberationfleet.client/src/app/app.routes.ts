@@ -110,6 +110,7 @@ import { FleetForumCreateComponent } from './pages/fleet/fleet-forums/fleet-foru
 import { FleetForumDetailComponent } from './pages/fleet/fleet-forums/fleet-forum-detail/fleet-forum-detail.component';
 import { HowToUseHubComponent } from './pages/how-to-use/how-to-use-hub/how-to-use-hub.component';
 import { HowToUseTopicComponent } from './pages/how-to-use/how-to-use-topic/how-to-use-topic.component';
+import { LegalDocumentComponent } from './pages/legal-document/legal-document.component';
 
 export const routes: Routes = [
   {
@@ -149,6 +150,33 @@ export const routes: Routes = [
     path: 'how-to/:topicId',
     component: HowToUseTopicComponent,
     title: 'How to use this app'
+  },
+  {
+    path: 'privacy',
+    component: LegalDocumentComponent,
+    title: 'Privacy Policy',
+    data: {
+      documentTitle: 'Privacy Policy',
+      assetPath: '/assets/privacy-policy.txt'
+    }
+  },
+  {
+    path: 'terms',
+    component: LegalDocumentComponent,
+    title: 'Terms of Use',
+    data: {
+      documentTitle: 'Terms of Use',
+      assetPath: '/assets/terms-of-use.txt'
+    }
+  },
+  {
+    path: 'community-standards',
+    component: LegalDocumentComponent,
+    title: 'Community Standards',
+    data: {
+      documentTitle: 'Community Standards',
+      assetPath: '/assets/community-standards.txt'
+    }
   },
   {
     path: 'app/crew',

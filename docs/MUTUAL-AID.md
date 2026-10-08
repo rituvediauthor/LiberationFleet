@@ -4,7 +4,7 @@ Liberation Fleet coordinates crew mutual aid through **giving seasons**, **recep
 
 ## Seasons and cycles
 
-- A crew starts a season when enough members mark ready (first season) or when the previous season’s cycles complete (rollover).
+- A crew’s **first** season starts when a **Start season** proposal is approved (requires at least three members marked ready to propose; on approval, participants are everyone ready or primed with `AutoJoinSeasonOnStart`). Later seasons start when the previous season’s cycles complete (rollover).
 - Each season participant gets a **primary `SeasonCycle`** for the current season, plus provisional cycles for the next and following seasons.
 - **In-need members** receive incomplete primaries that must be filled to the effective member/non-member cycle cap.
 - **Non-needers** still get a primary cycle on season creation (and when joining mid-season), marked **complete from the start** so season accounting and unique primary indexes stay consistent. Opting back into need can reopen an under-cap primary.

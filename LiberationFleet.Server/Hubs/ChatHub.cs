@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Library;
@@ -15,7 +16,8 @@ public class ChatHub(
     IFleetRepository fleetRepository,
     IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
-    ILibraryRepository libraryRepository) : Hub
+    ILibraryRepository libraryRepository,
+    IUserPresenceService presenceService) : Hub
 {
     public async Task JoinCrew(int crewId)
     {
@@ -85,6 +87,7 @@ public class ChatHub(
     public async Task SendRoomTyping(int roomId, bool isTyping, bool isAnonymous)
     {
         var userId = GetUserId();
+        presenceService.RecordActivity(userId);
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, Context.ConnectionAborted);
         if (membership is null)
         {
@@ -134,6 +137,7 @@ public class ChatHub(
     public async Task SendDirectTyping(int friendUserId, bool isTyping)
     {
         var userId = GetUserId();
+        presenceService.RecordActivity(userId);
         if (friendUserId <= 0 || friendUserId == userId)
         {
             throw new HubException("Invalid friend.");
@@ -212,6 +216,7 @@ public class ChatHub(
     public override async Task OnConnectedAsync()
     {
         var userId = GetUserId();
+        presenceService.RecordActivity(userId);
         await Groups.AddToGroupAsync(Context.ConnectionId, UserGroup(userId));
         await base.OnConnectedAsync();
     }

@@ -63,6 +63,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ProposalFleetSettingChange> ProposalFleetSettingChanges => Set<ProposalFleetSettingChange>();
     public DbSet<ProposalFleetKickCrew> ProposalFleetKickCrews => Set<ProposalFleetKickCrew>();
     public DbSet<ProposalCrewLeaveFleet> ProposalCrewLeaveFleets => Set<ProposalCrewLeaveFleet>();
+    public DbSet<ProposalCrewStartSeason> ProposalCrewStartSeasons => Set<ProposalCrewStartSeason>();
     public DbSet<ProposalFleetRuleChange> ProposalFleetRuleChanges => Set<ProposalFleetRuleChange>();
     public DbSet<ProposalFleetNotice> ProposalFleetNotices => Set<ProposalFleetNotice>();
     public DbSet<ProposalAnonymousAlias> ProposalAnonymousAliases => Set<ProposalAnonymousAlias>();
@@ -1037,6 +1038,19 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.FleetId)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProposalCrewStartSeason>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.IsApplied).HasDefaultValue(false);
+            entity.HasOne(e => e.Proposal)
+                .WithOne(p => p.CrewStartSeason)
+                .HasForeignKey<ProposalCrewStartSeason>(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ProposalFleetRuleChange>(entity =>

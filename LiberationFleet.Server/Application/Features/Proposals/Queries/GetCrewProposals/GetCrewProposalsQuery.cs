@@ -32,6 +32,7 @@ public class GetCrewProposalsQueryHandler(
     CrewmateAidStatProposalService crewmateAidStatProposalService,
     CrewApplyToFleetProposalService crewApplyToFleetProposalService,
     CrewLeaveFleetProposalService crewLeaveFleetProposalService,
+    CrewStartSeasonProposalService crewStartSeasonProposalService,
     FleetJoinRequestProposalService fleetJoinRequestProposalService,
     FleetKickCrewProposalService fleetKickCrewProposalService,
     FleetSettingsProposalService fleetSettingsProposalService,
@@ -83,6 +84,7 @@ public class GetCrewProposalsQueryHandler(
             crewmateAidStatProposalService,
             crewApplyToFleetProposalService,
                 crewLeaveFleetProposalService,
+                crewStartSeasonProposalService,
                 fleetJoinRequestProposalService,
                 fleetKickCrewProposalService,
                 fleetSettingsProposalService,
@@ -157,6 +159,10 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewLeaveFleet).Select(p => p.Id),
             cancellationToken);
 
+        var crewStartSeasons = await proposalRepository.GetCrewStartSeasonsByProposalIdsAsync(
+            proposals.Where(p => p.Kind == ProposalKind.CrewStartSeason).Select(p => p.Id),
+            cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -178,6 +184,7 @@ public class GetCrewProposalsQueryHandler(
             crewmateAidStatChanges.TryGetValue(proposal.Id, out var crewmateAidStatChange);
             crewApplyToFleets.TryGetValue(proposal.Id, out var crewApplyToFleet);
             crewLeaveFleets.TryGetValue(proposal.Id, out var crewLeaveFleet);
+            crewStartSeasons.TryGetValue(proposal.Id, out var crewStartSeason);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
@@ -195,7 +202,8 @@ public class GetCrewProposalsQueryHandler(
                 crewmateAidStatChange,
                 currentUserVote,
                 crewApplyToFleet: crewApplyToFleet,
-                crewLeaveFleet: crewLeaveFleet));
+                crewLeaveFleet: crewLeaveFleet,
+                crewStartSeason: crewStartSeason));
         }
 
         return new ProposalListResponse

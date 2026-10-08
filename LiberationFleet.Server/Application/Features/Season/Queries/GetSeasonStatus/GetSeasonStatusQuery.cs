@@ -8,7 +8,9 @@ public record GetSeasonStatusQuery : IRequest<SeasonStatusDto>;
 
 public class GetSeasonStatusQueryHandler(
     ICurrentUserService currentUser,
-    IMutualAidService mutualAidService) : IRequestHandler<GetSeasonStatusQuery, SeasonStatusDto>
+    IMutualAidService mutualAidService,
+    ICrewMembershipRepository membershipRepository,
+    IProposalRepository proposalRepository) : IRequestHandler<GetSeasonStatusQuery, SeasonStatusDto>
 {
     public async Task<SeasonStatusDto> Handle(GetSeasonStatusQuery request, CancellationToken cancellationToken)
     {
@@ -17,6 +19,30 @@ public class GetSeasonStatusQueryHandler(
             return new SeasonStatusDto();
         }
 
-        return await mutualAidService.GetSeasonStatusAsync(currentUser.UserId.Value, cancellationToken);
+        var status = await mutualAidService.GetSeasonStatusAsync(currentUser.UserId.Value, cancellationToken);
+        if (status.SeasonStarted)
+        {
+            return status;
+        }
+
+        var membership = await membershipRepository.GetActiveMembershipAsync(
+            currentUser.UserId.Value,
+            cancellationToken);
+        if (membership is null)
+        {
+            return status;
+        }
+
+        var pending = await proposalRepository.GetPendingCrewStartSeasonAsync(
+            membership.CrewId,
+            cancellationToken);
+        if (pending is not null)
+        {
+            status.HasPendingStartSeasonProposal = true;
+            status.PendingStartSeasonProposalId = pending.ProposalId;
+            status.CanStartSeason = false;
+        }
+
+        return status;
     }
 }

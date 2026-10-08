@@ -33,13 +33,9 @@ public partial class MutualAidService(
             return new SeasonStatusDto();
         }
 
-        await TryStartSeasonIfReadyAsync(crew, cancellationToken);
-
-        membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken) ?? membership;
-        crew = await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken) ?? crew;
-
         // Status reads must stay cheap: cycle/threshold maintenance belongs on
         // reception / next-aid / gift-record paths, not every status poll or nav gate.
+        // Season start is proposal-gated (not auto-started from ready count).
 
         var readyCount = await mutualAidRepository.CountSeasonReadyMembersAsync(crew.Id, cancellationToken);
 
@@ -691,12 +687,7 @@ public partial class MutualAidService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var seasonStarted = false;
-        if (!crew.SeasonStarted)
-        {
-            seasonStarted = await TryStartSeasonIfReadyAsync(crew, cancellationToken);
-        }
-        else if (!membership.IsInSeason)
+        if (crew.SeasonStarted && !membership.IsInSeason)
         {
             await JoinActiveSeasonAsync(crew, membership, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -706,8 +697,8 @@ public partial class MutualAidService(
         return new SeasonReadyResultDto
         {
             Success = true,
-            Message = seasonStarted ? "Season started." : membership.IsInSeason ? "Joined season." : "Marked ready.",
-            SeasonStarted = seasonStarted || crew.SeasonStarted,
+            Message = membership.IsInSeason ? "Joined season." : "Marked ready.",
+            SeasonStarted = crew.SeasonStarted,
             Status = status
         };
     }
@@ -1809,9 +1800,10 @@ public async Task<bool> IsFinancialMemberAsync(
         };
     }
 
-    private async Task<bool> TryStartSeasonIfReadyAsync(Crew crew, CancellationToken cancellationToken)
+    public async Task<bool> StartSeasonFromReadyAndPrimedAsync(int crewId, CancellationToken cancellationToken = default)
     {
-        if (crew.SeasonStarted)
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || crew.SeasonStarted)
         {
             return false;
         }

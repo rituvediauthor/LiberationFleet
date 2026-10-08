@@ -30,6 +30,7 @@ import {
   RecordGiftRequest,
   SeasonProfile,
   SeasonProfileResponse,
+  ProposeStartSeasonResult,
   SeasonReadyResult,
   SeasonSetupSaveResult,
   SeasonStatus,
@@ -63,6 +64,10 @@ export class GiftService {
 
   clearSeasonReady(): Observable<SeasonSetupSaveResult> {
     return this.http.post<SeasonSetupSaveResult>(`${this.seasonUrl}/clear-ready`, {});
+  }
+
+  proposeStartSeason(): Observable<ProposeStartSeasonResult> {
+    return this.http.post<ProposeStartSeasonResult>(`${this.seasonUrl}/propose-start`, {});
   }
 
   /** Prefer live season status so a mid-session season start is not stuck on prep. */

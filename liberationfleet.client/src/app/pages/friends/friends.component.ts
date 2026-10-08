@@ -58,6 +58,7 @@ export class FriendsComponent implements OnInit, OnDestroy {
 
     this.activityIntervalId = setInterval(() => {
       this.activityTick++;
+      this.refreshFriendsPresence();
     }, 60000);
 
     this.notificationService.refreshBadges();
@@ -206,6 +207,17 @@ export class FriendsComponent implements OnInit, OnDestroy {
       error: () => {
         this.loading = false;
         this.errorMessage = 'Failed to load friends';
+      }
+    });
+  }
+
+  /** Quiet refetch so Active now / last-active stay current while the page is open. */
+  private refreshFriendsPresence() {
+    this.friendService.getFriends(this.searchQuery).subscribe({
+      next: response => {
+        if (response.success) {
+          this.friends = response.items ?? [];
+        }
       }
     });
   }

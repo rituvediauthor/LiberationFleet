@@ -11,7 +11,11 @@ Bundle / application ID: **`com.liberationfleet.app`**
 ## Step 0 — Before either store
 
 1. Deploy **production** API on Azure with HTTPS ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)).
-2. Publish **Privacy Policy** and **Terms** on public HTTPS URLs (drafts under `liberationfleet.client/src/assets/`).
+2. Publish **Privacy Policy** and **Terms** on public HTTPS URLs. The SPA serves them at:
+   - Privacy: `https://liberationfleet.org/privacy` (staging: your staging host + `/privacy`)
+   - Terms: `https://liberationfleet.org/terms`
+   - Community Standards: `https://liberationfleet.org/community-standards`  
+   Source text: `liberationfleet.client/src/assets/privacy-policy.txt` and `terms-of-use.txt`. Deploy production so these routes resolve over HTTPS before store submit.
 3. Edit `liberationfleet.client/src/environments/environment.native.ts`:
    ```ts
    apiBaseUrl: 'https://your-production-host'
