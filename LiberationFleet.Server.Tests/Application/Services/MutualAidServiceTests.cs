@@ -1563,7 +1563,7 @@ public class MutualAidServiceTests
     }
 
     [Fact]
-    public async Task MarkSeasonReady_WhenNonNeederJoinsFreshSeason_CreatesCompletedPrimary()
+    public async Task StartSeason_WhenNonNeederJoinsFreshSeason_CreatesCompletedPrimary()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
         await fixture.Service.ResetSeasonAsync(fixture.Alice.Id, CancellationToken.None);
@@ -1576,6 +1576,11 @@ public class MutualAidServiceTests
             var ready = await fixture.Service.MarkSeasonReadyAsync(user.Id, CancellationToken.None);
             ready.Success.Should().BeTrue();
         }
+
+        var started = await fixture.Service.StartSeasonFromReadyAndPrimedAsync(
+            fixture.Crew.Id,
+            CancellationToken.None);
+        started.Should().BeTrue();
 
         var carolCycle = await fixture.Context.SeasonCycles.SingleAsync(c =>
             c.UserId == fixture.Carol.Id
