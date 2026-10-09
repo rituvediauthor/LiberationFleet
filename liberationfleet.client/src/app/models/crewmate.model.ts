@@ -179,6 +179,8 @@ export interface AddPlaceholderCrewmateRequest {
   identityGroups?: string[];
   inNeedOfAid?: boolean;
   needsSurvivalAid?: boolean;
+  /** When true, placeholder is treated as a financial member (honorary). */
+  isFinancialMember?: boolean;
   estimatedMonthlyContribution?: number;
   percentBoost?: number;
   lifetimeContributionOverride?: number;
@@ -214,7 +216,7 @@ export function mapFriendshipState(value: number | string): CrewmateFriendshipSt
 
 export function formatLastActive(lastLoginAt: string | null, isSelf = false, isPlaceholderMember = false): string {
   if (isPlaceholderMember) {
-    return 'Non-member';
+    return 'No account yet';
   }
 
   if (isSelf) {

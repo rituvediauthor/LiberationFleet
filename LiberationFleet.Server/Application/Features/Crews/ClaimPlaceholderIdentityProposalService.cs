@@ -117,7 +117,7 @@ public class ClaimPlaceholderIdentityProposalService(
             PlaceholderDisplayName = UserDisplay.Name(placeholderUser),
             Title = $"Claim identity of {UserDisplay.Name(placeholderUser)}",
             Description =
-                $"{UserDisplay.Name(placeholderUser)} was added as a non-member without an account. " +
+                $"{UserDisplay.Name(placeholderUser)} was added as a placeholder without an account. " +
                 "Approval will transfer their reception history to the claimant's account and remove the placeholder profile."
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

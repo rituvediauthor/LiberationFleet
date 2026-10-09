@@ -72,6 +72,7 @@ export class CreatePlaceholderComponent implements OnInit {
   ngOnInit() {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(this.nameMaxLength)]],
+      isFinancialMember: [false],
       inNeedOfAid: [true],
       needsSurvivalAid: [false],
       emergencyLevel: [0, [Validators.min(0), Validators.max(3)]],
@@ -248,6 +249,7 @@ export class CreatePlaceholderComponent implements OnInit {
       identityGroups: normalizeIdentityGroups(v.identityGroups),
       inNeedOfAid: !!v.inNeedOfAid,
       needsSurvivalAid: !!v.needsSurvivalAid,
+      isFinancialMember: !!v.isFinancialMember,
       estimatedMonthlyContribution: Math.max(0, Number(this.aidDraft.estimatedMonthlyContribution) || 0),
       percentBoost: Math.max(0, Number(this.aidDraft.percentBoost) || 0),
       lifetimeContributionOverride: Math.max(0, Number(this.aidDraft.lifetimeContributions) || 0),

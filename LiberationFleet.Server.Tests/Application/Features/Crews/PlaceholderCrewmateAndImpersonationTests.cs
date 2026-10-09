@@ -108,9 +108,55 @@ public class PlaceholderCrewmateAndImpersonationTests
         result.Success.Should().BeTrue(result.Message);
         var placeholderMembership = await fixture.Context.CrewMemberships.SingleAsync(m => m.UserId == result.UserId);
         placeholderMembership.IsPlaceholderMember.Should().BeTrue();
+        placeholderMembership.IsHonoraryMember.Should().BeFalse();
         placeholderMembership.IsSeasonReady.Should().BeTrue();
         placeholderMembership.EstimatedMonthlyContribution.Should().Be(40m);
         placeholderMembership.AidStatDraftJson.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task AddPlaceholderCommand_OrganizerCanMarkFinancialMember()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        foreach (var memberRow in fixture.Context.CrewMemberships)
+        {
+            memberRow.IsInSeason = false;
+            memberRow.IsSeasonReady = false;
+        }
+
+        var aliceMembership = await fixture.Context.CrewMemberships.SingleAsync(m => m.UserId == fixture.Alice.Id);
+        aliceMembership.IsOrganizer = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var handler = new AddPlaceholderCrewmateCommandHandler(
+            HandlerTestFixture.CreateCurrentUserServiceMock(fixture.Alice.Id).Object,
+            new CrewMembershipRepository(fixture.Context),
+            CreatePlaceholderService(fixture),
+            fixture.Context);
+
+        var platforms = new List<PaymentPlatformAccountDto>
+        {
+            new()
+            {
+                PlatformId = fixture.Platforms["PayPal"].Id,
+                Handle = "@pat",
+                IsPreferred = true
+            }
+        };
+
+        var result = await handler.Handle(
+            new AddPlaceholderCrewmateCommand(
+                Name: "Member Pat",
+                PaymentPlatforms: platforms,
+                InNeedOfAid: true,
+                IsFinancialMember: true),
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue(result.Message);
+        result.Message.Should().Contain("financial member");
+        var placeholderMembership = await fixture.Context.CrewMemberships.SingleAsync(m => m.UserId == result.UserId);
+        placeholderMembership.IsPlaceholderMember.Should().BeTrue();
+        placeholderMembership.IsHonoraryMember.Should().BeTrue();
     }
 
     [Fact]

@@ -17,6 +17,7 @@ public record AddPlaceholderCrewmateCommand(
     IReadOnlyList<string>? IdentityGroups = null,
     bool? InNeedOfAid = null,
     bool? NeedsSurvivalAid = null,
+    bool? IsFinancialMember = null,
     decimal? EstimatedMonthlyContribution = null,
     int? PercentBoost = null,
     decimal? LifetimeContributionOverride = null,
@@ -67,12 +68,16 @@ public class AddPlaceholderCrewmateCommandHandler(
         }
 
         PlaceholderCreateOptions? options = null;
-        if (hasRichPayload || request.InNeedOfAid.HasValue || request.NeedsSurvivalAid.HasValue)
+        if (hasRichPayload
+            || request.InNeedOfAid.HasValue
+            || request.NeedsSurvivalAid.HasValue
+            || request.IsFinancialMember.HasValue)
         {
             options = new PlaceholderCreateOptions
             {
                 InNeedOfAid = request.InNeedOfAid,
                 NeedsSurvivalAid = request.NeedsSurvivalAid,
+                IsFinancialMember = request.IsFinancialMember,
                 EstimatedMonthlyContribution = request.EstimatedMonthlyContribution,
                 PercentBoost = request.PercentBoost,
                 LifetimeContributionOverride = request.LifetimeContributionOverride,
@@ -110,5 +115,6 @@ public class AddPlaceholderCrewmateCommandHandler(
         || request.ReceptionThisYearOverride.HasValue
         || request.SeasonAccounting is not null
         || request.InNeedOfAid.HasValue
-        || request.NeedsSurvivalAid.HasValue;
+        || request.NeedsSurvivalAid.HasValue
+        || request.IsFinancialMember.HasValue;
 }

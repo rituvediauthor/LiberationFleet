@@ -290,10 +290,11 @@ public class ResendEmailMfaSettingsCommandHandler(
             return new EmailMfaChallengeResponse { Success = false, Message = "Unauthorized." };
         }
 
-        var existing = await challengeRepository.GetActiveByTokenAsync(
-            request.Request.MfaChallengeToken?.Trim() ?? string.Empty, cancellationToken);
+        var challengeToken = request.Request.MfaChallengeToken?.Trim() ?? string.Empty;
+        var existing = await challengeRepository.GetActiveByTokenAsync(challengeToken, cancellationToken);
         if (existing is null || existing.UserId != currentUser.UserId.Value
-            || (existing.Purpose != EmailMfaPurpose.Enable && existing.Purpose != EmailMfaPurpose.Disable))
+            || (existing.Purpose != EmailMfaPurpose.Enable && existing.Purpose != EmailMfaPurpose.Disable)
+            || string.IsNullOrEmpty(challengeToken))
         {
             return new EmailMfaChallengeResponse
             {
@@ -302,7 +303,7 @@ public class ResendEmailMfaSettingsCommandHandler(
             };
         }
 
-        var sent = await emailMfaService.ResendAsync(request.Request.MfaChallengeToken, cancellationToken);
+        var sent = await emailMfaService.ResendAsync(challengeToken, cancellationToken);
         return new EmailMfaChallengeResponse
         {
             Success = sent.Success,

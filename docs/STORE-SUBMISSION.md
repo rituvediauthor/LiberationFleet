@@ -43,15 +43,72 @@ Bundle / application ID: **`com.liberationfleet.app`**
 
 ### 1.2 Store listing & policy
 
-1. **Grow → Store presence → Main store listing** (wording varies by Console version):
-   - Short description, full description
-   - App icon, feature graphic, phone screenshots
-2. Set **Privacy policy** URL (required).
-3. **Policy → App content** (complete all required questionnaires):
-   - Target audience / age: **18+** aligned with product
-   - Violence / sexual content answers consistent with Community Standards
-   - **Data safety**: account data, messages, photos/media; describe encryption / E2EE **honestly**
-4. Complete **Ads**, **Content ratings**, etc. as required before production.
+Open testing and Production both require these. Internal testing is looser; if Console blocks with “cannot be published yet,” finish this section first, then return to the release.
+
+#### A. Dashboard checklist
+
+1. Play Console → **Liberation Fleet** → **Dashboard** (or **Publishing overview**).
+2. Open every task marked incomplete / with an error and finish it.
+3. Re-check Dashboard until required items are clear before retrying Open testing / Production.
+
+#### B. Main store listing (fixes “Add a full description”)
+
+1. **Grow → Store presence → Main store listing** (or **Store settings → Main store listing**).
+2. Fill **all** required fields for the default language (usually **English (United States)**):
+   - **App name**
+   - **Short description** (≤ 80 characters)
+   - **Full description** (this is the “Add a full description” error — paste a real multi-paragraph description; empty or whitespace does not save)
+   - **App icon** (512×512)
+   - **Feature graphic** (1024×500)
+   - **Phone screenshots** (at least 2)
+3. Click **Save**.
+
+Suggested full-description themes (edit to match marketing voice): mutual-aid crews/fleets, gift logging, Library of Things, E2EE chat, optional voice, voluntary Stripe donations to support the nonprofit app — not a bank or payment app for users’ money between each other.
+
+#### C. Privacy, ads, ratings, Data safety
+
+1. Set **Privacy policy** URL: `https://liberationfleet.org/privacy`
+2. **Policy → App content** (complete every required questionnaire):
+   - Target audience / age: **18+**
+   - Violence / sexual content consistent with Community Standards
+   - **Data safety**: account, messages, photos/media; describe E2EE honestly
+   - **Ads**: declare whether you show ads (Liberation Fleet typically **does not**)
+   - **Content ratings** questionnaire → apply rating
+3. Save each form until App content shows no outstanding required tasks.
+
+#### D. Financial features declaration
+
+1. **Policy → App content → Financial features** (or Dashboard link “Financial features”).
+2. Declare honestly. For Liberation Fleet today:
+   - You are **not** a bank, wallet, brokerage, lending, crypto exchange, or money transmitter for user-to-user funds.
+   - Crew **gift logging / mutual aid** is coordination/record-keeping, not moving money inside the app.
+   - **Stripe Checkout** is **voluntary donations to Liberation Fleet** (platform support), not IAP unlockables and not peer payouts.
+3. If the form asks whether the app provides financial features: choose the options that match **donations / fundraising** if listed; otherwise select that you **don’t** provide banking/crypto/trading features, and use any free-text/notes field to mention voluntary Stripe donations to the nonprofit.
+4. Save. Re-open if Dashboard still flags it incomplete.
+
+*(Confirm final checkbox wording with counsel if unsure — Play’s categories change.)*
+
+#### E. Health declaration
+
+1. **Policy → App content → Health** (or Dashboard “Health declaration”).
+2. Liberation Fleet is a **mutual-aid / community coordination** app, **not** a medical device, clinical, telehealth, or fitness-tracking health app.
+3. Answer that the app **does not** provide health / medical features (unless you later add something that clearly is health-related).
+4. Save.
+
+#### F. Countries / regions for Open testing (or Production)
+
+1. Left nav: **Testing → Open testing → Countries/regions**  
+   (for Production: **Release → Production → Countries/regions**).
+2. Click **Add countries/regions** → select at least one (recommended first launch: **United States** only per [JURISDICTION-ASSUMPTIONS.md](./JURISDICTION-ASSUMPTIONS.md)).
+3. **Save**.
+4. Return to the release draft → countries error should clear.
+
+#### G. Open testing release (after A–F)
+
+1. **Testing → Open testing → Create new release**.
+2. Upload / add from library the signed `.aab` → release name + notes → **Next**.
+3. Confirm countries are set → **Save** / **Start rollout to Open testing** / **Send for review** as prompted.
+4. Open testing is public-ish (anyone with the link / listing can join); it usually needs the same policy completeness as Production.
 
 ### 1.3 Signing and AAB (click-by-click)
 
@@ -123,13 +180,100 @@ Google keeps the **app signing key**; you only keep the **upload key** (the keys
 5. Add a short **Release name** / notes → **Next** → **Save** / **Start rollout to Internal testing**.
 6. Add tester emails (or a Google Group) on the Internal testing testers tab → copy the opt-in link → install on a device and smoke-test.
 
-Optional later: **Closed testing**, then **Production** (countries, rollout %, send for review).
+**Tester flow (must do in this order on the phone):**
 
-### 1.4 Release tracks (summary)
+1. On the phone, open Play Store → tap profile → confirm the **exact Google account** whose email you added as a tester (not a work profile / different account).
+2. Open the **opt-in / join** link from Console (**Testers** tab → copy link). It looks like  
+   `https://play.google.com/apps/internaltest/...` (Internal) or  
+   `https://play.google.com/apps/testing/com.liberationfleet.app` (Closed).
+3. Tap **Accept** / **Become a tester** until the page says you are a tester.
+4. **Then** tap **Download it on Google Play** / **Download test app**.
 
-1. **Internal testing** first (above) — verify install + login + chat + voice + donate.
-2. Optional: **Closed testing** for a larger group.
-3. **Production** → countries, rollout %, send for review.
+If step 4 shows **Item not found**, see troubleshooting below.
+
+##### Internal testing — “Item not found” troubleshooting
+
+Check these in order:
+
+1. **Release status** — Play Console → **Testing → Internal testing → Releases**. Status must be **Available to internal testers** (not Draft / still “Processing”). First-ever upload can take **a few hours** (sometimes up to ~48h) before the store listing exists.
+2. **Email list saved + release assigned to that list** — **Testers** tab: email is in an active list, list is checked for this track, **Save** was clicked.
+3. **Same Google account** — phone Play Store account must match the invited email. Sign out other accounts or switch profile, then reopen the join link.
+4. **Join before download** — opening the public `play.google.com/store/apps/details?id=com.liberationfleet.app` link without joining first almost always shows Item not found for unpublished apps. Always use the Console join link first.
+5. **Device / OS** — app requires **Android 7.0+** (`minSdk 24`). Very old devices will not see the listing.
+6. **Play Store cache** — Play Store → clear cache (or restart phone) → reopen the join link → Accept → Download again.
+7. **Wrong track link** — if you also set up Closed testing, Internal testers must use the **Internal** join URL (`internaltest/...`), not the Closed `apps/testing/...` URL.
+8. **Device catalog → Supported empty / “isn't compatible”** — open the device under **All** and read the reason.  
+   `android.software.video.encoder` required was caused by `@honem/native-video-compressor`; the app manifest overrides it to `required="false"`. After changing features, bump `versionCode`, upload a new `.aab`, and roll out again before Supported repopulates.
+
+Optional later: **Closed testing**, then **Production** (see 1.4).
+
+### 1.4 Release tracks
+
+1. **Internal testing** first (1.3 D above) — verify install + login + chat + voice + donate.
+2. Optional: **Closed testing** for a larger group (same upload flow as Internal; add a bigger tester list).
+3. Optional: **Open testing** — needs full **1.2** checklist (description, countries, financial + health declarations). See **1.2 G**.
+4. **Production** when testing looks good — click-by-click below (also needs **1.2** complete).
+
+#### Production release (click-by-click)
+
+Do this only after Internal (or Closed) smoke tests pass and **Step 1.2** store listing / policy items are complete. Play will block “Send for review” if required Dashboard checklist items are unfinished.
+
+##### A. Confirm the app is ready to publish
+
+1. Open [Play Console](https://play.google.com/console) → **Liberation Fleet**.
+2. Open **Dashboard** (or **Publishing overview** — wording varies).
+3. Clear every required item marked incomplete, typically:
+   - Main store listing (title, short/full description, screenshots, icon, feature graphic)
+   - Privacy policy URL
+   - App content questionnaires (target audience **18+**, Data safety, Content ratings, Ads declaration, etc.)
+   - Countries / store presence if still prompted
+4. When the Dashboard shows the app can be sent for review / published, continue.
+
+##### B. Create the production release
+
+1. Left nav: **Release → Production**  
+   (older: **Publish → Production**, or **Release → Production → Releases**).
+2. Click **Create new release** (or **Edit release** if a draft already exists).
+3. If Play asks about **Play App Signing** and you have not enrolled yet: accept Google managing the app signing key → continue.
+4. Under **App bundles**:
+   - Prefer **Add from library** if you already uploaded this `.aab` on Internal/Closed (same `versionCode`).
+   - Or **Upload** a new signed `.aab` (must have a **new** `versionCode` higher than any previous upload).
+5. Wait until the bundle shows as processed with no blocking errors (fix target API / minSdk issues first if red errors appear).
+6. **Release name** — e.g. `1.0.0 — Initial release`.
+7. **Release notes** (What’s new) — paste your initial-release notes for each language you support (at least **default / en-US**).
+8. Click **Next**.
+
+##### C. Countries / regions
+
+1. On the countries step (or **Release → Production → Countries/regions** / **Reach and devices**):
+   - Choose **Available in … countries** (or equivalent).
+   - For first launch: either **all countries** or a limited set you are ready to support.
+2. Confirm **18+** / content ratings already match the countries you pick.
+3. Click **Next**.
+
+##### D. Rollout percentage
+
+1. On the rollout step:
+   - **Full rollout (100%)** — everyone in selected countries gets the release after approval (fine for first launch of a new app).
+   - Or **Staged rollout** (e.g. 20%) — only a fraction of users; you can raise % later under Production → Releases → **Manage rollout**.
+2. New apps with no prior production users: 100% is normal; staged rollout mainly helps updates.
+3. Click **Next**.
+
+##### E. Preview and send for review
+
+1. Review the summary (bundle `versionCode`, countries, rollout %, release notes).
+2. Click **Save** (keeps a draft) or **Start rollout to Production** / **Send X changes for review** (exact button varies).
+3. If prompted, confirm declarations (e.g. export compliance, ads, official name).
+4. Status should move to **Pending publication** / **In review** (not live yet).
+5. Watch email + Play Console **Publishing overview** until status is **Available on Google Play** (or **Published**).
+
+##### F. After it goes live
+
+1. Install from the public Play Store listing on a phone that is **not** only an internal tester account (or clear tester-only expectations).
+2. Smoke-test: sign in → crew → chat → voice → donate Checkout.
+3. For the next update: bump `versionCode` in `android/app/build.gradle`, upload a new `.aab`, create another Production release, send for review again.
+
+**Tip:** If “Send for review” is disabled, return to **Dashboard** / **Publishing overview** and finish every required task (listing, Data safety, content rating, etc.) — that is almost always the blocker, not the AAB itself.
 
 ### 1.5 Review notes (Play)
 

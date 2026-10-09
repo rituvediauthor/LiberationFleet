@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!--
       Permissions for Liberation Fleet (Capacitor WebView + LiveKit voice + attachments).
@@ -25,6 +26,15 @@
     <!-- App works without a mic (text/chat/library); voice is optional -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <!--
+      @honem/native-video-compressor merges video.encoder required=true, which Play uses to
+      filter devices (e.g. Galaxy Z Flip 6) even when they can encode. Keep compression, but
+      do not block install — runtime falls back if a device truly has no encoder.
+    -->
+    <uses-feature
+        android:name="android.software.video.encoder"
+        android:required="false"
+        tools:node="replace" />
 
     <application
         android:allowBackup="true"

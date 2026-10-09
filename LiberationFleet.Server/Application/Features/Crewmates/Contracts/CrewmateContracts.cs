@@ -268,6 +268,8 @@ public class AddPlaceholderCrewmateRequest
     public List<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = [];
     public bool? InNeedOfAid { get; set; }
     public bool? NeedsSurvivalAid { get; set; }
+    /// <summary>When true, placeholder is treated as a financial member (honorary).</summary>
+    public bool? IsFinancialMember { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
     public int? PercentBoost { get; set; }
     public decimal? LifetimeContributionOverride { get; set; }

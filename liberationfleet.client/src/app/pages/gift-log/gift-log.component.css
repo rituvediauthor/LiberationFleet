@@ -242,8 +242,9 @@
   right: 0;
   bottom: 0;
   display: flex;
-  justify-content: center;
-  padding: 12px var(--lf-content-gutter, 20px);
+  flex-direction: column;
+  align-items: center;
+  padding: 12px var(--lf-content-gutter, 20px) 0;
   border-top: 1px solid var(--lf-color-border);
   background: var(--lf-color-bg-surface);
   box-shadow: var(--lf-shadow-bar);

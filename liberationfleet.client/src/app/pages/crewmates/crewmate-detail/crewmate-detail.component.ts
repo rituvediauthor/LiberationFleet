@@ -76,6 +76,11 @@ export class CrewmateDetailComponent implements OnInit {
   private toastService = inject(ToastService);
   userId = 0;
 
+  /** Organizers/accountants can set placeholder membership without a crew vote. */
+  get canDirectPlaceholderMembership(): boolean {
+    return !!this.profile?.isPlaceholderMember && !!this.profile?.canManagePlaceholders;
+  }
+
   ngOnInit() {
     this.backButton = this.navigation.createBackButton(['/app/crew/crewmates']);
 
@@ -226,7 +231,15 @@ export class CrewmateDetailComponent implements OnInit {
   }
 
   onPromoteHonorary() {
-    if (!this.profile || this.actionLoading || this.profile.isHonoraryMember || this.profile.pendingRoleChangeProposalId) {
+    if (!this.profile || this.actionLoading || this.profile.isHonoraryMember) {
+      return;
+    }
+
+    if (this.profile.pendingRoleChangeProposalId && !this.canDirectPlaceholderMembership) {
+      return;
+    }
+
+    if (this.profile.isPlaceholderMember && !this.canDirectPlaceholderMembership) {
       return;
     }
 
@@ -235,42 +248,12 @@ export class CrewmateDetailComponent implements OnInit {
       next: response => {
         this.actionLoading = false;
         if (!response.success) {
-          this.toastService.error(response.message || 'Failed to propose honorary membership');
-          if (response.proposalId) {
-            this.router.navigate(['/app/crew/proposals', response.proposalId]);
-          }
-          return;
-        }
-
-        this.toastService.success(response.message || 'Honorary membership proposal submitted');
-        if (response.proposalId) {
-          this.router.navigate(['/app/crew/proposals', response.proposalId]);
-        } else {
-          this.loadProfile();
-        }
-      },
-      error: () => {
-        this.actionLoading = false;
-        this.toastService.error('Failed to propose honorary membership');
-      }
-    });
-  }
-
-  onDemoteHonorary() {
-    if (!this.profile || this.actionLoading || !this.profile.isHonoraryMember) {
-      return;
-    }
-
-    if (!this.profile.isSelf && this.profile.pendingRoleChangeProposalId) {
-      return;
-    }
-
-    this.actionLoading = true;
-    this.crewmateService.demoteRoles(this.userId, ['HonoraryMember']).subscribe({
-      next: response => {
-        this.actionLoading = false;
-        if (!response.success) {
-          this.toastService.error(response.message || 'Failed to update honorary membership');
+          this.toastService.error(
+            response.message
+              || (this.canDirectPlaceholderMembership
+                ? 'Failed to mark as financial member'
+                : 'Failed to propose honorary membership')
+          );
           if (response.proposalId) {
             this.router.navigate(['/app/crew/proposals', response.proposalId]);
           }
@@ -279,7 +262,9 @@ export class CrewmateDetailComponent implements OnInit {
 
         this.toastService.success(
           response.message
-            || (response.proposalId ? 'Honorary demotion proposal submitted' : 'Honorary membership removed')
+            || (this.canDirectPlaceholderMembership
+              ? 'Placeholder marked as a financial member'
+              : 'Honorary membership proposal submitted')
         );
         if (response.proposalId) {
           this.router.navigate(['/app/crew/proposals', response.proposalId]);
@@ -289,7 +274,55 @@ export class CrewmateDetailComponent implements OnInit {
       },
       error: () => {
         this.actionLoading = false;
-        this.toastService.error('Failed to update honorary membership');
+        this.toastService.error(
+          this.canDirectPlaceholderMembership
+            ? 'Failed to mark as financial member'
+            : 'Failed to propose honorary membership'
+        );
+      }
+    });
+  }
+
+  onDemoteHonorary() {
+    if (!this.profile || this.actionLoading || !this.profile.isHonoraryMember) {
+      return;
+    }
+
+    if (!this.profile.isSelf
+      && this.profile.pendingRoleChangeProposalId
+      && !this.canDirectPlaceholderMembership) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.demoteRoles(this.userId, ['HonoraryMember']).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update membership');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(
+          response.message
+            || (response.proposalId
+              ? 'Honorary demotion proposal submitted'
+              : (this.canDirectPlaceholderMembership
+                ? 'Placeholder marked as a non-member'
+                : 'Honorary membership removed'))
+        );
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else {
+          this.loadProfile();
+        }
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.toastService.error('Failed to update membership');
       }
     });
   }

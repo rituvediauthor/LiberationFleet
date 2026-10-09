@@ -3,6 +3,7 @@
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
       <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
     </button>
+    <div class="lf-safe-bottom" aria-hidden="true"></div>
   </div>
   <p class="loading-text" *ngIf="loading">Loading gift…</p>
   <div class="error-state" *ngIf="!loading && loadError">

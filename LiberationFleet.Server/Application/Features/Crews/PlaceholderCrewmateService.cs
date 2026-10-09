@@ -24,6 +24,11 @@ public sealed class PlaceholderCreateOptions
 {
     public bool? InNeedOfAid { get; init; }
     public bool? NeedsSurvivalAid { get; init; }
+    /// <summary>
+    /// When true, grants honorary membership so the placeholder is treated as a financial member
+    /// (member cycle cap) even without contribution history.
+    /// </summary>
+    public bool? IsFinancialMember { get; init; }
     public decimal? EstimatedMonthlyContribution { get; init; }
     public int? PercentBoost { get; init; }
     public decimal? LifetimeContributionOverride { get; init; }
@@ -173,12 +178,14 @@ public class PlaceholderCrewmateService(
 
         await userRepository.AddAsync(user, cancellationToken);
 
+        var isFinancialMember = options?.IsFinancialMember == true;
         var membership = new CrewMembership
         {
             User = user,
             CrewId = crewId,
             JoinedAt = DateTime.UtcNow,
             IsPlaceholderMember = true,
+            IsHonoraryMember = isFinancialMember,
             IsSeasonReady = true,
             EstimatedMonthlyContribution = options?.EstimatedMonthlyContribution,
             PercentBonus = options?.PercentBoost ?? 0,
@@ -207,7 +214,16 @@ public class PlaceholderCrewmateService(
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        return PlaceholderCrewmateResult.Succeeded(user.Id, $"{trimmedName} was added as a non-member.");
+        membership.CurrentPriorityScore = await mutualAidService.GetPriorityScoreForUserAsync(
+            membership.UserId,
+            crewId,
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var statusLabel = isFinancialMember ? "financial member" : "non-member";
+        return PlaceholderCrewmateResult.Succeeded(
+            user.Id,
+            $"{trimmedName} was added as a placeholder {statusLabel}.");
     }
 
     public async Task MergePlaceholderIntoClaimantAsync(

@@ -31,9 +31,9 @@ public static class ProfileMapper
             StatusReason = statusReason
         };
 
-    public static string? GivingSeasonStatusReason(CrewMembership membership, User user)
+    public static string? GivingSeasonStatusReason(CrewMembership? membership, User user)
     {
-        if (membership.IsOrganizer)
+        if (membership?.IsOrganizer == true)
         {
             return "Organizer — last to receive concentrated aid via cycles when in need";
         }
@@ -41,8 +41,8 @@ public static class ProfileMapper
         return user.InNeedOfAid ? null : "Not in need (not in the active concentrated-aid queue)";
     }
 
-    public static string? LibraryOfThingsStatusReason(CrewMembership membership) =>
-        membership.IsOrganizer
+    public static string? LibraryOfThingsStatusReason(CrewMembership? membership) =>
+        membership?.IsOrganizer == true
             ? "Computed as if you were not the organizer (LoT does not use the organizer last-place rule)"
             : null;
 

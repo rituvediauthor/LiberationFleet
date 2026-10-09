@@ -8,10 +8,15 @@ export async function initializeNativeShell(): Promise<void> {
     return;
   }
 
+  document.documentElement.classList.add('lf-native-shell');
+  document.documentElement.classList.add(`lf-native-${Capacitor.getPlatform()}`);
+
   try {
     await StatusBar.setStyle({ style: Style.Dark });
     if (Capacitor.getPlatform() === 'android') {
       await StatusBar.setBackgroundColor({ color: '#0b1220' });
+      // Let the WebView paint edge-to-edge; CSS --lf-inset-* / safe-area pads chrome.
+      await StatusBar.setOverlaysWebView({ overlay: true });
     }
   } catch {
     // StatusBar may be unavailable on some emulators.

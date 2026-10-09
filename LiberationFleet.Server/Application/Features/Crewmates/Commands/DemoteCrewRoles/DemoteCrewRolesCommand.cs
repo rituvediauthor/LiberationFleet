@@ -77,6 +77,40 @@ public class DemoteCrewRolesCommandHandler(
             };
         }
 
+        var targetMembership = await membershipRepository.GetMembershipAsync(
+            request.TargetUserId,
+            viewerMembership.CrewId,
+            cancellationToken);
+
+        // Placeholders cannot vote on proposals — organizers/accountants set membership directly.
+        if (targetMembership?.IsPlaceholderMember == true
+            && CrewRoleAuthorizationService.CanManagePlaceholders(viewerMembership)
+            && roles.Count == 1
+            && roles[0] == CrewRole.HonoraryMember)
+        {
+            if (!targetMembership.IsHonoraryMember)
+            {
+                return new CrewRoleChangeResponse
+                {
+                    Success = false,
+                    Message = "This placeholder is already marked as a non-member."
+                };
+            }
+
+            targetMembership.IsHonoraryMember = false;
+            targetMembership.CurrentPriorityScore = await mutualAidService.GetPriorityScoreForUserAsync(
+                targetMembership.UserId,
+                targetMembership.CrewId,
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new CrewRoleChangeResponse
+            {
+                Success = true,
+                Message = "Placeholder marked as a non-member."
+            };
+        }
+
         var result = await roleProposalService.CreateDemotionAsync(
             viewerMembership.CrewId,
             viewerId,

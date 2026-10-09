@@ -77,6 +77,7 @@ public class CrewmatesController : ControllerBase
             body.IdentityGroups,
             body.InNeedOfAid,
             body.NeedsSurvivalAid,
+            body.IsFinancialMember,
             body.EstimatedMonthlyContribution,
             body.PercentBoost,
             body.LifetimeContributionOverride,

@@ -275,14 +275,14 @@
 
 .chat-action-bar {
   position: fixed;
-  left: env(safe-area-inset-left, 0);
-  right: env(safe-area-inset-right, 0);
+  left: max(0px, var(--lf-safe-left, env(safe-area-inset-left, 0px)));
+  right: max(0px, var(--lf-safe-right, env(safe-area-inset-right, 0px)));
   bottom: 0;
   z-index: 100;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px var(--lf-content-gutter, 20px);
+  padding: 12px var(--lf-content-gutter, 20px) 0;
   background: var(--lf-color-bg-surface);
   border-top: 1px solid var(--lf-color-border);
   box-shadow: var(--lf-shadow-bar);
