@@ -130,8 +130,12 @@ export class GiftService {
     });
   }
 
-  getReceptionOrder(limit = 30): Observable<ReceptionOrderEntry[]> {
-    return this.http.get<ReceptionOrderEntry[]>(`${this.apiUrl}/reception-order`, { params: { limit } });
+  getReceptionOrder(limit = 30, impersonateAsUserId?: number | null): Observable<ReceptionOrderEntry[]> {
+    const params: Record<string, string | number> = { limit };
+    if (impersonateAsUserId && impersonateAsUserId > 0) {
+      params['impersonateAsUserId'] = impersonateAsUserId;
+    }
+    return this.http.get<ReceptionOrderEntry[]>(`${this.apiUrl}/reception-order`, { params });
   }
 
   getNextAidInfo(): Observable<NextAidInfo | null> {
@@ -189,8 +193,11 @@ export class GiftService {
     return entry.relatedUserIds.includes(userId);
   }
 
-  recordGifts(gifts: GiftRecordItem[]): Observable<GiftOperationResponse> {
-    return this.http.post<GiftOperationResponse>(`${this.apiUrl}/batch`, { gifts });
+  recordGifts(gifts: GiftRecordItem[], impersonateAsUserId?: number | null): Observable<GiftOperationResponse> {
+    return this.http.post<GiftOperationResponse>(`${this.apiUrl}/batch`, {
+      gifts,
+      impersonateAsUserId: impersonateAsUserId && impersonateAsUserId > 0 ? impersonateAsUserId : null
+    });
   }
 
   completeMiddlemanGift(giftId: number, paymentPlatformId: number): Observable<GiftOperationResponse> {

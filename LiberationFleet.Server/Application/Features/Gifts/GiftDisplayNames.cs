@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Domain.Entities;
 
@@ -10,5 +11,8 @@ public static class GiftDisplayNames
             ? "Unknown"
             : user.IsCrewGiftRecipient
                 ? CrewGiftRecipientService.DisplayName
-                : user.Username;
+                : UserDisplay.Name(user);
+
+    public static string GetUserName(User? user) =>
+        user is null ? string.Empty : UserDisplay.Name(user);
 }

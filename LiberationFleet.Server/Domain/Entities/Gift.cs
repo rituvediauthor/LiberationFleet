@@ -9,6 +9,11 @@ public class Gift
     public int GiverUserId { get; set; }
     public int RecipientUserId { get; set; }
     public int? MiddlemanUserId { get; set; }
+    /// <summary>
+    /// When set, an organizer/accountant recorded this gift while impersonating
+    /// <see cref="GiverUserId"/>. Kept on claim-merge for transparency.
+    /// </summary>
+    public int? ImpersonatedByUserId { get; set; }
     public GiftType Type { get; set; }
     public decimal Amount { get; set; }
     public int? CrewPaymentPlatformId { get; set; }
@@ -39,6 +44,7 @@ public class Gift
     public User GiverUser { get; set; } = null!;
     public User RecipientUser { get; set; } = null!;
     public User? MiddlemanUser { get; set; }
+    public User? ImpersonatedByUser { get; set; }
     public Gift? InitiatedGift { get; set; }
     public CrewPaymentPlatform? CrewPaymentPlatform { get; set; }
     public SeasonCycle? SeasonCycle { get; set; }

@@ -1,6 +1,6 @@
 import { AfterViewInit, ChangeDetectorRef, Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../services/navigation.service';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
@@ -37,7 +37,7 @@ interface EntryFormValue {
 @Component({
   selector: 'app-record-gift',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent],
   templateUrl: './record-gift.component.html',
   styleUrl: './record-gift.component.css'
 })
@@ -54,6 +54,9 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
   platforms: PaymentPlatformOption[] = [];
   giverPlatformIds: number[] = [];
   activeUserId = 0;
+  canImpersonateGiftGiver = false;
+  impersonateEnabled = false;
+  impersonateAsUserId: number | '' = '';
   showConfirmDialog = false;
   isRecording = false;
   loading = true;
@@ -108,6 +111,12 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
       error: () => this.toastService.error('Failed to load payment platforms')
     });
 
+    this.crewService.getMembership().subscribe({
+      next: membership => {
+        this.canImpersonateGiftGiver = !!membership.canImpersonateGiftGiver;
+      }
+    });
+
     this.profileService.getProfile().subscribe({
       next: profile => {
         this.giverPlatformIds = profile.paymentPlatforms.map(p => p.platformId).filter(id => id > 0);
@@ -118,6 +127,7 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
         this.giftService.getCrewMembers(profile.id).subscribe({
           next: members => {
             this.crewMembers = members;
+            this.syncGiverPlatformsFromImpersonation();
             this.updateRecordButton();
           }
         });
@@ -232,8 +242,56 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     return entry.noSuitableMiddleman;
   }
 
+  get effectiveGiverUserId(): number {
+    if (this.impersonateEnabled && Number(this.impersonateAsUserId) > 0) {
+      return Number(this.impersonateAsUserId);
+    }
+    return this.activeUserId;
+  }
+
+  get impersonationTargets(): CrewMember[] {
+    return this.crewMembers.filter(m => m.id !== this.activeUserId);
+  }
+
+  onImpersonateToggle() {
+    if (!this.impersonateEnabled) {
+      this.impersonateAsUserId = '';
+    }
+    this.syncGiverPlatformsFromImpersonation();
+    this.loadReceptionOrder();
+    this.updateRecordButton();
+  }
+
+  onImpersonateTargetChange() {
+    this.syncGiverPlatformsFromImpersonation();
+    this.loadReceptionOrder();
+    this.updateRecordButton();
+  }
+
+  private syncGiverPlatformsFromImpersonation() {
+    if (this.impersonateEnabled && Number(this.impersonateAsUserId) > 0) {
+      const target = this.crewMembers.find(m => m.id === Number(this.impersonateAsUserId));
+      this.giverPlatformIds = target?.platformIds ?? [];
+      if (this.receptionEntries.length > 0) {
+        this.buildEntryForms(this.receptionEntries);
+      }
+      return;
+    }
+
+    this.profileService.getProfile().subscribe({
+      next: profile => {
+        this.giverPlatformIds = profile.paymentPlatforms.map(p => p.platformId).filter(id => id > 0);
+        if (this.receptionEntries.length > 0) {
+          this.buildEntryForms(this.receptionEntries);
+        }
+        this.updateRecordButton();
+      }
+    });
+  }
+
   isOwnEntry(entry: ReceptionOrderEntry): boolean {
-    return this.activeUserId > 0 && entry.userId === this.activeUserId;
+    const giverId = this.effectiveGiverUserId;
+    return giverId > 0 && entry.userId === giverId;
   }
 
   platformInfoLabel(entry: ReceptionOrderEntry, index: number): PlatformInfoLabel | null {
@@ -293,7 +351,12 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loading = true;
     }
 
-    this.giftService.getReceptionOrder(30).subscribe({
+    const impersonateAs =
+      this.impersonateEnabled && Number(this.impersonateAsUserId) > 0
+        ? Number(this.impersonateAsUserId)
+        : null;
+
+    this.giftService.getReceptionOrder(30, impersonateAs).subscribe({
       next: entries => {
         this.receptionEntries = entries;
         this.buildEntryForms(this.receptionEntries);
@@ -382,7 +445,12 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isRecording = true;
     this.updateRecordButton();
 
-    this.giftService.recordGifts(gifts).subscribe({
+    const impersonateAs =
+      this.impersonateEnabled && Number(this.impersonateAsUserId) > 0
+        ? Number(this.impersonateAsUserId)
+        : null;
+
+    this.giftService.recordGifts(gifts, impersonateAs).subscribe({
       next: result => {
         if (result.success) {
           this.toastService.success(result.message || 'Gifts recorded');
@@ -444,7 +512,8 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     const customAmount = Number(formValue.customAmount);
     const customRecipientId = Number(formValue.customRecipientId);
     const customPlatformId = Number(formValue.customPaymentPlatformId);
-    if (customAmount > 0 && customRecipientId > 0 && customPlatformId > 0 && customRecipientId !== this.activeUserId) {
+    const giverId = this.effectiveGiverUserId;
+    if (customAmount > 0 && customRecipientId > 0 && customPlatformId > 0 && customRecipientId !== giverId) {
       const customMiddlemanId = Number(formValue.customMiddlemanId);
       const customCategory = String(formValue.customCategory || 'other');
       items.push({
@@ -458,7 +527,7 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.receptionEntries.forEach((entry, index) => {
-      if (entry.userId === this.activeUserId) return;
+      if (entry.userId === giverId) return;
 
       const row = formValue.entries?.[index] as EntryFormValue | undefined;
       if (!row) return;

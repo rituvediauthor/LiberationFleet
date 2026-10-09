@@ -47,6 +47,8 @@ export interface GiftLogEntry {
   recipientName: string;
   middlemanId?: number;
   middlemanName?: string;
+  impersonatedByUserId?: number | null;
+  impersonatedByUsername?: string | null;
   amount: number;
   platform: PaymentPlatform;
   timestamp: Date;

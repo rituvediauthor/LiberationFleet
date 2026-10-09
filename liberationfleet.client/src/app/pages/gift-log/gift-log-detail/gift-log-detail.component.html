@@ -22,6 +22,9 @@
           [lfNotificationPrefix]="notifyPrefix"
           [lfHighlightId]="highlightId">
           <p class="log-message">{{ g.message }}</p>
+          <p class="impersonation-tag" *ngIf="g.impersonatedByUsername">
+            impersonated by {{ g.impersonatedByUsername }}
+          </p>
           <div class="log-meta-badges">
             <span *ngIf="categoryLabel(g)" class="category-badge">{{ categoryLabel(g) }}</span>
             <span *ngIf="g.displayFlag === 'unverified' || g.status === 'unverified'" class="unverified-badge">Unverified</span>

@@ -10,6 +10,14 @@
       Download crewmate states
     </button>
 
+    <button
+      type="button"
+      class="export-btn"
+      *ngIf="canManagePlaceholders"
+      (click)="openCreatePlaceholder()">
+      Add placeholder crewmate
+    </button>
+
     <p *ngIf="loading" class="state-text">Loading crewmates...</p>
     <p *ngIf="!loading && errorMessage" class="state-text error">{{ errorMessage }}</p>
     <p *ngIf="!loading && !errorMessage && crewmates.length === 0" class="state-text">No crewmates found.</p>

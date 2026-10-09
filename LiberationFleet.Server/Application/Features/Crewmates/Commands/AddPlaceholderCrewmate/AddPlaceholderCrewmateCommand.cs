@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
@@ -13,7 +14,14 @@ public record AddPlaceholderCrewmateCommand(
     int EmergencyLevel = 0,
     int PeopleRepresentedCount = 1,
     int DisabilityLevel = 0,
-    IReadOnlyList<string>? IdentityGroups = null) : IRequest<AddPlaceholderCrewmateResponse>;
+    IReadOnlyList<string>? IdentityGroups = null,
+    bool? InNeedOfAid = null,
+    bool? NeedsSurvivalAid = null,
+    decimal? EstimatedMonthlyContribution = null,
+    int? PercentBoost = null,
+    decimal? LifetimeContributionOverride = null,
+    decimal? ReceptionThisYearOverride = null,
+    AidSeasonAccountingDto? SeasonAccounting = null) : IRequest<AddPlaceholderCrewmateResponse>;
 
 public class AddPlaceholderCrewmateCommandHandler(
     ICurrentUserService currentUser,
@@ -37,12 +45,39 @@ public class AddPlaceholderCrewmateCommandHandler(
             return new AddPlaceholderCrewmateResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        if (!membership.IsInSeason)
+        var hasRichPayload = HasRichPayload(request);
+        if (hasRichPayload)
+        {
+            if (!CrewRoleAuthorizationService.CanManagePlaceholders(membership))
+            {
+                return new AddPlaceholderCrewmateResponse
+                {
+                    Success = false,
+                    Message = "Only organizers and accountants can create placeholders with aid settings."
+                };
+            }
+        }
+        else if (!membership.IsInSeason)
         {
             return new AddPlaceholderCrewmateResponse
             {
                 Success = false,
                 Message = "You must be in an active season to add a non-member."
+            };
+        }
+
+        PlaceholderCreateOptions? options = null;
+        if (hasRichPayload || request.InNeedOfAid.HasValue || request.NeedsSurvivalAid.HasValue)
+        {
+            options = new PlaceholderCreateOptions
+            {
+                InNeedOfAid = request.InNeedOfAid,
+                NeedsSurvivalAid = request.NeedsSurvivalAid,
+                EstimatedMonthlyContribution = request.EstimatedMonthlyContribution,
+                PercentBoost = request.PercentBoost,
+                LifetimeContributionOverride = request.LifetimeContributionOverride,
+                ReceptionThisYearOverride = request.ReceptionThisYearOverride,
+                SeasonAccounting = request.SeasonAccounting
             };
         }
 
@@ -55,7 +90,8 @@ public class AddPlaceholderCrewmateCommandHandler(
             request.PeopleRepresentedCount,
             request.DisabilityLevel,
             request.IdentityGroups,
-            cancellationToken);
+            cancellationToken,
+            options);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -66,4 +102,13 @@ public class AddPlaceholderCrewmateCommandHandler(
             UserId = result.UserId
         };
     }
+
+    private static bool HasRichPayload(AddPlaceholderCrewmateCommand request) =>
+        request.EstimatedMonthlyContribution.HasValue
+        || request.PercentBoost.HasValue
+        || request.LifetimeContributionOverride.HasValue
+        || request.ReceptionThisYearOverride.HasValue
+        || request.SeasonAccounting is not null
+        || request.InNeedOfAid.HasValue
+        || request.NeedsSurvivalAid.HasValue;
 }

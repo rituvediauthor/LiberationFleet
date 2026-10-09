@@ -92,6 +92,8 @@ export interface CrewmateProfile {
   canToggleCanAttachFiles: boolean;
   canModerateAttachments: boolean;
   canExportCrewData: boolean;
+  canManagePlaceholders?: boolean;
+  canImpersonateGiftGiver?: boolean;
   isPlaceholderMember: boolean;
   canClaimIdentity: boolean;
   isInSeason?: boolean;
@@ -161,6 +163,27 @@ export interface CrewmateKickResponse {
   success: boolean;
   message: string;
   proposalId: number;
+}
+
+export interface AddPlaceholderCrewmateRequest {
+  name: string;
+  paymentPlatforms: Array<{
+    platformId: number;
+    customPlatformName?: string;
+    handle: string;
+    isPreferred: boolean;
+  }>;
+  emergencyLevel?: number;
+  peopleRepresentedCount?: number;
+  disabilityLevel?: number;
+  identityGroups?: string[];
+  inNeedOfAid?: boolean;
+  needsSurvivalAid?: boolean;
+  estimatedMonthlyContribution?: number;
+  percentBoost?: number;
+  lifetimeContributionOverride?: number;
+  receptionThisYearOverride?: number;
+  seasonAccounting?: AidSeasonAccounting;
 }
 
 export interface AddPlaceholderCrewmateResponse {

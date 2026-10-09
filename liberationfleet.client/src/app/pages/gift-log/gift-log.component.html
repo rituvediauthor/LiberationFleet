@@ -31,6 +31,9 @@
             aria-hidden="true"></div>
           <button type="button" class="log-entry-open" (click)="openGiftDetail(entry)">
             <p class="log-message">{{ entry.message }}</p>
+            <p class="impersonation-tag" *ngIf="entry.impersonatedByUsername">
+              impersonated by {{ entry.impersonatedByUsername }}
+            </p>
             <div class="log-meta-badges">
               <span *ngIf="categoryLabel(entry)" class="category-badge">{{ categoryLabel(entry) }}</span>
               <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>

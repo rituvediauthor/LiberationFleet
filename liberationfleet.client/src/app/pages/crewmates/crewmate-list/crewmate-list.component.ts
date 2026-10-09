@@ -26,6 +26,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   canExportCrewData = false;
+  canManagePlaceholders = false;
   crewId = 0;
   backButton!: ActionBarButton;
   addButton!: ActionBarButton;
@@ -60,6 +61,7 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.canExportCrewData = !!membership.canExportCrewData;
+        this.canManagePlaceholders = !!membership.canManagePlaceholders;
         this.crewId = membership.crewId ?? 0;
       }
     });
@@ -95,6 +97,10 @@ export class CrewmateListComponent implements OnInit, OnDestroy {
       next: blob => this.downloadBlob(blob, 'crewmate-states.csv'),
       error: () => this.toastService.error('Failed to export crewmate states')
     });
+  }
+
+  openCreatePlaceholder() {
+    void this.router.navigate(['/app/crew/crewmates/placeholders/create']);
   }
 
   private downloadBlob(blob: Blob, filename: string) {

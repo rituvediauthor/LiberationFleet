@@ -20,6 +20,17 @@ public sealed class PlaceholderCrewmateResult
         new() { Success = false, Message = message };
 }
 
+public sealed class PlaceholderCreateOptions
+{
+    public bool? InNeedOfAid { get; init; }
+    public bool? NeedsSurvivalAid { get; init; }
+    public decimal? EstimatedMonthlyContribution { get; init; }
+    public int? PercentBoost { get; init; }
+    public decimal? LifetimeContributionOverride { get; init; }
+    public decimal? ReceptionThisYearOverride { get; init; }
+    public AidSeasonAccountingDto? SeasonAccounting { get; init; }
+}
+
 public class PlaceholderCrewmateService(
     IUserRepository userRepository,
     ICrewMembershipRepository membershipRepository,
@@ -38,12 +49,18 @@ public class PlaceholderCrewmateService(
         int peopleRepresentedCount,
         int disabilityLevel,
         IReadOnlyList<string>? identityGroups,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        PlaceholderCreateOptions? options = null)
     {
         var trimmedName = displayName.Trim();
         if (string.IsNullOrWhiteSpace(trimmedName))
         {
             return PlaceholderCrewmateResult.Failed("Name is required.");
+        }
+
+        if (trimmedName.Length > 256)
+        {
+            return PlaceholderCrewmateResult.Failed("Name must be 256 characters or fewer.");
         }
 
         if (paymentPlatforms.Count == 0)
@@ -71,9 +88,9 @@ public class PlaceholderCrewmateService(
             return PlaceholderCrewmateResult.Failed("Identity groups contain an unrecognized value.");
         }
 
-        if (await userRepository.IsUsernameTakenByOtherUserAsync(trimmedName, 0, cancellationToken))
+        if (options?.PercentBoost is < 0 or > 100)
         {
-            return PlaceholderCrewmateResult.Failed("That name is already in use. Choose a different name.");
+            return PlaceholderCrewmateResult.Failed("Percent boost must be between 0 and 100.");
         }
 
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
@@ -84,13 +101,15 @@ public class PlaceholderCrewmateService(
 
         var user = new User
         {
-            Username = trimmedName,
+            Username = PlaceholderUserDefaults.CreateSyntheticUsername(),
+            DisplayName = trimmedName,
             Email = PlaceholderUserDefaults.CreateInternalEmail(),
             PasswordHash = PlaceholderUserDefaults.PasswordHash,
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
             IsUnclaimedPlaceholder = true,
-            InNeedOfAid = true,
+            InNeedOfAid = options?.InNeedOfAid ?? true,
+            NeedsSurvivalAid = options?.NeedsSurvivalAid ?? false,
             EmergencyLevel = emergencyLevel,
             PeopleRepresentedCount = peopleRepresentedCount,
             DisabilityLevel = disabilityLevel,
@@ -160,11 +179,27 @@ public class PlaceholderCrewmateService(
             CrewId = crewId,
             JoinedAt = DateTime.UtcNow,
             IsPlaceholderMember = true,
-            IsSeasonReady = true
+            IsSeasonReady = true,
+            EstimatedMonthlyContribution = options?.EstimatedMonthlyContribution,
+            PercentBonus = options?.PercentBoost ?? 0,
+            LifetimeContributionOverride = options?.LifetimeContributionOverride,
+            ReceptionThisYearOverride = options?.ReceptionThisYearOverride,
+            AutoJoinSeasonOnStart = options?.SeasonAccounting?.AutoJoinSeasonOnStart ?? false
         };
 
         await membershipRepository.AddAsync(membership, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (options?.SeasonAccounting is not null)
+        {
+            await mutualAidService.ApplyAidSeasonAccountingAsync(
+                crewId,
+                membership,
+                options.SeasonAccounting,
+                persistAsDraftWhenNoSeason: true,
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         if (crew.SeasonStarted)
         {

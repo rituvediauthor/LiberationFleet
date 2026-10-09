@@ -57,6 +57,7 @@ import { RuleCreateComponent } from './pages/rules/rule-create/rule-create.compo
 import { RuleEditComponent } from './pages/rules/rule-edit/rule-edit.component';
 import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
 import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-list.component';
+import { CreatePlaceholderComponent } from './pages/crewmates/create-placeholder/create-placeholder.component';
 import { InviteCrewmateComponent } from './pages/crewmates/invite-crewmate/invite-crewmate.component';
 import { CrewInvitationComponent } from './pages/crewmates/crew-invitation/crew-invitation.component';
 import { KickedCrewmatesListComponent } from './pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component';
@@ -741,6 +742,12 @@ export const routes: Routes = [
     component: InviteCrewmateComponent,
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Add Crewmate' }
+  },
+  {
+    path: 'app/crew/crewmates/placeholders/create',
+    component: CreatePlaceholderComponent,
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Add Placeholder' }
   },
   {
     path: 'app/crew/crewmates/kicked',

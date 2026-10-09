@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
@@ -30,7 +31,7 @@ public class GetCrewMembersQueryHandler(
             .Select(m => new CrewMemberDto
             {
                 Id = m.UserId,
-                Username = m.User.Username,
+                Username = UserDisplay.Name(m.User),
                 PlatformIds = m.User.PaymentPlatforms
                     .Where(p => p.CrewPaymentPlatformId.HasValue)
                     .Select(p => p.CrewPaymentPlatformId!.Value)

@@ -1,0 +1,165 @@
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="form-container">
+    <div class="form-card">
+      <p class="page-hint">
+        Create a placeholder crewmate for someone who does not have the app yet.
+        They are included in mutual aid / reception order. Display name does not reserve a real username.
+      </p>
+
+      <form [formGroup]="form">
+        <div class="form-group">
+          <label for="name">Display name</label>
+          <input id="name" type="text" formControlName="name" class="form-input" [maxlength]="nameMaxLength">
+          <app-char-counter [current]="form.get('name')?.value?.length || 0" [max]="nameMaxLength"></app-char-counter>
+          <span class="hint-text">How this person appears in your crew. Real accounts can still register this name.</span>
+        </div>
+
+        <section class="section">
+          <h2>Mutual aid</h2>
+          <label class="checkbox-row">
+            <input type="checkbox" formControlName="inNeedOfAid">
+            <span>In need of aid</span>
+          </label>
+          <p class="hint-text">When on, they can receive survival-threshold and concentrated cycle aid.</p>
+
+          <label class="checkbox-row">
+            <input type="checkbox" formControlName="needsSurvivalAid">
+            <span>Needs survival aid</span>
+          </label>
+          <p class="hint-text">When on, they can receive a small monthly survival-threshold gift.</p>
+
+          <div class="form-group">
+            <label for="emergencyLevel">Emergency level (0–3)</label>
+            <input
+              id="emergencyLevel"
+              type="number"
+              formControlName="emergencyLevel"
+              class="form-input"
+              min="0"
+              max="3"
+              step="1"
+              [attr.aria-invalid]="isInvalid('emergencyLevel')"
+              aria-describedby="emergencyLevel-hint">
+            <span class="hint-text" id="emergencyLevel-hint">{{ emergencyLevelHint }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="peopleRepresentedCount">Number of people represented</label>
+            <input
+              id="peopleRepresentedCount"
+              type="number"
+              formControlName="peopleRepresentedCount"
+              class="form-input"
+              min="1"
+              max="99"
+              step="1"
+              [attr.aria-invalid]="isInvalid('peopleRepresentedCount')">
+          </div>
+
+          <div class="form-group">
+            <label for="disabilityLevel">Level of disability (0–3)</label>
+            <input
+              id="disabilityLevel"
+              type="number"
+              formControlName="disabilityLevel"
+              class="form-input"
+              min="0"
+              max="3"
+              step="1"
+              [attr.aria-invalid]="isInvalid('disabilityLevel')">
+          </div>
+
+          <app-identity-groups-editor
+            [selected]="form.get('identityGroups')?.value || []"
+            (selectedChange)="onIdentityGroupsChange($event)">
+          </app-identity-groups-editor>
+        </section>
+
+        <section class="section">
+          <h2>Payment platforms</h2>
+          <p class="section-hint">Add at least one way to send them aid.</p>
+          <app-payment-platform-editor
+            [platforms]="paymentPlatforms"
+            [platformOptions]="platformOptions"
+            [showPreferred]="true"
+            (changed)="onPaymentPlatformChange()"
+            (add)="addPaymentPlatform()"
+            (remove)="removePaymentPlatform($event)"
+            (preferredChange)="setPreferredPlatform($event)">
+          </app-payment-platform-editor>
+        </section>
+
+        <section class="section aid-stat-section">
+          <h2>Aid history adjustments</h2>
+          <p class="hint-text">
+            Optional starting history for someone joining mid-season, or a pre-season draft applied when the season starts.
+          </p>
+
+          <label class="aid-stat-field">
+            <span>Percent boost this season (%)</span>
+            <input type="number" min="0" max="1000" step="1" [(ngModel)]="aidDraft.percentBoost" [ngModelOptions]="{standalone: true}" class="form-input">
+          </label>
+          <label class="aid-stat-field">
+            <span>Estimated monthly contribution ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.estimatedMonthlyContribution" [ngModelOptions]="{standalone: true}" class="form-input">
+          </label>
+          <label class="aid-stat-field">
+            <span>Lifetime contributions ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.lifetimeContributions" [ngModelOptions]="{standalone: true}" class="form-input">
+          </label>
+          <label class="aid-stat-field">
+            <span>Reception this year ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.receptionThisYear" [ngModelOptions]="{standalone: true}" class="form-input">
+          </label>
+
+          <h3 class="aid-stat-subtitle">Season accounting</h3>
+          <label class="checkbox-row" *ngIf="!seasonStarted">
+            <input type="checkbox" [(ngModel)]="aidDraft.autoJoinSeasonOnStart" [ngModelOptions]="{standalone: true}">
+            <span>Auto-join when the season starts</span>
+          </label>
+          <label class="aid-stat-field">
+            <span>Cycle reception ($)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" [ngModelOptions]="{standalone: true}" class="form-input">
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" [(ngModel)]="aidDraft.hasActiveCycle" [ngModelOptions]="{standalone: true}">
+            <span>Active / locked cycle</span>
+          </label>
+          <label class="aid-stat-field">
+            <span>Reception order (1 = front of queue)</span>
+            <input type="number" min="1" step="1" [(ngModel)]="aidDraft.receptionOrder" [ngModelOptions]="{standalone: true}" class="form-input">
+          </label>
+
+          <div class="readonly-item">
+            <span class="readonly-label">Survival reception (derived)</span>
+            <span class="readonly-value">${{ derivedSurvivalReceived | number:'1.2-2' }}</span>
+          </div>
+          <div class="readonly-item">
+            <span class="readonly-label">Total reception (cycle + survival)</span>
+            <span class="readonly-value">${{ derivedTotalReception | number:'1.2-2' }}</span>
+          </div>
+
+          <h3 class="aid-stat-subtitle">Survival thresholds</h3>
+          <div class="aid-stat-threshold-card" *ngFor="let row of aidDraft.survivalThresholds; let i = index">
+            <label class="aid-stat-field">
+              <span>Threshold amount ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="row.thresholdAmount" [ngModelOptions]="{standalone: true}" class="form-input">
+            </label>
+            <label class="aid-stat-field">
+              <span>Amount remaining ($)</span>
+              <input type="number" min="0" step="0.01" [(ngModel)]="row.amountRemaining" [ngModelOptions]="{standalone: true}" class="form-input">
+            </label>
+            <label class="aid-stat-field">
+              <span>Reception order</span>
+              <input type="number" min="1" step="1" [(ngModel)]="row.order" [ngModelOptions]="{standalone: true}" class="form-input">
+            </label>
+            <button type="button" class="block-btn" (click)="removeSurvivalThresholdRow(i)">Remove</button>
+          </div>
+          <button type="button" class="export-btn" (click)="addSurvivalThresholdRow()">
+            Add survival threshold
+          </button>
+        </section>
+      </form>
+    </div>
+  </div>
+</app-page-layout>

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  AddPlaceholderCrewmateRequest,
   AddPlaceholderCrewmateResponse,
   CrewmateKickResponse,
   CrewRoleChangeResponse,
@@ -173,6 +174,10 @@ export class CrewmateService {
       disabilityLevel: aidProfile?.disabilityLevel ?? 0,
       identityGroups: aidProfile?.identityGroups ?? []
     });
+  }
+
+  addPlaceholderCrewmateRich(body: AddPlaceholderCrewmateRequest): Observable<AddPlaceholderCrewmateResponse> {
+    return this.http.post<AddPlaceholderCrewmateResponse>(`${this.apiUrl}/placeholders`, body);
   }
 
   claimPlaceholderIdentity(userId: number): Observable<CrewmateKickResponse> {

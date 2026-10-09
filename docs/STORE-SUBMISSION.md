@@ -53,18 +53,81 @@ Bundle / application ID: **`com.liberationfleet.app`**
    - **Data safety**: account data, messages, photos/media; describe encryption / E2EE **honestly**
 4. Complete **Ads**, **Content ratings**, etc. as required before production.
 
-### 1.3 Signing and AAB
+### 1.3 Signing and AAB (click-by-click)
 
-1. `cd liberationfleet.client && npm run cap:android`
-2. Confirm `RECORD_AUDIO` (and other permissions) in the manifest for LiveKit.
-3. Set `versionCode` / `versionName` in `android/app/build.gradle` (bump `versionCode` every upload).
-4. Create an **upload keystore** (store offline + in a password manager; **never commit**).
-5. Android Studio → **Build → Generate Signed Bundle / APK → Android App Bundle**.
-6. Enroll in **Play App Signing** when Play Console prompts (Google holds the app signing key).
+#### A. Prepare the Android project
 
-### 1.4 Release tracks
+1. In a terminal:
+   ```bash
+   cd liberationfleet.client
+   npm run build:native
+   npm run cap:sync
+   npm run cap:android
+   ```
+   That opens **Android Studio** on the `android` folder.
+2. Wait for Gradle sync to finish (bottom status bar / “Syncing…”).
+3. Confirm `RECORD_AUDIO` (and other needed permissions) in  
+   `android/app/src/main/AndroidManifest.xml` (needed for LiveKit voice).
+4. Open `android/app/build.gradle` → under `defaultConfig`, set:
+   - `versionName` — marketing version, e.g. `"1.0.0"`
+   - `versionCode` — integer that **must increase on every Play upload**, e.g. `1`, then `2`, …
+5. Save the file. Sync if Android Studio prompts.
 
-1. **Testing → Internal testing** → create release → upload AAB → add tester emails → share link → install and verify.
+#### B. Create an upload keystore + signed `.aab` (first time)
+
+Do this once; keep the keystore forever. Losing it makes updates painful.
+
+1. In Android Studio menu: **Build → Generate Signed App Bundle or APK…**  
+   (older menus: **Build → Generate Signed Bundle / APK…**)
+2. Choose **Android App Bundle** → **Next**.
+3. Under **Key store path**, click **Create new…**
+4. In **New Key Store**:
+   - **Key store path** → **…** → pick a folder **outside** the repo (e.g. `Documents/LiberationFleet-keys/`) → filename like `liberationfleet-upload.jks` → **OK**
+   - **Password** / **Confirm** — strong password; save in a password manager
+   - **Alias** — e.g. `upload`
+   - **Key password** / **Confirm** — can match store password; save it too
+   - **Validity (years)** — `25` or more
+   - **Certificate** — fill at least First and Last Name (org/city optional but fine to complete)
+   - **OK**
+5. Back on the signing screen:
+   - **Key store path**, **Key store password**, **Key alias**, **Key password** should be filled
+   - Check **Remember passwords** only on a machine you trust
+   - **Next**
+6. Select build variant **release** → **Create** (or **Finish**).
+7. When the build finishes, click the notification **locate** / open the folder.  
+   You want the file ending in **`.aab`** (often  
+   `android/app/release/app-release.aab`).  
+   That is what you upload to Play Console — **not** an `.apk`.
+
+**Never commit** the `.jks` / `.keystore`, passwords, or `key.properties` to git. Back up the keystore file + passwords offline (encrypted drive / password manager attachment).
+
+#### C. Later uploads (keystore already exists)
+
+1. **Build → Generate Signed App Bundle or APK…** → **Android App Bundle** → **Next**
+2. **Choose existing…** → select your `.jks` → enter passwords → alias → **Next**
+3. **release** → **Create**
+4. Bump `versionCode` in `build.gradle` before each new Play upload.
+
+#### D. Play App Signing (first upload to Play Console)
+
+Google keeps the **app signing key**; you only keep the **upload key** (the keystore above).
+
+1. [Play Console](https://play.google.com/console) → your app **Liberation Fleet**.
+2. Go to a release track (recommended first):  
+   **Testing → Internal testing → Create new release**  
+   (left nav labels vary slightly by Console version).
+3. If prompted to enroll in **Play App Signing** / **Google Play App Signing**:
+   - Accept the default (**Let Google manage and protect your app signing key**)
+   - Continue / Save — you do **not** need to upload a separate “app signing” key for a new app
+4. Under **App bundles**, click **Upload** → select your `app-release.aab` → wait for processing.
+5. Add a short **Release name** / notes → **Next** → **Save** / **Start rollout to Internal testing**.
+6. Add tester emails (or a Google Group) on the Internal testing testers tab → copy the opt-in link → install on a device and smoke-test.
+
+Optional later: **Closed testing**, then **Production** (countries, rollout %, send for review).
+
+### 1.4 Release tracks (summary)
+
+1. **Internal testing** first (above) — verify install + login + chat + voice + donate.
 2. Optional: **Closed testing** for a larger group.
 3. **Production** → countries, rollout %, send for review.
 

@@ -20,6 +20,33 @@
         <p class="add-non-member-hint">For people not on the app who still need aid recorded.</p>
       </div>
 
+      <div class="impersonate-row" *ngIf="!loading && canImpersonateGiftGiver">
+        <label class="checkbox-row">
+          <input
+            type="checkbox"
+            [checked]="impersonateEnabled"
+            (change)="impersonateEnabled = $any($event.target).checked; onImpersonateToggle()">
+          <span>Impersonate crewmate</span>
+        </label>
+        <p class="add-non-member-hint">
+          Record a gift as if it came from another crewmate (including placeholders). The gift log will show who recorded it.
+        </p>
+        <div class="form-group" *ngIf="impersonateEnabled">
+          <label for="impersonateAsUserId">Create gift as</label>
+          <select
+            id="impersonateAsUserId"
+            class="form-input"
+            [ngModel]="impersonateAsUserId"
+            (ngModelChange)="impersonateAsUserId = $event; onImpersonateTargetChange()"
+            [ngModelOptions]="{standalone: true}">
+            <option [ngValue]="''">Select crewmate</option>
+            <option *ngFor="let member of impersonationTargets" [ngValue]="member.id">
+              {{ member.username }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <section class="emergency-section" *ngIf="!loading && emergencyRequests.length > 0">
         <h2>Open emergency requests</h2>
         <div class="request-list">

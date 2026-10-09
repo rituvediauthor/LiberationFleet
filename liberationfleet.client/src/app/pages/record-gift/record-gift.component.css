@@ -204,6 +204,20 @@ label {
   color: var(--lf-color-text-secondary);
 }
 
+.impersonate-row {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--lf-color-border);
+}
+
+.impersonate-row .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .emergency-section {
   margin-bottom: 20px;
 }

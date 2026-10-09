@@ -93,6 +93,8 @@ public class CrewMembershipStatusDto
     public bool CanCreateFleetProposals { get; set; }
     public bool CanAttachFilesToFleetContent { get; set; }
     public bool CanExportCrewData { get; set; }
+    public bool CanManagePlaceholders { get; set; }
+    public bool CanImpersonateGiftGiver { get; set; }
     public int CrewTenureDays { get; set; }
     public int FleetTenureDays { get; set; }
     public int CrewProposalDaysRemaining { get; set; }

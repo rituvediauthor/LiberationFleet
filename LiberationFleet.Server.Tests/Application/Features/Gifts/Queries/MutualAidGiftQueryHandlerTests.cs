@@ -13,6 +13,7 @@ public class GetReceptionOrderQueryHandlerTests
     {
         var handler = new GetReceptionOrderQueryHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(null).Object,
+            HandlerTestFixture.CreateCrewMembershipRepositoryMock().Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object);
 
         var result = await handler.Handle(new GetReceptionOrderQuery(), CancellationToken.None);
@@ -36,6 +37,7 @@ public class GetReceptionOrderQueryHandlerTests
 
         var handler = new GetReceptionOrderQueryHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(5).Object,
+            HandlerTestFixture.CreateCrewMembershipRepositoryMock().Object,
             mutualAidService.Object);
 
         await handler.Handle(new GetReceptionOrderQuery(10), CancellationToken.None);

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
@@ -113,10 +114,10 @@ public class ClaimPlaceholderIdentityProposalService(
             Proposal = proposal,
             PlaceholderUserId = placeholderUserId,
             ClaimantUserId = claimantUserId,
-            PlaceholderDisplayName = placeholderUser.Username,
-            Title = $"Claim identity of {placeholderUser.Username}",
+            PlaceholderDisplayName = UserDisplay.Name(placeholderUser),
+            Title = $"Claim identity of {UserDisplay.Name(placeholderUser)}",
             Description =
-                $"{placeholderUser.Username} was added as a non-member without an account. " +
+                $"{UserDisplay.Name(placeholderUser)} was added as a non-member without an account. " +
                 "Approval will transfer their reception history to the claimant's account and remove the placeholder profile."
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -144,7 +145,7 @@ public class ClaimPlaceholderIdentityProposalService(
             crewId,
             NotificationKind.NewProposal,
             "New proposal",
-            $"A proposal was submitted to claim the identity of {placeholderUser.Username}.",
+            $"A proposal was submitted to claim the identity of {UserDisplay.Name(placeholderUser)}.",
             ProposalRouting.StatusListUrl(proposal),
             excludeUserId: claimantUserId,
             cancellationToken: cancellationToken);

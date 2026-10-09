@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
@@ -47,7 +48,7 @@ public class GetCrewmatesQueryHandler(
             .ToDictionary(g => g.Key, g => g.OrderBy(f => f.CreatedAt).First());
 
         var items = new List<CrewmateListItemDto>();
-        foreach (var member in members.OrderBy(m => m.User.Username))
+        foreach (var member in members.OrderBy(m => UserDisplay.Name(m.User)))
         {
             friendshipByUserId.TryGetValue(member.UserId, out var friendship);
             var viewerBlockedTarget = await blockRepository.IsBlockedAsync(viewerId, member.UserId, cancellationToken);
@@ -56,7 +57,7 @@ public class GetCrewmatesQueryHandler(
             items.Add(new CrewmateListItemDto
             {
                 UserId = member.UserId,
-                Username = member.User.Username,
+                Username = UserDisplay.Name(member.User),
                 AvatarResourceId = CrewAvatarVisibilityService.Filter(
                     member.User.AvatarResourceId,
                     member.UserId,

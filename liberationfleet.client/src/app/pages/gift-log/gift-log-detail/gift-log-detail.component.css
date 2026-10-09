@@ -46,6 +46,13 @@
   word-break: break-word;
 }
 
+.impersonation-tag {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--lf-color-text-secondary);
+}
+
 .log-time {
   display: block;
   font-size: 12px;

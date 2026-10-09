@@ -131,6 +131,8 @@ public class GetMyCrewMembershipQueryHandler(
             CanCreateFleetProposals = canCreateFleetProposals,
             CanAttachFilesToFleetContent = canAttachFilesToFleetContent,
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(membership),
+            CanManagePlaceholders = CrewRoleAuthorizationService.CanManagePlaceholders(membership),
+            CanImpersonateGiftGiver = CrewRoleAuthorizationService.CanImpersonateGiftGiver(membership),
             CrewTenureDays = crewTenureDays,
             FleetTenureDays = fleetTenureDays,
             CrewProposalDaysRemaining = crewProposalDaysRemaining,

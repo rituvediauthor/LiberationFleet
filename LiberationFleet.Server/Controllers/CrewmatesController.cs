@@ -74,7 +74,14 @@ public class CrewmatesController : ControllerBase
             body.EmergencyLevel,
             body.PeopleRepresentedCount,
             body.DisabilityLevel,
-            body.IdentityGroups));
+            body.IdentityGroups,
+            body.InNeedOfAid,
+            body.NeedsSurvivalAid,
+            body.EstimatedMonthlyContribution,
+            body.PercentBoost,
+            body.LifetimeContributionOverride,
+            body.ReceptionThisYearOverride,
+            body.SeasonAccounting));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -1,8 +1,7 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
-using LiberationFleet.Server.Application.Features.Crews;
-using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Crewmates.Queries.GetKickedCrewmates;
@@ -33,7 +32,7 @@ public class GetKickedCrewmatesQueryHandler(
             .Select(m => new KickedCrewmateListItemDto
             {
                 UserId = m.UserId,
-                Username = m.User.Username
+                Username = UserDisplay.Name(m.User)
             })
             .ToList();
 

@@ -111,6 +111,8 @@ public class CrewmateProfileDto
     public bool IsInSeason { get; set; }
     public bool CanClaimIdentity { get; set; }
     public bool CanProposeAidStatEdits { get; set; }
+    public bool CanManagePlaceholders { get; set; }
+    public bool CanImpersonateGiftGiver { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
     public decimal? TotalReceptionAmount { get; set; }
     public decimal? SurvivalThresholdReceived { get; set; }
@@ -264,6 +266,13 @@ public class AddPlaceholderCrewmateRequest
     public int DisabilityLevel { get; set; }
     public List<string> IdentityGroups { get; set; } = [];
     public List<PaymentPlatformAccountDto> PaymentPlatforms { get; set; } = [];
+    public bool? InNeedOfAid { get; set; }
+    public bool? NeedsSurvivalAid { get; set; }
+    public decimal? EstimatedMonthlyContribution { get; set; }
+    public int? PercentBoost { get; set; }
+    public decimal? LifetimeContributionOverride { get; set; }
+    public decimal? ReceptionThisYearOverride { get; set; }
+    public AidSeasonAccountingDto? SeasonAccounting { get; set; }
 }
 
 public class AddPlaceholderCrewmateResponse

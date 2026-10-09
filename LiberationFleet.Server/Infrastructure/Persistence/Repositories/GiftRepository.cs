@@ -32,6 +32,7 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.GiverUser)
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
+            .Include(g => g.ImpersonatedByUser)
             .Include(g => g.CrewPaymentPlatform)
             .Include(g => g.SeasonCycle)
             .Where(g => g.CrewId == crewId);
@@ -135,6 +136,7 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.MiddlemanUser)
                 .ThenInclude(u => u!.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
+            .Include(g => g.ImpersonatedByUser)
             .Include(g => g.CrewPaymentPlatform)
             .Include(g => g.SeasonCycle)
             .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
@@ -430,7 +432,9 @@ public class GiftRepository : IGiftRepository
     {
         var gifts = await _context.Gifts
             .Where(g => g.CrewId == crewId
-                && (g.RecipientUserId == fromUserId || g.MiddlemanUserId == fromUserId))
+                && (g.RecipientUserId == fromUserId
+                    || g.MiddlemanUserId == fromUserId
+                    || g.GiverUserId == fromUserId))
             .ToListAsync(cancellationToken);
 
         foreach (var gift in gifts)
@@ -443,6 +447,11 @@ public class GiftRepository : IGiftRepository
             if (gift.MiddlemanUserId == fromUserId)
             {
                 gift.MiddlemanUserId = toUserId;
+            }
+
+            if (gift.GiverUserId == fromUserId)
+            {
+                gift.GiverUserId = toUserId;
             }
         }
     }

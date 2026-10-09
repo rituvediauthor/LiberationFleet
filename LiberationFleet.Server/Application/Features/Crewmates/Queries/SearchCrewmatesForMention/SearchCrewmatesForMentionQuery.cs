@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
@@ -39,14 +40,18 @@ public class SearchCrewmatesForMentionQueryHandler(
         if (query.Length > 0)
         {
             ranked = ranked
-                .Where(m => m.User.Username.StartsWith(query, StringComparison.OrdinalIgnoreCase)
-                    || m.User.Username.Contains(query, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(m => m.User.Username.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                .ThenBy(m => m.User.Username, StringComparer.OrdinalIgnoreCase);
+                .Where(m =>
+                {
+                    var display = UserDisplay.Name(m.User);
+                    return display.StartsWith(query, StringComparison.OrdinalIgnoreCase)
+                        || display.Contains(query, StringComparison.OrdinalIgnoreCase);
+                })
+                .OrderBy(m => UserDisplay.Name(m.User).StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(m => UserDisplay.Name(m.User), StringComparer.OrdinalIgnoreCase);
         }
         else
         {
-            ranked = ranked.OrderBy(m => m.User.Username, StringComparer.OrdinalIgnoreCase);
+            ranked = ranked.OrderBy(m => UserDisplay.Name(m.User), StringComparer.OrdinalIgnoreCase);
         }
 
         foreach (var member in ranked)
@@ -65,7 +70,7 @@ public class SearchCrewmatesForMentionQueryHandler(
             items.Add(new CrewmateMentionCandidateDto
             {
                 UserId = member.UserId,
-                Username = member.User.Username
+                Username = UserDisplay.Name(member.User)
             });
         }
 

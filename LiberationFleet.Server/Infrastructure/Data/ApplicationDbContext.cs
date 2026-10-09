@@ -115,6 +115,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => e.Username).IsUnique();
             entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
             entity.Property(e => e.Username).IsRequired().HasMaxLength(256);
+            entity.Property(e => e.DisplayName).HasMaxLength(256);
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.InNeedOfAid).HasDefaultValue(true);
             entity.Property(e => e.IsUnclaimedPlaceholder).HasDefaultValue(false);
@@ -481,6 +482,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.MiddlemanUser)
                 .WithMany()
                 .HasForeignKey(e => e.MiddlemanUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ImpersonatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ImpersonatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.InitiatedGift)
                 .WithMany()

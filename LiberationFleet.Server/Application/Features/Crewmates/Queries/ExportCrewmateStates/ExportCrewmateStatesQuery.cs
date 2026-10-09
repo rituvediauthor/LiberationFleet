@@ -71,7 +71,7 @@ public class ExportCrewmateStatesQueryHandler(
             items.Add(new CrewmateStateExportItemDto
             {
                 UserId = user.Id,
-                Username = user.Username,
+                Username = LiberationFleet.Server.Application.Common.UserDisplay.Name(user),
                 LifetimeContributions = giftStats.LifetimeContributions,
                 ReceptionThisYear = giftStats.ReceptionThisYear,
                 PriorityScore = (int)Math.Round(priorityScore, MidpointRounding.AwayFromZero),

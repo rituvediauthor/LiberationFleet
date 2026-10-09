@@ -16,6 +16,12 @@ public static class CrewRoleAuthorizationService
     public static bool CanProposeCrewmateAidStatEdits(CrewMembership membership) =>
         membership.IsOrganizer || membership.IsAccountant;
 
+    public static bool CanManagePlaceholders(CrewMembership membership) =>
+        membership.IsOrganizer || membership.IsAccountant;
+
+    public static bool CanImpersonateGiftGiver(CrewMembership membership) =>
+        membership.IsOrganizer || membership.IsAccountant;
+
     public static bool CanBypassSeasonGiftLock(CrewMembership membership) =>
         membership.IsOrganizer || membership.IsAccountant;
 }

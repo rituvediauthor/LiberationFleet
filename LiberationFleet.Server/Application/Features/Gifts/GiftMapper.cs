@@ -61,13 +61,17 @@ public static class GiftMapper
             Id = gift.Id,
             Type = gift.Type.ToString().ToLowerInvariant(),
             GiverId = gift.GiverUserId,
-            GiverName = gift.GiverUser?.Username ?? string.Empty,
+            GiverName = GiftDisplayNames.GetUserName(gift.GiverUser),
             RecipientId = gift.RecipientUserId,
             RecipientName = gift.RecipientUser is null
                 ? "Unknown"
                 : GiftDisplayNames.GetRecipientName(gift.RecipientUser),
             MiddlemanId = gift.MiddlemanUserId,
-            MiddlemanName = gift.MiddlemanUser?.Username,
+            MiddlemanName = gift.MiddlemanUser is null ? null : GiftDisplayNames.GetUserName(gift.MiddlemanUser),
+            ImpersonatedByUserId = gift.ImpersonatedByUserId,
+            ImpersonatedByUsername = gift.ImpersonatedByUserId.HasValue
+                ? GiftDisplayNames.GetUserName(gift.ImpersonatedByUser)
+                : null,
             Amount = gift.Amount,
             Platform = gift.CrewPaymentPlatform?.Name ?? string.Empty,
             Timestamp = gift.CreatedAt,
@@ -93,7 +97,7 @@ public static class GiftMapper
     {
         Id = gift.Id,
         InitiatorId = gift.GiverUserId,
-        InitiatorName = gift.GiverUser.Username,
+        InitiatorName = GiftDisplayNames.GetUserName(gift.GiverUser),
         RecipientId = gift.RecipientUserId,
         RecipientName = GiftDisplayNames.GetRecipientName(gift.RecipientUser),
         Amount = gift.Amount,
@@ -218,12 +222,16 @@ public static class GiftMapper
 
         var amount = gift.Amount.ToString("0.##");
         var platform = gift.CrewPaymentPlatform?.Name ?? "unknown platform";
-        var middlemanName = gift.MiddlemanUser?.Username ?? "a middleman";
+        var middlemanName = gift.MiddlemanUser is null
+            ? "a middleman"
+            : GiftDisplayNames.GetUserName(gift.MiddlemanUser);
 
         var recipientName = gift.RecipientUser is null
             ? "Unknown"
             : GiftDisplayNames.GetRecipientName(gift.RecipientUser);
-        var giverName = gift.GiverUser?.Username ?? "Someone";
+        var giverName = string.IsNullOrEmpty(GiftDisplayNames.GetUserName(gift.GiverUser))
+            ? "Someone"
+            : GiftDisplayNames.GetUserName(gift.GiverUser);
         string baseMessage;
         if (gift.CrewPaymentPlatform?.IsLibraryOfThings == true
             && !string.IsNullOrWhiteSpace(gift.LibraryItemTitle))

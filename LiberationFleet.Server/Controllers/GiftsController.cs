@@ -164,9 +164,11 @@ public class GiftsController : ControllerBase
     }
 
     [HttpGet("reception-order")]
-    public async Task<IActionResult> GetReceptionOrder([FromQuery] int limit = 30)
+    public async Task<IActionResult> GetReceptionOrder(
+        [FromQuery] int limit = 30,
+        [FromQuery] int? impersonateAsUserId = null)
     {
-        var entries = await _mediator.Send(new GetReceptionOrderQuery(limit));
+        var entries = await _mediator.Send(new GetReceptionOrderQuery(limit, impersonateAsUserId));
         return Ok(entries);
     }
 

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
@@ -20,7 +21,9 @@ public record GiftRecordItem(
     int? SeasonCycleId = null,
     int? ThresholdId = null);
 
-public record RecordGiftsCommand(IReadOnlyList<GiftRecordItem> Gifts) : IRequest<GiftOperationResponse>;
+public record RecordGiftsCommand(
+    IReadOnlyList<GiftRecordItem> Gifts,
+    int? ImpersonateAsUserId = null) : IRequest<GiftOperationResponse>;
 
 public class RecordGiftsCommandHandler(
     ICurrentUserService currentUser,
@@ -54,6 +57,38 @@ public class RecordGiftsCommandHandler(
             return new GiftOperationResponse { Success = false, Message = "You must be in an active season to record gifts." };
         }
 
+        var giverUserId = userId;
+        int? impersonatedByUserId = null;
+        if (request.ImpersonateAsUserId is int impersonateAs && impersonateAs != userId)
+        {
+            if (!CrewRoleAuthorizationService.CanImpersonateGiftGiver(membership))
+            {
+                return new GiftOperationResponse
+                {
+                    Success = false,
+                    Message = "Only organizers and accountants can record gifts as another crewmate."
+                };
+            }
+
+            var targetMembership = await membershipRepository.GetMembershipAsync(
+                impersonateAs,
+                membership.CrewId,
+                cancellationToken);
+            if (targetMembership is null
+                || targetMembership.IsBanned
+                || targetMembership.LeftAt is not null)
+            {
+                return new GiftOperationResponse
+                {
+                    Success = false,
+                    Message = "Impersonation target is not an active crewmate."
+                };
+            }
+
+            giverUserId = impersonateAs;
+            impersonatedByUserId = userId;
+        }
+
         Gift? lastSaved = null;
         var notifiedRecipients = new HashSet<int>();
         var recordedCount = 0;
@@ -70,12 +105,12 @@ public class RecordGiftsCommandHandler(
                 return new GiftOperationResponse { Success = false, Message = "Invalid payment platform." };
             }
 
-            if (item.RecipientId == userId)
+            if (item.RecipientId == giverUserId)
             {
                 return new GiftOperationResponse { Success = false, Message = "You cannot give a gift to yourself." };
             }
 
-            if (item.MiddlemanId == userId || item.MiddlemanId == item.RecipientId)
+            if (item.MiddlemanId == giverUserId || item.MiddlemanId == item.RecipientId)
             {
                 return new GiftOperationResponse { Success = false, Message = "Invalid intermediary selection." };
             }
@@ -112,13 +147,14 @@ public class RecordGiftsCommandHandler(
                 var category = CustomGiftRecordingService.ParseCategory(item.EntryType);
                 var (applied, other) = await customGiftRecordingService.RecordAsync(
                     membership.CrewId,
-                    userId,
+                    giverUserId,
                     item.RecipientId,
                     item.Amount,
                     item.PaymentPlatformId,
                     item.MiddlemanId,
                     category,
-                    cancellationToken);
+                    cancellationToken,
+                    impersonatedByUserId);
 
                 if (applied is null && other is null)
                 {
@@ -180,9 +216,10 @@ public class RecordGiftsCommandHandler(
                     var gift = new Gift
                     {
                         CrewId = membership.CrewId,
-                        GiverUserId = userId,
+                        GiverUserId = giverUserId,
                         RecipientUserId = item.RecipientId,
                         MiddlemanUserId = item.MiddlemanId,
+                        ImpersonatedByUserId = impersonatedByUserId,
                         Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
                         Amount = applyAmount,
                         CrewPaymentPlatformId = item.PaymentPlatformId,
@@ -212,9 +249,10 @@ public class RecordGiftsCommandHandler(
                     var overflowGift = new Gift
                     {
                         CrewId = membership.CrewId,
-                        GiverUserId = userId,
+                        GiverUserId = giverUserId,
                         RecipientUserId = item.RecipientId,
                         MiddlemanUserId = item.MiddlemanId,
+                        ImpersonatedByUserId = impersonatedByUserId,
                         Type = item.MiddlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
                         Amount = overflowAmount,
                         CrewPaymentPlatformId = item.PaymentPlatformId,

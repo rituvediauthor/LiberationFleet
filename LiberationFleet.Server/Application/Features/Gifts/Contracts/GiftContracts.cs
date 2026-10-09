@@ -21,6 +21,8 @@ public class GiftLogEntryDto
     public string RecipientName { get; set; } = string.Empty;
     public int? MiddlemanId { get; set; }
     public string? MiddlemanName { get; set; }
+    public int? ImpersonatedByUserId { get; set; }
+    public string? ImpersonatedByUsername { get; set; }
     public decimal Amount { get; set; }
     public string Platform { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }

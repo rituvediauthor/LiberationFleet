@@ -26,7 +26,8 @@ public class CustomGiftRecordingService(
         int paymentPlatformId,
         int? middlemanId,
         CustomGiftCategory category,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? impersonatedByUserId = null)
     {
         if (amount <= 0m)
         {
@@ -82,7 +83,8 @@ public class CustomGiftRecordingService(
                 countsTowardReception,
                 isSurvivalThreshold: isSurvival,
                 emergencyRequestId,
-                seasonCycleId);
+                seasonCycleId,
+                impersonatedByUserId);
             if (category == CustomGiftCategory.Emergency)
             {
                 appliedGift.ReceptionApplied = true;
@@ -123,7 +125,8 @@ public class CustomGiftRecordingService(
                 countsTowardReception: false,
                 isSurvivalThreshold: false,
                 emergencyRequestId: null,
-                seasonCycleId: null);
+                seasonCycleId: null,
+                impersonatedByUserId);
             await giftRepository.AddAsync(otherGift, cancellationToken);
         }
 
@@ -279,13 +282,15 @@ public class CustomGiftRecordingService(
         bool countsTowardReception,
         bool isSurvivalThreshold,
         int? emergencyRequestId,
-        int? seasonCycleId) =>
+        int? seasonCycleId,
+        int? impersonatedByUserId = null) =>
         new()
         {
             CrewId = crewId,
             GiverUserId = giverUserId,
             RecipientUserId = recipientUserId,
             MiddlemanUserId = middlemanId,
+            ImpersonatedByUserId = impersonatedByUserId,
             Type = middlemanId.HasValue ? GiftType.Initiated : GiftType.Direct,
             Amount = amount,
             CrewPaymentPlatformId = paymentPlatformId,

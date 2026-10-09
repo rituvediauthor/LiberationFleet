@@ -17,5 +17,6 @@ public interface ICustomGiftRecordingService
         int paymentPlatformId,
         int? middlemanId,
         CustomGiftCategory category,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        int? impersonatedByUserId = null);
 }

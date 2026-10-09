@@ -143,7 +143,7 @@ public static class CrewmateMapper
         return new CrewmateProfileDto
         {
             UserId = crewmate.Id,
-            Username = crewmate.Username,
+            Username = UserDisplay.Name(crewmate),
             AvatarResourceId = canAttachFilesToCrewContent ? crewmate.AvatarResourceId : null,
             Roles = CrewRoleMapper.MapRoles(membership),
             ElectedRoles = CrewRoleMapper.MapElectedRoleDtos(membership),
@@ -183,6 +183,8 @@ public static class CrewmateMapper
             IsInSeason = membership.IsInSeason,
             CanClaimIdentity = canClaimIdentity,
             CanProposeAidStatEdits = CrewRoleAuthorizationService.CanProposeCrewmateAidStatEdits(viewerMembership),
+            CanManagePlaceholders = CrewRoleAuthorizationService.CanManagePlaceholders(viewerMembership),
+            CanImpersonateGiftGiver = CrewRoleAuthorizationService.CanImpersonateGiftGiver(viewerMembership),
             EstimatedMonthlyContribution = membership.EstimatedMonthlyContribution,
             TotalReceptionAmount = accounting.TotalReceptionAmount,
             SurvivalThresholdReceived = accounting.SurvivalReceivedTotal,
