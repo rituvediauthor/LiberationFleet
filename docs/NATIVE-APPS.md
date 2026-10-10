@@ -488,7 +488,7 @@ You do **not** need `npx cap add android` / `ios` again.
 | Gradle: compatible with Java 9 / `JAVA_HOME` is jdk-9 | Install Temurin 17; set **Gradle JDK** to 17 in Android Studio (Step 6a) |
 | Gradle: Unsupported class file major version 69 | Gradle 8.2 cannot use JDK 25 — switch Gradle JDK to **17**, not Embedded JDK 25 |
 | API calls fail on device | Wrong/empty `apiBaseUrl`; CORS missing Capacitor origins |
-| SignalR disconnects | Same as above; WebSockets enabled on App Service (Terraform sets this) |
+| SignalR disconnects / no live chat or typing | Same CORS/`apiBaseUrl` checks; WebSockets enabled on App Service (Terraform). Client uses WebSockets + LongPolling only (SSE skipped — Android WebViews often stall on SSE). Rebuild with `npm run cap:sync` after hub client changes. |
 | Blank screen | Run `npm run build:native` then `npm run cap:sync` |
 | Mic denied | Add usage strings / `RECORD_AUDIO` |
 | Bottom nav / action bar under Android gesture or Home buttons | Native only: `html.lf-native-shell` enables `--lf-safe-bottom`; `MainActivity` injects `--lf-inset-*`. Web/PWA keeps bottom spacer off to avoid double home-indicator padding |

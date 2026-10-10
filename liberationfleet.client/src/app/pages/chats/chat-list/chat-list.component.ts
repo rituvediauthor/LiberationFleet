@@ -18,6 +18,7 @@ import { NotificationService } from '../../../services/notification.service';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { VoicePresenceService } from '../../../services/voice-presence.service';
+import { VoiceLiveKitService } from '../../../services/voice-livekit.service';
 import { VoiceParticipant, VoiceRoomPresence } from '../../../models/voice.model';
 import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError, isRetryableLoadError } from '../../../utils/http-error.util';
 
@@ -59,6 +60,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   private adultContentService = inject(AdultContentService);
   private contentPreferenceService = inject(ContentPreferenceService);
   private voicePresence = inject(VoicePresenceService);
+  private voiceLiveKit = inject(VoiceLiveKitService);
   private subscriptions: Subscription[] = [];
 
   ngOnInit() {
@@ -197,10 +199,12 @@ export class ChatListComponent implements OnInit, OnDestroy {
 
   private navigateToRoom(room: ChatRoomListItem) {
     if (room.roomType === 'Voice') {
-      this.router.navigate(['/app/crew/chats', room.id, 'voice']);
+      // Prime mic during the tap gesture so PWA browsers allow getUserMedia after navigation.
+      void this.voiceLiveKit.primeMicrophonePermission();
+      void this.router.navigate(['/app/crew/chats', room.id, 'voice']);
       return;
     }
-    this.router.navigate(['/app/crew/chats', room.id]);
+    void this.router.navigate(['/app/crew/chats', room.id]);
   }
 
   toggleMenu(roomId: number, event: Event) {

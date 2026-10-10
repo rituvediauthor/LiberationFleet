@@ -64,7 +64,21 @@ Open testing and Production both require these. Internal testing is looser; if C
    - **Phone screenshots** (at least 2)
 3. Click **Save**.
 
-Suggested full-description themes (edit to match marketing voice): mutual-aid crews/fleets, gift logging, Library of Things, E2EE chat, optional voice, voluntary Stripe donations to support the nonprofit app — not a bank or payment app for users’ money between each other.
+**Suggested full description** (paste into Play Console; edit tone if you want):
+
+```
+Liberation Fleet helps adults (18+) form mutual-aid crews of up to 50 people, bound by crew bylaws and rules that the crew sets together.
+
+Within a crew, members use end-to-end encrypted group chat and shared spaces to coordinate. Crews can also join a larger fleet—functioning together while each crew keeps its own culture and rules.
+
+Mutual aid is inspired by rotating savings traditions (such as sou-sou): crewmates take turns receiving concentrated support from others. When someone has a spare dollar, they can choose to send it—on platforms like Venmo, PayPal, Cash App, or Zelle—to the person whose turn it is. Liberation Fleet helps organize and log that giving; it does not hold your money or process peer payments.
+
+Generosity still matters when money is not involved. Logging financial aid, goods, or services raises a priority score—so scarce Library of Things items and the next turn in the giving season favor those who give, while also accounting for emergencies, disability, and systemic vulnerability. The Library of Things lets crewmates share durable goods, consumables, services, and digital offerings without a cash price tag—access is shaped by need, availability, and priority.
+
+Crews are governed by the members: adding or removing crewmates and changing settings goes through time-limited democratic votes. Crewmates prioritize each other first; fleets let many crews cooperate without erasing what makes each crew distinct.
+
+Optional donations through the app support Liberation Fleet Co. (hosting and development of the nonprofit platform). Those donations are separate from crew mutual aid and are processed by Stripe—Liberation Fleet does not store your card details.
+```
 
 #### C. Privacy, ads, ratings, Data safety
 

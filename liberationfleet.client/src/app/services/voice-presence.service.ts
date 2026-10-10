@@ -1,5 +1,10 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import {
+  HttpTransportType,
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState
+} from '@microsoft/signalr';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { VoiceParticipant, VoicePresenceSnapshot, VoiceRoomPresence } from '../models/voice.model';
 import { AuthService } from './auth.service';
@@ -21,7 +26,8 @@ export class VoicePresenceService implements OnDestroy {
   constructor(
     private authService: AuthService,
     private voiceApi: VoiceApiService,
-    private apiUrl: ApiUrlService
+    private apiUrl: ApiUrlService,
+    private ngZone: NgZone
   ) {}
 
   ngOnDestroy() {
@@ -100,16 +106,42 @@ export class VoicePresenceService implements OnDestroy {
   }
 
   private async ensureConnected(): Promise<HubConnection> {
-    if (this.connection?.state === HubConnectionState.Connected) {
-      return this.connection;
+    const existing = this.getConnectedOrNull();
+    if (existing) {
+      return existing;
     }
 
     if (!this.startPromise) {
-      this.startPromise = this.startConnection();
+      this.startPromise = this.startConnection().catch(error => {
+        this.startPromise = null;
+        this.connection = null;
+        throw error;
+      });
     }
 
     await this.startPromise;
-    return this.connection!;
+
+    const afterStart = this.getConnectedOrNull();
+    if (afterStart) {
+      return afterStart;
+    }
+
+    this.startPromise = this.startConnection().catch(error => {
+      this.startPromise = null;
+      this.connection = null;
+      throw error;
+    });
+    await this.startPromise;
+
+    const retry = this.getConnectedOrNull();
+    if (!retry) {
+      throw new Error('Voice hub failed to connect.');
+    }
+    return retry;
+  }
+
+  private getConnectedOrNull(): HubConnection | null {
+    return this.connection?.state === HubConnectionState.Connected ? this.connection : null;
   }
 
   private async startConnection(): Promise<void> {
@@ -117,32 +149,36 @@ export class VoicePresenceService implements OnDestroy {
       await this.connection.stop();
     }
 
+    // Skip SSE — Android WebViews often stall there after WebSockets fail.
     this.connection = new HubConnectionBuilder()
       .withUrl(this.apiUrl.resolveHub('/hubs/voice'), {
-        accessTokenFactory: () => this.authService.getToken() ?? ''
+        accessTokenFactory: () => this.authService.getToken() ?? '',
+        transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .build();
 
     this.connection.on('VoicePresenceUpdated', (snapshot: VoicePresenceSnapshot) => {
-      this.presenceSubject.next(snapshot.rooms ?? []);
+      this.ngZone.run(() => this.presenceSubject.next(snapshot.rooms ?? []));
     });
 
     this.connection.on('VoiceStateUpdated', (participant: VoiceParticipant) => {
-      this.stateUpdated$.next(participant);
-      const rooms = this.snapshot.map(room => {
-        if (room.chatRoomId !== participant.chatRoomId) {
-          return room;
-        }
+      this.ngZone.run(() => {
+        this.stateUpdated$.next(participant);
+        const rooms = this.snapshot.map(room => {
+          if (room.chatRoomId !== participant.chatRoomId) {
+            return room;
+          }
 
-        const participants = room.participants.some(item => item.userId === participant.userId)
-          ? room.participants.map(item => item.userId === participant.userId ? participant : item)
-          : [...room.participants, participant];
+          const participants = room.participants.some(item => item.userId === participant.userId)
+            ? room.participants.map(item => item.userId === participant.userId ? participant : item)
+            : [...room.participants, participant];
 
-        return { ...room, participants };
+          return { ...room, participants };
+        });
+
+        this.presenceSubject.next(rooms);
       });
-
-      this.presenceSubject.next(rooms);
     });
 
     this.connection.onreconnected(async () => {
@@ -158,6 +194,10 @@ export class VoicePresenceService implements OnDestroy {
       } catch {
         // Presence will refresh on next explicit ensureCrewSubscribed.
       }
+    });
+
+    this.connection.onclose(() => {
+      this.startPromise = null;
     });
 
     await this.connection.start();

@@ -175,6 +175,8 @@ Same UI as Path B.1, but use a **dedicated production project**.
 
 Same checks as Path B.3 on the production URL.
 
+**Phone PWA tip:** Mobile Safari/Chrome require microphone permission during a user tap. The app primes the mic when you tap a voice channel, then joins LiveKit. If you still cannot hear others, tap **Tap to enable audio**. If the error mentions `localhost`, `LiveKit__Host` on App Service is wrong (must be your Cloud `wss://` URL, not local Docker).
+
 ---
 
 ## Path D — Self-hosted LiveKit + TURN (advanced)

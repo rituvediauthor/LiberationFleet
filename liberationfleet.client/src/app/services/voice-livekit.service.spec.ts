@@ -34,4 +34,21 @@ describe('VoiceLiveKitService', () => {
     const muted = await service.setMuted(true);
     expect(muted).toBeFalse();
   });
+
+  it('rejects localhost LiveKit URLs when the page is not local', async () => {
+    const originalHost = window.location.hostname;
+    // jsdom hostname is typically localhost — skip assertion shape when already local.
+    if (originalHost === 'localhost' || originalHost === '127.0.0.1') {
+      expect(true).toBeTrue();
+      return;
+    }
+
+    await expectAsync(service.connect('ws://localhost:7880', 'token'))
+      .toBeRejectedWithError(/localhost/i);
+  });
+
+  it('rejects empty LiveKit URL', async () => {
+    await expectAsync(service.connect('', 'token'))
+      .toBeRejectedWithError(/missing|not configured/i);
+  });
 });

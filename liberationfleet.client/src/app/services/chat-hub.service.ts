@@ -1,5 +1,10 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import {
+  HttpTransportType,
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState
+} from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { ChatMessage, ChatRoomListItem } from '../models/chat.model';
 import { AuthService } from './auth.service';
@@ -37,6 +42,11 @@ export class ChatHubService implements OnDestroy {
   private joinedCrewId: number | null = null;
   private joinedFleetId: number | null = null;
   private joinedRoomId: number | null = null;
+  private readonly onVisibilityChange = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      void this.recoverAfterResume();
+    }
+  };
 
   readonly messageReceived$ = new Subject<ChatMessage>();
   readonly messageUpdated$ = new Subject<ChatMessage>();
@@ -49,10 +59,18 @@ export class ChatHubService implements OnDestroy {
 
   constructor(
     private authService: AuthService,
-    private apiUrl: ApiUrlService
-  ) {}
+    private apiUrl: ApiUrlService,
+    private ngZone: NgZone
+  ) {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+  }
 
   ngOnDestroy() {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
     void this.disconnect();
   }
 
@@ -163,17 +181,125 @@ export class ChatHubService implements OnDestroy {
     this.connection = null;
   }
 
+  private async recoverAfterResume(): Promise<void> {
+    if (!this.authService.getToken()) {
+      return;
+    }
+
+    const wantsHub =
+      this.connection != null
+      || this.joinedCrewId != null
+      || this.joinedFleetId != null
+      || this.joinedRoomId != null;
+    if (!wantsHub) {
+      return;
+    }
+
+    try {
+      await this.ensureConnectedInternal();
+      await this.rejoinDesiredGroups();
+    } catch {
+      // Resume is best-effort; next explicit join/send will retry.
+    }
+  }
+
   private async ensureConnectedInternal(): Promise<HubConnection> {
-    if (this.connection?.state === HubConnectionState.Connected) {
-      return this.connection;
+    const connected = this.getConnectedOrNull();
+    if (connected) {
+      return connected;
+    }
+
+    // Automatic reconnect in progress — wait instead of tearing the socket down.
+    if (this.connection?.state === HubConnectionState.Reconnecting) {
+      await this.waitForConnected(15_000);
+      const afterReconnect = this.getConnectedOrNull();
+      if (afterReconnect) {
+        return afterReconnect;
+      }
     }
 
     if (!this.startPromise) {
-      this.startPromise = this.startConnection();
+      this.startPromise = this.startConnection().catch(error => {
+        this.startPromise = null;
+        this.connection = null;
+        throw error;
+      });
     }
 
     await this.startPromise;
-    return this.connection!;
+
+    const afterStart = this.getConnectedOrNull();
+    if (afterStart) {
+      return afterStart;
+    }
+
+    // Start resolved but socket later dropped — begin a fresh connection.
+    this.startPromise = this.startConnection().catch(error => {
+      this.startPromise = null;
+      this.connection = null;
+      throw error;
+    });
+    await this.startPromise;
+
+    const retry = this.getConnectedOrNull();
+    if (!retry) {
+      throw new Error('Chat hub failed to connect.');
+    }
+    return retry;
+  }
+
+  private getConnectedOrNull(): HubConnection | null {
+    return this.connection?.state === HubConnectionState.Connected ? this.connection : null;
+  }
+
+  private waitForConnected(timeoutMs: number): Promise<void> {
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        const state = this.connection?.state;
+        if (state === HubConnectionState.Connected
+          || state === HubConnectionState.Disconnected
+          || Date.now() - started >= timeoutMs) {
+          resolve();
+          return;
+        }
+        setTimeout(tick, 100);
+      };
+      tick();
+    });
+  }
+
+  private async rejoinDesiredGroups(): Promise<void> {
+    const connection = this.connection;
+    if (!connection || connection.state !== HubConnectionState.Connected) {
+      return;
+    }
+
+    const crewId = this.joinedCrewId;
+    const fleetId = this.joinedFleetId;
+    const roomId = this.joinedRoomId;
+
+    // Hub groups are not preserved across reconnect — force re-join.
+    this.joinedCrewId = null;
+    this.joinedFleetId = null;
+    this.joinedRoomId = null;
+
+    if (crewId != null) {
+      await connection.invoke('JoinCrew', crewId);
+      this.joinedCrewId = crewId;
+    }
+    if (fleetId != null) {
+      await connection.invoke('JoinFleet', fleetId);
+      this.joinedFleetId = fleetId;
+    }
+    if (roomId != null) {
+      await connection.invoke('JoinRoom', roomId);
+      this.joinedRoomId = roomId;
+    }
+  }
+
+  private emit<T>(subject: Subject<T>, value: T): void {
+    this.ngZone.run(() => subject.next(value));
   }
 
   private async startConnection(): Promise<void> {
@@ -181,50 +307,62 @@ export class ChatHubService implements OnDestroy {
       await this.connection.stop();
     }
 
+    // Skip Server-Sent Events: Android WebViews often fail SSE after WebSockets drop,
+    // which blocks the fallback to LongPolling and kills realtime chat/typing.
     this.connection = new HubConnectionBuilder()
       .withUrl(this.apiUrl.resolveHub('/hubs/chat'), {
-        accessTokenFactory: () => this.authService.getToken() ?? ''
+        accessTokenFactory: () => this.authService.getToken() ?? '',
+        transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .build();
 
     this.connection.on('MessageReceived', (message: ChatMessage) => {
-      this.messageReceived$.next(message);
+      this.emit(this.messageReceived$, message);
     });
 
     this.connection.on('MessageUpdated', (message: ChatMessage) => {
-      this.messageUpdated$.next(message);
+      this.emit(this.messageUpdated$, message);
     });
 
     this.connection.on('MessageDeleted', (event: { roomId: number; messageId: number }) => {
-      this.messageDeleted$.next(event);
+      this.emit(this.messageDeleted$, event);
     });
 
     this.connection.on('RoomCreated', (room: ChatRoomListItem) => {
-      this.roomCreated$.next(room);
+      this.emit(this.roomCreated$, room);
     });
 
     this.connection.on('RoomActivityUpdated', (update: ChatRoomActivityUpdate) => {
-      this.roomActivityUpdated$.next(update);
+      this.emit(this.roomActivityUpdated$, update);
     });
 
     this.connection.on('DirectMessageReceived', (event: DirectMessageReceivedEvent) => {
-      this.directMessageReceived$.next(event);
+      this.emit(this.directMessageReceived$, event);
     });
 
     this.connection.on('DirectMessageUpdated', (event: DirectMessageReceivedEvent) => {
-      this.directMessageUpdated$.next(event);
+      this.emit(this.directMessageUpdated$, event);
     });
 
     this.connection.on('Typing', (event: TypingEvent) => {
       if (!event || !event.scope) {
         return;
       }
-      this.typing$.next({
+      this.emit(this.typing$, {
         ...event,
         displayName: event.displayName || (event.isAnonymous ? 'Anonymous' : 'Someone'),
         isTyping: !!event.isTyping
       });
+    });
+
+    this.connection.onreconnected(() => {
+      void this.rejoinDesiredGroups();
+    });
+
+    this.connection.onclose(() => {
+      // Reconnect gave up — allow the next ensureConnected() to start a fresh socket.
+      this.startPromise = null;
     });
 
     await this.connection.start();

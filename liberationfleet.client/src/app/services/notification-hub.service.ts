@@ -1,5 +1,10 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import {
+  HttpTransportType,
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState
+} from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { NotificationBadgeSummaryResponse, NotificationItem } from '../models/notification.model';
 import { AuthService } from './auth.service';
@@ -20,7 +25,8 @@ export class NotificationHubService implements OnDestroy {
   constructor(
     private authService: AuthService,
     private notificationService: NotificationService,
-    private apiUrl: ApiUrlService
+    private apiUrl: ApiUrlService,
+    private ngZone: NgZone
   ) {}
 
   ngOnDestroy() {
@@ -46,15 +52,34 @@ export class NotificationHubService implements OnDestroy {
   }
 
   private async ensureConnected(): Promise<void> {
-    if (this.connection?.state === HubConnectionState.Connected) {
+    if (this.isConnected()) {
       return;
     }
 
     if (!this.startPromise) {
-      this.startPromise = this.startConnection();
+      this.startPromise = this.startConnection().catch(error => {
+        this.startPromise = null;
+        this.connection = null;
+        throw error;
+      });
     }
 
     await this.startPromise;
+
+    if (this.isConnected()) {
+      return;
+    }
+
+    this.startPromise = this.startConnection().catch(error => {
+      this.startPromise = null;
+      this.connection = null;
+      throw error;
+    });
+    await this.startPromise;
+  }
+
+  private isConnected(): boolean {
+    return this.connection?.state === HubConnectionState.Connected;
   }
 
   private async startConnection(): Promise<void> {
@@ -62,30 +87,42 @@ export class NotificationHubService implements OnDestroy {
       await this.connection.stop();
     }
 
+    // Skip SSE — Android WebViews often stall there after WebSockets fail.
     this.connection = new HubConnectionBuilder()
       .withUrl(this.apiUrl.resolveHub('/hubs/notifications'), {
-        accessTokenFactory: () => this.authService.getToken() ?? ''
+        accessTokenFactory: () => this.authService.getToken() ?? '',
+        transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .build();
 
     this.connection.on('NotificationReceived', (notification: NotificationItem) => {
-      const normalized = this.normalizeNotification(notification);
-      this.notificationService.handleIncoming(normalized);
-      this.notificationReceived$.next(normalized);
-      this.showBrowserNotification(normalized);
+      this.ngZone.run(() => {
+        const normalized = this.normalizeNotification(notification);
+        this.notificationService.handleIncoming(normalized);
+        this.notificationReceived$.next(normalized);
+        this.showBrowserNotification(normalized);
+      });
     });
 
     this.connection.on('UnreadCountUpdated', (count: number) => {
-      this.notificationService.setUnreadCount(count);
-      this.unreadCountUpdated$.next(count);
+      this.ngZone.run(() => {
+        this.notificationService.setUnreadCount(count);
+        this.unreadCountUpdated$.next(count);
+      });
     });
 
     this.connection.on('BadgeSummaryUpdated', (summary: NotificationBadgeSummaryResponse) => {
-      // SignalR may camelCase or leave PascalCase depending on server config.
-      const normalized = this.normalizeBadgeSummary(summary);
-      this.notificationService.applyBadgeSummary(normalized);
-      this.badgeSummaryUpdated$.next(normalized);
+      this.ngZone.run(() => {
+        // SignalR may camelCase or leave PascalCase depending on server config.
+        const normalized = this.normalizeBadgeSummary(summary);
+        this.notificationService.applyBadgeSummary(normalized);
+        this.badgeSummaryUpdated$.next(normalized);
+      });
+    });
+
+    this.connection.onclose(() => {
+      this.startPromise = null;
     });
 
     await this.connection.start();

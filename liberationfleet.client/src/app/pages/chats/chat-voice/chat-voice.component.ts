@@ -42,6 +42,8 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
   connected = false;
   reconnecting = false;
   errorMessage = '';
+  micWarning = '';
+  audioPlaybackBlocked = false;
   showAdultGate = false;
   contentRevealed = false;
   isMuted = false;
@@ -129,9 +131,14 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
           this.toastService.success('Voice reconnected');
         }
         this.lastReconnecting = state.reconnecting;
-        if (state.error) {
+        if (state.error && state.connected) {
+          this.micWarning = state.error;
+        } else if (state.error && !state.connected) {
           this.errorMessage = state.error;
         }
+      }),
+      this.voiceLiveKit.audioPlaybackBlocked$.subscribe(blocked => {
+        this.audioPlaybackBlocked = blocked;
       })
     );
 
@@ -184,8 +191,26 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
       await this.voiceLiveKit.setDeafened(false);
     }
 
-    this.isMuted = await this.voiceLiveKit.setMuted(!this.isMuted);
-    await this.syncVoiceState();
+    try {
+      this.isMuted = await this.voiceLiveKit.setMuted(!this.isMuted);
+      if (!this.isMuted) {
+        this.micWarning = '';
+      }
+      await this.syncVoiceState();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'Could not change microphone state.';
+      this.micWarning = detail;
+      this.toastService.error(detail);
+    }
+  }
+
+  async unlockAudioPlayback() {
+    try {
+      await this.voiceLiveKit.startAudio();
+      this.audioPlaybackBlocked = this.voiceLiveKit.audioPlaybackBlocked;
+    } catch {
+      this.toastService.error('Could not enable audio playback. Tap again after allowing sound.');
+    }
   }
 
   async toggleDeafen() {
@@ -207,7 +232,9 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
     this.adultContentService.grantConsent(resourceKey);
     this.showAdultGate = false;
     this.contentRevealed = true;
-    void this.connectVoice();
+    void this.voiceLiveKit.primeMicrophonePermission().finally(() => {
+      void this.connectVoice();
+    });
   }
 
   onAdultGateDeclined() {
@@ -356,10 +383,14 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
             await this.voicePresence.leaveVoicePresence(response.previousChatRoomId).catch(() => undefined);
           }
 
-          await this.voiceLiveKit.connect(response.wsUrl, response.token);
+          const result = await this.voiceLiveKit.connect(response.wsUrl, response.token);
           await this.voicePresence.registerVoicePresence(this.roomId);
           this.isMuted = this.voiceLiveKit.isMuted;
           this.isDeafened = this.voiceLiveKit.isDeafened;
+          this.micWarning = result.microphoneError ?? '';
+          if (this.micWarning) {
+            this.toastService.info(this.micWarning);
+          }
           await this.syncVoiceState();
           this.connecting = false;
           this.loading = false;
@@ -368,10 +399,12 @@ export class ChatVoiceComponent implements OnInit, OnDestroy {
           this.connecting = false;
           this.loading = false;
           console.error('Voice LiveKit connect failed', err);
+          await this.voiceLiveKit.disconnect().catch(() => undefined);
           const detail = err instanceof Error ? err.message : String(err ?? '');
-          this.errorMessage = detail.toLowerCase().includes('permission') || detail.toLowerCase().includes('notallowed')
-            ? 'Failed to connect microphone. Check browser permissions.'
-            : 'Failed to connect to voice (WebRTC). Check that LiveKit is configured and reachable.';
+          const lower = detail.toLowerCase();
+          this.errorMessage = lower.includes('permission') || lower.includes('notallowed') || lower.includes('microphone')
+            ? detail || 'Failed to connect microphone. Check browser permissions.'
+            : detail || 'Failed to connect to voice (WebRTC). Check that LiveKit is configured and reachable.';
           this.toastService.error(this.errorMessage);
         }
       },

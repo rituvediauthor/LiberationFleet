@@ -44,6 +44,14 @@
     <p class="status-text" *ngIf="loading || connecting">Connecting to voice channel...</p>
     <p class="status-text reconnecting" *ngIf="reconnecting">Reconnecting...</p>
     <p class="status-text error" *ngIf="!loading && errorMessage">{{ errorMessage }}</p>
+    <p class="status-text warning" *ngIf="connected && micWarning">{{ micWarning }}</p>
+    <button
+      *ngIf="connected && audioPlaybackBlocked"
+      type="button"
+      class="btn-primary unlock-audio-btn"
+      (click)="unlockAudioPlayback()">
+      Tap to enable audio
+    </button>
 
     <div class="participant-list-wrap" *ngIf="!loading">
       <p class="section-label">In channel</p>

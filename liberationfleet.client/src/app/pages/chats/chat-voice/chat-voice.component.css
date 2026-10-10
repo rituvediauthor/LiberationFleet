@@ -24,8 +24,17 @@ h1 {
   color: var(--lf-color-danger);
 }
 
+.status-text.warning {
+  color: var(--lf-color-warning, #d97706);
+}
+
 .status-text.reconnecting {
   color: var(--lf-color-accent);
+}
+
+.unlock-audio-btn {
+  margin: 12px 0 4px;
+  width: 100%;
 }
 
 .section-label {
