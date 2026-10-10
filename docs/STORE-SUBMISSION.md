@@ -13,9 +13,10 @@ Bundle / application ID: **`com.liberationfleet.app`**
 1. Deploy **production** API on Azure with HTTPS ([AZURE-GO-LIVE.md](./AZURE-GO-LIVE.md)).
 2. Publish **Privacy Policy** and **Terms** on public HTTPS URLs. The SPA serves them at:
    - Privacy: `https://liberationfleet.org/privacy` (staging: your staging host + `/privacy`)
+   - Account deletion (Play Data safety URL): `https://liberationfleet.org/delete-account`
    - Terms: `https://liberationfleet.org/terms`
    - Community Standards: `https://liberationfleet.org/community-standards`  
-   Source text: `liberationfleet.client/src/assets/privacy-policy.txt` and `terms-of-use.txt`. Deploy production so these routes resolve over HTTPS before store submit.
+   Source text: `liberationfleet.client/src/assets/privacy-policy.txt`, `account-deletion.txt`, and `terms-of-use.txt`. Deploy production so these routes resolve over HTTPS before store submit.
 3. Edit `liberationfleet.client/src/environments/environment.native.ts`:
    ```ts
    apiBaseUrl: 'https://your-production-host'
@@ -71,10 +72,82 @@ Suggested full-description themes (edit to match marketing voice): mutual-aid cr
 2. **Policy → App content** (complete every required questionnaire):
    - Target audience / age: **18+**
    - Violence / sexual content consistent with Community Standards
-   - **Data safety**: account, messages, photos/media; describe E2EE honestly
-   - **Ads**: declare whether you show ads (Liberation Fleet typically **does not**)
+   - **Data safety** — see **C.1** below (match `privacy-policy.txt`)
+   - **Ads**: Liberation Fleet typically **does not** show ads → declare no ads
    - **Content ratings** questionnaire → apply rating
 3. Save each form until App content shows no outstanding required tasks.
+
+#### C.1 Data safety (suggested answers)
+
+Aligned with the published Privacy Policy. Confirm with counsel before submit; Play labels change slightly over time.
+
+##### Overview / pledges
+
+| Question | Suggested |
+|----------|-----------|
+| Does the app collect / share required user data types? | **Yes** |
+| Is all user data collected encrypted in transit? | **Yes** (HTTPS) |
+| Do you provide a way for users to request that their data be deleted? | **Yes** (Profile → delete account). Note: deletion anonymizes/disables; gift/donation/report rows may be retained — be ready to explain if asked |
+| **Delete account URL** (required for listing) | `https://liberationfleet.org/delete-account` — must be live HTTPS before submit (source: `account-deletion.txt`) |
+| Do you provide a way for users to request access to their data? | **No** (policy: no full personal-data download today) — or **Yes** only if you truly offer it |
+| Independent security review (SOC2 / ISO / etc.)? | **No** unless you have one |
+
+##### Data types to declare as **collected**
+
+Mark each as collected for **App functionality** (and **Account management** / **Security** where asked). Not for advertising / sale.
+
+| Play category | Declare? | Notes |
+|---------------|----------|--------|
+| **Personal info → Name** | Yes | Username / display name |
+| **Personal info → Email address** | Yes | Account email |
+| **Personal info → User IDs** | Yes | Account ids |
+| **Personal info → Address** | Usually **No** | You store country / postal for discovery, not a full street address — use **Approximate location** instead |
+| **Personal info → Phone number** | No | |
+| **Personal info → Race and ethnicity** | Yes (optional) | Optional identity-group tags users choose |
+| **Personal info → Sexual orientation** | Yes (optional) | Same (if those tags are offered) |
+| **Personal info → Other info** | Yes | Aid prefs, disability level, people represented, payment **handles** (Venmo etc.), roles |
+| **Financial info → User payment info** | **No** | Card data stays with **Stripe**; you never store PAN/CVC |
+| **Financial info → Purchase history** | Yes | App donation amounts + Stripe session ids / yearly totals |
+| **Location → Approximate** | Yes | Country / postal code for local crews & offerings |
+| **Location → Precise** | **No** | No live GPS sharing with other users |
+| **Photos and videos** | Yes | Avatars, chat/library media (often E2EE ciphertext on server) |
+| **Audio files** | Yes | Audio notes / attachments; voice realtime is LiveKit (see sharing) |
+| **Messages → Other in-app messages** | Yes | Chat, DMs, forums, proposals — mostly **E2EE** (you store ciphertext + keys wrapped for users; you cannot read bodies in normal operation). Still declare **collected** because data leaves the device |
+| **App activity → App interactions** | Yes | Server/request logs needed to run the app |
+| **App activity → Other actions** | Yes (optional) | Gift log / mutual-aid structural events |
+| **App info and performance → Crash logs / Diagnostics** | Yes if you keep server error/diagnostic logs | No Google Analytics SDK today |
+| **Device or other IDs** | Yes | Auth tokens, remembered devices, FCM/push tokens when push is enabled |
+| **Contacts / Calendar / Health & fitness** | Generally **No** for Contacts/Calendar. Disability-level mutual-aid fields → prefer **Other personal info** unless Play forces Health — do not claim clinical health data |
+
+##### Collected vs shared
+
+For each collected type, Play asks **Is this data shared?** (“Shared” = transferred to a **third party**.)
+
+Suggested pattern:
+
+| Situation | Answer |
+|-----------|--------|
+| Shown to other crewmates / friends inside the product | That is **user-to-user** visibility; still mark **Collected**. Sharing with “other users” is not the same as a third-party SDK — follow Play’s wording on each screen (often you only mark **Shared** for external companies) |
+| **Stripe** (donations) | **Purchase history** / donation metadata → **Shared** with Stripe (payment processing) |
+| **LiveKit** (voice) | Voice session / media transport → **Shared** with LiveKit (or declare under Audio / App activity as processed by voice provider) |
+| Hosting (Azure), email SMTP, optional report-moderation vendor | **Shared** with service providers if the form lists them / “other third parties” — purposes: App functionality, Security, Fraud prevention |
+| **Sold / used for ads / advertising or marketing** | **No** for all types |
+| **Ephemeral** (never on server)? | Only if truly never leaves the device — E2EE ciphertext **does** leave the device → not ephemeral |
+
+##### Encryption / E2EE wording
+
+- **Encrypted in transit:** Yes (TLS).
+- If asked whether data is **encrypted at rest** / **encrypted so the developer cannot read it**: for **Messages** and much **Photos/Videos/Audio**, say content is **end-to-end encrypted** (ciphertext on server; operators cannot read message bodies in normal operation). **Gift amounts, who-gave-whom, account email, donation records, and report evidence** are **not** E2EE — declare those as readable server data.
+
+##### Purposes (check what applies; avoid “Advertising” / “Sell”)
+
+Typical checks: **App functionality**, **Account management**, **Analytics** only if you truly measure product usage (you do **not** ship GA — skip unless you mean first-party server logs for reliability), **Developer communications** (email for password reset), **Fraud prevention / Security**, **Compliance / Legal** (safety reports / NCMEC when required).
+
+##### After the form
+
+1. **Save** → Data safety should leave “Needs attention”.
+2. Store listing privacy policy URL must match.
+3. If Play later rejects for inconsistency, compare the form to `liberationfleet.client/src/assets/privacy-policy.txt` sections 2–4.
 
 #### D. Financial features declaration
 

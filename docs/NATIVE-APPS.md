@@ -491,7 +491,7 @@ You do **not** need `npx cap add android` / `ios` again.
 | SignalR disconnects | Same as above; WebSockets enabled on App Service (Terraform sets this) |
 | Blank screen | Run `npm run build:native` then `npm run cap:sync` |
 | Mic denied | Add usage strings / `RECORD_AUDIO` |
-| Bottom nav / action bar under Android gesture or Home buttons | Edge-to-edge + zeroed safe-area. `MainActivity` injects `--lf-inset-*`; CSS `--lf-safe-bottom` + `.lf-safe-bottom` spacers pad chrome. Rebuild native after pull |
+| Bottom nav / action bar under Android gesture or Home buttons | Native only: `html.lf-native-shell` enables `--lf-safe-bottom`; `MainActivity` injects `--lf-inset-*`. Web/PWA keeps bottom spacer off to avoid double home-indicator padding |
 | iOS build fails on Windows | Use a Mac (or cloud Mac) for `cap add ios` / Archive |
 | Login works on web, not device | Device hitting HTTP or old `apiBaseUrl`; re-sync after env change |
 | Gradle sync forever / fails | **File** → **Sync Project with Gradle Files**; set Gradle JDK 17; check internet |

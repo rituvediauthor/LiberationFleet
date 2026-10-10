@@ -162,6 +162,15 @@ export const routes: Routes = [
     }
   },
   {
+    path: 'delete-account',
+    component: LegalDocumentComponent,
+    title: 'Delete your account',
+    data: {
+      documentTitle: 'Delete your account',
+      assetPath: '/assets/account-deletion.txt'
+    }
+  },
+  {
     path: 'terms',
     component: LegalDocumentComponent,
     title: 'Terms of Use',

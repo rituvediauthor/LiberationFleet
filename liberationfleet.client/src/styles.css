@@ -35,13 +35,15 @@ html.lf-media-detail-open .conversation-header {
 
 html {
   /*
-   * Prefer CSS env() (iOS / modern WebViews). On Android Capacitor, MainActivity
-   * injects --lf-inset-* from WindowInsets because env(safe-area-inset-*) is
-   * often 0 under edge-to-edge (gesture / 3-button nav, foldables, etc.).
+   * Prefer CSS env() for top/sides. Bottom is special:
+   * - Browser / installed PWA already clears the home indicator in the layout
+   *   viewport; applying env(safe-area-inset-bottom) again double-pads chrome.
+   * - Capacitor native (html.lf-native-shell) paints edge-to-edge and needs the
+   *   spacer. Android MainActivity also injects --lf-inset-* when env() is 0.
    */
   --lf-safe-top: max(env(safe-area-inset-top, 0px), var(--lf-inset-top, 0px));
   --lf-safe-right: max(env(safe-area-inset-right, 0px), var(--lf-inset-right, 0px));
-  --lf-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--lf-inset-bottom, 0px));
+  --lf-safe-bottom: 0px;
   --lf-safe-left: max(env(safe-area-inset-left, 0px), var(--lf-inset-left, 0px));
   --lf-content-max-width: 560px;
   --lf-content-gutter: 20px;
@@ -54,6 +56,10 @@ html {
   background-repeat: no-repeat;
   background-position: top center;
   background-size: 100% var(--lf-safe-top);
+}
+
+html.lf-native-shell {
+  --lf-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--lf-inset-bottom, 0px));
 }
 
 @media (max-width: 600px) {
@@ -80,19 +86,28 @@ body {
 }
 
 /*
- * Bottom system-gesture / home-indicator / 3-button nav clearance.
+ * Bottom system-gesture / home-indicator / 3-button nav clearance (native only).
  * Place as the last child of bottom-nav / action-bar flex columns (or as a
  * sibling under page-layout / nav-layout). Background matches the bars.
+ * Hidden on web/PWA so we do not stack on the browser's own bottom inset.
  */
 .lf-safe-bottom {
-  display: block;
+  display: none;
   flex-shrink: 0;
-  width: 100%;
-  height: var(--lf-safe-bottom, 0px);
+  width: 0;
+  height: 0;
   margin: 0;
   padding: 0;
-  background: var(--lf-color-bg-surface);
+  overflow: hidden;
   pointer-events: none;
+}
+
+html.lf-native-shell .lf-safe-bottom {
+  display: block;
+  width: 100%;
+  height: var(--lf-safe-bottom, 0px);
+  overflow: visible;
+  background: var(--lf-color-bg-surface);
 }
 
 app-root {

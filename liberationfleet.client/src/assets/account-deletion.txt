@@ -1,0 +1,59 @@
+LIBERATION FLEET — DELETE YOUR ACCOUNT AND DATA
+
+Last updated: October 9, 2026
+
+This page is for Liberation Fleet (the Liberation Fleet app and website). It explains how to request deletion of your account and what data is removed or retained.
+
+
+HOW TO DELETE YOUR ACCOUNT (IN THE APP)
+
+1. Open the Liberation Fleet app (or sign in at liberationfleet.org).
+2. Sign in with the account you want to delete.
+3. Go to Profile.
+4. Choose the option to delete your account.
+5. Confirm by entering your current password when prompted.
+
+Deleting your account from Profile is the primary, self-service way to request account deletion. You do not need to email us first if you can still sign in.
+
+
+IF YOU CANNOT SIGN IN
+
+If you cannot access your account (for example you lost your password and cannot reset it), contact Liberation Fleet through the contact method listed on liberationfleet.org or in the app and request account deletion. Include the email address associated with the account so we can locate it. We may ask you to verify ownership before processing the request.
+
+
+WHAT IS DELETED OR ANONYMIZED WHEN YOU DELETE YOUR ACCOUNT
+
+When you delete your account, we typically:
+
+- Permanently disable sign-in for that account
+- Anonymize identifiers such as username and email so they are freed for reuse and no longer identify you in ordinary profile displays
+- Remove you from your crew and fleet memberships
+- Clear profile fields such as payment handles, avatar linkage, identity-group tags, and aid-preference flags used for mutual-aid displays
+- Run Library of Things cleanup for a departing member as implemented in the product (for example canceling open requests you made or that involve units you possess)
+
+
+WHAT MAY BE RETAINED
+
+Account deletion is not a complete erasure of every historical record. We may retain, where needed for mutual-aid integrity, security, fraud prevention, donation accounting, safety, or legal compliance:
+
+- Gift and mutual-aid calculation records (who gave or received, amounts, and related structural fields)
+- App donation records and Stripe identifiers
+- Safety-report packets and evidence (including retention required for child-safety / CyberTipline obligations when applicable)
+- Content you authored in crews or fleets that continue with other members (for example chat, forum, proposal, or library rows), which may remain associated with an anonymized account id
+- Certain numeric mutual-aid fields on the anonymized account row unless later cleared by operators
+- Content-tenure history and other server logs or records required by law
+
+End-to-end encrypted message and media ciphertext stored for groups you belonged to may remain available to other members who still have decryption keys. Liberation Fleet operators cannot read that content in normal operation.
+
+
+ADDITIONAL NOTES
+
+- Deleting your account does not refund donations already processed by Stripe.
+- Peer gifts arranged on third-party payment platforms (PayPal, Venmo, etc.) are outside Liberation Fleet’s control.
+- Losing your encryption recovery key is separate from account deletion; we cannot restore encrypted content without that key.
+- Full details are in the Privacy Policy: https://liberationfleet.org/privacy
+
+
+CONTACT
+
+Questions about account deletion: use the contact method on liberationfleet.org or in the Liberation Fleet app.
