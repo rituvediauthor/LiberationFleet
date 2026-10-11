@@ -1,7 +1,7 @@
 LIBERATION FLEET COMMUNITY STANDARDS
 (Acceptable Use Policy)
 
-Last updated: September 4, 2026
+Last updated: October 11, 2026
 
 Liberation Fleet is for adults (18+) coordinating mutual aid through crews, fleets, gift logging, Library of Things sharing, and related community tools. By using the Service you agree to these standards together with the Terms of Use and Privacy Policy.
 
@@ -48,6 +48,11 @@ Voice rooms, text chats, forums/Spaces (social feeds), and direct messages are s
 We may freeze accounts (including pending a safety review), remove or quarantine content identifiers, preserve report evidence, and report apparent child sexual exploitation to NCMEC when we have actual knowledge (including through operator review of queued report evidence). We may refuse service to anyone who violates these standards or the Terms of Use.
 
 11. CONTACT
-Use in-app Report for abusive or illegal content. You may delete your account from Profile (password confirmation required). For other account or support issues, contact the operators through the channel published on our website when available.
+Use in-app Report for abusive or illegal content (including child sexual abuse and exploitation). You may delete your account from Profile (password confirmation required).
+
+Child safety / CSAM compliance point of contact (ready to discuss prevention practices and reporting):
+rituvedi@liberationfleetco.org
+
+For other account or support issues, use the same contact email or the channel published on liberationfleet.org.
 
 These standards are part of your agreement to use Liberation Fleet together with the Terms of Use and Privacy Policy.

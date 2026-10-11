@@ -283,7 +283,7 @@ LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted
 
 | Asset | iOS | Android |
 |-------|-----|---------|
-| App icon | 1024×1024 App Store | Adaptive icon (foreground/background) |
+| App icon | 1024×1024 App Store | Adaptive icon (foreground/background). Android circle crop: use `src/assets/images/LFleetLogoForCircle.png` (extra padding). Regenerate mipmaps with `python android/scripts/generate-launcher-icons.py` |
 | Splash | Launch screen / Cap splash | Splash theme |
 | Screenshots | 6.7", 6.1", iPad if supported | Phone (+ tablets if you declare them) |
 | Privacy policy URL | Required | Required |

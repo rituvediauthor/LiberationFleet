@@ -15,7 +15,8 @@ Bundle / application ID: **`com.liberationfleet.app`**
    - Privacy: `https://liberationfleet.org/privacy` (staging: your staging host + `/privacy`)
    - Account deletion (Play Data safety URL): `https://liberationfleet.org/delete-account`
    - Terms: `https://liberationfleet.org/terms`
-   - Community Standards: `https://liberationfleet.org/community-standards`  
+   - Community Standards (also Play **Child safety → Safety standards URL**): `https://liberationfleet.org/community-standards`
+   - Child safety contact (Play Child Safety Standards form): `rituvedi@liberationfleetco.org` (developer-account email, or another inbox you monitor for CSAM/compliance questions)  
    Source text: `liberationfleet.client/src/assets/privacy-policy.txt`, `account-deletion.txt`, and `terms-of-use.txt`. Deploy production so these routes resolve over HTTPS before store submit.
 3. Edit `liberationfleet.client/src/environments/environment.native.ts`:
    ```ts
