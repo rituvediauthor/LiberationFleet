@@ -30,6 +30,7 @@ public class CrewGiftRecipientService(
         var user = new User
         {
             Username = username,
+            DisplayName = DisplayName,
             Email = PlaceholderUserDefaults.CreateInternalEmail(),
             PasswordHash = PlaceholderUserDefaults.PasswordHash,
             CreatedAt = DateTime.UtcNow,

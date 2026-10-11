@@ -6,6 +6,7 @@ using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Services;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetCrewmateProfile;
 
@@ -100,7 +101,7 @@ public class GetFleetCrewmateProfileQueryHandler(
             Profile = new FleetCrewmateProfileDto
             {
                 UserId = target.Id,
-                Username = target.Username,
+                Username = UserDisplay.Name(target),
                 AvatarResourceId = avatarResourceId,
                 PaymentPlatforms = CrewmateMapper.MapPaymentPlatforms(target),
                 PriorityScore = priorityScore,

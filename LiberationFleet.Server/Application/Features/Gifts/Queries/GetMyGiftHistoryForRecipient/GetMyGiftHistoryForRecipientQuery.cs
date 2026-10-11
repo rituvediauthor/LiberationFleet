@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistoryForRecipient;
 
@@ -40,7 +41,7 @@ public class GetMyGiftHistoryForRecipientQueryHandler(
             Success = true,
             Message = "Gift history loaded.",
             RecipientUserId = recipient.Id,
-            RecipientUsername = recipient.Username,
+            RecipientUsername = UserDisplay.Name(recipient),
             TotalAmount = gifts.Sum(g => g.Amount),
             Items = gifts.Select(GiftHistoryMapper.MapEntry).ToList()
         };

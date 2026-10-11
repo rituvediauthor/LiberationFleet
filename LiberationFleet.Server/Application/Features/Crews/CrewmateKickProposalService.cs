@@ -7,6 +7,7 @@ using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Crews;
 
@@ -262,7 +263,7 @@ public class CrewmateKickProposalService(
         var targetUser = await userRepository.GetByIdWithProfileAsync(kick.TargetUserId, cancellationToken);
         if (targetUser is not null)
         {
-            kick.RevealedUsername = targetUser.Username;
+            kick.RevealedUsername = UserDisplay.Name(targetUser);
             if (isSeasonKick)
             {
                 kick.Description = $"{targetUser.Username} was removed from the season.";

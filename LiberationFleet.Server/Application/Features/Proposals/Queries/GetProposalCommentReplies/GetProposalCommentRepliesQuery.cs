@@ -170,7 +170,7 @@ public class GetProposalCommentRepliesQueryHandler(
 
         if (!string.IsNullOrWhiteSpace(target.Body))
         {
-            return target.AuthorUser.Username;
+            return UserDisplay.Name(target.AuthorUser);
         }
 
         if (envelopeById.ContainsKey(target.Id.ToString()))
@@ -178,6 +178,6 @@ public class GetProposalCommentRepliesQueryHandler(
             return null;
         }
 
-        return target.AuthorUser.Username;
+        return UserDisplay.Name(target.AuthorUser);
     }
 }

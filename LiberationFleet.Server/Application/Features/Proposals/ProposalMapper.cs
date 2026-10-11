@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
@@ -301,7 +302,7 @@ public static class ProposalMapper
                 ? nickname
                 : usesAnonymousComments
                     ? AnonymousAuthor
-                    : comment.AuthorUser.Username,
+                    : UserDisplay.Name(comment.AuthorUser),
             AuthorAvatarResourceId = usesAnonymousComments ? null : comment.AuthorUser?.AvatarResourceId,
             ParentCommentId = comment.ParentCommentId,
             ReplyToCommentId = comment.ReplyToCommentId,

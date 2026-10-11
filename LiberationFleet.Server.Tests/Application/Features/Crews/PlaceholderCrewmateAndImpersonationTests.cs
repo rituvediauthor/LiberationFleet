@@ -21,6 +21,24 @@ public class PlaceholderCrewmateAndImpersonationTests
         var user = new User { Username = "ph_abc", DisplayName = "Alex" };
         UserDisplay.Name(user).Should().Be("Alex");
         UserDisplay.Name(new User { Username = "bob" }).Should().Be("bob");
+        UserDisplay.Name("  Sam  ", "ph_x").Should().Be("Sam");
+    }
+
+    [Fact]
+    public void UserDisplay_SyncAccountDisplayName_AlignsNonPlaceholders()
+    {
+        var account = new User { Username = "carol", DisplayName = null };
+        UserDisplay.SyncAccountDisplayName(account);
+        account.DisplayName.Should().Be("carol");
+
+        var placeholder = new User
+        {
+            Username = "ph_x",
+            DisplayName = "Pat",
+            IsUnclaimedPlaceholder = true
+        };
+        UserDisplay.SyncAccountDisplayName(placeholder);
+        placeholder.DisplayName.Should().Be("Pat");
     }
 
     [Fact]

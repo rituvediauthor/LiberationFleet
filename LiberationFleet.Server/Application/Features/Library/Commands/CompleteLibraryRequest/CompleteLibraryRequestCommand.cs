@@ -6,6 +6,7 @@ using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Library.Commands.CompleteLibraryRequest;
 
@@ -93,7 +94,7 @@ public class CompleteLibraryRequestCommandHandler(
         }
         else
         {
-            var completerUsername = libraryRequest.Unit.CurrentPossessorUser?.Username ?? "Crewmate";
+            var completerUsername = string.IsNullOrWhiteSpace(UserDisplay.Name(libraryRequest.Unit.CurrentPossessorUser)) ? "Crewmate" : UserDisplay.Name(libraryRequest.Unit.CurrentPossessorUser);
             libraryRequest.Unit.CurrentPossessorUserId = libraryRequest.RequesterUserId;
             contributionGift = await contributionGiftService.TryAwardCreatorForFirstDurableTransferAsync(
                 membership.CrewId,

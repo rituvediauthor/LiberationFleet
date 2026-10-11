@@ -7,6 +7,7 @@ using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Library.Commands.RecordLibraryAcquisition;
 
@@ -155,7 +156,7 @@ public class RecordLibraryAcquisitionCommandHandler(
         LibraryOfferingRules.ReduceStockForTier(trackedUnit.Offering, quantity, viewerTier);
 
         var acquirer = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
-        var acquirerUsername = acquirer?.Username ?? "Crewmate";
+        var acquirerUsername = string.IsNullOrWhiteSpace(UserDisplay.Name(acquirer)) ? "Crewmate" : UserDisplay.Name(acquirer);
         // Single gift-log entry: creator contribution (financial membership) + recipient reception.
         var receptionGift = await contributionGiftService.TryAwardCreatorForStockUseAsync(
             offeringCrewId,

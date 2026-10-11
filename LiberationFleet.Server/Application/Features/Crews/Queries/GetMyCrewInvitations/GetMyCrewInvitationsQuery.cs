@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewInvitations;
 
@@ -30,7 +31,7 @@ public class GetMyCrewInvitationsQueryHandler(
                 CrewId = i.CrewId,
                 CrewName = i.Crew.Name,
                 InviterUserId = i.InviterUserId,
-                InviterUsername = i.InviterUser.Username,
+                InviterUsername = UserDisplay.Name(i.InviterUser),
                 Status = i.Status.ToString(),
                 CreatedAt = i.CreatedAt
             }).ToList()

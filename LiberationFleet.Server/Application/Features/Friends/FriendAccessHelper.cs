@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Friends;
 
@@ -13,7 +14,7 @@ public static class DirectMessageMapper
     {
         Id = message.Id,
         AuthorUserId = message.AuthorUserId,
-        AuthorUsername = envelope is null ? message.AuthorUser?.Username ?? string.Empty : string.Empty,
+        AuthorUsername = envelope is null ? UserDisplay.Name(message.AuthorUser) : string.Empty,
         AuthorAvatarResourceId = message.AuthorUser?.AvatarResourceId,
         CreatedAt = message.CreatedAt,
         HasEncryptedContent = envelope is not null,

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Rules.Contracts;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Rules;
 
@@ -11,7 +12,7 @@ public static class RuleMapper
         {
             Id = rule.Id,
             CreatedByUserId = rule.CreatedByUserId,
-            CreatedByUsername = rule.IsPublic || envelope is null ? rule.CreatedByUser.Username : string.Empty,
+            CreatedByUsername = rule.IsPublic || envelope is null ? UserDisplay.Name(rule.CreatedByUser) : string.Empty,
             CreatedAt = rule.CreatedAt,
             UpdatedAt = rule.UpdatedAt,
             IsPublic = rule.IsPublic,
@@ -26,7 +27,7 @@ public static class RuleMapper
         {
             Id = rule.Id,
             CreatedByUserId = rule.CreatedByUserId,
-            CreatedByUsername = rule.IsPublic || envelope is null ? rule.CreatedByUser.Username : string.Empty,
+            CreatedByUsername = rule.IsPublic || envelope is null ? UserDisplay.Name(rule.CreatedByUser) : string.Empty,
             CreatedAt = rule.CreatedAt,
             UpdatedAt = rule.UpdatedAt,
             IsPublic = rule.IsPublic,

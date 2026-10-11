@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Library;
 
@@ -130,7 +131,7 @@ public static class LibraryTaskMapper
         {
             TaskId = task.Id,
             Title = task.HasEncryptedContent ? string.Empty : task.Title,
-            CreatorUsername = task.CreatorUser?.Username ?? "Crewmate",
+            CreatorUsername = string.IsNullOrWhiteSpace(UserDisplay.Name(task.CreatorUser)) ? "Crewmate" : UserDisplay.Name(task.CreatorUser),
             CreatorUserId = task.CreatorUserId,
             Value = task.Value,
             HasDeadline = task.HasDeadline,
@@ -200,7 +201,7 @@ public static class LibraryTaskMapper
             HasEncryptedContent = task.HasEncryptedContent,
             Value = task.Value,
             CreatorUserId = task.CreatorUserId,
-            CreatorUsername = task.CreatorUser?.Username ?? "Crewmate",
+            CreatorUsername = string.IsNullOrWhiteSpace(UserDisplay.Name(task.CreatorUser)) ? "Crewmate" : UserDisplay.Name(task.CreatorUser),
             IsCreator = isCreator,
             HasDeadline = task.HasDeadline,
             DeleteOnCompletion = task.DeleteOnCompletion,
@@ -248,7 +249,7 @@ public static class LibraryTaskMapper
             CompletedAt = instance.CompletedAt,
             Status = instance.Status.ToString(),
             ClaimedByUserId = instance.ClaimedByUserId,
-            ClaimedByUsername = instance.ClaimedByUser?.Username,
+            ClaimedByUsername = instance.ClaimedByUser is null ? null : UserDisplay.Name(instance.ClaimedByUser),
             ClaimedByCurrentUser = claimedByMe,
             Selectable = selectable
         };

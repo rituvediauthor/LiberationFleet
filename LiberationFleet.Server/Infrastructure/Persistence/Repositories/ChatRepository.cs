@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 
@@ -208,9 +209,12 @@ public class ChatRepository : IChatRepository
             .AsNoTracking()
             .Where(l => l.ChatRoomMessageId == messageId && l.RemovedAt == null)
             .OrderBy(l => l.CreatedAt)
-            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .Select(l => new { l.UserId, l.User!.DisplayName, l.User.Username, l.User.AvatarResourceId })
             .ToListAsync(cancellationToken);
 
-        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+        return rows.Select(r => (
+            r.UserId,
+            UserDisplay.Name(r.DisplayName, r.Username),
+            r.AvatarResourceId)).ToList();
     }
 }

@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Gifts;
 
@@ -19,7 +20,7 @@ public static class GiftEngagementMapper
         {
             Id = comment.Id,
             AuthorUserId = comment.AuthorUserId,
-            AuthorUsername = envelope is null ? comment.AuthorUser.Username : string.Empty,
+            AuthorUsername = envelope is null ? UserDisplay.Name(comment.AuthorUser) : string.Empty,
             AuthorAvatarResourceId = CrewAvatarVisibilityService.Filter(
                 comment.AuthorUser?.AvatarResourceId,
                 comment.AuthorUserId,

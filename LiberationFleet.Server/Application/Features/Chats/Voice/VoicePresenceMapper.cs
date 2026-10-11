@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats.Voice.Contracts;
 using LiberationFleet.Server.Domain.Entities;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Chats.Voice;
 
@@ -11,7 +12,7 @@ public static class VoicePresenceMapper
         {
             SessionId = session.Id,
             UserId = session.UserId,
-            Username = session.User?.Username ?? string.Empty,
+            Username = UserDisplay.Name(session.User),
             ChatRoomId = session.ChatRoomId,
             IsMuted = session.IsMuted || session.IsServerMuted,
             IsDeafened = session.IsDeafened,

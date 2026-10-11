@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Friends.Queries.GetFriends;
 
@@ -86,7 +87,7 @@ public class GetFriendsQueryHandler(
             items.Add(new FriendListItemDto
             {
                 UserId = friend.Id,
-                Username = friend.Username,
+                Username = UserDisplay.Name(friend),
                 AvatarResourceId = friend.AvatarResourceId,
                 LastLoginAt = friend.LastLoginAt,
                 LastMessageAt = lastMessageAt,

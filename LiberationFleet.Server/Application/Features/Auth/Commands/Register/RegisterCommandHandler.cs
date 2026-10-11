@@ -43,6 +43,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, LoginResp
         var user = new User
         {
             Username = request.Username,
+            DisplayName = request.Username.Trim(),
             Email = request.Email,
             PasswordHash = _passwordHasher.Hash(request.Password),
             SecurityStamp = SecurityStampHelper.CreateNew(),

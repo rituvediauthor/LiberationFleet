@@ -41,7 +41,7 @@ public static class FleetMapper
     {
         Id = rule.Id,
         CreatedByUserId = rule.CreatedByUserId,
-        CreatedByUsername = rule.CreatedByUser.Username,
+        CreatedByUsername = UserDisplay.Name(rule.CreatedByUser),
         CreatedAt = rule.CreatedAt,
         UpdatedAt = rule.UpdatedAt,
         IsPublic = rule.IsPublic,

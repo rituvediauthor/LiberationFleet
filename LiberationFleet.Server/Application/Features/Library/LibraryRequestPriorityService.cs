@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Library;
 
@@ -57,7 +58,7 @@ public class LibraryRequestPriorityService(IMutualAidService mutualAidService)
                 if (unitRequest.Id != highest.Request.Id)
                 {
                     dto.HigherPriorityRequestId = highest.Request.Id;
-                    dto.HigherPriorityRequesterUsername = highest.Request.RequesterUser?.Username ?? string.Empty;
+                    dto.HigherPriorityRequesterUsername = UserDisplay.Name(highest.Request.RequesterUser);
                 }
             }
         }
@@ -108,7 +109,7 @@ public class LibraryRequestPriorityService(IMutualAidService mutualAidService)
         if (request.Id != highest.Id)
         {
             detail.HigherPriorityRequestId = highest.Id;
-            detail.HigherPriorityRequesterUsername = highest.RequesterUser?.Username ?? string.Empty;
+            detail.HigherPriorityRequesterUsername = UserDisplay.Name(highest.RequesterUser);
         }
     }
 

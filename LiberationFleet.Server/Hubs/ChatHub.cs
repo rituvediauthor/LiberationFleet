@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -115,7 +116,8 @@ public class ChatHub(
         else
         {
             var user = await userRepository.GetByIdAsync(userId, Context.ConnectionAborted);
-            displayName = string.IsNullOrWhiteSpace(user?.Username) ? "Someone" : user!.Username;
+            var resolved = UserDisplay.Name(user);
+            displayName = string.IsNullOrWhiteSpace(resolved) ? "Someone" : resolved;
             payloadUserId = userId;
         }
 
@@ -153,7 +155,8 @@ public class ChatHub(
         }
 
         var user = await userRepository.GetByIdAsync(userId, Context.ConnectionAborted);
-        var displayName = string.IsNullOrWhiteSpace(user?.Username) ? "Someone" : user!.Username;
+        var resolvedName = UserDisplay.Name(user);
+        var displayName = string.IsNullOrWhiteSpace(resolvedName) ? "Someone" : resolvedName;
 
         await Clients.Group(UserGroup(friendUserId)).SendAsync(
             "Typing",
@@ -197,7 +200,8 @@ public class ChatHub(
         }
 
         var user = await userRepository.GetByIdAsync(userId, Context.ConnectionAborted);
-        var displayName = string.IsNullOrWhiteSpace(user?.Username) ? "Someone" : user!.Username;
+        var resolvedName = UserDisplay.Name(user);
+        var displayName = string.IsNullOrWhiteSpace(resolvedName) ? "Someone" : resolvedName;
 
         await Clients.Group(UserGroup(recipientUserId)).SendAsync(
             "Typing",

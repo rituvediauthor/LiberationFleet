@@ -7,6 +7,7 @@ using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using LiberationFleet.Server.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 
@@ -713,10 +714,10 @@ public class GiftRepository : IGiftRepository
             .AsNoTracking()
             .Where(l => l.GiftId == giftId && l.RemovedAt == null)
             .OrderBy(l => l.CreatedAt)
-            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .Select(l => new { l.UserId, l.User!.DisplayName, l.User.Username, l.User.AvatarResourceId })
             .ToListAsync(cancellationToken);
 
-        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+        return rows.Select(r => (r.UserId, UserDisplay.Name(r.DisplayName, r.Username), r.AvatarResourceId)).ToList();
     }
 
     public async Task<IReadOnlyList<(int UserId, string Username, string? AvatarResourceId)>> GetActiveGiftCommentLikersAsync(
@@ -727,10 +728,10 @@ public class GiftRepository : IGiftRepository
             .AsNoTracking()
             .Where(l => l.GiftCommentId == commentId && l.RemovedAt == null)
             .OrderBy(l => l.CreatedAt)
-            .Select(l => new { l.UserId, Username = l.User!.Username, l.User.AvatarResourceId })
+            .Select(l => new { l.UserId, l.User!.DisplayName, l.User.Username, l.User.AvatarResourceId })
             .ToListAsync(cancellationToken);
 
-        return rows.Select(r => (r.UserId, r.Username, r.AvatarResourceId)).ToList();
+        return rows.Select(r => (r.UserId, UserDisplay.Name(r.DisplayName, r.Username), r.AvatarResourceId)).ToList();
     }
 
     public async Task<Dictionary<int, DateTime?>> GetSeasonStartDatesForGiftsAsync(

@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Gifts;
 
@@ -13,7 +14,7 @@ public static class GiftHistoryMapper
         Timestamp = gift.CreatedAt,
         GiftType = gift.Type.ToString().ToLowerInvariant(),
         Platform = gift.CrewPaymentPlatform?.Name ?? string.Empty,
-        MiddlemanUsername = gift.MiddlemanUser?.Username,
+        MiddlemanUsername = gift.MiddlemanUser is null ? null : UserDisplay.Name(gift.MiddlemanUser),
         StatusLabel = BuildStatusLabel(gift),
         LibraryItemTitle = gift.LibraryItemTitle
     };

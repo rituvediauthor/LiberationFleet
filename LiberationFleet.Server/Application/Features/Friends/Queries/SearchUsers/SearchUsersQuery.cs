@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Friends.Queries.SearchUsers;
 
@@ -54,7 +55,7 @@ public class SearchUsersQueryHandler(
             items.Add(new UserSearchResultDto
             {
                 UserId = user.Id,
-                Username = user.Username,
+                Username = UserDisplay.Name(user),
                 FriendshipState = CrewmateMapper.MapFriendshipState(
                     userId,
                     user.Id,

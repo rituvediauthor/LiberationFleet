@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Contracts;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Fleets.Queries.GetFleetEmergencies;
 
@@ -63,7 +64,7 @@ public class GetFleetEmergenciesQueryHandler(
                     CrewId = fleetCrew.CrewId,
                     CrewName = crewNames.GetValueOrDefault(fleetCrew.CrewId, string.Empty),
                     RequesterUserId = r.RequesterUserId,
-                    RequesterUsername = r.RequesterUser.Username,
+                    RequesterUsername = UserDisplay.Name(r.RequesterUser),
                     PurposePreview = r.Purpose.Length > 120 ? r.Purpose[..117] + "..." : r.Purpose,
                     AmountNeeded = r.AmountNeeded,
                     AmountFulfilled = amounts.AmountReceived,

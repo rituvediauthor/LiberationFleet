@@ -151,6 +151,7 @@ public sealed class MutualAidSeasonFixture : IAsyncDisposable
         new()
         {
             Username = username,
+            DisplayName = username,
             Email = email,
             PasswordHash = "hash",
             CreatedAt = DateTime.UtcNow,

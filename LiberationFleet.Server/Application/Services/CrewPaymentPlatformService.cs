@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -76,7 +77,7 @@ public static class CrewPaymentPlatformService
         return new CrewMemberPlatforms
         {
             UserId = membership.UserId,
-            Username = membership.User.Username,
+            Username = UserDisplay.Name(membership.User),
             IsIntermediary = membership.IsIntermediary,
             PlatformIds = accounts.Select(p => p.CrewPaymentPlatformId!.Value).ToList(),
             PlatformAccounts = accounts

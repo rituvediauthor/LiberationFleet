@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
@@ -50,7 +51,7 @@ public class AllowCrewmateRejoinCommandHandler(
             viewerMembership.CrewId,
             viewerId,
             request.TargetUserId,
-            targetUser.Username,
+            UserDisplay.Name(targetUser),
             cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

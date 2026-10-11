@@ -19,7 +19,7 @@ public static class ChatMapper
             Purpose = room.Purpose,
             RoomType = room.RoomType,
             CreatedByUserId = room.CreatedByUserId,
-            CreatedByUsername = room.CreatedByUser?.Username ?? string.Empty,
+            CreatedByUsername = UserDisplay.Name(room.CreatedByUser),
             CreatedAt = room.CreatedAt,
             LastActivityAt = room.LastActivityAt,
             AnonymousModeEnabled = false,
@@ -86,7 +86,7 @@ public static class ChatMapper
                 : message.IsAnonymous
                     ? "Anonymous"
                     : envelope is null
-                        ? message.AuthorUser?.Username ?? string.Empty
+                        ? UserDisplay.Name(message.AuthorUser)
                         : string.Empty,
             AuthorAvatarResourceId = hideIdentity || message.IsAnonymous
                 ? null

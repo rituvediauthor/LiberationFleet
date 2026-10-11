@@ -203,6 +203,72 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task GetReceptionOrderAndNextAid_PreferPlaceholderDisplayNameOverSyntheticUsername()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var placeholder = new User
+        {
+            Username = "ph_synth_abc123",
+            DisplayName = "Sam Neighbor",
+            Email = "ph_synth_abc123@placeholder.local",
+            PasswordHash = "hash",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsUnclaimedPlaceholder = true,
+            InNeedOfAid = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            IsBanned = false,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsInSeason = true,
+            IsSeasonReady = true,
+            IsHonoraryMember = true,
+            EstimatedMonthlyContribution = 50m
+        });
+
+        // Put placeholder first in reception order (ahead of bob at position 0).
+        foreach (var cycle in fixture.Context.SeasonCycles.Where(c =>
+                     c.CrewId == fixture.Crew.Id && c.SeasonStartDate == fixture.SeasonStart))
+        {
+            cycle.ReceptionOrderPosition += 1;
+        }
+
+        fixture.Context.SeasonCycles.Add(new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = placeholder.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 600m,
+            CycleReceived = 0m,
+            ReceptionOrderPosition = 0,
+            PriorityScoreAtSeasonStart = 400m
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var order = await fixture.Service.GetReceptionOrderAsync(
+            fixture.Alice.Id,
+            excludeSelfAsRecipient: false,
+            cancellationToken: CancellationToken.None);
+        var nextAid = await fixture.Service.GetNextAidAsync(fixture.Alice.Id, CancellationToken.None);
+
+        order.Should().NotBeEmpty();
+        order[0].UserId.Should().Be(placeholder.Id);
+        order[0].Username.Should().Be("Sam Neighbor");
+        order[0].Username.Should().NotBe(placeholder.Username);
+
+        nextAid.Should().NotBeNull();
+        nextAid!.RecipientName.Should().Be("Sam Neighbor");
+    }
+
+    [Fact]
     public async Task GetNextAidAsync_WhenAnotherCrewmateIsNext_DoesNotMarkCurrentUserAsRecipient()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

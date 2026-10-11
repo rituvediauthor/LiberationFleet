@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
@@ -155,7 +156,7 @@ public class GetEmergencyRequestDetailQueryHandler(
                 CrewId = requestCrewId,
                 CrewName = requestCrew?.Name ?? string.Empty,
                 RequesterUserId = emergencyRequest.RequesterUserId,
-                RequesterUsername = emergencyRequest.RequesterUser?.Username ?? string.Empty,
+                RequesterUsername = UserDisplay.Name(emergencyRequest.RequesterUser),
                 Purpose = emergencyRequest.Purpose,
                 AmountNeeded = emergencyRequest.AmountNeeded,
                 AmountFulfilled = amounts.AmountReceived,

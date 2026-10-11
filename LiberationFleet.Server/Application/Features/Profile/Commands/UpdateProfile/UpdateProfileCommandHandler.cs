@@ -81,6 +81,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         var previousNeedsSurvivalAid = user.NeedsSurvivalAid;
 
         user.Username = request.Username.Trim();
+        UserDisplay.SyncAccountDisplayName(user);
         user.Email = request.Email.Trim();
         if (request.ClearLocation)
         {

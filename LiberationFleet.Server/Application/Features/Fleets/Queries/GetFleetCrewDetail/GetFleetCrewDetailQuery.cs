@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
@@ -63,7 +64,9 @@ public class GetFleetCrewDetailQueryHandler(
                     Crewmates = visibleNoCrew.Select(m => new FleetCrewmateDto
                     {
                         UserId = m.UserId,
-                        Username = m.User?.Username ?? $"User {m.UserId}",
+                        Username = string.IsNullOrWhiteSpace(UserDisplay.Name(m.User))
+                            ? $"User {m.UserId}"
+                            : UserDisplay.Name(m.User),
                         AvatarResourceId = null
                     }).ToList()
                 }
@@ -109,7 +112,9 @@ public class GetFleetCrewDetailQueryHandler(
                     .Select(m => new FleetCrewmateDto
                     {
                         UserId = m.UserId,
-                        Username = m.User?.Username ?? $"User {m.UserId}",
+                        Username = string.IsNullOrWhiteSpace(UserDisplay.Name(m.User))
+                            ? $"User {m.UserId}"
+                            : UserDisplay.Name(m.User),
                         AvatarResourceId = FleetAvatarVisibilityService.Filter(
                             m.User?.AvatarResourceId,
                             m.UserId,

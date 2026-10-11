@@ -7,8 +7,9 @@ public class User
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
     /// <summary>
-    /// Human-facing label for unclaimed placeholders. When set, UI should prefer this over
-    /// <see cref="Username"/> (which may be a synthetic unique id).
+    /// Human-facing label shown in UI via <c>UserDisplay.Name</c>.
+    /// For real accounts this matches <see cref="Username"/>; for unclaimed placeholders it is
+    /// the organizer-chosen name while <see cref="Username"/> stays a synthetic unique id.
     /// </summary>
     public string? DisplayName { get; set; }
     public string Email { get; set; } = string.Empty;

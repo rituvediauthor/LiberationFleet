@@ -8,6 +8,7 @@ using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Crews;
 
@@ -122,7 +123,7 @@ public class CrewJoinRequestProposalService(
         {
             Proposal = proposal,
             ApplicantUserId = applicantUserId,
-            ApplicantUsername = applicant.Username,
+            ApplicantUsername = UserDisplay.Name(applicant),
             AcceptedRuleIdsJson = JsonSerializer.Serialize(acceptedRuleIds.OrderBy(id => id)),
             Title = $"Allow {applicant.Username} to join",
             Description = description

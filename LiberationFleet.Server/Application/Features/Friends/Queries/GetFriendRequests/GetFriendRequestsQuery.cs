@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Friends.Queries.GetFriendRequests;
 
@@ -50,7 +51,7 @@ public class GetFriendRequestsQueryHandler(
             items.Add(new FriendRequestListItemDto
             {
                 UserId = otherUser.Id,
-                Username = otherUser.Username,
+                Username = UserDisplay.Name(otherUser),
                 AvatarResourceId = otherUser.AvatarResourceId,
                 LastLoginAt = otherUser.LastLoginAt,
                 Direction = friendship.RequesterUserId == userId

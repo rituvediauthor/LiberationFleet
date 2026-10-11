@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
@@ -183,7 +184,9 @@ public class LibraryPriorityTierService(
         {
             members.Add(new LibraryPriorityTierAudienceMember(
                 m.UserId,
-                m.User?.Username ?? $"User {m.UserId}",
+                string.IsNullOrWhiteSpace(UserDisplay.Name(m.User))
+                    ? $"User {m.UserId}"
+                    : UserDisplay.Name(m.User),
                 m.User?.AvatarResourceId,
                 crewSnapshot.GetTierForUser(m.UserId),
                 m));
@@ -232,7 +235,9 @@ public class LibraryPriorityTierService(
 
             members.Add(new LibraryPriorityTierAudienceMember(
                 m.UserId,
-                m.User?.Username ?? $"User {m.UserId}",
+                string.IsNullOrWhiteSpace(UserDisplay.Name(m.User))
+                    ? $"User {m.UserId}"
+                    : UserDisplay.Name(m.User),
                 m.User?.AvatarResourceId,
                 fleetSnapshot.GetTierForUser(m.UserId),
                 m));

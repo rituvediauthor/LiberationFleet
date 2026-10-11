@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Services;
@@ -18,7 +19,7 @@ public static class ForumMapper
         {
             Id = post.Id,
             AuthorUserId = post.AuthorUserId,
-            AuthorUsername = envelope is null ? post.AuthorUser.Username : string.Empty,
+            AuthorUsername = envelope is null ? UserDisplay.Name(post.AuthorUser) : string.Empty,
             AuthorAvatarResourceId = CrewAvatarVisibilityService.Filter(
                 post.AuthorUser?.AvatarResourceId,
                 post.AuthorUserId,
@@ -47,7 +48,7 @@ public static class ForumMapper
         {
             Id = post.Id,
             AuthorUserId = post.AuthorUserId,
-            AuthorUsername = envelope is null ? post.AuthorUser.Username : string.Empty,
+            AuthorUsername = envelope is null ? UserDisplay.Name(post.AuthorUser) : string.Empty,
             AuthorAvatarResourceId = CrewAvatarVisibilityService.Filter(
                 post.AuthorUser?.AvatarResourceId,
                 post.AuthorUserId,
@@ -79,7 +80,7 @@ public static class ForumMapper
         {
             Id = comment.Id,
             AuthorUserId = comment.AuthorUserId,
-            AuthorUsername = envelope is null ? comment.AuthorUser.Username : string.Empty,
+            AuthorUsername = envelope is null ? UserDisplay.Name(comment.AuthorUser) : string.Empty,
             AuthorAvatarResourceId = CrewAvatarVisibilityService.Filter(
                 comment.AuthorUser?.AvatarResourceId,
                 comment.AuthorUserId,

@@ -218,7 +218,7 @@ public partial class MutualAidService(
 
                 entries.Add(BuildEntry(
                     threshold.UserId,
-                    threshold.User.Username,
+                    UserDisplay.Name(threshold.User),
                     need,
                     ReceptionEntryType.SurvivalThreshold.ToApiValue(),
                     threshold.Id,
@@ -249,7 +249,7 @@ public partial class MutualAidService(
             var pending = pendingRepresentativeByUserId.GetValueOrDefault(member.UserId);
             entries.Add(BuildEntry(
                 member.UserId,
-                member.User.Username,
+                UserDisplay.Name(member.User),
                 need: 0m,
                 entryType: ReceptionEntryType.Representative.ToApiValue(),
                 thresholdId: null,
@@ -385,9 +385,8 @@ public partial class MutualAidService(
                 return;
             }
 
-            var username = cycle.User?.Username
-                ?? allMembers.FirstOrDefault(m => m.UserId == cycle.UserId)?.User.Username
-                ?? string.Empty;
+            var username = UserDisplay.Name(
+                cycle.User ?? allMembers.FirstOrDefault(m => m.UserId == cycle.UserId)?.User);
 
             entries.Add(BuildEntry(
                 cycle.UserId,

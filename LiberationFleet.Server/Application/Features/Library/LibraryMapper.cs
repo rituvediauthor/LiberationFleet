@@ -37,9 +37,10 @@ public static class LibraryMapper
             CrewId = unit.Offering.CrewId,
             CrewName = unit.Offering.Crew?.Name ?? string.Empty,
             HolderUserId = isStock ? unit.Offering.CreatorUserId : unit.CurrentPossessorUserId,
-            HolderUsername = isStock
-                ? unit.Offering.CreatorUser?.Username ?? unit.CurrentPossessorUser.Username
-                : unit.CurrentPossessorUser.Username,
+            HolderUsername = UserDisplay.Name(
+                isStock
+                    ? unit.Offering.CreatorUser ?? unit.CurrentPossessorUser
+                    : unit.CurrentPossessorUser),
             Title = unit.Offering.Title,
             DescriptionPreview = unit.Offering.DescriptionPreview,
             Categories = unit.Offering.Categories
@@ -112,9 +113,10 @@ public static class LibraryMapper
             CrewId = unit.Offering.CrewId,
             CrewName = unit.Offering.Crew?.Name ?? string.Empty,
             HolderUserId = isStock ? unit.Offering.CreatorUserId : unit.CurrentPossessorUserId,
-            HolderUsername = isStock
-                ? unit.Offering.CreatorUser?.Username ?? unit.CurrentPossessorUser.Username
-                : unit.CurrentPossessorUser.Username,
+            HolderUsername = UserDisplay.Name(
+                isStock
+                    ? unit.Offering.CreatorUser ?? unit.CurrentPossessorUser
+                    : unit.CurrentPossessorUser),
             Title = unit.Offering.Title,
             DescriptionPreview = unit.Offering.DescriptionPreview,
             Categories = unit.Offering.Categories
@@ -149,9 +151,9 @@ public static class LibraryMapper
             CrewId = request.Unit.Offering.CrewId,
             CrewName = request.Unit.Offering.Crew?.Name ?? string.Empty,
             HolderUserId = request.Unit.CurrentPossessorUserId,
-            HolderUsername = request.Unit.CurrentPossessorUser.Username,
+            HolderUsername = UserDisplay.Name(request.Unit.CurrentPossessorUser),
             RequesterUserId = request.RequesterUserId,
-            RequesterUsername = request.RequesterUser?.Username ?? string.Empty,
+            RequesterUsername = UserDisplay.Name(request.RequesterUser),
             Title = request.Unit.Offering.Title,
             DescriptionPreview = request.Unit.Offering.DescriptionPreview,
             PurposePreview = request.PurposePreview,
@@ -182,9 +184,9 @@ public static class LibraryMapper
             CrewId = request.Unit.Offering.CrewId,
             CrewName = request.Unit.Offering.Crew?.Name ?? string.Empty,
             HolderUserId = request.Unit.CurrentPossessorUserId,
-            HolderUsername = request.Unit.CurrentPossessorUser.Username,
+            HolderUsername = UserDisplay.Name(request.Unit.CurrentPossessorUser),
             RequesterUserId = request.RequesterUserId,
-            RequesterUsername = request.RequesterUser?.Username ?? string.Empty,
+            RequesterUsername = UserDisplay.Name(request.RequesterUser),
             Title = request.Unit.Offering.Title,
             DescriptionPreview = request.Unit.Offering.DescriptionPreview,
             PurposePreview = request.PurposePreview,
@@ -223,7 +225,7 @@ public static class LibraryMapper
         {
             Id = message.Id,
             AuthorUserId = message.AuthorUserId,
-            AuthorUsername = message.AuthorUser.Username,
+            AuthorUsername = UserDisplay.Name(message.AuthorUser),
             CreatedAt = message.CreatedAt,
             HasEncryptedContent = envelope is not null,
             EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope)

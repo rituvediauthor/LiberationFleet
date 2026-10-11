@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using MediatR;
+using LiberationFleet.Server.Application.Common;
 
 namespace LiberationFleet.Server.Application.Features.Friends.Queries.GetBlockedUsers;
 
@@ -25,7 +26,7 @@ public class GetBlockedUsersQueryHandler(
             .Select(b => new BlockedUserListItemDto
             {
                 UserId = b.BlockedUserId,
-                Username = b.Blocked!.Username,
+                Username = UserDisplay.Name(b.Blocked),
                 BlockedAt = b.CreatedAt
             })
             .OrderBy(i => i.Username, StringComparer.OrdinalIgnoreCase)

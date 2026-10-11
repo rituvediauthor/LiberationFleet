@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
@@ -55,7 +56,7 @@ public class GetInviteCandidatesQueryHandler(
                 candidates.Add(new InviteCandidateDto
                 {
                     UserId = friend.Id,
-                    Username = friend.Username,
+                    Username = UserDisplay.Name(friend),
                     IsFriend = true
                 });
             }
@@ -84,7 +85,7 @@ public class GetInviteCandidatesQueryHandler(
                 candidates.Add(new InviteCandidateDto
                 {
                     UserId = user.Id,
-                    Username = user.Username,
+                    Username = UserDisplay.Name(user),
                     IsFriend = friendIds.Contains(user.Id)
                 });
             }
