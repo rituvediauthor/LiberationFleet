@@ -4,14 +4,8 @@
   margin: 0 auto;
 }
 
-.state-text {
-  color: var(--lf-color-text-secondary);
-  font-size: 14px;
-}
-
-.state-text.error {
-  color: var(--lf-color-danger);
-}
+.state-text { color: var(--lf-color-text-secondary); font-size: 14px; }
+.state-text.error { color: var(--lf-color-danger); }
 
 .profile-card {
   background: var(--lf-color-bg-surface);
@@ -21,33 +15,6 @@
   padding: 32px;
   overflow: hidden;
   --lf-collapsible-inset: 32px;
-}
-
-.profile-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.profile-name {
-  margin: 0 0 20px;
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--lf-color-text-primary);
-}
-
-.non-member-badge {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--lf-color-bg-hover);
-  color: var(--lf-color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  vertical-align: middle;
 }
 
 .claim-section {
@@ -68,10 +35,7 @@
   cursor: pointer;
 }
 
-.claim-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.claim-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .section {
   margin-bottom: 20px;
@@ -92,7 +56,8 @@
   font-size: 14px;
 }
 
-.platform-list {
+.platform-list,
+.identity-group-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -101,14 +66,7 @@
   gap: 10px;
 }
 
-.identity-group-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.identity-group-list { gap: 8px; }
 
 .identity-group-list li {
   font-size: 14px;
@@ -126,14 +84,8 @@
   font-size: 14px;
 }
 
-.platform-name {
-  font-weight: 600;
-  color: var(--lf-color-text-body);
-}
-
-.platform-handle {
-  color: var(--lf-color-text-secondary);
-}
+.platform-name { font-weight: 600; color: var(--lf-color-text-body); }
+.platform-handle { color: var(--lf-color-text-secondary); }
 
 .preferred-badge {
   font-size: 11px;
@@ -161,10 +113,7 @@
   border-bottom: 1px solid var(--lf-color-bg-hover);
 }
 
-.readonly-label {
-  color: var(--lf-color-text-secondary);
-  font-size: 14px;
-}
+.readonly-label { color: var(--lf-color-text-secondary); font-size: 14px; }
 
 .readonly-value {
   color: var(--lf-color-text-primary);
@@ -174,31 +123,28 @@
   margin-left: auto;
 }
 
-.readonly-item > .hint-text {
-  flex: 1 0 100%;
-  margin: 0;
-}
+.readonly-item > .hint-text { flex: 1 0 100%; margin: 0; }
+.priority-hint { margin: -4px 0 8px; grid-column: 1 / -1; }
 
-.priority-hint {
-  margin: -4px 0 8px;
-  grid-column: 1 / -1;
-}
-
-.kick-btn {
+.kick-btn,
+.block-btn,
+.export-btn,
+.toggle-btn {
   width: 100%;
   padding: 12px;
-  border: 1px solid var(--lf-color-danger-border);
   border-radius: 8px;
-  background: var(--lf-color-danger-soft-bg);
-  color: var(--lf-color-danger);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.kick-btn:hover:not(:disabled) {
-  filter: brightness(0.98);
+.kick-btn {
+  border: 1px solid var(--lf-color-danger-border);
+  background: var(--lf-color-danger-soft-bg);
+  color: var(--lf-color-danger);
 }
+
+.kick-btn:hover:not(:disabled) { filter: brightness(0.98); }
 
 .moderation-actions {
   margin-top: 24px;
@@ -214,15 +160,9 @@
 }
 
 .block-btn {
-  width: 100%;
-  padding: 12px;
   border: 1px solid var(--lf-color-border-subtle);
-  border-radius: 8px;
   background: var(--lf-color-bg-muted);
   color: var(--lf-color-text-body);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .block-btn:hover:not(:disabled) {
@@ -230,12 +170,11 @@
   border-color: var(--lf-color-text-subtle);
 }
 
-.block-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.block-btn:disabled,
+.role-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.hint-text {
+.hint-text,
+.role-hint {
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
@@ -264,9 +203,7 @@
   padding: 4px 10px;
 }
 
-.role-actions {
-  margin-top: 10px;
-}
+.role-actions { margin-top: 10px; }
 
 .role-btn {
   flex: 1;
@@ -285,20 +222,8 @@
   color: var(--lf-color-danger);
 }
 
-.role-btn:hover:not(:disabled) {
-  filter: brightness(0.98);
-}
-
-.role-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.role-hint {
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: var(--lf-color-text-secondary);
-}
+.role-btn:hover:not(:disabled) { filter: brightness(0.98); }
+.role-hint { margin: 0 0 10px; }
 
 .elected-role-pills {
   display: flex;
@@ -332,25 +257,23 @@
 
 .export-btn,
 .toggle-btn {
-  width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--lf-color-accent-border);
-  border-radius: 8px;
   background: var(--lf-color-accent-soft-bg-alt);
   color: var(--lf-color-accent);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .aid-stat-section .hint-text { margin-bottom: 14px; }
 
-.aid-stat-form {
+.aid-stat-form,
+.aid-active-cards,
+.aid-stat-threshold-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 14px;
 }
+
+.aid-stat-form { margin-bottom: 14px; }
 
 .aid-stat-field {
   display: flex;
@@ -379,13 +302,9 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--lf-color-text-body);
-  margin-top: 4px;
 }
 
-.aid-stat-checkbox input {
-  width: 18px;
-  height: 18px;
-}
+.aid-stat-checkbox input { width: 18px; height: 18px; }
 
 .aid-stat-subtitle {
   margin: 8px 0 0;
@@ -395,17 +314,12 @@
 }
 
 .aid-active-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--lf-color-border);
 }
 
 .aid-stat-threshold-card {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--lf-color-border);
@@ -427,24 +341,15 @@
 }
 
 .aid-card-badge {
-  display: inline-block;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--lf-color-accent-soft-bg-alt, var(--lf-color-bg-hover));
-  color: var(--lf-color-accent, var(--lf-color-text-primary));
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-accent);
   font-size: 11px;
   font-weight: 700;
 }
 
-.aid-card-badge.muted {
-  background: var(--lf-color-bg-hover);
-  color: var(--lf-color-text-secondary);
-}
-
-.aid-stat-threshold-actions {
-  display: flex;
-  gap: 8px;
-}
+.aid-card-badge.muted { color: var(--lf-color-text-secondary); }
 
 @media (max-width: 600px) {
   .profile-card {
