@@ -2751,6 +2751,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("CrewId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsCustomAmount")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Month")
                         .HasColumnType("int");
 

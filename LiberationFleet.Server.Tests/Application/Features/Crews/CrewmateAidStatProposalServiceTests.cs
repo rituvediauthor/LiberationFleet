@@ -178,6 +178,7 @@ public class CrewmateAidStatProposalServiceTests
         var accounting = new AidSeasonAccountingDto
         {
             CycleReceived = 35m,
+            CycleCap = 80m,
             HasActiveCycle = true,
             ReceptionOrder = 1,
             AutoJoinSeasonOnStart = true,
@@ -210,10 +211,13 @@ public class CrewmateAidStatProposalServiceTests
 
         var reloaded = await fixture.Context.SeasonCycles.SingleAsync(c => c.Id == primary.Id);
         reloaded.CycleReceived.Should().Be(35m);
+        reloaded.CycleCapAtStart.Should().Be(80m);
+        reloaded.UsesSegmentCap.Should().BeTrue();
         reloaded.HasCycleStarted.Should().BeTrue();
         reloaded.ReceptionOrderPosition.Should().Be(0);
         reloaded.SurvivalThresholdReceived.Should().Be(30m);
         reloaded.TotalReceptionAmount.Should().Be(65m);
+        reloaded.CycleCompleted.Should().BeFalse();
 
         var membership = await fixture.Context.CrewMemberships
             .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);

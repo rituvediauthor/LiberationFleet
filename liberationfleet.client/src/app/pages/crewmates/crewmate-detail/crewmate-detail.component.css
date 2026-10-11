@@ -394,6 +394,15 @@
   color: var(--lf-color-text-primary);
 }
 
+.aid-active-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lf-color-border);
+}
+
 .aid-stat-threshold-card {
   display: flex;
   flex-direction: column;
@@ -402,6 +411,34 @@
   border: 1px solid var(--lf-color-border);
   border-radius: 8px;
   background: var(--lf-color-bg-surface);
+}
+
+.aid-card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.aid-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lf-color-text-primary);
+}
+
+.aid-card-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lf-color-accent-soft-bg-alt, var(--lf-color-bg-hover));
+  color: var(--lf-color-accent, var(--lf-color-text-primary));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aid-card-badge.muted {
+  background: var(--lf-color-bg-hover);
+  color: var(--lf-color-text-secondary);
 }
 
 .aid-stat-threshold-actions {

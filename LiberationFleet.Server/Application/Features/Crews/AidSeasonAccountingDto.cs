@@ -8,6 +8,11 @@ namespace LiberationFleet.Server.Application.Features.Crews;
 public sealed class AidSeasonAccountingDto
 {
     public decimal CycleReceived { get; set; }
+    /// <summary>
+    /// Total cycle target (amount received + still owed). When set on apply, pins the primary
+    /// cycle via <c>UsesSegmentCap</c> so reception order uses this cap.
+    /// </summary>
+    public decimal? CycleCap { get; set; }
     public bool HasActiveCycle { get; set; }
     /// <summary>1-based reception order among locked/active cycles (1 = front of queue).</summary>
     public int? ReceptionOrder { get; set; }

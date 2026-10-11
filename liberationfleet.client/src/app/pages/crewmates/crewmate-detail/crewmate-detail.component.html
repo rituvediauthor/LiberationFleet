@@ -86,6 +86,127 @@
             <li *ngFor="let label of identityGroupLabels">{{ label }}</li>
           </ul>
         </div>
+
+        <div class="aid-active-cards" *ngIf="showCycleCard || activeThresholdRows.length > 0 || profile.canProposeAidStatEdits">
+          <h3 class="aid-stat-subtitle">Active reception</h3>
+          <p class="hint-text" *ngIf="profile.canProposeAidStatEdits">
+            Edit amounts, then propose an aid statistic update for crew approval.
+            Amount to be received is what is still owed; amount received is what already counts toward the target.
+          </p>
+
+          <div class="aid-stat-threshold-card" *ngIf="showCycleCard">
+            <div class="aid-card-title-row">
+              <span class="aid-card-title">Primary cycle</span>
+              <span class="aid-card-badge" *ngIf="aidDraft.hasActiveCycle">Active</span>
+              <span class="aid-card-badge muted" *ngIf="!aidDraft.hasActiveCycle && profile.cycleCompleted === false">Queued</span>
+              <span class="aid-card-badge muted" *ngIf="profile.cycleCompleted">Completed</span>
+            </div>
+
+            <ng-container *ngIf="profile.canProposeAidStatEdits; else cycleReadonly">
+              <label class="aid-stat-field">
+                <span>Amount to be received ($)</span>
+                <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleAmountToBeReceived" class="form-input">
+              </label>
+              <label class="aid-stat-field">
+                <span>Amount received ($)</span>
+                <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" class="form-input">
+              </label>
+              <label class="aid-stat-checkbox">
+                <input type="checkbox" [(ngModel)]="aidDraft.hasActiveCycle">
+                <span>Active / locked cycle</span>
+              </label>
+              <label class="aid-stat-field">
+                <span>Reception order (1 = front of queue)</span>
+                <input type="number" min="1" step="1" [(ngModel)]="aidDraft.receptionOrder" class="form-input">
+              </label>
+            </ng-container>
+            <ng-template #cycleReadonly>
+              <div class="readonly-grid">
+                <div class="readonly-item">
+                  <span class="readonly-label">Amount to be received</span>
+                  <span class="readonly-value">${{ aidDraft.cycleAmountToBeReceived || '0' }}</span>
+                </div>
+                <div class="readonly-item">
+                  <span class="readonly-label">Amount received</span>
+                  <span class="readonly-value">${{ aidDraft.cycleReceived || '0' }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <div
+            class="aid-stat-threshold-card"
+            *ngFor="let row of activeThresholdRows; let i = index">
+            <div class="aid-card-title-row">
+              <span class="aid-card-title">Survival threshold</span>
+              <span class="aid-card-badge" *ngIf="(row.amountRemaining || 0) > 0">Active</span>
+              <span class="aid-card-badge muted" *ngIf="(row.amountRemaining || 0) <= 0">Satisfied</span>
+            </div>
+
+            <ng-container *ngIf="profile.canProposeAidStatEdits">
+              <label class="aid-stat-field">
+                <span>Amount to be received ($)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                  [ngModel]="row.amountRemaining"
+                  (ngModelChange)="onThresholdToBeReceivedChange(row, $event)">
+              </label>
+              <label class="aid-stat-field">
+                <span>Amount received ($)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                  [ngModel]="row.amountReceived"
+                  (ngModelChange)="onThresholdReceivedChange(row, $event)">
+              </label>
+              <label class="aid-stat-field">
+                <span>Reception order (1 = first among all thresholds)</span>
+                <input type="number" min="1" step="1" [(ngModel)]="row.order" class="form-input">
+              </label>
+              <div class="aid-stat-threshold-actions">
+                <button type="button" class="block-btn" (click)="removeSurvivalThresholdRow(aidDraft.survivalThresholds.indexOf(row))">
+                  Remove
+                </button>
+              </div>
+            </ng-container>
+            <div class="readonly-grid" *ngIf="!profile.canProposeAidStatEdits">
+              <div class="readonly-item">
+                <span class="readonly-label">Amount to be received</span>
+                <span class="readonly-value">${{ row.amountRemaining || 0 }}</span>
+              </div>
+              <div class="readonly-item">
+                <span class="readonly-label">Amount received</span>
+                <span class="readonly-value">${{ row.amountReceived || 0 }}</span>
+              </div>
+            </div>
+          </div>
+
+          <ng-container *ngIf="profile.canProposeAidStatEdits">
+            <button type="button" class="export-btn" (click)="addSurvivalThresholdRow()">
+              Add survival threshold
+            </button>
+            <div class="readonly-item">
+              <span class="readonly-label">Survival reception (derived)</span>
+              <span class="readonly-value">${{ derivedSurvivalReceived | number:'1.2-2' }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Total reception (cycle + survival)</span>
+              <span class="readonly-value">${{ derivedTotalReception | number:'1.2-2' }}</span>
+            </div>
+            <button
+              type="button"
+              class="export-btn"
+              [disabled]="actionLoading"
+              (click)="onProposeAidStatChanges()">
+              Propose aid statistic changes
+            </button>
+          </ng-container>
+        </div>
       </app-collapsible-section>
 
       <app-collapsible-section title="Crewmate stats">
@@ -298,64 +419,15 @@
             <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.receptionThisYear" class="form-input">
           </label>
 
-          <h3 class="aid-stat-subtitle">Season accounting</h3>
+          <h3 class="aid-stat-subtitle">Season join</h3>
           <label class="aid-stat-checkbox" *ngIf="!profile.seasonStarted">
             <input type="checkbox" [(ngModel)]="aidDraft.autoJoinSeasonOnStart">
             <span>Auto-join this crewmate when the season starts</span>
           </label>
-          <label class="aid-stat-field">
-            <span>Cycle reception ($)</span>
-            <input type="number" min="0" step="0.01" [(ngModel)]="aidDraft.cycleReceived" class="form-input">
-          </label>
-          <label class="aid-stat-checkbox">
-            <input type="checkbox" [(ngModel)]="aidDraft.hasActiveCycle">
-            <span>Active / locked cycle</span>
-          </label>
-          <label class="aid-stat-field">
-            <span>Reception order (1 = front of queue)</span>
-            <input type="number" min="1" step="1" [(ngModel)]="aidDraft.receptionOrder" class="form-input">
-          </label>
-
-          <div class="readonly-item">
-            <span class="readonly-label">Survival reception (derived)</span>
-            <span class="readonly-value">${{ derivedSurvivalReceived | number:'1.2-2' }}</span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Total reception (cycle + survival)</span>
-            <span class="readonly-value">${{ derivedTotalReception | number:'1.2-2' }}</span>
-          </div>
           <p class="hint-text">
-            Cycle completion is automatic: the cycle is complete when cycle reception meets the cycle cap.
+            Active cycle and survival threshold amounts are edited in the Mutual aid section above.
+            Cycle completion is automatic when amount received meets the cycle target.
           </p>
-
-          <h3 class="aid-stat-subtitle">Survival thresholds</h3>
-          <p class="hint-text">
-            Edit remaining amount (received = threshold − remaining).
-            Order is 1-based among all crewmates’ survival thresholds in the crew (1 = first).
-          </p>
-          <div class="aid-stat-threshold-card" *ngFor="let row of aidDraft.survivalThresholds; let i = index">
-            <label class="aid-stat-field">
-              <span>Threshold amount ($)</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="row.thresholdAmount" class="form-input">
-            </label>
-            <label class="aid-stat-field">
-              <span>Amount remaining ($)</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="row.amountRemaining" class="form-input">
-            </label>
-            <label class="aid-stat-field">
-              <span>Reception order (1 = first among all thresholds)</span>
-              <input type="number" min="1" step="1" [(ngModel)]="row.order" class="form-input">
-            </label>
-            <div class="aid-stat-threshold-actions">
-              <button type="button" class="block-btn" (click)="removeSurvivalThresholdRow(i)">Remove</button>
-            </div>
-          </div>
-          <button
-            type="button"
-            class="export-btn"
-            (click)="addSurvivalThresholdRow()">
-            Add survival threshold
-          </button>
         </div>
 
         <button

@@ -28,6 +28,12 @@ public class CrewDto
     public string NonMemberCycleCapMode { get; set; } = "CapacityBased";
     public decimal NonMemberCycleCapFixedAmount { get; set; }
     public decimal NonMemberCycleCapMultiplier { get; set; } = 0.5m;
+    /// <summary>True when a mutual-aid season is active; cycle caps below are frozen for that season.</summary>
+    public bool SeasonStarted { get; set; }
+    /// <summary>Member cycle cap frozen at current season start (0 when no season).</summary>
+    public decimal SeasonMemberCycleCap { get; set; }
+    /// <summary>Non-member cycle cap frozen at current season start (0 when no season).</summary>
+    public decimal SeasonNonMemberCycleCap { get; set; }
     public bool AllowCrewmateFileAttachments { get; set; }
     public int MinimumCrewmateTenureDaysForAttachments { get; set; }
     public decimal MinimumContributionForAttachments { get; set; }

@@ -122,11 +122,15 @@ export interface AidSurvivalThresholdDraft {
   id?: number | null;
   thresholdAmount: number;
   amountRemaining: number;
+  /** Client-only edit helper: money already received (threshold − remaining). */
+  amountReceived?: number;
   order: number;
 }
 
 export interface AidSeasonAccounting {
   cycleReceived: number;
+  /** Total cycle target (received + still owed). */
+  cycleCap?: number | null;
   hasActiveCycle: boolean;
   receptionOrder?: number | null;
   autoJoinSeasonOnStart: boolean;

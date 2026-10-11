@@ -127,10 +127,12 @@ public class GetCrewmateProfileQueryHandler(
                 viewerMembership.CrewId,
                 request.UserId,
                 cancellationToken);
+            var seasonCap = isFinancialMember ? crew.SeasonMemberCycleCap : crew.SeasonNonMemberCycleCap;
             seasonAccounting = AidStatDraftSerializer.FromLiveState(
                 seasonCycle,
                 thresholds,
-                targetMembership.AutoJoinSeasonOnStart);
+                targetMembership.AutoJoinSeasonOnStart,
+                effectiveCycleCap: seasonCap > 0m ? seasonCap : null);
         }
         else
         {

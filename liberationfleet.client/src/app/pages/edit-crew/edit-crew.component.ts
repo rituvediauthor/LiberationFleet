@@ -47,6 +47,9 @@ export class EditCrewComponent implements OnInit {
   memberCount = 0;
   requireApprovalForEdits = true;
   monthlyGivingCapacity = 0;
+  seasonStarted = false;
+  seasonMemberCycleCap = 0;
+  seasonNonMemberCycleCap = 0;
   libraryPriorityAverage = 0;
   libraryPriorityTierCounts: number[] = [0, 0, 0, 0, 0, 0];
   loading = true;
@@ -206,6 +209,21 @@ export class EditCrewComponent implements OnInit {
     return Number(this.form.get('nonMemberCycleCapFixedAmount')?.value ?? 0);
   }
 
+  /** In-season effective cap: min(frozen season start, live settings preview). */
+  get memberCycleCapInSeason(): number | null {
+    if (!this.seasonStarted || this.seasonMemberCycleCap <= 0) {
+      return null;
+    }
+    return Math.min(this.seasonMemberCycleCap, this.memberCycleCapPreview);
+  }
+
+  get nonMemberCycleCapInSeason(): number | null {
+    if (!this.seasonStarted || this.seasonNonMemberCycleCap <= 0) {
+      return null;
+    }
+    return Math.min(this.seasonNonMemberCycleCap, this.nonMemberCycleCapPreview);
+  }
+
   onLeaveCrew() {
     this.showLeaveDialog = true;
   }
@@ -282,6 +300,7 @@ export class EditCrewComponent implements OnInit {
               this.memberCount = result.crew.memberCount;
               this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
               this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? this.monthlyGivingCapacity;
+              this.applySeasonCapFieldsFromCrew(result.crew);
               this.patchFormFromCrew(result.crew);
               this.updateMemberCountValidators();
             }
@@ -296,6 +315,7 @@ export class EditCrewComponent implements OnInit {
             this.toastService.success(result.message);
             this.joinCode = result.crew.joinCode;
             this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? this.monthlyGivingCapacity;
+            this.applySeasonCapFieldsFromCrew(result.crew);
             this.patchFormFromCrew(result.crew);
             this.captureInitialState();
             this.images.invalidate(previousImageId, 'ImageAsset');
@@ -380,6 +400,7 @@ export class EditCrewComponent implements OnInit {
         this.joinCode = result.crew.joinCode;
         this.memberCount = result.crew.memberCount;
         this.monthlyGivingCapacity = result.crew.monthlyGivingCapacity ?? 0;
+        this.applySeasonCapFieldsFromCrew(result.crew);
         this.libraryPriorityAverage = result.crew.libraryPriorityAverage ?? 0;
         this.libraryPriorityTierCounts = this.normalizeTierCounts(result.crew.libraryPriorityTierCounts);
         this.requireApprovalForEdits = result.crew.requireApprovalForEdits ?? true;
@@ -477,6 +498,16 @@ export class EditCrewComponent implements OnInit {
       minimumCrewmateTenureDaysForProposals: crew.minimumCrewmateTenureDaysForProposals ?? 0,
       minimumContributionForProposals: crew.minimumContributionForProposals ?? 0
     }, { emitEvent: false });
+  }
+
+  private applySeasonCapFieldsFromCrew(crew: {
+    seasonStarted?: boolean;
+    seasonMemberCycleCap?: number;
+    seasonNonMemberCycleCap?: number;
+  }): void {
+    this.seasonStarted = !!crew.seasonStarted;
+    this.seasonMemberCycleCap = Number(crew.seasonMemberCycleCap ?? 0);
+    this.seasonNonMemberCycleCap = Number(crew.seasonNonMemberCycleCap ?? 0);
   }
 
   private captureInitialState() {

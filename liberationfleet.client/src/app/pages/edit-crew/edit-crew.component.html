@@ -187,7 +187,10 @@
               <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
             </div>
 
-            <p class="preview-text">Effective member cycle cap preview: ${{ memberCycleCapPreview | number:'1.0-2' }}</p>
+            <p class="preview-text">Next-season / live member cycle cap preview: ${{ memberCycleCapPreview | number:'1.0-2' }}</p>
+            <p class="preview-text" *ngIf="memberCycleCapInSeason != null">
+              In-season member cycle cap (frozen at season start, cannot rise mid-season): ${{ memberCycleCapInSeason | number:'1.0-2' }}
+            </p>
           </div>
 
           <div class="nested-settings">
@@ -214,7 +217,10 @@
               <span class="hint-text">Current crew-wide monthly giving capacity (3-month gift average excluding Library of Things) × multiplier.</span>
             </div>
 
-            <p class="preview-text">Effective non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>
+            <p class="preview-text">Next-season / live non-member cycle cap preview: ${{ nonMemberCycleCapPreview | number:'1.0-2' }}</p>
+            <p class="preview-text" *ngIf="nonMemberCycleCapInSeason != null">
+              In-season non-member cycle cap (frozen at season start, cannot rise mid-season): ${{ nonMemberCycleCapInSeason | number:'1.0-2' }}
+            </p>
           </div>
 
           <div class="form-group checkbox-group">

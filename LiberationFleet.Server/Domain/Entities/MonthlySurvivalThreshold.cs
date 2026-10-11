@@ -11,6 +11,11 @@ public class MonthlySurvivalThreshold
     public decimal ReceivedAmount { get; set; }
     public int ReceptionOrderPosition { get; set; }
     public bool Satisfied { get; set; }
+    /// <summary>
+    /// When true, monthly auto-refresh must not overwrite <see cref="ThresholdAmount"/>
+    /// (set by aid-stat drafts / accountant edits).
+    /// </summary>
+    public bool IsCustomAmount { get; set; }
 
     public Crew Crew { get; set; } = null!;
     public User User { get; set; } = null!;

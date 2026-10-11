@@ -2260,15 +2260,24 @@ public async Task<bool> IsFinancialMemberAsync(
             crewId,
             membership,
             cancellationToken);
+
+        var cycleReceived = Math.Max(0m, accounting.CycleReceived);
+        cycle.CycleReceived = cycleReceived;
+        cycle.HasCycleStarted = accounting.HasActiveCycle;
+
+        if (accounting.CycleCap is decimal cycleCap && cycleCap >= 0m)
+        {
+            // Pin a custom total so reception order / gifts use accountant-set target.
+            cycle.UsesSegmentCap = true;
+            cycle.CycleCapAtStart = cycleCap;
+            cycle.CapIsProvisional = false;
+        }
+
         var effectiveCap = EmergencySplitService.ResolveSegmentCap(
             cycle,
             isFinancialMember,
             crew.SeasonMemberCycleCap,
             crew.SeasonNonMemberCycleCap);
-
-        var cycleReceived = Math.Max(0m, accounting.CycleReceived);
-        cycle.CycleReceived = cycleReceived;
-        cycle.HasCycleStarted = accounting.HasActiveCycle;
 
         if (accounting.ReceptionOrder is int receptionOrder1Based && receptionOrder1Based > 0)
         {
@@ -2370,6 +2379,8 @@ public async Task<bool> IsFinancialMemberAsync(
             .OrderBy(t => t.Order <= 0 ? int.MaxValue : t.Order)
             .ThenBy(t => t.Id ?? int.MaxValue)
             .ToList();
+        // Unique (CrewId, UserId, Year, Month): each draft in one apply claims a distinct month.
+        var assignedMonths = new HashSet<(int Year, int Month)>();
 
         foreach (var draft in orderedDrafts)
         {
@@ -2381,8 +2392,11 @@ public async Task<bool> IsFinancialMemberAsync(
             }
             else
             {
-                // One threshold per user per calendar month (unique index).
-                row = existingById.Values.FirstOrDefault(t => t.Year == now.Year && t.Month == now.Month);
+                // Prefer the current-month auto row if it has not already been claimed this pass.
+                row = existingById.Values.FirstOrDefault(t =>
+                    t.Year == now.Year
+                    && t.Month == now.Month
+                    && !assignedMonths.Contains((t.Year, t.Month)));
             }
 
             if (row is not null)
@@ -2392,6 +2406,7 @@ public async Task<bool> IsFinancialMemberAsync(
                     : Math.Max(row.ThresholdAmount, remaining);
                 row.ThresholdAmount = thresholdAmount;
                 row.ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount);
+                row.IsCustomAmount = true;
             }
             else
             {
@@ -2401,15 +2416,22 @@ public async Task<bool> IsFinancialMemberAsync(
                     continue;
                 }
 
+                var (year, month) = AllocateFreeThresholdMonth(
+                    now.Year,
+                    now.Month,
+                    existingById.Values,
+                    assignedMonths);
+
                 row = new MonthlySurvivalThreshold
                 {
                     CrewId = crew.Id,
                     UserId = userId,
-                    Year = now.Year,
-                    Month = now.Month,
+                    Year = year,
+                    Month = month,
                     ThresholdAmount = thresholdAmount,
                     ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount),
-                    ReceptionOrderPosition = nextPosition
+                    ReceptionOrderPosition = nextPosition,
+                    IsCustomAmount = true
                 };
                 await mutualAidRepository.AddThresholdAsync(row, cancellationToken);
                 if (row.Id != 0)
@@ -2418,12 +2440,49 @@ public async Task<bool> IsFinancialMemberAsync(
                 }
             }
 
+            assignedMonths.Add((row.Year, row.Month));
+
             // Absolute crew-wide order from the editor (1-based → 0-based position).
             row.ReceptionOrderPosition = draft.Order > 0
                 ? Math.Max(0, draft.Order - 1)
                 : nextPosition++;
             row.Satisfied = row.ReceivedAmount >= row.ThresholdAmount;
         }
+    }
+
+    /// <summary>
+    /// Picks the newest calendar month at or before <paramref name="startYear"/>/<paramref name="startMonth"/>
+    /// that is not already used by an existing or newly assigned threshold row.
+    /// </summary>
+    private static (int Year, int Month) AllocateFreeThresholdMonth(
+        int startYear,
+        int startMonth,
+        IEnumerable<MonthlySurvivalThreshold> existingRows,
+        ISet<(int Year, int Month)> assignedMonths)
+    {
+        var occupied = existingRows
+            .Select(t => (t.Year, t.Month))
+            .Concat(assignedMonths)
+            .ToHashSet();
+
+        var year = startYear;
+        var month = startMonth;
+        for (var i = 0; i < 120; i++)
+        {
+            if (!occupied.Contains((year, month)))
+            {
+                return (year, month);
+            }
+
+            month--;
+            if (month < 1)
+            {
+                month = 12;
+                year--;
+            }
+        }
+
+        return (startYear, startMonth);
     }
 
 
@@ -2460,7 +2519,9 @@ public async Task<bool> IsFinancialMemberAsync(
             member.EmergencySacrificesThisSeason = 0;
         }
 
-        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        // Use the in-memory participant list — GetSeasonContributionMembersAsync is AsNoTracking and
+        // would still see pre-save IsInSeason=false, falling back to ready-only (excluding auto-join).
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken, participants);
         crew.SeasonMemberCycleCap = capacityContext.MemberCycleCap;
         crew.SeasonNonMemberCycleCap = capacityContext.NonMemberCycleCap;
 
@@ -2708,7 +2769,8 @@ public async Task<bool> IsFinancialMemberAsync(
                 continue;
             }
 
-            if (threshold.ThresholdAmount != survivalAmount)
+            // Preserve accountant / aid-stat custom amounts; only sync formula-driven rows.
+            if (!threshold.IsCustomAmount && threshold.ThresholdAmount != survivalAmount)
             {
                 threshold.ThresholdAmount = survivalAmount;
                 changed = true;
@@ -3673,6 +3735,18 @@ public async Task<bool> IsFinancialMemberAsync(
     public async Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default)
     {
         var participants = await mutualAidRepository.GetSeasonContributionMembersAsync(crewId, cancellationToken);
+        return await SumMonthlyGivingCapacityAsync(crewId, participants, cancellationToken);
+    }
+
+    /// <summary>
+    /// Capacity for an explicit member set (e.g. season-start participants). Prefer this when
+    /// <see cref="GetSeasonContributionMembersAsync"/> would still see pre-save DB state.
+    /// </summary>
+    private async Task<decimal> SumMonthlyGivingCapacityAsync(
+        int crewId,
+        IReadOnlyList<CrewMembership> participants,
+        CancellationToken cancellationToken)
+    {
         if (participants.Count == 0)
         {
             return 0m;
@@ -3829,12 +3903,19 @@ public async Task<bool> IsFinancialMemberAsync(
             membership.EstimatedMonthlyContribution ?? 0m);
     }
 
-    private async Task<CapacityContext> BuildCapacityContextAsync(Crew crew, CancellationToken cancellationToken)
+    private async Task<CapacityContext> BuildCapacityContextAsync(
+        Crew crew,
+        CancellationToken cancellationToken,
+        IReadOnlyList<CrewMembership>? contributionMembers = null)
     {
-        var totalContributions = await GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken);
+        var totalContributions = contributionMembers is null
+            ? await GetCrewMonthlyGivingCapacityAsync(crew.Id, cancellationToken)
+            : await SumMonthlyGivingCapacityAsync(crew.Id, contributionMembers, cancellationToken);
 
         var thresholdRecipients = AreSurvivalThresholdsEnabled(crew)
-            ? await mutualAidRepository.CountSeasonParticipantsNeedingSurvivalAidAsync(crew.Id, cancellationToken)
+            ? contributionMembers is null
+                ? await mutualAidRepository.CountSeasonParticipantsNeedingSurvivalAidAsync(crew.Id, cancellationToken)
+                : contributionMembers.Count(m => m.User?.NeedsSurvivalAid == true)
             : 0;
         var survivalThreshold = MutualAidCalculationService.GetSurvivalThresholdAmount(totalContributions, thresholdRecipients);
         var memberCap = MutualAidCalculationService.GetMemberCycleCap(crew, totalContributions);

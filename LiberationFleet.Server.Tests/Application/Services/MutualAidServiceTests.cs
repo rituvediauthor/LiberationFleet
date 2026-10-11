@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -728,6 +729,10 @@ public class MutualAidServiceTests
         (await context.SeasonCycles.CountAsync(c => c.CrewId == crew.Id)).Should().Be(12);
         reloadedCrew.NextSeasonStartDate.Should().NotBeNull();
         reloadedCrew.FollowingSeasonStartDate.Should().NotBeNull();
+        // Capacity must include auto-join member ($100 × 4), not ready-only ($100 × 3).
+        // Default capacity-based multipliers: member ×2, non-member ×0.5.
+        reloadedCrew.SeasonMemberCycleCap.Should().Be(800m);
+        reloadedCrew.SeasonNonMemberCycleCap.Should().Be(200m);
     }
 
     [Fact]
@@ -1087,6 +1092,111 @@ public class MutualAidServiceTests
             .ToListAsync();
         updated.Should().HaveCount(2);
         updated.Should().OnlyContain(t => t.ThresholdAmount == 14m);
+    }
+
+    [Fact]
+    public async Task CreateSurvivalThresholds_DoesNotOverwriteCustomAidStatAmounts()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = 20m;
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        fixture.Alice.NeedsSurvivalAid = true;
+        fixture.Bob.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.EnsureCurrentMonthSurvivalThresholdsAsync(fixture.Alice.Id, CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        var aliceMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        await fixture.Service.ApplyAidSeasonAccountingAsync(
+            fixture.Crew.Id,
+            aliceMembership,
+            new AidSeasonAccountingDto
+            {
+                SurvivalThresholds =
+                [
+                    new AidSurvivalThresholdDraftDto
+                    {
+                        ThresholdAmount = 21m,
+                        AmountRemaining = 21m,
+                        Order = 1
+                    }
+                ]
+            },
+            persistAsDraftWhenNoSeason: false,
+            CancellationToken.None);
+
+        // Recipient count change recalculates formula amount for auto rows, but not custom.
+        fixture.Carol.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+        await fixture.Service.EnsureCurrentMonthSurvivalThresholdsAsync(fixture.Alice.Id, CancellationToken.None);
+
+        var aliceThreshold = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t =>
+            t.CrewId == fixture.Crew.Id
+            && t.UserId == fixture.Alice.Id
+            && t.Year == now.Year
+            && t.Month == now.Month);
+        aliceThreshold.ThresholdAmount.Should().Be(21m);
+        aliceThreshold.IsCustomAmount.Should().BeTrue();
+
+        var bobThreshold = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t =>
+            t.CrewId == fixture.Crew.Id
+            && t.UserId == fixture.Bob.Id
+            && t.Year == now.Year
+            && t.Month == now.Month);
+        bobThreshold.IsCustomAmount.Should().BeFalse();
+        // Ceiling(60/2/3) = 10 after Carol becomes eligible
+        bobThreshold.ThresholdAmount.Should().Be(10m);
+    }
+
+    [Fact]
+    public async Task ApplyAidSeasonAccounting_MultipleThresholdDrafts_UsesDistinctMonths()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        fixture.Bob.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var membership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        await fixture.Service.ApplyAidSeasonAccountingAsync(
+            fixture.Crew.Id,
+            membership,
+            new AidSeasonAccountingDto
+            {
+                SurvivalThresholds =
+                [
+                    new AidSurvivalThresholdDraftDto
+                    {
+                        ThresholdAmount = 21m,
+                        AmountRemaining = 21m,
+                        Order = 1
+                    },
+                    new AidSurvivalThresholdDraftDto
+                    {
+                        ThresholdAmount = 11m,
+                        AmountRemaining = 11m,
+                        Order = 2
+                    }
+                ]
+            },
+            persistAsDraftWhenNoSeason: false,
+            CancellationToken.None);
+
+        var thresholds = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id && t.UserId == fixture.Bob.Id)
+            .OrderByDescending(t => t.Year)
+            .ThenByDescending(t => t.Month)
+            .ToListAsync();
+
+        thresholds.Should().HaveCount(2);
+        thresholds.Select(t => t.ThresholdAmount).Should().BeEquivalentTo([21m, 11m]);
+        thresholds.Select(t => (t.Year, t.Month)).Should().OnlyHaveUniqueItems();
+        thresholds.Should().OnlyContain(t => t.IsCustomAmount);
     }
 
     [Fact]

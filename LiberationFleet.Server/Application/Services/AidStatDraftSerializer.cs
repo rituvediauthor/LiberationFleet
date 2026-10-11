@@ -35,7 +35,8 @@ public static class AidStatDraftSerializer
     public static AidSeasonAccountingDto FromLiveState(
         SeasonCycle? cycle,
         IReadOnlyList<MonthlySurvivalThreshold> thresholds,
-        bool autoJoinSeasonOnStart)
+        bool autoJoinSeasonOnStart,
+        decimal? effectiveCycleCap = null)
     {
         var thresholdDtos = thresholds
             .OrderBy(t => t.ReceptionOrderPosition)
@@ -49,9 +50,23 @@ public static class AidStatDraftSerializer
             })
             .ToList();
 
+        decimal? cycleCap = null;
+        if (cycle is not null)
+        {
+            if (cycle.UsesSegmentCap || cycle.EmergencyRequestId.HasValue || cycle.EmergencySplitOfferId.HasValue)
+            {
+                cycleCap = cycle.CycleCapAtStart;
+            }
+            else
+            {
+                cycleCap = effectiveCycleCap ?? cycle.CycleCapAtStart;
+            }
+        }
+
         return new AidSeasonAccountingDto
         {
             CycleReceived = cycle?.CycleReceived ?? 0m,
+            CycleCap = cycleCap,
             HasActiveCycle = cycle?.HasCycleStarted == true,
             ReceptionOrder = cycle is null ? null : cycle.ReceptionOrderPosition + 1,
             AutoJoinSeasonOnStart = autoJoinSeasonOnStart,

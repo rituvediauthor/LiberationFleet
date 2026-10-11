@@ -29,6 +29,10 @@ export interface Crew {
   nonMemberCycleCapMode?: CycleCapMode;
   nonMemberCycleCapFixedAmount?: number;
   nonMemberCycleCapMultiplier?: number;
+  /** True when a mutual-aid season is active; season*CycleCap values are frozen for that season. */
+  seasonStarted?: boolean;
+  seasonMemberCycleCap?: number;
+  seasonNonMemberCycleCap?: number;
   monthlyGivingCapacity?: number;
   allowCrewmateFileAttachments?: boolean;
   minimumCrewmateTenureDaysForAttachments?: number;

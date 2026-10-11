@@ -59,6 +59,8 @@ export class CrewmateDetailComponent implements OnInit {
     receptionThisYear: '',
     percentBoost: '',
     cycleReceived: '',
+    /** Still owed on the primary cycle (cycleCap − cycleReceived). */
+    cycleAmountToBeReceived: '',
     hasActiveCycle: false,
     receptionOrder: '',
     autoJoinSeasonOnStart: false,
@@ -592,8 +594,14 @@ export class CrewmateDetailComponent implements OnInit {
   private buildSeasonAccountingPayload(): AidSeasonAccounting {
     const cycleReceived = Number(String(this.aidDraft.cycleReceived ?? '').trim() || '0');
     if (!Number.isFinite(cycleReceived) || cycleReceived < 0) {
-      throw new Error('Enter a valid non-negative cycle reception amount.');
+      throw new Error('Enter a valid non-negative cycle amount received.');
     }
+
+    const cycleToBeReceived = Number(String(this.aidDraft.cycleAmountToBeReceived ?? '').trim() || '0');
+    if (!Number.isFinite(cycleToBeReceived) || cycleToBeReceived < 0) {
+      throw new Error('Enter a valid non-negative cycle amount to be received.');
+    }
+    const cycleCap = cycleReceived + cycleToBeReceived;
 
     let receptionOrder: number | null = null;
     const orderRaw = String(this.aidDraft.receptionOrder ?? '').trim();
@@ -605,14 +613,15 @@ export class CrewmateDetailComponent implements OnInit {
     }
 
     const survivalThresholds = this.aidDraft.survivalThresholds.map((row, index) => {
-      const amountRemaining = Number(row.amountRemaining);
-      const thresholdAmount = Number(row.thresholdAmount);
+      const amountReceived = Math.max(0, Number(row.amountReceived) || 0);
+      const amountRemaining = Math.max(0, Number(row.amountRemaining) || 0);
+      const thresholdAmount = amountReceived + amountRemaining;
       const order = Number(row.order);
-      if (!Number.isFinite(amountRemaining) || amountRemaining < 0) {
-        throw new Error('Survival threshold remaining amounts must be non-negative.');
+      if (!Number.isFinite(amountReceived) || amountReceived < 0) {
+        throw new Error('Survival threshold amounts received must be non-negative.');
       }
-      if (!Number.isFinite(thresholdAmount) || thresholdAmount < 0) {
-        throw new Error('Survival threshold amounts must be non-negative.');
+      if (!Number.isFinite(amountRemaining) || amountRemaining < 0) {
+        throw new Error('Survival threshold amounts to be received must be non-negative.');
       }
       if (!Number.isInteger(order) || order < 1) {
         throw new Error(`Survival threshold #${index + 1}: order must be a whole number of 1 or greater.`);
@@ -627,6 +636,7 @@ export class CrewmateDetailComponent implements OnInit {
 
     return {
       cycleReceived,
+      cycleCap,
       hasActiveCycle: !!this.aidDraft.hasActiveCycle,
       receptionOrder,
       // Only meaningful before a season starts; keep existing value so mid-season edits don't churn it.
@@ -645,6 +655,14 @@ export class CrewmateDetailComponent implements OnInit {
     }
 
     if (Math.abs((current.cycleReceived ?? 0) - next.cycleReceived) >= 0.0001) {
+      return true;
+    }
+    const currentCap = current.cycleCap ?? null;
+    const nextCap = next.cycleCap ?? null;
+    if (currentCap == null && nextCap != null && nextCap > 0) {
+      return true;
+    }
+    if (currentCap != null && nextCap != null && Math.abs(currentCap - nextCap) >= 0.0001) {
       return true;
     }
     if (!!current.hasActiveCycle !== next.hasActiveCycle) {
@@ -687,15 +705,52 @@ export class CrewmateDetailComponent implements OnInit {
 
   get derivedSurvivalReceived(): number {
     return this.aidDraft.survivalThresholds.reduce((sum, row) => {
-      const remaining = Number(row.amountRemaining) || 0;
-      const threshold = Number(row.thresholdAmount) || 0;
-      return sum + Math.max(0, threshold - remaining);
+      return sum + Math.max(0, Number(row.amountReceived) || 0);
     }, 0);
   }
 
   get derivedTotalReception(): number {
     const cycle = Number(String(this.aidDraft.cycleReceived ?? '').trim() || '0') || 0;
     return cycle + this.derivedSurvivalReceived;
+  }
+
+  /** Active / incomplete primary cycle card for organizers (and readonly when active). */
+  get showCycleCard(): boolean {
+    if (!this.profile) {
+      return false;
+    }
+    if (this.profile.canProposeAidStatEdits) {
+      return !!this.profile.seasonStarted
+        || !!this.profile.hasAidStatDraft
+        || !!this.aidDraft.hasActiveCycle
+        || Number(this.aidDraft.cycleReceived) > 0
+        || Number(this.aidDraft.cycleAmountToBeReceived) > 0;
+    }
+    return !!this.profile.hasActiveCycle
+      || (!!this.profile.seasonStarted && this.profile.cycleCompleted === false);
+  }
+
+  get activeThresholdRows(): AidSurvivalThresholdDraft[] {
+    return this.aidDraft.survivalThresholds.filter(row => {
+      const remaining = Number(row.amountRemaining) || 0;
+      const received = Number(row.amountReceived) || 0;
+      return remaining > 0 || received > 0 || this.profile?.canProposeAidStatEdits;
+    });
+  }
+
+  onThresholdReceivedChange(row: AidSurvivalThresholdDraft, value: number | string): void {
+    const received = Math.max(0, Number(value) || 0);
+    const remaining = Math.max(0, Number(row.amountRemaining) || 0);
+    row.amountReceived = received;
+    row.thresholdAmount = received + remaining;
+  }
+
+  onThresholdToBeReceivedChange(row: AidSurvivalThresholdDraft, value: number | string): void {
+    const remaining = Math.max(0, Number(value) || 0);
+    const received = Math.max(0, Number(row.amountReceived) || 0);
+    row.amountRemaining = remaining;
+    row.amountReceived = received;
+    row.thresholdAmount = received + remaining;
   }
 
   addSurvivalThresholdRow() {
@@ -709,6 +764,7 @@ export class CrewmateDetailComponent implements OnInit {
         id: null,
         thresholdAmount: 0,
         amountRemaining: 0,
+        amountReceived: 0,
         order: maxOrder + 1
       }
     ];
@@ -734,23 +790,34 @@ export class CrewmateDetailComponent implements OnInit {
       value == null ? '' : String(value);
 
     const accounting = this.profile.seasonAccounting;
+    const cycleReceived = accounting?.cycleReceived ?? this.profile.cycleReceived ?? 0;
+    const cycleCap = accounting?.cycleCap ?? null;
+    const cycleToBeReceived = cycleCap != null
+      ? Math.max(0, cycleCap - cycleReceived)
+      : 0;
     this.aidDraft = {
       estimatedMonthlyContribution: money(this.profile.estimatedMonthlyContribution),
       lifetimeContributions: money(this.profile.lifetimeContributions),
       receptionThisYear: money(this.profile.receptionThisYear),
       percentBoost: this.profile.percentBoost == null ? '' : String(this.profile.percentBoost),
-      cycleReceived: money(accounting?.cycleReceived ?? this.profile.cycleReceived),
+      cycleReceived: money(cycleReceived),
+      cycleAmountToBeReceived: money(cycleToBeReceived),
       hasActiveCycle: !!(accounting?.hasActiveCycle ?? this.profile.hasActiveCycle),
       receptionOrder: accounting?.receptionOrder != null
         ? String(accounting.receptionOrder)
         : (this.profile.receptionOrder != null ? String(this.profile.receptionOrder) : ''),
       autoJoinSeasonOnStart: !!(accounting?.autoJoinSeasonOnStart ?? this.profile.autoJoinSeasonOnStart),
-      survivalThresholds: (accounting?.survivalThresholds ?? []).map((row, index) => ({
-        id: row.id ?? null,
-        thresholdAmount: row.thresholdAmount ?? 0,
-        amountRemaining: row.amountRemaining ?? 0,
-        order: row.order ?? index + 1
-      })),
+      survivalThresholds: (accounting?.survivalThresholds ?? []).map((row, index) => {
+        const thresholdAmount = row.thresholdAmount ?? 0;
+        const amountRemaining = row.amountRemaining ?? 0;
+        return {
+          id: row.id ?? null,
+          thresholdAmount,
+          amountRemaining,
+          amountReceived: Math.max(0, thresholdAmount - amountRemaining),
+          order: row.order ?? index + 1
+        };
+      }),
       removedThresholdIds: []
     };
   }
