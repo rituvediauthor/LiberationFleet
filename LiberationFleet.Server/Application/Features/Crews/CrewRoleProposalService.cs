@@ -181,12 +181,13 @@ public class CrewRoleProposalService(
             proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
+        var targetName = UserDisplay.Name(targetUser);
         var title = action == CrewRoleProposalAction.Nominate
-            ? $"Nominate {targetUser.Username} as {roleList}"
-            : $"Remove {roleList} from {targetUser.Username}";
+            ? $"Nominate {targetName} as {roleList}"
+            : $"Remove {roleList} from {targetName}";
         var description = action == CrewRoleProposalAction.Nominate
-            ? BuildNominationDescription(targetUser.Username, roleList, roles, representativeTermStartUtc, representativeTermEndUtc)
-            : $"Remove the following role(s) from {targetUser.Username}: {roleList}.";
+            ? BuildNominationDescription(targetName, roleList, roles, representativeTermStartUtc, representativeTermEndUtc)
+            : $"Remove the following role(s) from {targetName}: {roleList}.";
 
         await proposalRepository.AddCrewRoleChangeAsync(new ProposalCrewRoleChange
         {
@@ -224,7 +225,7 @@ public class CrewRoleProposalService(
             crewId,
             NotificationKind.NewProposal,
             "New proposal",
-            $"A proposal was submitted to change roles for {targetUser.Username}.",
+            $"A proposal was submitted to change roles for {targetName}.",
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
@@ -280,8 +281,8 @@ public class CrewRoleProposalService(
         {
             var roleLabels = string.Join(", ", roles.Select(CrewRoleMapper.GetDisplayName));
             var body = roleChange.Action == CrewRoleProposalAction.Nominate
-                ? $"{targetUser.Username} was assigned: {roleLabels}."
-                : $"{roleLabels} was removed from {targetUser.Username}.";
+                ? $"{UserDisplay.Name(targetUser)} was assigned: {roleLabels}."
+                : $"{roleLabels} was removed from {UserDisplay.Name(targetUser)}.";
 
             await notificationService.NotifyCrewAsync(
                 proposal.CrewId!.Value,

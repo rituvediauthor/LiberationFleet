@@ -38,6 +38,7 @@ public class GetCrewProposalsQueryHandler(
     FleetSettingsProposalService fleetSettingsProposalService,
     FleetRulesProposalService fleetRulesProposalService,
     IUserBlockRepository blockRepository,
+    IUserRepository userRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetCrewProposalsQuery, ProposalListResponse>
 {
     public async Task<ProposalListResponse> Handle(GetCrewProposalsQuery request, CancellationToken cancellationToken)
@@ -163,6 +164,17 @@ public class GetCrewProposalsQueryHandler(
             proposals.Where(p => p.Kind == ProposalKind.CrewStartSeason).Select(p => p.Id),
             cancellationToken);
 
+        var displayNameUserIds = crewmateAidStatChanges.Values.Select(c => c.TargetUserId)
+            .Concat(crewRoleChanges.Values.Select(c => c.TargetUserId))
+            .Concat(crewmatePermissionGrants.Values.Select(c => c.TargetUserId))
+            .Concat(crewJoinRequests.Values.Select(c => c.ApplicantUserId))
+            .Concat(crewmateRejoins.Values.Select(c => c.TargetUserId))
+            .Concat(crewmateKicks.Values.Select(c => c.TargetUserId))
+            .Concat(claimPlaceholderIdentities.Values.Select(c => c.PlaceholderUserId))
+            .Distinct()
+            .ToList();
+        var displayNames = await userRepository.GetDisplayNamesAsync(displayNameUserIds, cancellationToken);
+
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
         {
@@ -185,6 +197,15 @@ public class GetCrewProposalsQueryHandler(
             crewApplyToFleets.TryGetValue(proposal.Id, out var crewApplyToFleet);
             crewLeaveFleets.TryGetValue(proposal.Id, out var crewLeaveFleet);
             crewStartSeasons.TryGetValue(proposal.Id, out var crewStartSeason);
+            ProposalMapper.RefreshTargetDisplayNames(
+                displayNames,
+                crewmateAidStatChange,
+                crewRoleChange,
+                crewmatePermissionGrant,
+                crewJoinRequest,
+                crewmateRejoin,
+                crewmateKick,
+                claimPlaceholderIdentity);
             var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(

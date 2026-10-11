@@ -204,7 +204,7 @@ public class ClaimPlaceholderIdentityProposalService(
             proposal.CrewId!.Value,
             NotificationKind.ProposalAccepted,
             "Identity claim approved",
-            $"{claimant?.Username ?? "A crewmate"} is now linked to {claim.PlaceholderDisplayName}'s reception history.",
+            $"{(claimant is null ? "A crewmate" : UserDisplay.Name(claimant))} is now linked to {claim.PlaceholderDisplayName}'s reception history.",
             ProposalRouting.StatusListUrl(proposal),
             excludeUserId: claim.ClaimantUserId,
             cancellationToken: cancellationToken);

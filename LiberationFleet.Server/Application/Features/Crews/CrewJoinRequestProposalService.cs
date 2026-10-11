@@ -115,17 +115,18 @@ public class CrewJoinRequestProposalService(
             ProposalAutoResolveSettings.From(crew));
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
+        var applicantName = UserDisplay.Name(applicant);
         var description = switchingCrews
-            ? $"{applicant.Username} accepted the crew's public rules and requested to join. If approved while they are still in another crew, they will be asked whether to switch crews or stay. A crewmate should prepare an encryption key before approval when possible."
-            : $"{applicant.Username} accepted the crew's public rules and requested to join. A crewmate should prepare an encryption key before approval when possible.";
+            ? $"{applicantName} accepted the crew's public rules and requested to join. If approved while they are still in another crew, they will be asked whether to switch crews or stay. A crewmate should prepare an encryption key before approval when possible."
+            : $"{applicantName} accepted the crew's public rules and requested to join. A crewmate should prepare an encryption key before approval when possible.";
 
         await proposalRepository.AddCrewJoinRequestAsync(new ProposalCrewJoinRequest
         {
             Proposal = proposal,
             ApplicantUserId = applicantUserId,
-            ApplicantUsername = UserDisplay.Name(applicant),
+            ApplicantUsername = applicantName,
             AcceptedRuleIdsJson = JsonSerializer.Serialize(acceptedRuleIds.OrderBy(id => id)),
-            Title = $"Allow {applicant.Username} to join",
+            Title = $"Allow {applicantName} to join",
             Description = description
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -135,8 +136,8 @@ public class CrewJoinRequestProposalService(
             NotificationKind.JoinRequestFromPerson,
             "Join request",
             switchingCrews
-                ? $"{applicant.Username} requested to join (already in a crew; they will choose whether to switch if approved)."
-                : $"{applicant.Username} requested to join the crew.",
+                ? $"{applicantName} requested to join (already in a crew; they will choose whether to switch if approved)."
+                : $"{applicantName} requested to join the crew.",
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: applicantUserId,

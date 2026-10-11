@@ -263,16 +263,17 @@ public class CrewmateKickProposalService(
         var targetUser = await userRepository.GetByIdWithProfileAsync(kick.TargetUserId, cancellationToken);
         if (targetUser is not null)
         {
-            kick.RevealedUsername = UserDisplay.Name(targetUser);
+            var targetName = UserDisplay.Name(targetUser);
+            kick.RevealedUsername = targetName;
             if (isSeasonKick)
             {
-                kick.Description = $"{targetUser.Username} was removed from the season.";
+                kick.Description = $"{targetName} was removed from the season.";
             }
             else
             {
                 kick.Description = isAnonymousOrigin
-                    ? $"{kick.AnonymousNickname} was identified as {targetUser.Username} and removed from the crew."
-                    : $"{targetUser.Username} was removed from the crew.";
+                    ? $"{kick.AnonymousNickname} was identified as {targetName} and removed from the crew."
+                    : $"{targetName} was removed from the crew.";
             }
         }
 
@@ -312,17 +313,18 @@ public class CrewmateKickProposalService(
             string notificationTitle;
             string notificationBody;
 
+            var targetName = UserDisplay.Name(targetUser);
             if (isSeasonKick)
             {
                 notificationTitle = "Removed from the season";
-                notificationBody = $"{targetUser.Username} was removed from the season.";
+                notificationBody = $"{targetName} was removed from the season.";
             }
             else
             {
                 notificationTitle = "Crewmate kicked";
                 notificationBody = isAnonymousOrigin
-                    ? $"{kick.AnonymousNickname} ({targetUser.Username}) was removed from the crew."
-                    : $"{targetUser.Username} was removed from the crew.";
+                    ? $"{kick.AnonymousNickname} ({targetName}) was removed from the crew."
+                    : $"{targetName} was removed from the crew.";
             }
 
             await notificationService.NotifyCrewAsync(

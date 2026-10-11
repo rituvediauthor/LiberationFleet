@@ -39,6 +39,7 @@ public class GetProposalDetailQueryHandler(
     IUserBlockRepository blockRepository,
     IFleetRepository fleetRepository,
     ICrewRepository crewRepository,
+    IUserRepository userRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<GetProposalDetailQuery, ProposalDetailResponse>
 {
     public async Task<ProposalDetailResponse> Handle(GetProposalDetailQuery request, CancellationToken cancellationToken)
@@ -153,6 +154,28 @@ public class GetProposalDetailQueryHandler(
         var crewmateAidStatChange = proposal.Kind == ProposalKind.CrewmateAidStatChange
             ? await proposalRepository.GetCrewmateAidStatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
+
+        var displayNameUserIds = new List<int>();
+        if (crewmateAidStatChange is not null) displayNameUserIds.Add(crewmateAidStatChange.TargetUserId);
+        if (crewRoleChange is not null) displayNameUserIds.Add(crewRoleChange.TargetUserId);
+        if (crewmatePermissionGrant is not null) displayNameUserIds.Add(crewmatePermissionGrant.TargetUserId);
+        if (crewJoinRequest is not null) displayNameUserIds.Add(crewJoinRequest.ApplicantUserId);
+        if (crewmateRejoin is not null) displayNameUserIds.Add(crewmateRejoin.TargetUserId);
+        if (crewmateKick is not null) displayNameUserIds.Add(crewmateKick.TargetUserId);
+        if (claimPlaceholderIdentity is not null) displayNameUserIds.Add(claimPlaceholderIdentity.PlaceholderUserId);
+        if (displayNameUserIds.Count > 0)
+        {
+            var displayNames = await userRepository.GetDisplayNamesAsync(displayNameUserIds, cancellationToken);
+            ProposalMapper.RefreshTargetDisplayNames(
+                displayNames,
+                crewmateAidStatChange,
+                crewRoleChange,
+                crewmatePermissionGrant,
+                crewJoinRequest,
+                crewmateRejoin,
+                crewmateKick,
+                claimPlaceholderIdentity);
+        }
 
         var fleetRuleChange = proposal.Kind == ProposalKind.FleetRuleChange
             ? await proposalRepository.GetFleetRuleChangeByProposalIdAsync(proposal.Id, cancellationToken)

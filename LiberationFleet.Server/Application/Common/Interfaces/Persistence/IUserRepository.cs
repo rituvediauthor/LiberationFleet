@@ -13,6 +13,10 @@ public interface IUserRepository
     Task<IReadOnlyDictionary<int, string?>> GetAvatarResourceIdsAsync(
         IReadOnlyList<int> userIds,
         CancellationToken cancellationToken = default);
+    /// <summary>Display labels for UI (DisplayName, else Username).</summary>
+    Task<IReadOnlyDictionary<int, string>> GetDisplayNamesAsync(
+        IReadOnlyList<int> userIds,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<User>> SearchByUsernameAsync(string usernameFragment, int limit = 20, CancellationToken cancellationToken = default);
     Task<bool> IsUsernameTakenByOtherUserAsync(string username, int userId, CancellationToken cancellationToken = default);
     Task<bool> IsEmailTakenByOtherUserAsync(string email, int userId, CancellationToken cancellationToken = default);

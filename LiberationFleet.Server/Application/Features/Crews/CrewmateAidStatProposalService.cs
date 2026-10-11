@@ -150,7 +150,8 @@ public class CrewmateAidStatProposalService(
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
         var descriptionBuilder = new StringBuilder();
-        descriptionBuilder.AppendLine($"Adjust mutual-aid accounting for {targetUser.Username}:");
+        var targetName = UserDisplay.Name(targetUser);
+        descriptionBuilder.AppendLine($"Adjust mutual-aid accounting for {targetName}:");
         foreach (var item in normalized)
         {
             descriptionBuilder.AppendLine($"• {FormatFieldLabel(item.Field)} → {FormatDisplayValue(item.Field, item.NewValue)}");
@@ -161,7 +162,7 @@ public class CrewmateAidStatProposalService(
             Proposal = proposal,
             TargetUserId = targetUserId,
             ChangesJson = JsonSerializer.Serialize(normalized, JsonOptions),
-            Title = $"Update aid stats for {targetUser.Username}",
+            Title = $"Update aid stats for {targetName}",
             Description = descriptionBuilder.ToString().Trim()
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -189,7 +190,7 @@ public class CrewmateAidStatProposalService(
             crewId,
             NotificationKind.NewProposal,
             "New proposal",
-            $"A proposal was submitted to update aid statistics for {targetUser.Username}.",
+            $"A proposal was submitted to update aid statistics for {targetName}.",
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,

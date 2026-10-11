@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Infrastructure.Data;
@@ -60,6 +61,27 @@ public class UserRepository : IUserRepository
             .AsNoTracking()
             .Where(u => distinctIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.AvatarResourceId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<int, string>> GetDisplayNamesAsync(
+        IReadOnlyList<int> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var distinctIds = userIds.Distinct().ToList();
+        var rows = await _context.Users
+            .AsNoTracking()
+            .Where(u => distinctIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.DisplayName, u.Username })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(
+            r => r.Id,
+            r => UserDisplay.Name(r.DisplayName, r.Username));
     }
 
     public async Task<IReadOnlyList<User>> SearchByUsernameAsync(

@@ -353,4 +353,142 @@ public static class ProposalMapper
         dto.Title = title;
         dto.DescriptionPreview = description;
     }
+
+    /// <summary>
+    /// Rewrites frozen proposal copy that was stored with Username so list/detail show DisplayName.
+    /// Safe to call on tracked entities (persists on the next SaveChanges).
+    /// </summary>
+    public static void RefreshTargetDisplayNames(
+        IReadOnlyDictionary<int, string> displayNamesByUserId,
+        ProposalCrewmateAidStatChange? aidStat = null,
+        ProposalCrewRoleChange? roleChange = null,
+        ProposalCrewmatePermissionGrant? permissionGrant = null,
+        ProposalCrewJoinRequest? joinRequest = null,
+        ProposalCrewmateRejoin? rejoin = null,
+        ProposalCrewmateKick? kick = null,
+        ProposalClaimPlaceholderIdentity? claim = null)
+    {
+        if (aidStat is not null && displayNamesByUserId.TryGetValue(aidStat.TargetUserId, out var aidName))
+        {
+            aidStat.Title = $"Update aid stats for {aidName}";
+            aidStat.Description = ReplaceNameAfterPrefix(
+                aidStat.Description,
+                "Adjust mutual-aid accounting for ",
+                aidName);
+        }
+
+        if (roleChange is not null && displayNamesByUserId.TryGetValue(roleChange.TargetUserId, out var roleName))
+        {
+            if (roleChange.Title.StartsWith("Nominate ", StringComparison.Ordinal))
+            {
+                var asIdx = roleChange.Title.LastIndexOf(" as ", StringComparison.Ordinal);
+                if (asIdx > 0)
+                {
+                    roleChange.Title = $"Nominate {roleName}{roleChange.Title[asIdx..]}";
+                }
+            }
+            else if (roleChange.Title.StartsWith("Remove ", StringComparison.Ordinal)
+                     && roleChange.Title.Contains(" from ", StringComparison.Ordinal))
+            {
+                var fromIdx = roleChange.Title.LastIndexOf(" from ", StringComparison.Ordinal);
+                if (fromIdx > 0)
+                {
+                    roleChange.Title = $"{roleChange.Title[..(fromIdx + 6)]}{roleName}";
+                }
+            }
+
+            roleChange.Description = roleChange.Description.Contains(" from ", StringComparison.Ordinal)
+                ? ReplaceNameAfterPrefix(roleChange.Description, "from ", roleName, untilColonOrPeriod: true)
+                : ReplaceNameAfterPrefix(roleChange.Description, "Nominate ", roleName, untilColonOrPeriod: true);
+        }
+
+        if (permissionGrant is not null
+            && displayNamesByUserId.TryGetValue(permissionGrant.TargetUserId, out var grantName))
+        {
+            permissionGrant.Title = ReplaceNameAfterPrefix(permissionGrant.Title, " to ", grantName);
+            permissionGrant.Description = ReplaceNameAfterPrefix(permissionGrant.Description, "Allow ", grantName);
+        }
+
+        if (joinRequest is not null
+            && displayNamesByUserId.TryGetValue(joinRequest.ApplicantUserId, out var joinName))
+        {
+            joinRequest.ApplicantUsername = joinName;
+            joinRequest.Title = $"Allow {joinName} to join";
+            joinRequest.Description = ReplaceNameAfterPrefix(joinRequest.Description, prefix: null, joinName);
+        }
+
+        if (rejoin is not null && displayNamesByUserId.TryGetValue(rejoin.TargetUserId, out var rejoinName))
+        {
+            rejoin.Username = rejoinName;
+            rejoin.Title = $"Allow {rejoinName} to rejoin";
+            rejoin.Description = ReplaceNameAfterPrefix(rejoin.Description, "Allow ", rejoinName);
+        }
+
+        if (kick is not null
+            && displayNamesByUserId.TryGetValue(kick.TargetUserId, out var kickName)
+            && string.IsNullOrWhiteSpace(kick.AnonymousNickname))
+        {
+            if (kick.Title.StartsWith("Kick ", StringComparison.Ordinal))
+            {
+                kick.Title = $"Kick {kickName}";
+            }
+            else if (kick.Title.StartsWith("Remove ", StringComparison.Ordinal)
+                     && kick.Title.Contains(" from season", StringComparison.Ordinal))
+            {
+                kick.Title = $"Remove {kickName} from season";
+            }
+
+            kick.Description = ReplaceNameAfterPrefix(kick.Description, "Remove ", kickName);
+        }
+
+        if (claim is not null
+            && displayNamesByUserId.TryGetValue(claim.PlaceholderUserId, out var claimName))
+        {
+            claim.PlaceholderDisplayName = claimName;
+            claim.Title = $"Claim identity of {claimName}";
+            claim.Description = ReplaceNameAfterPrefix(claim.Description, prefix: null, claimName);
+        }
+    }
+
+    private static string ReplaceNameAfterPrefix(
+        string text,
+        string? prefix,
+        string displayName,
+        bool untilColonOrPeriod = false)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        if (prefix is null)
+        {
+            // Replace a leading token up to space/colon (first word) when it looks like a username line.
+            var end = text.IndexOfAny([' ', ':', '\n', '\r']);
+            if (end <= 0)
+            {
+                return displayName;
+            }
+
+            return displayName + text[end..];
+        }
+
+        var idx = text.IndexOf(prefix, StringComparison.Ordinal);
+        if (idx < 0)
+        {
+            return text;
+        }
+
+        var nameStart = idx + prefix.Length;
+        var rest = text[nameStart..];
+        var nameEnd = untilColonOrPeriod
+            ? rest.IndexOfAny([':', '.', '\n', '\r'])
+            : rest.IndexOfAny([':', '\n', '\r']);
+        if (nameEnd < 0)
+        {
+            return text[..nameStart] + displayName;
+        }
+
+        return text[..nameStart] + displayName + rest[nameEnd..];
+    }
 }

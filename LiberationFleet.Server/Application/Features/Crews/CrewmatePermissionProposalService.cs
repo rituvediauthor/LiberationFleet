@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Proposals;
@@ -129,13 +130,14 @@ public class CrewmatePermissionProposalService(
             proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
+        var targetName = UserDisplay.Name(targetUser);
         var (title, description) = grantType == CrewmatePermissionGrantType.AttachFiles
             ? (
-                $"Grant file attachments to {targetUser.Username}",
-                $"Allow {targetUser.Username} to attach files to crew chats, forums, comments, and library offerings.")
+                $"Grant file attachments to {targetName}",
+                $"Allow {targetName} to attach files to crew chats, forums, comments, and library offerings.")
             : (
-                $"Grant proposal creation to {targetUser.Username}",
-                $"Allow {targetUser.Username} to create crew proposals regardless of tenure or contribution requirements.");
+                $"Grant proposal creation to {targetName}",
+                $"Allow {targetName} to create crew proposals regardless of tenure or contribution requirements.");
 
         await proposalRepository.AddCrewmatePermissionGrantAsync(new ProposalCrewmatePermissionGrant
         {
@@ -170,7 +172,7 @@ public class CrewmatePermissionProposalService(
             crewId,
             NotificationKind.NewProposal,
             "New proposal",
-            $"A proposal was submitted to grant permissions to {targetUser.Username}.",
+            $"A proposal was submitted to grant permissions to {targetName}.",
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
@@ -216,8 +218,8 @@ public class CrewmatePermissionProposalService(
         if (targetUser is not null)
         {
             var body = grant.GrantType == CrewmatePermissionGrantType.AttachFiles
-                ? $"{targetUser.Username} was granted file attachment permission."
-                : $"{targetUser.Username} was granted proposal creation permission.";
+                ? $"{UserDisplay.Name(targetUser)} was granted file attachment permission."
+                : $"{UserDisplay.Name(targetUser)} was granted proposal creation permission.";
 
             await notificationService.NotifyCrewAsync(
                 proposal.CrewId!.Value,
