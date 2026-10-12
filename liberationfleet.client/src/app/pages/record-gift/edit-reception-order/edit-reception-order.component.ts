@@ -47,7 +47,8 @@ export class EditReceptionOrderComponent implements OnInit {
   }
 
   get orderValidationMessage(): string {
-    return this.describeOrderProblem(this.thresholds, 'Survival threshold')
+    return this.describeThresholdAmountProblem()
+      ?? this.describeOrderProblem(this.thresholds, 'Survival threshold')
       ?? this.describeOrderProblem(this.cycles, 'Season cycle')
       ?? '';
   }
@@ -56,6 +57,7 @@ export class EditReceptionOrderComponent implements OnInit {
     return !this.loading
       && !this.saving
       && !this.errorMessage
+      && !this.describeThresholdAmountProblem()
       && this.areOrdersValid(this.thresholds)
       && this.areOrdersValid(this.cycles);
   }
@@ -73,12 +75,24 @@ export class EditReceptionOrderComponent implements OnInit {
         clientKey: this.newClientKey(),
         userId: member.userId,
         username: member.username,
+        // Remaining tracks need for new open thresholds (0/0 is invalid until need is set).
         amountNeeded: 0,
         amountRemaining: 0,
         receptionOrder: nextOrder,
         orderDraft: String(nextOrder)
       }
     ];
+    this.updateSaveButton();
+  }
+
+  onThresholdAmountNeededChange(row: ReceptionOrderEditorThreshold): void {
+    const needed = Number(row.amountNeeded) || 0;
+    // For brand-new rows, keep remaining equal to need so save creates an open threshold.
+    if (!row.id) {
+      row.amountRemaining = needed;
+    } else if ((Number(row.amountRemaining) || 0) > needed) {
+      row.amountRemaining = needed;
+    }
     this.updateSaveButton();
   }
 
@@ -283,14 +297,22 @@ export class EditReceptionOrderComponent implements OnInit {
     this.updateSaveButton();
 
     this.giftService.saveReceptionOrderEditor({
-      thresholds: orderedThresholds.map((t, i) => ({
-        id: t.id ?? null,
-        userId: Number(t.userId),
-        username: t.username,
-        amountNeeded: Number(t.amountNeeded) || 0,
-        amountRemaining: Number(t.amountRemaining) || 0,
-        receptionOrder: i + 1
-      })),
+      thresholds: orderedThresholds.map((t, i) => {
+        const amountNeeded = Number(t.amountNeeded) || 0;
+        let amountRemaining = Number(t.amountRemaining) || 0;
+        // New open thresholds: blank/zero remaining means "still needs the full amount".
+        if (!t.id && amountNeeded > 0 && amountRemaining <= 0) {
+          amountRemaining = amountNeeded;
+        }
+        return {
+          id: t.id ?? null,
+          userId: Number(t.userId),
+          username: t.username,
+          amountNeeded,
+          amountRemaining,
+          receptionOrder: i + 1
+        };
+      }),
       removedThresholdIds: this.removedThresholdIds,
       cycles: orderedCycles.map((c, i) => ({
         id: c.id ?? null,
@@ -329,6 +351,13 @@ export class EditReceptionOrderComponent implements OnInit {
         this.updateSaveButton();
       }
     });
+  }
+
+  private describeThresholdAmountProblem(): string | null {
+    if (this.thresholds.some(t => !t.id && (Number(t.amountNeeded) || 0) <= 0)) {
+      return 'New survival thresholds need an amount greater than $0.';
+    }
+    return null;
   }
 
   /** True when drafts are exactly the unique set 1..n (empty lists are fine). */

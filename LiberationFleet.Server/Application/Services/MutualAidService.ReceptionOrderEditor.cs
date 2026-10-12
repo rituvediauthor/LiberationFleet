@@ -151,6 +151,12 @@ public partial class MutualAidService
             assignedMonths.Add((row.UserId, row.Year, row.Month));
         }
 
+        // Ids already represented in the editor payload (must not be "reused" as a new row).
+        var draftThresholdIds = request.Thresholds
+            .Where(t => t.Id is > 0)
+            .Select(t => t.Id!.Value)
+            .ToHashSet();
+
         // Prefer explicit ReceptionOrder; fall back to the request list order (not Id)
         // so the accountant's arrangement is preserved even when orders are missing/tied.
         var orderedThresholdDrafts = request.Thresholds
@@ -196,23 +202,80 @@ public partial class MutualAidService
             {
                 if (amountNeeded <= 0m)
                 {
-                    continue;
+                    return new SaveReceptionOrderEditorResponse
+                    {
+                        Success = false,
+                        Message = "New survival thresholds need an amount greater than $0."
+                    };
                 }
 
-                var (year, month) = AllocateFreeThresholdMonthForUser(
-                    draft.UserId,
-                    now.Year,
-                    now.Month,
-                    assignedMonths);
-
-                row = new MonthlySurvivalThreshold
+                // New editor rows often leave remaining at 0 while setting need. That means
+                // "fully open", not "already satisfied" — otherwise the row is created,
+                // marked Satisfied, and immediately hidden from this unsatisfied-only editor.
+                if (amountRemaining <= 0m)
                 {
-                    CrewId = crew.Id,
-                    UserId = draft.UserId,
-                    Year = year,
-                    Month = month
-                };
-                await mutualAidRepository.AddThresholdAsync(row, cancellationToken);
+                    amountRemaining = amountNeeded;
+                }
+
+                // Include satisfied/hidden months so we never INSERT over the unique
+                // (CrewId, UserId, Year, Month) index for a row the editor did not load.
+                var userThresholds = await mutualAidRepository.GetThresholdsForUserAsync(
+                    crew.Id,
+                    draft.UserId,
+                    cancellationToken);
+                foreach (var t in userThresholds)
+                {
+                    assignedMonths.Add((t.UserId, t.Year, t.Month));
+                }
+
+                var claimedIds = thresholdRows.Where(r => r.Id != 0).Select(r => r.Id).ToHashSet();
+                // Prefer reopening a hidden/satisfied row with no reception applied, instead of
+                // INSERTing into a month that already exists (unique index) or inventing gaps.
+                var reusable = userThresholds
+                    .Where(t => !draftThresholdIds.Contains(t.Id) && !claimedIds.Contains(t.Id))
+                    .Where(t => t.ReceivedAmount <= 0m)
+                    .OrderByDescending(t => t.Year == now.Year && t.Month == now.Month)
+                    .ThenByDescending(t => t.Satisfied)
+                    .ThenByDescending(t => t.Year)
+                    .ThenByDescending(t => t.Month)
+                    .FirstOrDefault();
+
+                if (reusable is not null)
+                {
+                    row = reusable;
+                    if (!existingThresholds.ContainsKey(row.Id))
+                    {
+                        existingThresholds[row.Id] = row;
+                    }
+                }
+                else
+                {
+                    var (year, month) = AllocateFreeThresholdMonthForUser(
+                        draft.UserId,
+                        now.Year,
+                        now.Month,
+                        assignedMonths);
+
+                    if (assignedMonths.Contains((draft.UserId, year, month)))
+                    {
+                        return new SaveReceptionOrderEditorResponse
+                        {
+                            Success = false,
+                            Message =
+                                $"Could not allocate a free survival-threshold month for this crewmate. " +
+                                "Edit an existing row instead of adding another."
+                        };
+                    }
+
+                    row = new MonthlySurvivalThreshold
+                    {
+                        CrewId = crew.Id,
+                        UserId = draft.UserId,
+                        Year = year,
+                        Month = month
+                    };
+                    await mutualAidRepository.AddThresholdAsync(row, cancellationToken);
+                }
             }
 
             row.ThresholdAmount = amountNeeded;
@@ -475,6 +538,11 @@ public partial class MutualAidService
             if (t.AmountNeeded < 0 || t.AmountRemaining < 0)
             {
                 return "Survival threshold amounts cannot be negative.";
+            }
+
+            if (t.Id is null && t.AmountNeeded <= 0m)
+            {
+                return "New survival thresholds need an amount greater than $0.";
             }
         }
 

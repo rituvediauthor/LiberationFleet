@@ -2750,6 +2750,12 @@ public async Task<bool> IsFinancialMemberAsync(
         {
             if (!eligibleUserIds.Contains(threshold.UserId))
             {
+                // Accountant / reception-order editor custom rows must survive monthly refresh.
+                if (threshold.IsCustomAmount)
+                {
+                    continue;
+                }
+
                 if (threshold.ReceivedAmount <= 0m && !threshold.Satisfied)
                 {
                     mutualAidRepository.RemoveThreshold(threshold);
