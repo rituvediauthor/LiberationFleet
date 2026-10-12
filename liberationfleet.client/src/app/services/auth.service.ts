@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, of, catchError, finalize, shareReplay } from 'rxjs';
 import { AuthResult, User } from '../models/user.model';
@@ -27,6 +27,8 @@ import { NotificationService } from './notification.service';
 import { ProfileLocationService } from './profile-location.service';
 import { PushNotificationRegistrationService } from './push-notification-registration.service';
 import { NotificationHubService } from './notification-hub.service';
+import { ForumListPrefetchService } from './forum-list-prefetch.service';
+import { clearAllForumListScrollState } from '../utils/forum-list-scroll.util';
 
 export interface LoginRequest {
   usernameOrEmail: string;
@@ -58,6 +60,8 @@ export class AuthService {
   private profileLocation = inject(ProfileLocationService);
   private pushNotifications = inject(PushNotificationRegistrationService);
   private notificationHub = inject(NotificationHubService);
+  /** Lazy: avoid construction-time cycles with forum/crypto graph. */
+  private injector = inject(Injector);
 
   constructor(
     private http: HttpClient,
@@ -182,6 +186,9 @@ export class AuthService {
     this.imageCache.clear();
     this.contentPreferences.clearSessionCache();
     this.notificationService.clearSessionCache();
+    // Decrypted crew/fleet forum plaintext — must never survive logout/account switch.
+    this.injector.get(ForumListPrefetchService).clearSessionCache();
+    clearAllForumListScrollState();
   }
 
   getToken(): string | null {

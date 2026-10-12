@@ -46,6 +46,9 @@ public interface IMutualAidRepository
         int userId,
         CancellationToken cancellationToken = default);
     void RemoveThreshold(MonthlySurvivalThreshold threshold);
+    void RemoveSeasonCycle(SeasonCycle cycle);
+    Task<bool> HasGiftsForSeasonCycleAsync(int seasonCycleId, CancellationToken cancellationToken = default);
+    Task<bool> HasGiftsForThresholdAsync(int thresholdId, CancellationToken cancellationToken = default);
     Task<bool> HasThresholdForMonthAsync(int crewId, int userId, int year, int month, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<(int Year, int Month), decimal>> GetFinancialContributionsByMonthAsync(
         int userId,

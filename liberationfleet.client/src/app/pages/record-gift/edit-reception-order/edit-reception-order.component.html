@@ -1,0 +1,178 @@
+<app-page-layout [showFallibleFooter]="false" [backButton]="backButton" [primaryButton]="saveButton">
+  <div class="form-container">
+    <div class="form-card">
+      <h1>Edit reception order</h1>
+      <p class="intro">
+        Change survival thresholds and season cycles immediately. Order 1 is first in line.
+        Active cycles are unlocked for gifts; frozen cycles wait until unlocked.
+      </p>
+
+      <p *ngIf="loading" class="status-text">Loading…</p>
+      <p *ngIf="!loading && errorMessage" class="error-text">{{ errorMessage }}</p>
+
+      <ng-container *ngIf="!loading && !errorMessage">
+        <section class="editor-section">
+          <div class="section-header">
+            <h2>Survival thresholds</h2>
+            <button type="button" class="add-btn" (click)="addThreshold()">Add threshold</button>
+          </div>
+          <p class="section-hint" *ngIf="thresholds.length === 0">No active survival thresholds.</p>
+
+          <div
+            class="editor-row"
+            *ngFor="let row of thresholds; let i = index; trackBy: trackThreshold">
+            <div class="row-grid">
+              <div class="form-group">
+                <label [attr.for]="'th-owner-' + i">Owner</label>
+                <select
+                  [id]="'th-owner-' + i"
+                  class="form-input"
+                  [(ngModel)]="row.userId"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="onThresholdOwnerChange(row)"
+                  [disabled]="!!row.id">
+                  <option *ngFor="let member of members" [ngValue]="member.userId">
+                    {{ member.username }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label [attr.for]="'th-needed-' + i">Amount needed ($)</label>
+                <input
+                  [id]="'th-needed-' + i"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                  [(ngModel)]="row.amountNeeded"
+                  [ngModelOptions]="{standalone: true}">
+              </div>
+              <div class="form-group">
+                <label [attr.for]="'th-remaining-' + i">Amount remaining ($)</label>
+                <input
+                  [id]="'th-remaining-' + i"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                  [(ngModel)]="row.amountRemaining"
+                  [ngModelOptions]="{standalone: true}">
+              </div>
+              <div class="form-group">
+                <label [attr.for]="'th-order-' + i">Order</label>
+                <input
+                  [id]="'th-order-' + i"
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="form-input"
+                  [(ngModel)]="row.order"
+                  [ngModelOptions]="{standalone: true}">
+              </div>
+            </div>
+            <button type="button" class="remove-btn" (click)="removeThreshold(i)">Remove</button>
+          </div>
+        </section>
+
+        <section class="editor-section">
+          <div class="section-header">
+            <h2>Season cycles</h2>
+            <button type="button" class="add-btn" (click)="addCycle()">Add cycle</button>
+          </div>
+          <p class="section-hint" *ngIf="cycles.length === 0">No cycles for the active season.</p>
+
+          <div
+            class="editor-row"
+            *ngFor="let row of cycles; let i = index; trackBy: trackCycle">
+            <div class="row-badges" *ngIf="row.isEmergencyCycle || row.isPaybackCycle || row.cycleCompleted">
+              <span class="badge" *ngIf="row.isEmergencyCycle">Emergency</span>
+              <span class="badge" *ngIf="row.isPaybackCycle">Payback</span>
+              <span class="badge" *ngIf="row.cycleCompleted">Completed</span>
+            </div>
+            <div class="row-grid">
+              <div class="form-group">
+                <label [attr.for]="'cy-owner-' + i">Owner</label>
+                <select
+                  [id]="'cy-owner-' + i"
+                  class="form-input"
+                  [(ngModel)]="row.userId"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="onCycleOwnerChange(row)"
+                  [disabled]="!!row.id">
+                  <option *ngFor="let member of members" [ngValue]="member.userId">
+                    {{ member.username }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label [attr.for]="'cy-amount-' + i">Amount ($)</label>
+                <input
+                  [id]="'cy-amount-' + i"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                  [(ngModel)]="row.amount"
+                  [ngModelOptions]="{standalone: true}">
+              </div>
+              <div class="form-group">
+                <label [attr.for]="'cy-remaining-' + i">Amount remaining ($)</label>
+                <input
+                  [id]="'cy-remaining-' + i"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                  [(ngModel)]="row.amountRemaining"
+                  [ngModelOptions]="{standalone: true}">
+              </div>
+              <div class="form-group">
+                <label [attr.for]="'cy-order-' + i">Order</label>
+                <input
+                  [id]="'cy-order-' + i"
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="form-input"
+                  [(ngModel)]="row.order"
+                  [ngModelOptions]="{standalone: true}">
+              </div>
+            </div>
+            <div class="toggle-row">
+              <label class="checkbox-row">
+                <input
+                  type="checkbox"
+                  [checked]="row.isActive"
+                  (change)="onCycleActiveChange(row, $any($event.target).checked)"
+                  [disabled]="row.cycleCompleted">
+                <span>Active</span>
+              </label>
+              <label class="checkbox-row">
+                <input
+                  type="checkbox"
+                  [checked]="row.isFrozen"
+                  (change)="onCycleActiveChange(row, !$any($event.target).checked)"
+                  [disabled]="row.cycleCompleted">
+                <span>Frozen</span>
+              </label>
+              <label class="checkbox-row">
+                <input
+                  type="checkbox"
+                  [checked]="row.cycleCompleted"
+                  (change)="onCycleCompletedChange(row, $any($event.target).checked)">
+                <span>Completed</span>
+              </label>
+            </div>
+            <button
+              type="button"
+              class="remove-btn"
+              (click)="removeCycle(i)"
+              [disabled]="row.isEmergencyCycle || row.isPaybackCycle || (row.id && row.canRemove === false)">
+              Remove
+            </button>
+          </div>
+        </section>
+      </ng-container>
+    </div>
+  </div>
+</app-page-layout>

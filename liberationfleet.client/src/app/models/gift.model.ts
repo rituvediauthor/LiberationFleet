@@ -239,6 +239,63 @@ export interface ReceptionOrderEntry {
   crewName?: string;
 }
 
+export interface ReceptionOrderEditorMember {
+  userId: number;
+  username: string;
+  hasPrimaryCycle: boolean;
+}
+
+export interface ReceptionOrderEditorThreshold {
+  id?: number | null;
+  userId: number;
+  username: string;
+  amountNeeded: number;
+  amountRemaining: number;
+  order: number;
+  /** Client-only key for *ngFor stability on new rows. */
+  clientKey?: string;
+}
+
+export interface ReceptionOrderEditorCycle {
+  id?: number | null;
+  userId: number;
+  username: string;
+  amount: number;
+  amountRemaining: number;
+  isActive: boolean;
+  isFrozen: boolean;
+  order: number;
+  cycleCompleted: boolean;
+  isEmergencyCycle?: boolean;
+  isPaybackCycle?: boolean;
+  isPrimary?: boolean;
+  canRemove?: boolean;
+  clientKey?: string;
+}
+
+export interface ReceptionOrderEditorResponse {
+  success: boolean;
+  message: string;
+  seasonStarted: boolean;
+  seasonStartDate?: string | null;
+  members: ReceptionOrderEditorMember[];
+  thresholds: ReceptionOrderEditorThreshold[];
+  cycles: ReceptionOrderEditorCycle[];
+}
+
+export interface SaveReceptionOrderEditorRequest {
+  thresholds: ReceptionOrderEditorThreshold[];
+  removedThresholdIds: number[];
+  cycles: ReceptionOrderEditorCycle[];
+  removedCycleIds: number[];
+}
+
+export interface SaveReceptionOrderEditorResponse {
+  success: boolean;
+  message: string;
+  editor?: ReceptionOrderEditorResponse | null;
+}
+
 export interface SeasonStatus {
   seasonStarted: boolean;
   userInSeason: boolean;

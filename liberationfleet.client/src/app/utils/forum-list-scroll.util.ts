@@ -36,3 +36,21 @@ export function clearForumListScrollState(key: string): void {
     // ignore
   }
 }
+
+/** Clear all forum list scroll restores (logout / account switch). */
+export function clearAllForumListScrollState(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(PREFIX)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    // ignore
+  }
+}

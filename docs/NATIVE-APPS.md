@@ -461,9 +461,18 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 #### D. Smoke test
 
 1. Sign in on a device → allow notifications.
-2. Confirm `DevicePushTokens` has a row for your user.
-3. Background the app → trigger a notification from another account.
+2. Confirm `DevicePushTokens` has a row for your user (platform `Android`, `IsDisabled` false).
+3. Background the app (or force-stop) → send a DM from another account.
 4. Tap the system notification → app opens the `actionUrl`.
+
+**If Android testers get in-app alerts but no OS push:**
+
+| Check | What to look for |
+|-------|------------------|
+| Token never registered | No `DevicePushTokens` row after sign-in + Allow → rebuild with current client (listeners must attach **before** `PushNotifications.register()`; older builds could miss the FCM token) |
+| Server FCM not configured | App Service `Push__FcmProjectId` + Key Vault `Push-FcmServiceAccountJson` still empty/`change-me` → sender no-ops (SignalR still works) |
+| Permission denied | Android 13+ Settings → Apps → Liberation Fleet → Notifications → enabled |
+| Channel | App creates `liberation_fleet_default`; FCM payload and Manifest default channel id match that string |
 
 Track checklist: [LAUNCH-CHECKLIST B.9](./LAUNCH-CHECKLIST.md). Also [AZURE-GO-LIVE §16.3](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec).
 

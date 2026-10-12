@@ -27,6 +27,9 @@ import {
   PaymentPlatformOption,
   PendingMiddlemanGift,
   ReceptionOrderEntry,
+  ReceptionOrderEditorResponse,
+  SaveReceptionOrderEditorRequest,
+  SaveReceptionOrderEditorResponse,
   RecordGiftRequest,
   SeasonProfile,
   SeasonProfileResponse,
@@ -136,6 +139,16 @@ export class GiftService {
       params['impersonateAsUserId'] = impersonateAsUserId;
     }
     return this.http.get<ReceptionOrderEntry[]>(`${this.apiUrl}/reception-order`, { params });
+  }
+
+  getReceptionOrderEditor(): Observable<ReceptionOrderEditorResponse> {
+    return this.http.get<ReceptionOrderEditorResponse>(`${this.apiUrl}/reception-order/editor`);
+  }
+
+  saveReceptionOrderEditor(
+    body: SaveReceptionOrderEditorRequest
+  ): Observable<SaveReceptionOrderEditorResponse> {
+    return this.http.put<SaveReceptionOrderEditorResponse>(`${this.apiUrl}/reception-order/editor`, body);
   }
 
   getNextAidInfo(): Observable<NextAidInfo | null> {

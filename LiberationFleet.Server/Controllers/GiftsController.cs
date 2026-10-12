@@ -17,9 +17,11 @@ using LiberationFleet.Server.Application.Features.Gifts.Queries.GetPendingMiddle
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistory;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetMyGiftHistoryForRecipient;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetNextAid;
-using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrder;
-using LiberationFleet.Server.Application.Features.Gifts.Queries.GetSeasonProfile;
+using LiberationFleet.Server.Application.Features.Gifts.Commands.SaveReceptionOrderEditor;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrder;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrderEditor;
+using LiberationFleet.Server.Application.Features.Gifts.Queries.GetSeasonProfile;
 using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -170,6 +172,20 @@ public class GiftsController : ControllerBase
     {
         var entries = await _mediator.Send(new GetReceptionOrderQuery(limit, impersonateAsUserId));
         return Ok(entries);
+    }
+
+    [HttpGet("reception-order/editor")]
+    public async Task<IActionResult> GetReceptionOrderEditor()
+    {
+        var result = await _mediator.Send(new GetReceptionOrderEditorQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("reception-order/editor")]
+    public async Task<IActionResult> SaveReceptionOrderEditor([FromBody] SaveReceptionOrderEditorRequest body)
+    {
+        var result = await _mediator.Send(new SaveReceptionOrderEditorCommand(body));
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost]

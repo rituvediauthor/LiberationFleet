@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Features.Crews;
+using LiberationFleet.Server.Application.Features.Gifts.Contracts;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -93,6 +94,15 @@ public interface IMutualAidService
         CrewMembership membership,
         AidSeasonAccountingDto accounting,
         bool persistAsDraftWhenNoSeason,
+        CancellationToken cancellationToken = default);
+    /// <summary>Organizer/accountant editor: all active thresholds + season cycles.</summary>
+    Task<ReceptionOrderEditorResponse> GetReceptionOrderEditorAsync(
+        int userId,
+        CancellationToken cancellationToken = default);
+    /// <summary>Applies threshold/cycle edits immediately (no proposal).</summary>
+    Task<SaveReceptionOrderEditorResponse> SaveReceptionOrderEditorAsync(
+        int userId,
+        SaveReceptionOrderEditorRequest request,
         CancellationToken cancellationToken = default);
     Task RemoveMemberFromSeasonAsync(int crewId, int userId, CancellationToken cancellationToken = default);
     Task RecordEmergencySacrificeAsync(int crewId, int sacrificerUserId, CancellationToken cancellationToken = default);

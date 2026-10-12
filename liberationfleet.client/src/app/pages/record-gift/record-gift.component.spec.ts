@@ -47,6 +47,11 @@ describe('RecordGiftComponent', () => {
       { id: 1, name: 'PayPal' },
       { id: 2, name: 'Cash App' }
     ]));
+    crewService.getMembership.and.returnValue(of({
+      hasCrew: true,
+      canImpersonateGiftGiver: false,
+      canEditReceptionOrder: false
+    }));
 
     profileService.getProfile.and.returnValue(of({
       id: 1,
@@ -137,7 +142,9 @@ describe('RecordGiftComponent', () => {
 
     component.onConfirmRecord();
 
-    expect(giftService.recordGifts).toHaveBeenCalledWith([
+    expect(giftService.recordGifts).toHaveBeenCalled();
+    const [giftsArg, impersonateArg] = giftService.recordGifts.calls.mostRecent().args;
+    expect(giftsArg).toEqual([
       jasmine.objectContaining({
         amount: 25,
         paymentPlatformId: 1,
@@ -145,6 +152,7 @@ describe('RecordGiftComponent', () => {
         isCustom: true
       })
     ]);
+    expect(impersonateArg == null).toBeTrue();
     expect(toastService.success).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew/gift-log']);
   });

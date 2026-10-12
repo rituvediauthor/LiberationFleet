@@ -404,7 +404,7 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
 
   private loadPosts(reset: boolean) {
     if (reset) {
-      const prefetched = this.forumPrefetch.takeFleetSpacePage();
+      const prefetched = this.forumPrefetch.takeFleetSpacePage(this.fleetId);
       if (prefetched && !this.refreshing && !this.pendingRestoreCount) {
         this.items = prefetched.items;
         this.hasMore = prefetched.hasMore;

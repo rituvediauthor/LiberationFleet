@@ -101,6 +101,7 @@ public class FcmApnsPushNotificationSender(
         var client = httpClientFactory.CreateClient(nameof(FcmApnsPushNotificationSender));
         var url = $"https://fcm.googleapis.com/v1/projects/{opts.FcmProjectId}/messages:send";
 
+        // channel_id must match PushNotificationRegistrationService ANDROID_PUSH_CHANNEL_ID.
         var payload = new
         {
             message = new
@@ -119,7 +120,14 @@ public class FcmApnsPushNotificationSender(
                 },
                 android = new
                 {
-                    priority = "HIGH"
+                    priority = "HIGH",
+                    notification = new
+                    {
+                        channel_id = "liberation_fleet_default",
+                        sound = "default",
+                        default_sound = true,
+                        notification_priority = "PRIORITY_HIGH"
+                    }
                 }
             }
         };
@@ -305,8 +313,13 @@ public class FcmApnsPushNotificationSender(
 
     private static bool IsInvalidTokenResponse(string body) =>
         body.Contains("UNREGISTERED", StringComparison.OrdinalIgnoreCase)
-        || body.Contains("INVALID_ARGUMENT", StringComparison.OrdinalIgnoreCase)
-        || body.Contains("NotRegistered", StringComparison.OrdinalIgnoreCase);
+        || body.Contains("NotRegistered", StringComparison.OrdinalIgnoreCase)
+        // FCM uses INVALID_ARGUMENT for many payload errors; only treat as a bad
+        // device token when the message clearly refers to the registration token.
+        || (body.Contains("INVALID_ARGUMENT", StringComparison.OrdinalIgnoreCase)
+            && (body.Contains("registration token", StringComparison.OrdinalIgnoreCase)
+                || body.Contains("registration_token", StringComparison.OrdinalIgnoreCase)
+                || body.Contains("not a valid FCM", StringComparison.OrdinalIgnoreCase)));
 
     private static string Truncate(string value, int max) =>
         string.IsNullOrEmpty(value) || value.Length <= max ? value : value[..max];

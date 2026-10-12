@@ -55,6 +55,7 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
   giverPlatformIds: number[] = [];
   activeUserId = 0;
   canImpersonateGiftGiver = false;
+  canEditReceptionOrder = false;
   impersonateEnabled = false;
   impersonateAsUserId: number | '' = '';
   showConfirmDialog = false;
@@ -114,6 +115,7 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     this.crewService.getMembership().subscribe({
       next: membership => {
         this.canImpersonateGiftGiver = !!membership.canImpersonateGiftGiver;
+        this.canEditReceptionOrder = !!membership.canEditReceptionOrder;
       }
     });
 
@@ -483,6 +485,10 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onAddNonCrewmate() {
     this.router.navigate(['/app/crew/gift-log/record/add-non-crewmate']);
+  }
+
+  onEditReceptionOrder() {
+    void this.router.navigate(['/app/crew/gift-log/record/reception-order']);
   }
 
   private resolvePlatformId(entry: ReceptionOrderEntry, index: number, row: EntryFormValue): number {

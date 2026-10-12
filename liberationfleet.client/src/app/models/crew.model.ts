@@ -62,6 +62,7 @@ export interface CrewMembershipStatus {
   canExportCrewData?: boolean;
   canManagePlaceholders?: boolean;
   canImpersonateGiftGiver?: boolean;
+  canEditReceptionOrder?: boolean;
   crewTenureDays?: number;
   fleetTenureDays?: number;
   crewProposalDaysRemaining?: number;

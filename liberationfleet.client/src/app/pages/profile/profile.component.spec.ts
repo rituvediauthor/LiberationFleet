@@ -142,8 +142,6 @@ describe('ProfileComponent', () => {
       disabilityLevel: 0,
       identityGroups: [],
       needsSurvivalAid: true,
-      countryCode: null,
-      zipCode: null,
       paymentPlatforms: [{ id: 1, platformId: 1, platform: 'PayPal', handle: 'james@example.com' }]
     });
     expect(authService.updateCurrentUser).toHaveBeenCalledWith({

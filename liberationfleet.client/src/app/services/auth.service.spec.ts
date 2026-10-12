@@ -2,22 +2,56 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
+import { ForumListPrefetchService } from './forum-list-prefetch.service';
+import { NotificationHubService } from './notification-hub.service';
+import { PushNotificationRegistrationService } from './push-notification-registration.service';
 import { APP_ENVIRONMENT } from '../config/app-environment';
 import { clearAuthStorage } from '../testing/test-helpers';
 import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
 
+/** Minimal unexpired JWT so isAuthenticated() does not wipe the test token. */
+function testJwt(userId = 1, expiresInSeconds = 3600): string {
+  const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({
+    sub: String(userId),
+    exp: Math.floor(Date.now() / 1000) + expiresInSeconds
+  }));
+  return `${header}.${payload}.sig`;
+}
+
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
+  let forumPrefetch: jasmine.SpyObj<ForumListPrefetchService>;
 
   beforeEach(() => {
     clearAuthStorage();
+    forumPrefetch = jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
+      'clearSessionCache',
+      'invalidate'
+    ]);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
         AuthService,
-        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } }
+        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } },
+        // Break AuthService ↔ NotificationHubService construction cycle in unit tests.
+        {
+          provide: NotificationHubService,
+          useValue: jasmine.createSpyObj<NotificationHubService>('NotificationHubService', [
+            'connect',
+            'disconnect'
+          ])
+        },
+        {
+          provide: PushNotificationRegistrationService,
+          useValue: jasmine.createSpyObj<PushNotificationRegistrationService>(
+            'PushNotificationRegistrationService',
+            ['start', 'stopAndUnregister']
+          )
+        },
+        { provide: ForumListPrefetchService, useValue: forumPrefetch }
       ]
     });
 
@@ -35,9 +69,10 @@ describe('AuthService', () => {
   });
 
   it('login should post credentials and store token on success', () => {
+    const token = testJwt(2);
     const response = {
       success: true,
-      token: 'login-token',
+      token,
       user: { id: 2, username: 'fleet', email: 'fleet@example.com' }
     };
 
@@ -48,7 +83,7 @@ describe('AuthService', () => {
     expect(req.request.body).toEqual({ usernameOrEmail: 'fleet@example.com', password: 'password123' });
     req.flush(response);
 
-    expect(service.getToken()).toBe('login-token');
+    expect(service.getToken()).toBe(token);
   });
 
   it('login should not store token when MFA is required', () => {
@@ -71,14 +106,15 @@ describe('AuthService', () => {
   it('establishSession should store token and user', () => {
     let latestUser: unknown = 'unset';
     service.currentUser$.subscribe(user => latestUser = user);
+    const token = testJwt(1);
 
     service.establishSession({
       success: true,
-      token: 'jwt-token',
+      token,
       user: { id: 1, username: 'user', email: 'user@example.com' }
     });
 
-    expect(service.getToken()).toBe('jwt-token');
+    expect(service.getToken()).toBe(token);
     expect(service.isAuthenticated()).toBeTrue();
     expect(latestUser).toEqual({ id: 1, username: 'user', email: 'user@example.com' });
   });
@@ -89,12 +125,26 @@ describe('AuthService', () => {
 
     service.establishSession({
       success: true,
-      token: 'jwt-token',
+      token: testJwt(1),
       user: { id: 1, username: 'user', email: 'user@example.com' }
     });
 
     expect(cryptoSession.clearSession).toHaveBeenCalled();
   });
+
+  it('logout and establishSession should clear forum prefetch plaintext cache', () => {
+    service.logout();
+    expect(forumPrefetch.clearSessionCache).toHaveBeenCalled();
+
+    forumPrefetch.clearSessionCache.calls.reset();
+    service.establishSession({
+      success: true,
+      token: testJwt(1),
+      user: { id: 1, username: 'user', email: 'user@example.com' }
+    });
+    expect(forumPrefetch.clearSessionCache).toHaveBeenCalled();
+  });
+
 
   it('establishSession should not store token when response has no token', () => {
     service.establishSession({ success: false, message: 'Failed' });
@@ -139,7 +189,28 @@ describe('AuthService token loading', () => {
       imports: [HttpClientTestingModule],
       providers: [
         AuthService,
-        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } }
+        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } },
+        {
+          provide: NotificationHubService,
+          useValue: jasmine.createSpyObj<NotificationHubService>('NotificationHubService', [
+            'connect',
+            'disconnect'
+          ])
+        },
+        {
+          provide: PushNotificationRegistrationService,
+          useValue: jasmine.createSpyObj<PushNotificationRegistrationService>(
+            'PushNotificationRegistrationService',
+            ['start', 'stopAndUnregister']
+          )
+        },
+        {
+          provide: ForumListPrefetchService,
+          useValue: jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
+            'clearSessionCache',
+            'invalidate'
+          ])
+        }
       ]
     });
 
@@ -155,5 +226,9 @@ describe('AuthService token loading', () => {
   it('should recognize existing token from localStorage on init', () => {
     expect(service.getToken()).toBe(validToken);
     expect(service.isAuthenticated()).toBeTrue();
+
+    // loadToken() may kick off a remember-me refresh
+    const refresh = httpMock.expectOne('/api/auth/refresh');
+    refresh.flush({ success: true, token: validToken });
   });
 });

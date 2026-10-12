@@ -236,6 +236,15 @@ public class MutualAidRepository : IMutualAidRepository
     public void RemoveThreshold(MonthlySurvivalThreshold threshold) =>
         _context.MonthlySurvivalThresholds.Remove(threshold);
 
+    public void RemoveSeasonCycle(SeasonCycle cycle) =>
+        _context.SeasonCycles.Remove(cycle);
+
+    public Task<bool> HasGiftsForSeasonCycleAsync(int seasonCycleId, CancellationToken cancellationToken = default) =>
+        _context.Gifts.AnyAsync(g => g.SeasonCycleId == seasonCycleId, cancellationToken);
+
+    public Task<bool> HasGiftsForThresholdAsync(int thresholdId, CancellationToken cancellationToken = default) =>
+        _context.Gifts.AnyAsync(g => g.MonthlySurvivalThresholdId == thresholdId, cancellationToken);
+
     public Task<bool> HasThresholdForMonthAsync(int crewId, int userId, int year, int month, CancellationToken cancellationToken = default) =>
         _context.MonthlySurvivalThresholds.AnyAsync(
             t => t.CrewId == crewId && t.UserId == userId && t.Year == year && t.Month == month,

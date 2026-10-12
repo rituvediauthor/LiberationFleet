@@ -13,6 +13,15 @@
     <div class="form-card">
       <p *ngIf="loading" class="status-text">Loading reception order…</p>
 
+      <div class="add-non-member-row" *ngIf="!loading && canEditReceptionOrder">
+        <button type="button" class="add-non-member-btn" (click)="onEditReceptionOrder()">
+          Edit reception order
+        </button>
+        <p class="add-non-member-hint">
+          Organizer/accountant: edit survival thresholds and season cycles immediately.
+        </p>
+      </div>
+
       <div class="add-non-member-row" *ngIf="!loading">
         <button type="button" class="add-non-member-btn" (click)="onAddNonCrewmate()">
           Add non-member

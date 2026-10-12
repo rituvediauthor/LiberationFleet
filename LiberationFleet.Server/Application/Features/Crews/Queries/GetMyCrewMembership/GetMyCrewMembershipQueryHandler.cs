@@ -133,6 +133,7 @@ public class GetMyCrewMembershipQueryHandler(
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(membership),
             CanManagePlaceholders = CrewRoleAuthorizationService.CanManagePlaceholders(membership),
             CanImpersonateGiftGiver = CrewRoleAuthorizationService.CanImpersonateGiftGiver(membership),
+            CanEditReceptionOrder = CrewRoleAuthorizationService.CanEditReceptionOrder(membership),
             CrewTenureDays = crewTenureDays,
             FleetTenureDays = fleetTenureDays,
             CrewProposalDaysRemaining = crewProposalDaysRemaining,

@@ -404,7 +404,7 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
 
   private loadPosts(reset: boolean) {
     if (reset) {
-      const prefetched = this.forumPrefetch.takeCrewSpacePage();
+      const prefetched = this.forumPrefetch.takeCrewSpacePage(this.crewId);
       if (prefetched && !this.refreshing && !this.pendingRestoreCount) {
         this.items = prefetched.items;
         this.hasMore = prefetched.hasMore;
