@@ -115,6 +115,40 @@ h1 {
   font-size: 14px;
 }
 
+.order-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-controls .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.move-btn {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 6px;
+  background: var(--lf-color-bg-muted, var(--lf-color-bg-hover));
+  color: var(--lf-color-text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.move-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.form-input.input-invalid {
+  border-color: var(--lf-color-danger, #c0392b);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lf-color-danger, #c0392b) 35%, transparent);
+}
+
 .toggle-row {
   display: flex;
   flex-wrap: wrap;

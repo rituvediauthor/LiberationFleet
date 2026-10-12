@@ -251,9 +251,11 @@ export interface ReceptionOrderEditorThreshold {
   username: string;
   amountNeeded: number;
   amountRemaining: number;
-  order: number;
+  receptionOrder: number;
   /** Client-only key for *ngFor stability on new rows. */
   clientKey?: string;
+  /** Draft text while typing an order (committed on blur). */
+  orderDraft?: string;
 }
 
 export interface ReceptionOrderEditorCycle {
@@ -264,13 +266,15 @@ export interface ReceptionOrderEditorCycle {
   amountRemaining: number;
   isActive: boolean;
   isFrozen: boolean;
-  order: number;
+  receptionOrder: number;
   cycleCompleted: boolean;
   isEmergencyCycle?: boolean;
   isPaybackCycle?: boolean;
   isPrimary?: boolean;
   canRemove?: boolean;
   clientKey?: string;
+  /** Draft text while typing an order (committed on blur). */
+  orderDraft?: string;
 }
 
 export interface ReceptionOrderEditorResponse {

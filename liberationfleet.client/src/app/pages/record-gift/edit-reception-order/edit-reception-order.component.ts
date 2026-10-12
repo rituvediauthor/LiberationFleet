@@ -12,6 +12,8 @@ import {
   ReceptionOrderEditorThreshold
 } from '../../../models/gift.model';
 
+type OrderRow = { receptionOrder: number; orderDraft?: string | number | null };
+
 @Component({
   selector: 'app-edit-reception-order',
   standalone: true,
@@ -44,12 +46,27 @@ export class EditReceptionOrderComponent implements OnInit {
     this.loadEditor();
   }
 
+  get orderValidationMessage(): string {
+    return this.describeOrderProblem(this.thresholds, 'Survival threshold')
+      ?? this.describeOrderProblem(this.cycles, 'Season cycle')
+      ?? '';
+  }
+
+  get canSave(): boolean {
+    return !this.loading
+      && !this.saving
+      && !this.errorMessage
+      && this.areOrdersValid(this.thresholds)
+      && this.areOrdersValid(this.cycles);
+  }
+
   addThreshold(): void {
     const member = this.members[0];
     if (!member) {
       this.toastService.error('No crewmates available.');
       return;
     }
+    const nextOrder = this.nextAvailableOrder(this.thresholds);
     this.thresholds = [
       ...this.thresholds,
       {
@@ -58,10 +75,11 @@ export class EditReceptionOrderComponent implements OnInit {
         username: member.username,
         amountNeeded: 0,
         amountRemaining: 0,
-        order: this.thresholds.length + 1
+        receptionOrder: nextOrder,
+        orderDraft: String(nextOrder)
       }
     ];
-    this.renumberThresholdOrders();
+    this.updateSaveButton();
   }
 
   removeThreshold(index: number): void {
@@ -73,12 +91,29 @@ export class EditReceptionOrderComponent implements OnInit {
       this.removedThresholdIds = [...this.removedThresholdIds, row.id];
     }
     this.thresholds = this.thresholds.filter((_, i) => i !== index);
-    this.renumberThresholdOrders();
+    this.updateSaveButton();
   }
 
   onThresholdOwnerChange(row: ReceptionOrderEditorThreshold): void {
     const member = this.members.find(m => m.userId === Number(row.userId));
     row.username = member?.username ?? row.username;
+  }
+
+  onOrderDraftChange(): void {
+    this.updateSaveButton();
+  }
+
+  moveThreshold(index: number, delta: number): void {
+    this.nudgeOrder(this.thresholds[index], this.thresholds.length, delta);
+    this.updateSaveButton();
+  }
+
+  canNudgeThreshold(row: ReceptionOrderEditorThreshold, delta: number): boolean {
+    return this.canNudgeOrder(row, this.thresholds.length, delta);
+  }
+
+  isThresholdOrderInvalid(row: ReceptionOrderEditorThreshold): boolean {
+    return this.isOrderDraftInvalid(this.thresholds, row);
   }
 
   addCycle(): void {
@@ -88,6 +123,7 @@ export class EditReceptionOrderComponent implements OnInit {
       this.toastService.error('Every crewmate already has a primary cycle.');
       return;
     }
+    const nextOrder = this.nextAvailableOrder(this.cycles);
     this.cycles = [
       ...this.cycles,
       {
@@ -98,13 +134,14 @@ export class EditReceptionOrderComponent implements OnInit {
         amountRemaining: 0,
         isActive: false,
         isFrozen: true,
-        order: this.cycles.length + 1,
+        receptionOrder: nextOrder,
+        orderDraft: String(nextOrder),
         cycleCompleted: false,
         isPrimary: true,
         canRemove: true
       }
     ];
-    this.renumberCycleOrders();
+    this.updateSaveButton();
   }
 
   removeCycle(index: number): void {
@@ -124,12 +161,25 @@ export class EditReceptionOrderComponent implements OnInit {
       this.removedCycleIds = [...this.removedCycleIds, row.id];
     }
     this.cycles = this.cycles.filter((_, i) => i !== index);
-    this.renumberCycleOrders();
+    this.updateSaveButton();
   }
 
   onCycleOwnerChange(row: ReceptionOrderEditorCycle): void {
     const member = this.members.find(m => m.userId === Number(row.userId));
     row.username = member?.username ?? row.username;
+  }
+
+  moveCycle(index: number, delta: number): void {
+    this.nudgeOrder(this.cycles[index], this.cycles.length, delta);
+    this.updateSaveButton();
+  }
+
+  canNudgeCycle(row: ReceptionOrderEditorCycle, delta: number): boolean {
+    return this.canNudgeOrder(row, this.cycles.length, delta);
+  }
+
+  isCycleOrderInvalid(row: ReceptionOrderEditorCycle): boolean {
+    return this.isOrderDraftInvalid(this.cycles, row);
   }
 
   onCycleActiveChange(row: ReceptionOrderEditorCycle, active: boolean): void {
@@ -191,46 +241,58 @@ export class EditReceptionOrderComponent implements OnInit {
     cycles: ReceptionOrderEditorCycle[]
   ): void {
     this.members = members ?? [];
-    this.thresholds = (thresholds ?? []).map(t => ({
-      ...t,
-      clientKey: this.newClientKey()
-    }));
-    this.cycles = (cycles ?? []).map(c => ({
-      ...c,
-      clientKey: this.newClientKey(),
-      isFrozen: !c.isActive && !c.cycleCompleted
-    }));
+    this.thresholds = (thresholds ?? [])
+      .map(t => ({
+        ...t,
+        receptionOrder: Number(t.receptionOrder) || 0,
+        orderDraft: String(Number(t.receptionOrder) || 0),
+        clientKey: this.newClientKey()
+      }))
+      .sort((a, b) => a.receptionOrder - b.receptionOrder);
+    this.cycles = (cycles ?? [])
+      .map(c => ({
+        ...c,
+        receptionOrder: Number(c.receptionOrder) || 0,
+        orderDraft: String(Number(c.receptionOrder) || 0),
+        clientKey: this.newClientKey(),
+        isFrozen: !c.isActive && !c.cycleCompleted
+      }))
+      .sort((a, b) => a.receptionOrder - b.receptionOrder);
     this.removedThresholdIds = [];
     this.removedCycleIds = [];
-    this.renumberThresholdOrders();
-    this.renumberCycleOrders();
+    // Initial load only: sync drafts to the server order. After that, drafts are user-owned.
+    this.thresholds.forEach((row, i) => {
+      row.receptionOrder = i + 1;
+      row.orderDraft = String(i + 1);
+    });
+    this.cycles.forEach((row, i) => {
+      row.receptionOrder = i + 1;
+      row.orderDraft = String(i + 1);
+    });
   }
 
   private save(): void {
-    if (this.saving || this.loading) {
+    if (!this.canSave) {
       return;
     }
+
+    const orderedThresholds = this.sortByDrafts(this.thresholds);
+    const orderedCycles = this.sortByDrafts(this.cycles);
+
     this.saving = true;
     this.updateSaveButton();
 
-    const sortedThresholds = [...this.thresholds].sort(
-      (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0)
-    );
-    const sortedCycles = [...this.cycles].sort(
-      (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0)
-    );
-
     this.giftService.saveReceptionOrderEditor({
-      thresholds: sortedThresholds.map((t, i) => ({
+      thresholds: orderedThresholds.map((t, i) => ({
         id: t.id ?? null,
         userId: Number(t.userId),
         username: t.username,
         amountNeeded: Number(t.amountNeeded) || 0,
         amountRemaining: Number(t.amountRemaining) || 0,
-        order: i + 1
+        receptionOrder: i + 1
       })),
       removedThresholdIds: this.removedThresholdIds,
-      cycles: sortedCycles.map((c, i) => ({
+      cycles: orderedCycles.map((c, i) => ({
         id: c.id ?? null,
         userId: Number(c.userId),
         username: c.username,
@@ -238,7 +300,7 @@ export class EditReceptionOrderComponent implements OnInit {
         amountRemaining: Number(c.amountRemaining) || 0,
         isActive: !!c.isActive && !c.cycleCompleted,
         isFrozen: !c.isActive && !c.cycleCompleted,
-        order: i + 1,
+        receptionOrder: i + 1,
         cycleCompleted: !!c.cycleCompleted,
         isEmergencyCycle: !!c.isEmergencyCycle,
         isPaybackCycle: !!c.isPaybackCycle,
@@ -269,15 +331,116 @@ export class EditReceptionOrderComponent implements OnInit {
     });
   }
 
-  private renumberThresholdOrders(): void {
-    this.thresholds.forEach((row, i) => {
-      row.order = i + 1;
-    });
+  /** True when drafts are exactly the unique set 1..n (empty lists are fine). */
+  private areOrdersValid(rows: OrderRow[]): boolean {
+    return this.describeOrderProblem(rows, '') === null;
   }
 
-  private renumberCycleOrders(): void {
-    this.cycles.forEach((row, i) => {
-      row.order = i + 1;
+  private describeOrderProblem(rows: OrderRow[], label: string): string | null {
+    if (rows.length === 0) {
+      return null;
+    }
+
+    const values = rows.map(row => this.tryParseDraft(row));
+    if (values.some(v => v === null)) {
+      return label
+        ? `${label} orders must be whole numbers from 1 to ${rows.length}.`
+        : 'invalid';
+    }
+
+    const nums = values as number[];
+    const seen = new Set<number>();
+    for (const n of nums) {
+      if (n < 1 || n > rows.length) {
+        return label
+          ? `${label} orders must be whole numbers from 1 to ${rows.length}.`
+          : 'invalid';
+      }
+      if (seen.has(n)) {
+        return label
+          ? `${label} orders must each be unique (1–${rows.length}).`
+          : 'invalid';
+      }
+      seen.add(n);
+    }
+
+    for (let i = 1; i <= rows.length; i++) {
+      if (!seen.has(i)) {
+        return label
+          ? `${label} orders must use each number from 1 to ${rows.length} exactly once.`
+          : 'invalid';
+      }
+    }
+
+    return null;
+  }
+
+  private isOrderDraftInvalid(rows: OrderRow[], row: OrderRow): boolean {
+    if (this.areOrdersValid(rows)) {
+      return false;
+    }
+    const parsed = this.tryParseDraft(row);
+    if (parsed === null || parsed < 1 || parsed > rows.length) {
+      return true;
+    }
+    return rows.filter(r => this.tryParseDraft(r) === parsed).length > 1;
+  }
+
+  private tryParseDraft(row: OrderRow): number | null {
+    if (row.orderDraft === null || row.orderDraft === undefined || row.orderDraft === '') {
+      return null;
+    }
+    const parsed = typeof row.orderDraft === 'number'
+      ? row.orderDraft
+      : Number(String(row.orderDraft).trim());
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+      return null;
+    }
+    return parsed;
+  }
+
+  /** Change only this row's order by ±1 (clamped). Never touches other rows. */
+  private nudgeOrder(row: OrderRow | undefined, listLength: number, delta: number): void {
+    if (!row || !this.canNudgeOrder(row, listLength, delta)) {
+      return;
+    }
+    const current = this.tryParseDraft(row) ?? row.receptionOrder ?? 1;
+    const next = current + delta;
+    row.orderDraft = String(next);
+    row.receptionOrder = next;
+  }
+
+  private canNudgeOrder(row: OrderRow, listLength: number, delta: number): boolean {
+    if (listLength <= 0) {
+      return false;
+    }
+    const current = this.tryParseDraft(row);
+    if (current === null) {
+      return false;
+    }
+    const next = current + delta;
+    return next >= 1 && next <= listLength;
+  }
+
+  private nextAvailableOrder(rows: OrderRow[]): number {
+    const used = new Set(
+      rows
+        .map(r => this.tryParseDraft(r))
+        .filter((n): n is number => n !== null)
+    );
+    for (let i = 1; i <= rows.length + 1; i++) {
+      if (!used.has(i)) {
+        return i;
+      }
+    }
+    return rows.length + 1;
+  }
+
+  private sortByDrafts<T extends OrderRow>(rows: T[]): T[] {
+    return rows.slice().sort((a, b) => {
+      const av = this.tryParseDraft(a) ?? Number.MAX_SAFE_INTEGER;
+      const bv = this.tryParseDraft(b) ?? Number.MAX_SAFE_INTEGER;
+      return av - bv;
     });
   }
 
@@ -289,7 +452,7 @@ export class EditReceptionOrderComponent implements OnInit {
     this.saveButton = {
       label: this.saving ? 'Saving…' : 'Save',
       type: 'primary',
-      disabled: this.loading || this.saving || !!this.errorMessage,
+      disabled: !this.canSave,
       onClick: () => this.save()
     };
   }

@@ -4,11 +4,16 @@
       <h1>Edit reception order</h1>
       <p class="intro">
         Change survival thresholds and season cycles immediately. Order 1 is first in line.
+        Edit each order yourself — other rows never auto-change. Use ↑/↓ to nudge only that
+        row’s number. Save stays disabled until every section uses 1–N exactly once.
         Active cycles are unlocked for gifts; frozen cycles wait until unlocked.
       </p>
 
       <p *ngIf="loading" class="status-text">Loading…</p>
       <p *ngIf="!loading && errorMessage" class="error-text">{{ errorMessage }}</p>
+      <p *ngIf="!loading && !errorMessage && orderValidationMessage" class="error-text">
+        {{ orderValidationMessage }}
+      </p>
 
       <ng-container *ngIf="!loading && !errorMessage">
         <section class="editor-section">
@@ -58,16 +63,23 @@
                   [(ngModel)]="row.amountRemaining"
                   [ngModelOptions]="{standalone: true}">
               </div>
-              <div class="form-group">
+              <div class="form-group order-group">
                 <label [attr.for]="'th-order-' + i">Order</label>
-                <input
-                  [id]="'th-order-' + i"
-                  type="number"
-                  min="1"
-                  step="1"
-                  class="form-input"
-                  [(ngModel)]="row.order"
-                  [ngModelOptions]="{standalone: true}">
+                <div class="order-controls">
+                  <input
+                    [id]="'th-order-' + i"
+                    type="number"
+                    min="1"
+                    [attr.max]="thresholds.length"
+                    step="1"
+                    class="form-input"
+                    [class.input-invalid]="isThresholdOrderInvalid(row)"
+                    [(ngModel)]="row.orderDraft"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onOrderDraftChange()">
+                  <button type="button" class="move-btn" (click)="moveThreshold(i, -1)" [disabled]="!canNudgeThreshold(row, -1)" aria-label="Decrease order">↑</button>
+                  <button type="button" class="move-btn" (click)="moveThreshold(i, 1)" [disabled]="!canNudgeThreshold(row, 1)" aria-label="Increase order">↓</button>
+                </div>
               </div>
             </div>
             <button type="button" class="remove-btn" (click)="removeThreshold(i)">Remove</button>
@@ -126,16 +138,23 @@
                   [(ngModel)]="row.amountRemaining"
                   [ngModelOptions]="{standalone: true}">
               </div>
-              <div class="form-group">
+              <div class="form-group order-group">
                 <label [attr.for]="'cy-order-' + i">Order</label>
-                <input
-                  [id]="'cy-order-' + i"
-                  type="number"
-                  min="1"
-                  step="1"
-                  class="form-input"
-                  [(ngModel)]="row.order"
-                  [ngModelOptions]="{standalone: true}">
+                <div class="order-controls">
+                  <input
+                    [id]="'cy-order-' + i"
+                    type="number"
+                    min="1"
+                    [attr.max]="cycles.length"
+                    step="1"
+                    class="form-input"
+                    [class.input-invalid]="isCycleOrderInvalid(row)"
+                    [(ngModel)]="row.orderDraft"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onOrderDraftChange()">
+                  <button type="button" class="move-btn" (click)="moveCycle(i, -1)" [disabled]="!canNudgeCycle(row, -1)" aria-label="Decrease order">↑</button>
+                  <button type="button" class="move-btn" (click)="moveCycle(i, 1)" [disabled]="!canNudgeCycle(row, 1)" aria-label="Increase order">↓</button>
+                </div>
               </div>
             </div>
             <div class="toggle-row">

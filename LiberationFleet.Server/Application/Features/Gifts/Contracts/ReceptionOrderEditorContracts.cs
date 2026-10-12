@@ -31,7 +31,7 @@ public sealed class ReceptionOrderEditorThresholdDto
     /// <summary>Still owed.</summary>
     public decimal AmountRemaining { get; set; }
     /// <summary>1-based crew-wide order among survival thresholds.</summary>
-    public int Order { get; set; }
+    public int ReceptionOrder { get; set; }
 }
 
 public sealed class ReceptionOrderEditorCycleDto
@@ -48,7 +48,7 @@ public sealed class ReceptionOrderEditorCycleDto
     /// <summary>True when incomplete and not yet unlocked (!HasCycleStarted).</summary>
     public bool IsFrozen { get; set; }
     /// <summary>1-based reception order among season cycles.</summary>
-    public int Order { get; set; }
+    public int ReceptionOrder { get; set; }
     public bool CycleCompleted { get; set; }
     public bool IsEmergencyCycle { get; set; }
     public bool IsPaybackCycle { get; set; }

@@ -198,9 +198,11 @@ public class MutualAidRepository : IMutualAidRepository
         await _context.MonthlySurvivalThresholds
             .Include(t => t.User)
             .Where(t => t.CrewId == crewId && !t.Satisfied)
-            .OrderBy(t => t.Year)
+            // Reception order is the queue position accountants set; year/month are tie-breakers only.
+            .OrderBy(t => t.ReceptionOrderPosition)
+            .ThenBy(t => t.Year)
             .ThenBy(t => t.Month)
-            .ThenBy(t => t.ReceptionOrderPosition)
+            .ThenBy(t => t.Id)
             .ToListAsync(cancellationToken);
 
     public Task<MonthlySurvivalThreshold?> GetThresholdByIdAsync(int thresholdId, CancellationToken cancellationToken = default) =>

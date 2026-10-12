@@ -151,9 +151,13 @@ public partial class MutualAidService
             assignedMonths.Add((row.UserId, row.Year, row.Month));
         }
 
+        // Prefer explicit ReceptionOrder; fall back to the request list order (not Id)
+        // so the accountant's arrangement is preserved even when orders are missing/tied.
         var orderedThresholdDrafts = request.Thresholds
-            .OrderBy(t => t.Order <= 0 ? int.MaxValue : t.Order)
-            .ThenBy(t => t.Id ?? int.MaxValue)
+            .Select((t, index) => (Draft: t, Index: index))
+            .OrderBy(x => x.Draft.ReceptionOrder <= 0 ? int.MaxValue : x.Draft.ReceptionOrder)
+            .ThenBy(x => x.Index)
+            .Select(x => x.Draft)
             .ToList();
 
         var thresholdRows = new List<MonthlySurvivalThreshold>(orderedThresholdDrafts.Count);
@@ -225,8 +229,10 @@ public partial class MutualAidService
         }
 
         var orderedCycleDrafts = request.Cycles
-            .OrderBy(c => c.Order <= 0 ? int.MaxValue : c.Order)
-            .ThenBy(c => c.Id ?? int.MaxValue)
+            .Select((c, index) => (Draft: c, Index: index))
+            .OrderBy(x => x.Draft.ReceptionOrder <= 0 ? int.MaxValue : x.Draft.ReceptionOrder)
+            .ThenBy(x => x.Index)
+            .Select(x => x.Draft)
             .ToList();
 
         var pendingPrimaryUserIds = new HashSet<int>();
@@ -394,7 +400,7 @@ public partial class MutualAidService
                 Username = UserDisplay.Name(t.User),
                 AmountNeeded = t.ThresholdAmount,
                 AmountRemaining = Math.Max(0m, t.ThresholdAmount - t.ReceivedAmount),
-                Order = i + 1
+                ReceptionOrder = i + 1
             });
         }
 
@@ -428,7 +434,7 @@ public partial class MutualAidService
                 AmountRemaining = remaining,
                 IsActive = c.HasCycleStarted && !c.CycleCompleted,
                 IsFrozen = !c.HasCycleStarted && !c.CycleCompleted,
-                Order = i + 1,
+                ReceptionOrder = i + 1,
                 CycleCompleted = c.CycleCompleted,
                 IsEmergencyCycle = c.EmergencyRequestId.HasValue,
                 IsPaybackCycle = c.EmergencySplitOfferId.HasValue,
