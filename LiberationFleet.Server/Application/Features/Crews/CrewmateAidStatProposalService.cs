@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
@@ -45,7 +46,9 @@ public class CrewmateAidStatProposalService(
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        // Accept both numeric and string enum values in ChangesJson (API uses strings).
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public async Task<CrewmateAidStatProposalResult> CreateAsync(
@@ -182,9 +185,21 @@ public class CrewmateAidStatProposalService(
             cancellationToken);
         if (statusBefore != ProposalStatus.Approved && proposal.Status == ProposalStatus.Approved)
         {
-            await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+            try
+            {
+                await TryApplyApprovedProposalAsync(proposal, cancellationToken);
+            }
+            finally
+            {
+                // Persist any membership overrides even if a later refresh step throws;
+                // ProposalApprovalCoordinator will retry unfinished applies on next read.
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
         }
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        else
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         await notificationService.NotifyCrewAsync(
             crewId,
@@ -235,6 +250,15 @@ public class CrewmateAidStatProposalService(
             return;
         }
 
+        // Membership scalar overrides (lifetime, reception this year, estimate, percent boost)
+        // must apply even when season-accounting / legacy cycle setup fails or early-returns.
+        // Previously those paths marked IsApplied and skipped LifetimeContributionOverride=0,
+        // so the UI kept showing the gift-sum total.
+        foreach (var item in items)
+        {
+            ApplyMembershipScalarChange(membership, item);
+        }
+
         var seasonAccountingItem = items.FirstOrDefault(i => i.Field == CrewmateAidStatField.SeasonAccounting);
         if (seasonAccountingItem is not null)
         {
@@ -242,7 +266,8 @@ public class CrewmateAidStatProposalService(
             if (accounting is null)
             {
                 change.IsApplied = true;
-                change.Description = $"{change.Description}\n(Could not apply: invalid season accounting payload.)";
+                change.Description = $"{change.Description}\n(Could not apply season accounting: invalid payload. Membership overrides were applied.)";
+                await mutualAidService.OnCrewContributionsChangedAsync(proposal.CrewId.Value, cancellationToken);
                 return;
             }
 
@@ -256,14 +281,13 @@ public class CrewmateAidStatProposalService(
 
         var crew = await mutualAidRepository.GetCrewAsync(proposal.CrewId.Value, cancellationToken);
         SeasonCycle? cycle = null;
-        var isFinancialMember = false;
         decimal effectiveCap = 0m;
         var legacyCycleItems = items.Where(i => IsLegacyCycleField(i.Field)).ToList();
         if (crew?.CurrentSeasonStartDate is DateTime seasonStart
             && legacyCycleItems.Count > 0
             && seasonAccountingItem is null)
         {
-            isFinancialMember = await mutualAidService.IsFinancialMemberAsync(
+            var isFinancialMember = await mutualAidService.IsFinancialMemberAsync(
                 change.TargetUserId,
                 proposal.CrewId.Value,
                 membership,
@@ -291,7 +315,8 @@ public class CrewmateAidStatProposalService(
             if (cycle is null)
             {
                 change.IsApplied = true;
-                change.Description = $"{change.Description}\n(Could not apply: no primary season cycle available.)";
+                change.Description = $"{change.Description}\n(Could not apply legacy cycle fields: no primary season cycle available. Membership overrides were applied.)";
+                await mutualAidService.OnCrewContributionsChangedAsync(proposal.CrewId.Value, cancellationToken);
                 return;
             }
 
@@ -300,25 +325,13 @@ public class CrewmateAidStatProposalService(
                 isFinancialMember,
                 crew.SeasonMemberCycleCap,
                 crew.SeasonNonMemberCycleCap);
-        }
 
-        var utcNow = DateTime.UtcNow;
-        foreach (var item in items)
-        {
-            if (item.Field is CrewmateAidStatField.CycleCompleted
-                or CrewmateAidStatField.SeasonAccounting
-                or CrewmateAidStatField.TotalReceptionAmount
-                or CrewmateAidStatField.SurvivalThresholdReceived)
+            foreach (var item in legacyCycleItems)
             {
-                continue;
+                ApplyLegacyCycleChange(cycle, item);
             }
 
-            ApplyMembershipOrLegacyCycleChange(membership, cycle, item);
-        }
-
-        if (cycle is not null && legacyCycleItems.Count > 0 && seasonAccountingItem is null)
-        {
-            SyncCycleCompletedFromReception(cycle, effectiveCap, utcNow);
+            SyncCycleCompletedFromReception(cycle, effectiveCap, DateTime.UtcNow);
         }
 
         change.IsApplied = true;
@@ -333,9 +346,8 @@ public class CrewmateAidStatProposalService(
             or CrewmateAidStatField.CycleReceived
             or CrewmateAidStatField.CycleCompleted;
 
-    private static void ApplyMembershipOrLegacyCycleChange(
+    private static void ApplyMembershipScalarChange(
         CrewMembership membership,
-        SeasonCycle? cycle,
         CrewmateAidStatChangeItem item)
     {
         switch (item.Field)
@@ -344,17 +356,23 @@ public class CrewmateAidStatProposalService(
                 membership.EstimatedMonthlyContribution = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
             case CrewmateAidStatField.LifetimeContributions:
+                // Explicit override (including 0) so gift-sum totals no longer win on display.
                 membership.LifetimeContributionOverride = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
             case CrewmateAidStatField.ReceptionThisYear:
                 membership.ReceptionThisYearOverride = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
-            case CrewmateAidStatField.CycleReceived when cycle is not null:
-                cycle.CycleReceived = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
-                break;
             case CrewmateAidStatField.PercentBoost:
                 membership.PercentBonus = int.Parse(item.NewValue, CultureInfo.InvariantCulture);
                 break;
+        }
+    }
+
+    private static void ApplyLegacyCycleChange(SeasonCycle cycle, CrewmateAidStatChangeItem item)
+    {
+        if (item.Field == CrewmateAidStatField.CycleReceived)
+        {
+            cycle.CycleReceived = decimal.Parse(item.NewValue, CultureInfo.InvariantCulture);
         }
     }
 

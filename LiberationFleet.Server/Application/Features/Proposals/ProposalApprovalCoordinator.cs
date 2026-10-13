@@ -31,7 +31,12 @@ public static class ProposalApprovalCoordinator
         FleetRulesProposalService fleetRulesProposalService,
         CancellationToken cancellationToken)
     {
-        if (statusBefore == ProposalStatus.Approved || proposal.Status != ProposalStatus.Approved)
+        // Always attempt apply when Approved (handlers no-op when already applied).
+        // Do not gate on statusBefore: if approval was saved before a failed apply,
+        // later proposal reads must still be able to finish applying.
+        // (Call sites still use statusBefore for transition notifications.)
+        _ = statusBefore;
+        if (proposal.Status != ProposalStatus.Approved)
         {
             return;
         }

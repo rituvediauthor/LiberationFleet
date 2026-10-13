@@ -46,8 +46,12 @@ export class EditReceptionOrderComponent implements OnInit {
     this.loadEditor();
   }
 
+  /** Max concurrent active (open) survival thresholds per crewmate. */
+  readonly maxActiveThresholdsPerUser = 2;
+
   get orderValidationMessage(): string {
     return this.describeThresholdAmountProblem()
+      ?? this.describeThresholdStackProblem()
       ?? this.describeOrderProblem(this.thresholds, 'Survival threshold')
       ?? this.describeOrderProblem(this.cycles, 'Season cycle')
       ?? '';
@@ -58,14 +62,18 @@ export class EditReceptionOrderComponent implements OnInit {
       && !this.saving
       && !this.errorMessage
       && !this.describeThresholdAmountProblem()
+      && !this.describeThresholdStackProblem()
       && this.areOrdersValid(this.thresholds)
       && this.areOrdersValid(this.cycles);
   }
 
   addThreshold(): void {
-    const member = this.members[0];
+    const member = this.members.find(m => this.activeThresholdCountForUser(m.userId) < this.maxActiveThresholdsPerUser)
+      ?? null;
     if (!member) {
-      this.toastService.error('No crewmates available.');
+      this.toastService.error(
+        `Every crewmate already has ${this.maxActiveThresholdsPerUser} active survival thresholds.`
+      );
       return;
     }
     const nextOrder = this.nextAvailableOrder(this.thresholds);
@@ -111,6 +119,7 @@ export class EditReceptionOrderComponent implements OnInit {
   onThresholdOwnerChange(row: ReceptionOrderEditorThreshold): void {
     const member = this.members.find(m => m.userId === Number(row.userId));
     row.username = member?.username ?? row.username;
+    this.updateSaveButton();
   }
 
   onOrderDraftChange(): void {
@@ -358,6 +367,51 @@ export class EditReceptionOrderComponent implements OnInit {
       return 'New survival thresholds need an amount greater than $0.';
     }
     return null;
+  }
+
+  private describeThresholdStackProblem(): string | null {
+    const counts = new Map<number, { count: number; name: string }>();
+    for (const row of this.thresholds) {
+      if (!this.rowWillBeActiveThreshold(row)) {
+        continue;
+      }
+      const userId = Number(row.userId);
+      const prev = counts.get(userId);
+      if (prev) {
+        prev.count += 1;
+      } else {
+        counts.set(userId, { count: 1, name: row.username || `Crewmate ${userId}` });
+      }
+    }
+    for (const { count, name } of counts.values()) {
+      if (count > this.maxActiveThresholdsPerUser) {
+        return `${name} can have at most ${this.maxActiveThresholdsPerUser} active survival thresholds.`;
+      }
+    }
+    return null;
+  }
+
+  private activeThresholdCountForUser(userId: number): number {
+    return this.thresholds.filter(
+      t => Number(t.userId) === Number(userId) && this.rowWillBeActiveThreshold(t)
+    ).length;
+  }
+
+  /** Matches server save: open/unsatisfied after amounts are applied. */
+  private rowWillBeActiveThreshold(row: ReceptionOrderEditorThreshold): boolean {
+    let needed = Number(row.amountNeeded) || 0;
+    let remaining = Number(row.amountRemaining) || 0;
+    if (remaining > needed) {
+      needed = remaining;
+    }
+    if (!row.id && remaining <= 0 && needed > 0) {
+      remaining = needed;
+    }
+    if (needed <= 0) {
+      return false;
+    }
+    const received = Math.min(needed, Math.max(0, needed - remaining));
+    return received < needed;
   }
 
   /** True when drafts are exactly the unique set 1..n (empty lists are fine). */

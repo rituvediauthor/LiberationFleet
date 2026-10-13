@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -13,7 +14,8 @@ public class CrewmateAidStatProposalServiceTests
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     [Fact]
@@ -314,6 +316,79 @@ public class CrewmateAidStatProposalServiceTests
             .Select(c => c.ReceptionOrderPosition)
             .ToListAsync();
         positions.Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public async Task TryApply_WhenLifetimeContributionsSetToZero_PersistsOverrideOverGiftSum()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        fixture.Context.Gifts.Add(new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Bob.Id,
+            RecipientUserId = fixture.Alice.Id,
+            Amount = 304m,
+            Type = GiftType.Direct,
+            CountsTowardContribution = true,
+            CreatedAt = DateTime.UtcNow.AddDays(-30),
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreateService(fixture);
+        var proposal = await CreateApprovedProposalAsync(
+            fixture,
+            fixture.Bob.Id,
+            [new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.LifetimeContributions, NewValue = "0" }]);
+
+        await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var membership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        membership.LifetimeContributionOverride.Should().Be(0m);
+
+        var giftRepo = new GiftRepository(fixture.Context);
+        var giftStats = await giftRepo.GetCrewmateGiftStatsAsync(
+            fixture.Bob.Id,
+            fixture.Crew.Id,
+            fixture.SeasonStart,
+            CancellationToken.None);
+        giftStats.LifetimeContributions.Should().Be(0m);
+
+        var lifetimes = await new MutualAidRepository(fixture.Context)
+            .GetLifetimeContributionsForUsersAsync(
+                fixture.Crew.Id,
+                [fixture.Bob.Id],
+                before: null,
+                CancellationToken.None);
+        lifetimes[fixture.Bob.Id].Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task TryApply_WhenLifetimeAndInvalidSeasonAccounting_StillAppliesLifetimeOverride()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var service = CreateService(fixture);
+        var proposal = await CreateApprovedProposalAsync(
+            fixture,
+            fixture.Bob.Id,
+            [
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.LifetimeContributions, NewValue = "0.00" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.SeasonAccounting, NewValue = "not-json" }
+            ]);
+
+        await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var membership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        membership.LifetimeContributionOverride.Should().Be(0m);
+
+        var change = await fixture.Context.ProposalCrewmateAidStatChanges
+            .SingleAsync(c => c.ProposalId == proposal.Id);
+        change.IsApplied.Should().BeTrue();
+        change.Description.Should().Contain("Membership overrides were applied");
     }
 
     private static CrewmateAidStatProposalService CreateService(MutualAidSeasonFixture fixture) =>

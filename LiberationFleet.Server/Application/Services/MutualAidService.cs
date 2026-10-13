@@ -2404,8 +2404,20 @@ public async Task<bool> IsFinancialMemberAsync(
                 var thresholdAmount = draft.ThresholdAmount > 0m
                     ? draft.ThresholdAmount
                     : Math.Max(row.ThresholdAmount, remaining);
+                var received = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount);
+                var willBeActive = thresholdAmount > 0m && received < thresholdAmount;
+                if (willBeActive && row.Satisfied)
+                {
+                    var otherActive = existingById.Values.Count(t => !t.Satisfied && t.Id != row.Id);
+                    if (otherActive >= MaxActiveSurvivalThresholdsPerUser)
+                    {
+                        // Cap stacking: do not reopen a satisfied row as a third active threshold.
+                        continue;
+                    }
+                }
+
                 row.ThresholdAmount = thresholdAmount;
-                row.ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount);
+                row.ReceivedAmount = received;
                 row.IsCustomAmount = true;
             }
             else
@@ -2413,6 +2425,15 @@ public async Task<bool> IsFinancialMemberAsync(
                 var thresholdAmount = draft.ThresholdAmount > 0m ? draft.ThresholdAmount : remaining;
                 if (thresholdAmount <= 0m)
                 {
+                    continue;
+                }
+
+                var received = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount);
+                var willBeActive = received < thresholdAmount;
+                var activeCount = existingById.Values.Count(t => !t.Satisfied);
+                if (willBeActive && activeCount >= MaxActiveSurvivalThresholdsPerUser)
+                {
+                    // Cap stacking: do not open a third concurrent survival threshold.
                     continue;
                 }
 
@@ -2429,7 +2450,7 @@ public async Task<bool> IsFinancialMemberAsync(
                     Year = year,
                     Month = month,
                     ThresholdAmount = thresholdAmount,
-                    ReceivedAmount = Math.Clamp(thresholdAmount - remaining, 0m, thresholdAmount),
+                    ReceivedAmount = received,
                     ReceptionOrderPosition = nextPosition,
                     IsCustomAmount = true
                 };
@@ -2792,6 +2813,10 @@ public async Task<bool> IsFinancialMemberAsync(
 
         if (survivalAmount > 0m)
         {
+            var activeCounts = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken))
+                .GroupBy(t => t.UserId)
+                .ToDictionary(g => g.Key, g => g.Count());
+
             var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
             foreach (var member in eligibleRecipients)
             {
@@ -2802,6 +2827,12 @@ public async Task<bool> IsFinancialMemberAsync(
                         month,
                         cancellationToken))
                 {
+                    continue;
+                }
+
+                if (activeCounts.GetValueOrDefault(member.UserId) >= MaxActiveSurvivalThresholdsPerUser)
+                {
+                    // Already has the max stacked open thresholds — skip this month's auto row.
                     continue;
                 }
 
@@ -2816,6 +2847,7 @@ public async Task<bool> IsFinancialMemberAsync(
                     ReceptionOrderPosition = position++,
                     Satisfied = false
                 }, cancellationToken);
+                activeCounts[member.UserId] = activeCounts.GetValueOrDefault(member.UserId) + 1;
                 created = true;
                 changed = true;
             }
@@ -4277,6 +4309,9 @@ public async Task<bool> IsFinancialMemberAsync(
     }
 
     private static bool AreSurvivalThresholdsEnabled(Crew crew) => crew.AllowSurvivalThresholds;
+
+    /// <summary>Max concurrent unsatisfied survival-threshold rows per crewmate.</summary>
+    public const int MaxActiveSurvivalThresholdsPerUser = 2;
 
     private async Task<Gift> AddCelebratoryGiftLogEntryAndSaveAsync(
         Crew crew,

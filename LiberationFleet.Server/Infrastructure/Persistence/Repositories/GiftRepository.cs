@@ -349,14 +349,19 @@ public class GiftRepository : IGiftRepository
             membership?.GivingSeasonJoinedAt,
             membership?.EstimatedMonthlyContribution ?? 0m);
 
+        var giftLifetime = await contributedGifts.SumAsync(g => g.Amount, cancellationToken);
+        var giftReceptionThisYear = await receivedGifts
+            .Where(g => g.CreatedAt >= yearStart)
+            .SumAsync(g => g.Amount, cancellationToken);
+
         return new CrewmateGiftStatsDto
         {
             SacrificeCountLastSeason = await sacrificeQuery.CountAsync(cancellationToken),
             AverageMonthlyContributions = averageMonthly,
-            LifetimeContributions = await contributedGifts.SumAsync(g => g.Amount, cancellationToken),
-            ReceptionThisYear = await receivedGifts
-                .Where(g => g.CreatedAt >= yearStart)
-                .SumAsync(g => g.Amount, cancellationToken)
+            // Prefer membership overrides so aid-stat proposals (including 0) stick everywhere
+            // gift stats are consumed — not only in profile mappers.
+            LifetimeContributions = membership?.LifetimeContributionOverride ?? giftLifetime,
+            ReceptionThisYear = membership?.ReceptionThisYearOverride ?? giftReceptionThisYear
         };
     }
 

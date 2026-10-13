@@ -546,6 +546,19 @@ public partial class MutualAidService
             }
         }
 
+        foreach (var group in request.Thresholds.GroupBy(t => t.UserId))
+        {
+            var openCount = group.Count(DraftWillBeActiveSurvivalThreshold);
+            if (openCount > MaxActiveSurvivalThresholdsPerUser)
+            {
+                var username = group
+                    .Select(t => t.Username)
+                    .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
+                var who = string.IsNullOrWhiteSpace(username) ? $"Crewmate {group.Key}" : username.Trim();
+                return $"{who} can have at most {MaxActiveSurvivalThresholdsPerUser} active survival thresholds.";
+            }
+        }
+
         foreach (var c in request.Cycles)
         {
             if (c.UserId <= 0)
@@ -560,6 +573,33 @@ public partial class MutualAidService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Mirrors save semantics: a draft is "active" when it will remain unsatisfied after apply.
+    /// </summary>
+    private static bool DraftWillBeActiveSurvivalThreshold(ReceptionOrderEditorThresholdDto draft)
+    {
+        var amountNeeded = Math.Max(0m, draft.AmountNeeded);
+        var amountRemaining = Math.Max(0m, draft.AmountRemaining);
+        if (amountRemaining > amountNeeded)
+        {
+            amountNeeded = amountRemaining;
+        }
+
+        // New rows with remaining left at 0 mean fully open (same as save path).
+        if (draft.Id is null && amountRemaining <= 0m && amountNeeded > 0m)
+        {
+            amountRemaining = amountNeeded;
+        }
+
+        if (amountNeeded <= 0m)
+        {
+            return false;
+        }
+
+        var received = Math.Clamp(amountNeeded - amountRemaining, 0m, amountNeeded);
+        return received < amountNeeded;
     }
 
     private static (int Year, int Month) AllocateFreeThresholdMonthForUser(
