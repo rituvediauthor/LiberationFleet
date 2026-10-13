@@ -76,11 +76,13 @@ public class VerifyGiftCommandHandler(
             initiatedParent = await giftRepository.GetByIdWithUsersAsync(gift.InitiatedGiftId.Value, cancellationToken);
         }
 
+        var canRoleVerify = CrewRoleAuthorizationService.CanVerifyGifts(membership);
         var availableActions = GiftVerificationUiHelper.GetAvailableActions(
             gift,
             userId,
             completedChild,
-            initiatedParent);
+            initiatedParent,
+            canRoleVerify);
 
         var actionName = MapActionName(request.Action);
         if (!availableActions.Contains(actionName))
@@ -91,7 +93,7 @@ public class VerifyGiftCommandHandler(
         switch (request.Action)
         {
             case GiftVerificationAction.ConfirmReceived:
-                HandleConfirmReceived(gift);
+                HandleConfirmReceived(gift, userId);
                 break;
             case GiftVerificationAction.ConfirmNotReceived:
                 HandleConfirmNotReceived(gift);
@@ -150,7 +152,12 @@ public class VerifyGiftCommandHandler(
                         ? "Gift verification updated."
                         : "Gift was verified, but reception credit could not be applied. Try confirming again.",
                     Entry = savedAfterFail is not null
-                        ? GiftMapper.MapGift(savedAfterFail, viewerUserId: userId, completedChild: completedChild, initiatedParent: initiatedParent)
+                        ? GiftMapper.MapGift(
+                            savedAfterFail,
+                            viewerUserId: userId,
+                            completedChild: completedChild,
+                            initiatedParent: initiatedParent,
+                            isAccountant: canRoleVerify)
                         : null
                 };
             }
@@ -179,18 +186,24 @@ public class VerifyGiftCommandHandler(
             Success = true,
             Message = "Gift verification updated.",
             Entry = saved is not null
-                ? GiftMapper.MapGift(saved, viewerUserId: userId, completedChild: completedChild, initiatedParent: initiatedParent)
+                ? GiftMapper.MapGift(
+                    saved,
+                    viewerUserId: userId,
+                    completedChild: completedChild,
+                    initiatedParent: initiatedParent,
+                    isAccountant: canRoleVerify)
                 : null
         };
     }
 
-    private static void HandleConfirmReceived(Gift gift)
+    private static void HandleConfirmReceived(Gift gift, int verifiedByUserId)
     {
         switch (gift.Type)
         {
             case GiftType.Direct:
                 gift.CountsTowardContribution = true;
                 gift.VerificationStatus = GiftVerificationStatus.Verified;
+                gift.VerifiedByUserId = verifiedByUserId;
                 break;
 
             case GiftType.Initiated:
@@ -200,6 +213,7 @@ public class VerifyGiftCommandHandler(
 
             case GiftType.Completed:
                 gift.VerificationStatus = GiftVerificationStatus.Verified;
+                gift.VerifiedByUserId = verifiedByUserId;
                 break;
         }
     }

@@ -34,6 +34,9 @@
             <p class="impersonation-tag" *ngIf="entry.impersonatedByUsername">
               impersonated by {{ entry.impersonatedByUsername }}
             </p>
+            <p class="verified-by-tag" *ngIf="entry.verifiedByUsername">
+              Verified by: {{ entry.verifiedByUsername }}
+            </p>
             <div class="log-meta-badges">
               <span *ngIf="categoryLabel(entry)" class="category-badge">{{ categoryLabel(entry) }}</span>
               <span *ngIf="entry.displayFlag === 'unverified' || entry.status === 'unverified'" class="unverified-badge">Unverified</span>

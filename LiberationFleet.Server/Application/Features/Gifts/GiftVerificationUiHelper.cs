@@ -31,7 +31,8 @@ public static class GiftVerificationUiHelper
         Gift gift,
         int viewerUserId,
         Gift? completedChild,
-        Gift? initiatedParent)
+        Gift? initiatedParent,
+        bool canRoleVerify = false)
     {
         if (gift.IsCustomGift
             || gift.Type is GiftType.SeasonStarted
@@ -44,78 +45,95 @@ public static class GiftVerificationUiHelper
             return Array.Empty<string>();
         }
 
-        if (gift.Type == GiftType.Direct)
-        {
-            if (viewerUserId != gift.RecipientUserId)
-            {
-                return Array.Empty<string>();
-            }
+        var actions = new List<string>();
 
-            return gift.VerificationStatus switch
+        if (gift.Type == GiftType.Direct && viewerUserId == gift.RecipientUserId)
+        {
+            switch (gift.VerificationStatus)
             {
-                GiftVerificationStatus.Pending =>
-                    [ActionConfirmReceived, ActionConfirmNotReceived],
-                GiftVerificationStatus.TransferNotReceived =>
-                    [ActionConfirmReceived],
-                _ => Array.Empty<string>()
-            };
+                case GiftVerificationStatus.Pending:
+                    actions.Add(ActionConfirmReceived);
+                    actions.Add(ActionConfirmNotReceived);
+                    break;
+                case GiftVerificationStatus.TransferNotReceived:
+                    actions.Add(ActionConfirmReceived);
+                    break;
+            }
         }
-
-        if (gift.Type == GiftType.Initiated)
+        else if (gift.Type == GiftType.Initiated && viewerUserId == gift.MiddlemanUserId)
         {
-            if (viewerUserId != gift.MiddlemanUserId)
-            {
-                return Array.Empty<string>();
-            }
-
             if (gift.VerificationStatus == GiftVerificationStatus.Pending)
             {
-                return [ActionConfirmReceived, ActionConfirmNotReceived];
+                actions.Add(ActionConfirmReceived);
+                actions.Add(ActionConfirmNotReceived);
             }
-
-            if (gift.VerificationStatus == GiftVerificationStatus.TransferNotReceived)
+            else if (gift.VerificationStatus == GiftVerificationStatus.TransferNotReceived)
             {
-                return [ActionConfirmReceived];
+                actions.Add(ActionConfirmReceived);
             }
-
-            if (gift.VerificationStatus == GiftVerificationStatus.MiddlemanReceivedFunds
+            else if (gift.VerificationStatus == GiftVerificationStatus.MiddlemanReceivedFunds
                 && completedChild is null)
             {
-                return [ActionCompleteTransfer, ActionCantComplete];
+                actions.Add(ActionCompleteTransfer);
+                actions.Add(ActionCantComplete);
             }
-
-            if (completedChild?.VerificationStatus == GiftVerificationStatus.RecipientNotReceived
+            else if (completedChild?.VerificationStatus == GiftVerificationStatus.RecipientNotReceived
                 && gift.VerificationStatus != GiftVerificationStatus.MiddlemanCannotComplete)
             {
-                return [ActionCantComplete];
+                actions.Add(ActionCantComplete);
             }
-
-            return Array.Empty<string>();
         }
-
-        if (gift.Type == GiftType.Completed)
+        else if (gift.Type == GiftType.Completed && viewerUserId == gift.RecipientUserId)
         {
-            if (viewerUserId != gift.RecipientUserId)
+            if (initiatedParent?.VerificationStatus != GiftVerificationStatus.MiddlemanCannotComplete)
             {
-                return Array.Empty<string>();
+                switch (gift.VerificationStatus)
+                {
+                    case GiftVerificationStatus.AwaitingRecipientVerification:
+                        actions.Add(ActionConfirmReceived);
+                        actions.Add(ActionConfirmNotReceived);
+                        break;
+                    case GiftVerificationStatus.RecipientNotReceived:
+                        actions.Add(ActionConfirmReceived);
+                        break;
+                }
             }
-
-            if (initiatedParent?.VerificationStatus == GiftVerificationStatus.MiddlemanCannotComplete)
-            {
-                return Array.Empty<string>();
-            }
-
-            return gift.VerificationStatus switch
-            {
-                GiftVerificationStatus.AwaitingRecipientVerification =>
-                    [ActionConfirmReceived, ActionConfirmNotReceived],
-                GiftVerificationStatus.RecipientNotReceived =>
-                    [ActionConfirmReceived],
-                _ => Array.Empty<string>()
-            };
         }
 
-        return Array.Empty<string>();
+        if (canRoleVerify)
+        {
+            AppendOrganizerAccountantVerifyActions(gift, actions);
+        }
+
+        return actions;
+    }
+
+    /// <summary>
+    /// Organizers/accountants can confirm receipt on unverified direct and completed gifts.
+    /// </summary>
+    private static void AppendOrganizerAccountantVerifyActions(Gift gift, List<string> actions)
+    {
+        if (gift.Type == GiftType.Direct
+            && gift.VerificationStatus is GiftVerificationStatus.Pending
+                or GiftVerificationStatus.TransferNotReceived)
+        {
+            if (!actions.Contains(ActionConfirmReceived))
+            {
+                actions.Add(ActionConfirmReceived);
+            }
+
+            return;
+        }
+
+        if (gift.Type == GiftType.Completed
+            && gift.VerificationStatus is GiftVerificationStatus.AwaitingRecipientVerification
+                or GiftVerificationStatus.RecipientNotReceived)
+        {
+            if (!actions.Contains(ActionConfirmReceived))
+            {
+                actions.Add(ActionConfirmReceived);
+            }
+        }
     }
 
     public static bool RequiresVerification(Gift gift) =>

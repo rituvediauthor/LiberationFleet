@@ -14,6 +14,11 @@ public class Gift
     /// <see cref="GiverUserId"/>. Kept on claim-merge for transparency.
     /// </summary>
     public int? ImpersonatedByUserId { get; set; }
+    /// <summary>
+    /// User who confirmed this gift as received (recipient or organizer/accountant).
+    /// Set when <see cref="VerificationStatus"/> becomes <see cref="GiftVerificationStatus.Verified"/>.
+    /// </summary>
+    public int? VerifiedByUserId { get; set; }
     public GiftType Type { get; set; }
     public decimal Amount { get; set; }
     public int? CrewPaymentPlatformId { get; set; }
@@ -45,6 +50,7 @@ public class Gift
     public User RecipientUser { get; set; } = null!;
     public User? MiddlemanUser { get; set; }
     public User? ImpersonatedByUser { get; set; }
+    public User? VerifiedByUser { get; set; }
     public Gift? InitiatedGift { get; set; }
     public CrewPaymentPlatform? CrewPaymentPlatform { get; set; }
     public SeasonCycle? SeasonCycle { get; set; }

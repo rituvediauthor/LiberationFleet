@@ -25,6 +25,13 @@ public static class CrewRoleAuthorizationService
     public static bool CanBypassSeasonGiftLock(CrewMembership membership) =>
         membership.IsOrganizer || membership.IsAccountant;
 
+    /// <summary>
+    /// Confirm unverified direct/completed gifts on behalf of the recipient
+    /// (organizer or accountant).
+    /// </summary>
+    public static bool CanVerifyGifts(CrewMembership membership) =>
+        membership.IsOrganizer || membership.IsAccountant;
+
     /// <summary>Immediate reception-order editor (thresholds + cycles) — no proposal required.</summary>
     public static bool CanEditReceptionOrder(CrewMembership membership) =>
         membership.IsOrganizer || membership.IsAccountant;

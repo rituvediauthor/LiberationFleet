@@ -36,7 +36,8 @@ public static class GiftMapper
                 gift,
                 viewerUserId.Value,
                 completedChild,
-                initiatedParent);
+                initiatedParent,
+                canRoleVerify: isAccountant);
         }
 
         if (isSeasonLocked && !isAccountant)
@@ -71,6 +72,10 @@ public static class GiftMapper
             ImpersonatedByUserId = gift.ImpersonatedByUserId,
             ImpersonatedByUsername = gift.ImpersonatedByUserId.HasValue
                 ? GiftDisplayNames.GetUserName(gift.ImpersonatedByUser)
+                : null,
+            VerifiedByUserId = gift.VerifiedByUserId,
+            VerifiedByUsername = gift.VerifiedByUserId.HasValue
+                ? GiftDisplayNames.GetUserName(gift.VerifiedByUser)
                 : null,
             Amount = gift.Amount,
             Platform = gift.CrewPaymentPlatform?.Name ?? string.Empty,

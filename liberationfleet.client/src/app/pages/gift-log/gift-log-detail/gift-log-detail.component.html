@@ -26,6 +26,9 @@
           <p class="impersonation-tag" *ngIf="g.impersonatedByUsername">
             impersonated by {{ g.impersonatedByUsername }}
           </p>
+          <p class="verified-by-tag" *ngIf="g.verifiedByUsername">
+            Verified by: {{ g.verifiedByUsername }}
+          </p>
           <div class="log-meta-badges">
             <span *ngIf="categoryLabel(g)" class="category-badge">{{ categoryLabel(g) }}</span>
             <span *ngIf="g.displayFlag === 'unverified' || g.status === 'unverified'" class="unverified-badge">Unverified</span>

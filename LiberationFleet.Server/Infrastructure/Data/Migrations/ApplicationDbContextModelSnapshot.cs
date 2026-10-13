@@ -1905,6 +1905,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<int?>("VerifiedByUserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CrewPaymentPlatformId");
@@ -1924,6 +1927,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.HasIndex("RecipientUserId");
 
                     b.HasIndex("SeasonCycleId");
+
+                    b.HasIndex("VerifiedByUserId");
 
                     b.HasIndex("CrewId", "CreatedAt", "Id");
 
@@ -5310,6 +5315,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasForeignKey("SeasonCycleId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Crew");
 
                     b.Navigation("CrewPaymentPlatform");
@@ -5327,6 +5337,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Navigation("RecipientUser");
 
                     b.Navigation("SeasonCycle");
+
+                    b.Navigation("VerifiedByUser");
                 });
 
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.GiftComment", b =>

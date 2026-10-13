@@ -34,6 +34,7 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
             .Include(g => g.ImpersonatedByUser)
+            .Include(g => g.VerifiedByUser)
             .Include(g => g.CrewPaymentPlatform)
             .Include(g => g.SeasonCycle)
             .Where(g => g.CrewId == crewId);
@@ -84,6 +85,8 @@ public class GiftRepository : IGiftRepository
             .Include(g => g.GiverUser)
             .Include(g => g.RecipientUser)
             .Include(g => g.MiddlemanUser)
+            .Include(g => g.ImpersonatedByUser)
+            .Include(g => g.VerifiedByUser)
             .Include(g => g.CrewPaymentPlatform)
             .Include(g => g.SeasonCycle)
             .Where(g => crewIds.Contains(g.CrewId));
@@ -138,6 +141,7 @@ public class GiftRepository : IGiftRepository
                 .ThenInclude(u => u!.PaymentPlatforms)
                     .ThenInclude(p => p.CrewPaymentPlatform)
             .Include(g => g.ImpersonatedByUser)
+            .Include(g => g.VerifiedByUser)
             .Include(g => g.CrewPaymentPlatform)
             .Include(g => g.SeasonCycle)
             .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);

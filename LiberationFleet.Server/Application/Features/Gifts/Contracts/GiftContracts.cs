@@ -23,6 +23,8 @@ public class GiftLogEntryDto
     public string? MiddlemanName { get; set; }
     public int? ImpersonatedByUserId { get; set; }
     public string? ImpersonatedByUsername { get; set; }
+    public int? VerifiedByUserId { get; set; }
+    public string? VerifiedByUsername { get; set; }
     public decimal Amount { get; set; }
     public string Platform { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }

@@ -487,6 +487,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.ImpersonatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.VerifiedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.VerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.InitiatedGift)
                 .WithMany()
                 .HasForeignKey(e => e.InitiatedGiftId)
