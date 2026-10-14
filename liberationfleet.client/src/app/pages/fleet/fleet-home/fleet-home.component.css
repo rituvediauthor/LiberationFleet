@@ -123,7 +123,7 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  --lf-collapsible-inset: 0px;
+  --lf-collapsible-inset: 18px;
 }
 
 .admin-section {
@@ -131,6 +131,7 @@
 }
 
 .admin-section ::ng-deep .collapsible-body {
+  /* Keep nested menu buttons full-width; header still uses the inset padding. */
   padding: 12px 0 0;
 }
 
