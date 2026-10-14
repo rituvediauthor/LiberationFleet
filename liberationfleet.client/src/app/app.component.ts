@@ -148,7 +148,8 @@ export class AppComponent implements OnInit, OnDestroy {
    * On resume, refetch membership and land on the crew dashboard if we just joined.
    */
   private async recoverMembershipAfterForeground() {
-    void this.connectNotificationsIfInApp();
+    // Always resync badges on resume — SignalR often stalls while backgrounded.
+    this.connectNotificationsIfInApp({ forceBadgeRefresh: true });
 
     const previous = await firstValueFrom(
       this.crewService.getMembership().pipe(catchError(() => of(null)))
@@ -210,7 +211,7 @@ export class AppComponent implements OnInit, OnDestroy {
     void this.fleetCryptoSync.syncActiveFleetKeyDistributions();
   }
 
-  private connectNotificationsIfInApp() {
+  private connectNotificationsIfInApp(options?: { forceBadgeRefresh?: boolean }) {
     if (!this.router.url.startsWith('/app') || !this.authService.getToken()) {
       this.notificationsBootstrapped = false;
       return;
@@ -218,9 +219,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
     void this.notificationHub.connect();
     void this.pushNotifications.start();
+
+    const shouldRefreshBadges = options?.forceBadgeRefresh || !this.notificationsBootstrapped;
+    if (shouldRefreshBadges) {
+      this.notificationService.refreshBadges(true);
+    }
+
     if (!this.notificationsBootstrapped) {
       this.notificationsBootstrapped = true;
-      this.notificationService.refreshBadges(true);
       if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         void Notification.requestPermission();
       }

@@ -47,6 +47,7 @@ describe('AppComponent', () => {
           provide: NotificationHubService,
           useValue: {
             notificationReceived$: new Subject(),
+            connectionRestored$: new Subject(),
             connect: jasmine.createSpy('connect').and.returnValue(Promise.resolve())
           }
         },

@@ -17,19 +17,54 @@ import { NotificationService } from './notification.service';
 export class NotificationHubService implements OnDestroy {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
+  /** True while the authenticated app wants a live notification socket. */
+  private wantsConnection = false;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private healthTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly healthIntervalMs = 30_000;
 
   readonly notificationReceived$ = new Subject<NotificationItem>();
   readonly unreadCountUpdated$ = new Subject<number>();
   readonly badgeSummaryUpdated$ = new Subject<NotificationBadgeSummaryResponse>();
+  /** Fires after a fresh connect or automatic reconnect — list UIs can refetch. */
+  readonly connectionRestored$ = new Subject<void>();
+
+  private readonly onVisibilityChange = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      void this.recoverAfterResume();
+    }
+  };
+
+  private readonly onPageShow = (event: PageTransitionEvent) => {
+    // bfcache restore often leaves sockets dead without a visibility flip.
+    if (event.persisted) {
+      void this.recoverAfterResume();
+    }
+  };
 
   constructor(
     private authService: AuthService,
     private notificationService: NotificationService,
     private apiUrl: ApiUrlService,
     private ngZone: NgZone
-  ) {}
+  ) {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pageshow', this.onPageShow);
+    }
+  }
 
   ngOnDestroy() {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pageshow', this.onPageShow);
+    }
+    this.clearRetryTimer();
+    this.stopHealthTimer();
     void this.disconnect();
   }
 
@@ -38,10 +73,15 @@ export class NotificationHubService implements OnDestroy {
       return;
     }
 
+    this.wantsConnection = true;
+    this.startHealthTimer();
     await this.ensureConnected();
   }
 
   async disconnect(): Promise<void> {
+    this.wantsConnection = false;
+    this.clearRetryTimer();
+    this.stopHealthTimer();
     this.startPromise = null;
     if (!this.connection) {
       return;
@@ -51,9 +91,33 @@ export class NotificationHubService implements OnDestroy {
     this.connection = null;
   }
 
+  private async recoverAfterResume(): Promise<void> {
+    if (!this.wantsConnection || !this.authService.getToken()) {
+      return;
+    }
+
+    try {
+      await this.ensureConnected();
+      // Missed SignalR pushes while suspended — sync badges from HTTP.
+      this.ngZone.run(() => this.notificationService.refreshBadges(true));
+      this.ngZone.run(() => this.connectionRestored$.next());
+    } catch {
+      // Resume is best-effort; health timer / next connect will retry.
+      this.scheduleReconnectRetry();
+    }
+  }
+
   private async ensureConnected(): Promise<void> {
     if (this.isConnected()) {
       return;
+    }
+
+    // Automatic reconnect in progress — wait instead of tearing the socket down.
+    if (this.connection?.state === HubConnectionState.Reconnecting) {
+      await this.waitForConnected(15_000);
+      if (this.isConnected()) {
+        return;
+      }
     }
 
     if (!this.startPromise) {
@@ -82,6 +146,23 @@ export class NotificationHubService implements OnDestroy {
     return this.connection?.state === HubConnectionState.Connected;
   }
 
+  private waitForConnected(timeoutMs: number): Promise<void> {
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        const state = this.connection?.state;
+        if (state === HubConnectionState.Connected
+          || state === HubConnectionState.Disconnected
+          || Date.now() - started >= timeoutMs) {
+          resolve();
+          return;
+        }
+        setTimeout(tick, 100);
+      };
+      tick();
+    });
+  }
+
   private async startConnection(): Promise<void> {
     if (this.connection) {
       await this.connection.stop();
@@ -93,7 +174,8 @@ export class NotificationHubService implements OnDestroy {
         accessTokenFactory: () => this.authService.getToken() ?? '',
         transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling
       })
-      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
+      // Keep trying longer than the previous short burst; onclose also schedules retries.
+      .withAutomaticReconnect([0, 1000, 2000, 5000, 10_000, 15_000, 30_000, 60_000])
       .build();
 
     this.connection.on('NotificationReceived', (notification: NotificationItem) => {
@@ -121,11 +203,82 @@ export class NotificationHubService implements OnDestroy {
       });
     });
 
+    this.connection.onreconnected(() => {
+      this.ngZone.run(() => {
+        this.notificationService.refreshBadges(true);
+        this.connectionRestored$.next();
+      });
+    });
+
     this.connection.onclose(() => {
+      // Reconnect gave up — allow the next ensureConnected() to start a fresh socket.
       this.startPromise = null;
+      if (this.wantsConnection) {
+        this.scheduleReconnectRetry();
+      }
     });
 
     await this.connection.start();
+    this.clearRetryTimer();
+    this.ngZone.run(() => {
+      this.notificationService.refreshBadges(true);
+      this.connectionRestored$.next();
+    });
+  }
+
+  private scheduleReconnectRetry(): void {
+    if (this.retryTimer != null || !this.wantsConnection) {
+      return;
+    }
+
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (!this.wantsConnection || this.isConnected() || !this.authService.getToken()) {
+        return;
+      }
+      void this.ensureConnected().catch(() => this.scheduleReconnectRetry());
+    }, 5_000);
+  }
+
+  private clearRetryTimer(): void {
+    if (this.retryTimer != null) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+  }
+
+  /**
+   * While the app is open, periodically ensure the hub is alive and resync badges.
+   * Mobile PWAs often exhaust SignalR reconnect and then sit silent until navigation.
+   */
+  private startHealthTimer(): void {
+    if (this.healthTimer != null || typeof document === 'undefined') {
+      return;
+    }
+
+    this.healthTimer = setInterval(() => {
+      if (!this.wantsConnection || !this.authService.getToken()) {
+        return;
+      }
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+
+      void this.ensureConnected()
+        .then(() => {
+          this.ngZone.run(() => this.notificationService.refreshBadges(false));
+        })
+        .catch(() => {
+          this.scheduleReconnectRetry();
+        });
+    }, this.healthIntervalMs);
+  }
+
+  private stopHealthTimer(): void {
+    if (this.healthTimer != null) {
+      clearInterval(this.healthTimer);
+      this.healthTimer = null;
+    }
   }
 
   /** SignalR may use PascalCase and/or numeric enums depending on server protocol config. */

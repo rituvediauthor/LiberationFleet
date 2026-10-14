@@ -58,6 +58,11 @@ export class NotificationsComponent implements OnInit, OnDestroy {
         this.onNotificationReceived(notification);
       })
     );
+    this.subscription.add(
+      this.notificationHub.connectionRestored$.subscribe(() => {
+        this.loadNotifications();
+      })
+    );
   }
 
   ngOnDestroy() {
