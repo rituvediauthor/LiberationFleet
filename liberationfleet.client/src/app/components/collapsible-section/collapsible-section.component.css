@@ -47,3 +47,37 @@
   padding: 16px var(--lf-collapsible-inset, 16px);
   border-top: none;
 }
+
+/* Quiet centered toggle for dashboard admin menus (not settings accordions). */
+.collapsible-section.variant-plain {
+  margin-left: 0;
+  margin-right: 0;
+  overflow: visible;
+}
+
+.collapsible-section.variant-plain .collapsible-header {
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0;
+  border: none;
+  border-block: none;
+  background: transparent;
+  color: var(--lf-color-text-muted, var(--lf-color-text-secondary));
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.collapsible-section.variant-plain .collapsible-header:hover {
+  background: transparent;
+  color: var(--lf-color-text-secondary);
+}
+
+.collapsible-section.variant-plain .collapsible-title {
+  flex: 0 0 auto;
+}
+
+.collapsible-section.variant-plain .collapsible-header i {
+  color: inherit;
+  font-size: 11px;
+}
