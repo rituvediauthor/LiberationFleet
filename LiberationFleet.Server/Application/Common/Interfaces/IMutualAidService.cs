@@ -79,6 +79,14 @@ public interface IMutualAidService
         CrewMembership membership,
         CancellationToken cancellationToken = default);
     /// <summary>
+    /// If the member already has current-season cycle entries but IsInSeason is false,
+    /// flips the membership flags. Does not create new season rows or auto-join.
+    /// </summary>
+    Task<bool> TryMarkInSeasonFromExistingEntriesAsync(
+        int crewId,
+        CrewMembership membership,
+        CancellationToken cancellationToken = default);
+    /// <summary>
     /// Ensures a primary season cycle exists for the member in the current season (correct reception order).
     /// </summary>
     Task EnsurePrimarySeasonCycleExistsAsync(

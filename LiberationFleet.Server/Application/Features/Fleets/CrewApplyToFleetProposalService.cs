@@ -128,8 +128,10 @@ public class CrewApplyToFleetProposalService(
                 ? $"Invitation to join fleet {fleet.Name}"
                 : $"Apply to join fleet {fleet.Name}",
             Description = initiatedByFleetInvite
-                ? $"{fleet.Name} invited {crew.Name} to join the fleet."
-                : $"{crew.Name} wants to apply to join fleet {fleet.Name}.",
+                ? $"{fleet.Name} invited crew {crew.Name} to join the fleet.\n" +
+                  "If this crew approves, a fleet join request is created for fleet members to vote on."
+                : $"Crew {crew.Name} wants to apply to join fleet {fleet.Name}.\n" +
+                  "If approved here, a fleet join request is sent so fleet members can accept or reject the crew.",
             InitiatedByFleetInvite = initiatedByFleetInvite
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

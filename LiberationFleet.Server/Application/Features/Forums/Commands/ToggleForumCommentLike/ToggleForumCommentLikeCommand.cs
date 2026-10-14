@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
@@ -9,11 +10,15 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumCommentLike;
 
-public record ToggleForumCommentLikeCommand(int PostId, int CommentId) : IRequest<ForumLikeToggleResponse>;
+public record ToggleForumCommentLikeCommand(
+    int PostId,
+    int CommentId,
+    string? NotificationPreview = null) : IRequest<ForumLikeToggleResponse>;
 
 public class ToggleForumCommentLikeCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
     NotificationService notificationService,
@@ -86,15 +91,18 @@ public class ToggleForumCommentLikeCommandHandler(
             if (comment.AuthorUserId != userId && !like.AuthorNotified)
             {
                 var isFleet = post.FleetId.HasValue;
+                var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                var actorName = UserDisplay.Name(actor);
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = comment.AuthorUserId,
                     CrewId = crewId,
                     Kind = isFleet ? NotificationKind.FleetForumCommentLiked : NotificationKind.ForumCommentLiked,
-                    Title = isFleet ? "Fleet comment liked" : "Comment liked",
-                    Body = isFleet
-                        ? "Someone liked your fleet comment."
-                        : "Someone liked your comment.",
+                    Title = NotificationCopy.LikedYourComment(actorName, isFleet),
+                    Body = NotificationCopy.PreviewOr(
+                        request.NotificationPreview,
+                        comment.Body,
+                        $"{actorName} liked your {(isFleet ? "fleet " : "")}forum comment."),
                     ActionUrl = actionUrl,
                     RelatedEntityId = post.Id,
                     SecondaryEntityId = comment.Id,

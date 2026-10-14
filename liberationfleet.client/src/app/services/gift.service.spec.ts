@@ -193,6 +193,7 @@ describe('GiftService', () => {
 
     const req = httpMock.expectOne('/api/gifts/log/7/like');
     expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ notificationPreview: null });
     req.flush({ success: true, message: 'Like updated.', liked: true, likeCount: 3 });
   });
 

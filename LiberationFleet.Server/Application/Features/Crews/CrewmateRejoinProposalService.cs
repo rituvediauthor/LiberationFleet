@@ -98,7 +98,8 @@ public class CrewmateRejoinProposalService(
             Username = username,
             Title = $"Allow {username} to rejoin",
             Description =
-                $"Allow {username} to find and join the crew again. Approval removes the kick ban but does not restore membership automatically."
+                $"Lift the kick ban so {username} can find and request to join this crew again.\n" +
+                "Approval does not automatically restore membership — they must still join (and may need a join proposal)."
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

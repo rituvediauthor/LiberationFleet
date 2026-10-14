@@ -338,7 +338,8 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.likingGift = true;
-    this.giftService.toggleGiftLike(this.gift.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(this.gift.message);
+    this.giftService.toggleGiftLike(this.gift.id, notificationPreview).subscribe({
       next: response => {
         this.likingGift = false;
         if (!response.success || !this.gift) {
@@ -360,7 +361,8 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.likingCommentId = comment.id;
-    this.giftService.toggleGiftCommentLike(this.gift.id, comment.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(comment.body);
+    this.giftService.toggleGiftCommentLike(this.gift.id, comment.id, notificationPreview).subscribe({
       next: response => {
         this.likingCommentId = null;
         if (!response.success) {

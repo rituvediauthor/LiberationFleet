@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
@@ -9,11 +10,15 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Commands.ToggleGiftCommentLike;
 
-public record ToggleGiftCommentLikeCommand(int GiftId, int CommentId) : IRequest<GiftLikeToggleResponse>;
+public record ToggleGiftCommentLikeCommand(
+    int GiftId,
+    int CommentId,
+    string? NotificationPreview = null) : IRequest<GiftLikeToggleResponse>;
 
 public class ToggleGiftCommentLikeCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IGiftRepository giftRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<ToggleGiftCommentLikeCommand, GiftLikeToggleResponse>
@@ -62,13 +67,18 @@ public class ToggleGiftCommentLikeCommandHandler(
 
             if (comment.AuthorUserId != userId && !like.AuthorNotified)
             {
+                var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                var actorName = UserDisplay.Name(actor);
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = comment.AuthorUserId,
                     CrewId = membership.CrewId,
                     Kind = NotificationKind.GiftCommentLiked,
-                    Title = "Gift comment liked",
-                    Body = "Someone liked your gift log comment.",
+                    Title = NotificationCopy.LikedYourGiftComment(actorName),
+                    Body = NotificationCopy.PreviewOr(
+                        request.NotificationPreview,
+                        comment.Body,
+                        $"{actorName} liked your gift log comment."),
                     ActionUrl = actionUrl,
                     RelatedEntityId = gift.Id,
                     SecondaryEntityId = comment.Id,

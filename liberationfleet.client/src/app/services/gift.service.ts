@@ -294,14 +294,23 @@ export class GiftService {
     });
   }
 
-  toggleGiftLike(giftId: number): Observable<GiftLikeToggleResponse> {
-    return this.http.post<GiftLikeToggleResponse>(`${this.apiUrl}/log/${giftId}/like`, {});
+  toggleGiftLike(
+    giftId: number,
+    notificationPreview?: string | null
+  ): Observable<GiftLikeToggleResponse> {
+    return this.http.post<GiftLikeToggleResponse>(`${this.apiUrl}/log/${giftId}/like`, {
+      notificationPreview: notificationPreview ?? null
+    });
   }
 
-  toggleGiftCommentLike(giftId: number, commentId: number): Observable<GiftLikeToggleResponse> {
+  toggleGiftCommentLike(
+    giftId: number,
+    commentId: number,
+    notificationPreview?: string | null
+  ): Observable<GiftLikeToggleResponse> {
     return this.http.post<GiftLikeToggleResponse>(
       `${this.apiUrl}/log/${giftId}/comments/${commentId}/like`,
-      {}
+      { notificationPreview: notificationPreview ?? null }
     );
   }
 

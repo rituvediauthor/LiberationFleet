@@ -71,10 +71,15 @@ public class ToggleGiftLikeCommandHandlerTests
             notificationRepository,
             realtimeNotifier,
             unitOfWork);
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        userRepository
+            .Setup(r => r.GetByIdWithProfileAsync(actor.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(actor);
 
         var handler = new ToggleGiftLikeCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(actor.Id).Object,
             membershipRepository.Object,
+            userRepository.Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
             giftRepository.Object,
             notificationService,
@@ -142,9 +147,15 @@ public class ToggleGiftLikeCommandHandlerTests
             .Setup(r => r.IsKindEnabledAsync(It.IsAny<int>(), It.IsAny<NotificationKind>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
+        var userRepository = HandlerTestFixture.CreateUserRepositoryMock();
+        userRepository
+            .Setup(r => r.GetByIdWithProfileAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
         var handler = new ToggleGiftLikeCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
             membershipRepository.Object,
+            userRepository.Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
             giftRepository.Object,
             HandlerTestFixture.CreateNotificationService(notificationRepository: notificationRepository),

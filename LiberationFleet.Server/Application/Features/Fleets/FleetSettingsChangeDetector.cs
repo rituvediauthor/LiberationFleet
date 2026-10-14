@@ -179,61 +179,89 @@ public static class FleetSettingsChangeDetector
 
 public static class FleetSettingsChangeDescriber
 {
-    public const string DefaultTitle = "Editing fleet settings";
+    public const string DefaultTitle = "Change fleet setting";
+
+    public static string BuildTitle(FleetSettingChangeItem change) =>
+        change.Field switch
+        {
+            FleetSettingField.Name => "Change fleet name",
+            FleetSettingField.Privacy => "Change fleet privacy",
+            FleetSettingField.Scope => "Change fleet location type",
+            FleetSettingField.CountryCode => "Change fleet country",
+            FleetSettingField.AllowedZipCodes => "Change allowed postal codes",
+            FleetSettingField.RadiusMiles => "Change distance setting (legacy)",
+            FleetSettingField.RequireApprovalForEdits => "Change edit-approval requirement",
+            FleetSettingField.DuoVoteTimeoutMode => "Change tied-vote timeout",
+            FleetSettingField.AutoResolveOverTime => "Change auto-resolve over time",
+            FleetSettingField.BaseAutoResolveHours => "Change initial auto-resolve window",
+            FleetSettingField.ChangeAutoResolveTimerOnFirstReject => "Change timer-on-first-reject setting",
+            FleetSettingField.AutoResolveHoursAfterFirstReject => "Change post-reject auto-resolve window",
+            FleetSettingField.LibraryOfThingsEnabled => "Change Library of Things setting",
+            FleetSettingField.AllowCrewmateFileAttachments => "Change file-attachment permission",
+            FleetSettingField.MinimumCrewmateTenureDaysForAttachments => "Change attachment tenure requirement",
+            FleetSettingField.MinimumContributionForAttachments => "Change attachment contribution requirement",
+            FleetSettingField.MinimumCrewmateTenureDaysForProposals => "Change proposal tenure requirement",
+            FleetSettingField.MinimumContributionForProposals => "Change proposal contribution requirement",
+            FleetSettingField.ImageResourceId => string.IsNullOrEmpty(change.NewValue)
+                ? "Remove fleet image"
+                : "Change fleet image",
+            _ => DefaultTitle
+        };
 
     public static string BuildDescription(FleetSettingChangeItem change) =>
         change.Field switch
         {
             FleetSettingField.Name =>
-                $"Proposal to change the fleet name from \"{change.OldValue}\" to \"{change.NewValue}\".",
+                $"Change the fleet name from \"{change.OldValue}\" to \"{change.NewValue}\".",
             FleetSettingField.Privacy =>
-                $"Proposal to change fleet privacy from {change.OldValue} to {change.NewValue}.",
+                $"Change fleet privacy from {change.OldValue} to {change.NewValue}.",
             FleetSettingField.Scope =>
-                $"Proposal to change fleet location type from {change.OldValue} to {change.NewValue}.",
+                $"Change fleet location type from {change.OldValue} to {change.NewValue}.",
             FleetSettingField.CountryCode =>
-                $"Proposal to change country from \"{FormatCountry(change.OldValue)}\" to \"{FormatCountry(change.NewValue)}\".",
+                $"Change country from \"{FormatCountry(change.OldValue)}\" to \"{FormatCountry(change.NewValue)}\".",
             FleetSettingField.AllowedZipCodes =>
-                $"Proposal to change allowed postal codes from \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.OldValue))}\" to \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.NewValue))}\".",
+                $"Change allowed postal codes from \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.OldValue))}\" to \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.NewValue))}\".",
             FleetSettingField.RadiusMiles =>
-                $"Proposal to change distance from {change.OldValue} to {change.NewValue} miles (legacy; no longer applied).",
+                $"Change distance from {change.OldValue} to {change.NewValue} miles (legacy; no longer applied).",
             FleetSettingField.RequireApprovalForEdits =>
-                $"Proposal to set \"Require approval for fleet edits\" to \"{change.NewValue}\".",
+                $"Turn \"Require approval for fleet edits\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             FleetSettingField.DuoVoteTimeoutMode =>
-                $"Proposal to set tied vote timeout (equal approve/reject when the timer expires) to \"{FormatDuoMode(change.NewValue)}\".",
+                $"Change tied-vote timeout (equal approve/reject when the timer expires) from \"{FormatDuoMode(change.OldValue)}\" to \"{FormatDuoMode(change.NewValue)}\".",
             FleetSettingField.AutoResolveOverTime =>
-                $"Proposal to set \"Auto-resolve over time\" to \"{FormatBool(change.NewValue)}\". When enabled, the side with more votes wins at timer expiry; equal counts use tied vote timeout.",
+                $"Turn \"Auto-resolve over time\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}. " +
+                "When enabled, the side with more votes wins at timer expiry; equal counts use tied-vote timeout.",
             FleetSettingField.BaseAutoResolveHours =>
-                $"Proposal to set initial auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
+                $"Change the initial auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
             FleetSettingField.ChangeAutoResolveTimerOnFirstReject =>
-                $"Proposal to set \"Change auto-resolve timer on first reject\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Change auto-resolve timer on first reject\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             FleetSettingField.AutoResolveHoursAfterFirstReject =>
-                $"Proposal to set post-reject auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
+                $"Change the post-reject auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
             FleetSettingField.LibraryOfThingsEnabled =>
-                $"Proposal to set \"Library of Things\" to \"{change.NewValue}\".",
+                $"Turn \"Library of Things\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             FleetSettingField.AllowCrewmateFileAttachments =>
-                $"Proposal to set \"Allow crewmate file attachments\" to \"{change.NewValue}\".",
+                $"Turn \"Allow crewmate file attachments\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             FleetSettingField.MinimumCrewmateTenureDaysForAttachments =>
-                $"Proposal to change minimum tenure for attachments from {change.OldValue} to {change.NewValue} days.",
+                $"Change minimum tenure for attachments from {change.OldValue} to {change.NewValue} days.",
             FleetSettingField.MinimumContributionForAttachments =>
-                $"Proposal to change minimum contribution for attachments from ${change.OldValue} to ${change.NewValue}.",
+                $"Change minimum contribution for attachments from ${change.OldValue} to ${change.NewValue}.",
             FleetSettingField.MinimumCrewmateTenureDaysForProposals =>
-                $"Proposal to change minimum tenure for proposals from {change.OldValue} to {change.NewValue} days.",
+                $"Change minimum tenure for proposals from {change.OldValue} to {change.NewValue} days.",
             FleetSettingField.MinimumContributionForProposals =>
-                $"Proposal to change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
+                $"Change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
             FleetSettingField.ImageResourceId =>
                 string.IsNullOrEmpty(change.NewValue)
-                    ? "Proposal to remove the fleet image."
-                    : "Proposal to set a new fleet image.",
-            _ => "Proposal to change fleet settings."
+                    ? "Remove the fleet image."
+                    : "Replace the fleet image with a new one.",
+            _ => "Change a fleet setting."
         };
 
-    private static string FormatBool(string value) =>
-        bool.TryParse(value, out var parsed) && parsed ? "True" : "False";
+    private static string FormatBool(string? value) =>
+        bool.TryParse(value, out var parsed) && parsed ? "Yes" : "No";
 
     private static string FormatCountry(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "(none)" : value.Trim().ToUpperInvariant();
 
-    private static string FormatDuoMode(string value) =>
+    private static string FormatDuoMode(string? value) =>
         value switch
         {
             nameof(DuoVoteTimeoutMode.AutoApprove) => "Auto approve",

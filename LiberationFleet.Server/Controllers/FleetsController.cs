@@ -19,6 +19,7 @@ using LiberationFleet.Server.Application.Features.Fleets.Commands.UpdateFleetFor
 using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumCommentLike;
 using LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumPostLike;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumCommentLikers;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumPostLikers;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
@@ -456,16 +457,22 @@ public class FleetsController : ControllerBase
     }
 
     [HttpPost("current/forums/{id:int}/like")]
-    public async Task<IActionResult> ToggleForumPostLike(int id)
+    public async Task<IActionResult> ToggleForumPostLike(int id, [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleForumPostLikeCommand(id));
+        var result = await _mediator.Send(new ToggleForumPostLikeCommand(id, body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("current/forums/{postId:int}/comments/{commentId:int}/like")]
-    public async Task<IActionResult> ToggleForumCommentLike(int postId, int commentId)
+    public async Task<IActionResult> ToggleForumCommentLike(
+        int postId,
+        int commentId,
+        [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleForumCommentLikeCommand(postId, commentId));
+        var result = await _mediator.Send(new ToggleForumCommentLikeCommand(
+            postId,
+            commentId,
+            body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

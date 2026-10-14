@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
@@ -9,11 +10,14 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Forums.Commands.ToggleForumPostLike;
 
-public record ToggleForumPostLikeCommand(int PostId) : IRequest<ForumLikeToggleResponse>;
+public record ToggleForumPostLikeCommand(
+    int PostId,
+    string? NotificationPreview = null) : IRequest<ForumLikeToggleResponse>;
 
 public class ToggleForumPostLikeCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
     NotificationService notificationService,
@@ -80,15 +84,19 @@ public class ToggleForumPostLikeCommandHandler(
             if (post.AuthorUserId != userId && !like.AuthorNotified)
             {
                 var isFleet = post.FleetId.HasValue;
+                var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                var actorName = UserDisplay.Name(actor);
+                var storedPreview = !string.IsNullOrWhiteSpace(post.Body) ? post.Body : post.Title;
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = post.AuthorUserId,
                     CrewId = crewId,
                     Kind = isFleet ? NotificationKind.FleetForumPostLiked : NotificationKind.ForumPostLiked,
-                    Title = isFleet ? "Fleet post liked" : "Post liked",
-                    Body = isFleet
-                        ? "Someone liked your fleet post."
-                        : "Someone liked your post.",
+                    Title = NotificationCopy.LikedYourPost(actorName, isFleet),
+                    Body = NotificationCopy.PreviewOr(
+                        request.NotificationPreview,
+                        storedPreview,
+                        $"{actorName} liked your {(isFleet ? "fleet " : "")}forum post."),
                     ActionUrl = actionUrl,
                     RelatedEntityId = post.Id,
                     ActorUserId = userId

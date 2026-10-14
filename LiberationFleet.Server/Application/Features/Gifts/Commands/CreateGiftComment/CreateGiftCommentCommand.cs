@@ -23,6 +23,7 @@ public record CreateGiftCommentCommand(
 public class CreateGiftCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
@@ -101,6 +102,8 @@ public class CreateGiftCommentCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = $"/app/crew/gift-log/{gift.Id}?commentId={comment.Id}";
+        var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var actorName = UserDisplay.Name(actor);
         if (parentComment is not null && parentComment.AuthorUserId != userId)
         {
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -108,8 +111,8 @@ public class CreateGiftCommentCommandHandler(
                 UserId = parentComment.AuthorUserId,
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.NewGiftReply,
-                Title = "New reply",
-                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone replied to your gift log comment."),
+                Title = NotificationCopy.RepliedOnGift(actorName, toComment: true),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your gift log comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = gift.Id,
                 SecondaryEntityId = comment.Id,
@@ -122,6 +125,10 @@ public class CreateGiftCommentCommandHandler(
                 or GiftType.CycleStarted
                 or GiftType.SeasonStarted
                 or GiftType.SurvivalThresholdsRefreshed;
+            var giftCommentTitle = NotificationCopy.RepliedOnGift(actorName, toComment: false);
+            var giftCommentBody = NotificationCopy.PreviewOr(
+                request.Preview,
+                $"{actorName} commented on a gift log entry.");
 
             if (isCelebratoryThankYou)
             {
@@ -130,10 +137,8 @@ public class CreateGiftCommentCommandHandler(
                 await notificationService.NotifyCrewAsync(
                     membership.CrewId,
                     NotificationKind.NewGiftComment,
-                    "New gift comment",
-                    NotificationPreview.BodyOrFallback(
-                        request.Preview,
-                        "A crewmate shared a message on a gift log entry."),
+                    giftCommentTitle,
+                    giftCommentBody,
                     actionUrl,
                     relatedEntityId: gift.Id,
                     secondaryEntityId: comment.Id,
@@ -161,8 +166,8 @@ public class CreateGiftCommentCommandHandler(
                             UserId = targetUserId,
                             CrewId = membership.CrewId,
                             Kind = NotificationKind.NewGiftComment,
-                            Title = "New gift comment",
-                            Body = NotificationPreview.BodyOrFallback(request.Preview, "A new comment was posted on a gift log entry."),
+                            Title = giftCommentTitle,
+                            Body = giftCommentBody,
                             ActionUrl = actionUrl,
                             RelatedEntityId = gift.Id,
                             SecondaryEntityId = comment.Id,

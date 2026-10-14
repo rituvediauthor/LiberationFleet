@@ -35,6 +35,7 @@ import {
 } from '../../../../utils/forum-list-scroll.util';
 import { ForumListPrefetchService } from '../../../../services/forum-list-prefetch.service';
 import { ContentLiker } from '../../../../models/gift.model';
+import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-fleet-forum-list',
@@ -310,7 +311,10 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
     this.likingPostId = item.id;
-    this.fleetService.toggleForumPostLike(item.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(
+      item.body || item.descriptionPreview || item.title
+    );
+    this.fleetService.toggleForumPostLike(item.id, notificationPreview).subscribe({
       next: response => {
         this.likingPostId = null;
         if (!response.success) {

@@ -14,6 +14,8 @@ public class GetMyCrewMembershipQueryHandler(
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IFleetRepository fleetRepository,
+    IMutualAidService mutualAidService,
+    IUnitOfWork unitOfWork,
     ContentTenureService contentTenureService,
     ICurrentUserService currentUserService,
     ILogger<GetMyCrewMembershipQueryHandler> logger) : IRequestHandler<GetMyCrewMembershipQuery, CrewMembershipStatusDto>
@@ -44,6 +46,16 @@ public class GetMyCrewMembershipQueryHandler(
                 userId.Value,
                 membership.CrewId);
             return new CrewMembershipStatusDto { HasCrew = false };
+        }
+
+        // Repair: season entries imply in-season (e.g. placeholder merge transferred cycles
+        // without flipping membership flags).
+        if (await mutualAidService.TryMarkInSeasonFromExistingEntriesAsync(
+                membership.CrewId,
+                membership,
+                cancellationToken))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         // Gift stats power contribution-gated permissions only. Membership itself must not

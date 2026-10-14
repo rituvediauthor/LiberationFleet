@@ -97,17 +97,18 @@ public class CrewStartSeasonProposalService(
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
         var description =
-            $"{readyCount} crewmate{(readyCount == 1 ? "" : "s")} marked ready" +
+            "Start the mutual-aid giving season now.\n" +
+            $"• Ready crewmates: {readyCount}\n" +
             (primedCount > 0
-                ? $", plus {primedCount} primed by organizers/accountants for auto-join"
+                ? $"• Also primed by organizers/accountants for auto-join: {primedCount}\n"
                 : "") +
-            ". Approval starts the mutual aid season for everyone who is ready or primed.";
+            "Approval starts the season for everyone who is ready or primed (cycles and reception order are created).";
 
         await proposalRepository.AddCrewStartSeasonAsync(new ProposalCrewStartSeason
         {
             Proposal = proposal,
             Title = "Start mutual aid season",
-            Description = description,
+            Description = description.TrimEnd(),
             ReadyCountAtCreate = readyCount
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

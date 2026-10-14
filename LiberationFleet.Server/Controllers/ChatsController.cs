@@ -19,6 +19,7 @@ using LiberationFleet.Server.Application.Features.Chats.Voice.Commands.LeaveVoic
 using LiberationFleet.Server.Application.Features.Chats.Voice.Commands.ServerMuteVoiceParticipant;
 using LiberationFleet.Server.Application.Features.Chats.Voice.Contracts;
 using LiberationFleet.Server.Application.Features.Chats.Voice.Queries.GetVoicePresence;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -156,9 +157,15 @@ public class ChatsController : ControllerBase
     }
 
     [HttpPost("rooms/{roomId:int}/messages/{messageId:int}/like")]
-    public async Task<IActionResult> ToggleMessageLike(int roomId, int messageId)
+    public async Task<IActionResult> ToggleMessageLike(
+        int roomId,
+        int messageId,
+        [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleChatMessageLikeCommand(roomId, messageId));
+        var result = await _mediator.Send(new ToggleChatMessageLikeCommand(
+            roomId,
+            messageId,
+            body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

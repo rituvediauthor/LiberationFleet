@@ -33,6 +33,7 @@ import { PendingAttachment, ProposalAttachment, ResolvedAttachment } from '../..
 import { waitForPendingAttachmentsReady } from '../../../utils/pending-attachment.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { TextFieldLimits } from '../../../utils/text-field-limits';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { AdultContentService } from '../../../services/adult-content.service';
 import { NavigationService } from '../../../services/navigation.service';
 import { NotificationContentService } from '../../../services/notification-content.service';
@@ -436,7 +437,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.likingMessageIds.add(messageId);
     this.patchMessageLike(messageId, optimisticLiked, optimisticCount);
 
-    this.chatService.toggleMessageLike(this.roomId, messageId).subscribe({
+    const notificationPreview = truncateNotificationPreview(message.body);
+    this.chatService.toggleMessageLike(this.roomId, messageId, notificationPreview).subscribe({
       next: result => {
         this.likingMessageIds.delete(messageId);
         if (!result.success) {

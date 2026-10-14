@@ -2177,6 +2177,11 @@ public async Task<bool> IsFinancialMemberAsync(
             return;
         }
 
+        if (await TryMarkInSeasonFromExistingEntriesAsync(crewId, membership, cancellationToken))
+        {
+            return;
+        }
+
         var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
         if (crew is null || !crew.SeasonStarted)
         {
@@ -2184,6 +2189,34 @@ public async Task<bool> IsFinancialMemberAsync(
         }
 
         await JoinActiveSeasonAsync(crew, membership, cancellationToken);
+    }
+
+    public async Task<bool> TryMarkInSeasonFromExistingEntriesAsync(
+        int crewId,
+        CrewMembership membership,
+        CancellationToken cancellationToken = default)
+    {
+        if (membership.IsInSeason)
+        {
+            return false;
+        }
+
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        if (crew is null || !crew.SeasonStarted || crew.CurrentSeasonStartDate is not DateTime seasonStart)
+        {
+            return false;
+        }
+
+        var cycles = await mutualAidRepository.GetSeasonCyclesAsync(crewId, seasonStart, cancellationToken);
+        if (!cycles.Any(c => c.UserId == membership.UserId))
+        {
+            return false;
+        }
+
+        membership.IsInSeason = true;
+        membership.IsSeasonReady = true;
+        membership.GivingSeasonJoinedAt ??= seasonStart;
+        return true;
     }
 
     public async Task EnsurePrimarySeasonCycleExistsAsync(

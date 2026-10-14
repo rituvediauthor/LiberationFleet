@@ -424,14 +424,23 @@ export class FleetService {
     );
   }
 
-  toggleForumPostLike(postId: number): Observable<FleetForumLikeToggleResponse> {
-    return this.http.post<FleetForumLikeToggleResponse>(`${this.apiUrl}/current/forums/${postId}/like`, {});
+  toggleForumPostLike(
+    postId: number,
+    notificationPreview?: string | null
+  ): Observable<FleetForumLikeToggleResponse> {
+    return this.http.post<FleetForumLikeToggleResponse>(`${this.apiUrl}/current/forums/${postId}/like`, {
+      notificationPreview: notificationPreview ?? null
+    });
   }
 
-  toggleForumCommentLike(postId: number, commentId: number): Observable<FleetForumLikeToggleResponse> {
+  toggleForumCommentLike(
+    postId: number,
+    commentId: number,
+    notificationPreview?: string | null
+  ): Observable<FleetForumLikeToggleResponse> {
     return this.http.post<FleetForumLikeToggleResponse>(
       `${this.apiUrl}/current/forums/${postId}/comments/${commentId}/like`,
-      {}
+      { notificationPreview: notificationPreview ?? null }
     );
   }
 

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -111,14 +112,16 @@ public class ContentMentionService(
         }
 
         var author = await userRepository.GetByIdWithProfileAsync(context.AuthorUserId, cancellationToken);
-        var authorName = string.IsNullOrWhiteSpace(author?.Username)
-            ? "A crewmate"
-            : author.Username.Trim();
+        var authorName = UserDisplay.Name(author);
+        if (string.IsNullOrWhiteSpace(authorName))
+        {
+            authorName = "A crewmate";
+        }
+
+        var where = context.FleetId.HasValue ? "fleet content" : "crew content";
         var mentionBody = NotificationPreview.BodyOrFallback(
             context.Preview,
-            context.FleetId.HasValue
-                ? "You were mentioned in fleet content."
-                : "You were mentioned in crew content.");
+            $"{authorName} mentioned you in {where}.");
 
         await notificationService.NotifyUsersAsync(
             notifyUserIds.Select(userId => new CreateNotificationRequest

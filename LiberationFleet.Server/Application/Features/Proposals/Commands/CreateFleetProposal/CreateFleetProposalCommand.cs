@@ -23,6 +23,7 @@ public record CreateFleetProposalCommand(
 public class CreateFleetProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IFleetRepository fleetRepository,
@@ -135,14 +136,20 @@ public class CreateFleetProposalCommandHandler(
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var author = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var authorName = UserDisplay.Name(author);
+        var fleetTitle = NotificationCopy.SubmittedProposal(authorName, fleet: true);
+        var fleetBody = NotificationCopy.PreviewOr(
+            request.Description,
+            $"{authorName} submitted a fleet proposal.");
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
         foreach (var fleetCrew in fleetCrews)
         {
             await notificationService.NotifyCrewAsync(
                 fleetCrew.CrewId,
                 NotificationKind.NewFleetProposal,
-                "New fleet proposal",
-                NotificationPreview.BodyOrFallback(request.Description, "A new fleet proposal was submitted."),
+                fleetTitle,
+                fleetBody,
                 ProposalRouting.StatusListUrl(proposal),
                 relatedEntityId: proposal.Id,
                 excludeUserId: userId,

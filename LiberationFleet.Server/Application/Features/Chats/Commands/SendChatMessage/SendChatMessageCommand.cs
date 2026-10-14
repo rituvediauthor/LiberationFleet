@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -22,6 +23,7 @@ public record SendChatMessageCommand(
 public class SendChatMessageCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     ICryptoRepository cryptoRepository,
@@ -127,6 +129,13 @@ public class SendChatMessageCommandHandler(
             var messageDto = ChatMapper.MapMessage(savedMessage, envelope, viewerUserId: null, allowKick: room.CrewId.HasValue);
             await chatRealtimeNotifier.NotifyMessageSentAsync(membership.CrewId, room.Id, messageDto, cancellationToken);
 
+            var author = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+            var actorName = request.IsAnonymous
+                ? "Anonymous"
+                : UserDisplay.Name(author);
+            var chatTitle = NotificationCopy.PostedInChat(actorName, room.Name);
+            var chatBody = NotificationCopy.PreviewOr(request.Body, "Open the chat to read the message.");
+
             if (isFleetRoom)
             {
                 var fleetCrews = await fleetRepository.GetFleetCrewsAsync(room.FleetId!.Value, cancellationToken);
@@ -138,8 +147,8 @@ public class SendChatMessageCommandHandler(
                         NotificationKind.NewFleetChatMessage,
                         MutedContentType.ChatRoom,
                         room.Id,
-                        "New chat message",
-                        NotificationPreview.BodyOrFallback(request.Body, "New message"),
+                        chatTitle,
+                        chatBody,
                         $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
                         relatedEntityId: message.Id,
                         secondaryEntityId: room.Id,
@@ -169,8 +178,8 @@ public class SendChatMessageCommandHandler(
                     NotificationKind.NewChatMessage,
                     MutedContentType.ChatRoom,
                     room.Id,
-                    "New chat message",
-                    NotificationPreview.BodyOrFallback(request.Body, "New message"),
+                    chatTitle,
+                    chatBody,
                     $"/app/crew/chats/{room.Id}?messageId={message.Id}",
                     relatedEntityId: message.Id,
                     secondaryEntityId: room.Id,

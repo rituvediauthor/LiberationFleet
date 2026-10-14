@@ -47,7 +47,7 @@ public class FleetSettingsProposalService(
                 Proposal = proposal,
                 Field = change.Field,
                 NewValue = change.NewValue,
-                Title = FleetSettingsChangeDescriber.DefaultTitle,
+                Title = FleetSettingsChangeDescriber.BuildTitle(change),
                 Description = description
             }, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);

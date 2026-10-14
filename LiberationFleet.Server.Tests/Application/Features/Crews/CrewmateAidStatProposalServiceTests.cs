@@ -399,6 +399,7 @@ public class CrewmateAidStatProposalServiceTests
             new CrewMembershipRepository(fixture.Context),
             new UserRepository(fixture.Context),
             new MutualAidRepository(fixture.Context),
+            new GiftRepository(fixture.Context),
             fixture.Service,
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);

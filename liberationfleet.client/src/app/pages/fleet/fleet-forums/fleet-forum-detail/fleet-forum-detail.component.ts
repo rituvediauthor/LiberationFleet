@@ -580,7 +580,10 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.likingPost = true;
-    this.fleetService.toggleForumPostLike(this.post.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(
+      this.post.description || this.post.body || this.post.descriptionPreview || this.post.title
+    );
+    this.fleetService.toggleForumPostLike(this.post.id, notificationPreview).subscribe({
       next: response => {
         this.likingPost = false;
         if (!response.success || !this.post) {
@@ -649,7 +652,10 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.likingCommentId = comment.id;
-    this.fleetService.toggleForumCommentLike(this.post.id, comment.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(comment.body);
+    this.fleetService
+      .toggleForumCommentLike(this.post.id, comment.id, notificationPreview)
+      .subscribe({
       next: response => {
         this.likingCommentId = null;
         if (!response.success) {

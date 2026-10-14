@@ -37,6 +37,7 @@ import {
 } from '../../../utils/forum-list-scroll.util';
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
 import { ContentLiker } from '../../../models/gift.model';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 
 @Component({
   selector: 'app-discussion-list',
@@ -310,7 +311,10 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
     this.likingPostId = item.id;
-    this.discussionService.togglePostLike(this.config, item.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(
+      item.descriptionPreview || item.title
+    );
+    this.discussionService.togglePostLike(this.config, item.id, notificationPreview).subscribe({
       next: response => {
         this.likingPostId = null;
         if (!response.success) {

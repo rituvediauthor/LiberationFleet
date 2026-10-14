@@ -11,6 +11,7 @@ using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumComment
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumCommentReplies;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumPostDetail;
 using LiberationFleet.Server.Application.Features.Forums.Queries.GetForumPostLikers;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -106,16 +107,22 @@ public class ForumsController : ControllerBase
     }
 
     [HttpPost("{id:int}/like")]
-    public async Task<IActionResult> TogglePostLike(int id)
+    public async Task<IActionResult> TogglePostLike(int id, [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleForumPostLikeCommand(id));
+        var result = await _mediator.Send(new ToggleForumPostLikeCommand(id, body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("{postId:int}/comments/{commentId:int}/like")]
-    public async Task<IActionResult> ToggleCommentLike(int postId, int commentId)
+    public async Task<IActionResult> ToggleCommentLike(
+        int postId,
+        int commentId,
+        [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleForumCommentLikeCommand(postId, commentId));
+        var result = await _mediator.Send(new ToggleForumCommentLikeCommand(
+            postId,
+            commentId,
+            body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -1,7 +1,9 @@
 using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Crypto;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
+using LiberationFleet.Server.Application.Features.Rules;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -104,16 +106,24 @@ public static class ProposalMapper
 
         if (crewRuleChange is not null)
         {
-            ApplyPlaintext(dto, crewRuleChange.Title, crewRuleChange.Description);
+            // Title/Description store the rule body (needed on apply). Surface a clearer action label.
+            var (ruleTitle, ruleBody) = CrewRuleChangeDescriber.BuildProposalDisplay(
+                crewRuleChange.Action,
+                crewRuleChange.Title,
+                crewRuleChange.Description);
+            ApplyPlaintext(dto, ruleTitle, ruleBody);
             return dto;
         }
 
         if (fleetRuleChange is not null)
         {
+            // Prefer proposal Title/Description (human-readable action copy); fall back to rule body.
             ApplyPlaintext(
                 dto,
-                string.IsNullOrWhiteSpace(fleetRuleChange.RuleTitle) ? fleetRuleChange.Title : fleetRuleChange.RuleTitle,
-                string.IsNullOrWhiteSpace(fleetRuleChange.RuleDescription) ? fleetRuleChange.Description : fleetRuleChange.RuleDescription);
+                string.IsNullOrWhiteSpace(fleetRuleChange.Title) ? fleetRuleChange.RuleTitle : fleetRuleChange.Title,
+                string.IsNullOrWhiteSpace(fleetRuleChange.Description)
+                    ? fleetRuleChange.RuleDescription
+                    : fleetRuleChange.Description);
             return dto;
         }
 
@@ -230,10 +240,15 @@ public static class ProposalMapper
             ?? crewmateAidStatChange?.Description
             ?? crewmateRejoin?.Description
             ?? crewChatChange?.Description
-            ?? crewRuleChange?.Description
-            ?? (string.IsNullOrWhiteSpace(fleetRuleChange?.RuleDescription)
-                ? fleetRuleChange?.Description
-                : fleetRuleChange.RuleDescription)
+            ?? (crewRuleChange is null
+                ? null
+                : CrewRuleChangeDescriber.BuildProposalDisplay(
+                    crewRuleChange.Action,
+                    crewRuleChange.Title,
+                    crewRuleChange.Description).Description)
+            ?? (string.IsNullOrWhiteSpace(fleetRuleChange?.Description)
+                ? fleetRuleChange?.RuleDescription
+                : fleetRuleChange.Description)
             ?? fleetSettingChange?.Description
             ?? fleetJoinRequest?.Description
             ?? fleetKickCrew?.Description
@@ -370,10 +385,10 @@ public static class ProposalMapper
     {
         if (aidStat is not null && displayNamesByUserId.TryGetValue(aidStat.TargetUserId, out var aidName))
         {
-            aidStat.Title = $"Update aid stats for {aidName}";
+            aidStat.Title = ReplaceAidStatTitleName(aidStat.Title, aidName);
             aidStat.Description = ReplaceNameAfterPrefix(
                 aidStat.Description,
-                "Adjust mutual-aid accounting for ",
+                CrewmateAidStatChangeDescriber.DescriptionIntroPrefix,
                 aidName);
         }
 
@@ -448,6 +463,19 @@ public static class ProposalMapper
             claim.Title = $"Claim identity of {claimName}";
             claim.Description = ReplaceNameAfterPrefix(claim.Description, prefix: null, claimName);
         }
+    }
+
+    private static string ReplaceAidStatTitleName(string title, string displayName)
+    {
+        // Titles end with " for {name}" (e.g. "Change lifetime contributions for Alice").
+        const string marker = " for ";
+        var idx = title.LastIndexOf(marker, StringComparison.Ordinal);
+        if (idx < 0)
+        {
+            return title;
+        }
+
+        return title[..(idx + marker.Length)] + displayName;
     }
 
     private static string ReplaceNameAfterPrefix(

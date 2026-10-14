@@ -23,6 +23,7 @@ public record CreateFleetForumCommentCommand(
 public class CreateFleetForumCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
@@ -113,6 +114,8 @@ public class CreateFleetForumCommentCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = $"/app/fleet/forums/{post.Id}?commentId={comment.Id}";
+        var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var actorName = UserDisplay.Name(actor);
         if (parentComment is not null && parentComment.AuthorUserId != userId)
         {
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -120,8 +123,8 @@ public class CreateFleetForumCommentCommandHandler(
                 UserId = parentComment.AuthorUserId,
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.NewFleetReply,
-                Title = "New fleet reply",
-                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone replied to your fleet forum comment."),
+                Title = NotificationCopy.RepliedOnFleetForum(actorName, toComment: true),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your fleet forum comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
@@ -137,8 +140,8 @@ public class CreateFleetForumCommentCommandHandler(
                 UserId = post.AuthorUserId,
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.NewFleetForumComment,
-                Title = "New fleet forum comment",
-                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone commented on your fleet forum post."),
+                Title = NotificationCopy.RepliedOnFleetForum(actorName, toComment: false),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} commented on your fleet forum post."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,

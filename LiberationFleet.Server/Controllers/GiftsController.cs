@@ -23,6 +23,7 @@ using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrde
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetReceptionOrderEditor;
 using LiberationFleet.Server.Application.Features.Gifts.Queries.GetSeasonProfile;
 using LiberationFleet.Server.Application.Features.Gifts;
+using LiberationFleet.Server.Application.Features.Notifications.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -117,16 +118,22 @@ public class GiftsController : ControllerBase
     }
 
     [HttpPost("log/{giftId:int}/like")]
-    public async Task<IActionResult> ToggleGiftLike(int giftId)
+    public async Task<IActionResult> ToggleGiftLike(int giftId, [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleGiftLikeCommand(giftId));
+        var result = await _mediator.Send(new ToggleGiftLikeCommand(giftId, body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("log/{giftId:int}/comments/{commentId:int}/like")]
-    public async Task<IActionResult> ToggleGiftCommentLike(int giftId, int commentId)
+    public async Task<IActionResult> ToggleGiftCommentLike(
+        int giftId,
+        int commentId,
+        [FromBody] ContentLikeRequest? body)
     {
-        var result = await _mediator.Send(new ToggleGiftCommentLikeCommand(giftId, commentId));
+        var result = await _mediator.Send(new ToggleGiftCommentLikeCommand(
+            giftId,
+            commentId,
+            body?.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

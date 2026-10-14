@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates;
@@ -73,12 +74,14 @@ public class RequestFriendshipCommandHandler(
         await friendshipRepository.AddAsync(friendship, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var requester = await userRepository.GetByIdWithProfileAsync(access.ViewerId, cancellationToken);
+        var requesterName = UserDisplay.Name(requester);
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
             UserId = request.TargetUserId,
             Kind = NotificationKind.FriendRequest,
-            Title = NotificationService.GetKindLabel(NotificationKind.FriendRequest),
-            Body = "You have a new friend request.",
+            Title = NotificationCopy.SentFriendRequest(requesterName),
+            Body = $"{requesterName} wants to be friends.",
             ActionUrl = "/app/friends/requests",
             ActorUserId = access.ViewerId
         }, cancellationToken);
@@ -183,12 +186,14 @@ public class AcceptFriendshipCommandHandler(
         friendship.RespondedAt = DateTime.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var accepter = await userRepository.GetByIdWithProfileAsync(access.ViewerId, cancellationToken);
+        var accepterName = UserDisplay.Name(accepter);
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
             UserId = request.TargetUserId,
             Kind = NotificationKind.FriendRequestAccepted,
-            Title = NotificationService.GetKindLabel(NotificationKind.FriendRequestAccepted),
-            Body = "Your friend request was accepted.",
+            Title = NotificationCopy.AcceptedFriendRequest(accepterName),
+            Body = $"{accepterName} accepted your friend request.",
             ActionUrl = "/app/friends",
             ActorUserId = access.ViewerId
         }, cancellationToken);

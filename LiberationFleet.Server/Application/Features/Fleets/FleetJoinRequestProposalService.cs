@@ -52,7 +52,9 @@ public class FleetJoinRequestProposalService(
             FleetId = fleetId,
             ApplicantCrewId = applicantCrewId,
             Title = $"Allow {crew.Name} to join the fleet",
-            Description = $"{crew.Name} requested to join fleet {fleet.Name}."
+            Description =
+                $"Crew {crew.Name} requested to join fleet {fleet.Name}.\n" +
+                "If approved, the crew becomes a fleet member and gains fleet chats, forums, and Library of Things access with other member crews."
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

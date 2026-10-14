@@ -181,8 +181,10 @@ public class CrewmateKickProposalService(
         if (isSeasonKick)
         {
             title = $"Remove {displayName} from season";
-            description = $"Remove {displayName} from the season (not from the crew). Reason: {trimmedReason}";
-            notifyBody = $"A proposal was submitted to remove {displayName} from the season.";
+            description =
+                $"Remove {displayName} from the current mutual-aid season only (they stay in the crew).\n" +
+                $"Reason: {trimmedReason}";
+            notifyBody = $"Proposal to remove {displayName} from the season (not from the crew).";
             successMessage = "Season-removal proposal submitted.";
         }
         else
@@ -190,12 +192,12 @@ public class CrewmateKickProposalService(
             title = $"Kick {displayName}";
             description = isAnonymousOrigin
                 ? sourceChatMessageId.HasValue
-                    ? $"Remove Anonymous from the crew following reported abuse in chat. Reason: {trimmedReason}"
+                    ? $"Kick Anonymous from the crew after reported chat abuse.\nReason: {trimmedReason}"
                     : sourceCommentId.HasValue
-                        ? $"Remove {displayName} from the crew following reported abuse in a proposal discussion. Reason: {trimmedReason}"
-                        : $"Remove {displayName} from the crew following a malicious anonymous proposal. Reason: {trimmedReason}"
-                : $"Remove {displayName} from the crew. Reason: {trimmedReason}";
-            notifyBody = $"A proposal was submitted to kick {displayName} from the crew.";
+                        ? $"Kick {displayName} from the crew after reported abuse in a proposal discussion.\nReason: {trimmedReason}"
+                        : $"Kick {displayName} from the crew after a malicious anonymous proposal.\nReason: {trimmedReason}"
+                : $"Kick {displayName} from the crew (membership ends; they are banned from rejoining until allowed).\nReason: {trimmedReason}";
+            notifyBody = $"Proposal to kick {displayName} from the crew.";
             successMessage = "Kick proposal submitted.";
         }
 

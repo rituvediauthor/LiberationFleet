@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crewmates.Contracts;
 using LiberationFleet.Server.Application.Features.Crews.Queries.GetMyCrewMembership;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -146,11 +147,21 @@ public class GetMyCrewMembershipQueryHandlerTests
             .Setup(r => r.GetPendingCycleThankYouGiftIdAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((int?)null);
 
+        var mutualAidService = HandlerTestFixture.CreateMutualAidServiceMock();
+        mutualAidService
+            .Setup(s => s.TryMarkInSeasonFromExistingEntriesAsync(
+                It.IsAny<int>(),
+                It.IsAny<CrewMembership>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         return new GetMyCrewMembershipQueryHandler(
             membershipRepository.Object,
             crewRepository.Object,
             giftRepository.Object,
             HandlerTestFixture.CreateFleetRepositoryMock().Object,
+            mutualAidService.Object,
+            HandlerTestFixture.CreateUnitOfWorkMock().Object,
             HandlerTestFixture.CreateContentTenureService(),
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             NullLogger<GetMyCrewMembershipQueryHandler>.Instance);

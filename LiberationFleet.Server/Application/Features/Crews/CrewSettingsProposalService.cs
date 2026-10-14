@@ -48,7 +48,7 @@ public class CrewSettingsProposalService(
                 Proposal = proposal,
                 Field = change.Field,
                 NewValue = change.NewValue,
-                Title = CrewSettingsChangeDescriber.DefaultTitle,
+                Title = CrewSettingsChangeDescriber.BuildTitle(change),
                 Description = description
             }, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);

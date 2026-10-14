@@ -23,6 +23,7 @@ public record CreateProposalCommentCommand(
 public class CreateProposalCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
@@ -127,17 +128,22 @@ public class CreateProposalCommentCommandHandler(
             && !(isExternalJoinProposal && notifyUserId == proposal.AuthorUserId);
         if (shouldNotify)
         {
+            var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+            var actorName = UserDisplay.Name(actor);
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
             {
                 UserId = notifyUserId,
                 CrewId = notifyCrewId,
                 Kind = isFleetProposal ? NotificationKind.NewFleetProposalReply : NotificationKind.NewProposalReply,
-                Title = "New reply",
-                Body = NotificationPreview.BodyOrFallback(
+                Title = NotificationCopy.RepliedOnProposal(
+                    actorName,
+                    toComment: parentComment is not null,
+                    fleet: isFleetProposal),
+                Body = NotificationCopy.PreviewOr(
                     request.Body,
                     parentComment is null
-                        ? "Someone commented on your proposal."
-                        : "Someone replied to your proposal comment."),
+                        ? $"{actorName} commented on your {(isFleetProposal ? "fleet " : "")}proposal."
+                        : $"{actorName} replied to your {(isFleetProposal ? "fleet " : "")}proposal comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = proposal.Id,
                 SecondaryEntityId = comment.Id,

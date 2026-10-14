@@ -67,8 +67,10 @@ public class DeleteFleetRuleCommandHandler(
                 fleet.Id,
                 userId,
                 FleetRuleProposalAction.Delete,
-                rule.Title ?? string.Empty,
-                rule.Description ?? string.Empty,
+                FleetRuleChangeDescriber.DeleteTitle,
+                FleetRuleChangeDescriber.BuildDeleteDescription(
+                    rule.Title ?? string.Empty,
+                    rule.Description ?? string.Empty),
                 rule.Id,
                 rule.Title ?? string.Empty,
                 rule.Description ?? string.Empty,

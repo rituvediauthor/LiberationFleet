@@ -23,6 +23,7 @@ public record CreateForumCommentCommand(
 public class CreateForumCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IForumRepository forumRepository,
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
@@ -106,6 +107,8 @@ public class CreateForumCommentCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var actionUrl = $"/app/crew/forums/{post.Id}?commentId={comment.Id}";
+        var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var actorName = UserDisplay.Name(actor);
         if (parentComment is not null && parentComment.AuthorUserId != userId)
         {
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -113,8 +116,8 @@ public class CreateForumCommentCommandHandler(
                 UserId = parentComment.AuthorUserId,
                 CrewId = crewId,
                 Kind = NotificationKind.NewReply,
-                Title = "New reply",
-                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone replied to your forum comment."),
+                Title = NotificationCopy.RepliedOnForum(actorName, toComment: true),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your forum comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
@@ -130,8 +133,8 @@ public class CreateForumCommentCommandHandler(
                 UserId = post.AuthorUserId,
                 CrewId = crewId,
                 Kind = NotificationKind.NewForumComment,
-                Title = "New forum comment",
-                Body = NotificationPreview.BodyOrFallback(request.Preview, "Someone commented on your forum post."),
+                Title = NotificationCopy.RepliedOnForum(actorName, toComment: false),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} commented on your forum post."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,

@@ -259,6 +259,153 @@ public class PlaceholderCrewmateAndImpersonationTests
     }
 
     [Fact]
+    public async Task MergePlaceholder_InheritsPaymentPlatformsClaimantDoesNotHave()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        // Alice has PayPal only; placeholder adds Venmo (new) and PayPal (duplicate — keep Alice's).
+        var placeholder = new User
+        {
+            Username = "ph_platforms",
+            DisplayName = "Pat",
+            Email = "ph-platforms@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsSeasonReady = true,
+            IsHonoraryMember = true
+        });
+        fixture.Context.UserPaymentPlatforms.AddRange(
+            new UserPaymentPlatform
+            {
+                UserId = placeholder.Id,
+                CrewPaymentPlatformId = fixture.Platforms["Venmo"].Id,
+                PlatformName = "Venmo",
+                Handle = "@pat-venmo",
+                IsPreferred = true
+            },
+            new UserPaymentPlatform
+            {
+                UserId = placeholder.Id,
+                CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+                PlatformName = "PayPal",
+                Handle = "@pat-paypal",
+                IsPreferred = false
+            });
+        await fixture.Context.SaveChangesAsync();
+
+        var alicePayPalBefore = await fixture.Context.UserPaymentPlatforms.SingleAsync(p =>
+            p.UserId == fixture.Alice.Id && p.CrewPaymentPlatformId == fixture.Platforms["PayPal"].Id);
+        var alicePayPalHandle = alicePayPalBefore.Handle;
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Alice.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var alicePlatforms = await fixture.Context.UserPaymentPlatforms
+            .Where(p => p.UserId == fixture.Alice.Id)
+            .ToListAsync();
+        alicePlatforms.Should().Contain(p =>
+            p.CrewPaymentPlatformId == fixture.Platforms["Venmo"].Id && p.Handle == "@pat-venmo");
+        alicePlatforms.Count(p => p.CrewPaymentPlatformId == fixture.Platforms["PayPal"].Id)
+            .Should().Be(1);
+        alicePlatforms.Single(p => p.CrewPaymentPlatformId == fixture.Platforms["PayPal"].Id)
+            .Handle.Should().Be(alicePayPalHandle);
+        // Alice already had a preferred platform — inherited Venmo should not steal preferred.
+        alicePlatforms.Single(p => p.CrewPaymentPlatformId == fixture.Platforms["Venmo"].Id)
+            .IsPreferred.Should().BeFalse();
+        (await fixture.Context.Users.AnyAsync(u => u.Id == placeholder.Id)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task MergePlaceholder_WhenPlaceholderHasSeasonEntries_PullsClaimantIntoSeason()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        // Claimant already in crew but not marked in-season (e.g. joined mid-season without flags).
+        var claimantMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        claimantMembership.IsInSeason = false;
+        claimantMembership.IsSeasonReady = false;
+        claimantMembership.GivingSeasonJoinedAt = null;
+
+        // Remove claimant's existing season cycles so only the placeholder's entries remain.
+        var carolCycles = await fixture.Context.SeasonCycles
+            .Where(c => c.UserId == fixture.Carol.Id)
+            .ToListAsync();
+        fixture.Context.SeasonCycles.RemoveRange(carolCycles);
+
+        var placeholder = new User
+        {
+            Username = "ph_season",
+            DisplayName = "Pat",
+            Email = "ph-season@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            // Flags out of sync with entries — entries alone mean "in season".
+            IsInSeason = false,
+            IsSeasonReady = false,
+            IsHonoraryMember = true
+        });
+        fixture.Context.SeasonCycles.Add(new SeasonCycle
+        {
+            CrewId = fixture.Crew.Id,
+            UserId = placeholder.Id,
+            SeasonStartDate = fixture.SeasonStart,
+            CycleCapAtStart = 100m,
+            CycleReceived = 15m,
+            TotalReceptionAmount = 15m,
+            ReceptionOrderPosition = 9,
+            PriorityScoreAtSeasonStart = 50m
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var mergedMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        mergedMembership.IsInSeason.Should().BeTrue();
+        mergedMembership.IsSeasonReady.Should().BeTrue();
+        mergedMembership.GivingSeasonJoinedAt.Should().NotBeNull();
+
+        (await fixture.Context.SeasonCycles.CountAsync(c =>
+            c.UserId == fixture.Carol.Id && c.SeasonStartDate == fixture.SeasonStart))
+            .Should().BeGreaterThan(0);
+        (await fixture.Context.Users.AnyAsync(u => u.Id == placeholder.Id)).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task ReassignPlaceholderGifts_MovesGiverRecipientAndMiddleman()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

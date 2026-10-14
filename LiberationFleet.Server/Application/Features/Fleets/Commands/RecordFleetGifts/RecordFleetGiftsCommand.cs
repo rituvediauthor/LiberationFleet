@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts;
@@ -182,15 +183,18 @@ public class RecordFleetGiftsCommandHandler(
                 var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
                 if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
                 {
+                    var giver = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                    var giverName = UserDisplay.Name(giver);
                     await notificationService.NotifyUserAsync(new CreateNotificationRequest
                     {
                         UserId = item.RecipientId,
                         CrewId = giftCrewId,
                         Kind = NotificationKind.NewFleetGifts,
-                        Title = "New fleet gift(s)",
-                        Body = "You received a new gift in your fleet.",
+                        Title = NotificationCopy.ReceivedGift(giverName, fleet: true),
+                        Body = $"{giverName} recorded a gift for you in your fleet.",
                         ActionUrl = $"/app/fleet/gift-log?highlightId={gift.Id}",
-                        RelatedEntityId = gift.Id
+                        RelatedEntityId = gift.Id,
+                        ActorUserId = userId
                     }, cancellationToken);
                 }
             }

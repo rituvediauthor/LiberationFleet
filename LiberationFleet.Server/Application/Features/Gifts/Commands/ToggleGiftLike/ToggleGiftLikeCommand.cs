@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts;
@@ -10,11 +11,14 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Commands.ToggleGiftLike;
 
-public record ToggleGiftLikeCommand(int GiftId) : IRequest<GiftLikeToggleResponse>;
+public record ToggleGiftLikeCommand(
+    int GiftId,
+    string? NotificationPreview = null) : IRequest<GiftLikeToggleResponse>;
 
 public class ToggleGiftLikeCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     NotificationService notificationService,
@@ -78,14 +82,19 @@ public class ToggleGiftLikeCommandHandler(
 
                 if (notifyUserIds.Count > 0)
                 {
+                    var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                    var actorName = UserDisplay.Name(actor);
+                    var giftBody = NotificationCopy.PreviewOr(
+                        request.NotificationPreview,
+                        $"{actorName} liked a gift log entry you are part of.");
                     await notificationService.NotifyUsersAsync(
                         notifyUserIds.Select(targetUserId => new CreateNotificationRequest
                         {
                             UserId = targetUserId,
                             CrewId = membership.CrewId,
                             Kind = NotificationKind.GiftEntryLiked,
-                            Title = "Gift liked",
-                            Body = "Someone liked a gift log entry.",
+                            Title = NotificationCopy.LikedYourGift(actorName),
+                            Body = giftBody,
                             ActionUrl = actionUrl,
                             RelatedEntityId = gift.Id,
                             ActorUserId = userId

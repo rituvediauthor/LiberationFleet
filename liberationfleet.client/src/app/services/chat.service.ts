@@ -111,7 +111,11 @@ export class ChatService {
     return this.http.delete<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`);
   }
 
-  toggleMessageLike(roomId: number, messageId: number): Observable<{
+  toggleMessageLike(
+    roomId: number,
+    messageId: number,
+    notificationPreview?: string | null
+  ): Observable<{
     success: boolean;
     message: string;
     liked?: boolean;
@@ -122,7 +126,9 @@ export class ChatService {
       message: string;
       liked?: boolean;
       likeCount?: number;
-    }>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/like`, {});
+    }>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/like`, {
+      notificationPreview: notificationPreview ?? null
+    });
   }
 
   getMessageLikers(roomId: number, messageId: number): Observable<ContentLiker[]> {

@@ -121,3 +121,12 @@ public class SetHiddenContentRequest
     public int ResourceId { get; set; }
     public bool Hidden { get; set; }
 }
+
+/// <summary>
+/// Optional body for like toggles. Client should send a truncated plaintext sample of the
+/// liked content so encrypted posts/messages can still show a preview in the notification.
+/// </summary>
+public class ContentLikeRequest
+{
+    public string? NotificationPreview { get; set; }
+}

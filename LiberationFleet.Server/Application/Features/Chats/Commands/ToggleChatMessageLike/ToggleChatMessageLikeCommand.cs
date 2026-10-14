@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -10,7 +11,10 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Chats.Commands.ToggleChatMessageLike;
 
-public record ToggleChatMessageLikeCommand(int RoomId, int MessageId) : IRequest<ChatMessageLikeToggleResponse>;
+public record ToggleChatMessageLikeCommand(
+    int RoomId,
+    int MessageId,
+    string? NotificationPreview = null) : IRequest<ChatMessageLikeToggleResponse>;
 
 public class ChatMessageLikeToggleResponse
 {
@@ -23,6 +27,7 @@ public class ChatMessageLikeToggleResponse
 public class ToggleChatMessageLikeCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IChatRepository chatRepository,
     IChatRealtimeNotifier chatRealtimeNotifier,
@@ -75,13 +80,21 @@ public class ToggleChatMessageLikeCommandHandler(
                 var actionUrl = room.FleetId.HasValue
                     ? $"/app/fleet/chats/{room.Id}?highlightId={message.Id}"
                     : $"/app/crew/chats/{room.Id}?highlightId={message.Id}";
+                var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+                var actorName = UserDisplay.Name(actor);
+                var where = string.IsNullOrWhiteSpace(room.Name)
+                    ? (room.FleetId.HasValue ? "fleet chat" : "crew chat")
+                    : room.Name.Trim();
                 await notificationService.NotifyUserAsync(new CreateNotificationRequest
                 {
                     UserId = message.AuthorUserId,
                     CrewId = room.CrewId ?? membership.CrewId,
                     Kind = NotificationKind.ChatMessageLiked,
-                    Title = "Message liked",
-                    Body = "Someone liked your chat message.",
+                    Title = NotificationCopy.LikedYourMessage(actorName),
+                    Body = NotificationCopy.PreviewOr(
+                        request.NotificationPreview,
+                        message.Body,
+                        $"{actorName} liked your message in {where}."),
                     ActionUrl = actionUrl,
                     RelatedEntityId = message.Id,
                     ActorUserId = userId

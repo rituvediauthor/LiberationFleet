@@ -36,6 +36,7 @@ import { ContentLikersDialogComponent } from '../../components/content-likers-di
 import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../utils/location-header.util';
 import { PullRefreshController } from '../../utils/pull-refresh.controller';
+import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { Observable, map } from 'rxjs';
 
 export type GiftLogScope = 'crew' | 'fleet';
@@ -319,7 +320,8 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.likingEntryId = entry.id;
-    this.giftService.toggleGiftLike(entry.id).subscribe({
+    const notificationPreview = truncateNotificationPreview(entry.message);
+    this.giftService.toggleGiftLike(entry.id, notificationPreview).subscribe({
       next: response => {
         this.likingEntryId = null;
         if (!response.success) {

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Friends;
@@ -98,12 +99,14 @@ public class SendDirectMessageCommandHandler(
             cancellationToken);
         if (!recipientMutedSender)
         {
+            var sender = await userRepository.GetByIdWithProfileAsync(access.ViewerId, cancellationToken);
+            var senderName = UserDisplay.Name(sender);
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
             {
                 UserId = request.FriendUserId,
                 Kind = NotificationKind.NewDirectMessage,
-                Title = NotificationService.GetKindLabel(NotificationKind.NewDirectMessage),
-                Body = "New message",
+                Title = NotificationCopy.SentDirectMessage(senderName),
+                Body = "Open the conversation to read their message.",
                 ActionUrl = $"/app/friends/messages/{access.ViewerId}",
                 RelatedEntityId = message.Id,
                 ActorUserId = access.ViewerId

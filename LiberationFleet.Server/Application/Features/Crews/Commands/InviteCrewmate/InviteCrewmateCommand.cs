@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
@@ -75,13 +76,15 @@ public class InviteCrewmateCommandHandler(
         await invitationRepository.AddAsync(invitation, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var inviter = await userRepository.GetByIdWithProfileAsync(inviterId, cancellationToken);
+        var inviterName = UserDisplay.Name(inviter);
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
             UserId = request.InviteeUserId,
             CrewId = membership.CrewId,
             Kind = NotificationKind.JoinRequestFromCrew,
-            Title = "Crew invitation",
-            Body = $"You were invited to join {crew.Name}.",
+            Title = NotificationCopy.InvitedToCrew(inviterName, crew.Name),
+            Body = $"{inviterName} invited you to join {crew.Name}.",
             ActionUrl = $"/app/crew/invitations/{invitation.Id}",
             RelatedEntityId = invitation.Id,
             ActorUserId = inviterId

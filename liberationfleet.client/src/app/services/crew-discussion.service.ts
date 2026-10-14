@@ -132,18 +132,25 @@ export class CrewDiscussionService {
     });
   }
 
-  togglePostLike(config: DiscussionConfig, postId: number): Observable<ForumLikeToggleResponse> {
-    return this.http.post<ForumLikeToggleResponse>(`${config.apiPath}/${postId}/like`, {});
+  togglePostLike(
+    config: DiscussionConfig,
+    postId: number,
+    notificationPreview?: string | null
+  ): Observable<ForumLikeToggleResponse> {
+    return this.http.post<ForumLikeToggleResponse>(`${config.apiPath}/${postId}/like`, {
+      notificationPreview: notificationPreview ?? null
+    });
   }
 
   toggleCommentLike(
     config: DiscussionConfig,
     postId: number,
-    commentId: number
+    commentId: number,
+    notificationPreview?: string | null
   ): Observable<ForumLikeToggleResponse> {
     return this.http.post<ForumLikeToggleResponse>(
       `${config.apiPath}/${postId}/comments/${commentId}/like`,
-      {}
+      { notificationPreview: notificationPreview ?? null }
     );
   }
 

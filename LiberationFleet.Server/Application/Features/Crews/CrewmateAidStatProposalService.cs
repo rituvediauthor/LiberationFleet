@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LiberationFleet.Server.Application.Common;
@@ -40,6 +39,7 @@ public class CrewmateAidStatProposalService(
     ICrewMembershipRepository membershipRepository,
     IUserRepository userRepository,
     IMutualAidRepository mutualAidRepository,
+    IGiftRepository giftRepository,
     IMutualAidService mutualAidService,
     NotificationService notificationService,
     IUnitOfWork unitOfWork)
@@ -152,21 +152,25 @@ public class CrewmateAidStatProposalService(
             proposal, utcNow, crewRepository, fleetRepository, cancellationToken);
         await proposalRepository.AddProposalAsync(proposal, cancellationToken);
 
-        var descriptionBuilder = new StringBuilder();
         var targetName = UserDisplay.Name(targetUser);
-        descriptionBuilder.AppendLine($"Adjust mutual-aid accounting for {targetName}:");
-        foreach (var item in normalized)
-        {
-            descriptionBuilder.AppendLine($"• {FormatFieldLabel(item.Field)} → {FormatDisplayValue(item.Field, item.NewValue)}");
-        }
+        var currentSnapshot = await BuildCurrentAidSnapshotAsync(
+            crewId,
+            targetUserId,
+            targetMembership,
+            cancellationToken);
+        var title = CrewmateAidStatChangeDescriber.BuildTitle(targetName, normalized);
+        var description = CrewmateAidStatChangeDescriber.BuildDescription(
+            targetName,
+            normalized,
+            currentSnapshot);
 
         await proposalRepository.AddCrewmateAidStatChangeAsync(new ProposalCrewmateAidStatChange
         {
             Proposal = proposal,
             TargetUserId = targetUserId,
             ChangesJson = JsonSerializer.Serialize(normalized, JsonOptions),
-            Title = $"Update aid stats for {targetName}",
-            Description = descriptionBuilder.ToString().Trim()
+            Title = title,
+            Description = description
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -205,7 +209,7 @@ public class CrewmateAidStatProposalService(
             crewId,
             NotificationKind.NewProposal,
             "New proposal",
-            $"A proposal was submitted to update aid statistics for {targetName}.",
+            NotificationPreview.BodyOrFallback(description, $"Mutual-aid changes proposed for {targetName}."),
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: authorUserId,
@@ -482,43 +486,62 @@ public class CrewmateAidStatProposalService(
         return true;
     }
 
-    private static string FormatFieldLabel(CrewmateAidStatField field) =>
-        field switch
-        {
-            CrewmateAidStatField.EstimatedMonthlyContribution => "Estimated monthly contribution",
-            CrewmateAidStatField.LifetimeContributions => "Lifetime contributions",
-            CrewmateAidStatField.ReceptionThisYear => "Reception this year",
-            CrewmateAidStatField.TotalReceptionAmount => "Total reception (season)",
-            CrewmateAidStatField.SurvivalThresholdReceived => "Survival reception (season)",
-            CrewmateAidStatField.CycleReceived => "Cycle reception (season)",
-            CrewmateAidStatField.CycleCompleted => "Cycle completed",
-            CrewmateAidStatField.PercentBoost => "Percent boost (this season)",
-            CrewmateAidStatField.SeasonAccounting => "Season accounting",
-            _ => field.ToString()
-        };
-
-    private static string FormatDisplayValue(CrewmateAidStatField field, string value)
+    private async Task<CrewmateAidStatChangeDescriber.CurrentAidSnapshot> BuildCurrentAidSnapshotAsync(
+        int crewId,
+        int targetUserId,
+        CrewMembership membership,
+        CancellationToken cancellationToken)
     {
-        if (field == CrewmateAidStatField.SeasonAccounting)
-        {
-            var accounting = AidStatDraftSerializer.Deserialize(value);
-            if (accounting is null)
-            {
-                return "(season accounting)";
-            }
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+        var giftStats = await giftRepository.GetCrewmateGiftStatsAsync(
+            targetUserId,
+            crewId,
+            crew?.CurrentSeasonStartDate,
+            cancellationToken);
 
-            return
-                $"cycle ${accounting.CycleReceived:0.##}, active={(accounting.HasActiveCycle ? "yes" : "no")}, " +
-                $"order={(accounting.ReceptionOrder?.ToString(CultureInfo.InvariantCulture) ?? "—")}, " +
-                $"auto-join={(accounting.AutoJoinSeasonOnStart ? "yes" : "no")}, " +
-                $"thresholds={accounting.SurvivalThresholds.Count}";
+        AidSeasonAccountingDto? seasonAccounting = null;
+        if (crew?.CurrentSeasonStartDate is DateTime seasonStart)
+        {
+            var cycle = await mutualAidRepository.GetPrimarySeasonCycleAsync(
+                crewId,
+                targetUserId,
+                seasonStart,
+                cancellationToken);
+            var thresholds = await mutualAidRepository.GetThresholdsForUserAsync(
+                crewId,
+                targetUserId,
+                cancellationToken);
+            var isFinancialMember = await mutualAidService.IsFinancialMemberAsync(
+                targetUserId,
+                crewId,
+                membership,
+                cancellationToken);
+            var seasonCap = isFinancialMember ? crew.SeasonMemberCycleCap : crew.SeasonNonMemberCycleCap;
+            seasonAccounting = AidStatDraftSerializer.FromLiveState(
+                cycle,
+                thresholds,
+                membership.AutoJoinSeasonOnStart,
+                effectiveCycleCap: seasonCap > 0m ? seasonCap : null);
+        }
+        else
+        {
+            seasonAccounting = AidStatDraftSerializer.Deserialize(membership.AidStatDraftJson)
+                ?? AidStatDraftSerializer.FromLiveState(
+                    null,
+                    [],
+                    membership.AutoJoinSeasonOnStart);
         }
 
-        return field switch
+        return new CrewmateAidStatChangeDescriber.CurrentAidSnapshot
         {
-            CrewmateAidStatField.CycleCompleted => value == "true" ? "Yes" : "No",
-            CrewmateAidStatField.PercentBoost => $"+{value}%",
-            _ => $"${value}"
+            EstimatedMonthlyContribution = membership.EstimatedMonthlyContribution ?? 0m,
+            LifetimeContributions = giftStats.LifetimeContributions,
+            ReceptionThisYear = giftStats.ReceptionThisYear,
+            PercentBoost = membership.PercentBonus,
+            SeasonAccounting = seasonAccounting
         };
     }
+
+    private static string FormatFieldLabel(CrewmateAidStatField field) =>
+        CrewmateAidStatChangeDescriber.FormatFieldLabel(field);
 }

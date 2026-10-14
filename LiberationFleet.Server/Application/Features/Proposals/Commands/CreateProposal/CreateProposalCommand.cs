@@ -23,6 +23,7 @@ public record CreateProposalCommand(
 public class CreateProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IUserRepository userRepository,
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IProposalRepository proposalRepository,
@@ -126,11 +127,13 @@ public class CreateProposalCommandHandler(
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var author = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        var authorName = UserDisplay.Name(author);
         await notificationService.NotifyCrewAsync(
             membership.CrewId,
             NotificationKind.NewProposal,
-            "New proposal",
-            NotificationPreview.BodyOrFallback(request.Description, "A new crew proposal was submitted."),
+            NotificationCopy.SubmittedProposal(authorName),
+            NotificationCopy.PreviewOr(request.Description, $"{authorName} submitted a crew proposal."),
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: userId,

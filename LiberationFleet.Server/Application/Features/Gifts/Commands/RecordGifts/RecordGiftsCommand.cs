@@ -290,17 +290,20 @@ public class RecordGiftsCommandHandler(
                     var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
                     if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
                     {
+                        var giver = await userRepository.GetByIdWithProfileAsync(giverUserId, cancellationToken);
+                        var giverName = UserDisplay.Name(giver);
                         await notificationService.NotifyUserAsync(new CreateNotificationRequest
                         {
                             UserId = item.RecipientId,
                             CrewId = membership.CrewId,
                             Kind = NotificationKind.NewGifts,
-                            Title = "New gift(s)",
-                            Body = "You received a new gift in your crew.",
+                            Title = NotificationCopy.ReceivedGift(giverName),
+                            Body = $"{giverName} recorded a gift for you in your crew.",
                             ActionUrl = lastSaved is not null
                                 ? $"/app/crew/gift-log?highlightId={lastSaved.Id}"
                                 : "/app/crew/gift-log",
-                            RelatedEntityId = lastSaved?.Id
+                            RelatedEntityId = lastSaved?.Id,
+                            ActorUserId = giverUserId
                         }, cancellationToken);
                     }
                 }

@@ -275,85 +275,124 @@ public static class CrewSettingsChangeDetector
 
 public static class CrewSettingsChangeDescriber
 {
-    public const string DefaultTitle = "Editing crew settings";
+    public const string DefaultTitle = "Change crew setting";
+
+    public static string BuildTitle(CrewSettingChangeItem change) =>
+        change.Field switch
+        {
+            CrewSettingField.Name => "Change crew name",
+            CrewSettingField.MaxSize => "Change crew size limit",
+            CrewSettingField.Privacy => "Change crew privacy",
+            CrewSettingField.Scope => "Change crew location type",
+            CrewSettingField.CountryCode => "Change crew country",
+            CrewSettingField.AllowedZipCodes => "Change allowed postal codes",
+            CrewSettingField.RadiusMiles => "Change distance setting (legacy)",
+            CrewSettingField.AllowSurvivalThresholds => "Change survival thresholds setting",
+            CrewSettingField.RequireApprovalForEdits => "Change edit-approval requirement",
+            CrewSettingField.DuoVoteTimeoutMode => "Change tied-vote timeout",
+            CrewSettingField.AutoResolveOverTime => "Change auto-resolve over time",
+            CrewSettingField.BaseAutoResolveHours => "Change initial auto-resolve window",
+            CrewSettingField.ChangeAutoResolveTimerOnFirstReject => "Change timer-on-first-reject setting",
+            CrewSettingField.AutoResolveHoursAfterFirstReject => "Change post-reject auto-resolve window",
+            CrewSettingField.InNeedDefaultThreshold => "Change in-need threshold",
+            CrewSettingField.FinancialMembershipContributionFloor => "Change financial membership floor",
+            CrewSettingField.LibraryOfThingsEnabled => "Change Library of Things setting",
+            CrewSettingField.MemberCycleCapMode => "Change member cycle cap mode",
+            CrewSettingField.MemberCycleCapFixedAmount => "Change member cycle cap amount",
+            CrewSettingField.MemberCycleCapMultiplier => "Change member cycle cap multiplier",
+            CrewSettingField.NonMemberCycleCapMode => "Change non-member cycle cap mode",
+            CrewSettingField.NonMemberCycleCapFixedAmount => "Change non-member cycle cap amount",
+            CrewSettingField.NonMemberCycleCapMultiplier => "Change non-member cycle cap multiplier",
+            CrewSettingField.AllowCrewmateFileAttachments => "Change file-attachment permission",
+            CrewSettingField.MinimumCrewmateTenureDaysForAttachments => "Change attachment tenure requirement",
+            CrewSettingField.MinimumContributionForAttachments => "Change attachment contribution requirement",
+            CrewSettingField.MinimumCrewmateTenureDaysForProposals => "Change proposal tenure requirement",
+            CrewSettingField.MinimumContributionForProposals => "Change proposal contribution requirement",
+            CrewSettingField.AllowCrossCrewGiving => "Change cross-crew giving setting",
+            CrewSettingField.ImageResourceId => string.IsNullOrEmpty(change.NewValue)
+                ? "Remove crew image"
+                : "Change crew image",
+            _ => DefaultTitle
+        };
 
     public static string BuildDescription(CrewSettingChangeItem change) =>
         change.Field switch
         {
             CrewSettingField.Name =>
-                $"Proposal to change the crew name from \"{change.OldValue}\" to \"{change.NewValue}\".",
+                $"Change the crew name from \"{change.OldValue}\" to \"{change.NewValue}\".",
             CrewSettingField.MaxSize =>
-                $"Proposal to change crew size from {change.OldValue} to {change.NewValue}.",
+                $"Change the crew size limit from {change.OldValue} to {change.NewValue} members.",
             CrewSettingField.Privacy =>
-                $"Proposal to change crew privacy from {change.OldValue} to {change.NewValue}.",
+                $"Change crew privacy from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.Scope =>
-                $"Proposal to change crew location type from {change.OldValue} to {change.NewValue}.",
+                $"Change crew location type from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.CountryCode =>
-                $"Proposal to change country from \"{FormatCountry(change.OldValue)}\" to \"{FormatCountry(change.NewValue)}\".",
+                $"Change country from \"{FormatCountry(change.OldValue)}\" to \"{FormatCountry(change.NewValue)}\".",
             CrewSettingField.AllowedZipCodes =>
-                $"Proposal to change allowed postal codes from \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.OldValue))}\" to \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.NewValue))}\".",
+                $"Change allowed postal codes from \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.OldValue))}\" to \"{ZipCodeList.FormatDisplay(ZipCodeList.Deserialize(change.NewValue))}\".",
             CrewSettingField.RadiusMiles =>
-                $"Proposal to change distance from {change.OldValue} to {change.NewValue} miles (legacy; no longer applied).",
+                $"Change distance from {change.OldValue} to {change.NewValue} miles (legacy; no longer applied).",
             CrewSettingField.AllowSurvivalThresholds =>
-                $"Proposal to set \"Allow survival thresholds\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Allow survival thresholds\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             CrewSettingField.RequireApprovalForEdits =>
-                $"Proposal to set \"Require approval for crew edits\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Require approval for crew edits\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             CrewSettingField.DuoVoteTimeoutMode =>
-                $"Proposal to set tied vote timeout (equal approve/reject when the timer expires) to \"{FormatDuoMode(change.NewValue)}\".",
+                $"Change tied-vote timeout (equal approve/reject when the timer expires) from \"{FormatDuoMode(change.OldValue)}\" to \"{FormatDuoMode(change.NewValue)}\".",
             CrewSettingField.AutoResolveOverTime =>
-                $"Proposal to set \"Auto-resolve over time\" to \"{FormatBool(change.NewValue)}\". When enabled, the side with more votes wins at timer expiry; equal counts use tied vote timeout.",
+                $"Turn \"Auto-resolve over time\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}. " +
+                "When enabled, the side with more votes wins at timer expiry; equal counts use tied-vote timeout.",
             CrewSettingField.BaseAutoResolveHours =>
-                $"Proposal to set initial auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
+                $"Change the initial auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
             CrewSettingField.ChangeAutoResolveTimerOnFirstReject =>
-                $"Proposal to set \"Change auto-resolve timer on first reject\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Change auto-resolve timer on first reject\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             CrewSettingField.AutoResolveHoursAfterFirstReject =>
-                $"Proposal to set post-reject auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
+                $"Change the post-reject auto-resolve window from {change.OldValue} to {change.NewValue} hours.",
             CrewSettingField.InNeedDefaultThreshold =>
-                $"Proposal to change in-need threshold from ${change.OldValue} to ${change.NewValue}. " +
+                $"Change the in-need threshold from ${change.OldValue} to ${change.NewValue}. " +
                 "Crewmates whose 3-month average (excluding Library of Things) is at or below this cannot opt out of in-need.",
             CrewSettingField.FinancialMembershipContributionFloor =>
-                $"Proposal to change financial membership contribution floor from ${change.OldValue} to ${change.NewValue}. " +
+                $"Change the financial membership contribution floor from ${change.OldValue} to ${change.NewValue}. " +
                 "Average includes Library of Things gifts.",
             CrewSettingField.LibraryOfThingsEnabled =>
-                $"Proposal to set \"Library of Things\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Library of Things\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             CrewSettingField.MemberCycleCapMode =>
-                $"Proposal to change member cycle cap mode from {change.OldValue} to {change.NewValue}.",
+                $"Change member cycle cap mode from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.MemberCycleCapFixedAmount =>
-                $"Proposal to change member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
+                $"Change member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.MemberCycleCapMultiplier =>
-                $"Proposal to change member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
+                $"Change member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.NonMemberCycleCapMode =>
-                $"Proposal to change non-member cycle cap mode from {change.OldValue} to {change.NewValue}.",
+                $"Change non-member cycle cap mode from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.NonMemberCycleCapFixedAmount =>
-                $"Proposal to change non-member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
+                $"Change non-member fixed cycle cap from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.NonMemberCycleCapMultiplier =>
-                $"Proposal to change non-member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
+                $"Change non-member cycle cap multiplier from {change.OldValue} to {change.NewValue}.",
             CrewSettingField.AllowCrewmateFileAttachments =>
-                $"Proposal to set \"Allow crewmate file attachments\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Allow crewmate file attachments\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             CrewSettingField.MinimumCrewmateTenureDaysForAttachments =>
-                $"Proposal to change minimum crewmate tenure for attachments from {change.OldValue} to {change.NewValue} days.",
+                $"Change minimum crewmate tenure for attachments from {change.OldValue} to {change.NewValue} days.",
             CrewSettingField.MinimumContributionForAttachments =>
-                $"Proposal to change minimum contribution for attachments from ${change.OldValue} to ${change.NewValue}.",
+                $"Change minimum contribution for attachments from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.MinimumCrewmateTenureDaysForProposals =>
-                $"Proposal to change minimum crewmate tenure for proposals from {change.OldValue} to {change.NewValue} days.",
+                $"Change minimum crewmate tenure for proposals from {change.OldValue} to {change.NewValue} days.",
             CrewSettingField.MinimumContributionForProposals =>
-                $"Proposal to change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
+                $"Change minimum contribution for proposals from ${change.OldValue} to ${change.NewValue}.",
             CrewSettingField.AllowCrossCrewGiving =>
-                $"Proposal to set \"Allow cross-crew giving\" to \"{FormatBool(change.NewValue)}\".",
+                $"Turn \"Allow cross-crew giving\" from {FormatBool(change.OldValue)} to {FormatBool(change.NewValue)}.",
             CrewSettingField.ImageResourceId =>
                 string.IsNullOrEmpty(change.NewValue)
-                    ? "Proposal to remove the crew image."
-                    : "Proposal to set a new crew image.",
-            _ => "Proposal to change crew settings."
+                    ? "Remove the crew image."
+                    : "Replace the crew image with a new one.",
+            _ => "Change a crew setting."
         };
 
-    private static string FormatBool(string value) =>
-        bool.TryParse(value, out var parsed) && parsed ? "True" : "False";
+    private static string FormatBool(string? value) =>
+        bool.TryParse(value, out var parsed) && parsed ? "Yes" : "No";
 
     private static string FormatCountry(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "(none)" : value.Trim().ToUpperInvariant();
 
-    private static string FormatDuoMode(string value) =>
+    private static string FormatDuoMode(string? value) =>
         value switch
         {
             nameof(DuoVoteTimeoutMode.AutoApprove) => "Auto approve",
