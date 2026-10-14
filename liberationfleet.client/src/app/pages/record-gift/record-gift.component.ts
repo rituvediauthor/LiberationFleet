@@ -341,6 +341,10 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     group.patchValue({ paymentPlatformId: options[0]?.id ?? '' }, { emitEvent: true });
   }
 
+  goToEmergencyRequests() {
+    void this.router.navigate(['/app/crew/emergency-requests']);
+  }
+
   openEmergencyRequest(item: EmergencyRequestListItem) {
     void this.router.navigate(['/app/crew/emergency-requests', item.id]);
   }

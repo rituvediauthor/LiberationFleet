@@ -86,43 +86,36 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button
-            type="button"
-            class="menu-link"
-            (click)="goToEmergencyRequests()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
-            </span>
-            <span class="menu-label">Emergency Requests</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-collapsible-section class="admin-section" title="Administrative">
+            <div class="admin-menu">
+              <button type="button" class="menu-link" (click)="goToProposals()">
+                <span class="menu-icon-wrap">
+                  <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+                  <app-content-badge [count]="areaCounts.fleetProposals"></app-content-badge>
+                </span>
+                <span class="menu-label">Proposals</span>
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
 
-          <button type="button" class="menu-link" (click)="goToProposals()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.fleetProposals"></app-content-badge>
-            </span>
-            <span class="menu-label">Proposals</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+              <button type="button" class="menu-link" (click)="goToCrews()">
+                <span class="menu-icon-wrap">
+                  <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
+                  <app-content-badge [count]="areaCounts.fleetCrewmates"></app-content-badge>
+                </span>
+                <span class="menu-label">Crews</span>
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
 
-          <button type="button" class="menu-link" (click)="goToCrews()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.fleetCrewmates"></app-content-badge>
-            </span>
-            <span class="menu-label">Crews</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
-
-          <button type="button" class="menu-link" (click)="goToEditFleet()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.fleetSettings"></app-content-badge>
-            </span>
-            <span class="menu-label">Fleet Settings</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+              <button type="button" class="menu-link" (click)="goToEditFleet()">
+                <span class="menu-icon-wrap">
+                  <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
+                  <app-content-badge [count]="areaCounts.fleetSettings"></app-content-badge>
+                </span>
+                <span class="menu-label">Fleet Settings</span>
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
+            </div>
+          </app-collapsible-section>
         </nav>
       </div>
     </ng-container>

@@ -20,6 +20,7 @@ import {
   emptyAreaCounts
 } from '../../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
+import { CollapsibleSectionComponent } from '../../../components/collapsible-section/collapsible-section.component';
 
 @Component({
   selector: 'app-fleet-home',
@@ -30,7 +31,8 @@ import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.
     ContentBadgeComponent,
     DonationCampaignWidgetComponent,
     BrandLogoComponent,
-    HubLoadingComponent
+    HubLoadingComponent,
+    CollapsibleSectionComponent
   ],
   templateUrl: './fleet-home.component.html',
   styleUrl: './fleet-home.component.css'
@@ -234,10 +236,6 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
 
   goToNextAidAction() {
     this.giftService.navigateToNextAidAction(this.router, 'fleet');
-  }
-
-  goToEmergencyRequests() {
-    this.router.navigate(['/app/fleet/emergency-requests']);
   }
 
   goToLibrary() {

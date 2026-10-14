@@ -86,49 +86,36 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link" (click)="goToEmergencyRequests()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-triangle-exclamation menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewEmergency"></app-content-badge>
-            </span>
-            <span class="menu-label">Emergency Requests</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-collapsible-section class="admin-section" title="Administrative">
+            <div class="admin-menu">
+              <button type="button" class="menu-link" (click)="goToProposals()">
+                <span class="menu-icon-wrap">
+                  <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
+                  <app-content-badge [count]="areaCounts.crewProposals"></app-content-badge>
+                </span>
+                <span class="menu-label">Proposals</span>
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
 
-          <button type="button" class="menu-link" (click)="goToProposals()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-list-check menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewProposals"></app-content-badge>
-            </span>
-            <span class="menu-label">Proposals</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+              <button type="button" class="menu-link" (click)="goToCrewmates()">
+                <span class="menu-icon-wrap">
+                  <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
+                  <app-content-badge [count]="areaCounts.crewCrewmates"></app-content-badge>
+                </span>
+                <span class="menu-label">Crewmates</span>
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
 
-          <button type="button" class="menu-link" (click)="goToCrewmates()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-users menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewCrewmates"></app-content-badge>
-            </span>
-            <span class="menu-label">Crewmates</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
-
-          <button type="button" class="menu-link" (click)="goToEditCrew()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewSettings"></app-content-badge>
-            </span>
-            <span class="menu-label">Crew Settings</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
-
-          <button type="button" class="menu-link" (click)="goToHowToUse()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-circle-question menu-icon" aria-hidden="true"></i>
-            </span>
-            <span class="menu-label">How to use this app</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+              <button type="button" class="menu-link" (click)="goToEditCrew()">
+                <span class="menu-icon-wrap">
+                  <i class="fa-solid fa-gear menu-icon" aria-hidden="true"></i>
+                  <app-content-badge [count]="areaCounts.crewSettings"></app-content-badge>
+                </span>
+                <span class="menu-label">Crew Settings</span>
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
+            </div>
+          </app-collapsible-section>
 
         </nav>
 

@@ -119,6 +119,22 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
+  --lf-collapsible-inset: 0px;
+}
+
+.admin-section {
+  width: 100%;
+}
+
+.admin-section ::ng-deep .collapsible-body {
+  padding: 12px 0 0;
+}
+
+.admin-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
 }
 
 .menu-link {

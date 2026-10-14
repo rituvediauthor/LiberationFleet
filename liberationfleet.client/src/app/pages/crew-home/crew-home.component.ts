@@ -29,6 +29,7 @@ import {
 } from '../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
 import { CrewFindPanelComponent } from '../crew-find/crew-find-panel.component';
+import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { TextFieldLimits } from '../../utils/text-field-limits';
 
@@ -48,7 +49,8 @@ const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
     HubLoadingComponent,
     ConfirmDialogComponent,
     CharCounterComponent,
-    CrewFindPanelComponent
+    CrewFindPanelComponent,
+    CollapsibleSectionComponent
   ],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
@@ -262,10 +264,6 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       seasonStarted: this.membership?.seasonStarted,
       userInSeason: this.membership?.isInSeason
     });
-  }
-
-  goToEmergencyRequests() {
-    this.router.navigate(['/app/crew/emergency-requests']);
   }
 
   goToProposals() {

@@ -51,12 +51,13 @@ describe('UserHomeComponent', () => {
     expect(component).toBeTruthy();
 
     const links = fixture.nativeElement.querySelectorAll('.menu-link');
-    expect(links.length).toBe(5);
+    expect(links.length).toBe(6);
     expect(links[0].textContent).toContain('User Profile');
     expect(links[1].textContent).toContain('Gift History');
     expect(links[2].textContent).toContain('Activity center');
     expect(links[3].textContent).toContain('Preferences');
     expect(links[4].textContent).toContain('Donate');
+    expect(links[5].textContent).toContain('How to use this app');
   });
 
   it('should show Join/Create a crew when user has a crew', () => {
@@ -64,12 +65,16 @@ describe('UserHomeComponent', () => {
     fixture = TestBed.createComponent(UserHomeComponent);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
-    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    if (!(router.navigate as jasmine.Spy).and) {
+      spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    }
     fixture.detectChanges();
 
     const links = fixture.nativeElement.querySelectorAll('.menu-link');
-    expect(links.length).toBe(6);
-    expect(links[4].textContent).toContain('Join/Create a crew');
+    expect(links.length).toBe(7);
+    expect(links[4].textContent).toContain('Donate');
+    expect(links[5].textContent).toContain('How to use this app');
+    expect(links[6].textContent).toContain('Join/Create a crew');
   });
 
   it('should navigate to join/create crew page', () => {
@@ -101,5 +106,10 @@ describe('UserHomeComponent', () => {
   it('should navigate to donate', () => {
     component.goToDonate();
     expect(router.navigate).toHaveBeenCalledWith(['/app/donate']);
+  });
+
+  it('should navigate to how to use', () => {
+    component.goToHowToUse();
+    expect(router.navigate).toHaveBeenCalledWith(['/app/how-to']);
   });
 });

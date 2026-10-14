@@ -63,4 +63,8 @@ export class UserHomeComponent implements OnInit, OnDestroy {
   goToDonate() {
     navigateToDonate(this.router);
   }
+
+  goToHowToUse() {
+    void this.router.navigate(['/app/how-to']);
+  }
 }

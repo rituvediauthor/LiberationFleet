@@ -215,6 +215,10 @@ export class FleetRecordGiftComponent implements OnInit, AfterViewInit, OnDestro
     return null;
   }
 
+  goToEmergencyRequests() {
+    void this.router.navigate(['/app/fleet/emergency-requests']);
+  }
+
   onMiddlemanChange(entry: ReceptionOrderEntry, index: number) {
     const group = this.entries.at(index);
     if (!group) {

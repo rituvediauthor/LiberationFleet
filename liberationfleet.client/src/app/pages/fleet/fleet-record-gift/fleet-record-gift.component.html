@@ -12,6 +12,14 @@
 
     <div class="form-card">
       <p *ngIf="loading" class="status-text">Loading fleet reception order…</p>
+
+      <div class="emergency-nav-row" *ngIf="!loading">
+        <button type="button" class="emergency-nav-btn" (click)="goToEmergencyRequests()">
+          Emergency Requests
+        </button>
+        <p class="emergency-nav-hint">View emergency aid requests across the fleet.</p>
+      </div>
+
       <p *ngIf="!loading && receptionEntries.length === 0" class="status-text">
         No one in the fleet currently needs aid you can record.
       </p>

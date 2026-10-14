@@ -42,6 +42,32 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.emergency-nav-row {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--lf-color-border);
+}
+
+.emergency-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid var(--lf-color-accent);
+  border-radius: 6px;
+  background: var(--lf-color-accent-soft-bg-alt);
+  color: var(--lf-color-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emergency-nav-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+}
+
 h1 {
   font-size: 28px;
   font-weight: 600;

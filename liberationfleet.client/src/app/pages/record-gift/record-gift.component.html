@@ -56,6 +56,13 @@
         </div>
       </div>
 
+      <div class="add-non-member-row" *ngIf="!loading">
+        <button type="button" class="add-non-member-btn" (click)="goToEmergencyRequests()">
+          Emergency Requests
+        </button>
+        <p class="add-non-member-hint">View, create, and fulfill emergency aid requests for your crew.</p>
+      </div>
+
       <section class="emergency-section" *ngIf="!loading && emergencyRequests.length > 0">
         <h2>Open emergency requests</h2>
         <div class="request-list">
