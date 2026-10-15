@@ -100,6 +100,13 @@
       {{ submitting ? 'Redirecting…' : 'Continue to secure checkout' }}
     </button>
 
+    <button
+      type="button"
+      class="learn-more-btn"
+      (click)="goToLearnMore()">
+      Use/Learn more about the app
+    </button>
+
     <p class="fine-print" id="donate-fine-print">
       You will complete payment on Stripe’s hosted page. After payment succeeds, Liberation Fleet Co. emails a written donation acknowledgment to the address above for your tax records.
       <ng-container *ngIf="isLoggedIn"> Signed-in donations are also recorded in your profile tax-year summary.</ng-container>

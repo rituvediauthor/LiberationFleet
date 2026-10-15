@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { take } from 'rxjs/operators';
 import { PageLayoutComponent, ActionBarButton } from '../../components/page-layout/page-layout.component';
 import { NavigationService } from '../../services/navigation.service';
@@ -40,6 +40,7 @@ export class DonateComponent implements OnInit {
   private authService = inject(AuthService);
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   ngOnInit() {
     if (this.usesExternalDonationCheckout) {
@@ -124,6 +125,10 @@ export class DonateComponent implements OnInit {
 
   selectCustom() {
     this.selectedUsd = 'custom';
+  }
+
+  goToLearnMore() {
+    void this.router.navigate(this.isLoggedIn ? ['/app/how-to'] : ['/']);
   }
 
   startCheckout() {

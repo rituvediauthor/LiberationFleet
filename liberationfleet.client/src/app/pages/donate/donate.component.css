@@ -144,12 +144,29 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   margin-top: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .checkout-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.learn-more-btn {
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px solid var(--lf-color-accent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lf-color-accent);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.learn-more-btn:hover {
+  background: var(--lf-color-accent-soft-bg, rgba(59, 130, 246, 0.12));
 }
 
 .fine-print {
