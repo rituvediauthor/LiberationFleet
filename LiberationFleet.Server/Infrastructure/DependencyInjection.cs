@@ -60,6 +60,8 @@ public static class DependencyInjection
         services.AddScoped<IContentTenureRepository, ContentTenureRepository>();
         services.AddScoped<IContentReportRepository, ContentReportRepository>();
         services.AddScoped<IAppDonationRepository, AppDonationRepository>();
+        services.AddScoped<IDonationGoalRepository, DonationGoalRepository>();
+        services.AddScoped<Application.Services.IDonationGoalProgressService, Application.Services.DonationGoalProgressService>();
         services.AddScoped<IVoicePresenceNotifier, VoicePresenceNotifier>();
         services.Configure<Infrastructure.LiveKit.LiveKitOptions>(configuration.GetSection(Infrastructure.LiveKit.LiveKitOptions.SectionName));
         services.Configure<Application.Services.PushNotificationOptions>(

@@ -103,6 +103,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
     public DbSet<ContentReportAccessLog> ContentReportAccessLogs => Set<ContentReportAccessLog>();
     public DbSet<AppDonation> AppDonations => Set<AppDonation>();
+    public DbSet<DonationGoal> DonationGoals => Set<DonationGoal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1416,6 +1417,80 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .IsRequired(false);
+        });
+
+        modelBuilder.Entity<DonationGoal>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Key).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.Recurrence).HasConversion<int>().IsRequired();
+            entity.HasIndex(e => e.Key).IsUnique();
+            entity.HasIndex(e => e.SortOrder);
+            var seedUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            entity.HasData(
+                new DonationGoal
+                {
+                    Id = 1,
+                    Key = DonationGoalKeys.LaunchAppStore,
+                    Title = "Launch on the app store!",
+                    Description =
+                        "I need to buy my time away from my contract work. I anticipate it will take up to 15 hours to get set up for the app store. If I get it up sooner, excess funds will go towards keeping the app live.",
+                    TargetCents = 75_000,
+                    ProgressCents = 0,
+                    SortOrder = 1,
+                    Recurrence = DonationGoalRecurrence.OneTime,
+                    IsCompleted = false,
+                    CompletionsThisYear = 0,
+                    UpdatedAt = seedUtc
+                },
+                new DonationGoal
+                {
+                    Id = 2,
+                    Key = DonationGoalKeys.LiveSixMonths,
+                    Title = "Live for six months!",
+                    Description =
+                        "Covers $32 a month hosting fees, $100 a year apple license, $20 Google workspace, and maintinance.",
+                    TargetCents = 100_000,
+                    ProgressCents = 0,
+                    SortOrder = 2,
+                    Recurrence = DonationGoalRecurrence.OneTime,
+                    IsCompleted = false,
+                    CompletionsThisYear = 0,
+                    UpdatedAt = seedUtc
+                },
+                new DonationGoal
+                {
+                    Id = 3,
+                    Key = DonationGoalKeys.LiveOneYear,
+                    Title = "Live for one year!",
+                    Description =
+                        "Covers $32 a month hosting fees, $100 a year apple license, $20 a month Google workspace, and maintinance.",
+                    TargetCents = 200_000,
+                    ProgressCents = 0,
+                    SortOrder = 3,
+                    Recurrence = DonationGoalRecurrence.AnnualNovember,
+                    IsCompleted = false,
+                    CompletionsThisYear = 0,
+                    UpdatedAt = seedUtc
+                },
+                new DonationGoal
+                {
+                    Id = 4,
+                    Key = DonationGoalKeys.FundTeammate,
+                    Title = "Fund a teammate!",
+                    Description =
+                        "We believe in paying all of our employees a livable wage. {completions} teammates funded this year!",
+                    TargetCents = 13_000_000,
+                    ProgressCents = 0,
+                    SortOrder = 4,
+                    Recurrence = DonationGoalRecurrence.Repeating,
+                    IsCompleted = false,
+                    CompletionsThisYear = 0,
+                    UpdatedAt = seedUtc
+                });
         });
 
         modelBuilder.Entity<Notification>(entity =>

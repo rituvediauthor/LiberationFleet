@@ -18,6 +18,16 @@ export interface DonationStatus {
   donationsEnabled: boolean;
 }
 
+export interface DonationGoalCurrent {
+  title: string;
+  description: string;
+  raisedUsd: number;
+  goalUsd: number;
+  progressLabel: string;
+  percent: number;
+  nextGoalTitle?: string | null;
+}
+
 export interface DonationSummary {
   success: boolean;
   message: string;

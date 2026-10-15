@@ -1041,6 +1041,121 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("DirectMessages");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.DonationGoal", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("AnnualYearStart")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CompletionsThisYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("ProgressCents")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Recurrence")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<long>("TargetCents")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("SortOrder");
+
+                    b.ToTable("DonationGoals");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CompletionsThisYear = 0,
+                            Description = "I need to buy my time away from my contract work. I anticipate it will take up to 15 hours to get set up for the app store. If I get it up sooner, excess funds will go towards keeping the app live.",
+                            IsCompleted = false,
+                            Key = "launch-app-store",
+                            ProgressCents = 0L,
+                            Recurrence = 0,
+                            SortOrder = 1,
+                            TargetCents = 75000L,
+                            Title = "Launch on the app store!",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CompletionsThisYear = 0,
+                            Description = "Covers $32 a month hosting fees, $100 a year apple license, $20 Google workspace, and maintinance.",
+                            IsCompleted = false,
+                            Key = "live-six-months",
+                            ProgressCents = 0L,
+                            Recurrence = 0,
+                            SortOrder = 2,
+                            TargetCents = 100000L,
+                            Title = "Live for six months!",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CompletionsThisYear = 0,
+                            Description = "Covers $32 a month hosting fees, $100 a year apple license, $20 a month Google workspace, and maintinance.",
+                            IsCompleted = false,
+                            Key = "live-one-year",
+                            ProgressCents = 0L,
+                            Recurrence = 1,
+                            SortOrder = 3,
+                            TargetCents = 200000L,
+                            Title = "Live for one year!",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CompletionsThisYear = 0,
+                            Description = "We believe in paying all of our employees a livable wage. {completions} teammates funded this year!",
+                            IsCompleted = false,
+                            Key = "fund-teammate",
+                            ProgressCents = 0L,
+                            Recurrence = 2,
+                            SortOrder = 4,
+                            TargetCents = 13000000L,
+                            Title = "Fund a teammate!",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.EmailMfaChallenge", b =>
                 {
                     b.Property<int>("Id")

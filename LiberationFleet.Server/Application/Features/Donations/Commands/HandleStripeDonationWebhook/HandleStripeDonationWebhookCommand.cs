@@ -23,6 +23,7 @@ public class HandleStripeDonationWebhookCommandHandler(
     IAppDonationRepository donationRepository,
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
+    IDonationGoalProgressService goalProgress,
     IDonationAcknowledgmentEmailService acknowledgmentEmail,
     IOptions<StripeDonationOptions> stripeOptions,
     ILogger<HandleStripeDonationWebhookCommandHandler> logger)
@@ -126,6 +127,7 @@ public class HandleStripeDonationWebhookCommandHandler(
                 }
             }
 
+            await goalProgress.ApplyDonationAsync(donation.AmountCents, cancellationToken: cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 

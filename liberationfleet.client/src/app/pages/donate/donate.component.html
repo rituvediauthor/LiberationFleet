@@ -1,5 +1,24 @@
 <app-page-layout [backButton]="backButton">
   <div class="donate-page">
+    <section class="goal-panel" *ngIf="currentGoal" aria-labelledby="donation-goal-title">
+      <h2 id="donation-goal-title" class="goal-title">{{ currentGoal.title }}</h2>
+      <p class="goal-description" *ngIf="currentGoal.description">{{ currentGoal.description }}</p>
+      <div
+        class="goal-progress"
+        role="progressbar"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="currentGoal.goalUsd"
+        [attr.aria-valuenow]="currentGoal.raisedUsd"
+        [attr.aria-valuetext]="currentGoal.progressLabel"
+        [attr.aria-label]="currentGoal.title + ' progress'">
+        <div class="goal-progress-fill" [style.width.%]="currentGoal.percent"></div>
+        <span class="goal-progress-label">{{ currentGoal.progressLabel }}</span>
+      </div>
+      <p class="goal-next" *ngIf="currentGoal.nextGoalTitle">
+        Next goal: {{ currentGoal.nextGoalTitle }}
+      </p>
+    </section>
+
     <p class="lede" id="donate-lede">
       Support hosting and development of the Liberation Fleet app. This is separate from mutual-aid gifts to crewmates.
       Payment is processed by Stripe — Liberation Fleet does not store your card details.

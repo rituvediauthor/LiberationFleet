@@ -43,6 +43,25 @@ describe('DonationService', () => {
     req.flush({ success: true, message: 'ok' });
   });
 
+  it('loads current fundraising goal', () => {
+    service.getCurrentGoal().subscribe(goal => {
+      expect(goal.progressLabel).toBe('$0/$750');
+      expect(goal.nextGoalTitle).toBe('Live for six months!');
+    });
+
+    const req = httpMock.expectOne('/api/donations/goals/current');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      title: 'Launch on the app store!',
+      description: 'desc',
+      raisedUsd: 0,
+      goalUsd: 750,
+      progressLabel: '$0/$750',
+      percent: 0,
+      nextGoalTitle: 'Live for six months!'
+    });
+  });
+
   it('loads donation summary', () => {
     service.getSummary().subscribe(summary => {
       expect(summary.currentTaxYearTotalUsd).toBe(25);

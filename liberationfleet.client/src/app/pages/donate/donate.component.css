@@ -9,6 +9,67 @@ h1 {
   font-size: 28px;
 }
 
+.goal-panel {
+  margin: 0 0 20px;
+}
+
+.goal-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--lf-color-text-body);
+  text-align: center;
+}
+
+.goal-description {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
+  text-align: center;
+}
+
+.goal-progress {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 36px;
+  border-radius: 999px;
+  overflow: hidden;
+  /* Darker themed blue track (works in light + dark accent themes) */
+  background: color-mix(in srgb, var(--lf-color-accent) 45%, #0a1628 55%);
+}
+
+.goal-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  /* Lighter themed blue fill */
+  background: color-mix(in srgb, var(--lf-color-accent) 70%, #ffffff 30%);
+  transition: width 0.35s ease;
+}
+
+.goal-progress-label {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.goal-next {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--lf-color-text-muted, var(--lf-color-text-secondary));
+  text-align: center;
+}
+
 .lede,
 .status-note,
 .fine-print {

@@ -8,7 +8,7 @@ import { NavigationService } from '../../services/navigation.service';
 import { DonationService } from '../../services/donation.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { DONATION_PRESET_AMOUNTS_USD } from '../../models/donation.model';
+import { DonationGoalCurrent, DONATION_PRESET_AMOUNTS_USD } from '../../models/donation.model';
 import {
   GOFUNDME_DONATION_URL,
   shouldUseExternalDonationCheckout
@@ -31,6 +31,7 @@ export class DonateComponent implements OnInit {
   donationsEnabled = true;
   statusNote = '';
   isLoggedIn = false;
+  currentGoal: DonationGoalCurrent | null = null;
   /** Staging (or live GoFundMe bypass) redirects away from this page. */
   usesExternalDonationCheckout = shouldUseExternalDonationCheckout();
 
@@ -67,6 +68,15 @@ export class DonateComponent implements OnInit {
       error: () => {
         this.donationsEnabled = false;
         this.statusNote = 'Donations are being set up. Please check back soon.';
+      }
+    });
+
+    this.donationService.getCurrentGoal().subscribe({
+      next: goal => {
+        this.currentGoal = goal;
+      },
+      error: () => {
+        this.currentGoal = null;
       }
     });
 

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import {
   DonationCampaignPrompt,
   DonationCheckoutResponse,
+  DonationGoalCurrent,
   DonationStatus,
   DonationSummary
 } from '../models/donation.model';
@@ -29,6 +30,10 @@ export class DonationService {
 
   getStatus(): Observable<DonationStatus> {
     return this.http.get<DonationStatus>(`${this.apiUrl}/status`);
+  }
+
+  getCurrentGoal(): Observable<DonationGoalCurrent> {
+    return this.http.get<DonationGoalCurrent>(`${this.apiUrl}/goals/current`);
   }
 
   getSummary(): Observable<DonationSummary> {

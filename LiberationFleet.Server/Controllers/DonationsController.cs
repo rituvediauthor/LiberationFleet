@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Features.Donations.Commands.AcknowledgeDonationCampaignPrompt;
 using LiberationFleet.Server.Application.Features.Donations.Commands.CreateDonationCheckout;
 using LiberationFleet.Server.Application.Features.Donations.Commands.HandleStripeDonationWebhook;
+using LiberationFleet.Server.Application.Features.Donations.Queries.GetCurrentDonationGoal;
 using LiberationFleet.Server.Application.Features.Donations.Queries.GetDonationCampaignPrompt;
 using LiberationFleet.Server.Application.Features.Donations.Queries.GetMyDonationSummary;
 using LiberationFleet.Server.Application.Services;
@@ -33,6 +34,14 @@ public class DonationsController(
     [HttpGet("status")]
     public IActionResult GetStatus() =>
         Ok(new DonationStatusResponse { DonationsEnabled = stripeOptions.Value.IsConfigured });
+
+    [AllowAnonymous]
+    [HttpGet("goals/current")]
+    public async Task<IActionResult> GetCurrentGoal()
+    {
+        var result = await mediator.Send(new GetCurrentDonationGoalQuery());
+        return Ok(result);
+    }
 
     [Authorize]
     [HttpGet("campaign-prompt")]
