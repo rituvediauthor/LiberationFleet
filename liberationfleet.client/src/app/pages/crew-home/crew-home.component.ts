@@ -128,6 +128,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
           const crewId = this.membership?.crewId;
           if (crewId) {
             this.forumPrefetch.prefetchCrewSpace(crewId);
+            this.applyCachedDashboardPreviews(crewId);
             void this.refreshDashboardPreviews(crewId);
           }
           if (this.membership) {
@@ -174,12 +175,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         void this.refreshCrewImage();
         this.maybeShowCycleThankYou(status);
         if (status.hasCrew && status.crewId) {
-          this.previewLoading = {
-            forum: true,
-            chat: true,
-            gift: true,
-            library: this.libraryOfThingsEnabled
-          };
+          this.applyCachedDashboardPreviews(status.crewId);
           this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(this.areaCounts);
           this.startPreviewPolling();
           this.forumPrefetch.prefetchCrewSpace(status.crewId);
@@ -239,7 +235,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private async refreshCrewImage() {
     const crewId = this.membership?.crewId;
     const resourceId = this.membership?.imageResourceId;
-    if (!crewId || !resourceId || !this.cryptoSession.isUnlocked()) {
+    if (!crewId || !resourceId) {
       this.crewImageSrc = null;
       return;
     }
@@ -371,10 +367,32 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  private applyCachedDashboardPreviews(crewId: number): void {
+    const forum = this.dashboardPreviews.peekCachedPreview(crewId, 'forum');
+    const chat = this.dashboardPreviews.peekCachedPreview(crewId, 'chat');
+    const gift = this.dashboardPreviews.peekCachedPreview(crewId, 'gift');
+    const library = this.libraryOfThingsEnabled
+      ? this.dashboardPreviews.peekCachedPreview(crewId, 'library')
+      : null;
+
+    this.previews = {
+      forum: forum === undefined ? this.previews.forum : forum,
+      chat: chat === undefined ? this.previews.chat : chat,
+      gift: gift === undefined ? this.previews.gift : gift,
+      library: library === undefined ? this.previews.library : library
+    };
+    this.previewLoading = {
+      forum: forum === undefined,
+      chat: chat === undefined,
+      gift: gift === undefined,
+      library: this.libraryOfThingsEnabled && library === undefined
+    };
+  }
+
   private async refreshDashboardPreviews(crewId: number) {
     const generation = ++this.previewLoadGeneration;
     try {
-      const next = await this.dashboardPreviews.loadPreviews(crewId);
+      const next = await this.dashboardPreviews.loadPreviews(crewId, { force: true });
       if (generation !== this.previewLoadGeneration) {
         return;
       }
@@ -387,7 +405,12 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       };
     } catch {
       if (generation === this.previewLoadGeneration) {
-        this.clearPreviews();
+        this.previewLoading = {
+          forum: false,
+          chat: false,
+          gift: false,
+          library: false
+        };
       }
     }
   }
@@ -397,7 +420,9 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     previewKey: CrewPreviewKey,
     force = false
   ) {
-    this.previewLoading = { ...this.previewLoading, [previewKey]: true };
+    if (!this.previews[previewKey]) {
+      this.previewLoading = { ...this.previewLoading, [previewKey]: true };
+    }
     try {
       const next = await this.dashboardPreviews.loadPreview(crewId, previewKey, { force });
       if (this.membership?.crewId !== crewId) {

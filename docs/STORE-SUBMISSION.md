@@ -153,6 +153,7 @@ Suggested pattern:
 
 - **Encrypted in transit:** Yes (TLS).
 - If asked whether data is **encrypted at rest** / **encrypted so the developer cannot read it**: for **Messages** and much **Photos/Videos/Audio**, say content is **end-to-end encrypted** (ciphertext on server; operators cannot read message bodies in normal operation). **Gift amounts, who-gave-whom, account email, donation records, and report evidence** are **not** E2EE — declare those as readable server data.
+- **On-device cache (Privacy Policy §2.13):** last-seen dashboard previews and decrypted profile/crew/fleet images may remain on the device after the app is closed until **sign-out**. That is not a third-party share and is **not** ephemeral. Do not describe those caches as memory-only.
 
 ##### Purposes (check what applies; avoid “Advertising” / “Sell”)
 

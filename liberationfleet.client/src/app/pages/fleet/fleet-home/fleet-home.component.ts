@@ -153,7 +153,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private async refreshFleetImage() {
     const fleetId = this.status?.fleetId;
     const resourceId = this.status?.imageResourceId;
-    if (!fleetId || !resourceId || !this.cryptoSession.isUnlocked()) {
+    if (!fleetId || !resourceId) {
       this.fleetImageSrc = null;
       return;
     }

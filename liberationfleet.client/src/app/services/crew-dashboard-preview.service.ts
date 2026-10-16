@@ -25,6 +25,9 @@ import { CrewDiscussionService } from './crew-discussion.service';
 import { ForumListPrefetchService } from './forum-list-prefetch.service';
 import { GiftService } from './gift.service';
 import { LibraryService } from './library.service';
+import { AppStorageService, StorageScope } from './storage/app-storage.service';
+import { AUTH_TOKEN_STORAGE_KEY, CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY } from './storage/storage-keys';
+import { getUserIdFromToken } from '../utils/jwt.util';
 import {
   formatQuestDueLabel,
   giftCategoryLabel,
@@ -44,6 +47,11 @@ interface PreviewCacheEntry {
   fetchedAt: number;
 }
 
+interface PersistedPreviewCache {
+  userId: number;
+  entries: [string, PreviewCacheEntry][];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -59,19 +67,24 @@ export class CrewDashboardPreviewService {
   private libraryCrypto = inject(LibraryCryptoService);
   private cryptoSession = inject(CryptoSessionService);
   private adultContent = inject(AdultContentService);
+  private storage = inject(AppStorageService);
   private cache = new Map<string, PreviewCacheEntry>();
   private inFlight = new Map<string, Promise<CrewDashboardPreviews[CrewPreviewKey]>>();
+  private hydratedUserId: number | null = null;
 
-  async loadPreviews(crewId: number): Promise<CrewDashboardPreviews> {
+  async loadPreviews(
+    crewId: number,
+    options?: { force?: boolean }
+  ): Promise<CrewDashboardPreviews> {
     if (crewId <= 0) {
       return { forum: null, chat: null, gift: null, library: null };
     }
 
     const [forum, chat, gift, library] = await Promise.all([
-      this.loadPreview(crewId, 'forum'),
-      this.loadPreview(crewId, 'chat'),
-      this.loadPreview(crewId, 'gift'),
-      this.loadPreview(crewId, 'library')
+      this.loadPreview(crewId, 'forum', options),
+      this.loadPreview(crewId, 'chat', options),
+      this.loadPreview(crewId, 'gift', options),
+      this.loadPreview(crewId, 'library', options)
     ]);
 
     return { forum, chat, gift, library };
@@ -86,6 +99,7 @@ export class CrewDashboardPreviewService {
       return null as CrewDashboardPreviews[K];
     }
 
+    this.ensureHydrated();
     const cacheKey = this.getCacheKey(crewId, previewKey);
     if (options?.force) {
       this.cache.delete(cacheKey);
@@ -107,6 +121,7 @@ export class CrewDashboardPreviewService {
           preview,
           fetchedAt: Date.now()
         });
+        this.persistCache();
         return preview;
       })
       .finally(() => {
@@ -117,9 +132,28 @@ export class CrewDashboardPreviewService {
     return pending as Promise<CrewDashboardPreviews[K]>;
   }
 
+  /**
+   * Last-seen tile for this crew/session state, including stale entries.
+   * `undefined` is a miss; `null` is a cached empty tile.
+   */
+  peekCachedPreview<K extends CrewPreviewKey>(
+    crewId: number,
+    previewKey: K
+  ): CrewDashboardPreviews[K] | undefined {
+    if (crewId <= 0) {
+      return undefined;
+    }
+
+    this.ensureHydrated();
+    const cached = this.cache.get(this.getCacheKey(crewId, previewKey));
+    return cached ? cached.preview as CrewDashboardPreviews[K] : undefined;
+  }
+
   clearSessionCache(): void {
     this.cache.clear();
     this.inFlight.clear();
+    this.hydratedUserId = null;
+    this.storage.remove(StorageScope.Persistent, CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY);
   }
 
   private async loadForumPreview(crewId: number): Promise<ForumDashboardPreview | null> {
@@ -381,5 +415,64 @@ export class CrewDashboardPreviewService {
 
   private isFresh(entry: PreviewCacheEntry): boolean {
     return Date.now() - entry.fetchedAt < PREVIEW_CACHE_TTL_MS;
+  }
+
+  private ensureHydrated(): void {
+    const userId = this.readCurrentUserId();
+    if (userId == null) {
+      if (this.hydratedUserId != null) {
+        this.cache.clear();
+        this.hydratedUserId = null;
+      }
+      return;
+    }
+    if (this.hydratedUserId === userId) {
+      return;
+    }
+
+    this.hydratedUserId = userId;
+    this.cache = this.readPersistedCache(userId);
+  }
+
+  private persistCache(): void {
+    const userId = this.readCurrentUserId();
+    if (userId == null) {
+      return;
+    }
+
+    const payload: PersistedPreviewCache = {
+      userId,
+      entries: Array.from(this.cache.entries())
+    };
+    this.storage.set(
+      StorageScope.Persistent,
+      CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY,
+      JSON.stringify(payload)
+    );
+  }
+
+  private readPersistedCache(userId: number): Map<string, PreviewCacheEntry> {
+    const raw = this.storage.get(StorageScope.Persistent, CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY);
+    if (!raw) {
+      return new Map();
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as PersistedPreviewCache;
+      if (parsed.userId !== userId || !Array.isArray(parsed.entries)) {
+        return new Map();
+      }
+      return new Map(
+        parsed.entries.filter(entry => Array.isArray(entry) && entry.length === 2 && typeof entry[1]?.fetchedAt === 'number')
+      );
+    } catch {
+      return new Map();
+    }
+  }
+
+  private readCurrentUserId(): number | null {
+    const token = this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY)
+      ?? this.storage.get(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY);
+    return token ? getUserIdFromToken(token) : null;
   }
 }

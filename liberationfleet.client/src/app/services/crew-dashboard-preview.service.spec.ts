@@ -12,6 +12,16 @@ import { LibraryService } from './library.service';
 import { LibraryCryptoService } from './crypto/library-crypto.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
 import { AdultContentService } from './adult-content.service';
+import { AUTH_TOKEN_STORAGE_KEY, CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY } from './storage/storage-keys';
+
+function testJwt(userId = 1): string {
+  const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({
+    sub: String(userId),
+    exp: Math.floor(Date.now() / 1000) + 3600
+  }));
+  return `${header}.${payload}.sig`;
+}
 
 describe('CrewDashboardPreviewService', () => {
   let service: CrewDashboardPreviewService;
@@ -28,6 +38,9 @@ describe('CrewDashboardPreviewService', () => {
   let adultContent: AdultContentService & { shouldShowEntry: jasmine.Spy };
 
   beforeEach(() => {
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
     forumPrefetch = jasmine.createSpyObj('ForumListPrefetchService', ['peekCrewSpacePage']);
     discussionService = jasmine.createSpyObj('CrewDiscussionService', ['getPosts']);
     proposalCrypto = jasmine.createSpyObj('ProposalCryptoService', ['decryptListItems']);
@@ -92,6 +105,21 @@ describe('CrewDashboardPreviewService', () => {
 
     service = TestBed.inject(CrewDashboardPreviewService);
   });
+
+  afterEach(() => {
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  });
+
+  function simulateAppRestart(): void {
+    const internals = service as unknown as {
+      cache: Map<string, unknown>;
+      hydratedUserId: number | null;
+    };
+    internals.cache = new Map();
+    internals.hydratedUserId = null;
+  }
 
   it('returns empty previews when crewId is invalid', async () => {
     await expectAsync(service.loadPreviews(0)).toBeResolvedTo({
@@ -187,6 +215,28 @@ describe('CrewDashboardPreviewService', () => {
     expect(discussionService.getPosts).toHaveBeenCalledTimes(1);
   });
 
+  it('force-refreshes all preview tiles even when the cache is still fresh', async () => {
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 12,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Safe',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    await service.loadPreviews(7);
+    await service.loadPreviews(7, { force: true });
+
+    expect(discussionService.getPosts).toHaveBeenCalledTimes(2);
+  });
+
   it('force-refreshes only the requested preview tile', async () => {
     discussionService.getPosts.and.returnValue(of({
       items: [
@@ -231,6 +281,86 @@ describe('CrewDashboardPreviewService', () => {
     await service.loadPreviews(7);
 
     expect(discussionService.getPosts).toHaveBeenCalledTimes(2);
+  });
+
+  it('persists previews across a new session for the same user', async () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(1));
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 12,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Safe',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    await service.loadPreviews(7);
+    expect(discussionService.getPosts).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY)).toBeTruthy();
+
+    simulateAppRestart();
+    discussionService.getPosts.calls.reset();
+
+    const restored = await service.loadPreviews(7);
+    expect(restored.forum?.title).toBe('Safe');
+    expect(discussionService.getPosts).not.toHaveBeenCalled();
+    expect(service.peekCachedPreview(7, 'forum')?.title).toBe('Safe');
+  });
+
+  it('does not restore another user\'s persisted preview cache', async () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(1));
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 12,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Safe',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    await service.loadPreviews(7);
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(2));
+    simulateAppRestart();
+    discussionService.getPosts.calls.reset();
+
+    await service.loadPreviews(7);
+    expect(discussionService.getPosts).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears persisted previews when the session cache is reset', async () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(1));
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 13,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Fresh',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    await service.loadPreviews(7);
+    expect(localStorage.getItem(CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY)).toBeTruthy();
+
+    service.clearSessionCache();
+    expect(localStorage.getItem(CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY)).toBeNull();
   });
 
   it('returns up to five library carousel items from the combined candidate pool', async () => {

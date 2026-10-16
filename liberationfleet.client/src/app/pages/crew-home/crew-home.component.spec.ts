@@ -156,7 +156,11 @@ describe('CrewHomeComponent', () => {
   let cryptoUnlocked = false;
   let areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>;
   let notificationService: { areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>; refreshBadges: jasmine.Spy };
-  let dashboardPreviewService: { loadPreviews: jasmine.Spy; loadPreview: jasmine.Spy };
+  let dashboardPreviewService: {
+    loadPreviews: jasmine.Spy;
+    loadPreview: jasmine.Spy;
+    peekCachedPreview: jasmine.Spy;
+  };
 
   beforeEach(async () => {
     crewService = createCrewServiceMock();
@@ -191,7 +195,8 @@ describe('CrewHomeComponent', () => {
         gift: null,
         library: null
       } satisfies CrewDashboardPreviews),
-      loadPreview: jasmine.createSpy('loadPreview').and.resolveTo(null)
+      loadPreview: jasmine.createSpy('loadPreview').and.resolveTo(null),
+      peekCachedPreview: jasmine.createSpy('peekCachedPreview').and.returnValue(undefined)
     };
 
     await TestBed.configureTestingModule({
@@ -417,6 +422,62 @@ describe('CrewHomeComponent', () => {
     expect(component.showCycleThankYouPrompt).toBeTrue();
   });
 
+  it('paints persisted preview tiles immediately while a refresh is in flight', fakeAsync(() => {
+    let resolvePreviews: ((value: CrewDashboardPreviews) => void) | undefined;
+    dashboardPreviewService.loadPreviews.and.returnValue(new Promise(resolve => {
+      resolvePreviews = resolve;
+    }));
+    dashboardPreviewService.peekCachedPreview.and.callFake((_crewId: number, key: keyof CrewDashboardPreviews) => {
+      if (key !== 'forum') {
+        return undefined;
+      }
+      return {
+        kind: 'forum',
+        id: 55,
+        authorUsername: 'Ada',
+        lastActivityAt: new Date(),
+        title: 'Cached post',
+        body: 'Hello'
+      };
+    });
+    crewService.getMembership.and.returnValue(of({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Alpha Fleet',
+      seasonStarted: true
+    }));
+
+    fixture = TestBed.createComponent(CrewHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.previews.forum?.id).toBe(55);
+    expect(component.previewLoading.forum).toBeFalse();
+    expect(component.previewLoading.chat).toBeTrue();
+    expect(dashboardPreviewService.loadPreviews).toHaveBeenCalledWith(1, { force: true });
+
+    resolvePreviews?.({
+      forum: {
+        kind: 'forum',
+        id: 56,
+        authorUsername: 'Ada',
+        lastActivityAt: new Date(),
+        title: 'Fresh post',
+        body: 'Hello'
+      },
+      chat: null,
+      gift: null,
+      library: null
+    });
+    tick();
+
+    expect(component.previews.forum?.id).toBe(56);
+    expect(component.previewLoading.chat).toBeFalse();
+
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
+
   it('polls badge freshness and only refreshes the preview tiles whose counts changed', fakeAsync(() => {
     crewService.getMembership.and.returnValue(of({
       hasCrew: true,
@@ -430,7 +491,7 @@ describe('CrewHomeComponent', () => {
     fixture.detectChanges();
     tick();
 
-    expect(dashboardPreviewService.loadPreviews).toHaveBeenCalledWith(1);
+    expect(dashboardPreviewService.loadPreviews).toHaveBeenCalledWith(1, { force: true });
 
     tick(5000);
     expect(notificationService.refreshBadges).toHaveBeenCalledWith(true);
