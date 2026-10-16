@@ -1,0 +1,207 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.preview-root.has-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0 10px;
+  border: 1px solid var(--lf-color-border-subtle, var(--lf-color-border));
+  border-radius: 12px;
+  background: var(--lf-color-bg-hover);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: visible;
+}
+
+.preview-header {
+  width: auto;
+  margin: -1px -1px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.preview-header ::ng-deep > .menu-link {
+  margin: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.preview-skeleton {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.skeleton-line,
+.skeleton-block {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--lf-color-bg-hover) 0%,
+    var(--lf-color-bg-muted) 50%,
+    var(--lf-color-bg-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: preview-skeleton-shimmer 1.1s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 12px;
+  margin-bottom: 10px;
+}
+
+.skeleton-meta {
+  width: 48%;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 68%;
+}
+
+.skeleton-block {
+  width: 100%;
+  height: 84px;
+  margin-bottom: 10px;
+}
+
+.skeleton-body {
+  width: 94%;
+}
+
+.skeleton-body.short {
+  width: 66%;
+  margin-bottom: 0;
+}
+
+.dash-preview {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  overflow: hidden;
+}
+
+.dash-preview:hover {
+  background: color-mix(in srgb, var(--lf-color-accent-soft-bg-alt) 55%, transparent);
+}
+
+.preview-forum,
+.preview-chat,
+.preview-gift,
+.preview-quest {
+  padding: 12px 14px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--lf-color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.author,
+.meta strong {
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.dot {
+  opacity: 0.55;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lf-color-text-body);
+  line-height: 1.3;
+}
+
+.body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--lf-color-text-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 0 0 8px;
+}
+
+.attach-hint,
+.due,
+.time {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--lf-color-text-subtle);
+}
+
+.gift-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-text-secondary);
+}
+
+.badge.warn {
+  background: var(--lf-color-danger-soft-bg, #fde8e8);
+  color: var(--lf-color-danger);
+}
+
+.value {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lf-color-accent);
+}
+
+.dash-preview ::ng-deep .library-item-card {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+:host-context([data-theme='dark']) .preview-root.has-preview {
+  background: var(--lf-color-bg-page);
+}
+
+@keyframes preview-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}

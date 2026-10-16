@@ -1,0 +1,27 @@
+<div
+  *ngIf="visible"
+  class="play-store-banner"
+  role="region"
+  aria-label="Download Liberation Fleet on Google Play">
+  <a
+    class="play-store-link"
+    [href]="storeUrl"
+    target="_blank"
+    rel="noopener noreferrer">
+    <span class="icon-wrap" aria-hidden="true">
+      <i class="fa-brands fa-google-play"></i>
+    </span>
+    <span class="copy">
+      <span class="title">Liberation Fleet</span>
+      <span class="subtitle">Get it on Google Play</span>
+    </span>
+    <span class="cta">Open</span>
+  </a>
+  <button
+    type="button"
+    class="dismiss-btn"
+    (click)="dismiss($event)"
+    aria-label="Dismiss download prompt">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+</div>

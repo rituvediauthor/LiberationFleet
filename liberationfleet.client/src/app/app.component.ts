@@ -5,10 +5,11 @@ import { App } from '@capacitor/app';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { Subscription, firstValueFrom, of } from 'rxjs';
 import { catchError, filter } from 'rxjs/operators';
-import { ToastContainerComponent } from './components/toast/toast.component';
+import { ToastContainerComponent, ToastService } from './components/toast/toast.component';
 import { DevToolbarComponent } from './components/dev-toolbar/dev-toolbar.component';
 import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/crypto-unlock-dialog.component';
 import { MediaUploadProgressComponent } from './components/media-upload-progress/media-upload-progress.component';
+import { PlayStoreBannerComponent } from './components/play-store-banner/play-store-banner.component';
 import { AuthService } from './services/auth.service';
 import { CrewService } from './services/crew.service';
 import { CryptoSessionService } from './services/crypto/crypto-session.service';
@@ -33,7 +34,8 @@ import { isNativeApp } from './utils/app-platform.util';
     ToastContainerComponent,
     DevToolbarComponent,
     CryptoUnlockDialogComponent,
-    MediaUploadProgressComponent
+    MediaUploadProgressComponent,
+    PlayStoreBannerComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
@@ -45,6 +47,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private crewService = inject(CrewService);
   private cryptoSession = inject(CryptoSessionService);
+  private toastService = inject(ToastService);
   private crewCryptoSync = inject(CrewCryptoSyncService);
   private fleetCryptoSync = inject(FleetCryptoSyncService);
   private notificationHub = inject(NotificationHubService);
@@ -187,6 +190,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const inAuthenticatedApp = this.router.url.startsWith('/app');
     if (!inAuthenticatedApp || !this.authService.isAuthenticated()) {
       this.showCryptoUnlock = false;
+      this.toastService.setPaused(false);
       return;
     }
 
@@ -194,6 +198,8 @@ export class AppComponent implements OnInit, OnDestroy {
     void this.authService.getEncryptionReady().then(() => {
       this.showCryptoUnlock =
         this.router.url.startsWith('/app') && this.authService.needsEncryptionUnlock();
+      // Hold toasts while the recovery-phrase dialog is up so they don't cover it.
+      this.toastService.setPaused(this.showCryptoUnlock);
     });
   }
 

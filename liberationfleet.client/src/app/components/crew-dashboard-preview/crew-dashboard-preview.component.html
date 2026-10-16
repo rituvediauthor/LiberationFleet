@@ -1,0 +1,77 @@
+<div class="preview-root" [class.has-preview]="!!preview || loading">
+  <div class="preview-header">
+    <ng-content></ng-content>
+  </div>
+
+  <div *ngIf="loading && !preview" class="preview-skeleton" aria-hidden="true">
+    <div class="skeleton-line skeleton-meta"></div>
+    <div class="skeleton-line skeleton-title"></div>
+    <div class="skeleton-block"></div>
+    <div class="skeleton-line skeleton-body"></div>
+    <div class="skeleton-line skeleton-body short"></div>
+  </div>
+
+  <button
+    *ngIf="preview"
+    type="button"
+    class="dash-preview"
+    [attr.aria-label]="'Open preview'"
+    (click)="onOpen()">
+    <article *ngIf="forumPreview as p" class="preview-forum">
+      <p class="meta">
+        <app-user-avatar
+          [resourceId]="p.authorAvatarResourceId"
+          [crewId]="crewId"
+          [fallbackInitial]="p.authorUsername"
+          size="sm"
+          [alt]="p.authorUsername + ' avatar'">
+        </app-user-avatar>
+        <span class="author">{{ p.authorUsername }}</span>
+        <span class="dot">·</span>
+        <span>{{ formatTime(p.lastActivityAt) }}</span>
+      </p>
+      <h2 class="title">{{ p.title }}</h2>
+      <img *ngIf="p.thumbnailUrl" class="thumb" [src]="p.thumbnailUrl" alt="" />
+      <p *ngIf="p.body" class="body">{{ p.body }}</p>
+    </article>
+
+    <article *ngIf="chatPreview as p" class="preview-chat">
+      <p class="meta">
+        <app-user-avatar
+          [anonymous]="!!p.isAnonymous"
+          [resourceId]="p.authorAvatarResourceId"
+          [crewId]="crewId"
+          [fallbackInitial]="p.isAnonymous ? '' : p.authorUsername"
+          size="sm"
+          [alt]="p.isAnonymous ? '' : p.authorUsername + ' avatar'">
+        </app-user-avatar>
+        <strong>{{ p.authorUsername }}</strong>
+        <span class="dot">·</span>
+        <span>{{ formatTime(p.createdAt) }}</span>
+      </p>
+      <p class="body">{{ p.body }}</p>
+      <p *ngIf="p.hasAttachments && p.body !== 'Attachment'" class="attach-hint">Has attachment</p>
+    </article>
+
+    <article *ngIf="giftPreview as p" class="preview-gift">
+      <p class="body">{{ p.message }}</p>
+      <div class="gift-meta" *ngIf="p.categoryLabel || p.unverified">
+        <span *ngIf="p.categoryLabel" class="badge">{{ p.categoryLabel }}</span>
+        <span *ngIf="p.unverified" class="badge warn">Unverified</span>
+      </div>
+      <time class="time">{{ formatTime(p.timestamp) }}</time>
+    </article>
+
+    <app-library-item-card
+      *ngIf="libraryUnitPreview as p"
+      [item]="p.unit">
+    </app-library-item-card>
+
+    <article *ngIf="libraryQuestPreview as p" class="preview-quest">
+      <p class="meta">{{ p.task.creatorUsername }}</p>
+      <h2 class="title">{{ p.task.title }}</h2>
+      <p *ngIf="p.dueLabel" class="due">{{ p.dueLabel }}</p>
+      <p class="value">${{ p.task.value | number:'1.0-2' }}</p>
+    </article>
+  </button>
+</div>

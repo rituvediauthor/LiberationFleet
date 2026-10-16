@@ -52,6 +52,19 @@ describe('ToastService', () => {
     tick(1000);
     expect(service['toasts'].length).toBe(0);
   }));
+
+  it('should queue toasts while paused and flush on resume', fakeAsync(() => {
+    service.setPaused(true);
+    service.success('later');
+    expect(service['toasts'].length).toBe(0);
+
+    service.setPaused(false);
+    expect(service['toasts'].length).toBe(1);
+    expect(service['toasts'][0].message).toBe('later');
+
+    tick(3000);
+    expect(service['toasts'].length).toBe(0);
+  }));
 });
 
 describe('ToastContainerComponent', () => {

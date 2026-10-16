@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, provideRouter } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { CrewHomeComponent } from './crew-home.component';
@@ -8,13 +9,18 @@ import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
 import { CrewCryptoSyncService } from '../../services/crew-crypto-sync.service';
 import { CryptoSessionService } from '../../services/crypto/crypto-session.service';
+import { ProposalCryptoService } from '../../services/crypto/proposal-crypto.service';
 import { EncryptedImageCacheService } from '../../services/encrypted-image-cache.service';
 import { LibraryAccessService } from '../../services/library-access.service';
 import { NotificationService } from '../../services/notification.service';
 import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
+import { CrewDashboardPreviewService } from '../../services/crew-dashboard-preview.service';
+import { ProfileService } from '../../services/profile.service';
+import { ToastService } from '../../components/toast/toast.component';
 import { ContentBadgeComponent } from '../../components/content-badge/content-badge.component';
 import { createCrewServiceMock, createGiftServiceMock } from '../../testing/test-helpers';
 import { emptyAreaCounts } from '../../utils/notification-area.util';
+import { CrewDashboardPreview, CrewDashboardPreviews } from '../../models/crew-dashboard-preview.model';
 
 @Component({
   selector: 'app-nav-layout',
@@ -57,12 +63,97 @@ class StubHubLoadingComponent {
   @Input() label: string | null = null;
 }
 
+@Component({
+  selector: 'app-crew-dashboard-preview',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <ng-content></ng-content>
+    <button type="button" class="stub-preview" *ngIf="preview" (click)="open.emit(preview)"></button>
+  `
+})
+class StubCrewDashboardPreviewComponent {
+  @Input() preview: CrewDashboardPreview | null = null;
+  @Input() loading = false;
+  @Input() crewId: number | null = null;
+  @Output() open = new EventEmitter<CrewDashboardPreview>();
+}
+
+@Component({
+  selector: 'app-crew-find-panel',
+  standalone: true,
+  template: `
+    <ng-container *ngIf="loadError; else welcome">
+      <p>Couldn't load your crew</p>
+      <button type="button" class="menu-link" (click)="retry.emit()">Try again</button>
+    </ng-container>
+    <ng-template #welcome>
+      <button type="button" class="menu-link" (click)="createCrew.emit()">Create Crew</button>
+      <button type="button" class="menu-link" (click)="joinCrew.emit()">Join Crew</button>
+      <button type="button" class="menu-link" (click)="invitations.emit()">My Invitations</button>
+      <button type="button" class="menu-link" (click)="joinRequests.emit()">My Join Requests</button>
+      <button type="button" class="menu-link" [disabled]="true" (click)="crewDashboard.emit()">Crew Dashboard</button>
+      <button type="button" class="menu-link" (click)="howToUse.emit()">How to use this app</button>
+    </ng-template>
+  `,
+  imports: [CommonModule]
+})
+class StubCrewFindPanelComponent {
+  @Input() hasCrew = false;
+  @Input() loadError = false;
+  @Output() retry = new EventEmitter<void>();
+  @Output() createCrew = new EventEmitter<void>();
+  @Output() joinCrew = new EventEmitter<void>();
+  @Output() invitations = new EventEmitter<void>();
+  @Output() joinRequests = new EventEmitter<void>();
+  @Output() crewDashboard = new EventEmitter<void>();
+  @Output() howToUse = new EventEmitter<void>();
+}
+
+@Component({
+  selector: 'app-collapsible-section',
+  standalone: true,
+  template: '<ng-content></ng-content>'
+})
+class StubCollapsibleSectionComponent {
+  @Input() title = '';
+  @Input() variant: string | null = null;
+}
+
+@Component({
+  selector: 'app-confirm-dialog',
+  standalone: true,
+  template: ''
+})
+class StubConfirmDialogComponent {
+  @Input() visible = false;
+  @Input() title = '';
+  @Input() message = '';
+  @Input() confirmLabel = '';
+  @Input() cancelLabel = '';
+  @Output() confirmed = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
+  @Output() dismissed = new EventEmitter<void>();
+}
+
+@Component({
+  selector: 'app-char-counter',
+  standalone: true,
+  template: ''
+})
+class StubCharCounterComponent {
+  @Input() current = 0;
+  @Input() max = 0;
+}
+
 describe('CrewHomeComponent', () => {
   let fixture: ComponentFixture<CrewHomeComponent>;
   let component: CrewHomeComponent;
   let crewService: jasmine.SpyObj<CrewService>;
   let giftService: jasmine.SpyObj<GiftService>;
   let router: Router;
+  let unlocked$: BehaviorSubject<boolean>;
+  let cryptoUnlocked = false;
 
   beforeEach(async () => {
     crewService = createCrewServiceMock();
@@ -83,7 +174,8 @@ describe('CrewHomeComponent', () => {
       platformHandle: '@ritu'
     }));
 
-    const unlocked$ = new BehaviorSubject(false);
+    cryptoUnlocked = false;
+    unlocked$ = new BehaviorSubject(false);
     const areaCounts$ = new BehaviorSubject(emptyAreaCounts());
 
     await TestBed.configureTestingModule({
@@ -102,7 +194,7 @@ describe('CrewHomeComponent', () => {
           provide: CryptoSessionService,
           useValue: {
             unlocked$,
-            isUnlocked: () => false
+            isUnlocked: () => cryptoUnlocked
           }
         },
         {
@@ -129,6 +221,31 @@ describe('CrewHomeComponent', () => {
           useValue: jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
             'prefetchCrewSpace'
           ])
+        },
+        {
+          provide: CrewDashboardPreviewService,
+          useValue: {
+            loadPreviews: jasmine.createSpy('loadPreviews').and.resolveTo({
+              forum: null,
+              chat: null,
+              gift: null,
+              library: null
+            } satisfies CrewDashboardPreviews)
+          }
+        },
+        {
+          provide: ProposalCryptoService,
+          useValue: jasmine.createSpyObj<ProposalCryptoService>('ProposalCryptoService', [
+            'encryptCommentPayload'
+          ])
+        },
+        {
+          provide: ProfileService,
+          useValue: jasmine.createSpyObj<ProfileService>('ProfileService', ['getProfile'])
+        },
+        {
+          provide: ToastService,
+          useValue: jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error'])
         }
       ]
     })
@@ -136,12 +253,18 @@ describe('CrewHomeComponent', () => {
         set: {
           imports: [
             CommonModule,
+            FormsModule,
             RouterLink,
             StubNavLayoutComponent,
             ContentBadgeComponent,
             StubDonationCampaignWidgetComponent,
             StubBrandLogoComponent,
-            StubHubLoadingComponent
+            StubHubLoadingComponent,
+            StubCrewDashboardPreviewComponent,
+            StubCrewFindPanelComponent,
+            StubCollapsibleSectionComponent,
+            StubConfirmDialogComponent,
+            StubCharCounterComponent
           ]
         }
       })
@@ -212,7 +335,8 @@ describe('CrewHomeComponent', () => {
     expect(fixture.nativeElement.querySelector('.crew-name-link .menu-label')?.textContent).toContain('Alpha Fleet');
     expect(fixture.nativeElement.querySelector('.info-text')?.textContent).toContain('Ritu needs $20');
     expect(fixture.nativeElement.querySelector('.info-platform')?.textContent).toContain('Venmo: @ritu');
-    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(9);
+    // Rules + crewspace + chats + giving + library + proposals + crewmates + settings
+    expect(fixture.nativeElement.querySelectorAll('.menu-link').length).toBe(8);
   });
 
   it('should navigate to gift log', () => {
@@ -260,5 +384,87 @@ describe('CrewHomeComponent', () => {
     await fixture.whenStable();
 
     expect(navigateByUrlSpy).toHaveBeenCalled();
+  });
+
+  it('should defer the cycle thank-you prompt until encryption is unlocked', () => {
+    crewService.getMembership.and.returnValue(of({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Alpha Fleet',
+      seasonStarted: true,
+      pendingCycleThankYouGiftId: 42
+    }));
+
+    fixture = TestBed.createComponent(CrewHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.showCycleThankYouPrompt).toBeFalse();
+    expect(component.cycleThankYouGiftId).toBe(42);
+
+    cryptoUnlocked = true;
+    unlocked$.next(true);
+    fixture.detectChanges();
+
+    expect(component.showCycleThankYouPrompt).toBeTrue();
+  });
+
+  it('should open a forum preview deep link', () => {
+    component.openPreview({
+      kind: 'forum',
+      id: 55,
+      authorUsername: 'Ada',
+      lastActivityAt: new Date(),
+      title: 'Post',
+      body: 'Hi'
+    });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/forums', 55]);
+  });
+
+  it('should open a chat message preview deep link', () => {
+    component.openPreview({
+      kind: 'chat',
+      roomId: 8,
+      messageId: 99,
+      authorUsername: 'Bo',
+      createdAt: new Date().toISOString(),
+      body: 'Yo',
+      hasAttachments: false
+    });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/chats', 8], {
+      queryParams: { messageId: 99 }
+    });
+  });
+
+  it('should open library unit and quest preview deep links', () => {
+    component.openPreview({
+      kind: 'library',
+      libraryKind: 'unit',
+      unit: {
+        unitId: 3,
+        offeringId: 1,
+        holderUserId: 1,
+        holderUsername: 'Ada',
+        title: 'Drill',
+        descriptionPreview: 'Cordless',
+        categories: []
+      }
+    });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/library-of-things/units', 3]);
+
+    component.openPreview({
+      kind: 'library',
+      libraryKind: 'quest',
+      task: {
+        taskId: 6,
+        title: 'Paint',
+        creatorUsername: 'Kai',
+        creatorUserId: 2,
+        value: 10,
+        scheduleSummary: 'Soon'
+      },
+      dueLabel: 'Soon'
+    });
+    expect(router.navigate).toHaveBeenCalledWith(['/app/crew/library-of-things/tasks', 6]);
   });
 });

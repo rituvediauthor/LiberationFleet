@@ -4,13 +4,14 @@
     <app-hub-loading *ngIf="loading" variant="crew" label="Loading crew..."></app-hub-loading>
 
     <ng-container *ngIf="!loading && membership?.hasCrew; else noCrew">
+      <ng-container *ngIf="membership as currentMembership">
       <div class="crew-dashboard">
-        <h1 class="sr-only">{{ membership?.crewName || 'Crew' }}</h1>
+        <h1 class="sr-only">{{ currentMembership.crewName || 'Crew' }}</h1>
 
         <div class="aid-widget-slot">
           <app-donation-campaign-widget
             variant="crew"
-            [enabled]="!!membership?.hasCrew">
+            [enabled]="!!currentMembership.hasCrew">
           </app-donation-campaign-widget>
 
           <button
@@ -44,47 +45,72 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link crew-name-link" (click)="goToForums()">
-            <span class="menu-icon-wrap">
-              <app-brand-logo
-                class="menu-brand-logo"
-                variant="crew"
-                size="sm"
-                alt=""
-                [customSrc]="crewImageSrc">
-              </app-brand-logo>
-              <app-content-badge [count]="areaCounts.crewForums"></app-content-badge>
-            </span>
-            <span class="menu-label">{{ membership?.crewName }}</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-crew-dashboard-preview
+            [preview]="previews.forum"
+            [loading]="previewLoading.forum"
+            [crewId]="currentMembership.crewId ?? null"
+            (open)="openPreview($event)">
+            <button type="button" class="menu-link crew-name-link" (click)="goToForums()">
+              <span class="menu-icon-wrap">
+                <app-brand-logo
+                  class="menu-brand-logo"
+                  variant="crew"
+                  size="sm"
+                  alt=""
+                  [customSrc]="crewImageSrc">
+                </app-brand-logo>
+                <app-content-badge [count]="areaCounts.crewForums"></app-content-badge>
+              </span>
+              <span class="menu-label">{{ currentMembership.crewName }}</span>
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </app-crew-dashboard-preview>
 
-          <button type="button" class="menu-link" [routerLink]="['/app/crew/chats']">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewChats"></app-content-badge>
-            </span>
-            <span class="menu-label">Chats</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-crew-dashboard-preview
+            [preview]="previews.chat"
+            [loading]="previewLoading.chat"
+            [crewId]="currentMembership.crewId ?? null"
+            (open)="openPreview($event)">
+            <button type="button" class="menu-link" [routerLink]="['/app/crew/chats']">
+              <span class="menu-icon-wrap">
+                <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+                <app-content-badge [count]="areaCounts.crewChats"></app-content-badge>
+              </span>
+              <span class="menu-label">Chats</span>
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </app-crew-dashboard-preview>
 
-          <button type="button" class="menu-link" (click)="goToGiftLog()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewGiftLog"></app-content-badge>
-            </span>
-            <span class="menu-label">Giving Season</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-crew-dashboard-preview
+            [preview]="previews.gift"
+            [loading]="previewLoading.gift"
+            [crewId]="currentMembership.crewId ?? null"
+            (open)="openPreview($event)">
+            <button type="button" class="menu-link" (click)="goToGiftLog()">
+              <span class="menu-icon-wrap">
+                <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
+                <app-content-badge [count]="areaCounts.crewGiftLog"></app-content-badge>
+              </span>
+              <span class="menu-label">Giving Season</span>
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </app-crew-dashboard-preview>
 
-          <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibraryOfThings()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.crewLibrary"></app-content-badge>
-            </span>
-            <span class="menu-label">Library of Things</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-crew-dashboard-preview
+            *ngIf="libraryOfThingsEnabled"
+            [preview]="previews.library"
+            [loading]="previewLoading.library"
+            [crewId]="currentMembership.crewId ?? null"
+            (open)="openPreview($event)">
+            <button type="button" class="menu-link" (click)="goToLibraryOfThings()">
+              <span class="menu-icon-wrap">
+                <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
+                <app-content-badge [count]="areaCounts.crewLibrary"></app-content-badge>
+              </span>
+              <span class="menu-label">Library of Things</span>
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </app-crew-dashboard-preview>
 
           <app-collapsible-section class="admin-section" title="Administrative" variant="plain">
             <div class="admin-menu">
@@ -120,6 +146,7 @@
         </nav>
 
       </div>
+      </ng-container>
 
     </ng-container>
 

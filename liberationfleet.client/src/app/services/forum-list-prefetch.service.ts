@@ -119,6 +119,19 @@ export class ForumListPrefetchService {
   }
 
   /**
+   * Peek a fresh crew space prefetch without consuming it (dashboard previews).
+   */
+  peekCrewSpacePage(crewId: number): PrefetchPage<DiscussionListItem> | null {
+    if (crewId <= 0 || !this.isFreshForScope(this.crewPage, crewId)) {
+      if (this.crewPage && this.crewPage.scopeId !== crewId) {
+        this.crewPage = null;
+      }
+      return null;
+    }
+    return this.crewPage;
+  }
+
+  /**
    * Consume a fresh crew space prefetch for this crew only.
    * Clears the cache so the list owns the data.
    */

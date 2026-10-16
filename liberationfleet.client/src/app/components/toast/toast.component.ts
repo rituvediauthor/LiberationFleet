@@ -16,22 +16,48 @@ export class ToastService {
   private toasts: Toast[] = [];
   private toastSubject = new BehaviorSubject<Toast[]>([]);
   public toasts$ = this.toastSubject.asObservable();
+  /** When true, new toasts queue until resumed (e.g. crypto unlock dialog is open). */
+  private paused = false;
+  private queued: Array<{ message: string; type: Toast['type']; duration: number }> = [];
+  private removalTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration = 3000) {
-    const id = Date.now().toString();
-    const toast: Toast = { id, message, type, duration };
+  /**
+   * Pause toast display while a blocking overlay (crypto unlock) is shown.
+   * Queued toasts flush when resumed.
+   */
+  setPaused(paused: boolean): void {
+    if (this.paused === paused) {
+      return;
+    }
+    this.paused = paused;
+    if (paused) {
+      this.clearRemovalTimers();
+      this.toasts = [];
+      this.toastSubject.next([]);
+      return;
+    }
 
-    this.toasts.push(toast);
-    this.toastSubject.next([...this.toasts]);
-
-    if (duration > 0) {
-      setTimeout(() => {
-        this.remove(id);
-      }, duration);
+    const pending = this.queued.splice(0, this.queued.length);
+    for (const item of pending) {
+      this.enqueue(item.message, item.type, item.duration);
     }
   }
 
+  show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration?: number) {
+    const resolvedDuration = duration ?? 3000;
+    if (this.paused) {
+      this.queued.push({ message, type, duration: resolvedDuration });
+      return;
+    }
+    this.enqueue(message, type, resolvedDuration);
+  }
+
   remove(id: string) {
+    const timer = this.removalTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.removalTimers.delete(id);
+    }
     this.toasts = this.toasts.filter(t => t.id !== id);
     this.toastSubject.next([...this.toasts]);
   }
@@ -50,6 +76,29 @@ export class ToastService {
 
   warning(message: string, duration?: number) {
     this.show(message, 'warning', duration);
+  }
+
+  private enqueue(message: string, type: Toast['type'], duration: number) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const toast: Toast = { id, message, type, duration };
+
+    this.toasts.push(toast);
+    this.toastSubject.next([...this.toasts]);
+
+    if (duration > 0) {
+      const timer = setTimeout(() => {
+        this.removalTimers.delete(id);
+        this.remove(id);
+      }, duration);
+      this.removalTimers.set(id, timer);
+    }
+  }
+
+  private clearRemovalTimers() {
+    for (const timer of this.removalTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.removalTimers.clear();
   }
 }
 

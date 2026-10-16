@@ -28,12 +28,16 @@ import {
   emptyAreaCounts
 } from '../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../services/forum-list-prefetch.service';
+import { CrewDashboardPreviewService } from '../../services/crew-dashboard-preview.service';
 import { CrewFindPanelComponent } from '../crew-find/crew-find-panel.component';
 import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
+import { CrewDashboardPreviewComponent } from '../../components/crew-dashboard-preview/crew-dashboard-preview.component';
+import { CrewDashboardPreview, CrewDashboardPreviews } from '../../models/crew-dashboard-preview.model';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { TextFieldLimits } from '../../utils/text-field-limits';
 
 const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
+type CrewPreviewKey = keyof CrewDashboardPreviews;
 
 @Component({
   selector: 'app-crew-home',
@@ -50,7 +54,8 @@ const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
     ConfirmDialogComponent,
     CharCounterComponent,
     CrewFindPanelComponent,
-    CollapsibleSectionComponent
+    CollapsibleSectionComponent,
+    CrewDashboardPreviewComponent
   ],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
@@ -66,6 +71,18 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   libraryOfThingsEnabled = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
   crewImageSrc: string | null = null;
+  previews: CrewDashboardPreviews = {
+    forum: null,
+    chat: null,
+    gift: null,
+    library: null
+  };
+  previewLoading: Record<CrewPreviewKey, boolean> = {
+    forum: false,
+    chat: false,
+    gift: false,
+    library: false
+  };
 
   showCycleThankYouPrompt = false;
   showCycleThankYouCompose = false;
@@ -84,9 +101,11 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private images = inject(EncryptedImageCacheService);
   private notificationService = inject(NotificationService);
   private forumPrefetch = inject(ForumListPrefetchService);
+  private dashboardPreviews = inject(CrewDashboardPreviewService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
   private subscriptions = new Subscription();
+  private previewLoadGeneration = 0;
 
   ngOnInit() {
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
@@ -97,7 +116,15 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
           const crewId = this.membership?.crewId;
           if (crewId) {
             this.forumPrefetch.prefetchCrewSpace(crewId);
+            void this.refreshDashboardPreviews(crewId);
           }
+          if (this.membership) {
+            this.maybeShowCycleThankYou(this.membership);
+          }
+        } else {
+          // Never stack cycle thank-you over the recovery-phrase unlock dialog.
+          this.showCycleThankYouPrompt = false;
+          this.showCycleThankYouCompose = false;
         }
         void this.refreshCrewImage();
       })
@@ -135,7 +162,16 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         void this.refreshCrewImage();
         this.maybeShowCycleThankYou(status);
         if (status.hasCrew && status.crewId) {
+          this.previewLoading = {
+            forum: true,
+            chat: true,
+            gift: true,
+            library: this.libraryOfThingsEnabled
+          };
           this.forumPrefetch.prefetchCrewSpace(status.crewId);
+          void this.refreshDashboardPreviews(status.crewId);
+        } else {
+          this.clearPreviews();
         }
         if (this.showNextAidWidget) {
           this.giftService.getNextAidInfo().subscribe({
@@ -290,12 +326,74 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/how-to']);
   }
 
+  openPreview(preview: CrewDashboardPreview) {
+    switch (preview.kind) {
+      case 'forum':
+        void this.router.navigate(['/app/crew/forums', preview.id]);
+        break;
+      case 'chat':
+        void this.router.navigate(['/app/crew/chats', preview.roomId], {
+          queryParams: { messageId: preview.messageId }
+        });
+        break;
+      case 'gift':
+        void this.router.navigate(['/app/crew/gift-log', preview.id]);
+        break;
+      case 'library':
+        if (preview.libraryKind === 'unit') {
+          void this.router.navigate(['/app/crew/library-of-things/units', preview.unit.unitId]);
+        } else {
+          void this.router.navigate(['/app/crew/library-of-things/tasks', preview.task.taskId]);
+        }
+        break;
+    }
+  }
+
+  private async refreshDashboardPreviews(crewId: number) {
+    const generation = ++this.previewLoadGeneration;
+    try {
+      const next = await this.dashboardPreviews.loadPreviews(crewId);
+      if (generation !== this.previewLoadGeneration) {
+        return;
+      }
+      this.previews = next;
+      this.previewLoading = {
+        forum: false,
+        chat: false,
+        gift: false,
+        library: false
+      };
+    } catch {
+      if (generation === this.previewLoadGeneration) {
+        this.clearPreviews();
+      }
+    }
+  }
+
+  private clearPreviews() {
+    this.previews = { forum: null, chat: null, gift: null, library: null };
+    this.previewLoading = {
+      forum: false,
+      chat: false,
+      gift: false,
+      library: false
+    };
+  }
+
   private maybeShowCycleThankYou(status: CrewMembershipStatus) {
     const giftId = status.pendingCycleThankYouGiftId ?? null;
     if (!giftId || this.isCycleThankYouDismissed(giftId)) {
       this.showCycleThankYouPrompt = false;
       this.showCycleThankYouCompose = false;
       this.cycleThankYouGiftId = null;
+      return;
+    }
+
+    // Wait until encryption is unlocked so this never covers the 12-word key dialog.
+    if (!this.cryptoSession.isUnlocked()) {
+      this.cycleThankYouGiftId = giftId;
+      this.showCycleThankYouPrompt = false;
+      this.showCycleThankYouCompose = false;
       return;
     }
 
