@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
+import { CrewDashboardPreviewService } from './crew-dashboard-preview.service';
 import { ForumListPrefetchService } from './forum-list-prefetch.service';
 import { NotificationHubService } from './notification-hub.service';
 import { PushNotificationRegistrationService } from './push-notification-registration.service';
@@ -23,12 +24,16 @@ describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
   let forumPrefetch: jasmine.SpyObj<ForumListPrefetchService>;
+  let crewDashboardPreview: jasmine.SpyObj<CrewDashboardPreviewService>;
 
   beforeEach(() => {
     clearAuthStorage();
     forumPrefetch = jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
       'clearSessionCache',
       'invalidate'
+    ]);
+    crewDashboardPreview = jasmine.createSpyObj<CrewDashboardPreviewService>('CrewDashboardPreviewService', [
+      'clearSessionCache'
     ]);
 
     TestBed.configureTestingModule({
@@ -51,7 +56,8 @@ describe('AuthService', () => {
             ['start', 'stopAndUnregister']
           )
         },
-        { provide: ForumListPrefetchService, useValue: forumPrefetch }
+        { provide: ForumListPrefetchService, useValue: forumPrefetch },
+        { provide: CrewDashboardPreviewService, useValue: crewDashboardPreview }
       ]
     });
 
@@ -135,14 +141,17 @@ describe('AuthService', () => {
   it('logout and establishSession should clear forum prefetch plaintext cache', () => {
     service.logout();
     expect(forumPrefetch.clearSessionCache).toHaveBeenCalled();
+    expect(crewDashboardPreview.clearSessionCache).toHaveBeenCalled();
 
     forumPrefetch.clearSessionCache.calls.reset();
+    crewDashboardPreview.clearSessionCache.calls.reset();
     service.establishSession({
       success: true,
       token: testJwt(1),
       user: { id: 1, username: 'user', email: 'user@example.com' }
     });
     expect(forumPrefetch.clearSessionCache).toHaveBeenCalled();
+    expect(crewDashboardPreview.clearSessionCache).toHaveBeenCalled();
   });
 
 
@@ -209,6 +218,12 @@ describe('AuthService token loading', () => {
           useValue: jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
             'clearSessionCache',
             'invalidate'
+          ])
+        },
+        {
+          provide: CrewDashboardPreviewService,
+          useValue: jasmine.createSpyObj<CrewDashboardPreviewService>('CrewDashboardPreviewService', [
+            'clearSessionCache'
           ])
         }
       ]

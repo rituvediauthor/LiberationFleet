@@ -23,7 +23,6 @@ public record CreateProposalCommand(
 public class CreateProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IUserRepository userRepository,
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IProposalRepository proposalRepository,
@@ -127,8 +126,7 @@ public class CreateProposalCommandHandler(
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var author = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
-        var authorName = UserDisplay.Name(author);
+        var authorName = ProposalMapper.AnonymousAuthor;
         await notificationService.NotifyCrewAsync(
             membership.CrewId,
             NotificationKind.NewProposal,
@@ -137,12 +135,15 @@ public class CreateProposalCommandHandler(
             ProposalRouting.StatusListUrl(proposal),
             relatedEntityId: proposal.Id,
             excludeUserId: userId,
+            omitActorIdentity: true,
             cancellationToken: cancellationToken);
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
             CrewId = membership.CrewId,
             AuthorUserId = userId,
+            OmitNotificationActorIdentity = true,
+            NotificationAuthorName = authorName,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
             ActionUrl = ProposalRouting.StatusListUrl(proposal),

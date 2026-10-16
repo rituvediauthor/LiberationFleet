@@ -35,25 +35,34 @@ export interface GiftDashboardPreview {
 }
 
 export interface LibraryUnitDashboardPreview {
-  kind: 'library';
   libraryKind: 'unit';
   unit: LibraryUnitListItem;
 }
 
 export interface LibraryQuestDashboardPreview {
-  kind: 'library';
   libraryKind: 'quest';
   task: LibraryTaskListItem;
   dueLabel: string;
 }
 
-export type LibraryDashboardPreview = LibraryUnitDashboardPreview | LibraryQuestDashboardPreview;
+export type LibraryDashboardPreviewItem = LibraryUnitDashboardPreview | LibraryQuestDashboardPreview;
+
+export interface LibraryDashboardPreview {
+  kind: 'library';
+  items: LibraryDashboardPreviewItem[];
+}
 
 export type CrewDashboardPreview =
   | ForumDashboardPreview
   | ChatDashboardPreview
   | GiftDashboardPreview
   | LibraryDashboardPreview;
+
+export type CrewDashboardPreviewOpenTarget =
+  | ForumDashboardPreview
+  | ChatDashboardPreview
+  | GiftDashboardPreview
+  | LibraryDashboardPreviewItem;
 
 export interface CrewDashboardPreviews {
   forum: ForumDashboardPreview | null;

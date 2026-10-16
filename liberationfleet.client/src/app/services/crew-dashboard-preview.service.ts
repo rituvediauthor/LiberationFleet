@@ -7,7 +7,8 @@ import {
   CrewDashboardPreviews,
   ForumDashboardPreview,
   GiftDashboardPreview,
-  LibraryDashboardPreview
+  LibraryDashboardPreview,
+  LibraryDashboardPreviewItem
 } from '../models/crew-dashboard-preview.model';
 import { ChatMessage, ChatRoomListItem } from '../models/chat.model';
 import { DiscussionListItem } from '../models/crew-discussion.model';
@@ -28,12 +29,20 @@ import {
   formatQuestDueLabel,
   giftCategoryLabel,
   LibraryPreviewCandidate,
+  pickLibraryPreviewCarousel,
   pickFirstAllowedAdult,
-  pickRandomLibraryPreview,
   truncateDashboardPreview
 } from '../utils/dashboard-preview.util';
 
 const LIBRARY_UNIT_SAMPLE_LIMIT = 10;
+const LIBRARY_CAROUSEL_SIZE = 5;
+const PREVIEW_CACHE_TTL_MS = 90_000;
+type CrewPreviewKey = keyof CrewDashboardPreviews;
+
+interface PreviewCacheEntry {
+  preview: CrewDashboardPreviews[CrewPreviewKey];
+  fetchedAt: number;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -50,6 +59,8 @@ export class CrewDashboardPreviewService {
   private libraryCrypto = inject(LibraryCryptoService);
   private cryptoSession = inject(CryptoSessionService);
   private adultContent = inject(AdultContentService);
+  private cache = new Map<string, PreviewCacheEntry>();
+  private inFlight = new Map<string, Promise<CrewDashboardPreviews[CrewPreviewKey]>>();
 
   async loadPreviews(crewId: number): Promise<CrewDashboardPreviews> {
     if (crewId <= 0) {
@@ -57,13 +68,58 @@ export class CrewDashboardPreviewService {
     }
 
     const [forum, chat, gift, library] = await Promise.all([
-      this.loadForumPreview(crewId).catch(() => null),
-      this.loadChatPreview(crewId).catch(() => null),
-      this.loadGiftPreview(crewId).catch(() => null),
-      this.loadLibraryPreview(crewId).catch(() => null)
+      this.loadPreview(crewId, 'forum'),
+      this.loadPreview(crewId, 'chat'),
+      this.loadPreview(crewId, 'gift'),
+      this.loadPreview(crewId, 'library')
     ]);
 
     return { forum, chat, gift, library };
+  }
+
+  async loadPreview<K extends CrewPreviewKey>(
+    crewId: number,
+    previewKey: K,
+    options?: { force?: boolean }
+  ): Promise<CrewDashboardPreviews[K]> {
+    if (crewId <= 0) {
+      return null as CrewDashboardPreviews[K];
+    }
+
+    const cacheKey = this.getCacheKey(crewId, previewKey);
+    if (options?.force) {
+      this.cache.delete(cacheKey);
+    } else {
+      const cached = this.cache.get(cacheKey);
+      if (cached && this.isFresh(cached)) {
+        return cached.preview as CrewDashboardPreviews[K];
+      }
+    }
+
+    const existing = this.inFlight.get(cacheKey);
+    if (existing) {
+      return existing as Promise<CrewDashboardPreviews[K]>;
+    }
+
+    const pending = this.fetchPreview(crewId, previewKey)
+      .then(preview => {
+        this.cache.set(cacheKey, {
+          preview,
+          fetchedAt: Date.now()
+        });
+        return preview;
+      })
+      .finally(() => {
+        this.inFlight.delete(cacheKey);
+      });
+
+    this.inFlight.set(cacheKey, pending);
+    return pending as Promise<CrewDashboardPreviews[K]>;
+  }
+
+  clearSessionCache(): void {
+    this.cache.clear();
+    this.inFlight.clear();
   }
 
   private async loadForumPreview(crewId: number): Promise<ForumDashboardPreview | null> {
@@ -271,30 +327,59 @@ export class CrewDashboardPreviewService {
         .map(task => ({ type: 'quest' as const, task }))
     ];
 
-    const picked = pickRandomLibraryPreview(candidates);
-    if (!picked) {
+    const items = pickLibraryPreviewCarousel(candidates, LIBRARY_CAROUSEL_SIZE)
+      .map(candidate => this.toLibraryPreviewItem(candidate));
+    if (!items.length) {
       return null;
     }
 
-    if (picked.type === 'unit') {
+    return {
+      kind: 'library',
+      items
+    };
+  }
+
+  private toLibraryPreviewItem(candidate: LibraryPreviewCandidate): LibraryDashboardPreviewItem {
+    if (candidate.type === 'unit') {
       return {
-        kind: 'library',
         libraryKind: 'unit',
         unit: {
-          ...picked.unit,
-          descriptionPreview: truncateDashboardPreview(picked.unit.descriptionPreview)
+          ...candidate.unit,
+          descriptionPreview: truncateDashboardPreview(candidate.unit.descriptionPreview)
         }
       };
     }
 
     return {
-      kind: 'library',
       libraryKind: 'quest',
       task: {
-        ...picked.task,
-        title: truncateDashboardPreview(picked.task.title) || picked.task.title
+        ...candidate.task,
+        title: truncateDashboardPreview(candidate.task.title) || candidate.task.title
       },
-      dueLabel: formatQuestDueLabel(picked.task)
+      dueLabel: formatQuestDueLabel(candidate.task)
     };
+  }
+
+  private fetchPreview<K extends CrewPreviewKey>(
+    crewId: number,
+    previewKey: K
+  ): Promise<CrewDashboardPreviews[K]> {
+    const loaders: Record<CrewPreviewKey, () => Promise<CrewDashboardPreviews[CrewPreviewKey]>> = {
+      forum: () => this.loadForumPreview(crewId),
+      chat: () => this.loadChatPreview(crewId),
+      gift: () => this.loadGiftPreview(crewId),
+      library: () => this.loadLibraryPreview(crewId)
+    };
+    return loaders[previewKey]().catch(() => null) as Promise<CrewDashboardPreviews[K]>;
+  }
+
+  private getCacheKey(crewId: number, previewKey: CrewPreviewKey): string {
+    const unlocked = this.cryptoSession.isUnlocked() ? 'unlocked' : 'locked';
+    const adultPreference = this.adultContent.preference;
+    return `${crewId}:${previewKey}:${unlocked}:${adultPreference}`;
+  }
+
+  private isFresh(entry: PreviewCacheEntry): boolean {
+    return Date.now() - entry.fetchedAt < PREVIEW_CACHE_TTL_MS;
   }
 }

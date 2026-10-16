@@ -133,6 +133,7 @@ public class SendChatMessageCommandHandler(
             var actorName = request.IsAnonymous
                 ? "Anonymous"
                 : UserDisplay.Name(author);
+            int? notificationActorUserId = request.IsAnonymous ? null : userId;
             var chatTitle = NotificationCopy.PostedInChat(actorName, room.Name);
             var chatBody = NotificationCopy.PreviewOr(request.Body, "Open the chat to read the message.");
 
@@ -153,6 +154,8 @@ public class SendChatMessageCommandHandler(
                         relatedEntityId: message.Id,
                         secondaryEntityId: room.Id,
                         excludeUserId: userId,
+                        actorUserId: notificationActorUserId,
+                        omitActorIdentity: request.IsAnonymous,
                         cancellationToken: cancellationToken);
                 }
 
@@ -161,6 +164,8 @@ public class SendChatMessageCommandHandler(
                     CrewId = membership.CrewId,
                     FleetId = room.FleetId,
                     AuthorUserId = userId,
+                    OmitNotificationActorIdentity = request.IsAnonymous,
+                    NotificationAuthorName = actorName,
                     ContentType = MentionedContentType.ChatRoomMessage,
                     ResourceId = message.Id,
                     ParentResourceId = room.Id,
@@ -184,12 +189,16 @@ public class SendChatMessageCommandHandler(
                     relatedEntityId: message.Id,
                     secondaryEntityId: room.Id,
                     excludeUserId: userId,
+                    actorUserId: notificationActorUserId,
+                    omitActorIdentity: request.IsAnonymous,
                     cancellationToken: cancellationToken);
 
                 await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
                 {
                     CrewId = membership.CrewId,
                     AuthorUserId = userId,
+                    OmitNotificationActorIdentity = request.IsAnonymous,
+                    NotificationAuthorName = actorName,
                     ContentType = MentionedContentType.ChatRoomMessage,
                     ResourceId = message.Id,
                     ParentResourceId = room.Id,

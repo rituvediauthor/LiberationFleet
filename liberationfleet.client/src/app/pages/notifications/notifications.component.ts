@@ -21,6 +21,7 @@ import {
   isCrewJoinRequestApprovedNotification,
   isPendingCrewJoinSwitchOffer
 } from '../../utils/crew-join-approval.util';
+import { shouldOmitNotificationActor } from '../../utils/notification-actor-privacy.util';
 
 @Component({
   selector: 'app-notifications',
@@ -71,6 +72,9 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
   /** Avatars only for notifications that have a known non-anonymous actor picture. */
   showActorAvatar(item: NotificationItem): boolean {
+    if (shouldOmitNotificationActor(item)) {
+      return false;
+    }
     return !!item.actorUserId && !!item.actorAvatarResourceId?.trim();
   }
 

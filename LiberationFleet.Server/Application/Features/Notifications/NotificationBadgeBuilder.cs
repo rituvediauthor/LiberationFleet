@@ -113,7 +113,9 @@ public static class NotificationBadgeBuilder
             return true;
         }
 
-        if (notification.ActorUserId.HasValue && hiddenUserIds.Contains(notification.ActorUserId.Value))
+        if (notification.ActorUserId.HasValue
+            && hiddenUserIds.Contains(notification.ActorUserId.Value)
+            && !NotificationActorPrivacy.ShouldOmitActorIdentity(notification))
         {
             return true;
         }

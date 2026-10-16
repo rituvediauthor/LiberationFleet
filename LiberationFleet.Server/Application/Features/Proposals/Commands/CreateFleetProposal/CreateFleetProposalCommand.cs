@@ -23,7 +23,6 @@ public record CreateFleetProposalCommand(
 public class CreateFleetProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IUserRepository userRepository,
     ICrewRepository crewRepository,
     IGiftRepository giftRepository,
     IFleetRepository fleetRepository,
@@ -136,8 +135,7 @@ public class CreateFleetProposalCommandHandler(
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var author = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
-        var authorName = UserDisplay.Name(author);
+        var authorName = ProposalMapper.AnonymousAuthor;
         var fleetTitle = NotificationCopy.SubmittedProposal(authorName, fleet: true);
         var fleetBody = NotificationCopy.PreviewOr(
             request.Description,
@@ -153,6 +151,7 @@ public class CreateFleetProposalCommandHandler(
                 ProposalRouting.StatusListUrl(proposal),
                 relatedEntityId: proposal.Id,
                 excludeUserId: userId,
+                omitActorIdentity: true,
                 cancellationToken: cancellationToken);
         }
 
@@ -161,6 +160,8 @@ public class CreateFleetProposalCommandHandler(
             CrewId = membership.CrewId,
             FleetId = fleet.Id,
             AuthorUserId = userId,
+            OmitNotificationActorIdentity = true,
+            NotificationAuthorName = authorName,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
             ActionUrl = ProposalRouting.StatusListUrl(proposal),

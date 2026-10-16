@@ -72,6 +72,23 @@ export function pickRandomLibraryPreview(
   return candidates[Math.min(index, candidates.length - 1)] ?? null;
 }
 
+/** Pick up to maxItems distinct candidates from the pool in randomized order. */
+export function pickLibraryPreviewCarousel(
+  candidates: LibraryPreviewCandidate[],
+  maxItems: number,
+  random: () => number = Math.random
+): LibraryPreviewCandidate[] {
+  if (!candidates.length || maxItems <= 0) {
+    return [];
+  }
+  const pool = [...candidates];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+  return pool.slice(0, maxItems);
+}
+
 /**
  * Prefer the first item that should be shown under the adult preference.
  * Returns null when every item is blocked.

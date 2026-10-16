@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { discardPeriodicTasks, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -154,6 +154,9 @@ describe('CrewHomeComponent', () => {
   let router: Router;
   let unlocked$: BehaviorSubject<boolean>;
   let cryptoUnlocked = false;
+  let areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>;
+  let notificationService: { areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>; refreshBadges: jasmine.Spy };
+  let dashboardPreviewService: { loadPreviews: jasmine.Spy; loadPreview: jasmine.Spy };
 
   beforeEach(async () => {
     crewService = createCrewServiceMock();
@@ -176,7 +179,20 @@ describe('CrewHomeComponent', () => {
 
     cryptoUnlocked = false;
     unlocked$ = new BehaviorSubject(false);
-    const areaCounts$ = new BehaviorSubject(emptyAreaCounts());
+    areaCounts$ = new BehaviorSubject(emptyAreaCounts());
+    notificationService = {
+      areaCounts$,
+      refreshBadges: jasmine.createSpy('refreshBadges')
+    };
+    dashboardPreviewService = {
+      loadPreviews: jasmine.createSpy('loadPreviews').and.resolveTo({
+        forum: null,
+        chat: null,
+        gift: null,
+        library: null
+      } satisfies CrewDashboardPreviews),
+      loadPreview: jasmine.createSpy('loadPreview').and.resolveTo(null)
+    };
 
     await TestBed.configureTestingModule({
       imports: [CrewHomeComponent],
@@ -211,10 +227,7 @@ describe('CrewHomeComponent', () => {
         },
         {
           provide: NotificationService,
-          useValue: {
-            areaCounts$,
-            refreshBadges: jasmine.createSpy('refreshBadges')
-          }
+          useValue: notificationService
         },
         {
           provide: ForumListPrefetchService,
@@ -224,14 +237,7 @@ describe('CrewHomeComponent', () => {
         },
         {
           provide: CrewDashboardPreviewService,
-          useValue: {
-            loadPreviews: jasmine.createSpy('loadPreviews').and.resolveTo({
-              forum: null,
-              chat: null,
-              gift: null,
-              library: null
-            } satisfies CrewDashboardPreviews)
-          }
+          useValue: dashboardPreviewService
         },
         {
           provide: ProposalCryptoService,
@@ -360,7 +366,7 @@ describe('CrewHomeComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew/join']);
   });
 
-  it('should route the chats menu button to the chat list page', async () => {
+  it('should route the chats menu button to the chat list page', fakeAsync(() => {
     crewService.getMembership.and.returnValue(of({
       hasCrew: true,
       crewId: 1,
@@ -381,10 +387,12 @@ describe('CrewHomeComponent', () => {
     expect(chatsButton).toBeDefined();
 
     chatsButton?.click();
-    await fixture.whenStable();
+    tick();
 
     expect(navigateByUrlSpy).toHaveBeenCalled();
-  });
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
 
   it('should defer the cycle thank-you prompt until encryption is unlocked', () => {
     crewService.getMembership.and.returnValue(of({
@@ -408,6 +416,40 @@ describe('CrewHomeComponent', () => {
 
     expect(component.showCycleThankYouPrompt).toBeTrue();
   });
+
+  it('polls badge freshness and only refreshes the preview tiles whose counts changed', fakeAsync(() => {
+    crewService.getMembership.and.returnValue(of({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Alpha Fleet',
+      seasonStarted: true
+    }));
+
+    fixture = TestBed.createComponent(CrewHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    tick();
+
+    expect(dashboardPreviewService.loadPreviews).toHaveBeenCalledWith(1);
+
+    tick(5000);
+    expect(notificationService.refreshBadges).toHaveBeenCalledWith(true);
+
+    areaCounts$.next({
+      ...emptyAreaCounts(),
+      crewChats: 2,
+      crewLibrary: 1
+    });
+    tick();
+
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'chat', { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'library', { force: true });
+    expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalledWith(1, 'forum', { force: true });
+    expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalledWith(1, 'gift', { force: true });
+
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
 
   it('should open a forum preview deep link', () => {
     component.openPreview({
@@ -438,7 +480,6 @@ describe('CrewHomeComponent', () => {
 
   it('should open library unit and quest preview deep links', () => {
     component.openPreview({
-      kind: 'library',
       libraryKind: 'unit',
       unit: {
         unitId: 3,
@@ -453,7 +494,6 @@ describe('CrewHomeComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/app/crew/library-of-things/units', 3]);
 
     component.openPreview({
-      kind: 'library',
       libraryKind: 'quest',
       task: {
         taskId: 6,

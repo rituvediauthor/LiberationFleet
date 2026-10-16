@@ -32,12 +32,20 @@ import { CrewDashboardPreviewService } from '../../services/crew-dashboard-previ
 import { CrewFindPanelComponent } from '../crew-find/crew-find-panel.component';
 import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
 import { CrewDashboardPreviewComponent } from '../../components/crew-dashboard-preview/crew-dashboard-preview.component';
-import { CrewDashboardPreview, CrewDashboardPreviews } from '../../models/crew-dashboard-preview.model';
+import { CrewDashboardPreviewOpenTarget, CrewDashboardPreviews } from '../../models/crew-dashboard-preview.model';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { TextFieldLimits } from '../../utils/text-field-limits';
 
 const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
 type CrewPreviewKey = keyof CrewDashboardPreviews;
+type PreviewAreaKey = 'crewForums' | 'crewChats' | 'crewGiftLog' | 'crewLibrary';
+const PREVIEW_REFRESH_POLL_MS = 5_000;
+const PREVIEW_AREA_TO_KEY: Record<PreviewAreaKey, CrewPreviewKey> = {
+  crewForums: 'forum',
+  crewChats: 'chat',
+  crewGiftLog: 'gift',
+  crewLibrary: 'library'
+};
 
 @Component({
   selector: 'app-crew-home',
@@ -106,6 +114,10 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   private subscriptions = new Subscription();
   private previewLoadGeneration = 0;
+  private previewPollTimer: ReturnType<typeof setInterval> | null = null;
+  private lastPreviewAreaCounts: Pick<CrewNotificationAreaCounts, PreviewAreaKey> = this.pickPreviewAreaCounts(
+    emptyAreaCounts()
+  );
 
   ngOnInit() {
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
@@ -168,9 +180,12 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
             gift: true,
             library: this.libraryOfThingsEnabled
           };
+          this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(this.areaCounts);
+          this.startPreviewPolling();
           this.forumPrefetch.prefetchCrewSpace(status.crewId);
           void this.refreshDashboardPreviews(status.crewId);
         } else {
+          this.stopPreviewPolling();
           this.clearPreviews();
         }
         if (this.showNextAidWidget) {
@@ -191,12 +206,19 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.notificationService.refreshBadges();
     this.subscriptions.add(
       this.notificationService.areaCounts$.subscribe(counts => {
+        const previousCounts = this.lastPreviewAreaCounts;
         this.areaCounts = counts;
+        this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(counts);
+        const crewId = this.membership?.hasCrew ? this.membership.crewId : null;
+        if (crewId) {
+          void this.refreshChangedDashboardPreviews(crewId, previousCounts, this.lastPreviewAreaCounts);
+        }
       })
     );
   }
 
   ngOnDestroy() {
+    this.stopPreviewPolling();
     this.subscriptions.unsubscribe();
   }
 
@@ -326,26 +348,26 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/how-to']);
   }
 
-  openPreview(preview: CrewDashboardPreview) {
-    switch (preview.kind) {
-      case 'forum':
-        void this.router.navigate(['/app/crew/forums', preview.id]);
-        break;
-      case 'chat':
-        void this.router.navigate(['/app/crew/chats', preview.roomId], {
-          queryParams: { messageId: preview.messageId }
-        });
-        break;
-      case 'gift':
-        void this.router.navigate(['/app/crew/gift-log', preview.id]);
-        break;
-      case 'library':
-        if (preview.libraryKind === 'unit') {
-          void this.router.navigate(['/app/crew/library-of-things/units', preview.unit.unitId]);
-        } else {
-          void this.router.navigate(['/app/crew/library-of-things/tasks', preview.task.taskId]);
-        }
-        break;
+  openPreview(preview: CrewDashboardPreviewOpenTarget) {
+    if ('kind' in preview) {
+      switch (preview.kind) {
+        case 'forum':
+          void this.router.navigate(['/app/crew/forums', preview.id]);
+          return;
+        case 'chat':
+          void this.router.navigate(['/app/crew/chats', preview.roomId], {
+            queryParams: { messageId: preview.messageId }
+          });
+          return;
+        case 'gift':
+          void this.router.navigate(['/app/crew/gift-log', preview.id]);
+          return;
+      }
+    }
+    if (preview.libraryKind === 'unit') {
+      void this.router.navigate(['/app/crew/library-of-things/units', preview.unit.unitId]);
+    } else {
+      void this.router.navigate(['/app/crew/library-of-things/tasks', preview.task.taskId]);
     }
   }
 
@@ -370,6 +392,25 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async refreshDashboardPreview(
+    crewId: number,
+    previewKey: CrewPreviewKey,
+    force = false
+  ) {
+    this.previewLoading = { ...this.previewLoading, [previewKey]: true };
+    try {
+      const next = await this.dashboardPreviews.loadPreview(crewId, previewKey, { force });
+      if (this.membership?.crewId !== crewId) {
+        return;
+      }
+      this.previews = { ...this.previews, [previewKey]: next };
+    } finally {
+      if (this.membership?.crewId === crewId) {
+        this.previewLoading = { ...this.previewLoading, [previewKey]: false };
+      }
+    }
+  }
+
   private clearPreviews() {
     this.previews = { forum: null, chat: null, gift: null, library: null };
     this.previewLoading = {
@@ -378,6 +419,54 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       gift: false,
       library: false
     };
+  }
+
+  private startPreviewPolling() {
+    if (this.previewPollTimer !== null) {
+      return;
+    }
+    this.previewPollTimer = setInterval(() => {
+      if (this.membership?.hasCrew) {
+        this.notificationService.refreshBadges(true);
+      }
+    }, PREVIEW_REFRESH_POLL_MS);
+  }
+
+  private stopPreviewPolling() {
+    if (this.previewPollTimer !== null) {
+      clearInterval(this.previewPollTimer);
+      this.previewPollTimer = null;
+    }
+  }
+
+  private pickPreviewAreaCounts(
+    counts: CrewNotificationAreaCounts
+  ): Pick<CrewNotificationAreaCounts, PreviewAreaKey> {
+    return {
+      crewForums: counts.crewForums,
+      crewChats: counts.crewChats,
+      crewGiftLog: counts.crewGiftLog,
+      crewLibrary: counts.crewLibrary
+    };
+  }
+
+  private async refreshChangedDashboardPreviews(
+    crewId: number,
+    previousCounts: Pick<CrewNotificationAreaCounts, PreviewAreaKey>,
+    nextCounts: Pick<CrewNotificationAreaCounts, PreviewAreaKey>
+  ) {
+    const refreshes: Promise<void>[] = [];
+    for (const areaKey of Object.keys(PREVIEW_AREA_TO_KEY) as PreviewAreaKey[]) {
+      if (previousCounts[areaKey] === nextCounts[areaKey]) {
+        continue;
+      }
+      const previewKey = PREVIEW_AREA_TO_KEY[areaKey];
+      if (previewKey === 'library' && !this.libraryOfThingsEnabled) {
+        continue;
+      }
+      refreshes.push(this.refreshDashboardPreview(crewId, previewKey, true));
+    }
+    await Promise.all(refreshes);
   }
 
   private maybeShowCycleThankYou(status: CrewMembershipStatus) {

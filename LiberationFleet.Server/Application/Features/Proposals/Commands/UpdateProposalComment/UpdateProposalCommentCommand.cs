@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Proposals.Contracts;
 using LiberationFleet.Server.Application.Features.Mentions;
+using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -23,6 +24,7 @@ public class UpdateProposalCommentCommandHandler(
     IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
+    ProposalAnonymousAliasService aliasService,
     ContentMentionService contentMentionService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateProposalCommentCommand, ProposalOperationResponse>
 {
@@ -93,11 +95,19 @@ public class UpdateProposalCommentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var aliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
+        var actorName = string.IsNullOrWhiteSpace(aliasEntity.Nickname)
+            ? ProposalMapper.AnonymousAuthor
+            : aliasEntity.Nickname;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
             CrewId = membership.CrewId,
             FleetId = proposal.FleetId,
             AuthorUserId = userId,
+            OmitNotificationActorIdentity = true,
+            NotificationAuthorName = actorName,
             ContentType = MentionedContentType.ProposalComment,
             ResourceId = comment.Id,
             ParentResourceId = proposal.Id,

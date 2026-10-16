@@ -97,4 +97,55 @@ describe('CrewDashboardPreviewComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Cycle');
     expect(fixture.nativeElement.textContent).toContain('Unverified');
   });
+
+  it('opens the active library carousel item and cycles with next/previous controls', () => {
+    component.preview = {
+      kind: 'library',
+      items: [
+        {
+          libraryKind: 'unit',
+          unit: {
+            unitId: 11,
+            offeringId: 5,
+            holderUserId: 2,
+            holderUsername: 'Ada',
+            title: 'Drill',
+            descriptionPreview: 'Cordless',
+            categories: []
+          }
+        },
+        {
+          libraryKind: 'quest',
+          task: {
+            taskId: 22,
+            title: 'Paint fence',
+            creatorUsername: 'Kai',
+            creatorUserId: 3,
+            value: 15,
+            scheduleSummary: 'Soon'
+          },
+          dueLabel: 'Soon'
+        }
+      ]
+    };
+    fixture.detectChanges();
+
+    const spy = jasmine.createSpy('open');
+    component.open.subscribe(spy);
+
+    const buttons = fixture.nativeElement.querySelectorAll('.library-carousel-button');
+    expect(buttons.length).toBe(2);
+
+    fixture.nativeElement.querySelector('.dash-preview')?.click();
+    expect(spy).toHaveBeenCalledWith(jasmine.objectContaining({
+      libraryKind: 'unit'
+    }));
+
+    buttons[1].click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.dash-preview')?.click();
+    expect(spy).toHaveBeenCalledWith(jasmine.objectContaining({
+      libraryKind: 'quest'
+    }));
+  });
 });

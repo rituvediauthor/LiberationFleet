@@ -12,6 +12,8 @@ public sealed class ContentMentionContext
     public int CrewId { get; init; }
     public int? FleetId { get; init; }
     public int AuthorUserId { get; init; }
+    public bool OmitNotificationActorIdentity { get; init; }
+    public string? NotificationAuthorName { get; init; }
     public MentionedContentType ContentType { get; init; }
     public int ResourceId { get; init; }
     public int? ParentResourceId { get; init; }
@@ -111,8 +113,12 @@ public class ContentMentionService(
             return;
         }
 
-        var author = await userRepository.GetByIdWithProfileAsync(context.AuthorUserId, cancellationToken);
-        var authorName = UserDisplay.Name(author);
+        var authorName = context.NotificationAuthorName;
+        if (string.IsNullOrWhiteSpace(authorName))
+        {
+            var author = await userRepository.GetByIdWithProfileAsync(context.AuthorUserId, cancellationToken);
+            authorName = UserDisplay.Name(author);
+        }
         if (string.IsNullOrWhiteSpace(authorName))
         {
             authorName = "A crewmate";
@@ -134,7 +140,7 @@ public class ContentMentionService(
                 ActionUrl = context.ActionUrl,
                 RelatedEntityId = context.ResourceId,
                 SecondaryEntityId = context.ParentResourceId,
-                ActorUserId = context.AuthorUserId
+                ActorUserId = context.OmitNotificationActorIdentity ? null : context.AuthorUserId
             }),
             cancellationToken);
     }

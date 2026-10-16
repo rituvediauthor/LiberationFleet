@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
 using LiberationFleet.Server.Application.Features.Mentions;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -88,6 +89,8 @@ public class UpdateChatMessageCommandHandler(
                 CrewId = membership.CrewId,
                 FleetId = room.FleetId,
                 AuthorUserId = userId,
+                OmitNotificationActorIdentity = message.IsAnonymous,
+                NotificationAuthorName = message.IsAnonymous ? NotificationActorPrivacy.AnonymousActorName : null,
                 ContentType = MentionedContentType.ChatRoomMessage,
                 ResourceId = message.Id,
                 ParentResourceId = room.Id,
@@ -142,6 +145,8 @@ public class UpdateChatMessageCommandHandler(
                 CrewId = membership.CrewId,
                 FleetId = room.FleetId,
                 AuthorUserId = userId,
+                OmitNotificationActorIdentity = message.IsAnonymous,
+                NotificationAuthorName = message.IsAnonymous ? NotificationActorPrivacy.AnonymousActorName : null,
                 ContentType = MentionedContentType.ChatRoomMessage,
                 ResourceId = message.Id,
                 ParentResourceId = room.Id,
@@ -162,6 +167,8 @@ public class UpdateChatMessageCommandHandler(
         {
             CrewId = membership.CrewId,
             AuthorUserId = userId,
+            OmitNotificationActorIdentity = message.IsAnonymous,
+            NotificationAuthorName = message.IsAnonymous ? NotificationActorPrivacy.AnonymousActorName : null,
             ContentType = MentionedContentType.ChatRoomMessage,
             ResourceId = message.Id,
             ParentResourceId = room.Id,

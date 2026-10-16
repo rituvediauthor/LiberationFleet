@@ -69,6 +69,8 @@ public class UpdateProposalCommandHandler(
         {
             CrewId = proposal.CrewId!.Value,
             AuthorUserId = userId,
+            OmitNotificationActorIdentity = true,
+            NotificationAuthorName = ProposalMapper.AnonymousAuthor,
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
             ActionUrl = ProposalRouting.StatusListUrl(proposal),

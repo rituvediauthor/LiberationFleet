@@ -28,6 +28,7 @@ import { ProfileLocationService } from './profile-location.service';
 import { PushNotificationRegistrationService } from './push-notification-registration.service';
 import { NotificationHubService } from './notification-hub.service';
 import { ForumListPrefetchService } from './forum-list-prefetch.service';
+import { CrewDashboardPreviewService } from './crew-dashboard-preview.service';
 import { clearAllForumListScrollState } from '../utils/forum-list-scroll.util';
 
 export interface LoginRequest {
@@ -188,6 +189,7 @@ export class AuthService {
     this.notificationService.clearSessionCache();
     // Decrypted crew/fleet forum plaintext — must never survive logout/account switch.
     this.injector.get(ForumListPrefetchService).clearSessionCache();
+    this.injector.get(CrewDashboardPreviewService).clearSessionCache();
     clearAllForumListScrollState();
   }
 

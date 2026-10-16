@@ -7,6 +7,7 @@ import {
 } from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { NotificationBadgeSummaryResponse, NotificationItem } from '../models/notification.model';
+import { stripAnonymousNotificationActor } from '../utils/notification-actor-privacy.util';
 import { AuthService } from './auth.service';
 import { ApiUrlService } from './api-url.service';
 import { NotificationService } from './notification.service';
@@ -289,7 +290,7 @@ export class NotificationHubService implements OnDestroy {
       ? this.kindFromNumber(kindRaw)
       : String(kindRaw ?? '');
 
-    return {
+    return stripAnonymousNotificationActor({
       id: Number(raw['id'] ?? raw['Id'] ?? 0),
       crewId: (raw['crewId'] ?? raw['CrewId'] ?? null) as number | null,
       kind: kind as NotificationItem['kind'],
@@ -303,7 +304,7 @@ export class NotificationHubService implements OnDestroy {
       isRead: Boolean(raw['isRead'] ?? raw['IsRead'] ?? false),
       createdAt: String(raw['createdAt'] ?? raw['CreatedAt'] ?? ''),
       isTargetAvailable: (raw['isTargetAvailable'] ?? raw['IsTargetAvailable'] ?? null) as boolean | null
-    };
+    });
   }
 
   private kindFromNumber(value: number): string {

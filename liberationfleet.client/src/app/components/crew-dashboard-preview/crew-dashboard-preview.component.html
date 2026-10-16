@@ -11,12 +11,16 @@
     <div class="skeleton-line skeleton-body short"></div>
   </div>
 
-  <button
+  <div
     *ngIf="preview"
-    type="button"
     class="dash-preview"
+    role="button"
+    tabindex="0"
     [attr.aria-label]="'Open preview'"
-    (click)="onOpen()">
+    (click)="onOpen()"
+    (keydown)="onKeydown($event)"
+    (touchstart)="onTouchStart($event)"
+    (touchend)="onTouchEnd($event)">
     <article *ngIf="forumPreview as p" class="preview-forum">
       <p class="meta">
         <app-user-avatar
@@ -73,5 +77,25 @@
       <p *ngIf="p.dueLabel" class="due">{{ p.dueLabel }}</p>
       <p class="value">${{ p.task.value | number:'1.0-2' }}</p>
     </article>
-  </button>
+
+    <div *ngIf="libraryPreview as p" class="library-carousel-meta">
+      <div class="library-carousel-nav" *ngIf="hasLibraryCarouselControls">
+        <button
+          type="button"
+          class="library-carousel-button"
+          aria-label="Previous library preview"
+          (click)="showPreviousLibraryItem($event)">
+          <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+        </button>
+        <span class="library-carousel-count">{{ activeLibraryIndex + 1 }} / {{ p.items.length }}</span>
+        <button
+          type="button"
+          class="library-carousel-button"
+          aria-label="Next library preview"
+          (click)="showNextLibraryItem($event)">
+          <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

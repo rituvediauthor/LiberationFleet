@@ -199,6 +199,36 @@ public class NotificationBadgeBuilderTests
         expanded.Should().Contain(NotificationKind.NewFleetReply);
     }
 
+    [Fact]
+    public void Build_DoesNotDropAnonymousChatNotificationFromHiddenActor()
+    {
+        var notifications = new[]
+        {
+            new Notification
+            {
+                Id = 1,
+                UserId = 1,
+                Kind = NotificationKind.NewChatMessage,
+                Title = "Anonymous posted in General",
+                Body = "hello",
+                ActionUrl = "/app/crew/chats/5?messageId=9",
+                ActorUserId = 99,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        var summary = NotificationBadgeBuilder.Build(
+            notifications,
+            Array.Empty<UserNotificationPreference>(),
+            Array.Empty<UserMutedContent>(),
+            Array.Empty<UserHiddenContent>(),
+            hiddenUserIds: new HashSet<int> { 99 });
+
+        summary.UnreadCount.Should().Be(1);
+        summary.AreaCounts["crewChats"].Should().Be(1);
+    }
+
     private static Notification Notification(
         int id,
         NotificationKind kind,

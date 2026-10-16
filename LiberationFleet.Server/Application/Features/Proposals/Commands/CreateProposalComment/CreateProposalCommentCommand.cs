@@ -23,7 +23,6 @@ public record CreateProposalCommentCommand(
 public class CreateProposalCommentCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IUserRepository userRepository,
     IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
@@ -118,6 +117,11 @@ public class CreateProposalCommentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var aliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
+        var alias = aliasEntity.Nickname;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        var actorName = string.IsNullOrWhiteSpace(alias) ? ProposalMapper.AnonymousAuthor : alias;
+
         var actionUrl = ProposalRouting.CommentUrl(proposal, comment.Id);
         var notifyCrewId = proposal.CrewId ?? membership.CrewId;
         var notifyUserId = parentComment?.AuthorUserId ?? proposal.AuthorUserId;
@@ -128,8 +132,6 @@ public class CreateProposalCommentCommandHandler(
             && !(isExternalJoinProposal && notifyUserId == proposal.AuthorUserId);
         if (shouldNotify)
         {
-            var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
-            var actorName = UserDisplay.Name(actor);
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
             {
                 UserId = notifyUserId,
@@ -147,7 +149,7 @@ public class CreateProposalCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = proposal.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = userId
+                ActorUserId = null
             }, cancellationToken);
         }
 
@@ -164,6 +166,8 @@ public class CreateProposalCommentCommandHandler(
             CrewId = membership.CrewId,
             FleetId = proposal.FleetId,
             AuthorUserId = userId,
+            OmitNotificationActorIdentity = true,
+            NotificationAuthorName = actorName,
             ContentType = MentionedContentType.ProposalComment,
             ResourceId = comment.Id,
             ParentResourceId = proposal.Id,
@@ -171,11 +175,6 @@ public class CreateProposalCommentCommandHandler(
             MentionedUserIds = mentionedUserIds,
             Preview = request.Body
         }, cancellationToken);
-
-        string? alias = null;
-        var aliasEntity = await aliasService.GetOrCreateAsync(proposal.Id, userId, cancellationToken);
-        alias = aliasEntity.Nickname;
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new ProposalOperationResponse
         {

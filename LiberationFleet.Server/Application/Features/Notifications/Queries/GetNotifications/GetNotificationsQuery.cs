@@ -39,28 +39,28 @@ public class GetNotificationsQueryHandler(
 
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         notifications = notifications
-            .Where(n => !n.ActorUserId.HasValue || !hiddenUserIds.Contains(n.ActorUserId.Value))
+            .Where(n => NotificationActorPrivacy.ShouldOmitActorIdentity(n)
+                || !n.ActorUserId.HasValue
+                || !hiddenUserIds.Contains(n.ActorUserId.Value))
             .ToList();
 
         var unreadCount = await ResolveUnreadCountAsync(userId, cancellationToken);
 
-        var actorIds = notifications
+        var items = notifications.Select(NotificationMapper.Map).ToList();
+        var actorIds = items
             .Where(n => n.ActorUserId.HasValue)
             .Select(n => n.ActorUserId!.Value)
             .Distinct()
             .ToList();
         var avatars = await userRepository.GetAvatarResourceIdsAsync(actorIds, cancellationToken);
 
-        var items = notifications.Select(n =>
+        foreach (var dto in items)
         {
-            var dto = NotificationMapper.Map(n);
-            if (n.ActorUserId.HasValue && avatars.TryGetValue(n.ActorUserId.Value, out var avatar))
+            if (dto.ActorUserId.HasValue && avatars.TryGetValue(dto.ActorUserId.Value, out var avatar))
             {
                 dto.ActorAvatarResourceId = avatar;
             }
-
-            return dto;
-        }).ToList();
+        }
 
         return new NotificationListResponse
         {

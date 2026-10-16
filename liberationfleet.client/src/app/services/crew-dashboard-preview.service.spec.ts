@@ -25,7 +25,7 @@ describe('CrewDashboardPreviewService', () => {
   let libraryService: jasmine.SpyObj<LibraryService>;
   let libraryCrypto: jasmine.SpyObj<LibraryCryptoService>;
   let cryptoSession: { isUnlocked: jasmine.Spy };
-  let adultContent: jasmine.SpyObj<AdultContentService>;
+  let adultContent: AdultContentService & { shouldShowEntry: jasmine.Spy };
 
   beforeEach(() => {
     forumPrefetch = jasmine.createSpyObj('ForumListPrefetchService', ['peekCrewSpacePage']);
@@ -48,8 +48,12 @@ describe('CrewDashboardPreviewService', () => {
       'enrichTaskListItems'
     ]);
     cryptoSession = { isUnlocked: jasmine.createSpy('isUnlocked').and.returnValue(true) };
-    adultContent = jasmine.createSpyObj('AdultContentService', ['shouldShowEntry']);
-    adultContent.shouldShowEntry.and.callFake((isAdult?: boolean) => !isAdult);
+    adultContent = {
+      get preference() {
+        return 'Block';
+      },
+      shouldShowEntry: jasmine.createSpy('shouldShowEntry').and.callFake((isAdult?: boolean) => !isAdult)
+    } as AdultContentService & { shouldShowEntry: jasmine.Spy };
 
     forumPrefetch.peekCrewSpacePage.and.returnValue(null);
     discussionService.getPosts.and.returnValue(of({ items: [], hasMore: false }));
@@ -145,9 +149,11 @@ describe('CrewDashboardPreviewService', () => {
     ]));
 
     const result = await service.loadPreviews(7);
-    expect(result.library?.libraryKind).toBe('quest');
-    if (result.library?.libraryKind === 'quest') {
-      expect(result.library.task.taskId).toBe(44);
+    expect(result.library?.kind).toBe('library');
+    const item = result.library?.items[0];
+    expect(item?.libraryKind).toBe('quest');
+    if (item?.libraryKind === 'quest') {
+      expect(item.task.taskId).toBe(44);
     }
   });
 
@@ -156,5 +162,142 @@ describe('CrewDashboardPreviewService', () => {
     const result = await service.loadPreviews(7);
     expect(result.chat).toBeNull();
     expect(result.gift).toBeNull();
+  });
+
+  it('reuses cached previews for repeated calls with the same session state', async () => {
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 12,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Safe',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    const first = await service.loadPreviews(7);
+    const second = await service.loadPreviews(7);
+
+    expect(first).toEqual(second);
+    expect(discussionService.getPosts).toHaveBeenCalledTimes(1);
+  });
+
+  it('force-refreshes only the requested preview tile', async () => {
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 14,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Forum',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    await service.loadPreview(7, 'forum');
+    await service.loadPreview(7, 'forum', { force: true });
+
+    expect(discussionService.getPosts).toHaveBeenCalledTimes(2);
+    expect(chatService.getRooms).not.toHaveBeenCalled();
+  });
+
+  it('clears the preview cache when the session cache is reset', async () => {
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 13,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Fresh',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    await service.loadPreviews(7);
+    service.clearSessionCache();
+    await service.loadPreviews(7);
+
+    expect(discussionService.getPosts).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns up to five library carousel items from the combined candidate pool', async () => {
+    libraryService.getDurableUnits.and.returnValue(of({
+      items: [
+        {
+          unitId: 1,
+          offeringId: 1,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Tent',
+          descriptionPreview: 'Large',
+          categories: []
+        },
+        {
+          unitId: 2,
+          offeringId: 1,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Stove',
+          descriptionPreview: 'Portable',
+          categories: []
+        },
+        {
+          unitId: 3,
+          offeringId: 1,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Lamp',
+          descriptionPreview: 'Bright',
+          categories: []
+        }
+      ],
+      hasMore: false
+    }));
+    libraryService.getTasks.and.returnValue(of([
+      {
+        taskId: 44,
+        title: 'Mow lawn',
+        creatorUsername: 'Kai',
+        creatorUserId: 3,
+        value: 12,
+        scheduleSummary: 'Soon',
+        hasDeadline: true,
+        nextDueAt: '2026-03-01T00:00:00Z'
+      },
+      {
+        taskId: 45,
+        title: 'Paint',
+        creatorUsername: 'Kai',
+        creatorUserId: 3,
+        value: 18,
+        scheduleSummary: 'Later',
+        hasDeadline: false
+      },
+      {
+        taskId: 46,
+        title: 'Errands',
+        creatorUsername: 'Kai',
+        creatorUserId: 3,
+        value: 8,
+        scheduleSummary: 'Today',
+        hasDeadline: false
+      }
+    ]));
+
+    const result = await service.loadPreview(7, 'library');
+    expect(result?.items.length).toBe(5);
   });
 });

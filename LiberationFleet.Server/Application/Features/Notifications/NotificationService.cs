@@ -94,6 +94,8 @@ public class NotificationService(
         int? relatedEntityId = null,
         int? secondaryEntityId = null,
         int? excludeUserId = null,
+        int? actorUserId = null,
+        bool omitActorIdentity = false,
         CancellationToken cancellationToken = default)
     {
         var userIds = await notificationRepository.GetCrewMemberUserIdsAsync(crewId, excludeUserId, cancellationToken);
@@ -107,7 +109,7 @@ public class NotificationService(
             ActionUrl = actionUrl,
             RelatedEntityId = relatedEntityId,
             SecondaryEntityId = secondaryEntityId,
-            ActorUserId = excludeUserId
+            ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId)
         });
 
         await NotifyUsersAsync(requests, cancellationToken);
@@ -124,6 +126,8 @@ public class NotificationService(
         int? relatedEntityId = null,
         int? secondaryEntityId = null,
         int? excludeUserId = null,
+        int? actorUserId = null,
+        bool omitActorIdentity = false,
         CancellationToken cancellationToken = default)
     {
         var userIds = await notificationRepository.GetCrewMemberUserIdsAsync(crewId, excludeUserId, cancellationToken);
@@ -145,7 +149,7 @@ public class NotificationService(
                 ActionUrl = actionUrl,
                 RelatedEntityId = relatedEntityId,
                 SecondaryEntityId = secondaryEntityId,
-                ActorUserId = excludeUserId
+                ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId)
             });
 
         await NotifyUsersAsync(requests, cancellationToken);
