@@ -1155,6 +1155,94 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task OnCrewmatePriorityChangedAsync_DoesNotReorderActiveSurvivalThresholds()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        // Bob second, Carol first — priority change must not swap them.
+        var bobThreshold = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 40m,
+            receptionOrderPosition: 1);
+        var carolThreshold = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Carol,
+            thresholdAmount: 40m,
+            receptionOrderPosition: 0);
+
+        var bobMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        bobMembership.CurrentPriorityScore = 10_000m;
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.OnCrewmatePriorityChangedAsync(fixture.Bob.Id, CancellationToken.None);
+
+        var bobReloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == bobThreshold.Id);
+        var carolReloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == carolThreshold.Id);
+        bobReloaded.ReceptionOrderPosition.Should().Be(1);
+        carolReloaded.ReceptionOrderPosition.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SimulateNewMonth_AppendsNewThresholdsBelowExistingWithoutReorderingThem()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = 30m;
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        fixture.Alice.NeedsSurvivalAid = true;
+        fixture.Bob.NeedsSurvivalAid = true;
+        fixture.Carol.NeedsSurvivalAid = true;
+
+        // Carol ahead of Bob despite Bob later having a higher priority score.
+        var carolOld = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Carol,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 0,
+            year: 2025,
+            month: 10);
+        var bobOld = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 1,
+            year: 2025,
+            month: 10);
+
+        var bobMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        var carolMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        bobMembership.CurrentPriorityScore = 9_000m;
+        carolMembership.CurrentPriorityScore = 100m;
+        await fixture.Context.SaveChangesAsync();
+
+        var result = await fixture.Service.SimulateNewMonthAsync(fixture.Alice.Id, CancellationToken.None);
+        result.Success.Should().BeTrue();
+
+        var carolOldReloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == carolOld.Id);
+        var bobOldReloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == bobOld.Id);
+        carolOldReloaded.ReceptionOrderPosition.Should().Be(0);
+        bobOldReloaded.ReceptionOrderPosition.Should().Be(1);
+
+        var newest = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id && t.Id != carolOld.Id && t.Id != bobOld.Id && !t.Satisfied)
+            .OrderBy(t => t.ReceptionOrderPosition)
+            .ToListAsync();
+        newest.Should().NotBeEmpty();
+        newest.Should().OnlyContain(t => t.ReceptionOrderPosition > 1);
+
+        // Returning recipients keep prior relative order among the appended block
+        // (Carol before Bob), even though Bob now has the higher priority score.
+        var carolNew = newest.FirstOrDefault(t => t.UserId == fixture.Carol.Id);
+        var bobNew = newest.FirstOrDefault(t => t.UserId == fixture.Bob.Id);
+        carolNew.Should().NotBeNull();
+        bobNew.Should().NotBeNull();
+        carolNew!.ReceptionOrderPosition.Should().BeLessThan(bobNew!.ReceptionOrderPosition);
+    }
+
+    [Fact]
     public async Task ApplyAidSeasonAccounting_MultipleThresholdDrafts_UsesDistinctMonths()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

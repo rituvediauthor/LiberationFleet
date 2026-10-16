@@ -2786,9 +2786,18 @@ public async Task<bool> IsFinancialMemberAsync(
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var survivalAmount = capacityContext.SurvivalThresholdAmount;
 
+        // Refresh never rewrites ReceptionOrderPosition on existing open thresholds.
+        // New rows are appended after the current queue, preserving prior relative order
+        // among returning recipients (not live priority score).
+        var openThresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken);
+        var priorOrderByUser = openThresholds
+            .GroupBy(t => t.UserId)
+            .ToDictionary(g => g.Key, g => g.Min(t => t.ReceptionOrderPosition));
+
         var eligibleRecipients = participants
             .Where(IsSurvivalThresholdEligible)
-            .OrderByDescending(m => m.CurrentPriorityScore)
+            .OrderBy(m => priorOrderByUser.GetValueOrDefault(m.UserId, int.MaxValue))
+            .ThenBy(m => m.UserId)
             .ToList();
         var eligibleUserIds = eligibleRecipients.Select(m => m.UserId).ToHashSet();
 
@@ -2830,6 +2839,7 @@ public async Task<bool> IsFinancialMemberAsync(
             }
 
             // Preserve accountant / aid-stat custom amounts; only sync formula-driven rows.
+            // Do not touch ReceptionOrderPosition here.
             if (!threshold.IsCustomAmount && threshold.ThresholdAmount != survivalAmount)
             {
                 threshold.ThresholdAmount = survivalAmount;
@@ -2846,10 +2856,12 @@ public async Task<bool> IsFinancialMemberAsync(
 
         if (survivalAmount > 0m)
         {
+            // Re-read after eligibility removals / auto-satisfy so stack limits stay accurate.
             var activeCounts = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken))
                 .GroupBy(t => t.UserId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
+            // Append only — never insert ahead of / between existing open thresholds.
             var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
             foreach (var member in eligibleRecipients)
             {
@@ -3545,7 +3557,9 @@ public async Task<bool> IsFinancialMemberAsync(
                 cancellationToken);
         }
 
-        await RepositionSurvivalThresholdsForUserAsync(crew.Id, userId, cancellationToken);
+        // Active survival thresholds keep a stable ReceptionOrderPosition after creation.
+        // They are only ordered when monthly thresholds refresh (append) or an
+        // organizer/accountant saves Edit Reception Order — never on priority/profile updates.
     }
 
     private async Task RepositionCrewmateInSeasonAsync(
@@ -3722,84 +3736,6 @@ public async Task<bool> IsFinancialMemberAsync(
             {
                 cycle.ReceptionOrderPosition = position++;
             }
-        }
-    }
-
-    private async Task RepositionSurvivalThresholdsForUserAsync(
-        int crewId,
-        int userId,
-        CancellationToken cancellationToken)
-    {
-        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-        if (crew is null || !AreSurvivalThresholdsEnabled(crew))
-        {
-            return;
-        }
-
-        var thresholds = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crewId, cancellationToken)).ToList();
-        var userThresholds = thresholds.Where(t => t.UserId == userId).ToList();
-        if (userThresholds.Count == 0)
-        {
-            return;
-        }
-
-        var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crewId, cancellationToken);
-        decimal GetScore(int uid) =>
-            participants.FirstOrDefault(p => p.UserId == uid)?.CurrentPriorityScore ?? 0m;
-
-        foreach (var userThreshold in userThresholds)
-        {
-            var sameMonth = thresholds
-                .Where(t => t.Year == userThreshold.Year && t.Month == userThreshold.Month)
-                .OrderBy(t => t.ReceptionOrderPosition)
-                .ToList();
-
-            if (sameMonth.Count <= 1)
-            {
-                continue;
-            }
-
-            var newScore = GetScore(userId);
-            var oldPosition = userThreshold.ReceptionOrderPosition;
-            var withoutAffected = sameMonth.Where(t => t.UserId != userId).ToList();
-
-            var insertIndex = withoutAffected.Count;
-            for (var i = 0; i < withoutAffected.Count; i++)
-            {
-                if (GetScore(withoutAffected[i].UserId) < newScore)
-                {
-                    insertIndex = i;
-                    break;
-                }
-            }
-
-            var newPosition = insertIndex >= withoutAffected.Count
-                ? withoutAffected.Max(t => t.ReceptionOrderPosition)
-                : withoutAffected[insertIndex].ReceptionOrderPosition;
-
-            if (newPosition == oldPosition)
-            {
-                continue;
-            }
-
-            if (oldPosition < newPosition)
-            {
-                foreach (var threshold in sameMonth.Where(t =>
-                    t.ReceptionOrderPosition > oldPosition && t.ReceptionOrderPosition <= newPosition))
-                {
-                    threshold.ReceptionOrderPosition--;
-                }
-            }
-            else
-            {
-                foreach (var threshold in sameMonth.Where(t =>
-                    t.ReceptionOrderPosition >= newPosition && t.ReceptionOrderPosition < oldPosition))
-                {
-                    threshold.ReceptionOrderPosition++;
-                }
-            }
-
-            userThreshold.ReceptionOrderPosition = newPosition;
         }
     }
 

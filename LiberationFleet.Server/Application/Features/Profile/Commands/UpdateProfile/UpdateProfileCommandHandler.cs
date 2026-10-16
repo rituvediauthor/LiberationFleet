@@ -217,6 +217,14 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             user.PaymentPlatforms.First().IsPreferred = true;
         }
 
+        // Capture request-applied priority fields before ApplyInNeedDefault may force InNeed.
+        // Payment-platform-only saves must not reshuffle reception order / cycles.
+        var priorityRelevantChanged =
+            previousEmergencyLevel != user.EmergencyLevel
+            || previousPeopleRepresentedCount != user.PeopleRepresentedCount
+            || previousDisabilityLevel != user.DisabilityLevel
+            || previousInNeedOfAid != user.InNeedOfAid;
+
         await _userRepository.UpdateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -235,19 +243,16 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             return new ProfileOperationResponse { Success = false, Message = "User not found." };
         }
 
-        if (previousEmergencyLevel != reloaded.EmergencyLevel
-            || previousInNeedOfAid != reloaded.InNeedOfAid
-            || previousPeopleRepresentedCount != reloaded.PeopleRepresentedCount
-            || previousDisabilityLevel != reloaded.DisabilityLevel)
+        if (previousInNeedOfAid != reloaded.InNeedOfAid)
         {
-            if (previousInNeedOfAid != reloaded.InNeedOfAid)
-            {
-                await _mutualAidService.OnInNeedOfAidChangedAsync(
-                    userId.Value,
-                    reloaded.InNeedOfAid,
-                    cancellationToken);
-            }
+            await _mutualAidService.OnInNeedOfAidChangedAsync(
+                userId.Value,
+                reloaded.InNeedOfAid,
+                cancellationToken);
+        }
 
+        if (priorityRelevantChanged)
+        {
             await _mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
         }
 

@@ -148,6 +148,14 @@ public class UpdateSeasonProfileCommandHandler(
             user.PaymentPlatforms.First().IsPreferred = true;
         }
 
+        // Capture request-applied priority fields before ApplyInNeedDefault may force InNeed.
+        // Payment-platform-only saves must not reshuffle reception order / cycles.
+        var priorityRelevantChanged =
+            previousEmergencyLevel != user.EmergencyLevel
+            || previousPeopleRepresentedCount != user.PeopleRepresentedCount
+            || previousDisabilityLevel != user.DisabilityLevel
+            || previousInNeedOfAid != user.InNeedOfAid;
+
         await userRepository.UpdateAsync(user, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -172,19 +180,16 @@ public class UpdateSeasonProfileCommandHandler(
             return new SeasonProfileResponse { Success = false, Message = "You are not in a crew." };
         }
 
-        if (previousEmergencyLevel != reloaded.EmergencyLevel
-            || previousInNeedOfAid != reloaded.InNeedOfAid
-            || previousPeopleRepresentedCount != reloaded.PeopleRepresentedCount
-            || previousDisabilityLevel != reloaded.DisabilityLevel)
+        if (previousInNeedOfAid != reloaded.InNeedOfAid)
         {
-            if (previousInNeedOfAid != reloaded.InNeedOfAid)
-            {
-                await mutualAidService.OnInNeedOfAidChangedAsync(
-                    userId.Value,
-                    reloaded.InNeedOfAid,
-                    cancellationToken);
-            }
+            await mutualAidService.OnInNeedOfAidChangedAsync(
+                userId.Value,
+                reloaded.InNeedOfAid,
+                cancellationToken);
+        }
 
+        if (priorityRelevantChanged)
+        {
             await mutualAidService.OnCrewmatePriorityChangedAsync(userId.Value, cancellationToken);
         }
 
