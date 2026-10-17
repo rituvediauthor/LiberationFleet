@@ -64,18 +64,13 @@ public class GetFleetProposalsQueryHandler(
         var proposals = await proposalRepository.GetByFleetAndStatusAsync(fleet.Id, status, cancellationToken);
         var utcNow = DateTime.UtcNow;
 
-        foreach (var proposal in proposals)
-        {
-            var statusBefore = proposal.Status;
-            var eligible = await ProposalEligibility.GetEligibleVoterCountAsync(
-                proposal, proposalRepository, fleetRepository, cancellationToken);
-            var duoMode = await ProposalEligibility.GetDuoVoteTimeoutModeAsync(
-                proposal, crewRepository, fleetRepository, cancellationToken);
-            var autoResolveSettings = await ProposalEligibility.GetAutoResolveSettingsAsync(
-                proposal, crewRepository, fleetRepository, cancellationToken);
-            ProposalVotingService.TryResolveOnTimer(
-                proposal, utcNow, duoMode, autoResolveSettings, eligible);
-            await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
+        await ProposalListTimer.ResolveExpiredAsync(
+            proposals,
+            utcNow,
+            crewRepository,
+            fleetRepository,
+            proposalRepository,
+            (proposal, statusBefore, ct) => ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
                 proposal,
                 statusBefore,
                 crewSettingsProposalService,
@@ -85,18 +80,18 @@ public class GetFleetProposalsQueryHandler(
                 crewmateRejoinProposalService,
                 crewJoinRequestProposalService,
                 crewRoleProposalService,
-            claimPlaceholderIdentityProposalService,
-            crewmatePermissionProposalService,
-            crewmateAidStatProposalService,
-            crewApplyToFleetProposalService,
+                claimPlaceholderIdentityProposalService,
+                crewmatePermissionProposalService,
+                crewmateAidStatProposalService,
+                crewApplyToFleetProposalService,
                 crewLeaveFleetProposalService,
                 crewStartSeasonProposalService,
                 fleetJoinRequestProposalService,
                 fleetKickCrewProposalService,
                 fleetSettingsProposalService,
                 fleetRulesProposalService,
-                cancellationToken);
-        }
+                ct),
+            cancellationToken);
 
         await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
 
@@ -134,6 +129,10 @@ public class GetFleetProposalsQueryHandler(
             fleetId: fleet.Id,
             cancellationToken: cancellationToken);
         var envelopeById = ProposalMapper.IndexByResourceId(envelopes);
+        var votesByProposalId = await proposalRepository.GetVotesForUserByProposalIdsAsync(
+            proposals.Select(p => p.Id),
+            userId,
+            cancellationToken);
 
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)
@@ -149,7 +148,7 @@ public class GetFleetProposalsQueryHandler(
             {
                 envelopeById.TryGetValue(proposal.Id.ToString(), out envelope);
             }
-            var vote = await proposalRepository.GetVoteAsync(proposal.Id, userId, cancellationToken);
+            votesByProposalId.TryGetValue(proposal.Id, out var vote);
             var currentUserVote = vote is null ? null : vote.IsApprove ? "approve" : "disapprove";
             items.Add(ProposalMapper.MapListItem(
                 proposal,

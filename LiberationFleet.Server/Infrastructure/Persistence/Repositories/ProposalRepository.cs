@@ -28,7 +28,6 @@ public class ProposalRepository : IProposalRepository
         ProposalStatus status,
         CancellationToken cancellationToken = default) =>
         await _context.Proposals
-            .Include(p => p.AuthorUser)
             .Where(p => p.CrewId == crewId && !p.IsDeleted && p.Status == status)
             .OrderByDescending(p => p.LastActivityAt)
             .Take(500)
@@ -56,6 +55,26 @@ public class ProposalRepository : IProposalRepository
 
     public Task<ProposalVote?> GetVoteAsync(int proposalId, int userId, CancellationToken cancellationToken = default) =>
         _context.ProposalVotes.FirstOrDefaultAsync(v => v.ProposalId == proposalId && v.UserId == userId, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, ProposalVote>> GetVotesForUserByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = proposalIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, ProposalVote>();
+        }
+
+        var votes = await _context.ProposalVotes
+            .Where(v => v.UserId == userId && ids.Contains(v.ProposalId))
+            .ToListAsync(cancellationToken);
+
+        return votes
+            .GroupBy(v => v.ProposalId)
+            .ToDictionary(g => g.Key, g => g.First());
+    }
 
     public async Task<IReadOnlyList<ProposalComment>> GetCommentsByProposalIdAsync(
         int proposalId,
@@ -837,9 +856,9 @@ public class ProposalRepository : IProposalRepository
         ProposalStatus status,
         CancellationToken cancellationToken = default) =>
         await _context.Proposals
-            .Include(p => p.AuthorUser)
             .Where(p => p.FleetId == fleetId && !p.IsDeleted && p.Status == status)
             .OrderByDescending(p => p.LastActivityAt)
+            .Take(500)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<int, ProposalFleetSettingChange>> GetFleetSettingChangesByProposalIdsAsync(

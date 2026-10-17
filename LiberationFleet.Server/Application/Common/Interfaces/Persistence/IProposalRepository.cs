@@ -18,6 +18,10 @@ public interface IProposalRepository
 
     Task<int> GetActiveCrewMemberCountAsync(int crewId, CancellationToken cancellationToken = default);
     Task<ProposalVote?> GetVoteAsync(int proposalId, int userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, ProposalVote>> GetVotesForUserByProposalIdsAsync(
+        IEnumerable<int> proposalIds,
+        int userId,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProposalComment>> GetCommentsByProposalIdAsync(
         int proposalId,
         CancellationToken cancellationToken = default);
