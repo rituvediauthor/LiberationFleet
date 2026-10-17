@@ -423,10 +423,10 @@ describe('CrewHomeComponent', () => {
   });
 
   it('paints persisted preview tiles immediately while a refresh is in flight', fakeAsync(() => {
-    let resolvePreviews: ((value: CrewDashboardPreviews) => void) | undefined;
-    dashboardPreviewService.loadPreviews.and.returnValue(new Promise(resolve => {
-      resolvePreviews = resolve;
-    }));
+    const resolvers = new Map<keyof CrewDashboardPreviews, (value: CrewDashboardPreview | null) => void>();
+    dashboardPreviewService.loadPreview.and.callFake((_crewId: number, key: keyof CrewDashboardPreviews) => {
+      return new Promise(resolve => resolvers.set(key, resolve));
+    });
     dashboardPreviewService.peekCachedPreview.and.callFake((_crewId: number, key: keyof CrewDashboardPreviews) => {
       if (key !== 'forum') {
         return undefined;
@@ -454,21 +454,20 @@ describe('CrewHomeComponent', () => {
     expect(component.previews.forum?.id).toBe(55);
     expect(component.previewLoading.forum).toBeFalse();
     expect(component.previewLoading.chat).toBeTrue();
-    expect(dashboardPreviewService.loadPreviews).toHaveBeenCalledWith(1, { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'forum', { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'chat', { force: true });
 
-    resolvePreviews?.({
-      forum: {
-        kind: 'forum',
-        id: 56,
-        authorUsername: 'Ada',
-        lastActivityAt: new Date(),
-        title: 'Fresh post',
-        body: 'Hello'
-      },
-      chat: null,
-      gift: null,
-      library: null
+    resolvers.get('forum')?.({
+      kind: 'forum',
+      id: 56,
+      authorUsername: 'Ada',
+      lastActivityAt: new Date(),
+      title: 'Fresh post',
+      body: 'Hello'
     });
+    resolvers.get('chat')?.(null);
+    resolvers.get('gift')?.(null);
+    resolvers.get('library')?.(null);
     tick();
 
     expect(component.previews.forum?.id).toBe(56);
@@ -491,7 +490,11 @@ describe('CrewHomeComponent', () => {
     fixture.detectChanges();
     tick();
 
-    expect(dashboardPreviewService.loadPreviews).toHaveBeenCalledWith(1, { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'forum', { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'chat', { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'gift', { force: true });
+    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'library', { force: true });
+    dashboardPreviewService.loadPreview.calls.reset();
 
     tick(5000);
     expect(notificationService.refreshBadges).toHaveBeenCalledWith(true);

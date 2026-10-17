@@ -74,8 +74,9 @@ public class GetChatRoomMessagesQueryHandler(
             envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
         }
 
+        var previewOnly = !request.BeforeMessageId.HasValue && request.Limit == 1;
         var hasMore = false;
-        if (messages.Count > 0)
+        if (!previewOnly && messages.Count > 0)
         {
             var oldestId = messages[0].Id;
             var older = await chatRepository.GetMessagesBeforeIdAsync(request.RoomId, oldestId, 1, cancellationToken);
@@ -92,8 +93,12 @@ public class GetChatRoomMessagesQueryHandler(
         }
 
         var messageIds = messages.Select(m => m.Id).ToList();
-        var likeCounts = await chatRepository.GetActiveLikeCountsForMessagesAsync(messageIds, cancellationToken);
-        var likedIds = await chatRepository.GetActiveLikedMessageIdsByUserAsync(userId, messageIds, cancellationToken);
+        var likeCounts = previewOnly
+            ? new Dictionary<int, int>()
+            : await chatRepository.GetActiveLikeCountsForMessagesAsync(messageIds, cancellationToken);
+        var likedIds = previewOnly
+            ? new HashSet<int>()
+            : await chatRepository.GetActiveLikedMessageIdsByUserAsync(userId, messageIds, cancellationToken);
 
         var items = messages.Select(message =>
         {

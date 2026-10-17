@@ -37,8 +37,10 @@ import {
   truncateDashboardPreview
 } from '../utils/dashboard-preview.util';
 
-const LIBRARY_UNIT_SAMPLE_LIMIT = 10;
+const LIBRARY_UNIT_SAMPLE_LIMIT = 5;
+const LIBRARY_TASK_SAMPLE_LIMIT = 8;
 const LIBRARY_CAROUSEL_SIZE = 5;
+const CHAT_PREVIEW_ROOM_BATCH = 3;
 const PREVIEW_CACHE_TTL_MS = 90_000;
 type CrewPreviewKey = keyof CrewDashboardPreviews;
 
@@ -158,26 +160,41 @@ export class CrewDashboardPreviewService {
 
   private async loadForumPreview(crewId: number): Promise<ForumDashboardPreview | null> {
     const peeked = this.forumPrefetch.peekCrewSpacePage(crewId)?.items ?? [];
-    let items = peeked;
-
-    if (!items.length) {
-      if (!this.cryptoSession.isUnlocked()) {
-        return null;
-      }
-      const page = await firstValueFrom(
-        this.discussionService.getPosts(FORUM_DISCUSSION_CONFIG, { offset: 0, limit: 5 })
+    if (peeked.length) {
+      return this.toForumPreview(
+        pickFirstAllowedAdult(
+          peeked,
+          item => item.isAdultContent,
+          flag => this.adultContent.shouldShowEntry(flag)
+        )
       );
-      items = await this.proposalCrypto.decryptListItems(
-        page.items as ProposalListItem[],
-        crewId
-      ) as DiscussionListItem[];
     }
 
-    const item = pickFirstAllowedAdult(
-      items,
-      i => i.isAdultContent,
-      flag => this.adultContent.shouldShowEntry(flag)
+    if (!this.cryptoSession.isUnlocked()) {
+      return null;
+    }
+
+    const page = await firstValueFrom(
+      this.discussionService.getPosts(FORUM_DISCUSSION_CONFIG, { offset: 0, limit: 5 })
     );
+    const rawItems = (page.items ?? []) as DiscussionListItem[];
+    for (const candidate of rawItems) {
+      if (!this.adultContent.shouldShowEntry(candidate.isAdultContent)) {
+        continue;
+      }
+      const [item] = await this.proposalCrypto.decryptListItems(
+        [candidate as ProposalListItem],
+        crewId
+      ) as DiscussionListItem[];
+      const preview = this.toForumPreview(item);
+      if (preview) {
+        return preview;
+      }
+    }
+    return null;
+  }
+
+  private toForumPreview(item: DiscussionListItem | null | undefined): ForumDashboardPreview | null {
     if (!item) {
       return null;
     }
@@ -188,7 +205,6 @@ export class CrewDashboardPreviewService {
       return null;
     }
 
-    const body = truncateDashboardPreview(item.descriptionPreview);
     return {
       kind: 'forum',
       id: item.id,
@@ -196,7 +212,7 @@ export class CrewDashboardPreviewService {
       authorAvatarResourceId: item.authorAvatarResourceId,
       lastActivityAt: item.lastActivityAt,
       title: item.title || 'Untitled post',
-      body,
+      body: truncateDashboardPreview(item.descriptionPreview),
       thumbnailUrl: item.thumbnailUrl ?? item.previewImageUrls?.[0] ?? null
     };
   }
@@ -211,14 +227,15 @@ export class CrewDashboardPreviewService {
       return null;
     }
 
-    const rooms = await this.chatCrypto.decryptRooms(roomsResponse.items ?? [], { crewId });
-    const textRooms = rooms
+    const textRooms = (roomsResponse.items ?? [])
       .filter(room => room.roomType === 'Text')
       .filter(room => this.adultContent.shouldShowEntry(room.isAdultContent))
       .sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime());
 
-    for (const room of textRooms) {
-      const preview = await this.loadLatestMessagePreview(crewId, room);
+    for (let index = 0; index < textRooms.length; index += CHAT_PREVIEW_ROOM_BATCH) {
+      const batch = textRooms.slice(index, index + CHAT_PREVIEW_ROOM_BATCH);
+      const previews = await Promise.all(batch.map(room => this.loadLatestMessagePreview(crewId, room)));
+      const preview = previews.find(item => !!item);
       if (preview) {
         return preview;
       }
@@ -346,23 +363,44 @@ export class CrewDashboardPreviewService {
       ...(services.items ?? []),
       ...(digital.items ?? [])
     ];
-    const units = await this.libraryCrypto.enrichUnitListItems(rawUnits, crewId);
-    const tasks = await this.libraryCrypto.enrichTaskListItems(
-      [...(deadlineTasks ?? []), ...(noDeadlineTasks ?? [])],
-      crewId
-    );
+    const rawTasks = [
+      ...(deadlineTasks ?? []),
+      ...(noDeadlineTasks ?? [])
+    ].slice(0, LIBRARY_TASK_SAMPLE_LIMIT);
 
     const candidates: LibraryPreviewCandidate[] = [
-      ...units
+      ...rawUnits
         .filter(unit => !!unit.title && unit.title !== 'Encrypted quest')
         .map(unit => ({ type: 'unit' as const, unit })),
-      ...tasks
+      ...rawTasks
         .filter(task => !!task.title && task.title !== 'Encrypted quest')
         .map(task => ({ type: 'quest' as const, task }))
     ];
-
-    const items = pickLibraryPreviewCarousel(candidates, LIBRARY_CAROUSEL_SIZE)
-      .map(candidate => this.toLibraryPreviewItem(candidate));
+    const picked = pickLibraryPreviewCarousel(candidates, LIBRARY_CAROUSEL_SIZE);
+    const pickedUnits = picked
+      .filter((candidate): candidate is { type: 'unit'; unit: typeof rawUnits[number] } => candidate.type === 'unit')
+      .map(candidate => candidate.unit);
+    const pickedTasks = picked
+      .filter((candidate): candidate is { type: 'quest'; task: typeof rawTasks[number] } => candidate.type === 'quest')
+      .map(candidate => candidate.task);
+    const [units, tasks] = await Promise.all([
+      this.libraryCrypto.enrichUnitListItems(pickedUnits, crewId),
+      this.libraryCrypto.enrichTaskListItems(pickedTasks, crewId)
+    ]);
+    const unitById = new Map(units.map(unit => [unit.unitId, unit]));
+    const taskById = new Map(tasks.map(task => [task.taskId, task]));
+    const items = picked
+      .map(candidate => {
+        if (candidate.type === 'unit') {
+          const unit = unitById.get(candidate.unit.unitId);
+          return unit ? this.toLibraryPreviewItem({ type: 'unit', unit }) : null;
+        }
+        const task = taskById.get(candidate.task.taskId);
+        return task && task.title !== 'Encrypted quest'
+          ? this.toLibraryPreviewItem({ type: 'quest', task })
+          : null;
+      })
+      .filter((item): item is LibraryDashboardPreviewItem => !!item);
     if (!items.length) {
       return null;
     }

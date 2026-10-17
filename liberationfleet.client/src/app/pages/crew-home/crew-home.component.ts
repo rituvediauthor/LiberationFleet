@@ -391,46 +391,34 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
 
   private async refreshDashboardPreviews(crewId: number) {
     const generation = ++this.previewLoadGeneration;
-    try {
-      const next = await this.dashboardPreviews.loadPreviews(crewId, { force: true });
-      if (generation !== this.previewLoadGeneration) {
-        return;
-      }
-      this.previews = next;
-      this.previewLoading = {
-        forum: false,
-        chat: false,
-        gift: false,
-        library: false
-      };
-    } catch {
-      if (generation === this.previewLoadGeneration) {
-        this.previewLoading = {
-          forum: false,
-          chat: false,
-          gift: false,
-          library: false
-        };
-      }
+    const keys: CrewPreviewKey[] = ['forum', 'chat', 'gift'];
+    if (this.libraryOfThingsEnabled) {
+      keys.push('library');
+    } else {
+      this.previews = { ...this.previews, library: null };
+      this.previewLoading = { ...this.previewLoading, library: false };
     }
+
+    await Promise.all(keys.map(key => this.refreshDashboardPreview(crewId, key, true, generation)));
   }
 
   private async refreshDashboardPreview(
     crewId: number,
     previewKey: CrewPreviewKey,
-    force = false
+    force = false,
+    generation = this.previewLoadGeneration
   ) {
     if (!this.previews[previewKey]) {
       this.previewLoading = { ...this.previewLoading, [previewKey]: true };
     }
     try {
       const next = await this.dashboardPreviews.loadPreview(crewId, previewKey, { force });
-      if (this.membership?.crewId !== crewId) {
+      if (generation !== this.previewLoadGeneration || this.membership?.crewId !== crewId) {
         return;
       }
       this.previews = { ...this.previews, [previewKey]: next };
     } finally {
-      if (this.membership?.crewId === crewId) {
+      if (generation === this.previewLoadGeneration && this.membership?.crewId === crewId) {
         this.previewLoading = { ...this.previewLoading, [previewKey]: false };
       }
     }

@@ -429,5 +429,99 @@ describe('CrewDashboardPreviewService', () => {
 
     const result = await service.loadPreview(7, 'library');
     expect(result?.items.length).toBe(5);
+    expect(libraryCrypto.enrichUnitListItems.calls.mostRecent().args[0].length).toBeLessThanOrEqual(5);
+    expect(libraryCrypto.enrichTaskListItems.calls.mostRecent().args[0].length).toBeLessThanOrEqual(5);
+  });
+
+  it('decrypts only the first allowed forum post', async () => {
+    discussionService.getPosts.and.returnValue(of({
+      items: [
+        {
+          id: 1,
+          authorUserId: 1,
+          authorUsername: 'AdultAuthor',
+          lastActivityAt: new Date(),
+          title: 'Adult',
+          descriptionPreview: 'nsfw',
+          isAdultContent: true
+        },
+        {
+          id: 2,
+          authorUserId: 2,
+          authorUsername: 'SafeAuthor',
+          lastActivityAt: new Date(),
+          title: 'Safe',
+          descriptionPreview: 'hello',
+          isAdultContent: false
+        }
+      ],
+      hasMore: false
+    }));
+
+    const result = await service.loadPreview(7, 'forum');
+
+    expect(result?.id).toBe(2);
+    expect(proposalCrypto.decryptListItems).toHaveBeenCalledTimes(1);
+    expect(proposalCrypto.decryptListItems.calls.mostRecent().args[0].length).toBe(1);
+    expect(proposalCrypto.decryptListItems.calls.mostRecent().args[0][0].id).toBe(2);
+  });
+
+  it('loads the latest chat message without decrypting room names', async () => {
+    chatService.getRooms.and.returnValue(of({
+      success: true,
+      message: '',
+      items: [
+        {
+          id: 1,
+          name: 'Old',
+          roomType: 'Text',
+          createdByUserId: 1,
+          createdByUsername: 'Ada',
+          createdAt: '2026-01-01T00:00:00Z',
+          lastActivityAt: '2026-01-01T00:00:00Z'
+        },
+        {
+          id: 2,
+          name: 'Voice',
+          roomType: 'Voice',
+          createdByUserId: 1,
+          createdByUsername: 'Ada',
+          createdAt: '2026-03-01T00:00:00Z',
+          lastActivityAt: '2026-03-02T00:00:00Z'
+        },
+        {
+          id: 3,
+          name: 'Fresh',
+          roomType: 'Text',
+          createdByUserId: 1,
+          createdByUsername: 'Ada',
+          createdAt: '2026-02-01T00:00:00Z',
+          lastActivityAt: '2026-03-01T00:00:00Z'
+        }
+      ]
+    }));
+    chatService.getMessages.and.callFake((roomId: number) => of({
+      success: true,
+      message: '',
+      items: roomId === 3
+        ? [{
+            id: 99,
+            authorUserId: 4,
+            authorUsername: 'Bea',
+            createdAt: '2026-03-01T00:00:00Z',
+            hasEncryptedContent: false,
+            body: 'Latest hello'
+          }]
+        : [],
+      hasMore: false
+    }));
+
+    const result = await service.loadPreview(7, 'chat');
+
+    expect(result?.messageId).toBe(99);
+    expect(result?.body).toBe('Latest hello');
+    expect(chatCrypto.decryptRooms).not.toHaveBeenCalled();
+    expect(chatService.getMessages).toHaveBeenCalled();
+    expect(chatService.getMessages.calls.count()).toBeLessThanOrEqual(3);
   });
 });
