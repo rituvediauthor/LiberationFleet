@@ -109,7 +109,7 @@ public class GetCrewProposalsQueryHandler(
             resourceIds,
             crewId: membership.CrewId,
             cancellationToken: cancellationToken);
-        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var envelopeById = ProposalMapper.IndexByResourceId(envelopes);
 
         var crewSettingChanges = await proposalRepository.GetCrewSettingChangesByProposalIdsAsync(
             proposals.Where(p => p.Kind == ProposalKind.CrewSettingChange).Select(p => p.Id),

@@ -133,7 +133,7 @@ public class GetFleetProposalsQueryHandler(
             generalResourceIds,
             fleetId: fleet.Id,
             cancellationToken: cancellationToken);
-        var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+        var envelopeById = ProposalMapper.IndexByResourceId(envelopes);
 
         var items = new List<ProposalListItemDto>();
         foreach (var proposal in proposals)

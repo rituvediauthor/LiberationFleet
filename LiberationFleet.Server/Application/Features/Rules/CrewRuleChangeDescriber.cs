@@ -8,10 +8,10 @@ public static class CrewRuleChangeDescriber
     public const string UpdateTitle = "Edit crew rule";
     public const string DeleteTitle = "Delete crew rule";
 
-    public static string FormatRuleText(string title, string description)
+    public static string FormatRuleText(string? title, string? description)
     {
-        var trimmedTitle = title.Trim();
-        var trimmedDescription = description.Trim();
+        var trimmedTitle = (title ?? string.Empty).Trim();
+        var trimmedDescription = (description ?? string.Empty).Trim();
         return string.IsNullOrWhiteSpace(trimmedDescription)
             ? trimmedTitle
             : $"{trimmedTitle}: {trimmedDescription}";
@@ -23,8 +23,8 @@ public static class CrewRuleChangeDescriber
     /// </summary>
     public static (string Title, string Description) BuildProposalDisplay(
         CrewRuleProposalAction action,
-        string ruleTitle,
-        string ruleDescription)
+        string? ruleTitle,
+        string? ruleDescription)
     {
         var body = FormatRuleText(ruleTitle, ruleDescription);
         return action switch

@@ -155,28 +155,6 @@ public class GetProposalDetailQueryHandler(
             ? await proposalRepository.GetCrewmateAidStatChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
 
-        var displayNameUserIds = new List<int>();
-        if (crewmateAidStatChange is not null) displayNameUserIds.Add(crewmateAidStatChange.TargetUserId);
-        if (crewRoleChange is not null) displayNameUserIds.Add(crewRoleChange.TargetUserId);
-        if (crewmatePermissionGrant is not null) displayNameUserIds.Add(crewmatePermissionGrant.TargetUserId);
-        if (crewJoinRequest is not null) displayNameUserIds.Add(crewJoinRequest.ApplicantUserId);
-        if (crewmateRejoin is not null) displayNameUserIds.Add(crewmateRejoin.TargetUserId);
-        if (crewmateKick is not null) displayNameUserIds.Add(crewmateKick.TargetUserId);
-        if (claimPlaceholderIdentity is not null) displayNameUserIds.Add(claimPlaceholderIdentity.PlaceholderUserId);
-        if (displayNameUserIds.Count > 0)
-        {
-            var displayNames = await userRepository.GetDisplayNamesAsync(displayNameUserIds, cancellationToken);
-            ProposalMapper.RefreshTargetDisplayNames(
-                displayNames,
-                crewmateAidStatChange,
-                crewRoleChange,
-                crewmatePermissionGrant,
-                crewJoinRequest,
-                crewmateRejoin,
-                crewmateKick,
-                claimPlaceholderIdentity);
-        }
-
         var fleetRuleChange = proposal.Kind == ProposalKind.FleetRuleChange
             ? await proposalRepository.GetFleetRuleChangeByProposalIdAsync(proposal.Id, cancellationToken)
             : null;
@@ -226,7 +204,7 @@ public class GetProposalDetailQueryHandler(
                 commentIds,
                 fleetId: proposal.FleetId.Value,
                 cancellationToken: cancellationToken);
-            commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+            commentEnvelopeById = ProposalMapper.IndexByResourceId(commentEnvelopes);
         }
         else if (proposal.CrewId.HasValue)
         {
@@ -236,7 +214,7 @@ public class GetProposalDetailQueryHandler(
                 commentIds,
                 crewId: proposal.CrewId.Value,
                 cancellationToken: cancellationToken);
-            commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+            commentEnvelopeById = ProposalMapper.IndexByResourceId(commentEnvelopes);
         }
         string? viewerAlias = null;
         var aliasRerollsRemaining = 0;
@@ -263,6 +241,28 @@ public class GetProposalDetailQueryHandler(
 
             nicknameByUserId = nicknameMap;
             await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        var displayNameUserIds = new List<int>();
+        if (crewmateAidStatChange is not null) displayNameUserIds.Add(crewmateAidStatChange.TargetUserId);
+        if (crewRoleChange is not null) displayNameUserIds.Add(crewRoleChange.TargetUserId);
+        if (crewmatePermissionGrant is not null) displayNameUserIds.Add(crewmatePermissionGrant.TargetUserId);
+        if (crewJoinRequest is not null) displayNameUserIds.Add(crewJoinRequest.ApplicantUserId);
+        if (crewmateRejoin is not null) displayNameUserIds.Add(crewmateRejoin.TargetUserId);
+        if (crewmateKick is not null) displayNameUserIds.Add(crewmateKick.TargetUserId);
+        if (claimPlaceholderIdentity is not null) displayNameUserIds.Add(claimPlaceholderIdentity.PlaceholderUserId);
+        if (displayNameUserIds.Count > 0)
+        {
+            var displayNames = await userRepository.GetDisplayNamesAsync(displayNameUserIds, cancellationToken);
+            ProposalMapper.RefreshTargetDisplayNames(
+                displayNames,
+                crewmateAidStatChange,
+                crewRoleChange,
+                crewmatePermissionGrant,
+                crewJoinRequest,
+                crewmateRejoin,
+                crewmateKick,
+                claimPlaceholderIdentity);
         }
 
         var commentDtos = topLevel.Select(comment =>

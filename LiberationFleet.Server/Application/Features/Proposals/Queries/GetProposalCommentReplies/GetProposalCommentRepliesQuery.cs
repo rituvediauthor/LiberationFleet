@@ -85,7 +85,7 @@ public class GetProposalCommentRepliesQueryHandler(
                 replyIds,
                 fleetId: proposal.FleetId.Value,
                 cancellationToken: cancellationToken);
-            envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+            envelopeById = ProposalMapper.IndexByResourceId(envelopes);
         }
         else if (proposal.CrewId.HasValue)
         {
@@ -95,7 +95,7 @@ public class GetProposalCommentRepliesQueryHandler(
                 replyIds,
                 crewId: proposal.CrewId.Value,
                 cancellationToken: cancellationToken);
-            envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
+            envelopeById = ProposalMapper.IndexByResourceId(envelopes);
         }
 
         var nicknameUserIds = replies

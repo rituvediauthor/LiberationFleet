@@ -208,9 +208,9 @@ public class CrewmateKickProposalService(
             SourceProposalId = sourceProposalId ?? 0,
             SourceCommentId = sourceCommentId,
             SourceChatMessageId = sourceChatMessageId,
-            AnonymousNickname = displayName,
-            Title = title,
-            Description = description
+            AnonymousNickname = ProposalMapper.Clip(displayName, ProposalMapper.AnonymousNicknameMaxLength),
+            Title = ProposalMapper.Clip(title, ProposalMapper.TitleMaxLength),
+            Description = ProposalMapper.Clip(description, ProposalMapper.DescriptionMaxLength)
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

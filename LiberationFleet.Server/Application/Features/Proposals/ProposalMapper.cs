@@ -369,9 +369,16 @@ public static class ProposalMapper
         dto.DescriptionPreview = description;
     }
 
+    public const int TitleMaxLength = 200;
+    public const int DescriptionMaxLength = 2000;
+    public const int AidDescriptionMaxLength = 4000;
+    public const int FrozenUsernameMaxLength = 100;
+    public const int AnonymousNicknameMaxLength = 64;
+
     /// <summary>
     /// Rewrites frozen proposal copy that was stored with Username so list/detail show DisplayName.
-    /// Safe to call on tracked entities (persists on the next SaveChanges).
+    /// Strings are clipped to column max lengths so a later SaveChanges (including anonymous-alias
+    /// inserts on GET) cannot 500 on nvarchar overflow.
     /// </summary>
     public static void RefreshTargetDisplayNames(
         IReadOnlyDictionary<int, string> displayNamesByUserId,
@@ -385,85 +392,116 @@ public static class ProposalMapper
     {
         if (aidStat is not null && displayNamesByUserId.TryGetValue(aidStat.TargetUserId, out var aidName))
         {
-            aidStat.Title = ReplaceAidStatTitleName(aidStat.Title, aidName);
-            aidStat.Description = ReplaceNameAfterPrefix(
-                aidStat.Description,
-                CrewmateAidStatChangeDescriber.DescriptionIntroPrefix,
-                aidName);
+            aidStat.Title = Clip(ReplaceAidStatTitleName(aidStat.Title, aidName), TitleMaxLength);
+            aidStat.Description = Clip(
+                ReplaceNameAfterPrefix(
+                    aidStat.Description,
+                    CrewmateAidStatChangeDescriber.DescriptionIntroPrefix,
+                    aidName),
+                AidDescriptionMaxLength);
         }
 
         if (roleChange is not null && displayNamesByUserId.TryGetValue(roleChange.TargetUserId, out var roleName))
         {
-            if (roleChange.Title.StartsWith("Nominate ", StringComparison.Ordinal))
+            var roleTitle = roleChange.Title ?? string.Empty;
+            if (roleTitle.StartsWith("Nominate ", StringComparison.Ordinal))
             {
-                var asIdx = roleChange.Title.LastIndexOf(" as ", StringComparison.Ordinal);
+                var asIdx = roleTitle.LastIndexOf(" as ", StringComparison.Ordinal);
                 if (asIdx > 0)
                 {
-                    roleChange.Title = $"Nominate {roleName}{roleChange.Title[asIdx..]}";
+                    roleChange.Title = Clip($"Nominate {roleName}{roleTitle[asIdx..]}", TitleMaxLength);
                 }
             }
-            else if (roleChange.Title.StartsWith("Remove ", StringComparison.Ordinal)
-                     && roleChange.Title.Contains(" from ", StringComparison.Ordinal))
+            else if (roleTitle.StartsWith("Remove ", StringComparison.Ordinal)
+                     && roleTitle.Contains(" from ", StringComparison.Ordinal))
             {
-                var fromIdx = roleChange.Title.LastIndexOf(" from ", StringComparison.Ordinal);
+                var fromIdx = roleTitle.LastIndexOf(" from ", StringComparison.Ordinal);
                 if (fromIdx > 0)
                 {
-                    roleChange.Title = $"{roleChange.Title[..(fromIdx + 6)]}{roleName}";
+                    roleChange.Title = Clip($"{roleTitle[..(fromIdx + 6)]}{roleName}", TitleMaxLength);
                 }
             }
 
-            roleChange.Description = roleChange.Description.Contains(" from ", StringComparison.Ordinal)
-                ? ReplaceNameAfterPrefix(roleChange.Description, "from ", roleName, untilColonOrPeriod: true)
-                : ReplaceNameAfterPrefix(roleChange.Description, "Nominate ", roleName, untilColonOrPeriod: true);
+            var roleDescription = roleChange.Description ?? string.Empty;
+            roleChange.Description = Clip(
+                roleDescription.Contains(" from ", StringComparison.Ordinal)
+                    ? ReplaceNameAfterPrefix(roleDescription, "from ", roleName, untilColonOrPeriod: true)
+                    : ReplaceNameAfterPrefix(roleDescription, "Nominate ", roleName, untilColonOrPeriod: true),
+                DescriptionMaxLength);
         }
 
         if (permissionGrant is not null
             && displayNamesByUserId.TryGetValue(permissionGrant.TargetUserId, out var grantName))
         {
-            permissionGrant.Title = ReplaceNameAfterPrefix(permissionGrant.Title, " to ", grantName);
-            permissionGrant.Description = ReplaceNameAfterPrefix(permissionGrant.Description, "Allow ", grantName);
+            permissionGrant.Title = Clip(
+                ReplaceNameAfterPrefix(permissionGrant.Title, " to ", grantName),
+                TitleMaxLength);
+            permissionGrant.Description = Clip(
+                ReplaceNameAfterPrefix(permissionGrant.Description, "Allow ", grantName),
+                DescriptionMaxLength);
         }
 
         if (joinRequest is not null
             && displayNamesByUserId.TryGetValue(joinRequest.ApplicantUserId, out var joinName))
         {
-            joinRequest.ApplicantUsername = joinName;
-            joinRequest.Title = $"Allow {joinName} to join";
-            joinRequest.Description = ReplaceNameAfterPrefix(joinRequest.Description, prefix: null, joinName);
+            joinRequest.ApplicantUsername = Clip(joinName, FrozenUsernameMaxLength);
+            joinRequest.Title = Clip($"Allow {joinName} to join", TitleMaxLength);
+            joinRequest.Description = Clip(
+                ReplaceNameAfterPrefix(joinRequest.Description, prefix: null, joinName),
+                DescriptionMaxLength);
         }
 
         if (rejoin is not null && displayNamesByUserId.TryGetValue(rejoin.TargetUserId, out var rejoinName))
         {
-            rejoin.Username = rejoinName;
-            rejoin.Title = $"Allow {rejoinName} to rejoin";
-            rejoin.Description = ReplaceNameAfterPrefix(rejoin.Description, "Allow ", rejoinName);
+            rejoin.Username = Clip(rejoinName, FrozenUsernameMaxLength);
+            rejoin.Title = Clip($"Allow {rejoinName} to rejoin", TitleMaxLength);
+            rejoin.Description = Clip(
+                ReplaceNameAfterPrefix(rejoin.Description, "Allow ", rejoinName),
+                DescriptionMaxLength);
         }
 
         if (kick is not null
             && displayNamesByUserId.TryGetValue(kick.TargetUserId, out var kickName)
             && string.IsNullOrWhiteSpace(kick.AnonymousNickname))
         {
-            if (kick.Title.StartsWith("Kick ", StringComparison.Ordinal))
+            var kickTitle = kick.Title ?? string.Empty;
+            if (kickTitle.StartsWith("Kick ", StringComparison.Ordinal))
             {
-                kick.Title = $"Kick {kickName}";
+                kick.Title = Clip($"Kick {kickName}", TitleMaxLength);
             }
-            else if (kick.Title.StartsWith("Remove ", StringComparison.Ordinal)
-                     && kick.Title.Contains(" from season", StringComparison.Ordinal))
+            else if (kickTitle.StartsWith("Remove ", StringComparison.Ordinal)
+                     && kickTitle.Contains(" from season", StringComparison.Ordinal))
             {
-                kick.Title = $"Remove {kickName} from season";
+                kick.Title = Clip($"Remove {kickName} from season", TitleMaxLength);
             }
 
-            kick.Description = ReplaceNameAfterPrefix(kick.Description, "Remove ", kickName);
+            kick.Description = Clip(
+                ReplaceNameAfterPrefix(kick.Description, "Remove ", kickName),
+                DescriptionMaxLength);
         }
 
         if (claim is not null
             && displayNamesByUserId.TryGetValue(claim.PlaceholderUserId, out var claimName))
         {
-            claim.PlaceholderDisplayName = claimName;
-            claim.Title = $"Claim identity of {claimName}";
-            claim.Description = ReplaceNameAfterPrefix(claim.Description, prefix: null, claimName);
+            claim.PlaceholderDisplayName = Clip(claimName, TextFieldLimits.PlaceholderDisplayName);
+            claim.Title = Clip($"Claim identity of {claimName}", TitleMaxLength);
+            claim.Description = Clip(
+                ReplaceNameAfterPrefix(claim.Description, prefix: null, claimName),
+                DescriptionMaxLength);
         }
     }
+
+    public static string Clip(string? value, int maxLength)
+    {
+        var text = value ?? string.Empty;
+        return text.Length <= maxLength ? text : text[..maxLength];
+    }
+
+    public static IReadOnlyDictionary<string, EncryptedContentEnvelope> IndexByResourceId(
+        IEnumerable<EncryptedContentEnvelope> envelopes) =>
+        envelopes
+            .GroupBy(e => e.ResourceId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
     private static string ReplaceAidStatTitleName(string title, string displayName)
     {
