@@ -123,6 +123,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<LiberationFleet.Server.Filters.LibraryAccessFilter>();
 builder.Services.AddScoped<LiberationFleet.Server.Filters.FleetRuleAcceptanceFilter>();
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();

@@ -534,7 +534,9 @@ public class ProposalRepository : IProposalRepository
             .Where(a => a.ProposalId == proposalId && ids.Contains(a.UserId))
             .ToListAsync(cancellationToken);
 
-        var byUserId = fromDb.ToDictionary(a => a.UserId);
+        var byUserId = fromDb
+            .GroupBy(a => a.UserId)
+            .ToDictionary(g => g.Key, g => g.First());
         foreach (var local in _context.ProposalAnonymousAliases.Local
                      .Where(a => a.ProposalId == proposalId && ids.Contains(a.UserId)))
         {

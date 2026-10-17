@@ -67,6 +67,8 @@ public class ProposalAnonymousAliasService(IProposalRepository proposalRepositor
         }
 
         var aliases = await proposalRepository.GetAnonymousAliasesAsync(proposalId, ids, cancellationToken);
-        return aliases.ToDictionary(a => a.UserId, a => a.Nickname, comparer: EqualityComparer<int>.Default);
+        return aliases
+            .GroupBy(a => a.UserId)
+            .ToDictionary(g => g.Key, g => g.First().Nickname);
     }
 }

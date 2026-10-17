@@ -41,22 +41,35 @@ public static class ProposalApprovalCoordinator
             return;
         }
 
-        await crewSettingsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewRulesProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewChatsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewmateKickProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewmateRejoinProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewRoleProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await claimPlaceholderIdentityProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewmatePermissionProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewmateAidStatProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewApplyToFleetProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewLeaveFleetProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await crewStartSeasonProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await fleetJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await fleetKickCrewProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await fleetSettingsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
-        await fleetRulesProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken);
+        // Apply must never fail a proposal GET/vote/timer read — unfinished work retries next time.
+        await ApplyQuietly(() => crewSettingsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewRulesProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewChatsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewmateKickProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewmateRejoinProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewRoleProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => claimPlaceholderIdentityProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewmatePermissionProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewmateAidStatProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewApplyToFleetProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewLeaveFleetProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => crewStartSeasonProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => fleetJoinRequestProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => fleetKickCrewProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => fleetSettingsProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+        await ApplyQuietly(() => fleetRulesProposalService.TryApplyApprovedProposalAsync(proposal, cancellationToken));
+    }
+
+    private static async Task ApplyQuietly(Func<Task> apply)
+    {
+        try
+        {
+            await apply();
+        }
+        catch (Exception)
+        {
+            // Retry on the next proposal read.
+        }
     }
 }

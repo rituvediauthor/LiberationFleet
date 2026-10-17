@@ -118,7 +118,7 @@ public class GetProposalCommentRepliesQueryHandler(
 
         if (nicknameUserIds.Count > 0)
         {
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
         }
 
         var items = replies.Select(reply =>

@@ -93,7 +93,7 @@ public class GetCrewProposalsQueryHandler(
                 cancellationToken);
         }
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
 
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         proposals = proposals

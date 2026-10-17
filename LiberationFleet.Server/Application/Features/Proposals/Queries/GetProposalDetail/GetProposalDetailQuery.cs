@@ -104,7 +104,7 @@ public class GetProposalDetailQueryHandler(
             fleetSettingsProposalService,
             fleetRulesProposalService,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
 
         EncryptedContentEnvelope? proposalEnvelope = null;
         if (proposal.Kind == ProposalKind.General)
@@ -240,7 +240,7 @@ public class GetProposalDetailQueryHandler(
             }
 
             nicknameByUserId = nicknameMap;
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
         }
 
         var displayNameUserIds = new List<int>();

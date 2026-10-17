@@ -20,7 +20,7 @@ public static class ProposalNicknameGenerator
     {
         var taken = new HashSet<string>(takenNicknames, StringComparer.OrdinalIgnoreCase);
 
-        for (var attempt = 0; attempt < 200; attempt++)
+        for (var attempt = 0; attempt < 400; attempt++)
         {
             var nickname = $"{Pick(Adjectives)}{Pick(Nouns)}";
             if (taken.Add(nickname))
@@ -29,7 +29,16 @@ public static class ProposalNicknameGenerator
             }
         }
 
-        return $"Guest{Random.Shared.Next(1000, 9999)}";
+        for (var attempt = 0; attempt < 200; attempt++)
+        {
+            var guest = $"Guest{Random.Shared.Next(1000, 99999)}";
+            if (taken.Add(guest))
+            {
+                return guest;
+            }
+        }
+
+        return $"Guest{Guid.NewGuid().ToString("N")[..8]}";
     }
 
     private static string Pick(IReadOnlyList<string> values) =>
