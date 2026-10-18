@@ -190,6 +190,19 @@ public class CrewChatsProposalService(
             return;
         }
 
+        // Create persists a ChatRoom before this method used to set IsApplied.
+        // A parallel proposal GET/vote/timer then inserted a second channel.
+        if (change.Action == CrewChatProposalAction.Create && change.RoomId.HasValue)
+        {
+            change.IsApplied = true;
+            return;
+        }
+
+        if (change.Action == CrewChatProposalAction.Create)
+        {
+            change.IsApplied = true;
+        }
+
         var utcNow = DateTime.UtcNow;
         bool applied;
 
@@ -259,6 +272,7 @@ public class CrewChatsProposalService(
         };
 
         await chatRepository.AddRoomAsync(room, cancellationToken);
+        change.IsApplied = true;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
@@ -315,6 +329,7 @@ public class CrewChatsProposalService(
         };
 
         await chatRepository.AddRoomAsync(room, cancellationToken);
+        change.IsApplied = true;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         change.RoomId = room.Id;

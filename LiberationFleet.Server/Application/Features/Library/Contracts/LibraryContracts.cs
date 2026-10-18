@@ -175,6 +175,7 @@ public class CreateLibraryRequestRequest
     public string PurposePreview { get; set; } = string.Empty;
     public DateTime NeededByStart { get; set; }
     public DateTime NeededByEnd { get; set; }
+    public string? TimeZone { get; set; }
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
@@ -185,6 +186,7 @@ public class UpdateLibraryRequestRequest
     public string PurposePreview { get; set; } = string.Empty;
     public DateTime NeededByStart { get; set; }
     public DateTime NeededByEnd { get; set; }
+    public string? TimeZone { get; set; }
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;

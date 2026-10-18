@@ -42,7 +42,7 @@ public static class LibraryRequestExpiryService
             return false;
         }
 
-        if (request.NeededByStart > utcNow)
+        if (LibraryRequestLifecycle.IsWithinDueWindow(request.NeededByEnd, utcNow))
         {
             return false;
         }

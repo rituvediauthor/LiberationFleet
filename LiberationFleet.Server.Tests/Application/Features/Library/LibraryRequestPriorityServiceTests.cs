@@ -35,7 +35,8 @@ public class LibraryRequestPriorityServiceTests
                 UnitId = 10,
                 RequesterUserId = 7,
                 Status = LibraryRequestStatus.Open,
-                NeededByStart = DateTime.UtcNow.AddDays(1),
+                NeededByStart = DateTime.UtcNow.Date,
+                NeededByEnd = DateTime.UtcNow.Date,
                 CreatedAt = DateTime.UtcNow
             }
         };

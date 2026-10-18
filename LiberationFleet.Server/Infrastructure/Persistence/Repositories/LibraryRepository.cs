@@ -542,7 +542,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 && r.RequesterUserId == requesterUserId
                 && r.Status == LibraryRequestStatus.Open
                 && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
-                    || r.NeededByStart > utcNow),
+                    || r.Unit.Offering.Kind == LibraryOfferingKind.Digital
+                    || r.NeededByEnd.AddDays(1) > utcNow),
             cancellationToken);
     }
 
@@ -558,7 +559,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             r => r.UnitId == unitId
                 && r.Status == LibraryRequestStatus.Open
                 && r.Unit.Offering.Kind != LibraryOfferingKind.Consumable
-                && r.NeededByStart > utcNow
+                && r.NeededByEnd.AddDays(1) > utcNow
                 && (excludeRequestId == null || r.Id != excludeRequestId)
                 && r.NeededByStart <= neededByEnd
                 && neededByStart <= r.NeededByEnd,
@@ -599,7 +600,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 .ThenInclude(u => u.CurrentPossessorUser)
             .Where(r => r.Status == LibraryRequestStatus.Open
                 && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
-                    || r.NeededByStart > utcNow)
+                    || r.Unit.Offering.Kind == LibraryOfferingKind.Digital
+                    || r.NeededByEnd.AddDays(1) > utcNow)
                 && r.Unit.CurrentPossessorUserId == possessorUserId
                 && r.Unit.Offering.CrewId == crewId)
             .OrderBy(r => r.NeededByStart)
@@ -626,7 +628,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
                 && r.Unit.Offering.CrewId == crewId
                 && r.Status == LibraryRequestStatus.Open
                 && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
-                    || r.NeededByStart > utcNow))
+                    || r.Unit.Offering.Kind == LibraryOfferingKind.Digital
+                    || r.NeededByEnd.AddDays(1) > utcNow))
             .OrderBy(r => r.NeededByStart)
             .ThenBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -641,7 +644,8 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             r => r.UnitId == unitId
                 && r.Status == LibraryRequestStatus.Open
                 && (r.Unit.Offering.Kind == LibraryOfferingKind.Consumable
-                    || r.NeededByStart > utcNow),
+                    || r.Unit.Offering.Kind == LibraryOfferingKind.Digital
+                    || r.NeededByEnd.AddDays(1) > utcNow),
             cancellationToken);
     }
 
@@ -652,8 +656,9 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
     {
         var stale = await context.LibraryRequests
             .Where(r => r.Status == LibraryRequestStatus.Open
-                && r.NeededByStart <= utcNow
-                && r.Unit.Offering.Kind != LibraryOfferingKind.Consumable
+                && r.NeededByEnd.AddDays(1) <= utcNow
+                && (r.Unit.Offering.Kind == LibraryOfferingKind.Durable
+                    || r.Unit.Offering.Kind == LibraryOfferingKind.Service)
                 && r.Unit.Offering.CrewId == crewId)
             .ToListAsync(cancellationToken);
 

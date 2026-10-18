@@ -76,12 +76,13 @@ public class GetFleetDurableLibraryUnitsQueryHandler(
                 var openWindows = unit.Requests
                     .Where(r => r.Status == LibraryRequestStatus.Open)
                     .ToList();
-                var reservedNow = openWindows.Any(r => r.NeededByStart <= now && r.NeededByEnd >= now);
+                var reservedNow = openWindows.Any(r =>
+                    LibraryRequestLifecycle.IsReservedAt(r.NeededByStart, r.NeededByEnd, now));
                 dto.AvailableNow = !reservedNow;
                 dto.NextAvailableDate = reservedNow
                     ? openWindows
-                        .Where(r => r.NeededByEnd >= now)
-                        .Select(r => (DateTime?)r.NeededByEnd)
+                        .Where(r => LibraryRequestLifecycle.IsReservedAt(r.NeededByStart, r.NeededByEnd, now))
+                        .Select(r => (DateTime?)LibraryRequestLifecycle.GetExclusiveExpiryUtc(r.NeededByEnd))
                         .Min()
                     : null;
                 return dto;

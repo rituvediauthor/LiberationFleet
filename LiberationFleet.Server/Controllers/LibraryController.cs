@@ -226,7 +226,8 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.NeededByEnd,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.TimeZone));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -341,7 +342,8 @@ public class LibraryController(IMediator mediator) : ControllerBase
             body.NeededByEnd,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.TimeZone));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

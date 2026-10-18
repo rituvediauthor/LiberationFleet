@@ -12,6 +12,7 @@ interface PushTokenApiResponse {
 }
 
 const PUSH_DEVICE_ID_KEY = 'lf.push.deviceId';
+const PUSH_TOKEN_KEY = 'lf.push.token';
 
 /** Must match FCM android.notification.channel_id on the server. */
 export const ANDROID_PUSH_CHANNEL_ID = 'liberation_fleet_default';
@@ -35,13 +36,9 @@ export class PushNotificationRegistrationService {
       return;
     }
 
-    // Allow a second pass after login if the first attempt got a native token
-    // but could not upload it yet (or missed the registration event).
-    if (this.started && this.currentToken) {
-      return;
-    }
-
     this.started = true;
+    this.currentToken = this.currentToken
+      ?? this.storage.get(StorageScope.Persistent, PUSH_TOKEN_KEY);
 
     try {
       let perm = await PushNotifications.checkPermissions();
@@ -63,8 +60,7 @@ export class PushNotificationRegistrationService {
 
       await PushNotifications.register();
 
-      // If we already have a token from a prior session in this process, re-upload
-      // after auth so DevicePushTokens is populated even when FCM does not re-fire.
+      // Re-upload on login / resume even when FCM does not fire registration again.
       if (this.currentToken) {
         void this.registerToken(this.currentToken);
       }
@@ -83,6 +79,7 @@ export class PushNotificationRegistrationService {
     this.currentToken = null;
     this.started = false;
     this.listenersAttached = false;
+    this.storage.remove(StorageScope.Persistent, PUSH_TOKEN_KEY);
 
     try {
       await PushNotifications.removeAllListeners();
@@ -153,6 +150,7 @@ export class PushNotificationRegistrationService {
 
   private async registerToken(token: string): Promise<void> {
     this.currentToken = token;
+    this.storage.set(StorageScope.Persistent, PUSH_TOKEN_KEY, token);
     const platform = getAppRuntimePlatform();
     if (platform !== 'ios' && platform !== 'android') {
       return;

@@ -25,14 +25,27 @@ public class LibraryRequestLifecycleTests
     }
 
     [Fact]
-    public void IsOpenForFulfillment_DurableNeededByPassed_IsNotOpen()
+    public void IsOpenForFulfillment_DurableDueDatePassed_IsNotOpen()
     {
         var utcNow = new DateTime(2026, 9, 29, 15, 0, 0, DateTimeKind.Utc);
+        var dueDate = new DateTime(2026, 9, 28, 0, 0, 0, DateTimeKind.Utc);
         LibraryRequestLifecycle.IsOpenForFulfillment(
             LibraryRequestStatus.Open,
             LibraryOfferingKind.Durable,
-            utcNow.AddHours(-1),
+            dueDate,
             utcNow).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsOpenForFulfillment_SameDayService_IsOpenUntilEndOfDueDay()
+    {
+        var utcNow = new DateTime(2026, 9, 29, 15, 0, 0, DateTimeKind.Utc);
+        var dueDate = new DateTime(2026, 9, 29, 0, 0, 0, DateTimeKind.Utc);
+        LibraryRequestLifecycle.IsOpenForFulfillment(
+            LibraryRequestStatus.Open,
+            LibraryOfferingKind.Service,
+            dueDate,
+            utcNow).Should().BeTrue();
     }
 
     [Fact]

@@ -142,6 +142,7 @@ export interface CreateLibraryRequestPayload {
   purposePreview: string;
   neededByStart: string;
   neededByEnd: string;
+  timeZone?: string;
   nonce: string;
   ciphertext: string;
   keyVersion?: number;

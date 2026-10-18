@@ -14,7 +14,8 @@ public record UpdateLibraryRequestCommand(
     DateTime NeededByEnd,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<LibraryRequestOperationResponse>;
+    int KeyVersion,
+    string? TimeZone = null) : IRequest<LibraryRequestOperationResponse>;
 
 public class UpdateLibraryRequestCommandHandler(
     ICurrentUserService currentUser,
@@ -78,7 +79,10 @@ public class UpdateLibraryRequestCommandHandler(
         }
         else
         {
-            var dateError = LibraryRequestValidation.ValidateDateRange(request.NeededByStart, request.NeededByEnd);
+            var dateError = LibraryRequestValidation.ValidateDateRange(
+                request.NeededByStart,
+                request.NeededByEnd,
+                request.TimeZone);
             if (dateError is not null)
             {
                 return new LibraryRequestOperationResponse { Success = false, Message = dateError };
@@ -86,7 +90,8 @@ public class UpdateLibraryRequestCommandHandler(
 
             (neededByStart, neededByEnd) = LibraryRequestValidation.NormalizeDateRange(
                 request.NeededByStart,
-                request.NeededByEnd);
+                request.NeededByEnd,
+                request.TimeZone);
         }
 
         if (!LibraryOfferingRules.IsStockBased(unit.Offering)

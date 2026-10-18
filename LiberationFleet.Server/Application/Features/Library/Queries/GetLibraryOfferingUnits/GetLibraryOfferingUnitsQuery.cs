@@ -62,13 +62,13 @@ public class GetLibraryOfferingUnitsQueryHandler(
                     .ToList();
 
                 var reservedNow = openWindows
-                    .Any(r => r.NeededByStart <= now && r.NeededByEnd >= now);
+                    .Any(r => LibraryRequestLifecycle.IsReservedAt(r.NeededByStart, r.NeededByEnd, now));
 
                 dto.AvailableNow = !reservedNow;
                 dto.NextAvailableDate = reservedNow
                     ? openWindows
-                        .Where(r => r.NeededByEnd >= now)
-                        .Select(r => (DateTime?)r.NeededByEnd)
+                        .Where(r => LibraryRequestLifecycle.IsReservedAt(r.NeededByStart, r.NeededByEnd, now))
+                        .Select(r => (DateTime?)LibraryRequestLifecycle.GetExclusiveExpiryUtc(r.NeededByEnd))
                         .Min()
                     : null;
 

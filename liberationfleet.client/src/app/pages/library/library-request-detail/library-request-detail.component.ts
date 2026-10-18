@@ -396,6 +396,7 @@ export class LibraryRequestDetailComponent implements OnInit {
           purposePreview: encrypted.purposePreview,
           neededByStart: this.toApiDate(this.form.getRawValue().neededByStart),
           neededByEnd: this.toApiDate(this.form.getRawValue().neededByEnd),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
         };

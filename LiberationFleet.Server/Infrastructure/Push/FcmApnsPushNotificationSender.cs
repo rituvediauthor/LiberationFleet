@@ -30,6 +30,7 @@ public class FcmApnsPushNotificationSender(
     private readonly SemaphoreSlim _fcmGate = new(1, 1);
     private string? _fcmAccessToken;
     private DateTimeOffset _fcmAccessTokenExpiresAt;
+    private static int _unconfiguredLogged;
 
     public async Task SendAsync(
         int userId,
@@ -40,6 +41,11 @@ public class FcmApnsPushNotificationSender(
         var opts = options.Value;
         if (!opts.IsFcmConfigured && !opts.IsApnsConfigured)
         {
+            if (Interlocked.Exchange(ref _unconfiguredLogged, 1) == 0)
+            {
+                logger.LogWarning(
+                    "Background push is not configured. Set Push__FcmProjectId and Key Vault Push-FcmServiceAccountJson for Android FCM (and APNs settings for iOS). In-app SignalR alerts still work while the app is open.");
+            }
             return;
         }
 
@@ -101,32 +107,35 @@ public class FcmApnsPushNotificationSender(
         var client = httpClientFactory.CreateClient(nameof(FcmApnsPushNotificationSender));
         var url = $"https://fcm.googleapis.com/v1/projects/{opts.FcmProjectId}/messages:send";
 
-        // channel_id must match PushNotificationRegistrationService ANDROID_PUSH_CHANNEL_ID.
-        var payload = new
+        // Explicit camelCase / proto JSON names — do not run this through PropertyNamingPolicy.
+        // channelId must match PushNotificationRegistrationService ANDROID_PUSH_CHANNEL_ID.
+        // icon must be a white-on-transparent status drawable, not the adaptive launcher.
+        var payload = new Dictionary<string, object>
         {
-            message = new
+            ["message"] = new Dictionary<string, object>
             {
-                token = token.Token,
-                notification = new
+                ["token"] = token.Token,
+                ["notification"] = new Dictionary<string, string>
                 {
-                    title = Truncate(notification.Title, 100),
-                    body = Truncate(notification.Body, 200)
+                    ["title"] = Truncate(notification.Title, 100),
+                    ["body"] = Truncate(notification.Body, 200)
                 },
-                data = new Dictionary<string, string>
+                ["data"] = new Dictionary<string, string>
                 {
                     ["notificationId"] = notification.Id.ToString(),
                     ["actionUrl"] = notification.ActionUrl ?? string.Empty,
                     ["kind"] = notification.Kind.ToString()
                 },
-                android = new
+                ["android"] = new Dictionary<string, object>
                 {
-                    priority = "HIGH",
-                    notification = new
+                    ["priority"] = "HIGH",
+                    ["notification"] = new Dictionary<string, object>
                     {
-                        channel_id = "liberation_fleet_default",
-                        sound = "default",
-                        default_sound = true,
-                        notification_priority = "PRIORITY_HIGH"
+                        ["channelId"] = "liberation_fleet_default",
+                        ["icon"] = "ic_stat_notify",
+                        ["color"] = "#0B1220",
+                        ["sound"] = "default",
+                        ["notificationPriority"] = "PRIORITY_HIGH"
                     }
                 }
             }
@@ -235,37 +244,7 @@ public class FcmApnsPushNotificationSender(
                 return _fcmAccessToken;
             }
 
-            using var doc = JsonDocument.Parse(opts.FcmServiceAccountJson);
-            var root = doc.RootElement;
-            var clientEmail = root.GetProperty("client_email").GetString()
-                ?? throw new InvalidOperationException("FCM service account missing client_email.");
-            var privateKeyPem = root.GetProperty("private_key").GetString()
-                ?? throw new InvalidOperationException("FCM service account missing private_key.");
-            var tokenUri = root.TryGetProperty("token_uri", out var tokenUriEl)
-                ? tokenUriEl.GetString() ?? "https://oauth2.googleapis.com/token"
-                : "https://oauth2.googleapis.com/token";
-
-            using var rsa = RSA.Create();
-            rsa.ImportFromPem(privateKeyPem);
-
-            var now = DateTimeOffset.UtcNow;
-            var descriptor = new SecurityTokenDescriptor
-            {
-                Issuer = clientEmail,
-                Audience = tokenUri,
-                IssuedAt = now.UtcDateTime,
-                Expires = now.AddMinutes(55).UtcDateTime,
-                Claims = new Dictionary<string, object>
-                {
-                    ["scope"] = "https://www.googleapis.com/auth/firebase.messaging"
-                },
-                SigningCredentials = new SigningCredentials(
-                    new RsaSecurityKey(rsa),
-                    SecurityAlgorithms.RsaSha256)
-            };
-
-            var handler = new JwtSecurityTokenHandler();
-            var assertion = handler.WriteToken(handler.CreateToken(descriptor));
+            var (assertion, tokenUri) = FcmGoogleAuth.CreateJwtAssertion(opts.FcmServiceAccountJson);
 
             var client = httpClientFactory.CreateClient(nameof(FcmApnsPushNotificationSender));
             using var form = new FormUrlEncodedContent(new Dictionary<string, string>

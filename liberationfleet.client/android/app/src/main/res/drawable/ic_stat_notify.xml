@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- White silhouette: FCM small icons are tinted and drop if the asset is an adaptive launcher. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,3C8.7,3 6,5.7 6,9v4.2L4.4,15.8c-0.3,0.4 0,1 0.5,1h14.2c0.5,0 0.8,-0.6 0.5,-1L18,13.2V9c0,-3.3 -2.7,-6 -6,-6zM12,21c1.1,0 2,-0.9 2,-2h-4c0,1.1 0.9,2 2,2z" />
+</vector>

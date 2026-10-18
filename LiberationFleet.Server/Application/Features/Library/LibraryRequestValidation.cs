@@ -19,17 +19,20 @@ internal static class LibraryRequestValidation
         return preview;
     }
 
-    public static string? ValidateDateRange(DateTime neededByStart, DateTime neededByEnd)
+    public static string? ValidateDateRange(
+        DateTime neededByStart,
+        DateTime neededByEnd,
+        string? timeZoneId = null)
     {
-        var start = DateTime.SpecifyKind(neededByStart.Date, DateTimeKind.Utc);
-        var end = DateTime.SpecifyKind(neededByEnd.Date, DateTimeKind.Utc);
+        var start = neededByStart.Date;
+        var end = neededByEnd.Date;
 
         if (end < start)
         {
             return "Needed-by end must be on or after the start date.";
         }
 
-        var today = DateTime.UtcNow.Date;
+        var today = GetLocalCalendarDate(DateTime.UtcNow, timeZoneId);
         if (end < today)
         {
             return "Needed-by end must be today or later.";
@@ -38,10 +41,93 @@ internal static class LibraryRequestValidation
         return null;
     }
 
-    public static (DateTime Start, DateTime End) NormalizeDateRange(DateTime neededByStart, DateTime neededByEnd) =>
-        (
-            DateTime.SpecifyKind(neededByStart.Date, DateTimeKind.Utc),
-            DateTime.SpecifyKind(neededByEnd.Date, DateTimeKind.Utc));
+    public static (DateTime Start, DateTime End) NormalizeDateRange(
+        DateTime neededByStart,
+        DateTime neededByEnd,
+        string? timeZoneId = null)
+    {
+        var start = DateTime.SpecifyKind(neededByStart.Date, DateTimeKind.Utc);
+        var endDate = DateTime.SpecifyKind(neededByEnd.Date, DateTimeKind.Utc);
+        var timeZone = TryResolveTimeZone(timeZoneId);
+        if (timeZone is null)
+        {
+            return (start, endDate);
+        }
+
+        DateTime exclusiveUtc;
+        try
+        {
+            var localNextMidnight = DateTime.SpecifyKind(endDate.AddDays(1), DateTimeKind.Unspecified);
+            exclusiveUtc = TimeZoneInfo.ConvertTimeToUtc(localNextMidnight, timeZone);
+        }
+        catch (ArgumentException)
+        {
+            return (start, endDate);
+        }
+
+        var offsetFromUtcMidnight = exclusiveUtc - endDate.AddDays(1);
+        if (offsetFromUtcMidnight <= TimeSpan.Zero || offsetFromUtcMidnight >= TimeSpan.FromDays(1))
+        {
+            return (start, endDate);
+        }
+
+        return (start, DateTime.SpecifyKind(endDate.Add(offsetFromUtcMidnight), DateTimeKind.Utc));
+    }
+
+    public static DateTime GetLocalCalendarDate(DateTime utcNow, string? timeZoneId)
+    {
+        var utc = utcNow.Kind == DateTimeKind.Utc
+            ? utcNow
+            : DateTime.SpecifyKind(utcNow, DateTimeKind.Utc);
+        var timeZone = TryResolveTimeZone(timeZoneId);
+        if (timeZone is null)
+        {
+            return utc.Date;
+        }
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone).Date;
+    }
+
+    public static TimeZoneInfo? TryResolveTimeZone(string? timeZoneId)
+    {
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            return null;
+        }
+
+        var id = timeZoneId.Trim();
+        if (TryFindTimeZone(id, out var timeZone))
+        {
+            return timeZone;
+        }
+
+        if (string.Equals(id, "America/New_York", StringComparison.OrdinalIgnoreCase)
+            && TryFindTimeZone("Eastern Standard Time", out timeZone))
+        {
+            return timeZone;
+        }
+
+        return null;
+    }
+
+    private static bool TryFindTimeZone(string id, out TimeZoneInfo? timeZone)
+    {
+        try
+        {
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(id);
+            return true;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            timeZone = null;
+            return false;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            timeZone = null;
+            return false;
+        }
+    }
 
     public static bool DateRangesOverlap(DateTime start1, DateTime end1, DateTime start2, DateTime end2) =>
         start1 <= end2 && start2 <= end1;

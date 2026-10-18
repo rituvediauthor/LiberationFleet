@@ -629,6 +629,7 @@ export class LibraryUnitDetailComponent implements OnInit {
           purposePreview: encrypted.purposePreview,
           neededByStart: this.toApiDate(this.form.value.neededByStart),
           neededByEnd: this.toApiDate(this.form.value.neededByEnd),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext
         };

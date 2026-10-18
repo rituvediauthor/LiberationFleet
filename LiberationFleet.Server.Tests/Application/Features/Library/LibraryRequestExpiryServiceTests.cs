@@ -7,13 +7,14 @@ namespace LiberationFleet.Server.Tests.Application.Features.Library;
 public class LibraryRequestExpiryServiceTests
 {
     [Fact]
-    public void TryExpireOpenRequest_WhenStartDatePassed_MarksExpired()
+    public void TryExpireOpenRequest_WhenDueDateHasEnded_MarksExpired()
     {
         var utcNow = new DateTime(2026, 8, 19, 12, 0, 0, DateTimeKind.Utc);
         var request = new LibraryRequest
         {
             Status = LibraryRequestStatus.Open,
-            NeededByStart = utcNow.AddDays(-1)
+            NeededByStart = new DateTime(2026, 8, 17, 0, 0, 0, DateTimeKind.Utc),
+            NeededByEnd = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc)
         };
 
         LibraryRequestExpiryService.TryExpireOpenRequest(request, utcNow, LibraryOfferingKind.Durable).Should().BeTrue();
@@ -22,13 +23,69 @@ public class LibraryRequestExpiryServiceTests
     }
 
     [Fact]
-    public void TryExpireOpenRequest_WhenStartDateStillFuture_DoesNothing()
+    public void TryExpireOpenRequest_SameDayDueDate_StaysOpenUntilEndOfDueDay()
+    {
+        var utcNow = new DateTime(2026, 8, 18, 16, 30, 0, DateTimeKind.Utc);
+        var request = new LibraryRequest
+        {
+            Status = LibraryRequestStatus.Open,
+            NeededByStart = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc),
+            NeededByEnd = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc)
+        };
+
+        LibraryRequestExpiryService.TryExpireOpenRequest(request, utcNow, LibraryOfferingKind.Service).Should().BeFalse();
+        request.Status.Should().Be(LibraryRequestStatus.Open);
+    }
+
+    [Fact]
+    public void TryExpireOpenRequest_AtExclusiveEndOfDueDay_MarksExpired()
+    {
+        var utcNow = new DateTime(2026, 8, 19, 0, 0, 0, DateTimeKind.Utc);
+        var request = new LibraryRequest
+        {
+            Status = LibraryRequestStatus.Open,
+            NeededByStart = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc),
+            NeededByEnd = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc)
+        };
+
+        LibraryRequestExpiryService.TryExpireOpenRequest(request, utcNow, LibraryOfferingKind.Service).Should().BeTrue();
+        request.Status.Should().Be(LibraryRequestStatus.Expired);
+    }
+
+    [Fact]
+    public void TryExpireOpenRequest_RequesterTimeZoneOffset_StaysOpenUntilLocalMidnight()
+    {
+        // America/New_York in August is UTC-4; exclusive expiry is 04:00 UTC the next day.
+        var neededByEnd = new DateTime(2026, 8, 18, 4, 0, 0, DateTimeKind.Utc);
+        var request = new LibraryRequest
+        {
+            Status = LibraryRequestStatus.Open,
+            NeededByStart = new DateTime(2026, 8, 18, 0, 0, 0, DateTimeKind.Utc),
+            NeededByEnd = neededByEnd
+        };
+
+        LibraryRequestExpiryService.TryExpireOpenRequest(
+            request,
+            new DateTime(2026, 8, 19, 3, 59, 0, DateTimeKind.Utc),
+            LibraryOfferingKind.Service).Should().BeFalse();
+        request.Status.Should().Be(LibraryRequestStatus.Open);
+
+        LibraryRequestExpiryService.TryExpireOpenRequest(
+            request,
+            new DateTime(2026, 8, 19, 4, 0, 0, DateTimeKind.Utc),
+            LibraryOfferingKind.Service).Should().BeTrue();
+        request.Status.Should().Be(LibraryRequestStatus.Expired);
+    }
+
+    [Fact]
+    public void TryExpireOpenRequest_WhenDueDateStillFuture_DoesNothing()
     {
         var utcNow = new DateTime(2026, 8, 19, 12, 0, 0, DateTimeKind.Utc);
         var request = new LibraryRequest
         {
             Status = LibraryRequestStatus.Open,
-            NeededByStart = utcNow.AddDays(1)
+            NeededByStart = utcNow.AddDays(1),
+            NeededByEnd = utcNow.AddDays(1)
         };
 
         LibraryRequestExpiryService.TryExpireOpenRequest(request, utcNow, LibraryOfferingKind.Durable).Should().BeFalse();
@@ -58,12 +115,14 @@ public class LibraryRequestExpiryServiceTests
         {
             Status = LibraryRequestStatus.Open,
             NeededByStart = utcNow,
+            NeededByEnd = utcNow,
             Unit = new LibraryUnit { Offering = new LibraryOffering { Kind = LibraryOfferingKind.Consumable } }
         };
         var durable = new LibraryRequest
         {
             Status = LibraryRequestStatus.Open,
-            NeededByStart = utcNow.AddMinutes(-1),
+            NeededByStart = utcNow.AddDays(-1),
+            NeededByEnd = utcNow.AddDays(-1),
             Unit = new LibraryUnit { Offering = new LibraryOffering { Kind = LibraryOfferingKind.Durable } }
         };
 
