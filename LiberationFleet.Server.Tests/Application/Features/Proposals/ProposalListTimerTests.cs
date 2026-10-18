@@ -108,4 +108,85 @@ public class ProposalListTimerTests
         crewRepository.Verify(x => x.GetByIdAsync(9, It.IsAny<CancellationToken>()), Times.Once);
         proposalRepository.Verify(x => x.GetActiveCrewMemberCountAsync(9, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task ResolveExpired_PersistsStatusBeforeApply()
+    {
+        var now = DateTime.UtcNow;
+        var dueApprove = new Proposal
+        {
+            Id = 1,
+            CrewId = 9,
+            Status = ProposalStatus.Pending,
+            ApprovalTimerEndsAt = now.AddMinutes(-2),
+            ApproveCount = 1,
+            DisapproveCount = 0
+        };
+        var crewRepository = new Mock<ICrewRepository>(MockBehavior.Strict);
+        crewRepository
+            .Setup(x => x.GetByIdAsync(9, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Crew { Id = 9, AutoResolveOverTime = true });
+        var proposalRepository = new Mock<IProposalRepository>(MockBehavior.Strict);
+        proposalRepository
+            .Setup(x => x.GetActiveCrewMemberCountAsync(9, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3);
+        var order = new List<string>();
+
+        await ProposalListTimer.ResolveExpiredAsync(
+            [dueApprove],
+            now,
+            crewRepository.Object,
+            new Mock<IFleetRepository>(MockBehavior.Strict).Object,
+            proposalRepository.Object,
+            (_, _, _) =>
+            {
+                order.Add("apply");
+                return Task.CompletedTask;
+            },
+            CancellationToken.None,
+            persistResolvedStatus: _ =>
+            {
+                order.Add("persist");
+                dueApprove.Status.Should().Be(ProposalStatus.Approved);
+                return Task.CompletedTask;
+            });
+
+        order.Should().Equal("persist", "apply");
+    }
+
+    [Fact]
+    public void SelectForRequestedStatus_DropsResolvedRowsFromPending()
+    {
+        var pending = new List<Proposal>
+        {
+            new() { Id = 1, Status = ProposalStatus.Approved, LastActivityAt = DateTime.UtcNow },
+            new() { Id = 2, Status = ProposalStatus.Pending, LastActivityAt = DateTime.UtcNow }
+        };
+
+        var result = ProposalListTimer.SelectForRequestedStatus(ProposalStatus.Pending, pending);
+
+        result.Select(p => p.Id).Should().Equal(2);
+    }
+
+    [Fact]
+    public void SelectForRequestedStatus_IncludesNewlyApprovedInApprovedList()
+    {
+        var now = DateTime.UtcNow;
+        var pending = new List<Proposal>
+        {
+            new() { Id = 1, Status = ProposalStatus.Approved, LastActivityAt = now },
+            new() { Id = 2, Status = ProposalStatus.Pending, LastActivityAt = now }
+        };
+        var storedApproved = new List<Proposal>
+        {
+            new() { Id = 3, Status = ProposalStatus.Approved, LastActivityAt = now.AddMinutes(-1) }
+        };
+
+        var result = ProposalListTimer.SelectForRequestedStatus(
+            ProposalStatus.Approved,
+            pending,
+            storedApproved);
+
+        result.Select(p => p.Id).Should().Equal(1, 3);
+    }
 }

@@ -22,7 +22,8 @@ public static class ProposalListTimer
         IFleetRepository fleetRepository,
         IProposalRepository proposalRepository,
         Func<Proposal, ProposalStatus, CancellationToken, Task> applyIfNewlyApproved,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task>? persistResolvedStatus = null)
     {
         var due = proposals.Where(p => NeedsTimerResolve(p, utcNow)).ToList();
         if (due.Count == 0)
@@ -32,6 +33,7 @@ public static class ProposalListTimer
 
         var crewCache = new Dictionary<int, (DuoVoteTimeoutMode Duo, ProposalAutoResolveSettings Settings, int Members)>();
         var fleetCache = new Dictionary<int, (DuoVoteTimeoutMode Duo, ProposalAutoResolveSettings Settings, int Members)>();
+        var newlyApproved = new List<(Proposal Proposal, ProposalStatus StatusBefore)>();
 
         foreach (var proposal in due)
         {
@@ -58,9 +60,39 @@ public static class ProposalListTimer
                 proposal, utcNow, duoMode, autoResolveSettings, eligible);
             if (proposal.Status == ProposalStatus.Approved && statusBefore != ProposalStatus.Approved)
             {
-                await applyIfNewlyApproved(proposal, statusBefore, cancellationToken);
+                newlyApproved.Add((proposal, statusBefore));
             }
         }
+
+        // Persist Approved/Rejected before apply work. Aid-stat apply can fail SaveChanges
+        // (season reorder, description overflow) and must not leave the proposal Pending.
+        if (persistResolvedStatus is not null)
+        {
+            await persistResolvedStatus(cancellationToken);
+        }
+
+        foreach (var (proposal, statusBefore) in newlyApproved)
+        {
+            await applyIfNewlyApproved(proposal, statusBefore, cancellationToken);
+        }
+    }
+
+    public static List<Proposal> SelectForRequestedStatus(
+        ProposalStatus requested,
+        IReadOnlyList<Proposal> pendingResolved,
+        IReadOnlyList<Proposal>? storedRequested = null)
+    {
+        if (requested == ProposalStatus.Pending)
+        {
+            return pendingResolved.Where(p => p.Status == ProposalStatus.Pending).ToList();
+        }
+
+        return (storedRequested ?? Array.Empty<Proposal>())
+            .Concat(pendingResolved.Where(p => p.Status == requested))
+            .DistinctBy(p => p.Id)
+            .OrderByDescending(p => p.LastActivityAt)
+            .Take(500)
+            .ToList();
     }
 
     private static async Task<(DuoVoteTimeoutMode Duo, ProposalAutoResolveSettings Settings, int Members)> GetCachedEligibilityAsync(

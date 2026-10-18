@@ -235,6 +235,7 @@ public static class ProposalVotingService
                 ? ProposalStatus.Approved
                 : ProposalStatus.Rejected;
             proposal.ApprovalTimerEndsAt = null;
+            proposal.LastActivityAt = utcNow;
             return;
         }
 
@@ -249,5 +250,6 @@ public static class ProposalVotingService
         }
 
         proposal.ApprovalTimerEndsAt = null;
+        proposal.LastActivityAt = utcNow;
     }
 }

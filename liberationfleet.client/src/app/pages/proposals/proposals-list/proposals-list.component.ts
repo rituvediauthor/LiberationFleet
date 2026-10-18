@@ -165,10 +165,11 @@ export class ProposalsListComponent implements OnInit, OnDestroy {
   }
 
   get filteredItems(): ProposalListItem[] {
+    const byStatus = this.items.filter(item => item.status === this.status);
     if (!this.selectedKind) {
-      return this.items;
+      return byStatus;
     }
-    return this.items.filter(item => item.kind === this.selectedKind);
+    return byStatus.filter(item => item.kind === this.selectedKind);
   }
 
   onKindFilterChange(value: string) {

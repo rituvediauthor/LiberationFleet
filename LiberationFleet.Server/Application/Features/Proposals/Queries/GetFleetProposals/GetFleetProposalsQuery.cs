@@ -61,11 +61,14 @@ public class GetFleetProposalsQueryHandler(
         }
 
         var status = ProposalMapper.ParseStatus(request.Status);
-        var proposals = await proposalRepository.GetByFleetAndStatusAsync(fleet.Id, status, cancellationToken);
         var utcNow = DateTime.UtcNow;
+        var pending = await proposalRepository.GetByFleetAndStatusAsync(
+            fleet.Id,
+            ProposalStatus.Pending,
+            cancellationToken);
 
         await ProposalListTimer.ResolveExpiredAsync(
-            proposals,
+            pending,
             utcNow,
             crewRepository,
             fleetRepository,
@@ -91,9 +94,15 @@ public class GetFleetProposalsQueryHandler(
                 fleetSettingsProposalService,
                 fleetRulesProposalService,
                 ct),
-            cancellationToken);
+            cancellationToken,
+            persistResolvedStatus: ct => ProposalReadPersistence.TrySaveAsync(unitOfWork, ct));
 
         await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
+
+        IReadOnlyList<Proposal> storedRequested = status == ProposalStatus.Pending
+            ? pending
+            : await proposalRepository.GetByFleetAndStatusAsync(fleet.Id, status, cancellationToken);
+        var proposals = ProposalListTimer.SelectForRequestedStatus(status, pending, storedRequested);
 
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         proposals = proposals

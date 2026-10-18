@@ -83,6 +83,11 @@ public class GetProposalDetailQueryHandler(
             proposal, crewRepository, fleetRepository, cancellationToken);
         ProposalVotingService.TryResolveOnTimer(
             proposal, utcNow, duoMode, autoResolveSettings, eligible);
+        if (proposal.Status != statusBefore)
+        {
+            await ProposalReadPersistence.TrySaveAsync(unitOfWork, cancellationToken);
+        }
+
         await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
             proposal,
             statusBefore,

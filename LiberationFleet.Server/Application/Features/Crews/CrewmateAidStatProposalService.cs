@@ -238,7 +238,7 @@ public class CrewmateAidStatProposalService(
         if (membership is null || membership.IsBanned)
         {
             change.IsApplied = true;
-            change.Description = $"{change.Description}\n(Could not apply: crewmate no longer in the crew.)";
+            change.Description = AppendApplyNote(change.Description, "Could not apply: crewmate no longer in the crew.");
             return;
         }
 
@@ -250,7 +250,7 @@ public class CrewmateAidStatProposalService(
         catch (JsonException)
         {
             change.IsApplied = true;
-            change.Description = $"{change.Description}\n(Could not apply: invalid change payload.)";
+            change.Description = AppendApplyNote(change.Description, "Could not apply: invalid change payload.");
             return;
         }
 
@@ -270,7 +270,9 @@ public class CrewmateAidStatProposalService(
             if (accounting is null)
             {
                 change.IsApplied = true;
-                change.Description = $"{change.Description}\n(Could not apply season accounting: invalid payload. Membership overrides were applied.)";
+                change.Description = AppendApplyNote(
+                    change.Description,
+                    "Could not apply season accounting: invalid payload. Membership overrides were applied.");
                 await mutualAidService.OnCrewContributionsChangedAsync(proposal.CrewId.Value, cancellationToken);
                 return;
             }
@@ -319,7 +321,9 @@ public class CrewmateAidStatProposalService(
             if (cycle is null)
             {
                 change.IsApplied = true;
-                change.Description = $"{change.Description}\n(Could not apply legacy cycle fields: no primary season cycle available. Membership overrides were applied.)";
+                change.Description = AppendApplyNote(
+                    change.Description,
+                    "Could not apply legacy cycle fields: no primary season cycle available. Membership overrides were applied.");
                 await mutualAidService.OnCrewContributionsChangedAsync(proposal.CrewId.Value, cancellationToken);
                 return;
             }
@@ -544,4 +548,7 @@ public class CrewmateAidStatProposalService(
 
     private static string FormatFieldLabel(CrewmateAidStatField field) =>
         CrewmateAidStatChangeDescriber.FormatFieldLabel(field);
+
+    private static string AppendApplyNote(string description, string note) =>
+        ProposalMapper.Clip($"{description}\n({note})", ProposalMapper.AidDescriptionMaxLength);
 }

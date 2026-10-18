@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Proposals;
 using LiberationFleet.Server.Application.Features.Rules;
+using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Infrastructure.Background;
@@ -45,7 +46,7 @@ internal static class ProposalTimerSweep
         var fleetSettings = sp.GetRequiredService<FleetSettingsProposalService>();
         var fleetRules = sp.GetRequiredService<FleetRulesProposalService>();
 
-        var resolved = 0;
+        var resolved = new List<(Proposal Proposal, ProposalStatus StatusBefore)>();
         foreach (var proposal in due)
         {
             var statusBefore = proposal.Status;
@@ -62,7 +63,18 @@ internal static class ProposalTimerSweep
                 continue;
             }
 
-            resolved++;
+            resolved.Add((proposal, statusBefore));
+        }
+
+        if (resolved.Count == 0)
+        {
+            return;
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        foreach (var (proposal, statusBefore) in resolved)
+        {
             await ProposalApprovalCoordinator.ProcessNewlyApprovedAsync(
                 proposal,
                 statusBefore,
@@ -86,10 +98,15 @@ internal static class ProposalTimerSweep
                 cancellationToken);
         }
 
-        if (resolved > 0)
+        try
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Proposal timer resolved {Count} proposal(s).", resolved);
         }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Proposal timer apply save failed after resolving {Count} proposal(s).", resolved.Count);
+        }
+
+        logger.LogInformation("Proposal timer resolved {Count} proposal(s).", resolved.Count);
     }
 }
