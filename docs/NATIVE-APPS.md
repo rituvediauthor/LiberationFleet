@@ -285,13 +285,20 @@ LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted
 
 | Asset | iOS | Android |
 |-------|-----|---------|
-| App icon | 1024×1024 App Store | Adaptive icon (foreground/background). Android circle crop: use `src/assets/images/LFleetLogoForCircle.png` (extra padding). Regenerate mipmaps with `python android/scripts/generate-launcher-icons.py` |
+| App icon | 1024×1024 App Store (`AppIcon`, no alpha) | Adaptive icon (foreground/background). Android circle crop: use `src/assets/images/LFleetLogoForCircle.png` (extra padding). |
 | Splash | Launch screen / Cap splash | Splash theme |
 | Screenshots | 6.7" iPhone (this target is iPhone only) | Phone |
 | Privacy policy URL | Required | Required |
 | Support URL | Required | Required |
 
-Use `@capacitor/assets` or IDE asset catalogs once branding art is final. Submission flow: [STORE-SUBMISSION.md](./STORE-SUBMISSION.md).
+Regenerate native icon + splashes from the fleet logo:
+
+```bash
+python scripts/generate-native-brand-assets.py
+python android/scripts/generate-launcher-icons.py
+```
+
+Submission flow: [STORE-SUBMISSION.md](./STORE-SUBMISSION.md).
 
 ---
 
