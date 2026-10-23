@@ -224,25 +224,27 @@ Your Windows `JAVA_HOME` may still point at an old JDK 9. Android Gradle Plugin 
 
 ### iOS (Mac only — click-by-click)
 
-1. Terminal → `liberationfleet.client`.
-2. Run:
+Xcode does not have a Terminal for `npm`. The bottom panel (**View → Debug Area → Activate Console**) is the build log. Use the Mac **Terminal** app: **Command (⌘) + Space**, type `Terminal`, press **Return**.
+
+Full store path (signing, simulator download, screenshots, archive) is [STORE-SUBMISSION.md §2.7](./STORE-SUBMISSION.md). Short run:
+
+1. In Terminal:
    ```bash
+   cd path/to/liberationfleet.client
    npm run cap:ios
    ```
-3. Wait for **Xcode** to open the `ios/App` workspace.
-4. In the left Project Navigator, click the blue **App** project.
-5. Under **TARGETS**, click **App**.
-6. Open the **Signing & Capabilities** tab.
-7. Check **Automatically manage signing**.
-8. Click the **Team** dropdown → select your Apple Developer team (or add an account under **Xcode** → **Settings** → **Accounts** first).
-9. At the top, click the destination control (device / simulator name).
-10. Pick an iPhone simulator or a plugged-in physical iPhone.
-11. Click the **Play** (Run) button, or press **Cmd+R**.
-12. On a physical device, if iOS says the developer is untrusted:
-    1. On the iPhone: **Settings** → **General** → **VPN & Device Management** (wording varies by iOS version).
-    2. Tap your developer certificate → **Trust**.
-    3. Re-run from Xcode.
-13. Confirm sign-in works against `apiBaseUrl`.
+   If it says the ios platform is missing, run `npm install` first (a missing install makes `npx cap` fail with **could not determine executable to run**), then `npx cap add ios` once, then `npm run cap:ios` again.
+2. Wait for **Xcode** to open `ios/App/App.xcworkspace`. If the Welcome window appears: **File → Open…** → `ios/App/App.xcworkspace`.
+3. Menu **Xcode → Settings… → Accounts → + → Apple ID** → sign in → close Settings.
+4. Left sidebar: blue **App** project → **TARGETS → App** → **Signing & Capabilities**.
+5. Check **Automatically manage signing**. **Team:** your Apple Developer team.
+6. Click the destination control in the toolbar (next to the Run triangle). Under **iOS Simulators**, pick an iPhone. If none are listed: **Xcode → Settings… → Platforms** → **Get** next to iOS → wait → pick the simulator again.
+7. Click the **Run** triangle (or **Product → Run**). The Simulator app opens and installs Liberation Fleet. First build can take several minutes.
+8. On a physical iPhone, if iOS says the developer is untrusted:
+   1. On the iPhone: **Settings** → **General** → **VPN & Device Management**.
+   2. Tap your developer certificate → **Trust**.
+   3. Press **Run** again.
+9. Confirm sign-in works against `apiBaseUrl`.
 
 ---
 
@@ -267,13 +269,13 @@ Open `android/app/src/main/AndroidManifest.xml`. You should see:
 
 Save → rebuild / **Run**. On first mic use, tap **Allow**. Bluetooth headset may prompt for nearby-devices / Bluetooth on Android 12+.
 
-### iOS — add mic usage string (if missing)
+### iOS — microphone usage string
 
-1. In Xcode, open `Info.plist` (or **App** target → **Info** tab).
-2. Add key **Privacy - Microphone Usage Description**.
-3. Set the value to something like:
-   > Liberation Fleet needs the microphone for crew voice chat.
-4. Save → re-run.
+Already set in `ios/App/App/Info.plist` as **Privacy - Microphone Usage Description**:
+
+> Liberation Fleet needs the microphone for crew voice chat.
+
+Save is not required. Re-run the app after you pull this change.
 
 LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted. See [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md).
 
@@ -285,7 +287,7 @@ LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted
 |-------|-----|---------|
 | App icon | 1024×1024 App Store | Adaptive icon (foreground/background). Android circle crop: use `src/assets/images/LFleetLogoForCircle.png` (extra padding). Regenerate mipmaps with `python android/scripts/generate-launcher-icons.py` |
 | Splash | Launch screen / Cap splash | Splash theme |
-| Screenshots | 6.7", 6.1", iPad if supported | Phone (+ tablets if you declare them) |
+| Screenshots | 6.7" iPhone (this target is iPhone only) | Phone |
 | Privacy policy URL | Required | Required |
 | Support URL | Required | Required |
 
@@ -442,14 +444,15 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 
 #### B. Apple APNs (iOS — Mac required)
 
-1. [developer.apple.com](https://developer.apple.com) → **Certificates, Identifiers & Profiles** → **Keys** → **+** → enable **Apple Push Notifications service (APNs)** → download the **`.p8`** once.
+1. [developer.apple.com](https://developer.apple.com) → **Certificates, Identifiers & Profiles** → **Keys** → **+**. Enter a key name and check **Apple Push Notifications service (APNs)**. **Continue** stays disabled until you click **Configure** on that row → **Environment: Sandbox & Production** → **Team Scoped (All Topics)** → **Save**. Then **Continue** → **Register** → download the **`.p8`** once.
 2. Note **Key ID** and your **Team ID**.
 3. Ensure App ID **`com.liberationfleet.app`** has **Push Notifications** enabled.
 4. Paste `.p8` PEM contents into Key Vault **`Push-ApnsKeyP8`**.
 5. Set `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId=com.liberationfleet.app`.
-6. **`Push__ApnsUseSandbox=true`** for debug/TestFlight; **`false`** for App Store production.
-7. On a Mac: Xcode → App target → **Signing & Capabilities** → **+ Capability** → **Push Notifications** (and **Background Modes → Remote notifications** if prompted).
-8. `npm run cap:sync` → run on a **physical iPhone** (simulator push is limited).
+6. **`Push__ApnsUseSandbox=true`** only for a build you install by pressing **Run** in Xcode. **`false`** for TestFlight and the App Store. Those builds talk to production APNs.
+7. Push is already in the Xcode project (`App.entitlements` for Run, `App.release.entitlements` for Archive, and **Remote notifications** in `Info.plist`). Do not click **+ Capability**.
+8. If Xcode says the team has **no devices** or **No profiles for com.liberationfleet.app**: **Team** must be your name **without** “(Personal Team)”. Plug in a physical iPhone, unlock it, and tap **Trust**. In the destination menu next to Run, choose that iPhone, then on **Signing & Capabilities** click **Try Again**. A simulator cannot satisfy this step. The Duo simulator can be selected again after the profile exists.
+9. Run on that iPhone and allow notifications. Simulator push is limited.
 
 #### C. Terraform / Azure after first apply
 
