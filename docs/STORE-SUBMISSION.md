@@ -762,10 +762,10 @@ The Simulator is a separate app that looks like an iPhone. Xcode starts it when 
 5. Select the new archive (today’s date) → **Distribute App**.
 6. **App Store Connect** → **Next**.
 7. **Upload** → **Next**.
-8. Leave **Upload your app’s symbols** and **Strip Swift symbols** checked. Leave **Manage Version and Build Number** unchecked if you already set **Build** in section B.
-9. **Automatically manage signing** → **Next**.
-10. Review the summary (bundle id `com.liberationfleet.app`, version, build) → **Upload**.
-11. Wait for **Upload Successful**. A green check in Xcode only means Apple received the file. Processing comes next.
+8. This Xcode often skips the options page and goes straight to signing or the summary. That is the right path. The hidden defaults are: upload symbols on, Swift symbols stripped, **Manage Version and Build Number** off, and automatic signing on. You already set **Build** in section B, so do not go looking for those checkboxes.
+   - They appear only if a screen offers **Custom** instead of plain **Upload**. On that screen, leave **Upload your app’s symbols** and **Strip Swift symbols** checked, leave **Manage Version and Build Number** unchecked, then choose **Automatically manage signing**.
+9. Review the summary (bundle id `com.liberationfleet.app`, version, build) → **Upload**.
+10. Wait for **Upload Successful**. A green check in Xcode only means Apple received the file. Processing comes next.
 
 #### E. Export compliance (encryption)
 
