@@ -16,7 +16,7 @@ parameters:
   - name: deployProduction
     displayName: Deploy to production (after build; only when you are ready)
     type: boolean
-    default: false
+    default: true
 
 trigger:
   branches:
