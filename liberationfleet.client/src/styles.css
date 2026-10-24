@@ -45,6 +45,8 @@ html {
   --lf-safe-right: max(env(safe-area-inset-right, 0px), var(--lf-inset-right, 0px));
   --lf-safe-bottom: 0px;
   --lf-safe-left: max(env(safe-area-inset-left, 0px), var(--lf-inset-left, 0px));
+  --lf-keyboard-inset: 0px;
+  --lf-visual-top: 0px;
   --lf-content-max-width: 560px;
   --lf-content-gutter: 20px;
   /*
@@ -108,6 +110,10 @@ html.lf-native-shell .lf-safe-bottom {
   height: var(--lf-safe-bottom, 0px);
   overflow: visible;
   background: var(--lf-color-bg-surface);
+}
+
+html.lf-keyboard-open.lf-native-shell .lf-safe-bottom {
+  height: 0;
 }
 
 app-root {

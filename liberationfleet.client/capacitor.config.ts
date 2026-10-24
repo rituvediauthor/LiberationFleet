@@ -28,7 +28,9 @@ const config: CapacitorConfig = {
       backgroundColor: '#0b1220'
     },
     Keyboard: {
-      resize: 'body'
+      // Web code lifts fixed composers via visualViewport; native resize
+      // leaves those bars under the iOS keyboard.
+      resize: 'none'
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert']

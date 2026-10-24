@@ -54,6 +54,26 @@ export class CryptoUnlockDialogComponent implements OnChanges {
     }
   }
 
+  onPhraseEnter(event: Event): void {
+    event.preventDefault();
+    this.dismissKeyboard();
+  }
+
+  onChromePointer(event: Event): void {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('textarea, input, button, label')) {
+      return;
+    }
+    this.dismissKeyboard();
+  }
+
+  dismissKeyboard(): void {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) {
+      active.blur();
+    }
+  }
+
   onLogout() {
     if (this.unlocking) {
       return;

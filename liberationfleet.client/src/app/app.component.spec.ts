@@ -19,6 +19,7 @@ describe('AppComponent', () => {
   beforeEach(async () => {
     const auth = createAuthServiceMock();
     auth.getEncryptionReady = jasmine.createSpy('getEncryptionReady').and.returnValue(Promise.resolve());
+    auth.refreshSessionIfRemembered = jasmine.createSpy('refreshSessionIfRemembered').and.returnValue(of(null));
     auth.isAuthenticated.and.returnValue(false);
     auth.getToken.and.returnValue(null);
     auth.needsEncryptionUnlock = jasmine.createSpy('needsEncryptionUnlock').and.returnValue(false);

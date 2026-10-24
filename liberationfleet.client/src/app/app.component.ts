@@ -18,6 +18,7 @@ import { FleetCryptoSyncService } from './services/fleet-crypto-sync.service';
 import { NotificationHubService } from './services/notification-hub.service';
 import { NotificationService } from './services/notification.service';
 import { PushNotificationRegistrationService } from './services/push-notification-registration.service';
+import { KeyboardInsetService } from './services/keyboard-inset.service';
 import { NotificationItem } from './models/notification.model';
 import {
   isCrewJoinRequestApprovedNotification,
@@ -53,6 +54,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private notificationHub = inject(NotificationHubService);
   private notificationService = inject(NotificationService);
   private pushNotifications = inject(PushNotificationRegistrationService);
+  private keyboardInset = inject(KeyboardInsetService);
   private router = inject(Router);
   private notificationsBootstrapped = false;
   private readonly subscriptions = new Subscription();
@@ -64,6 +66,7 @@ export class AppComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit() {
+    this.keyboardInset.start();
     // Extend JWT on cold start when remember-me kept a valid token.
     this.authService.refreshSessionIfRemembered().subscribe();
 

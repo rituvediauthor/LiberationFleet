@@ -248,7 +248,7 @@ h1 {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--lf-keyboard-inset, 0px);
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -1,4 +1,4 @@
-<div class="dialog-backdrop" *ngIf="visible">
+<div class="dialog-backdrop" *ngIf="visible" (mousedown)="onChromePointer($event)">
   <div
     class="dialog"
     role="dialog"
@@ -19,7 +19,10 @@
         rows="3"
         autocomplete="off"
         spellcheck="false"
-        placeholder="twelve words separated by spaces"></textarea>
+        enterkeyhint="done"
+        inputmode="text"
+        placeholder="twelve words separated by spaces"
+        (keydown.enter)="onPhraseEnter($event)"></textarea>
     </label>
 
     <label class="remember">

@@ -1,13 +1,18 @@
 .dialog-backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--lf-visual-top, 0px);
+  right: 0;
+  bottom: var(--lf-keyboard-inset, 0px);
+  left: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   /* Above confirm dialogs (2000) and toasts (9999) while unlock is required. */
   z-index: 10050;
-  padding: 24px;
+  padding: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dialog {
@@ -16,6 +21,9 @@
   padding: 20px;
   width: 100%;
   max-width: 400px;
+  margin: auto;
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .dialog h2 {
