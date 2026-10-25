@@ -40,6 +40,11 @@ public class CrewMembership
     public int PercentBonus { get; set; }
     public bool IsPlaceholderMember { get; set; }
     public bool CanAttachFiles { get; set; }
+    /// <summary>
+    /// When true, a moderator blocked file attachments. Deny wins over crew/fleet rules
+    /// and over a leftover grant flag except for organizers.
+    /// </summary>
+    public bool AttachmentsDenied { get; set; }
     public bool CanCreateProposals { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
     /// <summary>When set, replaces gift-derived lifetime contributions for display and eligibility.</summary>

@@ -29,6 +29,7 @@ import { ProposalAttachmentDisplayComponent } from '../../../components/proposal
 import { ProposalAttachmentPickerComponent } from '../../../components/proposal-attachment-picker/proposal-attachment-picker.component';
 import { AttachPermissionNoteComponent } from '../../../components/attach-permission-note/attach-permission-note.component';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { mergeGiftLogEntryPreserveEngagement } from '../../../utils/gift-log-engagement.util';
 import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
@@ -346,8 +347,11 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
           this.toastService.error(response.message || 'Failed to update like');
           return;
         }
-        this.gift.likedByCurrentUser = response.liked;
-        this.gift.likeCount = response.likeCount;
+        this.gift = {
+          ...this.gift,
+          likedByCurrentUser: response.liked,
+          likeCount: response.likeCount
+        };
       },
       error: () => {
         this.likingGift = false;
@@ -369,8 +373,10 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
           this.toastService.error(response.message || 'Failed to update like');
           return;
         }
-        comment.likedByCurrentUser = response.liked;
-        comment.likeCount = response.likeCount;
+        this.patchComment(comment.id, {
+          likedByCurrentUser: response.liked,
+          likeCount: response.likeCount
+        });
       },
       error: () => {
         this.likingCommentId = null;
@@ -607,6 +613,31 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
     return { threadRootId: parentCommentId, replyToCommentId: null, replyToUsername: null };
   }
 
+  private patchComment(commentId: number, patch: Partial<GiftComment>) {
+    if (!this.gift) {
+      return;
+    }
+
+    this.gift = {
+      ...this.gift,
+      comments: this.gift.comments.map(comment => {
+        if (comment.id === commentId) {
+          return { ...comment, ...patch };
+        }
+
+        if (!comment.replies?.some(reply => reply.id === commentId)) {
+          return comment;
+        }
+
+        return {
+          ...comment,
+          replies: comment.replies.map(reply =>
+            reply.id === commentId ? { ...reply, ...patch } : reply)
+        };
+      })
+    };
+  }
+
   private async applyUpdatedEntry(updated: GiftLogEntry) {
     if (!this.gift) {
       return;
@@ -623,9 +654,7 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
     }
 
     this.gift = {
-      ...this.gift,
-      ...entry,
-      timestamp: entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp),
+      ...mergeGiftLogEntryPreserveEngagement(this.gift, entry),
       comments: this.gift.comments
     };
 
@@ -700,8 +729,12 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
           let entry: GiftDetail = detail;
           if (this.crewId > 0) {
             const decryptedEntries = await this.giftLogCrypto.decryptEntries([detail], this.crewId);
+            const decrypted = decryptedEntries[0] ?? detail;
             entry = {
-              ...decryptedEntries[0],
+              ...decrypted,
+              likeCount: detail.likeCount ?? decrypted.likeCount ?? 0,
+              likedByCurrentUser: detail.likedByCurrentUser ?? decrypted.likedByCurrentUser ?? false,
+              commentCount: detail.commentCount ?? decrypted.commentCount ?? 0,
               comments: detail.comments
             };
             entry.comments = await this.discussionCrypto.decryptComments(

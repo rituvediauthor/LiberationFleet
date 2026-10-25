@@ -4,7 +4,8 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src" / "assets" / "images" / "LFleetLogoForCircle.png"
+ICON_SRC = ROOT / "src" / "assets" / "images" / "LFleetLogo.png"
+SPLASH_SRC = ROOT / "src" / "assets" / "images" / "LFleetLogoForCircle.png"
 IOS_ICON = ROOT / "ios" / "App" / "App" / "Assets.xcassets" / "AppIcon.appiconset" / "AppIcon-512@2x.png"
 IOS_SPLASH_DIR = ROOT / "ios" / "App" / "App" / "Assets.xcassets" / "Splash.imageset"
 ANDROID_RES = ROOT / "android" / "app" / "src" / "main" / "res"
@@ -51,13 +52,18 @@ def fit_logo(canvas_size, logo_rgba):
     return Image.alpha_composite(canvas.convert("RGBA"), layer).convert("RGB")
 
 
-def main():
-    logo = Image.open(SRC).convert("RGB")
-    splash_logo = knockout_background(logo)
+def opaque_square(src_path, size):
+    """Flatten transparency onto BG so the App Store icon has no alpha."""
+    img = Image.open(src_path).convert("RGBA")
+    canvas = Image.new("RGBA", img.size, BG + (255,))
+    return Image.alpha_composite(canvas, img).convert("RGB").resize((size, size), Image.LANCZOS)
 
-    icon = logo.resize((1024, 1024), Image.LANCZOS)
+
+def main():
+    splash_logo = knockout_background(Image.open(SPLASH_SRC).convert("RGB"))
+
     IOS_ICON.parent.mkdir(parents=True, exist_ok=True)
-    icon.save(IOS_ICON, "PNG")
+    opaque_square(ICON_SRC, 1024).save(IOS_ICON, "PNG")
     print("iOS AppIcon -> 1024x1024 %s" % IOS_ICON)
 
     splash = fit_logo((2732, 2732), splash_logo)

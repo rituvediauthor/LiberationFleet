@@ -122,7 +122,7 @@ public class ChatRepository : IChatRepository
         var messages = await _context.ChatRoomMessages
             .AsNoTracking()
             .Include(m => m.AuthorUser)
-            .Where(m => m.ChatRoomId == roomId && !m.IsDeleted)
+            .Where(m => m.ChatRoomId == roomId && (!m.IsDeleted || m.RemovedByModerator))
             .OrderByDescending(m => m.Id)
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -140,7 +140,7 @@ public class ChatRepository : IChatRepository
         var messages = await _context.ChatRoomMessages
             .AsNoTracking()
             .Include(m => m.AuthorUser)
-            .Where(m => m.ChatRoomId == roomId && !m.IsDeleted && m.Id < beforeMessageId)
+            .Where(m => m.ChatRoomId == roomId && (!m.IsDeleted || m.RemovedByModerator) && m.Id < beforeMessageId)
             .OrderByDescending(m => m.Id)
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -152,7 +152,9 @@ public class ChatRepository : IChatRepository
     public Task<ChatRoomMessage?> GetMessageByIdWithAuthorAsync(int messageId, CancellationToken cancellationToken = default) =>
         _context.ChatRoomMessages
             .Include(m => m.AuthorUser)
-            .FirstOrDefaultAsync(m => m.Id == messageId && !m.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(
+                m => m.Id == messageId && (!m.IsDeleted || m.RemovedByModerator),
+                cancellationToken);
 
     public Task<bool> RoomBelongsToCrewAsync(int roomId, int crewId, CancellationToken cancellationToken = default) =>
         _context.ChatRooms.AnyAsync(r => r.Id == roomId && r.CrewId == crewId && !r.IsDeleted, cancellationToken);

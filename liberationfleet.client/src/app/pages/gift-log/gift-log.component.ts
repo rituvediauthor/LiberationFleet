@@ -37,6 +37,7 @@ import { injectLocationHeaderInfo } from '../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../utils/location-header.util';
 import { PullRefreshController } from '../../utils/pull-refresh.controller';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
+import { mergeGiftLogEntryPreserveEngagement } from '../../utils/gift-log-engagement.util';
 import { Observable, map } from 'rxjs';
 
 export type GiftLogScope = 'crew' | 'fleet';
@@ -328,8 +329,10 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
           this.toastService.error(response.message || 'Failed to update like');
           return;
         }
-        entry.likedByCurrentUser = response.liked;
-        entry.likeCount = response.likeCount;
+        this.entries = this.entries.map(item =>
+          item.id === entry.id
+            ? { ...item, likedByCurrentUser: response.liked, likeCount: response.likeCount }
+            : item);
       },
       error: () => {
         this.likingEntryId = null;
@@ -458,10 +461,7 @@ export class GiftLogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const next = [...this.entries];
-    next[index] = {
-      ...next[index],
-      ...normalized
-    };
+    next[index] = mergeGiftLogEntryPreserveEngagement(next[index], normalized);
     this.entries = next;
     this.applyCompletionDefaults([next[index]]);
   }

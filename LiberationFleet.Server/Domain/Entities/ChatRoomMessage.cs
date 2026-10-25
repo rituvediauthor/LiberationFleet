@@ -9,6 +9,12 @@ public class ChatRoomMessage
     public bool IsDeleted { get; set; }
 
     /// <summary>
+    /// True when a moderator removed the message. The row stays in the room as a
+    /// tombstone so crewmates can still kick the (anonymous) author.
+    /// </summary>
+    public bool RemovedByModerator { get; set; }
+
+    /// <summary>
     /// When true, the message is shown as Anonymous to other crewmates. The real
     /// author id is kept server-side for moderation (e.g. kick proposals).
     /// </summary>

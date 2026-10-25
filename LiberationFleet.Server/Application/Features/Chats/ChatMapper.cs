@@ -72,10 +72,14 @@ public static class ChatMapper
         bool allowKick = false,
         IReadOnlySet<int>? crewAvatarAllowedUserIds = null,
         int likeCount = 0,
-        bool likedByCurrentUser = false)
+        bool likedByCurrentUser = false,
+        bool canModerate = false)
     {
         var isOwn = viewerUserId.HasValue && message.AuthorUserId == viewerUserId.Value;
         var hideIdentity = message.IsAnonymous && !isOwn;
+        var removed = message.RemovedByModerator;
+        var canViewRemoved = canModerate && removed;
+        var hideContent = removed && !canViewRemoved;
 
         return new ChatMessageDto
         {
@@ -95,11 +99,15 @@ public static class ChatMapper
                     message.AuthorUserId,
                     crewAvatarAllowedUserIds),
             CreatedAt = message.CreatedAt,
-            HasEncryptedContent = envelope is not null,
-            EncryptedPayload = envelope is null ? null : CryptoMapper.MapPayload(envelope),
-            Body = envelope is null ? message.Body : null,
+            HasEncryptedContent = !hideContent && envelope is not null,
+            EncryptedPayload = hideContent || envelope is null ? null : CryptoMapper.MapPayload(envelope),
+            Body = hideContent || envelope is not null ? null : message.Body,
             IsAnonymous = message.IsAnonymous,
+            IsRemovedByModerator = removed,
             CanKick = allowKick && message.IsAnonymous && !isOwn,
+            CanViewRemoved = canViewRemoved,
+            CanRestore = canModerate && removed,
+            CanRemoveAsModerator = canModerate && !isOwn && !removed,
             LikeCount = likeCount,
             LikedByCurrentUser = likedByCurrentUser
         };

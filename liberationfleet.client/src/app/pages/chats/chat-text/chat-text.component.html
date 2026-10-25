@@ -16,9 +16,10 @@
         [lfNotificationPrefix]="notifyPrefix"
         [lfHighlightId]="highlightId"
         [class.own]="isOwnMessage(message)"
+        [class.removed]="isRemovedByModerator(message)"
         [class.pending-send]="message.sendStatus === 'sending'"
         [class.failed-send]="message.sendStatus === 'failed'"
-        [class.media-primary]="!message.body && (message.resolvedAttachments?.length ?? 0) > 0">
+        [class.media-primary]="!isRemovedByModerator(message) && !message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">
           <p class="message-meta">
             <app-user-avatar
@@ -50,16 +51,26 @@
               *ngIf="openMessageMenuId === message.id"
               (click)="$event.stopPropagation()"
               (keydown.escape)="closeMenus()">
-              <button type="button" role="menuitem" *ngIf="isOwnMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
+              <button type="button" role="menuitem" *ngIf="canEditMessage(message)" (click)="startEditMessage(message, $event)">Edit</button>
               <button
                 type="button"
                 role="menuitem"
                 class="danger-item"
-                *ngIf="isOwnMessage(message)"
+                *ngIf="canDeleteOwnMessage(message)"
                 (click)="deleteOwnMessage(message, $event)">
                 Delete
               </button>
-              <button type="button" role="menuitem" *ngIf="!isOwnMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
+              <button type="button" role="menuitem" *ngIf="canReportMessage(message)" (click)="openReportMessage(message, $event)">Report</button>
+              <button
+                type="button"
+                role="menuitem"
+                class="danger-item"
+                *ngIf="canRemoveAsModerator(message)"
+                (click)="removeAsModerator(message, $event)">
+                Remove
+              </button>
+              <button type="button" role="menuitem" *ngIf="canViewRemoved(message)" (click)="openViewRemoved(message, $event)">View</button>
+              <button type="button" role="menuitem" *ngIf="canRestoreMessage(message)" (click)="restoreMessage(message, $event)">Restore</button>
               <button
                 type="button"
                 role="menuitem"
@@ -71,12 +82,14 @@
             </div>
           </div>
         </div>
-        <p class="message-body" *ngIf="message.body"><app-mention-text [text]="message.body" /></p>
+        <p class="removed-notice" *ngIf="isRemovedByModerator(message)">Post removed by a moderator</p>
+        <p class="message-body" *ngIf="!isRemovedByModerator(message) && message.body"><app-mention-text [text]="message.body" /></p>
         <app-proposal-attachment-display
+          *ngIf="!isRemovedByModerator(message)"
           [attachments]="message.resolvedAttachments ?? []"
           [compact]="true">
         </app-proposal-attachment-display>
-        <div class="message-engagement" *ngIf="message.id > 0">
+        <div class="message-engagement" *ngIf="message.id > 0 && !isRemovedByModerator(message)">
           <button
             type="button"
             class="message-like-btn"
@@ -238,7 +251,7 @@
   [targetAuthorUserId]="reportTarget?.isAnonymous ? null : (reportTarget?.authorUserId ?? null)"
   [crewId]="fleetId > 0 ? null : crewId"
   [fleetId]="fleetId > 0 ? fleetId : null"
-  [evidenceText]="reportTarget?.body || ''"
+  [evidenceText]="reportEvidenceText"
   [evidenceAuthorUsername]="reportTarget ? displayAuthor(reportTarget) : ''"
   [evidenceMediaResourceIds]="reportMediaIds"
   (dismissed)="onReportDismissed()"
@@ -262,6 +275,25 @@
   [fleetId]="fleetId || null"
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>
+
+<div class="chat-anonymous-reminder-backdrop" *ngIf="viewingRemovedMessage" (click)="onViewRemovedBackdrop($event)">
+  <div
+    class="chat-anonymous-reminder-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="removed-message-title"
+    [appAccessibleDialog]="!!viewingRemovedMessage"
+    [appAccessibleDialogEscape]="closeViewRemovedBound"
+    (click)="$event.stopPropagation()">
+    <h2 id="removed-message-title" class="dialog-title">Removed message</h2>
+    <p class="dialog-message" *ngIf="viewingRemovedMessage.body"><app-mention-text [text]="viewingRemovedMessage.body" /></p>
+    <app-proposal-attachment-display
+      [attachments]="viewingRemovedMessage.resolvedAttachments ?? []"
+      [compact]="true">
+    </app-proposal-attachment-display>
+    <button type="button" class="dialog-button" (click)="closeViewRemoved()">Close</button>
+  </div>
+</div>
 
 <div class="chat-anonymous-reminder-backdrop" *ngIf="showAnonymousReminderDialog" (click)="onAnonymousReminderBackdrop($event)">
   <div

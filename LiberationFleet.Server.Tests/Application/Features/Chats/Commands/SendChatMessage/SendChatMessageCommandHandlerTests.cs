@@ -129,7 +129,9 @@ public class SendChatMessageCommandHandlerTests
         result.Success.Should().BeTrue();
         createdNotifications.Should().HaveCount(2);
         createdNotifications.Select(n => n.ActorUserId).Should().OnlyContain(actorUserId => actorUserId == null);
-        createdNotifications.Should().ContainSingle(n => n.Kind == NotificationKind.NewChatMessage);
+        createdNotifications.Should().ContainSingle(n =>
+            n.Kind == NotificationKind.NewChatMessage
+            && n.Body == "hello @Mentioned");
         createdNotifications.Should().ContainSingle(n =>
             n.Kind == NotificationKind.Mention
             && n.Title.Contains("Anonymous mentioned you"));

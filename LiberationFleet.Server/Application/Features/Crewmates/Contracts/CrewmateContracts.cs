@@ -98,6 +98,7 @@ public class CrewmateProfileDto
     public bool CanSocialInteract { get; set; } = true;
     public bool IsSelf { get; set; }
     public bool CanAttachFiles { get; set; }
+    public bool AttachmentsDenied { get; set; }
     public bool CanCreateProposals { get; set; }
     public bool CanAttachFilesToCrewContent { get; set; }
     public bool CanCreateCrewProposals { get; set; }

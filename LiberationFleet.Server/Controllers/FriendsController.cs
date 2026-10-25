@@ -73,7 +73,8 @@ public class FriendsController : ControllerBase
             friendUserId,
             body.Nonce,
             body.Ciphertext,
-            body.KeyVersion));
+            body.KeyVersion,
+            body.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

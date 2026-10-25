@@ -57,7 +57,7 @@ public class ToggleChatMessageLikeCommandHandler(
         }
 
         var message = await chatRepository.GetMessageByIdWithAuthorAsync(request.MessageId, cancellationToken);
-        if (message is null || message.ChatRoomId != room.Id)
+        if (message is null || message.ChatRoomId != room.Id || message.IsDeleted)
         {
             return new ChatMessageLikeToggleResponse { Success = false, Message = "Message not found." };
         }

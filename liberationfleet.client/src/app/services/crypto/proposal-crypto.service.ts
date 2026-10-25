@@ -22,6 +22,7 @@ import { buildPlainMediaPayload, MEDIA_PLAIN_NONCE } from '../../utils/media-chu
 import { MediaUploadQueueService } from '../media-upload-queue.service';
 import { AppStorageService, StorageScope } from '../storage/app-storage.service';
 import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from '../storage/storage-keys';
+import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 
 export interface ProposalCryptoScope {
   crewId?: number;
@@ -260,7 +261,7 @@ export class ProposalCryptoService {
       return {
         ...item,
         title: item.title ?? '',
-        descriptionPreview: preview.slice(0, 200),
+        descriptionPreview: truncateNotificationPreview(preview),
         previewImageUrls: item.previewImageUrls ?? (item.thumbnailUrl ? [item.thumbnailUrl] : [])
       };
     }
@@ -284,7 +285,7 @@ export class ProposalCryptoService {
       return {
         ...item,
         title: payload.title,
-        descriptionPreview: payload.description.slice(0, 200),
+        descriptionPreview: truncateNotificationPreview(payload.description),
         authorUsername: this.resolveAuthorUsername(item, payload.authorDisplayName),
         thumbnailUrl: previewImageUrls[0] ?? null,
         previewImageUrls,

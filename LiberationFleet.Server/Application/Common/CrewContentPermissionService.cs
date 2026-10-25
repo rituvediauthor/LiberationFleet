@@ -15,6 +15,11 @@ public static class CrewContentPermissionService
             return true;
         }
 
+        if (membership.AttachmentsDenied)
+        {
+            return false;
+        }
+
         if (membership.CanAttachFiles)
         {
             return true;

@@ -206,6 +206,7 @@ public class CrewmatePermissionProposalService(
         if (grant.GrantType == CrewmatePermissionGrantType.AttachFiles)
         {
             membership.CanAttachFiles = true;
+            membership.AttachmentsDenied = false;
         }
         else
         {

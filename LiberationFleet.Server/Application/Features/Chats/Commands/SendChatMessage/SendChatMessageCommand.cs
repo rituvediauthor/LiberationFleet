@@ -18,7 +18,8 @@ public record SendChatMessageCommand(
     int KeyVersion,
     string? Body,
     IReadOnlyList<int> MentionedUserIds,
-    bool IsAnonymous) : IRequest<ChatOperationResponse>;
+    bool IsAnonymous,
+    string? NotificationPreview = null) : IRequest<ChatOperationResponse>;
 
 public class SendChatMessageCommandHandler(
     ICurrentUserService currentUser,
@@ -135,7 +136,10 @@ public class SendChatMessageCommandHandler(
                 : UserDisplay.Name(author);
             int? notificationActorUserId = request.IsAnonymous ? null : userId;
             var chatTitle = NotificationCopy.PostedInChat(actorName, room.Name);
-            var chatBody = NotificationCopy.PreviewOr(request.Body, "Open the chat to read the message.");
+            var chatPreview = !string.IsNullOrWhiteSpace(request.NotificationPreview)
+                ? request.NotificationPreview
+                : request.Body;
+            var chatBody = NotificationCopy.PreviewOr(chatPreview, "Open the chat to read the message.");
 
             if (isFleetRoom)
             {
@@ -171,7 +175,7 @@ public class SendChatMessageCommandHandler(
                     ParentResourceId = room.Id,
                     ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
                     MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                    Preview = request.Body
+                    Preview = chatPreview
                 }, cancellationToken);
             }
             else
@@ -204,7 +208,7 @@ public class SendChatMessageCommandHandler(
                     ParentResourceId = room.Id,
                     ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
                     MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                    Preview = request.Body
+                    Preview = chatPreview
                 }, cancellationToken);
             }
         }

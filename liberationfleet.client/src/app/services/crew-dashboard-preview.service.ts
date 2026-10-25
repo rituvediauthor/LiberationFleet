@@ -263,6 +263,20 @@ export class CrewDashboardPreviewService {
       return null;
     }
 
+    if (message.isRemovedByModerator) {
+      return {
+        kind: 'chat',
+        roomId: room.id,
+        messageId: message.id,
+        authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
+        authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
+        createdAt: message.createdAt,
+        body: 'Post removed by a moderator',
+        hasAttachments: false,
+        isAnonymous: !!message.isAnonymous
+      };
+    }
+
     const rawBody = (message.body ?? '').trim();
     if (
       rawBody === '[Unlock encryption to view]'

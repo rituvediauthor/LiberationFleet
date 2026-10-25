@@ -89,9 +89,9 @@ export class EditFleetComponent implements OnInit {
       changeAutoResolveTimerOnFirstReject: [true],
       autoResolveHoursAfterFirstReject: [168, [Validators.required, Validators.min(1), Validators.max(8760)]],
       libraryOfThingsEnabled: [true],
-      allowCrewmateFileAttachments: [false],
-      minimumCrewmateTenureDaysForAttachments: [0, [Validators.min(0)]],
-      minimumContributionForAttachments: [0, [Validators.min(0)]],
+      allowCrewmateFileAttachments: [true],
+      minimumCrewmateTenureDaysForAttachments: [30, [Validators.min(0)]],
+      minimumContributionForAttachments: [20, [Validators.min(0)]],
       minimumCrewmateTenureDaysForProposals: [0, [Validators.min(0)]],
       minimumContributionForProposals: [0, [Validators.min(0)]]
     });

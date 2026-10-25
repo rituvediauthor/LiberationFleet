@@ -268,9 +268,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.NonMemberCycleCapMode).HasDefaultValue(CycleCapMode.CapacityBased);
             entity.Property(e => e.NonMemberCycleCapFixedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.NonMemberCycleCapMultiplier).HasPrecision(18, 4).HasDefaultValue(0.5m);
-            entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
-            entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);
-            entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(true);
+            entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(30);
+            entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(20m);
             entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
             entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.AllowCrossCrewGiving).HasDefaultValue(false);
@@ -308,9 +308,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.ChangeAutoResolveTimerOnFirstReject).HasDefaultValue(true);
             entity.Property(e => e.AutoResolveHoursAfterFirstReject).HasDefaultValue(168);
             entity.Property(e => e.LibraryOfThingsEnabled).HasDefaultValue(true);
-            entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(false);
-            entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(0);
-            entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(e => e.AllowCrewmateFileAttachments).HasDefaultValue(true);
+            entity.Property(e => e.MinimumCrewmateTenureDaysForAttachments).HasDefaultValue(30);
+            entity.Property(e => e.MinimumContributionForAttachments).HasPrecision(18, 2).HasDefaultValue(20m);
             entity.Property(e => e.MinimumCrewmateTenureDaysForProposals).HasDefaultValue(0);
             entity.Property(e => e.MinimumContributionForProposals).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(e => e.ImageResourceId).HasMaxLength(64);
@@ -428,6 +428,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.PercentBonus).HasDefaultValue(0);
             entity.Property(e => e.IsPlaceholderMember).HasDefaultValue(false);
             entity.Property(e => e.CanAttachFiles).HasDefaultValue(false);
+            entity.Property(e => e.AttachmentsDenied).HasDefaultValue(false);
             entity.Property(e => e.CanCreateProposals).HasDefaultValue(false);
             entity.Property(e => e.EstimatedMonthlyContribution).HasPrecision(18, 2);
             entity.Property(e => e.LifetimeContributionOverride).HasPrecision(18, 2);
@@ -1279,6 +1280,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.RemovedByModerator).HasDefaultValue(false);
             entity.Property(e => e.IsAnonymous).HasDefaultValue(false);
             entity.Property(e => e.Body).HasMaxLength(4000);
             entity.HasIndex(e => new { e.ChatRoomId, e.Id });

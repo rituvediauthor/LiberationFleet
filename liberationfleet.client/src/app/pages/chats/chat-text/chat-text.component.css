@@ -273,6 +273,16 @@
   word-break: break-word;
 }
 
+.message-bubble.removed {
+  opacity: 0.85;
+}
+
+.removed-notice {
+  margin: 0;
+  font-style: italic;
+  color: var(--lf-color-text-muted, #6b7280);
+}
+
 .chat-action-bar {
   position: fixed;
   left: max(0px, var(--lf-safe-left, env(safe-area-inset-left, 0px)));

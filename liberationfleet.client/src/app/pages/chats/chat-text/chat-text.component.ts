@@ -124,6 +124,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   composeAnonymously = false;
   canAttachFiles = false;
+  canModerateChat = false;
+  viewingRemovedMessage: ChatMessage | null = null;
+  closeViewRemovedBound = () => this.closeViewRemoved();
   messages: ChatMessage[] = [];
   crewId = 0;
   fleetId = 0;
@@ -261,6 +264,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
       next: async membership => {
         this.crewId = membership.crewId ?? 0;
         this.canAttachFiles = membership.canAttachFilesToCrewContent ?? false;
+        this.canModerateChat = !!membership.canModerateChat;
         await this.encryptionContent.whenReady();
         if (this.crewId > 0) {
           void this.chatHub.joinCrew(this.crewId);
@@ -555,6 +559,18 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     return (this.reportTarget?.resolvedAttachments ?? []).map(a => a.resourceId);
   }
 
+  get reportEvidenceText(): string {
+    if (!this.reportTarget) {
+      return '';
+    }
+    if (this.reportTarget.body) {
+      return this.reportTarget.body;
+    }
+    return this.isRemovedByModerator(this.reportTarget)
+      ? 'Post removed by a moderator'
+      : '';
+  }
+
   cancelEditMessage() {
     this.editingMessageId = null;
     this.messageText = '';
@@ -668,6 +684,109 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   canKickAnonymous(message: ChatMessage): boolean {
     return !!message.canKick && !this.isOwnMessage(message);
+  }
+
+  isRemovedByModerator(message: ChatMessage): boolean {
+    return !!message.isRemovedByModerator;
+  }
+
+  canEditMessage(message: ChatMessage): boolean {
+    return this.isOwnMessage(message) && !this.isRemovedByModerator(message);
+  }
+
+  canDeleteOwnMessage(message: ChatMessage): boolean {
+    return this.isOwnMessage(message) && !this.isRemovedByModerator(message);
+  }
+
+  canReportMessage(message: ChatMessage): boolean {
+    return !this.isOwnMessage(message);
+  }
+
+  canRemoveAsModerator(message: ChatMessage): boolean {
+    return (message.canRemoveAsModerator
+      || (this.canModerateChat && !this.isOwnMessage(message)))
+      && !this.isRemovedByModerator(message);
+  }
+
+  canViewRemoved(message: ChatMessage): boolean {
+    return this.isRemovedByModerator(message)
+      && (message.canViewRemoved || this.canModerateChat);
+  }
+
+  canRestoreMessage(message: ChatMessage): boolean {
+    return this.isRemovedByModerator(message)
+      && (message.canRestore || this.canModerateChat);
+  }
+
+  removeAsModerator(message: ChatMessage, event: Event) {
+    event.stopPropagation();
+    this.closeMenus();
+    if (!this.canRemoveAsModerator(message) || this.sending) {
+      return;
+    }
+
+    this.chatService.deleteMessage(this.roomId, message.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to remove message');
+          return;
+        }
+        this.applyModeratorRemoval(message.id);
+      },
+      error: () => this.toastService.error('Failed to remove message')
+    });
+  }
+
+  restoreMessage(message: ChatMessage, event: Event) {
+    event.stopPropagation();
+    this.closeMenus();
+    if (!this.canRestoreMessage(message) || this.sending) {
+      return;
+    }
+
+    this.chatService.restoreMessage(this.roomId, message.id).subscribe({
+      next: result => {
+        if (!result.success) {
+          this.toastService.error(result.message || 'Failed to restore message');
+          return;
+        }
+        this.toastService.success(result.message || 'Message restored.');
+      },
+      error: () => this.toastService.error('Failed to restore message')
+    });
+  }
+
+  openViewRemoved(message: ChatMessage, event: Event) {
+    event.stopPropagation();
+    this.closeMenus();
+    if (!this.canViewRemoved(message)) {
+      return;
+    }
+    this.viewingRemovedMessage = message;
+  }
+
+  closeViewRemoved() {
+    this.viewingRemovedMessage = null;
+  }
+
+  onViewRemovedBackdrop(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('chat-anonymous-reminder-backdrop')) {
+      this.closeViewRemoved();
+    }
+  }
+
+  private applyModeratorRemoval(messageId: number) {
+    this.messages = this.messages.map(existing =>
+      existing.id === messageId
+        ? { ...existing, isRemovedByModerator: true, canRestore: this.canModerateChat, canViewRemoved: this.canModerateChat }
+        : existing
+    );
+    if (this.editingMessageId === messageId) {
+      this.cancelEditMessage();
+    }
+    if (this.viewingRemovedMessage?.id === messageId) {
+      this.viewingRemovedMessage = this.messages.find(item => item.id === messageId) ?? null;
+    }
   }
 
   toggleComposeAnonymously() {
@@ -806,6 +925,33 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async onMessageUpdated(message: ChatMessage) {
     // Like-only hub payloads omit body/ciphertext — merge counts without wiping content.
+    if (message.isRemovedByModerator) {
+      this.messages = this.messages.map(existing => {
+        if (existing.id !== message.id) {
+          return existing;
+        }
+        const keepContent = this.canModerateChat
+          && (!!existing.body || !!existing.encryptedPayload || (existing.resolvedAttachments?.length ?? 0) > 0);
+        return {
+          ...existing,
+          ...message,
+          body: keepContent ? existing.body : undefined,
+          encryptedPayload: keepContent ? existing.encryptedPayload : undefined,
+          hasEncryptedContent: keepContent ? existing.hasEncryptedContent : false,
+          resolvedAttachments: keepContent ? existing.resolvedAttachments : [],
+          isRemovedByModerator: true,
+          canViewRemoved: this.canModerateChat,
+          canRestore: this.canModerateChat,
+          likeCount: message.likeCount ?? existing.likeCount,
+          likedByCurrentUser: existing.likedByCurrentUser
+        };
+      });
+      if (this.editingMessageId === message.id) {
+        this.cancelEditMessage();
+      }
+      return;
+    }
+
     const isLikeOnlyUpdate = !message.body
       && !message.encryptedPayload
       && !message.hasEncryptedContent
@@ -1065,6 +1211,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
             this.chatService.sendMessage(this.roomId, {
               ...encrypted,
               body: '',
+              notificationPreview: truncateNotificationPreview(entry.body)
+                || (entry.attachments.length || entry.keptAttachments.length ? 'Attachment' : ''),
               mentionedUserIds: entry.mentionedUserIds,
               isAnonymous: entry.isAnonymous
             }).subscribe({ next: resolve, error: reject });

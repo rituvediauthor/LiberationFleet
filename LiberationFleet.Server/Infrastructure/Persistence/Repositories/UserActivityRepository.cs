@@ -546,6 +546,6 @@ public class UserActivityRepository(ApplicationDbContext context) : IUserActivit
         }
 
         var trimmed = value.Trim();
-        return trimmed.Length <= maxLength ? trimmed : $"{trimmed[..(maxLength - 1)]}…";
+        return trimmed.Length <= maxLength ? trimmed : $"{trimmed[..Math.Max(0, maxLength - 3)].TrimEnd()}...";
     }
 }

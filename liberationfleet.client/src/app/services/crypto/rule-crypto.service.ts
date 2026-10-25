@@ -3,6 +3,7 @@ import { RuleDetail, RuleEncryptedPayload, RuleListItem } from '../../models/rul
 import { CryptoSessionService } from './crypto-session.service';
 import { CryptoService } from './crypto.service';
 import { ProposalCryptoService } from './proposal-crypto.service';
+import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 
 @Injectable({
   providedIn: 'root'
@@ -19,7 +20,7 @@ export class RuleCryptoService {
       const description = rule.description ?? '';
       return {
         ...rule,
-        descriptionPreview: description.length > 160 ? `${description.slice(0, 160)}…` : description
+        descriptionPreview: truncateNotificationPreview(description, 160)
       };
     });
     const encryptedRules = rules.filter(rule => !rule.isPublic);
@@ -90,7 +91,7 @@ export class RuleCryptoService {
       const description = rule.description ?? '';
       return {
         ...rule,
-        descriptionPreview: description.length > 160 ? `${description.slice(0, 160)}…` : description
+        descriptionPreview: truncateNotificationPreview(description, 160)
       };
     }
 
@@ -113,7 +114,7 @@ export class RuleCryptoService {
         ...rule,
         title: payload.title,
         description,
-        descriptionPreview: description.length > 160 ? `${description.slice(0, 160)}…` : description
+        descriptionPreview: truncateNotificationPreview(description, 160)
       };
     } catch {
       return {

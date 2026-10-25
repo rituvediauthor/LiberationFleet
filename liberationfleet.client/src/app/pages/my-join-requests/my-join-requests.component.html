@@ -43,9 +43,6 @@
         </div>
         <p class="card-meta">Requested {{ formatCreatedAt(item.createdAt) }}</p>
         <p class="status-line">Status: Pending</p>
-        <p class="key-status" [class.ready]="item.isKeyPrepared">
-          {{ item.isKeyPrepared ? 'Encryption key prepared' : 'Waiting for a crewmate to prepare your key' }}
-        </p>
       </article>
     </div>
   </div>

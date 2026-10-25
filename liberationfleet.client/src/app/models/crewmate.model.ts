@@ -83,6 +83,7 @@ export interface CrewmateProfile {
   canSocialInteract?: boolean;
   isSelf: boolean;
   canAttachFiles: boolean;
+  attachmentsDenied?: boolean;
   canCreateProposals: boolean;
   canAttachFilesToCrewContent: boolean;
   canCreateCrewProposals: boolean;

@@ -117,8 +117,8 @@ public class CrewJoinRequestProposalService(
 
         var applicantName = UserDisplay.Name(applicant);
         var description = switchingCrews
-            ? $"{applicantName} accepted the crew's public rules and requested to join. If approved while they are still in another crew, they will be asked whether to switch crews or stay. A crewmate should prepare an encryption key before approval when possible."
-            : $"{applicantName} accepted the crew's public rules and requested to join. A crewmate should prepare an encryption key before approval when possible.";
+            ? $"{applicantName} accepted the crew's public rules and requested to join. If approved while they are still in another crew, they will be asked whether to switch crews or stay."
+            : $"{applicantName} accepted the crew's public rules and requested to join.";
 
         await proposalRepository.AddCrewJoinRequestAsync(new ProposalCrewJoinRequest
         {

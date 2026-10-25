@@ -87,10 +87,10 @@ public class GetCrewGiftLogQueryHandlerTests
             .ReturnsAsync(new Dictionary<int, Gift>());
         giftRepository
             .Setup(r => r.GetActiveLikeCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<int, int>());
+            .ReturnsAsync(new Dictionary<int, int> { [gift.Id] = 3 });
         giftRepository
             .Setup(r => r.GetActiveLikedGiftIdsByUserAsync(user.Id, It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .ReturnsAsync([gift.Id]);
         giftRepository
             .Setup(r => r.GetCommentCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, int>());
@@ -124,6 +124,99 @@ public class GetCrewGiftLogQueryHandlerTests
         result.Success.Should().BeTrue();
         result.Items.Should().ContainSingle();
         result.Items[0].Message.Should().Contain("PayPal");
+        result.Items[0].LikeCount.Should().Be(3);
+        result.Items[0].LikedByCurrentUser.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_WhenLikeCountsFailThenSchemaRepairSucceeds_ReturnsLikeCounts()
+    {
+        var user = HandlerTestFixture.CreateUser();
+        var crew = HandlerTestFixture.CreateCrew();
+        var membership = HandlerTestFixture.CreateMembership(user, crew);
+        var recipient = HandlerTestFixture.CreateUser(id: 2, username: "Ritu");
+
+        var gift = new Gift
+        {
+            Id = 1,
+            CrewId = crew.Id,
+            GiverUserId = user.Id,
+            GiverUser = user,
+            RecipientUserId = recipient.Id,
+            RecipientUser = recipient,
+            Type = GiftType.Direct,
+            Amount = 25,
+            CrewPaymentPlatformId = 1,
+            CrewPaymentPlatform = HandlerTestFixture.CreateCrewPaymentPlatform(1, crew.Id, "PayPal"),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(membership);
+
+        var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.GetLogPageByCrewIdAsync(
+                crew.Id,
+                It.IsAny<int>(),
+                null,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GiftLogPage
+            {
+                Items = new List<Gift> { gift },
+                HasMore = false
+            });
+        giftRepository
+            .Setup(r => r.GetCompletedInitiatedGiftIdsAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
+        giftRepository
+            .Setup(r => r.GetCompletedGiftsByInitiatedIdsAsync(crew.Id, It.IsAny<IEnumerable<int>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, Gift>());
+        giftRepository
+            .SetupSequence(r => r.GetActiveLikeCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("An item with the same key has already been added."))
+            .ReturnsAsync(new Dictionary<int, int> { [gift.Id] = 2 });
+        giftRepository
+            .Setup(r => r.GetActiveLikedGiftIdsByUserAsync(user.Id, It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([gift.Id]);
+        giftRepository
+            .Setup(r => r.GetCommentCountsForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, int>());
+        giftRepository
+            .Setup(r => r.GetSeasonStartDatesForGiftsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, DateTime?>());
+        giftRepository
+            .Setup(r => r.EnsureGiftLogSchemaAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var cryptoRepository = new Mock<ICryptoRepository>();
+        cryptoRepository
+            .Setup(r => r.GetEnvelopesAsync(
+                EncryptedContentType.GiftLogEntry,
+                It.IsAny<IReadOnlyList<string>>(),
+                crew.Id,
+                null,
+                It.IsAny<int?>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<EncryptedContentEnvelope>());
+
+        var handler = CreateHandler(
+            currentUserId: user.Id,
+            membershipRepository: membershipRepository,
+            giftRepository: giftRepository,
+            cryptoRepository: cryptoRepository);
+
+        var result = await handler.Handle(new GetCrewGiftLogQuery(), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Items.Should().ContainSingle();
+        result.Items[0].LikeCount.Should().Be(2);
+        result.Items[0].LikedByCurrentUser.Should().BeTrue();
+        giftRepository.Verify(r => r.EnsureGiftLogSchemaAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

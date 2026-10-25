@@ -35,7 +35,11 @@ public class ChatMessageDto
     public string? Body { get; set; }
     public int Id { get; set; }
     public bool IsAnonymous { get; set; }
+    public bool IsRemovedByModerator { get; set; }
     public bool CanKick { get; set; }
+    public bool CanViewRemoved { get; set; }
+    public bool CanRestore { get; set; }
+    public bool CanRemoveAsModerator { get; set; }
     public int LikeCount { get; set; }
     public bool LikedByCurrentUser { get; set; }
 }
@@ -119,6 +123,7 @@ public class SendChatMessageRequest
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
     public string? Body { get; set; }
+    public string? NotificationPreview { get; set; }
     public List<int> MentionedUserIds { get; set; } = [];
     public bool IsAnonymous { get; set; }
 }

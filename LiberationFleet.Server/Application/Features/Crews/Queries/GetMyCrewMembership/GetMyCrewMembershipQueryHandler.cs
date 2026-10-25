@@ -142,6 +142,23 @@ public class GetMyCrewMembershipQueryHandler(
             CanCreateProposals = canCreateCrewProposals,
             CanCreateFleetProposals = canCreateFleetProposals,
             CanAttachFilesToFleetContent = canAttachFilesToFleetContent,
+            CanModerateChat = CrewRoleAuthorizationService.CanModerateAttachments(membership),
+            CrewAttachmentBlockReason = AttachmentPermissionReason.ForCrew(
+                crew,
+                membership,
+                lifetimeContributions,
+                crewTenureDays),
+            CrewAttachmentMinTenureDays = crew.MinimumCrewmateTenureDaysForAttachments,
+            CrewAttachmentMinContribution = crew.MinimumContributionForAttachments,
+            FleetAttachmentBlockReason = fleet is null
+                ? null
+                : AttachmentPermissionReason.ForFleet(
+                    fleet,
+                    membership,
+                    lifetimeContributions,
+                    fleetTenureDays),
+            FleetAttachmentMinTenureDays = fleet?.MinimumCrewmateTenureDaysForAttachments ?? 0,
+            FleetAttachmentMinContribution = fleet?.MinimumContributionForAttachments ?? 0m,
             CanExportCrewData = CrewRoleAuthorizationService.CanExportCrewData(membership),
             CanManagePlaceholders = CrewRoleAuthorizationService.CanManagePlaceholders(membership),
             CanImpersonateGiftGiver = CrewRoleAuthorizationService.CanImpersonateGiftGiver(membership),
