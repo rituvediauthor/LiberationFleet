@@ -1,3 +1,4 @@
+using System.Net.Http;
 using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Infrastructure.Realtime;
@@ -96,7 +97,12 @@ public static class DependencyInjection
         services.AddHttpClient();
         services.AddSingleton<ILiveKitAdminService, Infrastructure.LiveKit.LiveKitAdminService>();
         services.AddSingleton<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
-        services.AddHttpClient(nameof(Infrastructure.Push.FcmApnsPushNotificationSender));
+        services.AddHttpClient(nameof(Infrastructure.Push.FcmApnsPushNotificationSender))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                EnableMultipleHttp2Connections = true,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            });
         services.AddScoped<IPushNotificationSender, Infrastructure.Push.FcmApnsPushNotificationSender>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();

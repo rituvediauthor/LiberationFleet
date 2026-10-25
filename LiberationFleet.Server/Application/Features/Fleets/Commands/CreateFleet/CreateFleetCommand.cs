@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Fleets.Contracts;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -103,7 +104,10 @@ public class CreateFleetCommandHandler(
             CreatedByUserId = userId.Value,
             CreatedAt = DateTime.UtcNow,
             RequireApprovalForEdits = true,
-            LibraryOfThingsEnabled = true
+            LibraryOfThingsEnabled = true,
+            AllowCrewmateFileAttachments = ContentPermissionDefaults.AllowCrewmateFileAttachments,
+            MinimumCrewmateTenureDaysForAttachments = ContentPermissionDefaults.MinimumCrewmateTenureDaysForAttachments,
+            MinimumContributionForAttachments = ContentPermissionDefaults.MinimumContributionForAttachments
         };
 
         AllowedZipCodeSync.SetFleetZips(

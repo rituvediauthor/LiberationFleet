@@ -104,6 +104,7 @@ public class SendDirectMessageRequest
     public string Nonce { get; set; } = string.Empty;
     public string Ciphertext { get; set; } = string.Empty;
     public int KeyVersion { get; set; } = 1;
+    public string? NotificationPreview { get; set; }
 }
 
 public class UpdateDirectMessageRequest

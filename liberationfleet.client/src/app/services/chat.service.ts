@@ -87,7 +87,8 @@ export class ChatService {
       nonce: payload.nonce ?? '',
       ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
-      body: payload.body ?? payload.notificationPreview ?? null,
+      body: payload.body || payload.notificationPreview || null,
+      notificationPreview: payload.notificationPreview || payload.body || null,
       mentionedUserIds: payload.mentionedUserIds ?? [],
       isAnonymous: !!payload.isAnonymous
     });
@@ -109,6 +110,10 @@ export class ChatService {
 
   deleteMessage(roomId: number, messageId: number): Observable<ChatOperationResponse> {
     return this.http.delete<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}`);
+  }
+
+  restoreMessage(roomId: number, messageId: number): Observable<ChatOperationResponse> {
+    return this.http.post<ChatOperationResponse>(`${this.apiUrl}/rooms/${roomId}/messages/${messageId}/restore`, {});
   }
 
   toggleMessageLike(

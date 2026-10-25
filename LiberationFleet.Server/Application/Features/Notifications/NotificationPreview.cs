@@ -20,7 +20,8 @@ public static class NotificationPreview
             return normalized;
         }
 
-        return normalized[..(maxLength - 1)].TrimEnd() + "…";
+        var cut = Math.Max(0, maxLength - 3);
+        return normalized[..cut].TrimEnd() + "...";
     }
 
     /// <summary>Use truncated preview when present; otherwise the fallback body.</summary>

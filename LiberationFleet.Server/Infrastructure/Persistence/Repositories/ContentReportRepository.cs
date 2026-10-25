@@ -44,6 +44,7 @@ public class ContentReportRepository(ApplicationDbContext context) : IContentRep
                 if (message is not null)
                 {
                     message.IsDeleted = true;
+                    message.RemovedByModerator = true;
                 }
 
                 break;

@@ -12,6 +12,7 @@ import { CryptoSessionService } from './crypto-session.service';
 import { CryptoApiService } from './crypto-api.service';
 import { CryptoService } from './crypto.service';
 import { firstValueFrom } from 'rxjs';
+import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 
 export interface LibraryOfferingEncryptInput {
   title: string;
@@ -69,7 +70,7 @@ export class LibraryCryptoService {
       ?? existingAttachments.find(a => a.type === 'image')?.resourceId
       ?? limitedAttachments.find(a => a.type === 'image')?.resourceId
       ?? null;
-    const descriptionPreview = payload.description.trim().slice(0, 200);
+    const descriptionPreview = truncateNotificationPreview(payload.description);
 
     return {
       ...encrypted,
@@ -91,7 +92,7 @@ export class LibraryCryptoService {
 
     return {
       ...encrypted,
-      purposePreview: purpose.trim().slice(0, 200)
+      purposePreview: truncateNotificationPreview(purpose)
     };
   }
 
@@ -103,7 +104,7 @@ export class LibraryCryptoService {
 
     return {
       ...encrypted,
-      preview: text.trim().slice(0, 200)
+      preview: truncateNotificationPreview(text)
     };
   }
 

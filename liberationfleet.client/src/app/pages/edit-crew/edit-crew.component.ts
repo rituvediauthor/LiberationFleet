@@ -103,9 +103,9 @@ export class EditCrewComponent implements OnInit {
       nonMemberCycleCapMode: ['CapacityBased' as CycleCapMode, Validators.required],
       nonMemberCycleCapFixedAmount: [0, [Validators.min(0)]],
       nonMemberCycleCapMultiplier: [0.5, [Validators.required, Validators.min(0)]],
-      allowCrewmateFileAttachments: [false],
-      minimumCrewmateTenureDaysForAttachments: [0, [Validators.min(0)]],
-      minimumContributionForAttachments: [0, [Validators.min(0)]],
+      allowCrewmateFileAttachments: [true],
+      minimumCrewmateTenureDaysForAttachments: [30, [Validators.min(0)]],
+      minimumContributionForAttachments: [20, [Validators.min(0)]],
       minimumCrewmateTenureDaysForProposals: [0, [Validators.min(0)]],
       minimumContributionForProposals: [0, [Validators.min(0)]]
     });

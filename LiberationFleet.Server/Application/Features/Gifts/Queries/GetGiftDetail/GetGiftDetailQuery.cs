@@ -8,6 +8,7 @@ using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace LiberationFleet.Server.Application.Features.Gifts.Queries.GetGiftDetail;
 
@@ -20,7 +21,8 @@ public class GetGiftDetailQueryHandler(
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
     IUserBlockRepository blockRepository,
-    CrewAvatarVisibilityService crewAvatarVisibility) : IRequestHandler<GetGiftDetailQuery, GiftDetailResponse>
+    CrewAvatarVisibilityService crewAvatarVisibility,
+    ILogger<GetGiftDetailQueryHandler> logger) : IRequestHandler<GetGiftDetailQuery, GiftDetailResponse>
 {
     public async Task<GiftDetailResponse> Handle(GetGiftDetailQuery request, CancellationToken cancellationToken)
     {
@@ -66,21 +68,27 @@ public class GetGiftDetailQueryHandler(
         var isSeasonLocked = isHomeCrewGift
             && GiftSeasonAccess.IsSeasonLocked(gift, currentSeasonStartDate, giftSeasonStartDate);
 
-        Dictionary<int, int> likeCounts;
-        HashSet<int> likedGiftIds;
-        Dictionary<int, int> commentCounts;
-        try
-        {
-            likeCounts = await giftRepository.GetActiveLikeCountsForGiftsAsync([gift.Id], cancellationToken);
-            likedGiftIds = await giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, [gift.Id], cancellationToken);
-            commentCounts = await giftRepository.GetCommentCountsForGiftsAsync([gift.Id], cancellationToken);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
-        {
-            likeCounts = new Dictionary<int, int>();
-            likedGiftIds = [];
-            commentCounts = new Dictionary<int, int>();
-        }
+        var likeCounts = await GiftLogEngagementEnrichment.LoadWithSchemaRetryAsync(
+            () => giftRepository.GetActiveLikeCountsForGiftsAsync([gift.Id], cancellationToken),
+            giftRepository.EnsureGiftLogSchemaAsync,
+            new Dictionary<int, int>(),
+            logger,
+            "Gift detail like counts failed; continuing with zeros.",
+            cancellationToken);
+        var likedGiftIds = await GiftLogEngagementEnrichment.LoadWithSchemaRetryAsync(
+            () => giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, [gift.Id], cancellationToken),
+            giftRepository.EnsureGiftLogSchemaAsync,
+            new HashSet<int>(),
+            logger,
+            "Gift detail liked-by-user lookup failed; continuing with none.",
+            cancellationToken);
+        var commentCounts = await GiftLogEngagementEnrichment.LoadWithSchemaRetryAsync(
+            () => giftRepository.GetCommentCountsForGiftsAsync([gift.Id], cancellationToken),
+            giftRepository.EnsureGiftLogSchemaAsync,
+            new Dictionary<int, int>(),
+            logger,
+            "Gift detail comment counts failed; continuing with zeros.",
+            cancellationToken);
         likeCounts.TryGetValue(gift.Id, out var likeCount);
         commentCounts.TryGetValue(gift.Id, out var commentCount);
 
@@ -138,8 +146,20 @@ public class GetGiftDetailQueryHandler(
         var commentEnvelopeById = commentEnvelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var topLevelIds = topLevel.Select(c => c.Id).ToList();
-        var commentLikeCounts = await giftRepository.GetActiveLikeCountsForGiftCommentsAsync(topLevelIds, cancellationToken);
-        var likedCommentIds = await giftRepository.GetActiveLikedGiftCommentIdsByUserAsync(userId, topLevelIds, cancellationToken);
+        var commentLikeCounts = await GiftLogEngagementEnrichment.LoadWithSchemaRetryAsync(
+            () => giftRepository.GetActiveLikeCountsForGiftCommentsAsync(topLevelIds, cancellationToken),
+            giftRepository.EnsureGiftLogSchemaAsync,
+            new Dictionary<int, int>(),
+            logger,
+            "Gift detail comment like counts failed; continuing with zeros.",
+            cancellationToken);
+        var likedCommentIds = await GiftLogEngagementEnrichment.LoadWithSchemaRetryAsync(
+            () => giftRepository.GetActiveLikedGiftCommentIdsByUserAsync(userId, topLevelIds, cancellationToken),
+            giftRepository.EnsureGiftLogSchemaAsync,
+            new HashSet<int>(),
+            logger,
+            "Gift detail comment liked-by-user lookup failed; continuing with none.",
+            cancellationToken);
         var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(gift.CrewId, cancellationToken);
 
         var commentDtos = topLevel.Select(comment =>

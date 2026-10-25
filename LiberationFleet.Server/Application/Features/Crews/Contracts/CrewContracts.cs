@@ -98,6 +98,13 @@ public class CrewMembershipStatusDto
     public bool CanCreateProposals { get; set; }
     public bool CanCreateFleetProposals { get; set; }
     public bool CanAttachFilesToFleetContent { get; set; }
+    public bool CanModerateChat { get; set; }
+    public string? CrewAttachmentBlockReason { get; set; }
+    public int CrewAttachmentMinTenureDays { get; set; }
+    public decimal CrewAttachmentMinContribution { get; set; }
+    public string? FleetAttachmentBlockReason { get; set; }
+    public int FleetAttachmentMinTenureDays { get; set; }
+    public decimal FleetAttachmentMinContribution { get; set; }
     public bool CanExportCrewData { get; set; }
     public bool CanManagePlaceholders { get; set; }
     public bool CanImpersonateGiftGiver { get; set; }

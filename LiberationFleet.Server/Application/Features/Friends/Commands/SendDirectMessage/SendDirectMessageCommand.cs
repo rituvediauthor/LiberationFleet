@@ -15,7 +15,8 @@ public record SendDirectMessageCommand(
     int FriendUserId,
     string Nonce,
     string Ciphertext,
-    int KeyVersion) : IRequest<DirectMessageOperationResponse>;
+    int KeyVersion,
+    string? NotificationPreview = null) : IRequest<DirectMessageOperationResponse>;
 
 public class SendDirectMessageCommandHandler(
     ICurrentUserService currentUser,
@@ -106,7 +107,9 @@ public class SendDirectMessageCommandHandler(
                 UserId = request.FriendUserId,
                 Kind = NotificationKind.NewDirectMessage,
                 Title = NotificationCopy.SentDirectMessage(senderName),
-                Body = "Open the conversation to read their message.",
+                Body = NotificationCopy.PreviewOr(
+                    request.NotificationPreview,
+                    "Open the conversation to read their message."),
                 ActionUrl = $"/app/friends/messages/{access.ViewerId}",
                 RelatedEntityId = message.Id,
                 ActorUserId = access.ViewerId

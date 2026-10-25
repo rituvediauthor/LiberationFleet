@@ -64,8 +64,19 @@ public class GetGiftCommentRepliesQueryHandler(
         var envelopeById = envelopes.ToDictionary(e => e.ResourceId, StringComparer.Ordinal);
 
         var replyCommentIds = replies.Select(r => r.Id).ToList();
-        var commentLikeCounts = await giftRepository.GetActiveLikeCountsForGiftCommentsAsync(replyCommentIds, cancellationToken);
-        var likedCommentIds = await giftRepository.GetActiveLikedGiftCommentIdsByUserAsync(userId, replyCommentIds, cancellationToken);
+        Dictionary<int, int> commentLikeCounts;
+        HashSet<int> likedCommentIds;
+        try
+        {
+            commentLikeCounts = await giftRepository.GetActiveLikeCountsForGiftCommentsAsync(replyCommentIds, cancellationToken);
+            likedCommentIds = await giftRepository.GetActiveLikedGiftCommentIdsByUserAsync(userId, replyCommentIds, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        {
+            _ = ex;
+            commentLikeCounts = new Dictionary<int, int>();
+            likedCommentIds = [];
+        }
         var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(membership.CrewId, cancellationToken);
 
         var items = replies.Select(reply =>

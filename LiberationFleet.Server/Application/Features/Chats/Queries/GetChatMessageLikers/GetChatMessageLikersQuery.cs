@@ -39,7 +39,7 @@ public class GetChatMessageLikersQueryHandler(
         }
 
         var message = await chatRepository.GetMessageByIdWithAuthorAsync(request.MessageId, cancellationToken);
-        if (message is null || message.ChatRoomId != room.Id)
+        if (message is null || message.ChatRoomId != room.Id || message.IsDeleted)
         {
             return new ContentLikersResponse { Success = false, Message = "Message not found." };
         }

@@ -30,7 +30,11 @@ export interface ChatMessage {
   body?: string;
   resolvedAttachments?: ResolvedAttachment[];
   isAnonymous?: boolean;
+  isRemovedByModerator?: boolean;
   canKick?: boolean;
+  canViewRemoved?: boolean;
+  canRestore?: boolean;
+  canRemoveAsModerator?: boolean;
   likeCount?: number;
   likedByCurrentUser?: boolean;
   /** Client-only: correlates optimistic bubbles with outbox / hub echoes. */

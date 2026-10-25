@@ -7,6 +7,7 @@ using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleAnonymous
 using LiberationFleet.Server.Application.Features.Chats.Commands.ToggleChatMessageLike;
 using LiberationFleet.Server.Application.Features.Chats.Queries.GetChatMessageLikers;
 using LiberationFleet.Server.Application.Features.Chats.Commands.DeleteChatMessage;
+using LiberationFleet.Server.Application.Features.Chats.Commands.RestoreChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatMessage;
 using LiberationFleet.Server.Application.Features.Chats.Commands.UpdateChatRoom;
 using LiberationFleet.Server.Application.Features.Chats.Contracts;
@@ -130,7 +131,8 @@ public class ChatsController : ControllerBase
             body.KeyVersion,
             body.Body,
             body.MentionedUserIds,
-            body.IsAnonymous));
+            body.IsAnonymous,
+            body.NotificationPreview));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -153,6 +155,13 @@ public class ChatsController : ControllerBase
     public async Task<IActionResult> DeleteMessage(int roomId, int messageId)
     {
         var result = await _mediator.Send(new DeleteChatMessageCommand(roomId, messageId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("rooms/{roomId:int}/messages/{messageId:int}/restore")]
+    public async Task<IActionResult> RestoreMessage(int roomId, int messageId)
+    {
+        var result = await _mediator.Send(new RestoreChatMessageCommand(roomId, messageId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

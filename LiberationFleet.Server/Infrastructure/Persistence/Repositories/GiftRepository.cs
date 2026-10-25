@@ -618,11 +618,15 @@ public class GiftRepository : IGiftRepository
             return new Dictionary<int, int>();
         }
 
-        return await _context.GiftLikes
-            .Where(l => l.GiftId.HasValue && ids.Contains(l.GiftId.Value) && l.RemovedAt == null)
-            .GroupBy(l => l.GiftId!.Value)
-            .Select(g => new { GiftId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.GiftId, x => x.Count, cancellationToken);
+        // Project IDs then group in memory. GroupBy + ToDictionaryAsync on nullable GiftId
+        // can fail (or drop rows) once a gift has more than one active like.
+        var likedGiftIds = await _context.GiftLikes
+            .AsNoTracking()
+            .Where(l => l.GiftId != null && ids.Contains(l.GiftId.Value) && l.RemovedAt == null)
+            .Select(l => l.GiftId!.Value)
+            .ToListAsync(cancellationToken);
+
+        return ToCountMap(likedGiftIds);
     }
 
     public async Task<HashSet<int>> GetActiveLikedGiftIdsByUserAsync(
@@ -637,8 +641,9 @@ public class GiftRepository : IGiftRepository
         }
 
         var likedIds = await _context.GiftLikes
+            .AsNoTracking()
             .Where(l => l.UserId == userId
-                && l.GiftId.HasValue
+                && l.GiftId != null
                 && ids.Contains(l.GiftId.Value)
                 && l.RemovedAt == null)
             .Select(l => l.GiftId!.Value)
@@ -657,11 +662,13 @@ public class GiftRepository : IGiftRepository
             return new Dictionary<int, int>();
         }
 
-        return await _context.GiftLikes
-            .Where(l => l.GiftCommentId.HasValue && ids.Contains(l.GiftCommentId.Value) && l.RemovedAt == null)
-            .GroupBy(l => l.GiftCommentId!.Value)
-            .Select(g => new { CommentId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.CommentId, x => x.Count, cancellationToken);
+        var likedCommentIds = await _context.GiftLikes
+            .AsNoTracking()
+            .Where(l => l.GiftCommentId != null && ids.Contains(l.GiftCommentId.Value) && l.RemovedAt == null)
+            .Select(l => l.GiftCommentId!.Value)
+            .ToListAsync(cancellationToken);
+
+        return ToCountMap(likedCommentIds);
     }
 
     public async Task<HashSet<int>> GetActiveLikedGiftCommentIdsByUserAsync(
@@ -676,8 +683,9 @@ public class GiftRepository : IGiftRepository
         }
 
         var likedIds = await _context.GiftLikes
+            .AsNoTracking()
             .Where(l => l.UserId == userId
-                && l.GiftCommentId.HasValue
+                && l.GiftCommentId != null
                 && ids.Contains(l.GiftCommentId.Value)
                 && l.RemovedAt == null)
             .Select(l => l.GiftCommentId!.Value)
@@ -696,12 +704,17 @@ public class GiftRepository : IGiftRepository
             return new Dictionary<int, int>();
         }
 
-        return await _context.GiftComments
+        var commentedGiftIds = await _context.GiftComments
+            .AsNoTracking()
             .Where(c => ids.Contains(c.GiftId) && !c.IsDeleted)
-            .GroupBy(c => c.GiftId)
-            .Select(g => new { GiftId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.GiftId, x => x.Count, cancellationToken);
+            .Select(c => c.GiftId)
+            .ToListAsync(cancellationToken);
+
+        return ToCountMap(commentedGiftIds);
     }
+
+    private static Dictionary<int, int> ToCountMap(IReadOnlyCollection<int> ids) =>
+        ids.GroupBy(id => id).ToDictionary(group => group.Key, group => group.Count());
 
     public Task<GiftLike?> GetGiftLikeAsync(int userId, int giftId, CancellationToken cancellationToken = default) =>
         _context.GiftLikes.FirstOrDefaultAsync(l => l.UserId == userId && l.GiftId == giftId, cancellationToken);

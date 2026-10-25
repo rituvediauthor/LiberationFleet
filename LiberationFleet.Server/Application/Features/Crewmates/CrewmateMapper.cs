@@ -168,6 +168,7 @@ public static class CrewmateMapper
             CanSocialInteract = canSocialInteract,
             IsSelf = isSelf,
             CanAttachFiles = membership.CanAttachFiles,
+            AttachmentsDenied = membership.AttachmentsDenied,
             CanCreateProposals = membership.CanCreateProposals,
             CanAttachFilesToCrewContent = canAttachFilesToCrewContent,
             CanCreateCrewProposals = canCreateCrewProposals,

@@ -46,7 +46,8 @@ public class CreateKickFromChatMessageCommandHandler(
         }
 
         var message = await chatRepository.GetMessageByIdWithAuthorAsync(request.MessageId, cancellationToken);
-        if (message is null || message.ChatRoomId != room.Id || message.IsDeleted)
+        if (message is null || message.ChatRoomId != room.Id
+            || (message.IsDeleted && !message.RemovedByModerator))
         {
             return new ChatOperationResponse { Success = false, Message = "Message not found." };
         }

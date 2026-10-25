@@ -288,7 +288,7 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
     if (!text) {
       return '';
     }
-    return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+    return truncateNotificationPreview(text);
   }
 
   shouldBlurThumbnail(item: DiscussionListItem): boolean {

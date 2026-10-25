@@ -18,6 +18,7 @@ import {
   SESSION_RECOVERY_PHRASE_STORAGE_KEY
 } from './storage/storage-keys';
 import { isJwtExpired, getUserIdFromToken } from '../utils/jwt.util';
+import { isNativeApp } from '../utils/app-platform.util';
 import { CrewService } from './crew.service';
 import { FleetService } from './fleet.service';
 import { ProfileService } from './profile.service';
@@ -158,6 +159,8 @@ export class AuthService {
     if (response.user) {
       this.currentUserSubject.next(response.user);
     }
+    // Sliding refresh used to skip this — a first PUT that 401'd never retried.
+    void this.pushNotifications.start();
   }
 
   logout(): void {
@@ -354,6 +357,8 @@ export class AuthService {
     void this.getEncryptionReady();
     // Sliding expiry: extend the JWT when remember-me is on so daily use stays signed in.
     this.refreshSessionIfRemembered().subscribe();
+    // Do not wait for /app navigation — that race dropped native token uploads.
+    void this.pushNotifications.start();
   }
 
   private async ensureEncryptionReady(): Promise<void> {
@@ -422,6 +427,12 @@ export class AuthService {
   }
 
   private getTokenStorageScope(): StorageScope {
+    // WKWebView / Android WebView wipe sessionStorage when the process dies.
+    // Native JWT must live in localStorage or the push-token PUT 401s after a
+    // background kill and never reaches DevicePushTokens.
+    if (isNativeApp()) {
+      return StorageScope.Persistent;
+    }
     return this.isRememberLoginEnabled() ? StorageScope.Persistent : StorageScope.Session;
   }
 

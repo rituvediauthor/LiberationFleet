@@ -89,6 +89,7 @@ export interface SendDirectMessageRequest {
   nonce: string;
   ciphertext: string;
   keyVersion?: number;
+  notificationPreview?: string;
 }
 
 export function mapFriendRequestDirection(value: number | string): FriendRequestDirection {

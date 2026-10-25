@@ -221,13 +221,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private connectNotificationsIfInApp(options?: { forceBadgeRefresh?: boolean }) {
+    if (this.authService.isAuthenticated()) {
+      void this.pushNotifications.start();
+    }
+
     if (!this.router.url.startsWith('/app') || !this.authService.getToken()) {
       this.notificationsBootstrapped = false;
       return;
     }
 
     void this.notificationHub.connect();
-    void this.pushNotifications.start();
 
     const shouldRefreshBadges = options?.forceBadgeRefresh || !this.notificationsBootstrapped;
     if (shouldRefreshBadges) {

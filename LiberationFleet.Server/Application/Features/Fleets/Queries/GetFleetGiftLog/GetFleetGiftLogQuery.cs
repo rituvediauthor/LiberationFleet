@@ -155,21 +155,25 @@ public class GetFleetGiftLogQueryHandler(
         var likeCounts = await SafeEnrichAsync(
             () => giftRepository.GetActiveLikeCountsForGiftsAsync(pageGiftIds, cancellationToken),
             new Dictionary<int, int>(),
-            "Fleet gift log like counts failed.");
+            "Fleet gift log like counts failed.",
+            cancellationToken);
         var likedGiftIds = await SafeEnrichAsync(
             () => giftRepository.GetActiveLikedGiftIdsByUserAsync(userId, pageGiftIds, cancellationToken),
             new HashSet<int>(),
-            "Fleet gift log liked-by-user lookup failed.");
+            "Fleet gift log liked-by-user lookup failed.",
+            cancellationToken);
         var commentCounts = await SafeEnrichAsync(
             () => giftRepository.GetCommentCountsForGiftsAsync(pageGiftIds, cancellationToken),
             new Dictionary<int, int>(),
-            "Fleet gift log comment counts failed.");
+            "Fleet gift log comment counts failed.",
+            cancellationToken);
 
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
         var seasonStartDates = await SafeEnrichAsync(
             () => giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken),
             new Dictionary<int, DateTime?>(),
-            "Fleet gift log season start lookup failed.");
+            "Fleet gift log season start lookup failed.",
+            cancellationToken);
 
         var items = new List<GiftLogEntryDto>(page.Items.Count);
         foreach (var gift in page.Items)
@@ -248,18 +252,18 @@ public class GetFleetGiftLogQueryHandler(
         };
     }
 
-    private async Task<T> SafeEnrichAsync<T>(Func<Task<T>> load, T fallback, string warning)
-    {
-        try
-        {
-            return await load();
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
-        {
-            logger.LogWarning(ex, warning);
-            return fallback;
-        }
-    }
+    private Task<T> SafeEnrichAsync<T>(
+        Func<Task<T>> load,
+        T fallback,
+        string warning,
+        CancellationToken cancellationToken) =>
+        GiftLogEngagementEnrichment.LoadWithSchemaRetryAsync(
+            load,
+            giftRepository.EnsureGiftLogSchemaAsync,
+            fallback,
+            logger,
+            warning,
+            cancellationToken);
 
     private async Task<Dictionary<string, EncryptedContentEnvelope>> LoadEnvelopesAsync(
         int crewId,

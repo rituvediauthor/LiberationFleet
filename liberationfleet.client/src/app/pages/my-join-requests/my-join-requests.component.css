@@ -162,14 +162,3 @@
   font-size: 13px;
   color: var(--lf-color-text-secondary);
 }
-
-.key-status {
-  margin: 0;
-  font-size: 13px;
-  color: var(--lf-color-text-muted);
-}
-
-.key-status.ready {
-  color: var(--lf-color-accent-strong);
-  font-weight: 600;
-}

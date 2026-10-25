@@ -33,6 +33,7 @@ import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment
 import { isMentionSelectionPending } from '../../../utils/mention-focus.util';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
 import { TextFieldLimits } from '../../../utils/text-field-limits';
+import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { ComposerFooterPadDirective } from '../../../directives/composer-footer-pad.directive';
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
@@ -348,7 +349,11 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const request$ = editingId
         ? this.friendService.updateMessage(this.friendUserId, editingId, encrypted)
-        : this.friendService.sendMessage(this.friendUserId, encrypted);
+        : this.friendService.sendMessage(this.friendUserId, {
+            ...encrypted,
+            notificationPreview: truncateNotificationPreview(plaintextBody)
+              || (attachmentsSnapshot.length || keptSnapshot.length ? 'Attachment' : '')
+          });
 
       request$.subscribe({
         next: response => {

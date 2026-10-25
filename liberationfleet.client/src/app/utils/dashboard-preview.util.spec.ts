@@ -20,8 +20,8 @@ describe('dashboard-preview.util', () => {
       const long = 'a'.repeat(520);
       const truncated = truncateDashboardPreview(long);
       expect(truncated.length).toBe(500);
-      expect(truncated.endsWith('…')).toBeTrue();
-      expect(truncated.slice(0, 499)).toBe('a'.repeat(499));
+      expect(truncated.endsWith('...')).toBeTrue();
+      expect(truncated.slice(0, 497)).toBe('a'.repeat(497));
     });
   });
 

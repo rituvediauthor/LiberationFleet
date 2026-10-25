@@ -41,14 +41,24 @@ public class ToggleCanAttachFilesCommandHandler(
             return new CrewmateOperationResponse { Success = false, Message = "Crewmate not found." };
         }
 
-        targetMembership.CanAttachFiles = request.CanAttachFiles;
+        if (request.CanAttachFiles)
+        {
+            targetMembership.CanAttachFiles = true;
+            targetMembership.AttachmentsDenied = false;
+        }
+        else
+        {
+            targetMembership.CanAttachFiles = false;
+            targetMembership.AttachmentsDenied = true;
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewmateOperationResponse
         {
             Success = true,
             Message = request.CanAttachFiles
-                ? "This crewmate can attach files again."
+                ? "This crewmate can attach files."
                 : "This crewmate can no longer attach files."
         };
     }

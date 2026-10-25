@@ -380,7 +380,7 @@ In the release “notes for reviewers” (or App content → instructions):
 
 Do this on a Mac with Xcode. A Windows PC cannot archive or upload an iOS build.
 
-Recommended order: **2.1 enroll → 2.2 App ID → 2.3 create the App Store Connect record → 2.4–2.6 listing, age rating, and App Privacy (can overlap with the archive) → 2.7 upload a build → 2.8 TestFlight → 2.9 submit**. App Review will not start until the version page, privacy labels, and a processed build are all finished.
+Recommended order: **2.1 enroll → 2.2 App ID → 2.3 create the App Store Connect record → 2.4–2.6 listing, age rating, and App Privacy (can overlap with the archive) → 2.6.1 accessibility labels (voluntary) → 2.7 upload a build → 2.8 TestFlight → 2.9 submit**. App Review will not start until the version page, privacy labels, and a processed build are all finished.
 
 Bundle ID: **`com.liberationfleet.app`**. Sign-in today is **email and password only** (no Sign in with Apple, no Google sign-in). Do not turn on the Sign in with Apple capability until that feature exists in the app.
 
@@ -566,9 +566,34 @@ There is no separate icon upload on this page. The store icon is the **1024×102
 3. **Category:**
    - **Primary:** Social Networking
    - **Secondary:** Lifestyle
-4. **Content Rights:** check the box that you have the rights to the content in the app (your Terms of Use cover what members post).
+4. **Content Rights.** Apple shows text like:
+
+   > Apps that contain, show, or access third-party content must have all the necessary rights to that content or be otherwise permitted to use it under the laws of each country or region in which they're available.
+   >
+   > **Does your app contain, show, or access third-party content?**
+   >
+   > - Yes, it contains, shows, or accesses third-party content, and I have the necessary rights
+   > - No, it does not contain, show, or access third-party content
+
+   **Click: Yes, it contains, shows, or accesses third-party content, and I have the necessary rights.**
+
+   Crew chat, DMs, forums, gift-log text, avatars, photo/video attachments, and Library of Things digital files are other people’s content. Stripe / LiveKit / Venmo are services, not this question. The license is Terms of Use §3.2 (members grant a license to host and display what they post). Do not pick **No** — Review will see user-generated media and can reject inaccurate metadata.
 5. **Age Rating:** click **Edit** / **Set Up Age Ratings** and complete **2.5**. Come back here if you opened it early.
-6. **Save**.
+6. On the same **App Information** page, scroll to **App Store Regulations & Permits** and complete **C.2**.
+7. **Save**.
+
+#### C.2 App Store Regulations & Permits
+
+This block sits under App Information (same page as encryption documentation). Most of it does not apply to this first US-only, no-IAP release.
+
+| Block | Action |
+|-------|--------|
+| **Digital Services Act** (“this developer has identified itself as a **non-trader**”) | **Leave it. Do not click Get Started** unless you are adding the EU or Apple blocks submit with a DSA error. That sentence is the **current** status, not a to-do. **Get Started** only if you want to *change* it. US-only listing does not show an EU trader card. If you later add EU countries, come back and declare **trader** as **Liberation Fleet Co.** (legal name, address, contact). A nonprofit running this service is a trader in the EU sense — do not stay **non-trader** on an EU storefront |
+| **Regulated Medical Devices** | **Skip. Do not click Declare.** Category is Social Networking / Lifestyle, not Medical or Health & Fitness. Age rating was **Infrequent** (not Frequent) for Medical or Treatment Information. The app is not a medical device — disability level is a mutual-aid priority number |
+| **App Store Server Notifications** (Production / Sandbox URL) | **Leave both unset.** Those URLs are for Apple **In-App Purchase** events. Donations are Stripe Checkout in the system browser. There are no IAPs |
+| **App-Specific Shared Secret** | **Leave Manage alone.** That secret is only for auto-renewable **subscription** receipts. This app has none |
+
+**Additional Information** on this page is usually copyright / routing / extra legal fields you already set in **2.4**. Do not invent a medical-device CE mark, an IAP server URL, or an EU trader address just to fill empty boxes.
 
 #### D. Pricing and availability
 
@@ -619,55 +644,431 @@ On the same page, under **Version Release**:
 | Parental controls / age assurance | The signup flow requires the person to confirm they are **18+**. There is no Apple age-verification API and no government ID check. Do not claim a verified age-assurance system |
 | In-app controls for sensitive content | **Yes** if asked — adult-content preference (block / ask / show), plus report and block |
 
+If the form is the newer **In-App Controls** / **Capabilities** grid (No / Yes columns):
+
+| Row | Click | Why |
+|-----|-------|-----|
+| **Parental Controls** | **No** | No parent/guardian tools. The product is 18+ only |
+| **Age Assurance** | **No** | Signup and the adult-content gate are self-attest checkboxes (“I am 18+”). There is no Declared Age Range API, no ID check, and no government age token |
+| **Unrestricted Web Access** | **No** | Not an in-app browser. Donation Checkout opens Safari for that one Stripe page |
+| **User-Generated Content** | **Yes** | Chat, DMs, forums, gift log, avatars, attachments, and Library files are other members’ content and are the intended experience |
+| **Social Media** | **Yes** | Gift log, crew/fleet forums, likes, and comments are feeds that spread posts to the rest of the crew or fleet |
+| **Social Media Disabled for Users Under 13** | **No** | Apple’s own hint requires the **Declared Age Range API**. This binary does not call it. Terms ban minors, which is not the same control |
+| **Messaging and Chat** | **Yes** | Crew chat, DMs, and voice |
+| **Advertising** | **No** | No paid ads or ad SDK |
+
+If the next screen is **frequency** (None / Infrequent / Frequent) under **Mature Themes**, include unfiltered user posts. The adult-content preference only hides items members marked 18+; it does not strip swearing or substance talk from ordinary chat.
+
+| Row | Click | Why |
+|-----|-------|-----|
+| **Profanity or Crude Humor** | **Frequent** | Crew chat, DMs, forums, and voice are unmoderated in normal operation. A user with adult-content blocked still sees ordinary messages |
+| **Horror/Fear Themes** | **Infrequent** | Not a product feature. Someone can still post a scary image or story in UGC, so do not pick None |
+| **Alcohol, Tobacco, or Drug Use or References** | **Infrequent** | No drinking or smoking feature. Mutual-aid chat and gift notes can mention substances. Do not pick None (UGC) or Frequent (not the regular experience) |
+
+If **Mature Themes** itself is a row, pick **Frequent** (18+ labeled posts plus unfiltered adult conversation). First-party screens you ship do not add these themes.
+
+If the next screen is **Medical or Wellness**:
+
+| Row | Click | Why |
+|-----|-------|-----|
+| **Medical or Treatment Information** | **Infrequent** | The app does not diagnose or treat anything. Disability level (0–3) is a mutual-aid priority number, not clinical data. Crew chat can still mention illness or care, so do not pick None. Do not pick Frequent — there is no health feature |
+| **Health or Wellness Topics** | **No** | No self-care or lifestyle recommendations. Mutual aid is goods, money, and services, not wellness coaching |
+
+This must stay aligned with App Privacy and Play: do **not** declare **Health**. Same field, different form.
+
+If the next screen is **Sexuality or Nudity**, assume the adult-content preference is set to **block**. That hides rooms and posts members marked 18+. It does not hide ordinary 18+ mutual-aid topics, and it does not catch unlabeled photos.
+
+| Row | Click | Why |
+|-----|-------|-----|
+| **Mature or Suggestive Themes** | **Frequent** | The product is adults coordinating aid around emergencies, disability, identity, and money. That matches Apple’s “real-world issues / unsuitable for children” line even with 18+ posts blocked. Chat can also be suggestive |
+| **Sexual Content or Nudity** | **Infrequent** | Members can attach photos and mark rooms 18+. Default preference is **Block**, so this is not the regular feed. Non-explicit / partial nudity still allows an 18+ rating. Do not pick Frequent |
+| **Graphic Sexual Content and Nudity** | **None** | **Required.** Infrequent or Frequent here makes the calculator **Unrated** and Apple shows “this app can't be made available on the App Store.” That row means the *app contains pornography*. Reddit, Discord, and other UGC apps also mark **None**. 18+ rooms are hidden unless the user turns them on (Guideline 1.2). Do not pick Infrequent or Frequent |
+
+If the next screen is **Violence**, first-party screens have no combat. Community Standards ban credible threats and content that facilitates violent crime. Unfiltered UGC can still mention real-world harm.
+
+| Row | Click | Why |
+|-----|-------|-----|
+| **Cartoon or Fantasy Violence** | **None** | Not a game. No cartoon or fantasy combat |
+| **Realistic Violence** | **Infrequent** | No fight feature. Mutual-aid chat can mention real-world harm or emergencies. Do not pick None (UGC) or Frequent |
+| **Prolonged Graphic or Sadistic Realistic Violence** | **None** | Not a product path. Graphic sadistic violence is not allowed as intended content |
+| **Guns or Other Weapons** | **Infrequent** | No weapons feature. Chat or photos can still mention or show a weapon. Do not pick None or Frequent |
+
 4. **Save** / **Done**. Confirm the badge on App Information is **17+** or **18+**, not a child’s rating.
 
 ### 2.6 App Privacy (nutrition labels)
 
-Aligned with the published Privacy Policy and with the Play **Data safety** answers in **1.2 C.1**. Confirm with counsel before you publish. Apple’s type names drift slightly.
+This is the questionnaire that becomes the **App Privacy** section on the App Store product page. It must match the published Privacy Policy (`privacy-policy.txt` §2–4) and the Play **Data safety** answers in **1.2 C.1**. Confirm with counsel before you click **Publish**. Apple’s wording drifts; if a label does not match exactly, pick the closest type and use the same Yes/No logic.
 
-1. Left side: **App Privacy** (or **Trust & Safety → App Privacy**).
-2. Click **Get Started** / **Edit**.
-3. **Do you or your third-party partners collect data from this app?** **Yes**.
-4. **Data Used to Track You:** check **nothing**. Tracking means linking data with other companies’ data for advertising, or sharing with data brokers. Liberation Fleet does not do that. There is no ad SDK.
-5. Select the data types below, then for **each** type set:
-   - **Used for tracking:** No
-   - **Linked to the user’s identity:** Yes (the data is tied to the account)
-   - **Purposes:** **App Functionality** only, unless a row below adds another purpose
-   - Do **not** check Third-Party Advertising, Developer’s Advertising or Marketing, or Analytics (no Google Analytics SDK; server logs that keep the app running are App Functionality, not Analytics)
+Apple’s own definitions on this form (paraphrased from the intro they show):
 
-| Apple type | Declare? | Notes |
-|------------|----------|--------|
-| **Contact Info → Name** | Yes | Username / display name |
-| **Contact Info → Email Address** | Yes | Account email. Also check **Developer’s Advertising or Marketing** only if you send product news; password-reset mail is **App Functionality** |
-| **Contact Info → Phone Number** | No | |
-| **Contact Info → Physical Address** | No | Country and postal code are **Coarse Location**, not a street address |
-| **Health & Fitness → Health / Fitness** | No | Do not declare clinical health data. Disability-level mutual-aid fields go under **Sensitive Info** |
-| **Financial Info → Payment Info** | No | Card data stays with **Stripe** |
-| **Financial Info → Other Financial Info** | Yes | Gift amounts, who-gave-whom, payment **handles** (Venmo and similar). Readable on the server — not E2EE |
-| **Location → Precise Location** | No | No live GPS |
-| **Location → Coarse Location** | Yes | Country and postal code for local crews and offerings |
-| **Sensitive Info** | Yes | Optional identity-group tags (race, sexuality, and similar) and disability-level mutual-aid settings the user chooses |
-| **Contacts** | No | |
-| **User Content → Photos or Videos** | Yes | Avatars, chat, and library media. Usually E2EE ciphertext on the server |
-| **User Content → Audio Data** | Yes | Audio attachments. Live voice is transported by **LiveKit** (not E2EE through Liberation Fleet’s content keys) |
-| **User Content → Other User Content** (or Emails or Text Messages, if that is the chat bucket the form offers) | Yes | Chat, DMs, forums, proposals. Mostly **E2EE** ciphertext. Still **collected** — it leaves the device |
-| **User Content → Customer Support** | Yes | Safety reports and related evidence |
-| **Identifiers → User ID** | Yes | Account ids |
-| **Identifiers → Device ID** | Yes | Auth tokens, remembered devices, APNs push token when push is on |
-| **Purchases → Purchase History** | Yes | App donation amounts and Stripe session ids. **Shared** with Stripe for payment processing |
-| **Usage Data → Product Interaction** | Yes | Server and request logs needed to run the app |
-| **Diagnostics → Crash Data / Other Diagnostic Data** | Yes, if you keep server error logs | No third-party crash SDK is required for this answer |
-| **Browsing History / Search History** | No | |
+- **Collect** = data leaves the device in a way that you **or a third-party partner** can access it for longer than it takes to service that one request in real time.
+- **Third-party partners** = analytics tools, ads networks, SDKs, or other vendors whose code is in the app (for Liberation Fleet: **Stripe** Checkout, **LiveKit** voice, Azure hosting/storage, transactional email, and any report-moderation vendor). Apple / APNs is the platform, not a partner you added.
+- End-to-end encrypted chat/media **still counts as collected**. Ciphertext is stored on your servers after the request ends. “We cannot read it” does not mean “we do not collect it.”
+- On-device caches (Privacy Policy §2.13: last-seen previews, decrypted avatars) stay on the phone until sign-out. That is **not** collection. Do not invent a data type for those caches.
 
-6. When a type asks whether it is shared with third parties, use the same split as Play:
-   - Shown to other crewmates inside the product: still **collected** and linked. That is not a third-party SDK.
-   - **Stripe** (donations): purchase history / donation metadata is processed by Stripe.
-   - **LiveKit** (voice): audio is processed by the voice provider.
-   - **Azure** hosting, email, and any report-moderation vendor: service providers for app functionality and safety.
-7. **Publish** / **Save**. The App Privacy page should no longer say “Set Up.”
-8. Privacy Policy URL, if a separate field is on **App Information** or the version page: `https://liberationfleet.org/privacy`. It must load over HTTPS with no login.
+#### A. Open the questionnaire
 
-If Apple later rejects the labels, compare them to `liberationfleet.client/src/assets/privacy-policy.txt` sections 2–4.
+1. [App Store Connect](https://appstoreconnect.apple.com) → **Apps** → **Liberation Fleet**.
+2. Left side: **App Privacy** (newer accounts: **App Store** or **Trust & Safety → App Privacy**).
+3. If the page says **Set Up App Privacy** or shows a yellow incomplete state, click **Get Started**. If labels already exist, click **Edit**.
+4. If this page (or **General → App Information**) asks for a **Privacy Policy URL**, enter `https://liberationfleet.org/privacy`. It must load over HTTPS with no login.
+5. You can open **View the full list of questions** at any time. That list is a reference; you still have to answer each screen in order.
+
+#### B. First screen — Data Collection
+
+Apple shows text like this:
+
+> Thanks for helping users understand your app's privacy practices. Remember that you're responsible for any third-party code that is added to your app, so if your third-party partners collect data from your app, you must represent that in your responses.
+>
+> “Collect” refers to transmitting data off the device in a way that allows you and/or your third-party partners to access it for a period longer than necessary to service the transmitted request in real time.
+> “Third-party partners” include analytics tools, advertising networks, third-party SDKs, or other external vendors whose code you have added to the app.
+
+Then:
+
+> **Do you or your third-party partners collect data from this app?**
+>
+> - Yes, we collect data from this app
+> - No, we do not collect data from this app
+
+**Click: Yes, we collect data from this app → Next.**
+
+Do **not** click No. No would publish “This app does not collect data,” which is false. Examples that already count as collection:
+
+| What leaves the device | Who can access it later |
+|------------------------|-------------------------|
+| Email, username, password hash, 18+ / terms acceptance | Liberation Fleet servers |
+| Gift amounts, who gave / received, Venmo-style handles | Liberation Fleet servers (readable, not E2EE) |
+| Chat / forum / DM / proposal / gift-log ciphertext | Liberation Fleet servers (stored; operators cannot decrypt in normal use) |
+| Avatars and attachments (ciphertext, or plaintext if the user turns encryption off) | Liberation Fleet storage |
+| Safety-report evidence snapshot | Liberation Fleet (sealed report store); NCMEC / vendors if escalated |
+| Donation amount + Stripe session id | Liberation Fleet **and Stripe** |
+| Voice audio while in a voice room | **LiveKit** (third-party partner) |
+| Auth tokens, remembered-device ids, APNs push token | Liberation Fleet servers |
+| Server / error logs (IP, user-agent, timestamps) | Liberation Fleet / Azure hosting |
+
+Click **Next**. If **Save** appears, save before leaving.
+
+#### C. Tracking (next screen, or a later “used for tracking” question)
+
+Apple will ask some version of:
+
+> **Do you or your third-party partners use data from this app to track users?**
+
+or, per data type:
+
+> **Do you or your third-party partners use [this data type] for tracking?**
+
+Apple’s **tracking** is narrower than “we have accounts.” Tracking means linking data from this app with **other companies’ data** for advertising, or sharing with a **data broker**. Showing a username to crewmates is not tracking.
+
+**Click: No, we do not track users** (and **No** on every per-type tracking question).
+
+| Tempting “yes” | Why it is still **No** |
+|----------------|------------------------|
+| Analytics / crash SDKs | There is no Google Analytics, Facebook, or Adjust SDK |
+| Ads | The app does not show ads |
+| Stripe / LiveKit / Azure | Those process data to run donations, voice, and hosting — not to advertise or broker data |
+| Gift log / identity-group tags | Used for mutual-aid features inside the product, not cross-app ads |
+
+The published App Privacy card should list **nothing** under **Data Used to Track You**.
+
+#### D. Select data types
+
+This is the long checklist that starts:
+
+> Next, select all of the data types that you or your third-party partners collect from this app. If your app is currently available on the App Store, make sure your responses reflect the data collected only from that app version.
+
+You are submitting the **first** iOS version, so declare what **this** TestFlight / 1.0 build collects — not a future feature.
+
+Expand every category. Check only the boxes in the **Check** column below. Then **Save** / **Next**.
+
+If you skip a type you collect, Review can reject the labels. If you check a type you do not collect (phone number, precise GPS, device Contacts), that is also a rejection.
+
+##### Optional Disclosure / exceptions — do not use them to hide our types
+
+Apple then explains three ways a type can be **optional to disclose**. Liberation Fleet does **not** qualify to skip any of the types we actually collect:
+
+| Exception Apple offers | Use it? | Why not |
+|------------------------|---------|---------|
+| **Optional Disclosure** (infrequent, optional, not primary, not tracking/ads, user affirms each time, name shown on the form) | **No** | Account, chat, gifts, location, identity tags, and media are **primary** and ongoing. Apple: data collected on an ongoing basis after an initial permission **must** be disclosed. In-app **Report** is safety for the community product — still disclose **Customer Support** |
+| **Regulated Financial Services Disclosure** | **No** | Liberation Fleet is not a bank, broker, or GLBA/GDPR-notice financial product. Gift logging is **primary**. Stripe donations are optional but you still keep amount + session ids — declare **Purchases**, not this exception |
+| **Health Research Disclosure** | **No** | There is no IRB health study. Do **not** declare **Health**. Disability-level is **Sensitive Info**, not HealthKit |
+
+##### Contact Info
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Name** (first or last name) | **Check** | Username / display name |
+| **Email Address** (including hashed) | **Check** | Account email; sign-up, sign-in, password reset |
+| **Phone Number** (including hashed) | Leave unchecked | Not collected |
+| **Physical Address** (home / mailing) | Leave unchecked | Country + postal code is **Coarse Location**, not a street address |
+| **Other User Contact Info** | Leave unchecked | No extra “contact me outside the app” field. Venmo-style **handles** go under **Other Financial Info** |
+
+##### Health & Fitness
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Health** | Leave unchecked | No HealthKit, no clinical records. Disability-level is **Sensitive Info** |
+| **Fitness** | Leave unchecked | No Motion / Fitness API |
+
+##### Financial Info
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Payment Info** | Leave unchecked | Apple: if a payment service is entered **outside** the app and you never see the card, it is **not** collected. Stripe Checkout is that case |
+| **Credit Info** | Leave unchecked | No credit score |
+| **Other Financial Info** (salary, income, assets, debts, or any other financial information) | **Check** | Gift amounts, who gave / received, estimated monthly contribution, payment **handles**. Readable on the server |
+
+##### Location
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Precise Location** (lat/long to 3+ decimals) | Leave unchecked | No GPS, no “always” location |
+| **Coarse Location** (lower resolution, approximate) | **Check** | Profile country and postal code for local crew / fleet / offering discovery |
+
+##### Sensitive Info
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Sensitive Info** (race, sexuality, disability, religion, and similar) | **Check** | Optional identity-group tags and disability-level / emergency-level mutual-aid settings the user chooses |
+
+##### Contacts
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Contacts** (phone address book or social graph) | Leave unchecked | The app does **not** read the iPhone Contacts database and has no Contacts permission. The in-app friends list is account relationships — already covered by **Name** and **User ID**. Checking this box makes Review expect a Contacts usage string |
+
+##### User Content
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Emails or Text Messages** | **Check** | Crew chat, fleet chat, and friend DMs (bodies are usually E2EE ciphertext; they still leave the device) |
+| **Photos or Videos** | **Check** | Avatars, chat / library / proposal images and video |
+| **Audio Data** (voice or sound recordings) | **Check** | Audio attachments **and** LiveKit voice |
+| **Gameplay Content** | Leave unchecked | Not a game |
+| **Customer Support** | **Check** | In-app **Report**: reason, note, evidence snapshot. Do not hide this under Optional Disclosure |
+| **Other User Content** | **Check** | Forums, proposals, gift-log display text, library / quest bodies, rules |
+
+##### Browsing History
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Browsing History** (sites **outside** the app) | Leave unchecked | Not a browser. Opening Stripe Checkout does not mean you collect web history |
+
+##### Search History
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Search History** (searches **in** the app) | Leave unchecked | Crew / library search is a one-off request. Search strings are not stored as a history. Check this only if a later build persists search terms |
+
+##### Identifiers
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **User ID** (account id, handle, customer number) | **Check** | Account / member ids, username as an identifier |
+| **Device ID** (advertising id or other device-level id) | **Check** | Auth tokens, remembered-device records, APNs push token. There is no IDFA / tracking advertising id |
+
+##### Purchases
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Purchases** (purchases or purchase tendencies) | **Check** | Optional Stripe donations to the nonprofit: amount, currency, session / payment ids. **Not** peer Venmo / PayPal gifts (those are **Other Financial Info**) |
+
+##### Usage Data
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Product Interaction** (launches, taps, how they use the app) | **Check** | Server / request logs needed to run the app (Privacy Policy §2.12) |
+| **Advertising Data** | Leave unchecked | No ads |
+| **Other Usage Data** | Leave unchecked | Covered by **Product Interaction** |
+
+##### Diagnostics
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Crash Data** | **Check** | First-party server error / exception logs. No Crashlytics / Sentry required |
+| **Performance Data** (launch time, hang rate, energy) | Leave unchecked | No performance SDK |
+| **Other Diagnostic Data** | **Check** | IP, user-agent, request timestamps, error text |
+
+##### Surroundings
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Environment Scanning** | Leave unchecked | No LiDAR / scene mesh |
+
+##### Body
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Hands** | Leave unchecked | |
+| **Head** | Leave unchecked | Microphone for voice is **Audio Data**, not Body |
+
+##### Other Data
+
+| Box | Action | Why |
+|-----|--------|-----|
+| **Other Data** | Leave unchecked | Everything fits a type above. Using this box makes the store page vaguer |
+
+##### Checklist to tick before Next
+
+These should be **on**: Name, Email Address, Other Financial Info, Coarse Location, Sensitive Info, Emails or Text Messages, Photos or Videos, Audio Data, Customer Support, Other User Content, User ID, Device ID, Purchases, Product Interaction, Crash Data, Other Diagnostic Data.
+
+Everything else **off**. Then **Next**.
+
+#### E. Per-type questions (repeat for every type you checked)
+
+App Store Connect now walks **one type at a time**. The first screen for each type looks like the **Name** example:
+
+> Indicate how names collected from this app are being used by you or your third-party partners (select all that apply):
+>
+> - Third-Party Advertising
+> - Developer’s Advertising or Marketing
+> - Analytics
+> - Product Personalization
+> - App Functionality
+> - Other Purposes
+
+**Same six boxes for every type you declared.** For Liberation Fleet, check **only App Functionality**, then **Next**.
+
+| Purpose | Check? | Why |
+|---------|--------|-----|
+| **Third-Party Advertising** (third-party ads in the app, or sharing so someone else can show ads) | **Off** | No ad SDK, no ad networks |
+| **Developer’s Advertising or Marketing** (your ads, marketing email, or sharing so someone can show *your* ads) | **Off** | No first-party ads. Password-reset / “confirm your account” mail is App Functionality, not marketing. Turn this **on** for **Email Address** only if you later send product-news email |
+| **Analytics** (evaluate behavior, feature effectiveness, audience size) | **Off** | No Google Analytics / Mixpanel / Amplitude. Server logs that keep the API up are App Functionality (“ensure server up-time”), not Analytics |
+| **Product Personalization** (recommended products, posts, or suggestions) | **Off** | Reception order and identity-group scoring are mutual-aid **rules**, not a recommendation feed. Do not treat them as personalization |
+| **App Functionality** (authenticate, enable features, fraud/security, uptime, crashes, support) | **On** | This is the only purpose that matches |
+| **Other Purposes** | **Off** | App Functionality already covers it |
+
+Do not check extra boxes “to be safe.” Extra purposes show up on the public App Privacy card.
+
+After **Next**, the same two questions appear for that type:
+
+2. **Is [type] linked to the user’s identity?** → **Yes, [type] collected from this app is linked to the user’s identity.**  
+   Everything is stored next to an account id. “Not linked” is only for data you cannot reasonably tie to a person.
+3. **Do you or your third-party partners use [type] for tracking?** → **No.**  
+   Tracking = linking with other companies’ data for ads, or a data broker.
+
+Then **Next** / **Save** and the next type appears. Repeat until all 16 are done.
+
+##### Name (the screen in front of you)
+
+> Indicate how names collected from this app are being used…
+
+| Box | Click |
+|-----|--------|
+| Third-Party Advertising | Off |
+| Developer’s Advertising or Marketing | Off |
+| Analytics | Off |
+| Product Personalization | Off |
+| **App Functionality** | **On** — show the username in the crew, chat, gift log, and profile; authenticate who is who |
+| Other Purposes | Off |
+
+Then **Next** → linked **Yes** → tracking **No** → **Next**.
+
+##### Every other declared type
+
+Use the **same six checkboxes** (App Functionality only). This column is only so you know what “functionality” means if you hesitate:
+
+| Type screen | App Functionality means |
+|-------------|-------------------------|
+| **Email Address** | Create the account, sign in, password reset, transactional mail. Not a newsletter unless you actually send one |
+| **Other Financial Info** | Gift log, reception order, contribution totals, Venmo-style handles so crewmates can pay each other **outside** the app |
+| **Coarse Location** | Match public local crews / fleets / offerings to the member’s country and postal code |
+| **Sensitive Info** | Optional identity-group tags and disability-level used in mutual-aid priority (a feature, not an ad profile) |
+| **Emails or Text Messages** | Store and deliver crew / fleet chat and DMs (usually as E2EE ciphertext) |
+| **Photos or Videos** | Avatars and image / video attachments |
+| **Audio Data** | Audio attachments and LiveKit voice rooms |
+| **Customer Support** | In-app **Report** packets and required safety handling |
+| **Other User Content** | Forums, proposals, gift-log text, library / quest bodies, rules |
+| **User ID** | Account / member ids so every feature can tell users apart |
+| **Device ID** | Session tokens, remembered devices, APNs push token |
+| **Purchases** | Record the optional Stripe donation (amount + session id). Stripe is the partner; you still do not collect Payment Info |
+| **Product Interaction** | Request logs so the API can run, authenticate, and debug failures |
+| **Crash Data** | Server exception / error logs |
+| **Other Diagnostic Data** | IP, user-agent, timestamps, error text for uptime and security |
+
+If a later screen asks whether the data is **used for tracking** again, still **No**. If it asks **linked to identity**, still **Yes** for all 16.
+
+#### F. Third-party partners (not a separate Apple screen)
+
+You will not always get a “list your SDKs” box. You are still responsible for these partners on the first screen. Have this in mind if Review asks, or if a later form asks whether a type is “shared”:
+
+| Partner | In the app? | What they receive | Already covered by |
+|---------|-------------|-------------------|--------------------|
+| **Stripe** | Checkout opens in the system browser | Donation amount, Stripe session / payment ids; **they** collect the card | **Purchases**. Not Payment Info |
+| **LiveKit** | Voice SDK | Voice media + join/mute metadata | **Audio Data**, plus any usage/diagnostic logs |
+| **Azure** (hosting, SQL, blobs) | Backend, not an ads SDK | Whatever the API stores | Same types you already declared |
+| Transactional email | Server-side | Email address + reset/notification content | **Email Address** |
+| Report / NCMEC path | Server-side | Sealed report packets when required | **Customer Support** |
+| Peer Venmo / PayPal / Cash App / Zelle | **Not** in the app binary | User leaves the app and pays there | Do **not** declare those companies as SDKs. Handles you store are **Other Financial Info** |
+| Apple APNs | OS push | Device push token, via your API | **Device ID**. Do not list Apple as a third-party analytics partner |
+
+Showing a gift or chat to **another crewmate** is user-to-user visibility. That is still **collected** and **linked**. It is not tracking and not a third-party SDK.
+
+#### G. Publish and what the store page should show
+
+1. When the last type is done, click **Publish** (or **Save** then **Publish**). Unpublished answers do not count for Review.
+2. The App Privacy page should no longer say **Set Up** / incomplete.
+3. Open **See Preview** if Apple offers it. Expected card:
+
+   - **Data Used to Track You:** none / not listed.
+   - **Data Linked to You:** Name, Email Address, Other Financial Info, Coarse Location, Sensitive Info, Emails or Text Messages, Photos or Videos, Audio Data, Customer Support, Other User Content, User ID, Device ID, Purchases, Product Interaction, Crash Data, Other Diagnostic Data.
+   - **Data Not Linked to You:** empty.
+4. If preview shows Tracking or an extra type you did not mean (Phone Number, Precise Location, Contacts), click **Edit** and fix it before submit.
+
+#### H. If Apple rejects the labels
+
+Compare the published types to `liberationfleet.client/src/assets/privacy-policy.txt` sections 2–4 and to Play **1.2 C.1**. Usual mistakes: answering **No** on the first collect screen; declaring **Payment Info** because Stripe exists; declaring **Health** for disability-level; declaring **Precise Location** for postal code; marking E2EE chat as “not collected”; checking **Analytics** or **Advertising**; or leaving **Publish** unclicked.
+
+### 2.6.1 Showcase your accessibility support
+
+This is the **Accessibility Nutrition Labels** block. Apple’s intro looks like:
+
+> Accessibility features help make the common tasks in your app faster and easier to complete. To give users a better understanding of how your app can work for them, you can specify the features your app supports. Supported features will display on your product page.
+
+It is **voluntary** for now (it becomes required later). Guideline **2.3** still applies: do not claim a feature unless a user can finish **all common tasks** with it on. See [Apple’s overview](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/overview-of-accessibility-nutrition-labels) and `docs/ACCESSIBILITY.md`.
+
+**Common tasks** for Liberation Fleet (use these when you hesitate):
+
+- First launch / 18+ and legal accept
+- Sign up, sign in, password reset
+- Settings (theme, notifications, adult-content preference)
+- Join or open a crew
+- Read and send **chat** (and DMs)
+- View and record the **gift log**
+- Browse Library of Things
+- Optional **Donate** (Stripe Checkout)
+- Voice join is a marketed feature — treat it as common if it is in screenshots or the description
+
+#### A. Open the form
+
+1. App Store Connect → **Liberation Fleet**.
+2. Left side: **Accessibility** (or **App Store → Accessibility**, or a **Showcase Your Accessibility Support** / **Get Started** card on the version or App Information page).
+3. Device: **iPhone** only. Skip iPad / Mac / Apple TV / Watch / Vision unless you ship those binaries.
+4. If it asks for an **Accessibility URL**, leave it blank for this release (there is no public accessibility page). Do not point it at `/privacy`.
+
+#### B. Which features to mark Supported
+
+On iPhone Apple offers these nine. Mark **Supported** only for the two that the current Capacitor build actually honors. Everything else: **Not Supported**, or leave unevaluated if the form lets you skip.
+
+| Feature | Mark | Why |
+|---------|------|-----|
+| **VoiceOver** | **Not Supported** | Skip link, `aria-*`, dialogs, and live regions exist (`docs/ACCESSIBILITY.md`), but there is no completed VoiceOver pass of every common task. A WebView app often has unlabeled controls. Claiming this without that pass is misleading metadata |
+| **Voice Control** | **Not Supported** | Same gap. Voice Control needs accurate names on every control in those tasks |
+| **Larger Text** | **Not Supported** | UI uses fixed `px` sizes. There is no Dynamic Type and no in-app font-size control. System **Zoom** does not count |
+| **Dark Interface** | **Supported** | In-app **Dark Mode** (Settings → theme). Apple allows a custom dark scheme. You do **not** have to follow the iOS system appearance automatically |
+| **Differentiate Without Color Alone** | **Not Supported** | Some forms thicken invalid borders, but there is no audit that every status (gift flags, likes, season lock) also has text or a shape |
+| **Sufficient Contrast** | **Not Supported** | `prefers-contrast: more` only thickens the focus ring. There is no high-contrast theme that raises text/icon contrast |
+| **Reduced Motion** | **Supported** | `prefers-reduced-motion: reduce` in `themes/a11y.css` cuts animations and transitions when the user turns on **Settings → Accessibility → Motion → Reduce Motion** |
+| **Captions** | **Not Supported** | No time-synced captions on LiveKit voice or user video |
+| **Audio Descriptions** | **Not Supported** | No described video |
+
+If the UI is a multi-select (“features your app supports”) instead of Supported / Not Supported: **check only Dark Interface and Reduced Motion**. Do not check the other seven.
+
+#### C. After you save
+
+1. **Save** / **Continue**. The product page (iOS 26+) will list those two features.
+2. Leaving the whole section blank is also allowed and shows “not indicated yet.” That is safer than over-claiming VoiceOver or Larger Text.
+3. After a real VoiceOver + 200% text-size pass of the common-task list, you can come back and add VoiceOver, Voice Control, Larger Text, or Differentiate Without Color.
 
 ### 2.7 Xcode — terminal, simulator, then archive
 
@@ -769,16 +1170,28 @@ The Simulator is a separate app that looks like an iPhone. Xcode starts it when 
 
 #### E. Export compliance (encryption)
 
-The app uses HTTPS and standard end-to-end encryption (AES in the client). App Store Connect will ask about export compliance. Do not add `ITSAppUsesNonExemptEncryption` = `NO` to `Info.plist` just to skip the form — that claims an exemption you have not confirmed.
+The app uses HTTPS (Apple ATS) **and** standard end-to-end encryption in the client: **AES-GCM** plus **PBKDF2** via Web Crypto (`crypto.service.ts`). Those are IETF / NIST algorithms, not a private cipher. `Info.plist` does **not** contain `ITSAppUsesNonExemptEncryption`. Do not add that key as `NO` just to skip the form — that claims an exemption you have not confirmed.
 
-When the build shows **Missing Compliance** (TestFlight or the build picker):
+Apple’s [App Encryption Documentation](https://developer.apple.com/help/app-store-connect/manage-app-information/determine-and-upload-app-encryption-documentation/) page says you must upload files if the app uses:
 
-1. Open the build → **Manage** / **Provide Export Compliance Information**.
-2. If asked whether the app uses encryption: **Yes**.
-3. If asked what kind: **standard encryption algorithms** (not proprietary). The app uses ordinary HTTPS plus standard AES. It does not implement a private cipher.
-4. If asked whether you are offering the app in **France**: **No** while availability is United States only. Adding France later needs a separate French crypto declaration.
-5. If asked whether the app qualifies for an exemption under Category 5 Part 2: stop and confirm with counsel before you check “exempt.” Many E2EE apps still file a year-end self-classification. Apple’s page is [Complying with Encryption Export Regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations).
-6. Save. The build should leave the “Missing Compliance” state. You cannot TestFlight or submit while that warning is up.
+- proprietary / non-standard algorithms, **or**
+- standard algorithms **instead of or in addition to** encryption in Apple’s OS
+
+You match the **second** bullet (AES-GCM in the JS client, plus HTTPS). You do **not** match the first.
+
+**Do not click Upload** on that page unless you already have an official US government paper (a BIS **CCATS** letter or the file Apple later asks for). A homemade PDF that says “we use AES” is not documentation. There is none in this repo.
+
+What to do instead:
+
+1. Prefer **App Information → App Encryption Documentation → +** (or the build’s **Manage** / **Provide Export Compliance Information**) and answer the questions. That flow decides whether Apple actually wants a file.
+2. Uses encryption: **Yes**.
+3. Kind: **standard encryption algorithms** (not proprietary).
+4. Offering in **France**: **No** while availability is United States only.
+5. Exemption under Category 5 Part 2: stop and confirm with counsel before you check **exempt**. Many E2EE apps file a year-end BIS self-classification even when Apple does not want a CCATS upload. Apple’s overview: [Complying with Encryption Export Regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations).
+6. If the questions end with “no documentation required,” leave **Upload** empty. After counsel agrees, you may later set `ITSAppUsesNonExemptEncryption` to `NO` in Xcode so the question stops appearing.
+7. If the questions end with “documentation required,” you must file with BIS (SNAP-R / CCATS) and then upload **that** letter here. Apple reviews it in about two business days and gives you a key for `ITSEncryptionExportComplianceCode`. That is a government filing, not an Xcode step.
+
+You can keep filling listing, privacy, and age rating while this Upload is empty. You cannot TestFlight or **Submit for Review** while a build still says **Missing Compliance**.
 
 #### F. Wait until the build is selectable
 

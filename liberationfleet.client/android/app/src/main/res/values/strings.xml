@@ -5,5 +5,5 @@
     <string name="package_name">com.liberationfleet.app</string>
     <string name="custom_url_scheme">com.liberationfleet.app</string>
     <!-- Must match PushNotificationRegistrationService ANDROID_PUSH_CHANNEL_ID / FCM channel_id -->
-    <string name="default_notification_channel_id">liberation_fleet_default</string>
+    <string name="default_notification_channel_id">liberation_fleet_alerts</string>
 </resources>

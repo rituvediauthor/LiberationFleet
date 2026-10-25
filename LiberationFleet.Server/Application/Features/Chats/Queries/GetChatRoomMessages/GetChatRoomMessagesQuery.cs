@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -84,6 +85,7 @@ public class GetChatRoomMessagesQueryHandler(
         }
 
         var allowKick = room.CrewId.HasValue;
+        var canModerate = CrewRoleAuthorizationService.CanModerateAttachments(membership);
         IReadOnlySet<int>? avatarAllowed = null;
         if (room.CrewId.HasValue)
         {
@@ -111,7 +113,8 @@ public class GetChatRoomMessagesQueryHandler(
                 allowKick,
                 avatarAllowed,
                 likeCount,
-                likedIds.Contains(message.Id));
+                likedIds.Contains(message.Id),
+                canModerate);
         }).ToList();
 
         return new ChatMessageListResponse

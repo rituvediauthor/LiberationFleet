@@ -216,6 +216,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("RemovedByModerator")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorUserId");
@@ -395,7 +400,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<bool>("AllowCrewmateFileAttachments")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("AllowCrossCrewGiving")
                         .ValueGeneratedOnAdd()
@@ -508,7 +513,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
+                        .HasDefaultValue(20m);
 
                     b.Property<decimal>("MinimumContributionForProposals")
                         .ValueGeneratedOnAdd()
@@ -519,7 +524,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("MinimumCrewmateTenureDaysForAttachments")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .HasDefaultValue(30);
 
                     b.Property<int>("MinimumCrewmateTenureDaysForProposals")
                         .ValueGeneratedOnAdd()
@@ -699,6 +704,11 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
 
                     b.Property<string>("AidStatDraftJson")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("AttachmentsDenied")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("AutoJoinSeasonOnStart")
                         .ValueGeneratedOnAdd()
@@ -1481,7 +1491,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<bool>("AllowCrewmateFileAttachments")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasDefaultValue(true);
 
                     b.Property<int>("AutoResolveHoursAfterFirstReject")
                         .ValueGeneratedOnAdd()
@@ -1536,7 +1546,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
+                        .HasDefaultValue(20m);
 
                     b.Property<decimal>("MinimumContributionForProposals")
                         .ValueGeneratedOnAdd()
@@ -1547,7 +1557,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int>("MinimumCrewmateTenureDaysForAttachments")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .HasDefaultValue(30);
 
                     b.Property<int>("MinimumCrewmateTenureDaysForProposals")
                         .ValueGeneratedOnAdd()

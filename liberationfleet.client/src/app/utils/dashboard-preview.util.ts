@@ -15,7 +15,7 @@ export function truncateDashboardPreview(
   if (normalized.length <= maxLength) {
     return normalized;
   }
-  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 export function giftCategoryLabel(category: CustomGiftCategory | null | undefined): string {

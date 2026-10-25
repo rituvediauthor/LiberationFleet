@@ -59,6 +59,13 @@ export interface CrewMembershipStatus {
   canCreateProposals?: boolean;
   canCreateFleetProposals?: boolean;
   canAttachFilesToFleetContent?: boolean;
+  canModerateChat?: boolean;
+  crewAttachmentBlockReason?: string | null;
+  crewAttachmentMinTenureDays?: number;
+  crewAttachmentMinContribution?: number;
+  fleetAttachmentBlockReason?: string | null;
+  fleetAttachmentMinTenureDays?: number;
+  fleetAttachmentMinContribution?: number;
   canExportCrewData?: boolean;
   canManagePlaceholders?: boolean;
   canImpersonateGiftGiver?: boolean;

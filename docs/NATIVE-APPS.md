@@ -84,9 +84,9 @@ You need a live HTTPS API (staging or production). Follow [AZURE-GO-LIVE.md](./A
    cd C:\Users\james\source\repos\LiberationFleet\liberationfleet.client
    ```
 3. Run:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 4. Wait until the command finishes with no errors.
 
 ---
@@ -127,9 +127,9 @@ How it works:
 
 1. In the same terminal, still inside `liberationfleet.client`.
 2. Run:
-   ```bash
-   npm run build:native
-   ```
+```bash
+npm run build:native
+```
 3. Wait until you see **Application bundle generation complete**.
 4. If the build fails on **budget** errors, fix those first (CSS/bundle size), then re-run this step.
 
@@ -140,7 +140,7 @@ How it works:
 ### Android
 
 1. In the terminal (`liberationfleet.client`), run:
-   ```bash
+```bash
    npx cap add android
    ```
 2. If you see **`android platform already exists`**:
@@ -165,9 +165,9 @@ Do this whenever you change Angular code or `environment.native.ts`.
 
 1. Terminal → `liberationfleet.client`.
 2. Run:
-   ```bash
-   npm run cap:sync
-   ```
+```bash
+npm run cap:sync
+```
 3. This will:
    1. Run `build:native`.
    2. Copy the web build into the native projects.
@@ -207,7 +207,7 @@ Your Windows `JAVA_HOME` may still point at an old JDK 9. Android Gradle Plugin 
 
 1. Terminal → `liberationfleet.client`.
 2. Run:
-   ```bash
+```bash
    npm run cap:android
    ```
 3. Wait for **Android Studio** to open the `android` project (not the repo root).
@@ -285,7 +285,7 @@ LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted
 
 | Asset | iOS | Android |
 |-------|-----|---------|
-| App icon | 1024×1024 App Store (`AppIcon`, no alpha) | Adaptive icon (foreground/background). Android circle crop: use `src/assets/images/LFleetLogoForCircle.png` (extra padding). |
+| App icon | 1024×1024 App Store (`AppIcon`, no alpha) from `src/assets/images/LFleetLogo.png` | Adaptive icon (foreground/background). Android circle crop: use `src/assets/images/LFleetLogoForCircle.png` (extra padding). |
 | Splash | Launch screen / Cap splash | Splash theme |
 | Screenshots | 6.7" iPhone (this target is iPhone only) | Phone |
 | Privacy policy URL | Required | Required |
@@ -316,7 +316,7 @@ In-app alerts use **SignalR** while the app is open. Background OS push is wired
 
 | Layer | Behavior |
 |-------|----------|
-| Client | `@capacitor/push-notifications` registers a token after login; `PUT /api/notifications/push-tokens`; unregisters on logout; taps open `actionUrl` |
+| Client | `@capacitor/push-notifications` registers a token after login; `PUT /api/notifications/push-tokens`; unregisters on logout; taps open `actionUrl`. iOS **must** forward the APNs token from `AppDelegate` (`didRegisterForRemoteNotificationsWithDeviceToken`) or the API never stores an iOS token |
 | Server | Stores `DevicePushTokens`; on each `NotificationService.Notify*`, sends FCM HTTP v1 (Android) and/or APNs (iOS) when configured |
 | Secrets | Key Vault `Push-FcmServiceAccountJson`, `Push-ApnsKeyP8`; app settings `Push__FcmProjectId`, `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId`, `Push__ApnsUseSandbox` |
 
@@ -457,7 +457,7 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 4. Paste `.p8` PEM contents into Key Vault **`Push-ApnsKeyP8`**.
 5. Set `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId=com.liberationfleet.app`.
 6. **`Push__ApnsUseSandbox=true`** only for a build you install by pressing **Run** in Xcode. **`false`** for TestFlight and the App Store. Those builds talk to production APNs.
-7. Push is already in the Xcode project (`App.entitlements` for Run, `App.release.entitlements` for Archive, and **Remote notifications** in `Info.plist`). Do not click **+ Capability**.
+7. Push is already in the Xcode project (`App.entitlements` for Run, `App.release.entitlements` for Archive, **Remote notifications** in `Info.plist`, and the APNs token callbacks in `AppDelegate.swift`). Do not click **+ Capability**. Archive a **new** TestFlight build after pulling those AppDelegate methods — older binaries never sent a token to the API.
 8. If Xcode says the team has **no devices** or **No profiles for com.liberationfleet.app**: **Team** must be your name **without** “(Personal Team)”. Plug in a physical iPhone, unlock it, and tap **Trust**. In the destination menu next to Run, choose that iPhone, then on **Signing & Capabilities** click **Try Again**. A simulator cannot satisfy this step. The Duo simulator can be selected again after the profile exists.
 9. Run on that iPhone and allow notifications. Simulator push is limited.
 
@@ -471,7 +471,7 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 #### D. Smoke test
 
 1. Sign in on a device → allow notifications.
-2. Confirm `DevicePushTokens` has a row for your user (platform `Android`, `IsDisabled` false).
+2. Confirm `DevicePushTokens` has a row for your user (`Android` and/or `Ios`, `IsDisabled` false). An iOS install with no row means the AppDelegate APNs callbacks are missing or the user denied notifications.
 3. Background the app (or force-stop) → send a DM from another account.
 4. Tap the system notification → app opens the `actionUrl`.
 
@@ -479,10 +479,10 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 
 | Check | What to look for |
 |-------|------------------|
-| Token never registered | No `DevicePushTokens` row after sign-in + Allow → rebuild with current client (listeners must attach **before** `PushNotifications.register()`; older builds could miss the FCM token) |
+| Token never registered | No `DevicePushTokens` row after sign-in + Allow → rebuild with current client (listeners must attach **before** `PushNotifications.register()`; older builds could miss the FCM token). Native JWT now stays in **localStorage** (sessionStorage dies when the WebView is killed). Confirm remember-me / a valid session so `PUT /push-tokens` is not 401 |
 | Server FCM not configured | App Service `Push__FcmProjectId` + Key Vault `Push-FcmServiceAccountJson` still empty/`change-me` → sender no-ops (SignalR still works) |
 | Permission denied | Android 13+ Settings → Apps → Liberation Fleet → Notifications → enabled |
-| Channel | App creates `liberation_fleet_default`; FCM payload and Manifest default channel id match that string |
+| Channel | App creates `liberation_fleet_alerts` (high importance). Older `liberation_fleet_default` is unused — Android will not raise a silent channel’s importance |
 
 Track checklist: [LAUNCH-CHECKLIST B.9](./LAUNCH-CHECKLIST.md). Also [AZURE-GO-LIVE §16.3](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec).
 

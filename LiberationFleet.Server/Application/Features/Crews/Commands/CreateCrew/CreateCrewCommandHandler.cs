@@ -7,6 +7,7 @@ using LiberationFleet.Server.Application.Features.Crews.Contracts;
 using LiberationFleet.Server.Application.Features.Fleets;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Services;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -98,7 +99,10 @@ public class CreateCrewCommandHandler : IRequestHandler<CreateCrewCommand, CrewO
             CreatedAt = DateTime.UtcNow,
             AllowSurvivalThresholds = true,
             RequireApprovalForEdits = true,
-            InNeedDefaultThreshold = 20m
+            InNeedDefaultThreshold = 20m,
+            AllowCrewmateFileAttachments = ContentPermissionDefaults.AllowCrewmateFileAttachments,
+            MinimumCrewmateTenureDaysForAttachments = ContentPermissionDefaults.MinimumCrewmateTenureDaysForAttachments,
+            MinimumContributionForAttachments = ContentPermissionDefaults.MinimumContributionForAttachments
         };
 
         AllowedZipCodeSync.SetCrewZips(

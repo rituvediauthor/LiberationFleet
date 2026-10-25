@@ -200,6 +200,7 @@ export class CrewmateService {
       roles: profile.roles ?? [],
       electedRoles: profile.electedRoles ?? [],
       canAttachFiles: profile.canAttachFiles ?? false,
+      attachmentsDenied: !!profile.attachmentsDenied,
       canCreateProposals: profile.canCreateProposals ?? false,
       canAttachFilesToCrewContent: profile.canAttachFilesToCrewContent ?? false,
       canCreateCrewProposals: profile.canCreateCrewProposals ?? false,

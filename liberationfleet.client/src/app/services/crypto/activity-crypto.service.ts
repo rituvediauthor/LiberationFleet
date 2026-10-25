@@ -250,6 +250,6 @@ export class ActivityCryptoService {
       return trimmed;
     }
 
-    return `${trimmed.slice(0, PREVIEW_MAX_LENGTH - 1)}…`;
+    return `${trimmed.slice(0, Math.max(0, PREVIEW_MAX_LENGTH - 3)).trimEnd()}...`;
   }
 }

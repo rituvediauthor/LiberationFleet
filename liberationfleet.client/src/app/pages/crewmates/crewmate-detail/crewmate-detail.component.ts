@@ -397,12 +397,28 @@ export class CrewmateDetailComponent implements OnInit {
     });
   }
 
+  get attachmentToggleLabel(): string {
+    if (!this.profile) {
+      return '';
+    }
+    if (this.profile.attachmentsDenied) {
+      return 'Allow attachments';
+    }
+    if (this.profile.canAttachFiles) {
+      return 'Revoke override';
+    }
+    if (this.profile.canAttachFilesToCrewContent) {
+      return 'Block attachments';
+    }
+    return 'Grant override';
+  }
+
   onToggleCanAttachFiles() {
     if (!this.profile || this.actionLoading || !this.profile.canToggleCanAttachFiles) {
       return;
     }
 
-    const nextValue = !this.profile.canAttachFiles;
+    const nextValue = !(this.profile.canAttachFilesToCrewContent && !this.profile.attachmentsDenied);
     this.actionLoading = true;
     this.crewmateService.toggleCanAttachFiles(this.userId, nextValue).subscribe({
       next: response => {

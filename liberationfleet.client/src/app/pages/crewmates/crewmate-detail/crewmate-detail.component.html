@@ -335,15 +335,17 @@
       <section class="section" *ngIf="profile.canToggleCanAttachFiles">
         <h2>File attachment override</h2>
         <p class="hint-text">
-          {{ profile.canAttachFiles
-            ? 'This crewmate has an override grant to attach files regardless of crew tenure or contribution rules.'
-            : 'This crewmate does not have an attachment override grant.' }}
+          {{ profile.attachmentsDenied
+            ? 'A moderator blocked this crewmate from attaching files.'
+            : profile.canAttachFiles
+              ? 'This crewmate has an override grant to attach files regardless of crew tenure or contribution rules.'
+              : 'This crewmate does not have an attachment override grant.' }}
         </p>
         <p class="hint-text">
           Effective permission: {{ profile.canAttachFilesToCrewContent ? 'Can attach files' : 'Cannot attach files' }}
         </p>
         <button type="button" class="toggle-btn" [disabled]="actionLoading" (click)="onToggleCanAttachFiles()">
-          {{ profile.canAttachFiles ? 'Revoke override' : 'Grant override' }}
+          {{ attachmentToggleLabel }}
         </button>
       </section>
 

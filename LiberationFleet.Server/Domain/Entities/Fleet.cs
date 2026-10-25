@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Domain.Entities;
@@ -24,9 +25,9 @@ public class Fleet
     public bool ChangeAutoResolveTimerOnFirstReject { get; set; } = true;
     public int AutoResolveHoursAfterFirstReject { get; set; } = 168;
     public bool LibraryOfThingsEnabled { get; set; } = true;
-    public bool AllowCrewmateFileAttachments { get; set; }
-    public int MinimumCrewmateTenureDaysForAttachments { get; set; }
-    public decimal MinimumContributionForAttachments { get; set; }
+    public bool AllowCrewmateFileAttachments { get; set; } = ContentPermissionDefaults.AllowCrewmateFileAttachments;
+    public int MinimumCrewmateTenureDaysForAttachments { get; set; } = ContentPermissionDefaults.MinimumCrewmateTenureDaysForAttachments;
+    public decimal MinimumContributionForAttachments { get; set; } = ContentPermissionDefaults.MinimumContributionForAttachments;
     public int MinimumCrewmateTenureDaysForProposals { get; set; }
     public decimal MinimumContributionForProposals { get; set; }
     public string? ImageResourceId { get; set; }
