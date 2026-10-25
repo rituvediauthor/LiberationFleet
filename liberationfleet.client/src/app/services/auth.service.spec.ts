@@ -241,6 +241,7 @@ describe('AuthService token loading', () => {
   it('should recognize existing token from localStorage on init', () => {
     expect(service.getToken()).toBe(validToken);
     expect(service.isAuthenticated()).toBeTrue();
+    expect(TestBed.inject(PushNotificationRegistrationService).start).toHaveBeenCalled();
 
     // loadToken() may kick off a remember-me refresh
     const refresh = httpMock.expectOne('/api/auth/refresh');

@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { isNativeApp, isNativeAndroid, getAppRuntimePlatform } from '../utils/app-platform.util';
 import { AppStorageService, StorageScope } from './storage/app-storage.service';
+import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from './storage/storage-keys';
+import { isJwtExpired } from '../utils/jwt.util';
 
 interface PushTokenApiResponse {
   success: boolean;
@@ -14,8 +16,8 @@ interface PushTokenApiResponse {
 const PUSH_DEVICE_ID_KEY = 'lf.push.deviceId';
 const PUSH_TOKEN_KEY = 'lf.push.token';
 
-/** Must match FCM android.notification.channel_id on the server. */
-export const ANDROID_PUSH_CHANNEL_ID = 'liberation_fleet_default';
+/** Must match FcmApnsPushNotificationSender / PushPayloads.AndroidChannelId. */
+export const ANDROID_PUSH_CHANNEL_ID = 'liberation_fleet_alerts';
 
 /**
  * Registers FCM/APNs tokens with the API and opens deep links from notification taps.
@@ -158,6 +160,12 @@ export class PushNotificationRegistrationService {
 
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (!this.hasUsableAccessToken()) {
+        // OS token is stored. PUT again on the next start() after login/refresh.
+        this.started = false;
+        return;
+      }
+
       try {
         await firstValueFrom(
           this.http.put<PushTokenApiResponse>(this.apiUrl, {
@@ -177,6 +185,15 @@ export class PushNotificationRegistrationService {
         await new Promise(resolve => setTimeout(resolve, 400 * attempt));
       }
     }
+  }
+
+  private hasUsableAccessToken(): boolean {
+    const remember = this.storage.get(StorageScope.Persistent, REMEMBER_LOGIN_STORAGE_KEY);
+    const preferredScope = remember !== 'false' ? StorageScope.Persistent : StorageScope.Session;
+    const jwt = this.storage.get(preferredScope, AUTH_TOKEN_STORAGE_KEY)
+      ?? this.storage.get(StorageScope.Persistent, AUTH_TOKEN_STORAGE_KEY)
+      ?? this.storage.get(StorageScope.Session, AUTH_TOKEN_STORAGE_KEY);
+    return !!jwt && !isJwtExpired(jwt);
   }
 
   private getOrCreateDeviceId(platform: string): string {

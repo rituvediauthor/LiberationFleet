@@ -128,7 +128,7 @@ variable "push_apns_bundle_id" {
 
 variable "push_apns_use_sandbox" {
   type        = bool
-  description = "true for TestFlight/debug; false for App Store production APNs."
+  description = "true only for Xcode Run (development APNs). false for TestFlight and the App Store (production APNs)."
   default     = false
 }
 

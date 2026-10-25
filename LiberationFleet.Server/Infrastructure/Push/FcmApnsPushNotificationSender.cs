@@ -1,6 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using LiberationFleet.Server.Application.Common.Interfaces;
@@ -11,7 +11,6 @@ using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 namespace LiberationFleet.Server.Infrastructure.Push;
 
@@ -22,11 +21,6 @@ public class FcmApnsPushNotificationSender(
     IOptions<PushNotificationOptions> options,
     ILogger<FcmApnsPushNotificationSender> logger) : IPushNotificationSender
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     private readonly SemaphoreSlim _fcmGate = new(1, 1);
     private string? _fcmAccessToken;
     private DateTimeOffset _fcmAccessTokenExpiresAt;
@@ -62,6 +56,7 @@ public class FcmApnsPushNotificationSender(
 
         if (tokens.Count == 0)
         {
+            logger.LogInformation("No active device push tokens for user {UserId}", userId);
             return;
         }
 
@@ -69,16 +64,14 @@ public class FcmApnsPushNotificationSender(
         {
             try
             {
-                var ok = token.Platform switch
+                var outcome = token.Platform switch
                 {
-                    PushPlatform.Android when opts.IsFcmConfigured
-                        => await SendFcmAsync(opts, token, notification, badgeCount, cancellationToken),
-                    PushPlatform.Ios when opts.IsApnsConfigured
-                        => await SendApnsAsync(opts, token, notification, badgeCount, cancellationToken),
-                    _ => true
+                    PushPlatform.Android => await SendFcmAsync(opts, token, notification, badgeCount, cancellationToken),
+                    PushPlatform.Ios => await SendApnsAsync(opts, token, notification, badgeCount, cancellationToken),
+                    _ => PushSendOutcome.Skipped
                 };
 
-                if (!ok)
+                if (outcome == PushSendOutcome.InvalidToken)
                 {
                     await pushTokens.DisableAsync(token.Id, cancellationToken);
                     await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -96,50 +89,23 @@ public class FcmApnsPushNotificationSender(
         }
     }
 
-    private async Task<bool> SendFcmAsync(
+    private async Task<PushSendOutcome> SendFcmAsync(
         PushNotificationOptions opts,
         DevicePushToken token,
         NotificationDto notification,
         int? badgeCount,
         CancellationToken cancellationToken)
     {
+        if (!opts.IsFcmConfigured)
+        {
+            logger.LogWarning("Skipping Android token {TokenId}: FCM is not configured.", token.Id);
+            return PushSendOutcome.Skipped;
+        }
+
         var accessToken = await GetFcmAccessTokenAsync(opts, cancellationToken);
         var client = httpClientFactory.CreateClient(nameof(FcmApnsPushNotificationSender));
         var url = $"https://fcm.googleapis.com/v1/projects/{opts.FcmProjectId}/messages:send";
-
-        // Explicit camelCase / proto JSON names — do not run this through PropertyNamingPolicy.
-        // channelId must match PushNotificationRegistrationService ANDROID_PUSH_CHANNEL_ID.
-        // icon must be a white-on-transparent status drawable, not the adaptive launcher.
-        var payload = new Dictionary<string, object>
-        {
-            ["message"] = new Dictionary<string, object>
-            {
-                ["token"] = token.Token,
-                ["notification"] = new Dictionary<string, string>
-                {
-                    ["title"] = Truncate(notification.Title, 100),
-                    ["body"] = Truncate(notification.Body, 200)
-                },
-                ["data"] = new Dictionary<string, string>
-                {
-                    ["notificationId"] = notification.Id.ToString(),
-                    ["actionUrl"] = notification.ActionUrl ?? string.Empty,
-                    ["kind"] = notification.Kind.ToString()
-                },
-                ["android"] = new Dictionary<string, object>
-                {
-                    ["priority"] = "HIGH",
-                    ["notification"] = new Dictionary<string, object>
-                    {
-                        ["channelId"] = "liberation_fleet_default",
-                        ["icon"] = "ic_stat_notify",
-                        ["color"] = "#0B1220",
-                        ["sound"] = "default",
-                        ["notificationPriority"] = "PRIORITY_HIGH"
-                    }
-                }
-            }
-        };
+        var payload = PushPayloads.FcmMessage(token.Token, notification, badgeCount);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -148,81 +114,124 @@ public class FcmApnsPushNotificationSender(
         using var response = await client.SendAsync(request, cancellationToken);
         if (response.IsSuccessStatusCode)
         {
-            return true;
+            return PushSendOutcome.Sent;
         }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (IsInvalidTokenResponse(body) || response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (IsInvalidTokenResponse(body) || response.StatusCode is HttpStatusCode.NotFound)
         {
             logger.LogInformation("Disabling invalid FCM token {TokenId}", token.Id);
-            return false;
+            return PushSendOutcome.InvalidToken;
         }
 
-        logger.LogWarning("FCM send failed ({Status}): {Body}", (int)response.StatusCode, Truncate(body, 400));
-        return true;
+        logger.LogWarning("FCM send failed ({Status}): {Body}", (int)response.StatusCode, PushPayloads.Truncate(body, 400));
+        return PushSendOutcome.Failed;
     }
 
-    private async Task<bool> SendApnsAsync(
+    private async Task<PushSendOutcome> SendApnsAsync(
         PushNotificationOptions opts,
         DevicePushToken token,
         NotificationDto notification,
         int? badgeCount,
         CancellationToken cancellationToken)
     {
-        var jwt = CreateApnsJwt(opts);
-        var host = opts.ApnsUseSandbox
-            ? "https://api.sandbox.push.apple.com"
-            : "https://api.push.apple.com";
-        var url = $"{host}/3/device/{token.Token}";
-
-        var aps = new Dictionary<string, object?>
+        if (!opts.IsApnsConfigured)
         {
-            ["alert"] = new Dictionary<string, string>
-            {
-                ["title"] = Truncate(notification.Title, 100),
-                ["body"] = Truncate(notification.Body, 200)
-            },
-            ["sound"] = "default"
-        };
-        if (badgeCount is > 0)
-        {
-            aps["badge"] = badgeCount.Value;
+            logger.LogWarning("Skipping iOS token {TokenId}: APNs is not configured.", token.Id);
+            return PushSendOutcome.Skipped;
         }
 
-        var payload = new Dictionary<string, object?>
+        var jwt = ApnsAuth.CreateJwt(opts.ApnsTeamId, opts.ApnsKeyId, opts.ApnsKeyP8);
+        var payloadJson = JsonSerializer.Serialize(PushPayloads.ApnsMessage(notification, badgeCount));
+        var primarySandbox = opts.ApnsUseSandbox;
+        var first = await SendApnsToHostAsync(
+            jwt,
+            opts.ApnsBundleId,
+            token.Token,
+            payloadJson,
+            primarySandbox,
+            cancellationToken);
+
+        if (first == PushSendOutcome.WrongEnvironment)
         {
-            ["aps"] = aps,
-            ["notificationId"] = notification.Id,
-            ["actionUrl"] = notification.ActionUrl ?? string.Empty,
-            ["kind"] = notification.Kind.ToString()
-        };
+            var retry = await SendApnsToHostAsync(
+                jwt,
+                opts.ApnsBundleId,
+                token.Token,
+                payloadJson,
+                !primarySandbox,
+                cancellationToken);
+            if (retry == PushSendOutcome.Sent)
+            {
+                logger.LogInformation(
+                    "APNs token {TokenId} accepted on the {Environment} host after {First} failed with BadDeviceToken.",
+                    token.Id,
+                    !primarySandbox ? "sandbox" : "production",
+                    primarySandbox ? "sandbox" : "production");
+            }
 
+            return retry == PushSendOutcome.WrongEnvironment ? PushSendOutcome.InvalidToken : retry;
+        }
+
+        return first;
+    }
+
+    private async Task<PushSendOutcome> SendApnsToHostAsync(
+        string jwt,
+        string bundleId,
+        string deviceToken,
+        string payloadJson,
+        bool sandbox,
+        CancellationToken cancellationToken)
+    {
         var client = httpClientFactory.CreateClient(nameof(FcmApnsPushNotificationSender));
-        using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Version = new Version(2, 0);
-        request.Headers.Authorization = new AuthenticationHeaderValue("bearer", jwt);
-        request.Headers.TryAddWithoutValidation("apns-topic", opts.ApnsBundleId);
-        request.Headers.TryAddWithoutValidation("apns-push-type", "alert");
-        request.Headers.TryAddWithoutValidation("apns-priority", "10");
-        request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
+        using var request = CreateApnsRequest(jwt, bundleId, deviceToken, payloadJson, sandbox);
         using var response = await client.SendAsync(request, cancellationToken);
         if (response.IsSuccessStatusCode)
         {
-            return true;
+            return PushSendOutcome.Sent;
         }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (response.StatusCode is System.Net.HttpStatusCode.Gone
-            || body.Contains("BadDeviceToken", StringComparison.OrdinalIgnoreCase)
-            || body.Contains("Unregistered", StringComparison.OrdinalIgnoreCase))
+        if (body.Contains("BadDeviceToken", StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogInformation("Disabling invalid APNs token {TokenId}", token.Id);
-            return false;
+            return PushSendOutcome.WrongEnvironment;
         }
 
-        logger.LogWarning("APNs send failed ({Status}): {Body}", (int)response.StatusCode, Truncate(body, 400));
-        return true;
+        if (response.StatusCode is HttpStatusCode.Gone
+            || body.Contains("Unregistered", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("Disabling invalid APNs token on {Host}", sandbox ? "sandbox" : "production");
+            return PushSendOutcome.InvalidToken;
+        }
+
+        logger.LogWarning(
+            "APNs send failed ({Status}) on {Host}: {Body}",
+            (int)response.StatusCode,
+            sandbox ? "sandbox" : "production",
+            PushPayloads.Truncate(body, 400));
+        return PushSendOutcome.Failed;
+    }
+
+    internal static HttpRequestMessage CreateApnsRequest(
+        string jwt,
+        string bundleId,
+        string deviceToken,
+        string payloadJson,
+        bool sandbox)
+    {
+        var host = sandbox
+            ? "https://api.sandbox.push.apple.com"
+            : "https://api.push.apple.com";
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{host}/3/device/{deviceToken}");
+        request.Version = HttpVersion.Version20;
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+        request.Headers.Authorization = new AuthenticationHeaderValue("bearer", jwt);
+        request.Headers.TryAddWithoutValidation("apns-topic", bundleId);
+        request.Headers.TryAddWithoutValidation("apns-push-type", "alert");
+        request.Headers.TryAddWithoutValidation("apns-priority", "10");
+        request.Content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+        return request;
     }
 
     private async Task<string> GetFcmAccessTokenAsync(
@@ -270,36 +279,20 @@ public class FcmApnsPushNotificationSender(
         }
     }
 
-    private static string CreateApnsJwt(PushNotificationOptions opts)
-    {
-        using var ecdsa = ECDsa.Create();
-        ecdsa.ImportFromPem(opts.ApnsKeyP8);
-
-        var now = DateTimeOffset.UtcNow;
-        var descriptor = new SecurityTokenDescriptor
-        {
-            IssuedAt = now.UtcDateTime,
-            Expires = now.AddMinutes(50).UtcDateTime,
-            Issuer = opts.ApnsTeamId,
-            SigningCredentials = new SigningCredentials(
-                new ECDsaSecurityKey(ecdsa) { KeyId = opts.ApnsKeyId },
-                SecurityAlgorithms.EcdsaSha256)
-        };
-
-        var handler = new JwtSecurityTokenHandler();
-        return handler.WriteToken(handler.CreateToken(descriptor));
-    }
-
     private static bool IsInvalidTokenResponse(string body) =>
         body.Contains("UNREGISTERED", StringComparison.OrdinalIgnoreCase)
         || body.Contains("NotRegistered", StringComparison.OrdinalIgnoreCase)
-        // FCM uses INVALID_ARGUMENT for many payload errors; only treat as a bad
-        // device token when the message clearly refers to the registration token.
         || (body.Contains("INVALID_ARGUMENT", StringComparison.OrdinalIgnoreCase)
             && (body.Contains("registration token", StringComparison.OrdinalIgnoreCase)
                 || body.Contains("registration_token", StringComparison.OrdinalIgnoreCase)
                 || body.Contains("not a valid FCM", StringComparison.OrdinalIgnoreCase)));
 
-    private static string Truncate(string value, int max) =>
-        string.IsNullOrEmpty(value) || value.Length <= max ? value : value[..max];
+    private enum PushSendOutcome
+    {
+        Sent,
+        Failed,
+        InvalidToken,
+        WrongEnvironment,
+        Skipped
+    }
 }
