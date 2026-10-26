@@ -236,6 +236,9 @@ export class AppComponent implements OnInit, OnDestroy {
     if (shouldRefreshBadges) {
       this.notificationService.refreshBadges(true);
     }
+    // Leftover OS badges (previous account / failed first write) must be
+    // rewritten even when in-app unread is already 0.
+    this.notificationService.syncAppIconBadge(true);
 
     if (!this.notificationsBootstrapped) {
       this.notificationsBootstrapped = true;

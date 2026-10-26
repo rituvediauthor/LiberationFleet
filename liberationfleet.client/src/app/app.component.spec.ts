@@ -54,7 +54,10 @@ describe('AppComponent', () => {
         },
         {
           provide: NotificationService,
-          useValue: { refreshBadges: jasmine.createSpy('refreshBadges') }
+          useValue: {
+            refreshBadges: jasmine.createSpy('refreshBadges'),
+            syncAppIconBadge: jasmine.createSpy('syncAppIconBadge')
+          }
         }
       ]
     }).compileComponents();

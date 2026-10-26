@@ -13,10 +13,9 @@ public class AppIconBadgePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func set(_ call: CAPPluginCall) {
         let count = max(0, call.getInt("count") ?? 0)
         DispatchQueue.main.async {
+            UIApplication.shared.applicationIconBadgeNumber = count
             if #available(iOS 16.0, *) {
                 UNUserNotificationCenter.current().setBadgeCount(count) { _ in }
-            } else {
-                UIApplication.shared.applicationIconBadgeNumber = count
             }
         }
         call.resolve()

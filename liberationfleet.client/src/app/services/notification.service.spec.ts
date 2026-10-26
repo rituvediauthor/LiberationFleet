@@ -35,7 +35,7 @@ describe('NotificationService', () => {
     expect(req.request.method).toBe('POST');
     req.flush({ success: true, unreadCount: 0, message: 'ok' });
 
-    expect(iconBadge.setCount).toHaveBeenCalledWith(0);
+    expect(iconBadge.setCount).toHaveBeenCalledWith(0, { force: true });
   });
 
   it('writes the remaining unread count after marking one notification read', () => {
@@ -44,11 +44,16 @@ describe('NotificationService', () => {
     const req = httpMock.expectOne('/api/notifications/42/read');
     req.flush({ success: true, unreadCount: 3, message: 'ok' });
 
-    expect(iconBadge.setCount).toHaveBeenCalledWith(3);
+    expect(iconBadge.setCount).toHaveBeenCalledWith(3, { force: false });
   });
 
   it('clears the home-screen badge on logout cache wipe', () => {
     service.clearSessionCache();
-    expect(iconBadge.setCount).toHaveBeenCalledWith(0);
+    expect(iconBadge.setCount).toHaveBeenCalledWith(0, { force: false });
+  });
+
+  it('rewrites a zero icon badge even when in-app unread is already zero', () => {
+    service.syncAppIconBadge(true);
+    expect(iconBadge.setCount).toHaveBeenCalledWith(0, { force: true });
   });
 });

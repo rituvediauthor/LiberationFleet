@@ -141,7 +141,7 @@ export class NotificationService {
     return this.http.post<NotificationOperationResponse>(`${this.apiUrl}/read-all`, {}).pipe(
       tap(response => {
         if (response.success) {
-          this.publishUnreadCount(response.unreadCount);
+          this.publishUnreadCount(response.unreadCount, true);
           this.areaCountsSubject.next(emptyAreaCounts());
           this.resourceCountsSubject.next({});
         }
@@ -237,9 +237,14 @@ export class NotificationService {
     this.clearBadgeFallback();
   }
 
-  private publishUnreadCount(count: number): void {
+  /** Push the current in-app unread count onto the OS app-icon badge. */
+  syncAppIconBadge(force = false): void {
+    void this.appIconBadge.setCount(this.unreadCountSubject.value, { force });
+  }
+
+  private publishUnreadCount(count: number, force = false): void {
     this.unreadCountSubject.next(count);
-    void this.appIconBadge.setCount(count);
+    void this.appIconBadge.setCount(count, { force });
   }
 
   handleIncoming(notification: NotificationItem) {

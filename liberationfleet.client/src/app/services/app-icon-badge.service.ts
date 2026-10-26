@@ -21,13 +21,16 @@ const AppIconBadge = registerPlugin<AppIconBadgePlugin>('AppIconBadge', {
 export class AppIconBadgeService {
   private lastSent: number | null = null;
 
-  async setCount(count: number): Promise<void> {
+  async setCount(count: number, options?: { force?: boolean }): Promise<void> {
     if (!isNativeApp()) {
       return;
     }
 
     const next = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
-    if (this.lastSent === next) {
+    // Never skip 0 — leftover OS badges from a previous account stay until we
+    // write zero even when in-app unread is already 0.
+    const force = options?.force === true || next === 0;
+    if (!force && this.lastSent === next) {
       return;
     }
     this.lastSent = next;
