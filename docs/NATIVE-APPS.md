@@ -455,7 +455,15 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 2. Note **Key ID** and your **Team ID**.
 3. Ensure App ID **`com.liberationfleet.app`** has **Push Notifications** enabled.
 4. Paste `.p8` PEM contents into Key Vault **`Push-ApnsKeyP8`**.
-5. Set `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId=com.liberationfleet.app`.
+5. Set App Service **Environment variables** (not Key Vault — these three are plain settings):
+
+   | Name | Value |
+   |------|--------|
+   | **`Push__ApnsKeyId`** | The **10-character Key ID** from Apple (Keys list, or the `XXXXXXXXXX` in `AuthKey_XXXXXXXXXX.p8`). If this is empty/null, iOS push is off |
+   | **`Push__ApnsTeamId`** | Membership **Team ID** (Xcode **Signing & Capabilities** → Team, or developer.apple.com → Membership). Example shape: `U4F76ADPUE` |
+   | **`Push__ApnsBundleId`** | `com.liberationfleet.app` |
+
+   Portal: Web App → **Settings → Environment variables** → search `Push__ApnsKeyId`. If the value is blank, **+ Add** or open the row → paste the Key ID → **Apply** → **Confirm**. Do the same for Team ID and Bundle ID. Then **Overview → Restart**.
 6. **`Push__ApnsUseSandbox=true`** only for a build you install by pressing **Run** in Xcode. **`false`** for TestFlight and the App Store. Those builds talk to production APNs.
 7. Push is already in the Xcode project (`App.entitlements` for Run, `App.release.entitlements` for Archive, **Remote notifications** in `Info.plist`, and the APNs token callbacks in `AppDelegate.swift`). Do not click **+ Capability**. Archive a **new** TestFlight build after pulling those AppDelegate methods — older binaries never sent a token to the API.
 8. If Xcode says the team has **no devices** or **No profiles for com.liberationfleet.app**: **Team** must be your name **without** “(Personal Team)”. Plug in a physical iPhone, unlock it, and tap **Trust**. In the destination menu next to Run, choose that iPhone, then on **Signing & Capabilities** click **Try Again**. A simulator cannot satisfy this step. The Duo simulator can be selected again after the profile exists.
@@ -467,6 +475,19 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 2. Portal / CLI: replace secret **values** (lifecycle ignores Terraform value changes).
 3. Set `push_fcm_project_id`, `push_apns_key_id`, `push_apns_team_id` in env tfvars (or App Service Configuration).
 4. Restart App Service.
+
+#### C.1 Restart production after secrets or a new API image
+
+TestFlight only updates the iPhone. The server talks to Apple; it does **not** pick up a new Key Vault value or new container until the Web App process restarts.
+
+1. Portal → resource group (e.g. `rg-lfleet-production`) → Web App **`app-lfleet-production`**.
+2. Confirm **Environment variables**: `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId=com.liberationfleet.app`, **`Push__ApnsUseSandbox=false`** (TestFlight uses production APNs).
+3. Key Vault **`lfleetproductionkv`** → secret **`Push-ApnsKeyP8`** → Current version must be the full `.p8` PEM (starts with `-----BEGIN PRIVATE KEY-----`), not `change-me-push-apns-key-p8`.
+4. Left menu → **Overview** → **Restart** → confirm. Wait until the app is Running.
+5. **Log stream** (or Logs): look for `Push providers at startup: APNs=True`. If you see `APNs=False`, the key/id/team never loaded. If you see `APNs send failed` after a DM, Apple rejected the request (wrong sandbox flag, bad key, or no device token).
+6. In the TestFlight app: sign in → Allow notifications → **Profile → Preferences → Notifications**. The status line says whether this account has an iOS token and whether the server is connected to Apple.
+
+Closing the app does **not** drop the account. The API stores `DevicePushTokens` (`UserId` + APNs device token). Apple wakes the phone. The JWT is only needed to *register* the token while you are signed in.
 
 #### D. Smoke test
 
@@ -483,6 +504,7 @@ Do **not** keep clicking Generate until the policy allows keys or you use an unr
 | Server FCM not configured | App Service `Push__FcmProjectId` + Key Vault `Push-FcmServiceAccountJson` still empty/`change-me` → sender no-ops (SignalR still works) |
 | Permission denied | Android 13+ Settings → Apps → Liberation Fleet → Notifications → enabled |
 | Channel | App creates `liberation_fleet_alerts` (high importance). Older `liberation_fleet_default` is unused — Android will not raise a silent channel’s importance |
+| Home-screen badge stays after Mark all read | The red number on the icon is an OS badge (`aps.badge` / launcher dots), not the in-app list. Current client writes that number whenever unread count changes (0 clears it and dismisses shade notifications). **Needs a new TestFlight / Play build** with `AppIconBadgePlugin` — older binaries cannot set the icon badge from JS |
 
 Track checklist: [LAUNCH-CHECKLIST B.9](./LAUNCH-CHECKLIST.md). Also [AZURE-GO-LIVE §16.3](./AZURE-GO-LIVE.md#step-16--auth--safety-service-hookups-mfa-push-ncmec).
 
@@ -514,7 +536,7 @@ You do **not** need `npx cap add android` / `ios` again.
 | iOS build fails on Windows | Use a Mac (or cloud Mac) for `cap add ios` / Archive |
 | Login works on web, not device | Device hitting HTTP or old `apiBaseUrl`; re-sync after env change |
 | Gradle sync forever / fails | **File** → **Sync Project with Gradle Files**; set Gradle JDK 17; check internet |
-| No device in toolbar | Start an emulator in Device Manager, or plug in phone with USB debugging on |
+| Home-screen badge still there after marking notifications read | Pull this client, `npm run cap:ios` / `cap:android`, and ship a new store build. In-app unread dots update without a rebuild; the **phone icon** badge does not |
 | Firebase “Add SDK” only has Next/Previous | Select **Groovy**, then **Next** — do not edit Gradle (see § A.2) |
 | Cloud Console shows Organization name, no Project info | You selected the **org** in the picker — select the Firebase **project** (§ A.3) |
 | Project picker missing `liberationfleet-…` id | Search by id from `google-services.json`; confirm same Google account as Firebase |

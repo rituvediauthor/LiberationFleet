@@ -30,6 +30,14 @@ organization_mailing_address = ""
 # FCM (from google-services.json project_info.project_id)
 push_fcm_project_id = "liberationfleet-2bea7"
 
+# APNs. Key ID = 10 characters from Apple → Keys (also the XXXXXXXXXX in AuthKey_XXXXXXXXXX.p8).
+# Empty Push__ApnsKeyId means the API never sends to Apple. Set the Key ID here or in App Service, then Restart.
+# Team ID is Xcode Signing & Capabilities / developer.apple.com Membership.
+push_apns_key_id      = "64MJ3FY5GZ"
+push_apns_team_id     = "U4F76ADPUE"
+push_apns_bundle_id   = "com.liberationfleet.app"
+push_apns_use_sandbox = false
+
 sql_firewall_rules = [
   {
     name             = "Home"

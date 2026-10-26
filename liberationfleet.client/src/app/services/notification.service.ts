@@ -22,6 +22,7 @@ import {
   CrewNotificationAreaCounts,
   emptyAreaCounts
 } from '../utils/notification-area.util';
+import { AppIconBadgeService } from './app-icon-badge.service';
 
 @Injectable({
   providedIn: 'root'
@@ -40,7 +41,10 @@ export class NotificationService {
   private readonly badgeMinIntervalMs = 12_000;
   private readonly badgeFallbackDelayMs = 1_500;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private appIconBadge: AppIconBadgeService
+  ) {}
 
   getNotifications(category: NotificationFilterCategory = 'All', beforeId?: number): Observable<NotificationListResponse> {
     let params = new HttpParams().set('category', category).set('limit', '50');
@@ -51,7 +55,7 @@ export class NotificationService {
     return this.http.get<NotificationListResponse>(this.apiUrl, { params }).pipe(
       tap(response => {
         if (response.success) {
-          this.unreadCountSubject.next(response.unreadCount);
+          this.publishUnreadCount(response.unreadCount);
         }
       })
     );
@@ -84,7 +88,7 @@ export class NotificationService {
     this.clearBadgeFallback();
     this.lastBadgeRefreshAt = 0;
     this.badgeInFlight = false;
-    this.unreadCountSubject.next(0);
+    this.publishUnreadCount(0);
     this.areaCountsSubject.next(emptyAreaCounts());
     this.resourceCountsSubject.next({});
   }
@@ -114,7 +118,7 @@ export class NotificationService {
     return this.http.post<NotificationOperationResponse>(`${this.apiUrl}/${notificationId}/read`, {}).pipe(
       tap(response => {
         if (response.success) {
-          this.unreadCountSubject.next(response.unreadCount);
+          this.publishUnreadCount(response.unreadCount);
           // Server pushes BadgeSummaryUpdated over SignalR; fall back if hub is down.
           this.scheduleBadgeFallbackRefresh();
         }
@@ -126,7 +130,7 @@ export class NotificationService {
     return this.http.post<NotificationOperationResponse>(`${this.apiUrl}/read-by-content`, request).pipe(
       tap(response => {
         if (response.success) {
-          this.unreadCountSubject.next(response.unreadCount);
+          this.publishUnreadCount(response.unreadCount);
           this.scheduleBadgeFallbackRefresh();
         }
       })
@@ -137,7 +141,7 @@ export class NotificationService {
     return this.http.post<NotificationOperationResponse>(`${this.apiUrl}/read-all`, {}).pipe(
       tap(response => {
         if (response.success) {
-          this.unreadCountSubject.next(response.unreadCount);
+          this.publishUnreadCount(response.unreadCount);
           this.areaCountsSubject.next(emptyAreaCounts());
           this.resourceCountsSubject.next({});
         }
@@ -146,7 +150,7 @@ export class NotificationService {
   }
 
   setUnreadCount(count: number) {
-    this.unreadCountSubject.next(count);
+    this.publishUnreadCount(count);
   }
 
   resourceCount(key: string): number {
@@ -226,11 +230,16 @@ export class NotificationService {
       return;
     }
 
-    this.unreadCountSubject.next(summary.unreadCount);
+    this.publishUnreadCount(summary.unreadCount);
     this.areaCountsSubject.next(this.toAreaCounts(summary.areaCounts ?? {}));
     this.resourceCountsSubject.next(summary.resourceCounts ?? {});
     this.lastBadgeRefreshAt = Date.now();
     this.clearBadgeFallback();
+  }
+
+  private publishUnreadCount(count: number): void {
+    this.unreadCountSubject.next(count);
+    void this.appIconBadge.setCount(count);
   }
 
   handleIncoming(notification: NotificationItem) {
