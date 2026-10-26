@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Mentions;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -93,7 +94,8 @@ public class CreateFleetForumPostCommandHandler(
             ResourceId = post.Id,
             ActionUrl = actionUrl,
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Preview
+            Preview = request.Preview,
+            LocationLabel = NotificationCopy.ForumPostLabel(post.Title, fleet: true)
         }, cancellationToken);
 
         return new ForumOperationResponse

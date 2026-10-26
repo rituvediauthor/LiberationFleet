@@ -109,6 +109,8 @@ public class CreateForumCommentCommandHandler(
         var actionUrl = $"/app/crew/forums/{post.Id}?commentId={comment.Id}";
         var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var actorName = UserDisplay.Name(actor);
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
+        var forumLocation = NotificationCopy.ForumPostLabel(post.Title);
         if (parentComment is not null && parentComment.AuthorUserId != userId)
         {
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -121,7 +123,8 @@ public class CreateForumCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = userId
+                ActorUserId = userId,
+                RecipientWasMentioned = mentionedUserIds.Contains(parentComment.AuthorUserId)
             }, cancellationToken);
         }
 
@@ -138,7 +141,8 @@ public class CreateForumCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = userId
+                ActorUserId = userId,
+                RecipientWasMentioned = mentionedUserIds.Contains(post.AuthorUserId)
             }, cancellationToken);
         }
 
@@ -150,8 +154,9 @@ public class CreateForumCommentCommandHandler(
             ResourceId = comment.Id,
             ParentResourceId = post.Id,
             ActionUrl = actionUrl,
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Preview
+            MentionedUserIds = mentionedUserIds,
+            Preview = request.Preview,
+            LocationLabel = forumLocation
         }, cancellationToken);
 
         return new ForumOperationResponse

@@ -96,7 +96,8 @@ public class UpdateChatMessageCommandHandler(
                 ParentResourceId = room.Id,
                 ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
                 MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                IsUpdate = true
+                IsUpdate = true,
+                LocationLabel = NotificationCopy.ChatRoomLabel(room.Name)
             }, cancellationToken);
 
             return new ChatOperationResponse
@@ -152,7 +153,8 @@ public class UpdateChatMessageCommandHandler(
                 ParentResourceId = room.Id,
                 ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
                 MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                IsUpdate = true
+                IsUpdate = true,
+                LocationLabel = NotificationCopy.ChatRoomLabel(room.Name)
             }, cancellationToken);
 
             return new ChatOperationResponse
@@ -174,7 +176,8 @@ public class UpdateChatMessageCommandHandler(
             ParentResourceId = room.Id,
             ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            IsUpdate = true
+            IsUpdate = true,
+            LocationLabel = NotificationCopy.ChatRoomLabel(room.Name)
         }, cancellationToken);
 
         return new ChatOperationResponse

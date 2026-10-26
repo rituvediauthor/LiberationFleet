@@ -136,6 +136,7 @@ public class CreateFleetProposalCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var authorName = ProposalMapper.AnonymousAuthor;
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
         var fleetTitle = NotificationCopy.SubmittedProposal(authorName, fleet: true);
         var fleetBody = NotificationCopy.PreviewOr(
             request.Description,
@@ -152,6 +153,7 @@ public class CreateFleetProposalCommandHandler(
                 relatedEntityId: proposal.Id,
                 excludeUserId: userId,
                 omitActorIdentity: true,
+                mentionedUserIds: mentionedUserIds,
                 cancellationToken: cancellationToken);
         }
 
@@ -165,8 +167,9 @@ public class CreateFleetProposalCommandHandler(
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
             ActionUrl = ProposalRouting.StatusListUrl(proposal),
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Description
+            MentionedUserIds = mentionedUserIds,
+            Preview = request.Description,
+            LocationLabel = NotificationCopy.ProposalLabel(fleet: true)
         }, cancellationToken);
 
         return new ProposalOperationResponse

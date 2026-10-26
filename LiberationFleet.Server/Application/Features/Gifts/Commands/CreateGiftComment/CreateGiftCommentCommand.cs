@@ -104,6 +104,7 @@ public class CreateGiftCommentCommandHandler(
         var actionUrl = $"/app/crew/gift-log/{gift.Id}?commentId={comment.Id}";
         var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var actorName = UserDisplay.Name(actor);
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
         if (parentComment is not null && parentComment.AuthorUserId != userId)
         {
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -116,7 +117,8 @@ public class CreateGiftCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = gift.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = userId
+                ActorUserId = userId,
+                RecipientWasMentioned = mentionedUserIds.Contains(parentComment.AuthorUserId)
             }, cancellationToken);
         }
         else if (parentComment is null)
@@ -143,6 +145,7 @@ public class CreateGiftCommentCommandHandler(
                     relatedEntityId: gift.Id,
                     secondaryEntityId: comment.Id,
                     excludeUserId: userId,
+                    mentionedUserIds: mentionedUserIds,
                     cancellationToken: cancellationToken);
             }
             else
@@ -171,7 +174,8 @@ public class CreateGiftCommentCommandHandler(
                             ActionUrl = actionUrl,
                             RelatedEntityId = gift.Id,
                             SecondaryEntityId = comment.Id,
-                            ActorUserId = userId
+                            ActorUserId = userId,
+                            RecipientWasMentioned = mentionedUserIds.Contains(targetUserId)
                         }),
                         cancellationToken);
                 }
@@ -186,8 +190,9 @@ public class CreateGiftCommentCommandHandler(
             ResourceId = comment.Id,
             ParentResourceId = gift.Id,
             ActionUrl = actionUrl,
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Preview
+            MentionedUserIds = mentionedUserIds,
+            Preview = request.Preview,
+            LocationLabel = NotificationCopy.GiftLog
         }, cancellationToken);
 
         return new GiftEngagementOperationResponse

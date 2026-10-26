@@ -65,6 +65,12 @@ public class CreateNotificationRequest
     public int? RelatedEntityId { get; set; }
     public int? SecondaryEntityId { get; set; }
     public int? ActorUserId { get; set; }
+
+    /// <summary>
+    /// When true, skip this standard notification if the recipient has mention
+    /// (or fleet mention) notifications enabled. They get the mention instead.
+    /// </summary>
+    public bool RecipientWasMentioned { get; set; }
 }
 
 public class NotificationBadgeSummaryResponse

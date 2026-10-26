@@ -127,6 +127,7 @@ public class CreateProposalCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var authorName = ProposalMapper.AnonymousAuthor;
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
         await notificationService.NotifyCrewAsync(
             membership.CrewId,
             NotificationKind.NewProposal,
@@ -136,6 +137,7 @@ public class CreateProposalCommandHandler(
             relatedEntityId: proposal.Id,
             excludeUserId: userId,
             omitActorIdentity: true,
+            mentionedUserIds: mentionedUserIds,
             cancellationToken: cancellationToken);
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
@@ -147,8 +149,9 @@ public class CreateProposalCommandHandler(
             ContentType = MentionedContentType.Proposal,
             ResourceId = proposal.Id,
             ActionUrl = ProposalRouting.StatusListUrl(proposal),
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Description
+            MentionedUserIds = mentionedUserIds,
+            Preview = request.Description,
+            LocationLabel = NotificationCopy.ProposalLabel()
         }, cancellationToken);
 
         return new ProposalOperationResponse

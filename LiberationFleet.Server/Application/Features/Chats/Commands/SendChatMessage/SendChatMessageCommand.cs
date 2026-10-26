@@ -140,6 +140,8 @@ public class SendChatMessageCommandHandler(
                 ? request.NotificationPreview
                 : request.Body;
             var chatBody = NotificationCopy.PreviewOr(chatPreview, "Open the chat to read the message.");
+            var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
+            var chatLocation = NotificationCopy.ChatRoomLabel(room.Name);
 
             if (isFleetRoom)
             {
@@ -160,6 +162,7 @@ public class SendChatMessageCommandHandler(
                         excludeUserId: userId,
                         actorUserId: notificationActorUserId,
                         omitActorIdentity: request.IsAnonymous,
+                        mentionedUserIds: mentionedUserIds,
                         cancellationToken: cancellationToken);
                 }
 
@@ -174,8 +177,9 @@ public class SendChatMessageCommandHandler(
                     ResourceId = message.Id,
                     ParentResourceId = room.Id,
                     ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
-                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                    Preview = chatPreview
+                    MentionedUserIds = mentionedUserIds,
+                    Preview = chatPreview,
+                    LocationLabel = chatLocation
                 }, cancellationToken);
             }
             else
@@ -195,6 +199,7 @@ public class SendChatMessageCommandHandler(
                     excludeUserId: userId,
                     actorUserId: notificationActorUserId,
                     omitActorIdentity: request.IsAnonymous,
+                    mentionedUserIds: mentionedUserIds,
                     cancellationToken: cancellationToken);
 
                 await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
@@ -207,8 +212,9 @@ public class SendChatMessageCommandHandler(
                     ResourceId = message.Id,
                     ParentResourceId = room.Id,
                     ActionUrl = $"/app/crew/chats/{room.Id}?messageId={message.Id}",
-                    MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                    Preview = chatPreview
+                    MentionedUserIds = mentionedUserIds,
+                    Preview = chatPreview,
+                    LocationLabel = chatLocation
                 }, cancellationToken);
             }
         }

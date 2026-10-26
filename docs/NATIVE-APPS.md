@@ -484,8 +484,8 @@ TestFlight only updates the iPhone. The server talks to Apple; it does **not** p
 2. Confirm **Environment variables**: `Push__ApnsKeyId`, `Push__ApnsTeamId`, `Push__ApnsBundleId=com.liberationfleet.app`, **`Push__ApnsUseSandbox=false`** (TestFlight uses production APNs).
 3. Key Vault **`lfleetproductionkv`** → secret **`Push-ApnsKeyP8`** → Current version must be the full `.p8` PEM (starts with `-----BEGIN PRIVATE KEY-----`), not `change-me-push-apns-key-p8`.
 4. Left menu → **Overview** → **Restart** → confirm. Wait until the app is Running.
-5. **Log stream** (or Logs): look for `Push providers at startup: APNs=True`. If you see `APNs=False`, the key/id/team never loaded. If you see `APNs send failed` after a DM, Apple rejected the request (wrong sandbox flag, bad key, or no device token).
-6. In the TestFlight app: sign in → Allow notifications → **Profile → Preferences → Notifications**. The status line says whether this account has an iOS token and whether the server is connected to Apple.
+5. **Log stream** (or Logs): after a DM, `Skipping iOS token … APNs is not configured` means Key ID / Team ID / p8 never loaded. `APNs send failed` means Apple rejected the request (wrong sandbox flag, bad key, or no device token).
+6. In the TestFlight app: sign in → Allow notifications. A closed-app banner after a DM means this account has an iOS token and the server reached Apple.
 
 Closing the app does **not** drop the account. The API stores `DevicePushTokens` (`UserId` + APNs device token). Apple wakes the phone. The JWT is only needed to *register* the token while you are signed in.
 

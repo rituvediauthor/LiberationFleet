@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Forums.Contracts;
 using LiberationFleet.Server.Application.Features.Mentions;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
@@ -79,7 +80,8 @@ public class CreateForumPostCommandHandler(
             ResourceId = post.Id,
             ActionUrl = $"/app/crew/forums/{post.Id}?highlightId={post.Id}",
             MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Preview
+            Preview = request.Preview,
+            LocationLabel = NotificationCopy.ForumPostLabel(post.Title)
         }, cancellationToken);
 
         return new ForumOperationResponse

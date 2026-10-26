@@ -21,6 +21,7 @@ public sealed class ContentMentionContext
     public IReadOnlyList<int> MentionedUserIds { get; init; } = Array.Empty<int>();
     public bool IsUpdate { get; init; }
     public string? Preview { get; init; }
+    public string? LocationLabel { get; init; }
 }
 
 public class ContentMentionService(
@@ -108,7 +109,7 @@ public class ContentMentionService(
             ? validMentionIds.Except(previousMentionIds).ToList()
             : validMentionIds;
 
-        if (notifyUserIds.Count == 0 || !SendsMentionNotifications(context.ContentType))
+        if (notifyUserIds.Count == 0)
         {
             return;
         }
@@ -124,10 +125,10 @@ public class ContentMentionService(
             authorName = "A crewmate";
         }
 
-        var where = context.FleetId.HasValue ? "fleet content" : "crew content";
+        var mentionTitle = NotificationCopy.MentionedYouIn(authorName, context.LocationLabel);
         var mentionBody = NotificationPreview.BodyOrFallback(
             context.Preview,
-            $"{authorName} mentioned you in {where}.");
+            mentionTitle + ".");
 
         await notificationService.NotifyUsersAsync(
             notifyUserIds.Select(userId => new CreateNotificationRequest
@@ -135,7 +136,7 @@ public class ContentMentionService(
                 UserId = userId,
                 CrewId = context.CrewId,
                 Kind = context.FleetId.HasValue ? NotificationKind.FleetMention : NotificationKind.Mention,
-                Title = $"{authorName} mentioned you",
+                Title = mentionTitle,
                 Body = mentionBody,
                 ActionUrl = context.ActionUrl,
                 RelatedEntityId = context.ResourceId,
@@ -144,11 +145,4 @@ public class ContentMentionService(
             }),
             cancellationToken);
     }
-
-    /// <summary>
-    /// Private two-party contexts (library request chat, DMs) persist mentions for rendering
-    /// but must not emit mention notifications.
-    /// </summary>
-    private static bool SendsMentionNotifications(MentionedContentType contentType) =>
-        contentType != MentionedContentType.LibraryRequestMessage;
 }

@@ -8,8 +8,25 @@ public static class NotificationCopy
     public static string ActorOrFallback(string? displayName, string fallback = "Someone") =>
         string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.Trim();
 
+    public const string GiftLog = "Gift log";
+    public const string LibraryOfThings = "Library of Things";
+    public const string DirectMessages = "DMs";
+
     public static string ChatRoomLabel(string? roomName) =>
         string.IsNullOrWhiteSpace(roomName) ? "a chat" : roomName.Trim();
+
+    public static string ForumPostLabel(string? title, bool fleet = false) =>
+        string.IsNullOrWhiteSpace(title)
+            ? (fleet ? "a fleet forum post" : "a forum post")
+            : title.Trim();
+
+    public static string ProposalLabel(bool fleet = false) =>
+        fleet ? "a fleet proposal" : "a proposal";
+
+    public static string MentionedYouIn(string actorName, string? location) =>
+        string.IsNullOrWhiteSpace(location)
+            ? $"{ActorOrFallback(actorName)} mentioned you"
+            : $"{ActorOrFallback(actorName)} mentioned you in {location.Trim()}";
 
     public static string PostedInChat(string actorName, string? roomName) =>
         $"{ActorOrFallback(actorName)} posted in {ChatRoomLabel(roomName)}";

@@ -127,6 +127,14 @@ public class CreateProposalCommentCommandHandler(
         var notifyUserId = parentComment?.AuthorUserId ?? proposal.AuthorUserId;
         var isExternalJoinProposal = proposal.Kind is ProposalKind.CrewJoinRequest
             or ProposalKind.FleetJoinRequest;
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
+        if (isExternalJoinProposal)
+        {
+            mentionedUserIds = mentionedUserIds
+                .Where(id => id != proposal.AuthorUserId)
+                .ToList();
+        }
+
         // Join applicants are outside the crew/fleet — they only learn accept/reject, not discussion.
         var shouldNotify = notifyUserId != userId
             && !(isExternalJoinProposal && notifyUserId == proposal.AuthorUserId);
@@ -149,16 +157,9 @@ public class CreateProposalCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = proposal.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = null
+                ActorUserId = null,
+                RecipientWasMentioned = mentionedUserIds.Contains(notifyUserId)
             }, cancellationToken);
-        }
-
-        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
-        if (isExternalJoinProposal)
-        {
-            mentionedUserIds = mentionedUserIds
-                .Where(id => id != proposal.AuthorUserId)
-                .ToList();
         }
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
@@ -173,7 +174,8 @@ public class CreateProposalCommentCommandHandler(
             ParentResourceId = proposal.Id,
             ActionUrl = actionUrl,
             MentionedUserIds = mentionedUserIds,
-            Preview = request.Body
+            Preview = request.Body,
+            LocationLabel = NotificationCopy.ProposalLabel(isFleetProposal)
         }, cancellationToken);
 
         return new ProposalOperationResponse

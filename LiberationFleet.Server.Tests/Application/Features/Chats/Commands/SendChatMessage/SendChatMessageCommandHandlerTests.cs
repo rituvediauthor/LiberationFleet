@@ -72,6 +72,9 @@ public class SendChatMessageCommandHandlerTests
         var createdNotifications = new List<Notification>();
         var notificationRepository = new Mock<INotificationRepository>(MockBehavior.Loose);
         notificationRepository
+            .Setup(r => r.IsKindEnabledAsync(It.IsAny<int>(), It.IsAny<NotificationKind>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        notificationRepository
             .Setup(r => r.GetCrewMemberUserIdsAsync(crew.Id, author.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync([mentionedUser.Id]);
         notificationRepository
@@ -127,14 +130,12 @@ public class SendChatMessageCommandHandlerTests
             CancellationToken.None);
 
         result.Success.Should().BeTrue();
-        createdNotifications.Should().HaveCount(2);
+        createdNotifications.Should().ContainSingle();
         createdNotifications.Select(n => n.ActorUserId).Should().OnlyContain(actorUserId => actorUserId == null);
         createdNotifications.Should().ContainSingle(n =>
-            n.Kind == NotificationKind.NewChatMessage
-            && n.Body == "hello @Mentioned");
-        createdNotifications.Should().ContainSingle(n =>
             n.Kind == NotificationKind.Mention
-            && n.Title.Contains("Anonymous mentioned you"));
+            && n.Title == "Anonymous mentioned you in General"
+            && n.Body == "hello @Mentioned");
         notificationRepository.Verify(
             r => r.GetCrewMemberUserIdsAsync(crew.Id, author.Id, It.IsAny<CancellationToken>()),
             Times.Once);

@@ -15,6 +15,11 @@ public class NotificationService(
 {
     public async Task NotifyUserAsync(CreateNotificationRequest request, CancellationToken cancellationToken = default)
     {
+        if (await ShouldSuppressStandardForMentionAsync(request, cancellationToken))
+        {
+            return;
+        }
+
         if (!await notificationRepository.IsKindEnabledAsync(request.UserId, request.Kind, cancellationToken))
         {
             return;
@@ -40,9 +45,23 @@ public class NotificationService(
             return;
         }
 
+        var afterMentionDedup = new List<CreateNotificationRequest>(requestList.Count);
+        foreach (var request in requestList)
+        {
+            if (!await ShouldSuppressStandardForMentionAsync(request, cancellationToken))
+            {
+                afterMentionDedup.Add(request);
+            }
+        }
+
+        if (afterMentionDedup.Count == 0)
+        {
+            return;
+        }
+
         // Batch preference lookups per kind instead of one query per recipient.
-        var enabledRequests = new List<CreateNotificationRequest>(requestList.Count);
-        foreach (var kindGroup in requestList.GroupBy(r => r.Kind))
+        var enabledRequests = new List<CreateNotificationRequest>(afterMentionDedup.Count);
+        foreach (var kindGroup in afterMentionDedup.GroupBy(r => r.Kind))
         {
             var userIds = kindGroup.Select(r => r.UserId).Distinct().ToList();
             var disabledUserIds = await notificationRepository.GetUserIdsWithKindDisabledAsync(
@@ -96,6 +115,7 @@ public class NotificationService(
         int? excludeUserId = null,
         int? actorUserId = null,
         bool omitActorIdentity = false,
+        IReadOnlyCollection<int>? mentionedUserIds = null,
         CancellationToken cancellationToken = default)
     {
         var userIds = await notificationRepository.GetCrewMemberUserIdsAsync(crewId, excludeUserId, cancellationToken);
@@ -109,7 +129,8 @@ public class NotificationService(
             ActionUrl = actionUrl,
             RelatedEntityId = relatedEntityId,
             SecondaryEntityId = secondaryEntityId,
-            ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId)
+            ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId),
+            RecipientWasMentioned = mentionedUserIds is not null && mentionedUserIds.Contains(userId)
         });
 
         await NotifyUsersAsync(requests, cancellationToken);
@@ -128,6 +149,7 @@ public class NotificationService(
         int? excludeUserId = null,
         int? actorUserId = null,
         bool omitActorIdentity = false,
+        IReadOnlyCollection<int>? mentionedUserIds = null,
         CancellationToken cancellationToken = default)
     {
         var userIds = await notificationRepository.GetCrewMemberUserIdsAsync(crewId, excludeUserId, cancellationToken);
@@ -149,7 +171,8 @@ public class NotificationService(
                 ActionUrl = actionUrl,
                 RelatedEntityId = relatedEntityId,
                 SecondaryEntityId = secondaryEntityId,
-                ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId)
+                ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId),
+                RecipientWasMentioned = mentionedUserIds is not null && mentionedUserIds.Contains(userId)
             });
 
         await NotifyUsersAsync(requests, cancellationToken);
@@ -256,6 +279,25 @@ public class NotificationService(
             or NotificationKind.NewDirectMessage => "Friends",
         _ => "Crew"
     };
+
+    public static NotificationKind CompanionMentionKind(NotificationKind kind) =>
+        GetKindCategory(kind) == "Fleet" ? NotificationKind.FleetMention : NotificationKind.Mention;
+
+    private async Task<bool> ShouldSuppressStandardForMentionAsync(
+        CreateNotificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!request.RecipientWasMentioned
+            || request.Kind is NotificationKind.Mention or NotificationKind.FleetMention)
+        {
+            return false;
+        }
+
+        return await notificationRepository.IsKindEnabledAsync(
+            request.UserId,
+            CompanionMentionKind(request.Kind),
+            cancellationToken);
+    }
 
     private static Notification MapToEntity(CreateNotificationRequest request) => new()
     {

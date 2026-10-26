@@ -92,6 +92,8 @@ public class SendLibraryRequestMessageCommandHandler(
         var recipientUserId = userId == libraryRequest.RequesterUserId
             ? libraryRequest.Unit.CurrentPossessorUserId
             : libraryRequest.RequesterUserId;
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
+        var libraryActionUrl = $"/app/crew/library-of-things/requests/{libraryRequest.Id}/chat";
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {
@@ -100,9 +102,10 @@ public class SendLibraryRequestMessageCommandHandler(
             Kind = NotificationKind.NewLibraryRequestMessage,
             Title = "Library request message",
             Body = "You have a new message about a library request.",
-            ActionUrl = $"/app/crew/library-of-things/requests/{libraryRequest.Id}/chat",
+            ActionUrl = libraryActionUrl,
             RelatedEntityId = libraryRequest.Id,
-            ActorUserId = userId
+            ActorUserId = userId,
+            RecipientWasMentioned = mentionedUserIds.Contains(recipientUserId)
         }, cancellationToken);
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
@@ -112,8 +115,9 @@ public class SendLibraryRequestMessageCommandHandler(
             ContentType = MentionedContentType.LibraryRequestMessage,
             ResourceId = message.Id,
             ParentResourceId = libraryRequest.Id,
-            ActionUrl = $"/app/crew/library-of-things/requests/{libraryRequest.Id}/chat",
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds)
+            ActionUrl = libraryActionUrl,
+            MentionedUserIds = mentionedUserIds,
+            LocationLabel = NotificationCopy.LibraryOfThings
         }, cancellationToken);
 
         return new LibraryRequestMessageOperationResponse

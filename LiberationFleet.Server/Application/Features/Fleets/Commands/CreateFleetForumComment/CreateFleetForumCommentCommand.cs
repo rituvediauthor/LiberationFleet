@@ -116,6 +116,8 @@ public class CreateFleetForumCommentCommandHandler(
         var actionUrl = $"/app/fleet/forums/{post.Id}?commentId={comment.Id}";
         var actor = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
         var actorName = UserDisplay.Name(actor);
+        var mentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds);
+        var forumLocation = NotificationCopy.ForumPostLabel(post.Title, fleet: true);
         if (parentComment is not null && parentComment.AuthorUserId != userId)
         {
             await notificationService.NotifyUserAsync(new CreateNotificationRequest
@@ -128,7 +130,8 @@ public class CreateFleetForumCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = userId
+                ActorUserId = userId,
+                RecipientWasMentioned = mentionedUserIds.Contains(parentComment.AuthorUserId)
             }, cancellationToken);
         }
 
@@ -145,7 +148,8 @@ public class CreateFleetForumCommentCommandHandler(
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
-                ActorUserId = userId
+                ActorUserId = userId,
+                RecipientWasMentioned = mentionedUserIds.Contains(post.AuthorUserId)
             }, cancellationToken);
         }
 
@@ -158,8 +162,9 @@ public class CreateFleetForumCommentCommandHandler(
             ResourceId = comment.Id,
             ParentResourceId = post.Id,
             ActionUrl = actionUrl,
-            MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-            Preview = request.Preview
+            MentionedUserIds = mentionedUserIds,
+            Preview = request.Preview,
+            LocationLabel = forumLocation
         }, cancellationToken);
 
         return new ForumOperationResponse
