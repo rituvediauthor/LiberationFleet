@@ -1,87 +1,73 @@
+import { Type } from '@angular/core';
 import { routes } from './app.routes';
 import { ProductLandingComponent } from './pages/product-landing/product-landing.component';
 import { SignInComponent } from './pages/sign-in/sign-in.component';
-import { SignUpComponent } from './pages/sign-up/sign-up.component';
-import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
-import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { CrewHomeComponent } from './pages/crew-home/crew-home.component';
-import { FriendsComponent } from './pages/friends/friends.component';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { UserHomeComponent } from './pages/user-home/user-home.component';
-import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
-import { CrewFindComponent } from './pages/crew-find/crew-find.component';
-import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
-import { GiftLogComponent } from './pages/gift-log/gift-log.component';
-import { GiftLogDetailComponent } from './pages/gift-log/gift-log-detail/gift-log-detail.component';
-import { SeasonInfoComponent } from './pages/gift-log/season-info/season-info.component';
-import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
-import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
-import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
-import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
-import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
-import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
 import { DonateComponent } from './pages/donate/donate.component';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
 
+async function loadRouteComponent(path: string): Promise<Type<unknown>> {
+  const route = routes.find(r => r.path === path);
+  expect(route?.loadComponent).toEqual(jasmine.any(Function));
+  expect(route?.component).toBeUndefined();
+  return route!.loadComponent!() as Promise<Type<unknown>>;
+}
+
 describe('app.routes', () => {
-  it('should define landing route at root', () => {
+  it('should define landing route at root', async () => {
     const route = routes.find(r => r.path === '');
-    expect(route?.component).toBe(ProductLandingComponent);
     expect(route?.canActivate).toContain(guestGuard);
+    expect(await loadRouteComponent('')).toBe(ProductLandingComponent);
   });
 
-  it('should define auth-related routes', () => {
-    expect(routes.find(r => r.path === 'sign-in')?.component).toBe(SignInComponent);
+  it('should define auth-related routes', async () => {
     expect(routes.find(r => r.path === 'sign-in')?.canActivate).toContain(guestGuard);
-    expect(routes.find(r => r.path === 'sign-up')?.component).toBe(SignUpComponent);
-    expect(routes.find(r => r.path === 'forgot-password')?.component).toBe(ForgotPasswordComponent);
-    expect(routes.find(r => r.path === 'reset-password')?.component).toBe(ResetPasswordComponent);
+    expect(await loadRouteComponent('sign-in')).toBe(SignInComponent);
+    expect(routes.find(r => r.path === 'sign-up')?.loadComponent).toEqual(jasmine.any(Function));
+    expect(routes.find(r => r.path === 'forgot-password')?.loadComponent).toEqual(jasmine.any(Function));
+    expect(routes.find(r => r.path === 'reset-password')?.loadComponent).toEqual(jasmine.any(Function));
     expect(routes.find(r => r.path === 'sign-in-success')).toBeUndefined();
     expect(routes.find(r => r.path === 'how-to')?.canActivate).toBeUndefined();
     expect(routes.find(r => r.path === 'how-to/:topicId')?.canActivate).toBeUndefined();
   });
 
-  it('should define authenticated app routes with authGuard', () => {
+  it('should define authenticated app routes with authGuard', async () => {
     const appRoutes = ['app/crew', 'app/friends', 'app/profile', 'app/profile/user', 'app/profile/activity', 'app/profile/preferences', 'app/crew/find', 'app/crew/create', 'app/crew/join'];
 
     for (const path of appRoutes) {
       const route = routes.find(r => r.path === path);
       expect(route?.canActivate).toContain(authGuard);
+      expect(route?.loadComponent).toEqual(jasmine.any(Function));
     }
 
-    expect(routes.find(r => r.path === 'app/crew')?.component).toBe(CrewHomeComponent);
-    expect(routes.find(r => r.path === 'app/friends')?.component).toBe(FriendsComponent);
-    expect(routes.find(r => r.path === 'app/profile')?.component).toBe(UserHomeComponent);
-    expect(routes.find(r => r.path === 'app/profile/user')?.component).toBe(ProfileComponent);
-    expect(routes.find(r => r.path === 'app/profile/activity')?.component).toBe(ActivityCenterComponent);
-    expect(routes.find(r => r.path === 'app/profile/preferences')?.component).toBe(ProfileSettingsComponent);
-    expect(routes.find(r => r.path === 'app/crew/find')?.component).toBe(CrewFindComponent);
-    expect(routes.find(r => r.path === 'app/crew/create')?.component).toBe(CreateCrewComponent);
-    expect(routes.find(r => r.path === 'app/crew/join')?.component).toBe(JoinCrewComponent);
-    expect(routes.find(r => r.path === 'app/crew/gift-log')?.component).toBe(GiftLogComponent);
-    expect(routes.find(r => r.path === 'app/crew/gift-log/season-info')?.component).toBe(SeasonInfoComponent);
-    expect(routes.find(r => r.path === 'app/crew/gift-log/record')?.component).toBe(RecordGiftComponent);
-    expect(routes.find(r => r.path === 'app/crew/gift-log/:id')?.component).toBe(GiftLogDetailComponent);
-    expect(routes.find(r => r.path === 'app/crew/edit')?.component).toBe(EditCrewComponent);
-    expect(routes.find(r => r.path === 'app/crew/chats')?.component).toBe(ChatListComponent);
-    expect(routes.find(r => r.path === 'app/crew/chats/create')?.component).toBe(ChatCreateComponent);
+    expect(await loadRouteComponent('app/crew')).toBe(CrewHomeComponent);
     expect(routes.find(r => r.path === 'app/crew')?.pathMatch).toBe('full');
     expect(routes.find(r => r.path === 'app/crew/chats')?.pathMatch).toBe('full');
     expect(routes.find(r => r.path === 'app/profile/preferences/placeholder')).toBeUndefined();
   });
 
-  it('should allow guest access to donate without authGuard', () => {
+  it('should allow guest access to donate without authGuard', async () => {
     const route = routes.find(r => r.path === 'app/donate');
-    expect(route?.component).toBe(DonateComponent);
     expect(route?.canActivate).toBeUndefined();
+    expect(await loadRouteComponent('app/donate')).toBe(DonateComponent);
   });
 
   it('should expose public privacy and terms routes without authGuard', () => {
     for (const path of ['privacy', 'terms', 'community-standards']) {
       const route = routes.find(r => r.path === path);
       expect(route?.canActivate).toBeUndefined();
+      expect(route?.loadComponent).toEqual(jasmine.any(Function));
       expect(route?.data?.['assetPath']).toBeTruthy();
+    }
+  });
+
+  it('should lazy-load page components instead of eager imports', () => {
+    const pageRoutes = routes.filter(route => !!route.path && route.path !== '**' && !route.redirectTo);
+    expect(pageRoutes.length).toBeGreaterThan(50);
+    for (const route of pageRoutes) {
+      expect(route.component).toBeUndefined();
+      expect(route.loadComponent).toEqual(jasmine.any(Function));
     }
   });
 

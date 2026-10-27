@@ -120,6 +120,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   );
 
   ngOnInit() {
+    this.paintPersistedMembership();
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
     this.subscriptions.add(
       this.cryptoSession.unlocked$.subscribe(unlocked => {
@@ -151,12 +152,13 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
             catchError(() => {
               // Keep the outer subscription alive so retry via membershipChanged$ works.
               // Never map probe failures to hasCrew:false (that shows Create/Join incorrectly).
-              this.membership = null;
-              this.loadError = true;
-              this.showNextAidWidget = false;
-              this.nextAidLoaded = true;
-              this.crewImageSrc = null;
-              this.loading = false;
+              if (!this.membership) {
+                this.loadError = true;
+                this.showNextAidWidget = false;
+                this.nextAidLoaded = true;
+                this.crewImageSrc = null;
+                this.loading = false;
+              }
               return of(null);
             })
           )
@@ -165,37 +167,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         if (!status) {
           return;
         }
-        this.membership = status;
-        this.loadError = false;
-        this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
-        this.showNextAidWidget = !!status.hasCrew && !!status.seasonStarted;
-        this.nextAid = null;
-        this.nextAidLoaded = !this.showNextAidWidget;
-        this.loading = false;
-        void this.refreshCrewImage();
-        this.maybeShowCycleThankYou(status);
-        if (status.hasCrew && status.crewId) {
-          this.applyCachedDashboardPreviews(status.crewId);
-          this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(this.areaCounts);
-          this.startPreviewPolling();
-          this.forumPrefetch.prefetchCrewSpace(status.crewId);
-          void this.refreshDashboardPreviews(status.crewId);
-        } else {
-          this.stopPreviewPolling();
-          this.clearPreviews();
-        }
-        if (this.showNextAidWidget) {
-          this.giftService.getNextAidInfo().subscribe({
-            next: info => {
-              this.nextAid = info;
-              this.nextAidLoaded = true;
-            },
-            error: () => {
-              this.nextAid = null;
-              this.nextAidLoaded = true;
-            }
-          });
-        }
+        this.applyMembership(status, true);
       })
     );
 
@@ -206,7 +178,7 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         this.areaCounts = counts;
         this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(counts);
         const crewId = this.membership?.hasCrew ? this.membership.crewId : null;
-        if (crewId) {
+        if (crewId && this.cryptoSession.isUnlocked()) {
           void this.refreshChangedDashboardPreviews(crewId, previousCounts, this.lastPreviewAreaCounts);
         }
       })
@@ -364,6 +336,58 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       void this.router.navigate(['/app/crew/library-of-things/units', preview.unit.unitId]);
     } else {
       void this.router.navigate(['/app/crew/library-of-things/tasks', preview.task.taskId]);
+    }
+  }
+
+  private paintPersistedMembership() {
+    const cached = this.crewService.peekPersistedMembership();
+    if (!cached) {
+      return;
+    }
+    this.applyMembership(cached, false);
+  }
+
+  private applyMembership(status: CrewMembershipStatus, live: boolean) {
+    this.membership = status;
+    this.loadError = false;
+    this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+    this.showNextAidWidget = !!status.hasCrew && !!status.seasonStarted;
+    if (live) {
+      this.nextAid = null;
+      this.nextAidLoaded = !this.showNextAidWidget;
+    } else if (this.showNextAidWidget) {
+      this.nextAidLoaded = false;
+    } else {
+      this.nextAidLoaded = true;
+    }
+    this.loading = false;
+    void this.refreshCrewImage();
+    this.maybeShowCycleThankYou(status);
+    if (status.hasCrew && status.crewId) {
+      this.applyCachedDashboardPreviews(status.crewId);
+      this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(this.areaCounts);
+      this.startPreviewPolling();
+      if (this.cryptoSession.isUnlocked()) {
+        this.forumPrefetch.prefetchCrewSpace(status.crewId);
+        if (live) {
+          void this.refreshDashboardPreviews(status.crewId);
+        }
+      }
+    } else {
+      this.stopPreviewPolling();
+      this.clearPreviews();
+    }
+    if (live && this.showNextAidWidget) {
+      this.giftService.getNextAidInfo().subscribe({
+        next: info => {
+          this.nextAid = info;
+          this.nextAidLoaded = true;
+        },
+        error: () => {
+          this.nextAid = null;
+          this.nextAidLoaded = true;
+        }
+      });
     }
   }
 

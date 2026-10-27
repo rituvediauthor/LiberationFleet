@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, Subject, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -52,6 +52,13 @@ import {
   UpdateFleetForumCommentRequest,
   UpdateFleetForumRequest
 } from '../models/fleet-forum.model';
+import { AppStorageService } from './storage/app-storage.service';
+import { FLEET_STATUS_CACHE_STORAGE_KEY } from './storage/storage-keys';
+import {
+  clearUserScopedJson,
+  readUserScopedJson,
+  writeUserScopedJson
+} from './storage/user-scoped-snapshot';
 
 @Injectable({
   providedIn: 'root'
@@ -62,6 +69,8 @@ export class FleetService {
   private readonly statusChangedSubject = new Subject<void>();
   /** Emits when the session fleet status cache is cleared or replaced. */
   readonly statusChanged$ = this.statusChangedSubject.asObservable();
+
+  private readonly storage = inject(AppStorageService);
 
   constructor(private http: HttpClient) {}
 
@@ -76,6 +85,7 @@ export class FleetService {
     }
     if (!this.statusRequest$) {
       this.statusRequest$ = this.http.get<FleetStatus>(`${this.apiUrl}/status`).pipe(
+        tap(status => this.persistStatus(status)),
         catchError(err => {
           this.statusRequest$ = null;
           return throwError(() => err);
@@ -94,11 +104,22 @@ export class FleetService {
   /** Replace the session cache after a successful save (avoids an extra GET). */
   setCachedStatus(status: FleetStatus): void {
     this.statusRequest$ = of(status).pipe(shareReplay({ bufferSize: 1, refCount: false }));
+    this.persistStatus(status);
     this.statusChangedSubject.next();
+  }
+
+  /** Last successful fleet status for this signed-in user. Null if none or another account. */
+  peekPersistedStatus(): FleetStatus | null {
+    return readUserScopedJson<FleetStatus>(this.storage, FLEET_STATUS_CACHE_STORAGE_KEY);
   }
 
   clearSessionCache(): void {
     this.statusRequest$ = null;
+    clearUserScopedJson(this.storage, FLEET_STATUS_CACHE_STORAGE_KEY);
+  }
+
+  private persistStatus(status: FleetStatus): void {
+    writeUserScopedJson(this.storage, FLEET_STATUS_CACHE_STORAGE_KEY, status);
   }
 
   acceptRules(acceptedRuleIds: number[]): Observable<FleetOperationResult> {

@@ -3,11 +3,13 @@ import { AppComponent } from './app/app.component';
 import { appConfig } from './app/app.config';
 import { ThemeService } from './app/services/theme.service';
 import { initializeNativeShell } from './app/native/native-shell';
+import { NativeSplashService } from './app/native/native-splash.service';
 
 bootstrapApplication(AppComponent, appConfig)
   .then(async appRef => {
     appRef.injector.get(ThemeService).init();
     await initializeNativeShell();
+    appRef.injector.get(NativeSplashService).startFallbackTimer();
   })
   .catch(err => console.error(err));
 

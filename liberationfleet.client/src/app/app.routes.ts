@@ -1,162 +1,51 @@
 import { Routes } from '@angular/router';
-import { ProductLandingComponent } from './pages/product-landing/product-landing.component';
-import { SignInComponent } from './pages/sign-in/sign-in.component';
-import { SignUpComponent } from './pages/sign-up/sign-up.component';
-import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
-import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
-import { CrewHomeComponent } from './pages/crew-home/crew-home.component';
-import { FriendsComponent } from './pages/friends/friends.component';
-import { FriendRequestsComponent } from './pages/friends/friend-requests/friend-requests.component';
-import { FriendBlockedComponent } from './pages/friends/friend-blocked/friend-blocked.component';
-import { FindFriendComponent } from './pages/friends/find-friend/find-friend.component';
-import { FriendDmComponent } from './pages/friends/friend-dm/friend-dm.component';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { GiftHistoryListComponent } from './pages/profile/gift-history-list/gift-history-list.component';
-import { GiftHistoryDetailComponent } from './pages/profile/gift-history-detail/gift-history-detail.component';
-import { UserHomeComponent } from './pages/user-home/user-home.component';
-import { CreateCrewComponent } from './pages/create-crew/create-crew.component';
-import { CrewFindComponent } from './pages/crew-find/crew-find.component';
-import { JoinCrewComponent } from './pages/join-crew/join-crew.component';
-import { MyJoinRequestsComponent } from './pages/my-join-requests/my-join-requests.component';
-import { MyInvitationsComponent } from './pages/my-invitations/my-invitations.component';
-import { GiftLogComponent } from './pages/gift-log/gift-log.component';
-import { GiftLogDetailComponent } from './pages/gift-log/gift-log-detail/gift-log-detail.component';
-import { SeasonInfoComponent } from './pages/gift-log/season-info/season-info.component';
-import { RecordGiftComponent } from './pages/record-gift/record-gift.component';
-import { EditReceptionOrderComponent } from './pages/record-gift/edit-reception-order/edit-reception-order.component';
-import { AddNonCrewmateComponent } from './pages/record-gift/add-non-crewmate/add-non-crewmate.component';
-import { EmergencyRequestsListComponent } from './pages/emergency-requests/emergency-requests-list/emergency-requests-list.component';
-import { EmergencyRequestCreateComponent } from './pages/emergency-requests/emergency-request-create/emergency-request-create.component';
-import { EmergencyRequestDetailComponent } from './pages/emergency-requests/emergency-request-detail/emergency-request-detail.component';
-import { SeasonSetupComponent } from './pages/season-setup/season-setup.component';
-import { JoinSeasonComponent } from './pages/join-season/join-season.component';
-import { NotificationsComponent } from './pages/notifications/notifications.component';
-import { ProfileSettingsComponent } from './pages/profile-settings/profile-settings.component';
-import { NotificationSettingsComponent } from './pages/notification-settings/notification-settings.component';
-import { ContentSettingsComponent } from './pages/content-settings/content-settings.component';
-import { VoiceSettingsComponent } from './pages/voice-settings/voice-settings.component';
-import { ThemeSettingsComponent } from './pages/theme-settings/theme-settings.component';
-import { SecuritySettingsComponent } from './pages/security-settings/security-settings.component';
-import { SecurityAlertsComponent } from './pages/security-alerts/security-alerts.component';
-import { PasswordUpdateComponent } from './pages/password-update/password-update.component';
-import { ActivityCenterComponent } from './pages/activity-center/activity-center.component';
-import { DonateComponent } from './pages/donate/donate.component';
-import { ProposalsTypeComponent } from './pages/proposals/proposals-type/proposals-type.component';
-import { ProposalsListComponent } from './pages/proposals/proposals-list/proposals-list.component';
-import { CreateProposalComponent } from './pages/proposals/create-proposal/create-proposal.component';
-import { ProposalDetailComponent } from './pages/proposals/proposal-detail/proposal-detail.component';
-import { DiscussionListComponent } from './pages/crew-discussion/discussion-list/discussion-list.component';
-import { DiscussionCreateComponent } from './pages/crew-discussion/discussion-create/discussion-create.component';
-import { DiscussionDetailComponent } from './pages/crew-discussion/discussion-detail/discussion-detail.component';
-import { ChatListComponent } from './pages/chats/chat-list/chat-list.component';
-import { ChatCreateComponent } from './pages/chats/chat-create/chat-create.component';
-import { ChatEditComponent } from './pages/chats/chat-edit/chat-edit.component';
-import { ChatTextComponent } from './pages/chats/chat-text/chat-text.component';
-import { ChatVoiceComponent } from './pages/chats/chat-voice/chat-voice.component';
-import { ArrangeChatChannelsComponent } from './pages/chats/arrange-chat-channels/arrange-chat-channels.component';
-import { RuleListComponent } from './pages/rules/rule-list/rule-list.component';
-import { RuleCreateComponent } from './pages/rules/rule-create/rule-create.component';
-import { RuleEditComponent } from './pages/rules/rule-edit/rule-edit.component';
-import { EditCrewComponent } from './pages/edit-crew/edit-crew.component';
-import { CrewmateListComponent } from './pages/crewmates/crewmate-list/crewmate-list.component';
-import { CreatePlaceholderComponent } from './pages/crewmates/create-placeholder/create-placeholder.component';
-import { InviteCrewmateComponent } from './pages/crewmates/invite-crewmate/invite-crewmate.component';
-import { CrewInvitationComponent } from './pages/crewmates/crew-invitation/crew-invitation.component';
-import { KickedCrewmatesListComponent } from './pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component';
-import { CrewmateDetailComponent } from './pages/crewmates/crewmate-detail/crewmate-detail.component';
-import { NominateRolesComponent } from './pages/crewmates/nominate-roles/nominate-roles.component';
-import { LibraryHubComponent } from './pages/library/library-hub/library-hub.component';
-import { LibraryUnlockComponent } from './pages/library/library-unlock/library-unlock.component';
-import { LibraryDurableListComponent } from './pages/library/library-durable-list/library-durable-list.component';
-import { LibraryOfferingUnitsComponent } from './pages/library/library-offering-units/library-offering-units.component';
-import { CreateLibraryOfferingComponent } from './pages/library/create-library-offering/create-library-offering.component';
-import { EditLibraryOfferingComponent } from './pages/library/edit-library-offering/edit-library-offering.component';
-import { LibraryUnitDetailComponent } from './pages/library/library-unit-detail/library-unit-detail.component';
-import { LibraryMyRequestsComponent } from './pages/library/library-my-requests/library-my-requests.component';
-import { LibraryMyRequestStatusComponent } from './pages/library/library-my-request-status/library-my-request-status.component';
-import { LibraryDeniedRequestsComponent } from './pages/library/library-denied-requests/library-denied-requests.component';
-import { LibraryRequestDetailComponent } from './pages/library/library-request-detail/library-request-detail.component';
-import { LibraryIncomingRequestsComponent } from './pages/library/library-incoming-requests/library-incoming-requests.component';
-import { LibraryRequestChatComponent } from './pages/library/library-request-chat/library-request-chat.component';
-import { LibraryUnitActiveRequestsComponent } from './pages/library/library-unit-active-requests/library-unit-active-requests.component';
-import { LibraryStockListComponent } from './pages/library/library-stock-list/library-stock-list.component';
-import { LibraryMyOfferingsComponent } from './pages/library/library-my-offerings/library-my-offerings.component';
-import { LibraryTaskBoardComponent } from './pages/library/library-tasks/library-task-board/library-task-board.component';
-import { LibraryTaskFormComponent } from './pages/library/library-tasks/library-task-form/library-task-form.component';
-import { LibraryTaskDetailComponent } from './pages/library/library-tasks/library-task-detail/library-task-detail.component';
-import { LibraryTaskNoDeadlineComponent } from './pages/library/library-tasks/library-task-no-deadline/library-task-no-deadline.component';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
 import { libraryAccessGuard } from './guards/library-access.guard';
 import { fleetRulesAcceptedGuard } from './guards/fleet-rules-accepted.guard';
-import { FleetHomeComponent } from './pages/fleet/fleet-home/fleet-home.component';
-import { CreateFleetComponent } from './pages/fleet/create-fleet/create-fleet.component';
-import { JoinFleetComponent } from './pages/fleet/join-fleet/join-fleet.component';
-import { InviteCrewComponent } from './pages/fleet/invite-crew/invite-crew.component';
-import { AcceptFleetRulesComponent } from './pages/fleet/accept-fleet-rules/accept-fleet-rules.component';
-import { FleetJoinRequestsComponent } from './pages/fleet/fleet-join-requests/fleet-join-requests.component';
-import { EditFleetComponent } from './pages/fleet/edit-fleet/edit-fleet.component';
-import { FleetCrewsComponent } from './pages/fleet/fleet-crews/fleet-crews.component';
-import { FleetCrewDetailComponent } from './pages/fleet/fleet-crew-detail/fleet-crew-detail.component';
-import { FleetCrewmateDetailComponent } from './pages/fleet/fleet-crewmate-detail/fleet-crewmate-detail.component';
-import { FleetRecordGiftComponent } from './pages/fleet/fleet-record-gift/fleet-record-gift.component';
-import { FleetEmergencyListComponent } from './pages/fleet/fleet-emergency-list/fleet-emergency-list.component';
-import { FleetChatListComponent } from './pages/fleet/fleet-chat-list/fleet-chat-list.component';
-import { FleetRuleListComponent } from './pages/fleet/fleet-rule-list/fleet-rule-list.component';
-import { FleetRuleCreateComponent } from './pages/fleet/fleet-rule-create/fleet-rule-create.component';
-import { FleetRuleEditComponent } from './pages/fleet/fleet-rule-edit/fleet-rule-edit.component';
-import { FleetLibraryHubComponent } from './pages/fleet/fleet-library/fleet-library-hub/fleet-library-hub.component';
-import { FleetLibraryListComponent } from './pages/fleet/fleet-library/fleet-library-list/fleet-library-list.component';
-import { FleetLibraryDetailComponent } from './pages/fleet/fleet-library/fleet-library-detail/fleet-library-detail.component';
-import { FleetForumListComponent } from './pages/fleet/fleet-forums/fleet-forum-list/fleet-forum-list.component';
-import { FleetForumCreateComponent } from './pages/fleet/fleet-forums/fleet-forum-create/fleet-forum-create.component';
-import { FleetForumDetailComponent } from './pages/fleet/fleet-forums/fleet-forum-detail/fleet-forum-detail.component';
-import { HowToUseHubComponent } from './pages/how-to-use/how-to-use-hub/how-to-use-hub.component';
-import { HowToUseTopicComponent } from './pages/how-to-use/how-to-use-topic/how-to-use-topic.component';
-import { LegalDocumentComponent } from './pages/legal-document/legal-document.component';
 
 export const routes: Routes = [
   {
     path: '',
-    component: ProductLandingComponent,
+    loadComponent: () => import('./pages/product-landing/product-landing.component').then(m => m.ProductLandingComponent),
     canActivate: [guestGuard],
     title: 'Home'
   },
   {
     path: 'sign-in',
-    component: SignInComponent,
+    loadComponent: () => import('./pages/sign-in/sign-in.component').then(m => m.SignInComponent),
     canActivate: [guestGuard],
     title: 'Sign In'
   },
   {
     path: 'sign-up',
-    component: SignUpComponent,
+    loadComponent: () => import('./pages/sign-up/sign-up.component').then(m => m.SignUpComponent),
     title: 'Sign Up'
   },
   {
     path: 'forgot-password',
-    component: ForgotPasswordComponent,
+    loadComponent: () => import('./pages/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
     title: 'Forgot Password'
   },
   {
     path: 'reset-password',
-    component: ResetPasswordComponent,
+    loadComponent: () => import('./pages/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
     title: 'Reset Password'
   },
   {
     path: 'how-to',
-    component: HowToUseHubComponent,
+    loadComponent: () => import('./pages/how-to-use/how-to-use-hub/how-to-use-hub.component').then(m => m.HowToUseHubComponent),
     pathMatch: 'full',
     title: 'How to use this app'
   },
   {
     path: 'how-to/:topicId',
-    component: HowToUseTopicComponent,
+    loadComponent: () => import('./pages/how-to-use/how-to-use-topic/how-to-use-topic.component').then(m => m.HowToUseTopicComponent),
     title: 'How to use this app'
   },
   {
     path: 'privacy',
-    component: LegalDocumentComponent,
+    loadComponent: () => import('./pages/legal-document/legal-document.component').then(m => m.LegalDocumentComponent),
     title: 'Privacy Policy',
     data: {
       documentTitle: 'Privacy Policy',
@@ -165,7 +54,7 @@ export const routes: Routes = [
   },
   {
     path: 'delete-account',
-    component: LegalDocumentComponent,
+    loadComponent: () => import('./pages/legal-document/legal-document.component').then(m => m.LegalDocumentComponent),
     title: 'Delete your account',
     data: {
       documentTitle: 'Delete your account',
@@ -174,7 +63,7 @@ export const routes: Routes = [
   },
   {
     path: 'terms',
-    component: LegalDocumentComponent,
+    loadComponent: () => import('./pages/legal-document/legal-document.component').then(m => m.LegalDocumentComponent),
     title: 'Terms of Use',
     data: {
       documentTitle: 'Terms of Use',
@@ -183,7 +72,7 @@ export const routes: Routes = [
   },
   {
     path: 'community-standards',
-    component: LegalDocumentComponent,
+    loadComponent: () => import('./pages/legal-document/legal-document.component').then(m => m.LegalDocumentComponent),
     title: 'Community Standards',
     data: {
       documentTitle: 'Community Standards',
@@ -192,14 +81,14 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew',
-    component: CrewHomeComponent,
+    loadComponent: () => import('./pages/crew-home/crew-home.component').then(m => m.CrewHomeComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     title: 'Crew'
   },
   {
     path: 'app/how-to',
-    component: HowToUseHubComponent,
+    loadComponent: () => import('./pages/how-to-use/how-to-use-hub/how-to-use-hub.component').then(m => m.HowToUseHubComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     title: 'How to use this app',
@@ -207,269 +96,269 @@ export const routes: Routes = [
   },
   {
     path: 'app/how-to/:topicId',
-    component: HowToUseTopicComponent,
+    loadComponent: () => import('./pages/how-to-use/how-to-use-topic/how-to-use-topic.component').then(m => m.HowToUseTopicComponent),
     canActivate: [authGuard],
     title: 'How to use this app',
     data: { parentTab: 'profile', locationHeader: 'How to use this app' }
   },
   {
     path: 'app/fleet',
-    component: FleetHomeComponent,
+    loadComponent: () => import('./pages/fleet/fleet-home/fleet-home.component').then(m => m.FleetHomeComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     title: 'Fleet'
   },
   {
     path: 'app/fleet/create',
-    component: CreateFleetComponent,
+    loadComponent: () => import('./pages/fleet/create-fleet/create-fleet.component').then(m => m.CreateFleetComponent),
     canActivate: [authGuard],
     data: { parentTab: 'fleet', locationHeader: 'Create Fleet' }
   },
   {
     path: 'app/fleet/join',
-    component: JoinFleetComponent,
+    loadComponent: () => import('./pages/fleet/join-fleet/join-fleet.component').then(m => m.JoinFleetComponent),
     canActivate: [authGuard],
     data: { parentTab: 'fleet', locationHeader: 'Join Fleet' }
   },
   {
     path: 'app/fleet/accept-rules',
-    component: AcceptFleetRulesComponent,
+    loadComponent: () => import('./pages/fleet/accept-fleet-rules/accept-fleet-rules.component').then(m => m.AcceptFleetRulesComponent),
     canActivate: [authGuard],
     data: { parentTab: 'fleet', locationHeader: 'Accept Rules' }
   },
   {
     path: 'app/fleet/join-requests',
-    component: FleetJoinRequestsComponent,
+    loadComponent: () => import('./pages/fleet/fleet-join-requests/fleet-join-requests.component').then(m => m.FleetJoinRequestsComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Join Requests' }
   },
   {
     path: 'app/fleet/edit',
-    component: EditFleetComponent,
+    loadComponent: () => import('./pages/fleet/edit-fleet/edit-fleet.component').then(m => m.EditFleetComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Fleet Settings' }
   },
   {
     path: 'app/fleet/gift-log',
-    component: GiftLogComponent,
+    loadComponent: () => import('./pages/gift-log/gift-log.component').then(m => m.GiftLogComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Gift Log', giftLogScope: 'fleet' }
   },
   {
     path: 'app/fleet/gift-log/record',
-    component: FleetRecordGiftComponent,
+    loadComponent: () => import('./pages/fleet/fleet-record-gift/fleet-record-gift.component').then(m => m.FleetRecordGiftComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Record Gift' }
   },
   {
     path: 'app/fleet/gift-log/:id',
-    component: GiftLogDetailComponent,
+    loadComponent: () => import('./pages/gift-log/gift-log-detail/gift-log-detail.component').then(m => m.GiftLogDetailComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Gift', giftLogScope: 'fleet' }
   },
   {
     path: 'app/fleet/emergency-requests',
-    component: FleetEmergencyListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-emergency-list/fleet-emergency-list.component').then(m => m.FleetEmergencyListComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Emergency Requests' }
   },
   {
     path: 'app/fleet/library',
-    component: FleetLibraryHubComponent,
+    loadComponent: () => import('./pages/fleet/fleet-library/fleet-library-hub/fleet-library-hub.component').then(m => m.FleetLibraryHubComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Library of Things' }
   },
   {
     path: 'app/fleet/library/durable',
-    component: FleetLibraryListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-library/fleet-library-list/fleet-library-list.component').then(m => m.FleetLibraryListComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { title: 'Durable Goods', kind: 'Durable', parentTab: 'fleet', locationHeader: 'Durable Goods' }
   },
   {
     path: 'app/fleet/library/consumable',
-    component: FleetLibraryListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-library/fleet-library-list/fleet-library-list.component').then(m => m.FleetLibraryListComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { title: 'Consumable Goods', kind: 'Consumable', parentTab: 'fleet', locationHeader: 'Consumable Goods' }
   },
   {
     path: 'app/fleet/library/services',
-    component: FleetLibraryListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-library/fleet-library-list/fleet-library-list.component').then(m => m.FleetLibraryListComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { title: 'Services', kind: 'Service', parentTab: 'fleet', locationHeader: 'Services' }
   },
   {
     path: 'app/fleet/library/units/:unitId',
-    component: FleetLibraryDetailComponent,
+    loadComponent: () => import('./pages/fleet/fleet-library/fleet-library-detail/fleet-library-detail.component').then(m => m.FleetLibraryDetailComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Library Item' }
   },
   {
     path: 'app/fleet/chats',
-    component: FleetChatListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-chat-list/fleet-chat-list.component').then(m => m.FleetChatListComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Chats' }
   },
   {
     path: 'app/fleet/chats/arrange',
-    component: ArrangeChatChannelsComponent,
+    loadComponent: () => import('./pages/chats/arrange-chat-channels/arrange-chat-channels.component').then(m => m.ArrangeChatChannelsComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Arrange Channels' }
   },
   {
     path: 'app/fleet/chats/create',
-    component: ChatCreateComponent,
+    loadComponent: () => import('./pages/chats/chat-create/chat-create.component').then(m => m.ChatCreateComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Chat' }
   },
   {
     path: 'app/fleet/chats/:id/edit',
-    component: ChatEditComponent,
+    loadComponent: () => import('./pages/chats/chat-edit/chat-edit.component').then(m => m.ChatEditComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Edit Chat' }
   },
   {
     path: 'app/fleet/chats/:id',
-    component: ChatTextComponent,
+    loadComponent: () => import('./pages/chats/chat-text/chat-text.component').then(m => m.ChatTextComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Chat' }
   },
   {
     path: 'app/fleet/forums',
-    component: FleetForumListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-forums/fleet-forum-list/fleet-forum-list.component').then(m => m.FleetForumListComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Fleet Space' }
   },
   {
     path: 'app/fleet/forums/create',
-    component: FleetForumCreateComponent,
+    loadComponent: () => import('./pages/fleet/fleet-forums/fleet-forum-create/fleet-forum-create.component').then(m => m.FleetForumCreateComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Create Post' }
   },
   {
     path: 'app/fleet/forums/:id',
-    component: FleetForumDetailComponent,
+    loadComponent: () => import('./pages/fleet/fleet-forums/fleet-forum-detail/fleet-forum-detail.component').then(m => m.FleetForumDetailComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Post' }
   },
   {
     path: 'app/fleet/proposals',
-    component: ProposalsTypeComponent,
+    loadComponent: () => import('./pages/proposals/proposals-type/proposals-type.component').then(m => m.ProposalsTypeComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposals' }
   },
   {
     path: 'app/fleet/proposals/list/:status',
-    component: ProposalsListComponent,
+    loadComponent: () => import('./pages/proposals/proposals-list/proposals-list.component').then(m => m.ProposalsListComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposals' }
   },
   {
     path: 'app/fleet/proposals/create',
-    component: CreateProposalComponent,
+    loadComponent: () => import('./pages/proposals/create-proposal/create-proposal.component').then(m => m.CreateProposalComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Create Proposal' }
   },
   {
     path: 'app/fleet/proposals/:id',
-    component: ProposalDetailComponent,
+    loadComponent: () => import('./pages/proposals/proposal-detail/proposal-detail.component').then(m => m.ProposalDetailComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { scope: 'fleet', parentTab: 'fleet', locationHeader: 'Proposal' }
   },
   {
     path: 'app/fleet/rules',
-    component: FleetRuleListComponent,
+    loadComponent: () => import('./pages/fleet/fleet-rule-list/fleet-rule-list.component').then(m => m.FleetRuleListComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Rules' }
   },
   {
     path: 'app/fleet/rules/create',
-    component: FleetRuleCreateComponent,
+    loadComponent: () => import('./pages/fleet/fleet-rule-create/fleet-rule-create.component').then(m => m.FleetRuleCreateComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Create Rule' }
   },
   {
     path: 'app/fleet/rules/:id/edit',
-    component: FleetRuleEditComponent,
+    loadComponent: () => import('./pages/fleet/fleet-rule-edit/fleet-rule-edit.component').then(m => m.FleetRuleEditComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Edit Rule' }
   },
   {
     path: 'app/fleet/crews',
-    component: FleetCrewsComponent,
+    loadComponent: () => import('./pages/fleet/fleet-crews/fleet-crews.component').then(m => m.FleetCrewsComponent),
     pathMatch: 'full',
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Crews' }
   },
   {
     path: 'app/fleet/crews/invite',
-    component: InviteCrewComponent,
+    loadComponent: () => import('./pages/fleet/invite-crew/invite-crew.component').then(m => m.InviteCrewComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Add Crew' }
   },
   {
     path: 'app/fleet/crews/:id',
-    component: FleetCrewDetailComponent,
+    loadComponent: () => import('./pages/fleet/fleet-crew-detail/fleet-crew-detail.component').then(m => m.FleetCrewDetailComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Crew' }
   },
   {
     path: 'app/fleet/crewmates/:userId',
-    component: FleetCrewmateDetailComponent,
+    loadComponent: () => import('./pages/fleet/fleet-crewmate-detail/fleet-crewmate-detail.component').then(m => m.FleetCrewmateDetailComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
     data: { parentTab: 'fleet', locationHeader: 'Crewmate' }
   },
   {
     path: 'app/friends',
-    component: FriendsComponent,
+    loadComponent: () => import('./pages/friends/friends.component').then(m => m.FriendsComponent),
     pathMatch: 'full',
     canActivate: [authGuard]
   },
   {
     path: 'app/friends/requests',
-    component: FriendRequestsComponent,
+    loadComponent: () => import('./pages/friends/friend-requests/friend-requests.component').then(m => m.FriendRequestsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'friends', locationHeader: 'Requests' }
   },
   {
     path: 'app/friends/blocked',
-    component: FriendBlockedComponent,
+    loadComponent: () => import('./pages/friends/friend-blocked/friend-blocked.component').then(m => m.FriendBlockedComponent),
     canActivate: [authGuard],
     data: { parentTab: 'friends', locationHeader: 'Blocked' }
   },
   {
     path: 'app/friends/find',
-    component: FindFriendComponent,
+    loadComponent: () => import('./pages/friends/find-friend/find-friend.component').then(m => m.FindFriendComponent),
     canActivate: [authGuard],
     data: { parentTab: 'friends', locationHeader: 'Find Friend' }
   },
   {
     path: 'app/friends/messages/:userId',
-    component: FriendDmComponent,
+    loadComponent: () => import('./pages/friends/friend-dm/friend-dm.component').then(m => m.FriendDmComponent),
     canActivate: [authGuard],
     data: { parentTab: 'friends', locationHeader: 'Message' }
   },
   {
     path: 'app/notifications',
-    component: NotificationsComponent,
+    loadComponent: () => import('./pages/notifications/notifications.component').then(m => m.NotificationsComponent),
     canActivate: [authGuard]
   },
   {
     path: 'app/profile',
-    component: UserHomeComponent,
+    loadComponent: () => import('./pages/user-home/user-home.component').then(m => m.UserHomeComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     title: 'Profile'
   },
   {
     path: 'app/profile/user',
-    component: ProfileComponent,
+    loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard],
     title: 'Edit Profile'
   ,
@@ -477,7 +366,7 @@ export const routes: Routes = [
   },
   {
     path: 'app/donate',
-    component: DonateComponent,
+    loadComponent: () => import('./pages/donate/donate.component').then(m => m.DonateComponent),
     // Guests may donate with a receipt email; signed-in users use account email.
     title: 'Donate'
   ,
@@ -485,68 +374,68 @@ export const routes: Routes = [
   },
   {
     path: 'app/profile/gift-history',
-    component: GiftHistoryListComponent,
+    loadComponent: () => import('./pages/profile/gift-history-list/gift-history-list.component').then(m => m.GiftHistoryListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Gift History' }
   },
   {
     path: 'app/profile/gift-history/:userId',
-    component: GiftHistoryDetailComponent,
+    loadComponent: () => import('./pages/profile/gift-history-detail/gift-history-detail.component').then(m => m.GiftHistoryDetailComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Gift History' }
   },
   {
     path: 'app/profile/activity',
-    component: ActivityCenterComponent,
+    loadComponent: () => import('./pages/activity-center/activity-center.component').then(m => m.ActivityCenterComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Activity' }
   },
   {
     path: 'app/profile/preferences',
-    component: ProfileSettingsComponent,
+    loadComponent: () => import('./pages/profile-settings/profile-settings.component').then(m => m.ProfileSettingsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Preferences' }
   },
   {
     path: 'app/profile/preferences/notifications',
-    component: NotificationSettingsComponent,
+    loadComponent: () => import('./pages/notification-settings/notification-settings.component').then(m => m.NotificationSettingsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Notifications' }
   },
   {
     path: 'app/profile/preferences/content',
-    component: ContentSettingsComponent,
+    loadComponent: () => import('./pages/content-settings/content-settings.component').then(m => m.ContentSettingsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Content' }
   },
   {
     path: 'app/profile/preferences/voice',
-    component: VoiceSettingsComponent,
+    loadComponent: () => import('./pages/voice-settings/voice-settings.component').then(m => m.VoiceSettingsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Voice' }
   },
   {
     path: 'app/profile/preferences/theme',
-    component: ThemeSettingsComponent,
+    loadComponent: () => import('./pages/theme-settings/theme-settings.component').then(m => m.ThemeSettingsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Theme' }
   },
   {
     path: 'app/profile/preferences/security',
-    component: SecuritySettingsComponent,
+    loadComponent: () => import('./pages/security-settings/security-settings.component').then(m => m.SecuritySettingsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Security' }
   },
   {
     path: 'app/profile/preferences/security/alerts',
-    component: SecurityAlertsComponent,
+    loadComponent: () => import('./pages/security-alerts/security-alerts.component').then(m => m.SecurityAlertsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Security Alerts' }
   },
   {
     path: 'app/profile/preferences/security/password',
-    component: PasswordUpdateComponent,
+    loadComponent: () => import('./pages/password-update/password-update.component').then(m => m.PasswordUpdateComponent),
     canActivate: [authGuard],
     data: { parentTab: 'profile', locationHeader: 'Password' }
   },
@@ -562,395 +451,395 @@ export const routes: Routes = [
   },
   {
     path: 'app/crew/find',
-    component: CrewFindComponent,
+    loadComponent: () => import('./pages/crew-find/crew-find.component').then(m => m.CrewFindComponent),
     canActivate: [authGuard],
     title: 'Join or create a crew',
     data: { parentTab: 'crew', locationHeader: 'Join/Create a crew' }
   },
   {
     path: 'app/crew/create',
-    component: CreateCrewComponent,
+    loadComponent: () => import('./pages/create-crew/create-crew.component').then(m => m.CreateCrewComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Crew' }
   },
   {
     path: 'app/crew/join',
-    component: JoinCrewComponent,
+    loadComponent: () => import('./pages/join-crew/join-crew.component').then(m => m.JoinCrewComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Join Crew' }
   },
   {
     path: 'app/crew/join-requests',
-    component: MyJoinRequestsComponent,
+    loadComponent: () => import('./pages/my-join-requests/my-join-requests.component').then(m => m.MyJoinRequestsComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Join Requests' }
   },
   {
     path: 'app/crew/invitations',
-    component: MyInvitationsComponent,
+    loadComponent: () => import('./pages/my-invitations/my-invitations.component').then(m => m.MyInvitationsComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Invitations' }
   },
   {
     path: 'app/crew/edit',
-    component: EditCrewComponent,
+    loadComponent: () => import('./pages/edit-crew/edit-crew.component').then(m => m.EditCrewComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Crew Settings' }
   },
   {
     path: 'app/crew/gift-log',
-    component: GiftLogComponent,
+    loadComponent: () => import('./pages/gift-log/gift-log.component').then(m => m.GiftLogComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Gift Log' }
   },
   {
     path: 'app/crew/emergency-requests',
-    component: EmergencyRequestsListComponent,
+    loadComponent: () => import('./pages/emergency-requests/emergency-requests-list/emergency-requests-list.component').then(m => m.EmergencyRequestsListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Emergency Requests' }
   },
   {
     path: 'app/crew/emergency-requests/create',
-    component: EmergencyRequestCreateComponent,
+    loadComponent: () => import('./pages/emergency-requests/emergency-request-create/emergency-request-create.component').then(m => m.EmergencyRequestCreateComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Emergency Request' }
   },
   {
     path: 'app/crew/emergency-requests/:id',
-    component: EmergencyRequestDetailComponent,
+    loadComponent: () => import('./pages/emergency-requests/emergency-request-detail/emergency-request-detail.component').then(m => m.EmergencyRequestDetailComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Emergency Request' }
   },
   {
     path: 'app/crew/season-setup',
-    component: SeasonSetupComponent,
+    loadComponent: () => import('./pages/season-setup/season-setup.component').then(m => m.SeasonSetupComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Season Setup' }
   },
   {
     path: 'app/crew/join-season',
-    component: JoinSeasonComponent,
+    loadComponent: () => import('./pages/join-season/join-season.component').then(m => m.JoinSeasonComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Join Season' }
   },
   {
     path: 'app/crew/gift-log/record/add-non-crewmate',
-    component: AddNonCrewmateComponent,
+    loadComponent: () => import('./pages/record-gift/add-non-crewmate/add-non-crewmate.component').then(m => m.AddNonCrewmateComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Add Non-Member' }
   },
   {
     path: 'app/crew/gift-log/season-info',
-    component: SeasonInfoComponent,
+    loadComponent: () => import('./pages/gift-log/season-info/season-info.component').then(m => m.SeasonInfoComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'My giving info' }
   },
   {
     path: 'app/crew/gift-log/record',
-    component: RecordGiftComponent,
+    loadComponent: () => import('./pages/record-gift/record-gift.component').then(m => m.RecordGiftComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Record Gift' }
   },
   {
     path: 'app/crew/gift-log/record/reception-order',
-    component: EditReceptionOrderComponent,
+    loadComponent: () => import('./pages/record-gift/edit-reception-order/edit-reception-order.component').then(m => m.EditReceptionOrderComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Edit Reception Order' }
   },
   {
     path: 'app/crew/gift-log/:id',
-    component: GiftLogDetailComponent,
+    loadComponent: () => import('./pages/gift-log/gift-log-detail/gift-log-detail.component').then(m => m.GiftLogDetailComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Gift' }
   },
   {
     path: 'app/crew/chats',
-    component: ChatListComponent,
+    loadComponent: () => import('./pages/chats/chat-list/chat-list.component').then(m => m.ChatListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Chats' }
   },
   {
     path: 'app/crew/chats/arrange',
-    component: ArrangeChatChannelsComponent,
+    loadComponent: () => import('./pages/chats/arrange-chat-channels/arrange-chat-channels.component').then(m => m.ArrangeChatChannelsComponent),
     canActivate: [authGuard],
     data: { scope: 'crew', parentTab: 'crew', locationHeader: 'Arrange Channels' }
   },
   {
     path: 'app/crew/chats/create',
-    component: ChatCreateComponent,
+    loadComponent: () => import('./pages/chats/chat-create/chat-create.component').then(m => m.ChatCreateComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Chat' }
   },
   {
     path: 'app/crew/chats/:id/edit',
-    component: ChatEditComponent,
+    loadComponent: () => import('./pages/chats/chat-edit/chat-edit.component').then(m => m.ChatEditComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Edit Chat' }
   },
   {
     path: 'app/crew/chats/:id/voice',
-    component: ChatVoiceComponent,
+    loadComponent: () => import('./pages/chats/chat-voice/chat-voice.component').then(m => m.ChatVoiceComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Voice Chat' }
   },
   {
     path: 'app/crew/chats/:id',
-    component: ChatTextComponent,
+    loadComponent: () => import('./pages/chats/chat-text/chat-text.component').then(m => m.ChatTextComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Chat' }
   },
   {
     path: 'app/crew/proposals',
-    component: ProposalsTypeComponent,
+    loadComponent: () => import('./pages/proposals/proposals-type/proposals-type.component').then(m => m.ProposalsTypeComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Proposals' }
   },
   {
     path: 'app/crew/proposals/list/:status',
-    component: ProposalsListComponent,
+    loadComponent: () => import('./pages/proposals/proposals-list/proposals-list.component').then(m => m.ProposalsListComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Proposals' }
   },
   {
     path: 'app/crew/proposals/create',
-    component: CreateProposalComponent,
+    loadComponent: () => import('./pages/proposals/create-proposal/create-proposal.component').then(m => m.CreateProposalComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Proposal' }
   },
   {
     path: 'app/crew/proposals/:id',
-    component: ProposalDetailComponent,
+    loadComponent: () => import('./pages/proposals/proposal-detail/proposal-detail.component').then(m => m.ProposalDetailComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Proposal' }
   },
   {
     path: 'app/crew/forums',
-    component: DiscussionListComponent,
+    loadComponent: () => import('./pages/crew-discussion/discussion-list/discussion-list.component').then(m => m.DiscussionListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { discussionKind: 'forums', parentTab: 'crew', locationHeader: 'Crew Space' }
   },
   {
     path: 'app/crew/forums/create',
-    component: DiscussionCreateComponent,
+    loadComponent: () => import('./pages/crew-discussion/discussion-create/discussion-create.component').then(m => m.DiscussionCreateComponent),
     canActivate: [authGuard],
     data: { discussionKind: 'forums', parentTab: 'crew', locationHeader: 'Create Post' }
   },
   {
     path: 'app/crew/forums/:id',
-    component: DiscussionDetailComponent,
+    loadComponent: () => import('./pages/crew-discussion/discussion-detail/discussion-detail.component').then(m => m.DiscussionDetailComponent),
     canActivate: [authGuard],
     data: { discussionKind: 'forums', parentTab: 'crew', locationHeader: 'Post' }
   },
   {
     path: 'app/crew/crewmates',
-    component: CrewmateListComponent,
+    loadComponent: () => import('./pages/crewmates/crewmate-list/crewmate-list.component').then(m => m.CrewmateListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Crewmates' }
   },
   {
     path: 'app/crew/crewmates/invite',
-    component: InviteCrewmateComponent,
+    loadComponent: () => import('./pages/crewmates/invite-crewmate/invite-crewmate.component').then(m => m.InviteCrewmateComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Add Crewmate' }
   },
   {
     path: 'app/crew/crewmates/placeholders/create',
-    component: CreatePlaceholderComponent,
+    loadComponent: () => import('./pages/crewmates/create-placeholder/create-placeholder.component').then(m => m.CreatePlaceholderComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Add Placeholder' }
   },
   {
     path: 'app/crew/crewmates/kicked',
-    component: KickedCrewmatesListComponent,
+    loadComponent: () => import('./pages/crewmates/kicked-crewmates-list/kicked-crewmates-list.component').then(m => m.KickedCrewmatesListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Kicked Crewmates' }
   },
   {
     path: 'app/crew/invitations/:id',
-    component: CrewInvitationComponent,
+    loadComponent: () => import('./pages/crewmates/crew-invitation/crew-invitation.component').then(m => m.CrewInvitationComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Invitation' }
   },
   {
     path: 'app/crew/crewmates/:id/nominate-roles',
-    component: NominateRolesComponent,
+    loadComponent: () => import('./pages/crewmates/nominate-roles/nominate-roles.component').then(m => m.NominateRolesComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Nominate Roles' }
   },
   {
     path: 'app/crew/crewmates/:id',
-    component: CrewmateDetailComponent,
+    loadComponent: () => import('./pages/crewmates/crewmate-detail/crewmate-detail.component').then(m => m.CrewmateDetailComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Crewmate' }
   },
   {
     path: 'app/crew/rules',
-    component: RuleListComponent,
+    loadComponent: () => import('./pages/rules/rule-list/rule-list.component').then(m => m.RuleListComponent),
     pathMatch: 'full',
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Rules' }
   },
   {
     path: 'app/crew/rules/create',
-    component: RuleCreateComponent,
+    loadComponent: () => import('./pages/rules/rule-create/rule-create.component').then(m => m.RuleCreateComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Rule' }
   },
   {
     path: 'app/crew/rules/:id/edit',
-    component: RuleEditComponent,
+    loadComponent: () => import('./pages/rules/rule-edit/rule-edit.component').then(m => m.RuleEditComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Edit Rule' }
   },
   {
     path: 'app/crew/library-of-things/unlock',
-    component: LibraryUnlockComponent,
+    loadComponent: () => import('./pages/library/library-unlock/library-unlock.component').then(m => m.LibraryUnlockComponent),
     canActivate: [authGuard],
     data: { parentTab: 'crew', locationHeader: 'Unlock Library' }
   },
   {
     path: 'app/crew/library-of-things',
-    component: LibraryHubComponent,
+    loadComponent: () => import('./pages/library/library-hub/library-hub.component').then(m => m.LibraryHubComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Library of Things' }
   },
   {
     path: 'app/crew/library-of-things/tasks/create',
-    component: LibraryTaskFormComponent,
+    loadComponent: () => import('./pages/library/library-tasks/library-task-form/library-task-form.component').then(m => m.LibraryTaskFormComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Quest' }
   },
   {
     path: 'app/crew/library-of-things/tasks/no-deadline',
-    component: LibraryTaskNoDeadlineComponent,
+    loadComponent: () => import('./pages/library/library-tasks/library-task-no-deadline/library-task-no-deadline.component').then(m => m.LibraryTaskNoDeadlineComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Quest Board' }
   },
   {
     path: 'app/crew/library-of-things/tasks/:id/edit',
-    component: LibraryTaskFormComponent,
+    loadComponent: () => import('./pages/library/library-tasks/library-task-form/library-task-form.component').then(m => m.LibraryTaskFormComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Edit Quest' }
   },
   {
     path: 'app/crew/library-of-things/tasks/:id',
-    component: LibraryTaskDetailComponent,
+    loadComponent: () => import('./pages/library/library-tasks/library-task-detail/library-task-detail.component').then(m => m.LibraryTaskDetailComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Quest' }
   },
   {
     path: 'app/crew/library-of-things/tasks',
-    component: LibraryTaskBoardComponent,
+    loadComponent: () => import('./pages/library/library-tasks/library-task-board/library-task-board.component').then(m => m.LibraryTaskBoardComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Quest Board' }
   },
   {
     path: 'app/crew/library-of-things/durable',
-    component: LibraryDurableListComponent,
+    loadComponent: () => import('./pages/library/library-durable-list/library-durable-list.component').then(m => m.LibraryDurableListComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Durable Goods' }
   },
   {
     path: 'app/crew/library-of-things/offerings/:offeringId/units',
-    component: LibraryOfferingUnitsComponent,
+    loadComponent: () => import('./pages/library/library-offering-units/library-offering-units.component').then(m => m.LibraryOfferingUnitsComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Durable Goods' }
   },
   {
     path: 'app/crew/library-of-things/requests/mine',
-    component: LibraryMyRequestsComponent,
+    loadComponent: () => import('./pages/library/library-my-requests/library-my-requests.component').then(m => m.LibraryMyRequestsComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'My Requests' }
   },
   {
     path: 'app/crew/library-of-things/requests/mine/pending',
-    component: LibraryMyRequestStatusComponent,
+    loadComponent: () => import('./pages/library/library-my-request-status/library-my-request-status.component').then(m => m.LibraryMyRequestStatusComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Pending Requests', requestStatus: 'Open' }
   },
   {
     path: 'app/crew/library-of-things/requests/mine/fulfilled',
-    component: LibraryMyRequestStatusComponent,
+    loadComponent: () => import('./pages/library/library-my-request-status/library-my-request-status.component').then(m => m.LibraryMyRequestStatusComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Fulfilled Requests', requestStatus: 'Fulfilled' }
   },
   {
     path: 'app/crew/library-of-things/requests/denied',
-    component: LibraryDeniedRequestsComponent,
+    loadComponent: () => import('./pages/library/library-denied-requests/library-denied-requests.component').then(m => m.LibraryDeniedRequestsComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Denied Requests' }
   },
   {
     path: 'app/crew/library-of-things/requests/:id/chat',
-    component: LibraryRequestChatComponent,
+    loadComponent: () => import('./pages/library/library-request-chat/library-request-chat.component').then(m => m.LibraryRequestChatComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Request Chat' }
   },
   {
     path: 'app/crew/library-of-things/requests/:id',
-    component: LibraryRequestDetailComponent,
+    loadComponent: () => import('./pages/library/library-request-detail/library-request-detail.component').then(m => m.LibraryRequestDetailComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Request' }
   },
   {
     path: 'app/crew/library-of-things/requests',
-    component: LibraryIncomingRequestsComponent,
+    loadComponent: () => import('./pages/library/library-incoming-requests/library-incoming-requests.component').then(m => m.LibraryIncomingRequestsComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Incoming Requests' }
   },
   {
     path: 'app/crew/library-of-things/units/:unitId/active-requests',
-    component: LibraryUnitActiveRequestsComponent,
+    loadComponent: () => import('./pages/library/library-unit-active-requests/library-unit-active-requests.component').then(m => m.LibraryUnitActiveRequestsComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Active Requests' }
   },
   {
     path: 'app/crew/library-of-things/consumable',
-    component: LibraryStockListComponent,
+    loadComponent: () => import('./pages/library/library-stock-list/library-stock-list.component').then(m => m.LibraryStockListComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { title: 'Consumable Goods', stockKind: 'Consumable', parentTab: 'crew', locationHeader: 'Consumable Goods' }
   },
   {
     path: 'app/crew/library-of-things/services',
-    component: LibraryStockListComponent,
+    loadComponent: () => import('./pages/library/library-stock-list/library-stock-list.component').then(m => m.LibraryStockListComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { title: 'Services', stockKind: 'Service', parentTab: 'crew', locationHeader: 'Services' }
   },
   {
     path: 'app/crew/library-of-things/digital',
-    component: LibraryStockListComponent,
+    loadComponent: () => import('./pages/library/library-stock-list/library-stock-list.component').then(m => m.LibraryStockListComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { title: 'Digital Goods', stockKind: 'Digital', parentTab: 'crew', locationHeader: 'Digital Goods' }
   },
   {
     path: 'app/crew/library-of-things/mine',
-    component: LibraryMyOfferingsComponent,
+    loadComponent: () => import('./pages/library/library-my-offerings/library-my-offerings.component').then(m => m.LibraryMyOfferingsComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'My Offerings' }
   },
   {
     path: 'app/crew/library-of-things/offerings/create',
-    component: CreateLibraryOfferingComponent,
+    loadComponent: () => import('./pages/library/create-library-offering/create-library-offering.component').then(m => m.CreateLibraryOfferingComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Create Offering' }
   },
   {
     path: 'app/crew/library-of-things/offerings/:id/edit',
-    component: EditLibraryOfferingComponent,
+    loadComponent: () => import('./pages/library/edit-library-offering/edit-library-offering.component').then(m => m.EditLibraryOfferingComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Edit Offering' }
   },
   {
     path: 'app/crew/library-of-things/units/:id',
-    component: LibraryUnitDetailComponent,
+    loadComponent: () => import('./pages/library/library-unit-detail/library-unit-detail.component').then(m => m.LibraryUnitDetailComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Library Item' }
   },

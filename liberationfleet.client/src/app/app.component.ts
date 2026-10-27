@@ -25,6 +25,7 @@ import {
   isNewSeasonNotification
 } from './utils/crew-join-approval.util';
 import { isNativeApp } from './utils/app-platform.util';
+import { NativeSplashService } from './native/native-splash.service';
 
 @Component({
   selector: 'app-root',
@@ -55,6 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
   private pushNotifications = inject(PushNotificationRegistrationService);
   private keyboardInset = inject(KeyboardInsetService);
+  private nativeSplash = inject(NativeSplashService);
   private router = inject(Router);
   private notificationsBootstrapped = false;
   private readonly subscriptions = new Subscription();
@@ -91,6 +93,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.router.events.pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd)
       ).subscribe(() => {
+        this.nativeSplash.hideAfterFirstPaint();
         this.syncUnlockDialog();
         void this.connectNotificationsIfInApp();
         this.focusMainContent();

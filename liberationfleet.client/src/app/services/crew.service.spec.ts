@@ -1,6 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { CrewService } from './crew.service';
+import { AUTH_TOKEN_STORAGE_KEY, CREW_MEMBERSHIP_CACHE_STORAGE_KEY } from './storage/storage-keys';
+
+function testJwt(userId: number): string {
+  const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({
+    sub: String(userId),
+    exp: Math.floor(Date.now() / 1000) + 3600
+  }));
+  return `${header}.${payload}.sig`;
+}
 
 describe('CrewService', () => {
   let service: CrewService;
@@ -18,6 +28,8 @@ describe('CrewService', () => {
 
   afterEach(() => {
     httpMock.verify();
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(CREW_MEMBERSHIP_CACHE_STORAGE_KEY);
   });
 
   it('should be created', () => {
@@ -104,5 +116,33 @@ describe('CrewService', () => {
       message: 'Join requests loaded.',
       items: [{ proposalId: 10, crewId: 5, crewName: 'Alpha', status: 'Pending', approveCount: 0, disapproveCount: 0, isKeyPrepared: false, createdAt: '2026-06-18T00:00:00Z' }]
     });
+  });
+
+  it('persists membership for the signed-in user and restores it after a cache clear', () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(4));
+
+    service.getMembership().subscribe(status => {
+      expect(status.crewName).toBe('Alpha Fleet');
+    });
+    httpMock.expectOne('/api/crews/membership').flush({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Alpha Fleet'
+    });
+
+    expect(service.peekPersistedMembership()?.crewName).toBe('Alpha Fleet');
+
+    service.clearMembershipCache();
+    expect(service.peekPersistedMembership()?.crewName).toBe('Alpha Fleet');
+
+    service.clearSessionCache();
+    expect(service.peekPersistedMembership()).toBeNull();
+  });
+
+  it('does not return another user\'s persisted membership', () => {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(1));
+    service.setCachedMembership({ hasCrew: true, crewId: 1, crewName: 'Alpha Fleet' });
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(2));
+    expect(service.peekPersistedMembership()).toBeNull();
   });
 });

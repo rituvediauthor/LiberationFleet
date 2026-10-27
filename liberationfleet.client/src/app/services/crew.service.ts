@@ -20,6 +20,13 @@ import {
 } from '../models/crew.model';
 import { PaymentPlatformOption } from '../models/gift.model';
 import { ProfileService } from './profile.service';
+import { AppStorageService } from './storage/app-storage.service';
+import { CREW_MEMBERSHIP_CACHE_STORAGE_KEY } from './storage/storage-keys';
+import {
+  clearUserScopedJson,
+  readUserScopedJson,
+  writeUserScopedJson
+} from './storage/user-scoped-snapshot';
 
 @Injectable({
   providedIn: 'root'
@@ -33,6 +40,7 @@ export class CrewService {
 
   private readonly http = inject(HttpClient);
   private readonly profileService = inject(ProfileService);
+  private readonly storage = inject(AppStorageService);
 
   /**
    * Session-cached membership. Concurrent callers share one in-flight request.
@@ -45,6 +53,7 @@ export class CrewService {
     }
     if (!this.membershipRequest$) {
       this.membershipRequest$ = this.http.get<CrewMembershipStatus>(`${this.apiUrl}/membership`).pipe(
+        tap(status => this.persistMembership(status)),
         catchError(err => {
           this.membershipRequest$ = null;
           return throwError(() => err);
@@ -53,6 +62,11 @@ export class CrewService {
       );
     }
     return this.membershipRequest$;
+  }
+
+  /** Last successful membership for this signed-in user. Null if none or another account. */
+  peekPersistedMembership(): CrewMembershipStatus | null {
+    return readUserScopedJson<CrewMembershipStatus>(this.storage, CREW_MEMBERSHIP_CACHE_STORAGE_KEY);
   }
 
   clearMembershipCache(): void {
@@ -65,11 +79,17 @@ export class CrewService {
   /** Replace the session cache after a successful save (avoids an extra GET). */
   setCachedMembership(status: CrewMembershipStatus): void {
     this.membershipRequest$ = of(status).pipe(shareReplay({ bufferSize: 1, refCount: false }));
+    this.persistMembership(status);
     this.membershipChangedSubject.next();
   }
 
   clearSessionCache(): void {
     this.membershipRequest$ = null;
+    clearUserScopedJson(this.storage, CREW_MEMBERSHIP_CACHE_STORAGE_KEY);
+  }
+
+  private persistMembership(status: CrewMembershipStatus): void {
+    writeUserScopedJson(this.storage, CREW_MEMBERSHIP_CACHE_STORAGE_KEY, status);
   }
 
   getCurrentCrew(): Observable<CrewOperationResult> {

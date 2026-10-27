@@ -1,6 +1,6 @@
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
-import { provideRouter, TitleStrategy, withInMemoryScrolling } from '@angular/router';
+import { provideRouter, TitleStrategy, withInMemoryScrolling, withPreloading } from '@angular/router';
 import { routes } from './app.routes';
 import { AuthInterceptor } from './services/auth.interceptor';
 import { ApiBaseUrlInterceptor } from './services/api-base-url.interceptor';
@@ -8,10 +8,15 @@ import { ViewerLocationInterceptor } from './services/viewer-location.intercepto
 import { APP_ENVIRONMENT } from './config/app-environment';
 import { environment } from '../environments/environment';
 import { LiberationFleetTitleStrategy } from './services/liberation-fleet-title.strategy';
+import { IdlePreloadStrategy } from './routing/idle-preload.strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled' })),
+    provideRouter(
+      routes,
+      withInMemoryScrolling({ anchorScrolling: 'enabled' }),
+      withPreloading(IdlePreloadStrategy)
+    ),
     { provide: TitleStrategy, useClass: LiberationFleetTitleStrategy },
     { provide: APP_ENVIRONMENT, useValue: environment },
     importProvidersFrom(HttpClientModule),

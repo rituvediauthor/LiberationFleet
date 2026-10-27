@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, provideRouter } from '@angular/router';
-import { BehaviorSubject, of, throwError } from 'rxjs';
+import { BehaviorSubject, NEVER, of, throwError } from 'rxjs';
 import { CrewHomeComponent } from './crew-home.component';
 import { CrewService } from '../../services/crew.service';
 import { GiftService } from '../../services/gift.service';
@@ -166,6 +166,7 @@ describe('CrewHomeComponent', () => {
     crewService = createCrewServiceMock();
     giftService = createGiftServiceMock();
     crewService.getMembership.and.returnValue(of({ hasCrew: false }));
+    crewService.peekPersistedMembership.and.returnValue(null);
     giftService.getSeasonStatus.and.returnValue(of({
       seasonStarted: true,
       userInSeason: true,
@@ -422,7 +423,26 @@ describe('CrewHomeComponent', () => {
     expect(component.showCycleThankYouPrompt).toBeTrue();
   });
 
-  it('paints persisted preview tiles immediately while a refresh is in flight', fakeAsync(() => {
+  it('paints persisted membership chrome before the live membership request resolves', () => {
+    crewService.peekPersistedMembership.and.returnValue({
+      hasCrew: true,
+      crewId: 1,
+      crewName: 'Cached Crew',
+      seasonStarted: true
+    });
+    crewService.getMembership.and.returnValue(NEVER);
+
+    fixture = TestBed.createComponent(CrewHomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.loading).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.crew-name-link .menu-label')?.textContent).toContain('Cached Crew');
+    expect(fixture.nativeElement.querySelector('app-hub-loading')).toBeFalsy();
+    fixture.destroy();
+  });
+
+  it('paints persisted preview tiles immediately and waits for crypto before refreshing', fakeAsync(() => {
     const resolvers = new Map<keyof CrewDashboardPreviews, (value: CrewDashboardPreview | null) => void>();
     dashboardPreviewService.loadPreview.and.callFake((_crewId: number, key: keyof CrewDashboardPreviews) => {
       return new Promise(resolve => resolvers.set(key, resolve));
@@ -454,6 +474,11 @@ describe('CrewHomeComponent', () => {
     expect(component.previews.forum?.id).toBe(55);
     expect(component.previewLoading.forum).toBeFalse();
     expect(component.previewLoading.chat).toBeTrue();
+    expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalled();
+
+    cryptoUnlocked = true;
+    unlocked$.next(true);
+
     expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'forum', { force: true });
     expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'chat', { force: true });
 
@@ -478,6 +503,8 @@ describe('CrewHomeComponent', () => {
   }));
 
   it('polls badge freshness and only refreshes the preview tiles whose counts changed', fakeAsync(() => {
+    cryptoUnlocked = true;
+    unlocked$.next(true);
     crewService.getMembership.and.returnValue(of({
       hasCrew: true,
       crewId: 1,

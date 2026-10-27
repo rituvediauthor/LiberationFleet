@@ -49,17 +49,22 @@ export function createToastServiceMock(): jasmine.SpyObj<ToastService> {
 import {
   AUTH_TOKEN_STORAGE_KEY,
   CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY,
+  CREW_MEMBERSHIP_CACHE_STORAGE_KEY,
+  FLEET_STATUS_CACHE_STORAGE_KEY,
   SESSION_RECOVERY_PHRASE_STORAGE_KEY
 } from '../services/storage/storage-keys';
 
 export function clearAuthStorage(): void {
   localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   localStorage.removeItem(CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY);
+  localStorage.removeItem(CREW_MEMBERSHIP_CACHE_STORAGE_KEY);
+  localStorage.removeItem(FLEET_STATUS_CACHE_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   sessionStorage.removeItem(SESSION_RECOVERY_PHRASE_STORAGE_KEY);
 }
 
 export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {
-  return jasmine.createSpyObj<CrewService>('CrewService', [
+  const mock = jasmine.createSpyObj<CrewService>('CrewService', [
     'getMembership',
     'create',
     'search',
@@ -72,10 +77,13 @@ export function createCrewServiceMock(): jasmine.SpyObj<CrewService> {
     'getPaymentPlatforms',
     'clearMembershipCache',
     'clearSessionCache',
-    'setCachedMembership'
+    'setCachedMembership',
+    'peekPersistedMembership'
   ], {
     membershipChanged$: EMPTY
   });
+  mock.peekPersistedMembership.and.returnValue(null);
+  return mock;
 }
 
 export function createGiftServiceMock(): jasmine.SpyObj<GiftService> {

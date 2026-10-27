@@ -58,6 +58,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
 
   ngOnInit() {
+    this.paintPersistedStatus();
     this.subscriptions.add(
       this.cryptoSession.unlocked$.subscribe(unlocked => {
         if (unlocked && this.status?.fleetId) {
@@ -74,12 +75,13 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
           this.fleetService.getStatus().pipe(
             catchError(() => {
               // Keep the outer subscription alive so retry via statusChanged$ works.
-              this.status = null;
-              this.loadError = true;
-              this.showNextAidWidget = false;
-              this.nextAidLoaded = true;
-              this.fleetImageSrc = null;
-              this.loading = false;
+              if (!this.status) {
+                this.loadError = true;
+                this.showNextAidWidget = false;
+                this.nextAidLoaded = true;
+                this.fleetImageSrc = null;
+                this.loading = false;
+              }
               return of(null);
             })
           )
@@ -94,41 +96,7 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.status = status;
-        this.loadError = false;
-        this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
-        this.showNextAidWidget = !!status.hasFleet;
-        this.nextAid = null;
-        this.nextAidLoaded = !this.showNextAidWidget;
-        this.loading = false;
-        void this.refreshFleetImage();
-
-        if (status.hasFleet && status.fleetId) {
-          this.forumPrefetch.prefetchFleetSpace(status.fleetId);
-        }
-
-        if (this.showNextAidWidget) {
-          this.fleetService.getNextAid().subscribe({
-            next: result => {
-              this.nextAid = result.success ? (result.nextAid ?? null) : null;
-              this.nextAidLoaded = true;
-            },
-            error: () => {
-              this.nextAid = null;
-              this.nextAidLoaded = true;
-            }
-          });
-        }
-
-        if (status.hasFleet) {
-          this.fleetService.getCurrent().subscribe({
-            next: result => {
-              if (result.success && result.fleet) {
-                this.libraryOfThingsEnabled = result.fleet.libraryOfThingsEnabled !== false;
-              }
-            }
-          });
-        }
+        this.applyStatus(status, true);
       })
     );
 
@@ -148,6 +116,58 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.loadError = false;
     this.fleetService.clearStatusCache();
+  }
+
+  private paintPersistedStatus() {
+    const cached = this.fleetService.peekPersistedStatus();
+    if (!cached || cached.needsRuleAcceptance) {
+      return;
+    }
+    this.applyStatus(cached, false);
+  }
+
+  private applyStatus(status: FleetStatus, live: boolean) {
+    this.status = status;
+    this.loadError = false;
+    this.libraryOfThingsEnabled = status.libraryOfThingsEnabled !== false;
+    this.showNextAidWidget = !!status.hasFleet;
+    if (live) {
+      this.nextAid = null;
+      this.nextAidLoaded = !this.showNextAidWidget;
+    } else if (this.showNextAidWidget) {
+      this.nextAidLoaded = false;
+    } else {
+      this.nextAidLoaded = true;
+    }
+    this.loading = false;
+    void this.refreshFleetImage();
+
+    if (status.hasFleet && status.fleetId && this.cryptoSession.isUnlocked()) {
+      this.forumPrefetch.prefetchFleetSpace(status.fleetId);
+    }
+
+    if (live && this.showNextAidWidget) {
+      this.fleetService.getNextAid().subscribe({
+        next: result => {
+          this.nextAid = result.success ? (result.nextAid ?? null) : null;
+          this.nextAidLoaded = true;
+        },
+        error: () => {
+          this.nextAid = null;
+          this.nextAidLoaded = true;
+        }
+      });
+    }
+
+    if (live && status.hasFleet) {
+      this.fleetService.getCurrent().subscribe({
+        next: result => {
+          if (result.success && result.fleet) {
+            this.libraryOfThingsEnabled = result.fleet.libraryOfThingsEnabled !== false;
+          }
+        }
+      });
+    }
   }
 
   private async refreshFleetImage() {

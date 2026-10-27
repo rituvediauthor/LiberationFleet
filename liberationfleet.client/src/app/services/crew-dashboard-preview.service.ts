@@ -102,6 +102,11 @@ export class CrewDashboardPreviewService {
     }
 
     this.ensureHydrated();
+    if (!this.cryptoSession.isUnlocked()) {
+      const peeked = this.peekCachedPreview(crewId, previewKey);
+      return (peeked === undefined ? null : peeked) as CrewDashboardPreviews[K];
+    }
+
     const cacheKey = this.getCacheKey(crewId, previewKey);
     if (options?.force) {
       this.cache.delete(cacheKey);
@@ -147,8 +152,15 @@ export class CrewDashboardPreviewService {
     }
 
     this.ensureHydrated();
-    const cached = this.cache.get(this.getCacheKey(crewId, previewKey));
-    return cached ? cached.preview as CrewDashboardPreviews[K] : undefined;
+    const current = this.cache.get(this.getCacheKey(crewId, previewKey));
+    if (current) {
+      return current.preview as CrewDashboardPreviews[K];
+    }
+    if (!this.cryptoSession.isUnlocked()) {
+      const unlocked = this.cache.get(this.getCacheKey(crewId, previewKey, true));
+      return unlocked ? unlocked.preview as CrewDashboardPreviews[K] : undefined;
+    }
+    return undefined;
   }
 
   clearSessionCache(): void {
@@ -459,10 +471,9 @@ export class CrewDashboardPreviewService {
     return loaders[previewKey]().catch(() => null) as Promise<CrewDashboardPreviews[K]>;
   }
 
-  private getCacheKey(crewId: number, previewKey: CrewPreviewKey): string {
-    const unlocked = this.cryptoSession.isUnlocked() ? 'unlocked' : 'locked';
+  private getCacheKey(crewId: number, previewKey: CrewPreviewKey, unlocked = this.cryptoSession.isUnlocked()): string {
     const adultPreference = this.adultContent.preference;
-    return `${crewId}:${previewKey}:${unlocked}:${adultPreference}`;
+    return `${crewId}:${previewKey}:${unlocked ? 'unlocked' : 'locked'}:${adultPreference}`;
   }
 
   private isFresh(entry: PreviewCacheEntry): boolean {

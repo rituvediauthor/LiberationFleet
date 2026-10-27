@@ -6,3 +6,5 @@ export const SAVE_DECRYPTION_KEY_STORAGE_KEY = 'lf_save_decryption_key';
 export const PERSISTENT_RECOVERY_PHRASES_STORAGE_KEY = 'lf_persistent_recovery_phrases';
 export const ANONYMOUS_CHAT_REMINDER_DISMISSED_KEY = 'lf_anonymous_chat_reminder_dismissed';
 export const CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY = 'lf_crew_dashboard_preview_cache';
+export const CREW_MEMBERSHIP_CACHE_STORAGE_KEY = 'lf_crew_membership_cache';
+export const FLEET_STATUS_CACHE_STORAGE_KEY = 'lf_fleet_status_cache';

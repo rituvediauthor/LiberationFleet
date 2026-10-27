@@ -17,9 +17,14 @@
   <script>
     (function () {
       var theme = localStorage.getItem('lf-app-theme');
-      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+      var dark = theme === 'dark';
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.documentElement.style.backgroundColor = dark ? '#121418' : '#f4f6f8';
     })();
   </script>
+  <style>
+    app-root:empty { display: block; min-height: 100vh; }
+  </style>
 </head>
 <body>
   <app-root></app-root>
