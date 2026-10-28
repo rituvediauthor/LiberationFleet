@@ -40,12 +40,12 @@ public class UpdateFleetForumCommentCommandHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
+            return new ForumOperationResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.FleetId.HasValue)
         {
-            return new ForumOperationResponse { Success = false, Message = "Not a fleet forum post." };
+            return new ForumOperationResponse { Success = false, Message = "Not a fleet post." };
         }
 
         var fleetId = post.FleetId.Value;

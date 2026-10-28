@@ -85,7 +85,11 @@ public class NotificationsController(IMediator mediator) : ControllerBase
     [HttpPut("mutes")]
     public async Task<IActionResult> SetMute([FromBody] SetMutedContentRequest body)
     {
-        var result = await mediator.Send(new SetMutedContentCommand(body.ContentType, body.ResourceId, body.Muted));
+        var result = await mediator.Send(new SetMutedContentCommand(
+            body.ContentType,
+            body.ResourceId,
+            body.Muted,
+            body.Duration));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

@@ -44,7 +44,7 @@
         (click)="openItem(row.offering)"
         (keydown.enter)="openItem(row.offering)"
         (keydown.space)="$event.preventDefault(); openItem(row.offering)">
-        <app-library-item-card [item]="row.card" holderLabel="Creator">
+        <app-library-item-card [item]="row.card" holderLabel="Creator" [showFavorite]="true">
           <div class="offering-footer">
             <div class="offering-meta">
               <span class="meta-chip">{{ kindLabel(row.offering.offeringKind) }}</span>

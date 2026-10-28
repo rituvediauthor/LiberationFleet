@@ -1,0 +1,57 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 40;
+  padding: 16px;
+}
+
+.dialog-card {
+  width: min(420px, 100%);
+  background: var(--lf-color-bg-surface);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dialog-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--lf-color-text-body);
+}
+
+.mute-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mute-options button {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 10px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mute-options button:hover {
+  border-color: var(--lf-color-accent);
+  background: var(--lf-color-accent-soft-bg-alt);
+}
+
+.mute-options button.cancel {
+  color: var(--lf-color-text-secondary);
+}
+
+@media (min-width: 640px) {
+  .dialog-backdrop {
+    align-items: center;
+  }
+}

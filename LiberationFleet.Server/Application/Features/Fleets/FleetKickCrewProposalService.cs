@@ -102,8 +102,8 @@ public class FleetKickCrewProposalService(
             Reason = reason?.Trim(),
             Title = $"Remove {targetCrew.Name} from the fleet",
             Description = string.IsNullOrWhiteSpace(reason)
-                ? $"Remove crew {targetCrew.Name} from this fleet.\nThey will lose fleet chats, forums, and Library of Things access with other member crews."
-                : $"Remove crew {targetCrew.Name} from this fleet.\nThey will lose fleet chats, forums, and Library of Things access with other member crews.\nReason: {reason.Trim()}"
+                ? $"Remove crew {targetCrew.Name} from this fleet.\nThey will lose fleet chats, posts, and Library of Things access with other member crews."
+                : $"Remove crew {targetCrew.Name} from this fleet.\nThey will lose fleet chats, posts, and Library of Things access with other member crews.\nReason: {reason.Trim()}"
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

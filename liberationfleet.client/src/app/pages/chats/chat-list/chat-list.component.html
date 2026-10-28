@@ -89,7 +89,7 @@
             (keydown.escape)="closeMenus()">
             <button type="button" role="menuitem" (click)="editRoom(room, $event)">Edit</button>
             <button type="button" role="menuitem" (click)="muteRoom(room, $event)">
-              {{ isRoomMuted(room.id) ? 'Unmute' : 'Mute' }}
+              Mute
             </button>
             <button type="button" role="menuitem" (click)="hideRoom(room, $event)">Hide</button>
           </div>
@@ -175,3 +175,10 @@
   (confirmed)="onAdultGateConfirmed()"
   (declined)="onAdultGateDeclined()">
 </app-adult-content-gate>
+
+<app-mute-duration-dialog
+  [visible]="muteTarget !== null"
+  (durationChosen)="onMuteDuration($event)"
+  (cancelMute)="onCancelMute()"
+  (dismissed)="dismissMuteDialog()">
+</app-mute-duration-dialog>

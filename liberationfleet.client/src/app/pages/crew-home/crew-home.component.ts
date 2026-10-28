@@ -33,6 +33,9 @@ import { CrewFindPanelComponent } from '../crew-find/crew-find-panel.component';
 import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
 import { CrewDashboardPreviewComponent } from '../../components/crew-dashboard-preview/crew-dashboard-preview.component';
 import { CrewDashboardPreviewOpenTarget, CrewDashboardPreviews } from '../../models/crew-dashboard-preview.model';
+import { MuteDuration, MutedContentItem, MutedContentType, withMute } from '../../models/notification.model';
+import { MuteDurationDialogComponent } from '../../components/mute-duration-dialog/mute-duration-dialog.component';
+import { CopyTextButtonComponent } from '../../components/copy-text-button/copy-text-button.component';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { TextFieldLimits } from '../../utils/text-field-limits';
 
@@ -63,7 +66,9 @@ const PREVIEW_AREA_TO_KEY: Record<PreviewAreaKey, CrewPreviewKey> = {
     CharCounterComponent,
     CrewFindPanelComponent,
     CollapsibleSectionComponent,
-    CrewDashboardPreviewComponent
+    CrewDashboardPreviewComponent,
+    MuteDurationDialogComponent,
+    CopyTextButtonComponent
   ],
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
@@ -76,6 +81,8 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   /** True only when season has started — known from membership before the menu paints. */
   showNextAidWidget = false;
   nextAidLoaded = false;
+  mutedItems: MutedContentItem[] = [];
+  muteTarget: { contentType: MutedContentType; resourceId: number; noun: string } | null = null;
   libraryOfThingsEnabled = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
   crewImageSrc: string | null = null;
@@ -120,6 +127,11 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   );
 
   ngOnInit() {
+    this.notificationService.getMutes().subscribe({
+      next: response => {
+        this.mutedItems = response.items ?? [];
+      }
+    });
     this.paintPersistedMembership();
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
     this.subscriptions.add(
@@ -234,6 +246,64 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
       return `You're next! $${this.nextAid.amount} still needed${unverifiedNote}`;
     }
     return `${this.nextAid.recipientName} needs $${this.nextAid.amount}${unverifiedNote}`;
+  }
+
+  get nextAidHandle(): string | null {
+    if (!this.nextAid || this.nextAid.isCurrentUserRecipient) {
+      return null;
+    }
+    return this.nextAid.platformHandle?.trim() || null;
+  }
+
+  get spaceMuted(): boolean {
+    const crewId = this.membership?.crewId;
+    return !!crewId && this.notificationService.isMuted(this.mutedItems, 'CrewSpace', crewId);
+  }
+
+  openSpaceMute(event: Event) {
+    event.stopPropagation();
+    const crewId = this.membership?.crewId;
+    if (!crewId) {
+      return;
+    }
+    this.muteTarget = { contentType: 'CrewSpace', resourceId: crewId, noun: 'Posts' };
+  }
+
+  onMuteDuration(duration: MuteDuration) {
+    this.commitMute(duration);
+  }
+
+  onCancelMute() {
+    const target = this.muteTarget;
+    if (!target || !this.notificationService.isMuted(this.mutedItems, target.contentType, target.resourceId)) {
+      this.muteTarget = null;
+      return;
+    }
+    this.commitMute(null);
+  }
+
+  dismissMuteDialog() {
+    this.muteTarget = null;
+  }
+
+  private commitMute(duration: MuteDuration | null) {
+    const target = this.muteTarget;
+    this.muteTarget = null;
+    if (!target) {
+      return;
+    }
+    const muted = duration !== null;
+    this.notificationService.setMute(target.contentType, target.resourceId, muted, duration).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update mute setting');
+          return;
+        }
+        this.mutedItems = withMute(this.mutedItems, target.contentType, target.resourceId, duration);
+        this.toastService.success(muted ? 'Posts muted' : 'Posts unmuted');
+      },
+      error: () => this.toastService.error('Failed to update mute setting')
+    });
   }
 
   get nextAidPlatformLine(): string | null {

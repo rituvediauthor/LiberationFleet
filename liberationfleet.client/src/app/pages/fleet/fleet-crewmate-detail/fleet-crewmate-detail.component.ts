@@ -11,6 +11,7 @@ import { CrewmateService } from '../../../services/crewmate.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { FleetCrewmateProfile } from '../../../models/fleet.model';
 import { mapFriendshipState } from '../../../models/crewmate.model';
+import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
 
 @Component({
   selector: 'app-fleet-crewmate-detail',
@@ -20,7 +21,8 @@ import { mapFriendshipState } from '../../../models/crewmate.model';
     PageLayoutComponent,
     ConfirmDialogComponent,
     CrewmateIdCardComponent,
-    CollapsibleSectionComponent
+    CollapsibleSectionComponent,
+    CopyTextButtonComponent
   ],
   templateUrl: './fleet-crewmate-detail.component.html',
   styleUrl: './fleet-crewmate-detail.component.css'

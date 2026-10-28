@@ -8,7 +8,7 @@ import { NotificationHubService } from './notification-hub.service';
 import { PushNotificationRegistrationService } from './push-notification-registration.service';
 import { APP_ENVIRONMENT } from '../config/app-environment';
 import { clearAuthStorage } from '../testing/test-helpers';
-import { AUTH_TOKEN_STORAGE_KEY } from './storage/storage-keys';
+import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from './storage/storage-keys';
 
 /** Minimal unexpired JWT so isAuthenticated() does not wipe the test token. */
 function testJwt(userId = 1, expiresInSeconds = 3600): string {
@@ -28,6 +28,7 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     clearAuthStorage();
+    localStorage.setItem(REMEMBER_LOGIN_STORAGE_KEY, 'true');
     forumPrefetch = jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
       'clearSessionCache',
       'invalidate'
@@ -192,6 +193,7 @@ describe('AuthService token loading', () => {
 
   beforeEach(() => {
     clearAuthStorage();
+    localStorage.setItem(REMEMBER_LOGIN_STORAGE_KEY, 'true');
     localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, validToken);
 
     TestBed.configureTestingModule({

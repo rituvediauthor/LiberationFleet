@@ -4532,6 +4532,33 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.ToTable("UserKeyBundles");
                 });
 
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserLibraryFavorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LibraryUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LibraryUnitId");
+
+                    b.HasIndex("UserId", "LibraryUnitId")
+                        .IsUnique();
+
+                    b.ToTable("UserLibraryFavorites");
+                });
+
             modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserMutedContent", b =>
                 {
                     b.Property<int>("Id")
@@ -4544,6 +4571,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("MutedUntil")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("ResourceId")
@@ -6231,6 +6261,25 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         .HasForeignKey("LiberationFleet.Server.Domain.Entities.UserKeyBundle", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LiberationFleet.Server.Domain.Entities.UserLibraryFavorite", b =>
+                {
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.LibraryUnit", "LibraryUnit")
+                        .WithMany()
+                        .HasForeignKey("LibraryUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LiberationFleet.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LibraryUnit");
 
                     b.Navigation("User");
                 });

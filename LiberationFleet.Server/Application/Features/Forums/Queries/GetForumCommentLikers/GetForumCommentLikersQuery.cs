@@ -28,7 +28,7 @@ public class GetForumCommentLikersQueryHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ContentLikersResponse { Success = false, Message = "Forum post not found." };
+            return new ContentLikersResponse { Success = false, Message = "Post not found." };
         }
 
         int crewId;
@@ -58,7 +58,7 @@ public class GetForumCommentLikersQueryHandler(
         }
         else
         {
-            return new ContentLikersResponse { Success = false, Message = "Forum post not found." };
+            return new ContentLikersResponse { Success = false, Message = "Post not found." };
         }
 
         var comment = await forumRepository.GetCommentByIdAsync(request.CommentId, cancellationToken);

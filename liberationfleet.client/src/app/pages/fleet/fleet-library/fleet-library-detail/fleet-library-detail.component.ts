@@ -9,12 +9,13 @@ import { LibraryCryptoService } from '../../../../services/crypto/library-crypto
 import { EncryptionContentService } from '../../../../services/encryption-content.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { LibraryUnitDetail } from '../../../../models/library.model';
+import { LibraryFavoriteButtonComponent } from '../../../../components/library-favorite-button/library-favorite-button.component';
 import { NavigationService } from '../../../../services/navigation.service';
 
 @Component({
   selector: 'app-fleet-library-detail',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, LibraryImageCarouselComponent],
+  imports: [CommonModule, PageLayoutComponent, LibraryImageCarouselComponent, LibraryFavoriteButtonComponent],
   templateUrl: './fleet-library-detail.component.html',
   styleUrl: './fleet-library-detail.component.css'
 })

@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { ForgotPasswordComponent } from './forgot-password.component';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { createUserServiceMock, createToastServiceMock } from '../../testing/test-helpers';
+import { createUserServiceMock, createToastServiceMock, provideAppShellMocks } from '../../testing/test-helpers';
 
 describe('ForgotPasswordComponent', () => {
   let fixture: ComponentFixture<ForgotPasswordComponent>;
@@ -22,6 +22,7 @@ describe('ForgotPasswordComponent', () => {
       imports: [ForgotPasswordComponent],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: UserService, useValue: userService },
         { provide: ToastService, useValue: toastService }
       ]

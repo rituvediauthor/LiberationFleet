@@ -229,6 +229,68 @@ public class NotificationBadgeBuilderTests
         summary.AreaCounts["crewChats"].Should().Be(1);
     }
 
+    [Fact]
+    public void Build_ExcludesCrewPostNotificationsWhenCrewSpaceIsMuted()
+    {
+        var notifications = new[]
+        {
+            new Notification
+            {
+                Id = 1,
+                UserId = 1,
+                CrewId = 4,
+                Kind = NotificationKind.NewForumComment,
+                Title = "Comment",
+                Body = "body",
+                ActionUrl = "/app/crew/forums/9?commentId=3",
+                RelatedEntityId = 9,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+        var muted = new[]
+        {
+            new UserMutedContent { ContentType = MutedContentType.CrewSpace, ResourceId = 4 }
+        };
+
+        var summary = NotificationBadgeBuilder.Build(
+            notifications,
+            Array.Empty<UserNotificationPreference>(),
+            muted,
+            Array.Empty<UserHiddenContent>(),
+            new HashSet<int>());
+
+        summary.UnreadCount.Should().Be(0);
+        summary.AreaCounts["crewForums"].Should().Be(0);
+    }
+
+    [Fact]
+    public void Build_IgnoresExpiredMutes()
+    {
+        var notifications = new[]
+        {
+            Notification(1, NotificationKind.NewChatMessage, "/app/crew/chats/5", relatedEntityId: 5)
+        };
+        var muted = new[]
+        {
+            new UserMutedContent
+            {
+                ContentType = MutedContentType.ChatRoom,
+                ResourceId = 5,
+                MutedUntil = DateTime.UtcNow.AddMinutes(-1)
+            }
+        };
+
+        var summary = NotificationBadgeBuilder.Build(
+            notifications,
+            Array.Empty<UserNotificationPreference>(),
+            muted,
+            Array.Empty<UserHiddenContent>(),
+            new HashSet<int>());
+
+        summary.UnreadCount.Should().Be(1);
+    }
+
     private static Notification Notification(
         int id,
         NotificationKind kind,

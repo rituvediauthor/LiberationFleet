@@ -8,6 +8,8 @@ public class UserMutedContent
     public int UserId { get; set; }
     public MutedContentType ContentType { get; set; }
     public int ResourceId { get; set; }
+    /// <summary>Null means the mute does not expire.</summary>
+    public DateTime? MutedUntil { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public User User { get; set; } = null!;

@@ -97,7 +97,7 @@ public class CrewLeaveFleetProposalService(
             Title = $"Leave fleet {fleet.Name}",
             Description =
                 $"Crew {crew.Name} proposes to leave fleet {fleet.Name}.\n" +
-                "If approved, this crew loses fleet membership, fleet chat/forums access, and access to other crews' Library of Things offerings in that fleet."
+                "If approved, this crew loses fleet membership, fleet chat and posts access, and access to other crews' Library of Things offerings in that fleet."
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

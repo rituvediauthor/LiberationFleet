@@ -21,6 +21,10 @@ import {
 } from '../../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
 import { CollapsibleSectionComponent } from '../../../components/collapsible-section/collapsible-section.component';
+import { ToastService } from '../../../components/toast/toast.component';
+import { MuteDuration, MutedContentItem, MutedContentType, withMute } from '../../../models/notification.model';
+import { MuteDurationDialogComponent } from '../../../components/mute-duration-dialog/mute-duration-dialog.component';
+import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
 
 @Component({
   selector: 'app-fleet-home',
@@ -32,7 +36,9 @@ import { CollapsibleSectionComponent } from '../../../components/collapsible-sec
     DonationCampaignWidgetComponent,
     BrandLogoComponent,
     HubLoadingComponent,
-    CollapsibleSectionComponent
+    CollapsibleSectionComponent,
+    MuteDurationDialogComponent,
+    CopyTextButtonComponent
   ],
   templateUrl: './fleet-home.component.html',
   styleUrl: './fleet-home.component.css'
@@ -42,6 +48,8 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   nextAid: NextAidInfo | null = null;
   showNextAidWidget = false;
   nextAidLoaded = false;
+  mutedItems: MutedContentItem[] = [];
+  muteTarget: { contentType: MutedContentType; resourceId: number; noun: string } | null = null;
   libraryOfThingsEnabled = true;
   loading = true;
   loadError = false;
@@ -52,12 +60,18 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private fleetService = inject(FleetService);
   private giftService = inject(GiftService);
   private notificationService = inject(NotificationService);
+  private toastService = inject(ToastService);
   private cryptoSession = inject(CryptoSessionService);
   private images = inject(EncryptedImageCacheService);
   private forumPrefetch = inject(ForumListPrefetchService);
   private subscriptions = new Subscription();
 
   ngOnInit() {
+    this.notificationService.getMutes().subscribe({
+      next: response => {
+        this.mutedItems = response.items ?? [];
+      }
+    });
     this.paintPersistedStatus();
     this.subscriptions.add(
       this.cryptoSession.unlocked$.subscribe(unlocked => {
@@ -199,6 +213,64 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
       return `You're next! $${this.nextAid.amount} still needed`;
     }
     return `${this.nextAid.recipientName} needs $${this.nextAid.amount}`;
+  }
+
+  get nextAidHandle(): string | null {
+    if (!this.nextAid || this.nextAid.isCurrentUserRecipient) {
+      return null;
+    }
+    return this.nextAid.platformHandle?.trim() || null;
+  }
+
+  get spaceMuted(): boolean {
+    const fleetId = this.status?.fleetId;
+    return !!fleetId && this.notificationService.isMuted(this.mutedItems, 'FleetSpace', fleetId);
+  }
+
+  openSpaceMute(event: Event) {
+    event.stopPropagation();
+    const fleetId = this.status?.fleetId;
+    if (!fleetId) {
+      return;
+    }
+    this.muteTarget = { contentType: 'FleetSpace', resourceId: fleetId, noun: 'Posts' };
+  }
+
+  onMuteDuration(duration: MuteDuration) {
+    this.commitMute(duration);
+  }
+
+  onCancelMute() {
+    const target = this.muteTarget;
+    if (!target || !this.notificationService.isMuted(this.mutedItems, target.contentType, target.resourceId)) {
+      this.muteTarget = null;
+      return;
+    }
+    this.commitMute(null);
+  }
+
+  dismissMuteDialog() {
+    this.muteTarget = null;
+  }
+
+  private commitMute(duration: MuteDuration | null) {
+    const target = this.muteTarget;
+    this.muteTarget = null;
+    if (!target) {
+      return;
+    }
+    const muted = duration !== null;
+    this.notificationService.setMute(target.contentType, target.resourceId, muted, duration).subscribe({
+      next: response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to update mute setting');
+          return;
+        }
+        this.mutedItems = withMute(this.mutedItems, target.contentType, target.resourceId, duration);
+        this.toastService.success(muted ? 'Posts muted' : 'Posts unmuted');
+      },
+      error: () => this.toastService.error('Failed to update mute setting')
+    });
   }
 
   get nextAidPlatformLine(): string | null {

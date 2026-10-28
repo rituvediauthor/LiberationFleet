@@ -34,7 +34,10 @@ describe('crew-join-approval.util', () => {
       body: 'Your crew proposal was approved.'
     }))).toBe(false);
     expect(isCrewJoinRequestApprovedNotification(notification({
-      kind: 'NewProposal'
+      kind: 'NewProposal',
+      title: 'New proposal',
+      body: 'A proposal was submitted.',
+      actionUrl: '/app/crew/proposals/12'
     }))).toBe(false);
     // SignalR historically sent Kind as a number (ProposalAccepted = 3).
     expect(isCrewJoinRequestApprovedNotification(notification({

@@ -81,6 +81,8 @@ public interface INotificationRepository
 
     Task<bool> IsContentMutedAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default);
 
+    Task<UserMutedContent?> FindTrackedMuteAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<UserMutedContent>> GetMutedContentsAsync(int userId, CancellationToken cancellationToken = default);
 
     Task AddMutedContentAsync(UserMutedContent mutedContent, CancellationToken cancellationToken = default);

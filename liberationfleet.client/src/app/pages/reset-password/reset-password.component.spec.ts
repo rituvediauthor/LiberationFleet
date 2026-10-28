@@ -6,7 +6,20 @@ import { of, throwError } from 'rxjs';
 import { ResetPasswordComponent } from './reset-password.component';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { createUserServiceMock, createToastServiceMock, validSignUpPassword } from '../../testing/test-helpers';
+import { createUserServiceMock, createToastServiceMock, provideAppShellMocks, validSignUpPassword } from '../../testing/test-helpers';
+
+function activatedRouteStub(queryParams: Record<string, string>) {
+  return {
+    queryParams: of(queryParams),
+    snapshot: {
+      root: {
+        firstChild: null,
+        data: {},
+        children: []
+      }
+    }
+  };
+}
 
 describe('ResetPasswordComponent', () => {
   let fixture: ComponentFixture<ResetPasswordComponent>;
@@ -29,11 +42,12 @@ describe('ResetPasswordComponent', () => {
       imports: [ResetPasswordComponent],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: UserService, useValue: userService },
         { provide: ToastService, useValue: toastService },
         {
           provide: ActivatedRoute,
-          useValue: { queryParams: of(queryParams) }
+          useValue: activatedRouteStub(queryParams)
         }
       ]
     }).compileComponents();
@@ -110,9 +124,10 @@ describe('ResetPasswordComponent token errors', () => {
       imports: [ResetPasswordComponent],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: UserService, useValue: userService },
         { provide: ToastService, useValue: createToastServiceMock() },
-        { provide: ActivatedRoute, useValue: { queryParams: of({}) } }
+        { provide: ActivatedRoute, useValue: activatedRouteStub({}) }
       ]
     }).compileComponents();
 
@@ -135,9 +150,10 @@ describe('ResetPasswordComponent token errors', () => {
       imports: [ResetPasswordComponent],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: UserService, useValue: userService },
         { provide: ToastService, useValue: createToastServiceMock() },
-        { provide: ActivatedRoute, useValue: { queryParams: of({ token: 'expired-token' }) } }
+        { provide: ActivatedRoute, useValue: activatedRouteStub({ token: 'expired-token' }) }
       ]
     }).compileComponents();
 

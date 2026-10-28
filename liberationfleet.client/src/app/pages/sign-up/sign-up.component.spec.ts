@@ -8,7 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 import { NavigationService } from '../../services/navigation.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { createAuthServiceMock, createUserServiceMock, createToastServiceMock, validSignUpPassword } from '../../testing/test-helpers';
+import { createAuthServiceMock, createUserServiceMock, createToastServiceMock, provideAppShellMocks, validSignUpPassword } from '../../testing/test-helpers';
 
 describe('SignUpComponent', () => {
   let fixture: ComponentFixture<SignUpComponent>;
@@ -30,6 +30,7 @@ describe('SignUpComponent', () => {
       imports: [SignUpComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: AuthService, useValue: authService },
         { provide: UserService, useValue: userService },
         { provide: ToastService, useValue: toastService },

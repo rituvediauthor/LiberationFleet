@@ -1,0 +1,12 @@
+<button
+  type="button"
+  class="favorite-btn"
+  [class.overlay]="placement === 'overlay'"
+  [class.active]="favorited"
+  [disabled]="busy"
+  [attr.aria-pressed]="favorited"
+  [attr.aria-label]="favorited ? 'Remove from favorites' : 'Save to favorites'"
+  (click)="toggle($event)"
+  (touchend)="$event.stopPropagation()">
+  <i class="fa-bookmark" [class.fa-solid]="favorited" [class.fa-regular]="!favorited" aria-hidden="true"></i>
+</button>

@@ -31,12 +31,12 @@ public class GetForumCommentRepliesQueryHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumCommentRepliesResponse { Success = false, Message = "Forum post not found." };
+            return new ForumCommentRepliesResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.CrewId.HasValue)
         {
-            return new ForumCommentRepliesResponse { Success = false, Message = "Not a crew forum post." };
+            return new ForumCommentRepliesResponse { Success = false, Message = "Not a crew post." };
         }
 
         var crewId = post.CrewId.Value;

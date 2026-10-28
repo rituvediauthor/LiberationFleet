@@ -16,7 +16,10 @@
 
       <div class="unit-detail-body">
       <div class="detail-header">
-        <h1 class="detail-title">{{ detail.title }}</h1>
+        <div class="detail-title-row">
+          <h1 class="detail-title">{{ detail.title }}</h1>
+          <app-library-favorite-button [unitId]="detail.unitId" placement="inline"></app-library-favorite-button>
+        </div>
         <p class="detail-meta">{{ holderLabel }}: {{ detail.holderUsername }}</p>
         <p class="out-of-stock-tag" *ngIf="detail.isOutOfStock">Out of stock</p>
         <p class="out-of-stock-tag broken" *ngIf="detail.brokenPendingConfirmation && !detail.isOutOfStock">

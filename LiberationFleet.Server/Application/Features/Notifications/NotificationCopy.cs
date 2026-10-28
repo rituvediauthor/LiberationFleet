@@ -17,7 +17,7 @@ public static class NotificationCopy
 
     public static string ForumPostLabel(string? title, bool fleet = false) =>
         string.IsNullOrWhiteSpace(title)
-            ? (fleet ? "a fleet forum post" : "a forum post")
+            ? (fleet ? "a fleet post" : "a post")
             : title.Trim();
 
     public static string ProposalLabel(bool fleet = false) =>
@@ -48,13 +48,13 @@ public static class NotificationCopy
 
     public static string RepliedOnForum(string actorName, bool toComment) =>
         toComment
-            ? $"{ActorOrFallback(actorName)} replied to your forum comment"
-            : $"{ActorOrFallback(actorName)} commented on your forum post";
+            ? $"{ActorOrFallback(actorName)} replied to your comment"
+            : $"{ActorOrFallback(actorName)} commented on your post";
 
     public static string RepliedOnFleetForum(string actorName, bool toComment) =>
         toComment
-            ? $"{ActorOrFallback(actorName)} replied to your fleet forum comment"
-            : $"{ActorOrFallback(actorName)} commented on your fleet forum post";
+            ? $"{ActorOrFallback(actorName)} replied to your fleet comment"
+            : $"{ActorOrFallback(actorName)} commented on your fleet post";
 
     public static string RepliedOnGift(string actorName, bool toComment) =>
         toComment

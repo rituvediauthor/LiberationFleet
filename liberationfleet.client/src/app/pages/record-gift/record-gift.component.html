@@ -162,11 +162,16 @@
               *ngIf="hasNoViableMeans(entry)">
               No viable means to give. See this crewmate's profile for viable payment platforms.
             </p>
-            <p
+            <div
               class="preferred-info"
               *ngIf="platformInfoLabel(entry, i) as info">
               {{ info.prefix }}: {{ info.name }} --- {{ info.handle }}
-            </p>
+              <app-copy-text-button
+                *ngIf="info.handle"
+                [value]="info.handle"
+                label="payment handle">
+              </app-copy-text-button>
+            </div>
           </ng-container>
         </div>
       </form>

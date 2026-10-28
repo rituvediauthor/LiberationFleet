@@ -14,6 +14,7 @@ import { CrewService } from '../../../services/crew.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
 import { LibraryUnitDetail } from '../../../models/library.model';
+import { LibraryFavoriteButtonComponent } from '../../../components/library-favorite-button/library-favorite-button.component';
 import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../../../services/profile.service';
 import { getUserIdFromToken } from '../../../utils/jwt.util';
@@ -26,7 +27,7 @@ type ConfirmAction = 'confirmBroken' | 'reportFixed' | 'reportLost' | null;
 @Component({
   selector: 'app-library-unit-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LibraryImageCarouselComponent, ConfirmDialogComponent, CharCounterComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LibraryImageCarouselComponent, ConfirmDialogComponent, CharCounterComponent, LibraryFavoriteButtonComponent],
   templateUrl: './library-unit-detail.component.html',
   styleUrl: './library-unit-detail.component.css'
 })

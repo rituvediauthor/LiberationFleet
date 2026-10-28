@@ -18,6 +18,7 @@ import {
   ReceptionOrderEntry
 } from '../../../models/gift.model';
 import { PullRefreshController } from '../../../utils/pull-refresh.controller';
+import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
 
 interface PlatformInfoLabel {
   prefix: 'Preferred' | 'Selected';
@@ -34,7 +35,7 @@ interface EntryFormValue {
 @Component({
   selector: 'app-fleet-record-gift',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent, CopyTextButtonComponent],
   templateUrl: './fleet-record-gift.component.html',
   styleUrl: './fleet-record-gift.component.css'
 })

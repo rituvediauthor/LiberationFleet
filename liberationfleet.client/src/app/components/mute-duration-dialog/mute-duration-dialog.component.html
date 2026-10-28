@@ -1,0 +1,24 @@
+<div class="dialog-backdrop" *ngIf="visible" (click)="onDismiss()">
+  <div
+    class="dialog-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="mute-duration-title"
+    [appAccessibleDialog]="visible"
+    [appAccessibleDialogEscape]="onDismiss.bind(this)"
+    (click)="$event.stopPropagation()">
+    <h2 id="mute-duration-title" class="dialog-title">Mute notifications</h2>
+    <div class="mute-options" role="menu">
+      <button
+        type="button"
+        role="menuitem"
+        *ngFor="let option of options"
+        (click)="choose(option.value)">
+        {{ option.label }}
+      </button>
+      <button type="button" role="menuitem" class="cancel" (click)="onCancelMute()">
+        Cancel mute
+      </button>
+    </div>
+  </div>
+</div>

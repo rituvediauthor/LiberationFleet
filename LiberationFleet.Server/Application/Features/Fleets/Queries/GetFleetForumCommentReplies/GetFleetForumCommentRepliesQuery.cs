@@ -31,12 +31,12 @@ public class GetFleetForumCommentRepliesQueryHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumCommentRepliesResponse { Success = false, Message = "Forum post not found." };
+            return new ForumCommentRepliesResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.FleetId.HasValue)
         {
-            return new ForumCommentRepliesResponse { Success = false, Message = "Not a fleet forum post." };
+            return new ForumCommentRepliesResponse { Success = false, Message = "Not a fleet post." };
         }
 
         var fleetId = post.FleetId.Value;

@@ -1,0 +1,19 @@
+.copy-text-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: 6px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-secondary);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.copy-text-btn:hover {
+  border-color: var(--lf-color-accent);
+  color: var(--lf-color-accent);
+}

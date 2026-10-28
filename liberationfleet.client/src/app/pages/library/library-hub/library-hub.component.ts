@@ -57,6 +57,10 @@ export class LibraryHubComponent implements OnInit, OnDestroy {
     this.router.navigate(['/app/crew/library-of-things/requests/mine']);
   }
 
+  openFavorites() {
+    this.router.navigate(['/app/crew/library-of-things/favorites']);
+  }
+
   openTaskBoard() {
     this.router.navigate(['/app/crew/library-of-things/tasks']);
   }

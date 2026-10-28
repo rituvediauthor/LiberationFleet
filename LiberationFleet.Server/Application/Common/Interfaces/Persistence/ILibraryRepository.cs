@@ -210,4 +210,22 @@ public interface ILibraryRepository
         int crewId,
         int userId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<int>> GetFavoriteUnitIdsAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task<bool> IsUnitFavoritedAsync(int userId, int unitId, CancellationToken cancellationToken = default);
+
+    Task AddFavoriteAsync(UserLibraryFavorite favorite, CancellationToken cancellationToken = default);
+
+    Task RemoveFavoriteAsync(int userId, int unitId, CancellationToken cancellationToken = default);
+
+    Task<LibraryUnitListPage> GetFavoriteUnitsAsync(
+        int userId,
+        IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
+        string? search,
+        IReadOnlyCollection<int> categoryIds,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken = default);
 }

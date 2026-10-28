@@ -26,7 +26,8 @@ import { AdultContentService } from '../../../../services/adult-content.service'
 import { ContentPreferenceService } from '../../../../services/content-preference.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { EncryptionContentService, EncryptionReloadHandle } from '../../../../services/encryption-content.service';
-import { HiddenContentItem, MutedContentItem, MutedContentType } from '../../../../models/notification.model';
+import { HiddenContentItem, MuteDuration, MutedContentItem, MutedContentType, withMute } from '../../../../models/notification.model';
+import { MuteDurationDialogComponent } from '../../../../components/mute-duration-dialog/mute-duration-dialog.component';
 import { NotificationService } from '../../../../services/notification.service';
 import {
   clearForumListScrollState,
@@ -48,7 +49,8 @@ import { truncateNotificationPreview } from '../../../../utils/notification-prev
     LibraryImageCarouselComponent,
     UserAvatarComponent,
     ForumEngagementBarComponent,
-    ContentLikersDialogComponent
+    ContentLikersDialogComponent,
+    MuteDurationDialogComponent
   ],
   templateUrl: './fleet-forum-list.component.html',
   styleUrl: './fleet-forum-list.component.css'
@@ -67,6 +69,7 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
   openMenuItemId: number | null = null;
   likingPostId: number | null = null;
   mutedItems: MutedContentItem[] = [];
+  muteTarget: { contentType: MutedContentType; resourceId: number; noun: string } | null = null;
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
   showAdultGate = false;
@@ -192,23 +195,41 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
   toggleMute(item: FleetForumListItem, event: Event) {
     event.stopPropagation();
     this.openMenuItemId = null;
-    const contentType = this.muteContentType();
-    const muted = !this.isItemMuted(item.id);
-    this.notificationService.setMute(contentType, item.id, muted).subscribe({
+    this.muteTarget = { contentType: this.muteContentType(), resourceId: item.id, noun: 'Post' };
+  }
+
+  onMuteDuration(duration: MuteDuration) {
+    this.commitMute(duration);
+  }
+
+  onCancelMute() {
+    const target = this.muteTarget;
+    if (!target || !this.notificationService.isMuted(this.mutedItems, target.contentType, target.resourceId)) {
+      this.muteTarget = null;
+      return;
+    }
+    this.commitMute(null);
+  }
+
+  dismissMuteDialog() {
+    this.muteTarget = null;
+  }
+
+  private commitMute(duration: MuteDuration | null) {
+    const target = this.muteTarget;
+    this.muteTarget = null;
+    if (!target) {
+      return;
+    }
+    const muted = duration !== null;
+    this.notificationService.setMute(target.contentType, target.resourceId, muted, duration).subscribe({
       next: response => {
         if (!response.success) {
           this.toastService.error(response.message || 'Failed to update mute setting');
           return;
         }
-        if (muted) {
-          this.mutedItems = [...this.mutedItems, { contentType, resourceId: item.id }];
-          this.toastService.success('Post muted');
-        } else {
-          this.mutedItems = this.mutedItems.filter(
-            entry => !(entry.contentType === contentType && entry.resourceId === item.id)
-          );
-          this.toastService.success('Post unmuted');
-        }
+        this.mutedItems = withMute(this.mutedItems, target.contentType, target.resourceId, duration);
+        this.toastService.success(muted ? `${target.noun} muted` : `${target.noun} unmuted`);
       },
       error: () => this.toastService.error('Failed to update mute setting')
     });

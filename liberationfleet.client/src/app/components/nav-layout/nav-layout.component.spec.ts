@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NavLayoutComponent } from './nav-layout.component';
+import { provideAppShellMocks } from '../../testing/test-helpers';
 
 describe('NavLayoutComponent', () => {
   let fixture: ComponentFixture<NavLayoutComponent>;
@@ -10,7 +11,7 @@ describe('NavLayoutComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NavLayoutComponent, HttpClientTestingModule],
-      providers: [provideRouter([])]
+      providers: [provideRouter([]), ...provideAppShellMocks()]
     }).compileComponents();
 
     fixture = TestBed.createComponent(NavLayoutComponent);
@@ -26,13 +27,13 @@ describe('NavLayoutComponent', () => {
   it('should render bottom navigation links', () => {
     const links = fixture.nativeElement.querySelectorAll('.nav-item');
     expect(links.length).toBe(5);
-    expect(links[0].getAttribute('href')).toContain('/app/crew');
+    expect(links[0].getAttribute('href')).toContain('/app/notifications');
     expect(links[1].getAttribute('href')).toContain('/app/fleet');
-    expect(links[2].getAttribute('href')).toContain('/app/friends');
-    expect(links[3].getAttribute('href')).toContain('/app/notifications');
+    expect(links[2].getAttribute('href')).toContain('/app/crew');
+    expect(links[3].getAttribute('href')).toContain('/app/friends');
     expect(links[4].getAttribute('href')).toContain('/app/profile');
     expect(fixture.nativeElement.querySelectorAll('app-brand-logo.nav-logo').length).toBe(2);
-    expect(fixture.nativeElement.querySelectorAll('.nav-icon').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('.nav-icon').length).toBe(2);
   });
 
   it('should project content into nav layout', () => {

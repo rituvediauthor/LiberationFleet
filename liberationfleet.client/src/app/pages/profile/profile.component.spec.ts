@@ -10,7 +10,8 @@ import {
   createAuthServiceMock,
   createGiftServiceMock,
   createProfileServiceMock,
-  createToastServiceMock
+  createToastServiceMock,
+  provideAppShellMocks
 } from '../../testing/test-helpers';
 
 describe('ProfileComponent', () => {
@@ -64,7 +65,7 @@ describe('ProfileComponent', () => {
       message: 'Profile updated successfully',
       profile: {
         ...mockProfile,
-        username: 'JamesUpdated',
+        username: 'JamesRenamed',
         inNeedOfAid: false,
         emergencyLevel: 2,
         needsSurvivalAid: true
@@ -79,6 +80,7 @@ describe('ProfileComponent', () => {
       imports: [ProfileComponent],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: AuthService, useValue: authService },
         { provide: ProfileService, useValue: profileService },
         { provide: GiftService, useValue: giftService },
@@ -103,14 +105,14 @@ describe('ProfileComponent', () => {
 
   it('should enable save when profile changes even if current password was autofilled alone', () => {
     component.passwordForm.patchValue({ currentPassword: 'AutofilledLoginPassword1!' });
-    component.form.patchValue({ username: 'JamesUpdated' });
+    component.form.patchValue({ username: 'JamesRenamed' });
     component['updateSaveButton']();
 
     expect(component.saveButton.disabled).toBeFalse();
   });
 
   it('should keep save disabled when a password change is started but incomplete', () => {
-    component.form.patchValue({ username: 'JamesUpdated' });
+    component.form.patchValue({ username: 'JamesRenamed' });
     component.passwordForm.patchValue({
       currentPassword: 'OldPassword1!',
       newPassword: 'NewPassword1!',
@@ -121,19 +123,19 @@ describe('ProfileComponent', () => {
     expect(component.saveButton.disabled).toBeTrue();
   });
 
-  it('should save all edited profile fields to the API', () => {
+  it('should save all edited profile fields to the API', async () => {
     component.form.patchValue({
-      username: 'JamesUpdated',
+      username: 'JamesRenamed',
       email: 'james.updated@example.com',
       inNeedOfAid: false,
       emergencyLevel: 2,
       needsSurvivalAid: true
     });
     component['updateSaveButton']();
-    component.onSave();
+    await component.onSave();
 
     expect(profileService.updateProfile).toHaveBeenCalledWith({
-      username: 'JamesUpdated',
+      username: 'JamesRenamed',
       email: 'james.updated@example.com',
       avatarResourceId: null,
       inNeedOfAid: false,
@@ -142,11 +144,13 @@ describe('ProfileComponent', () => {
       disabilityLevel: 0,
       identityGroups: [],
       needsSurvivalAid: true,
-      paymentPlatforms: [{ id: 1, platformId: 1, platform: 'PayPal', handle: 'james@example.com' }]
+      encryptedLocation: undefined,
+      clearLocation: false,
+      paymentPlatforms: []
     });
     expect(authService.updateCurrentUser).toHaveBeenCalledWith({
       id: 4,
-      username: 'JamesUpdated',
+      username: 'JamesRenamed',
       email: 'james@example.com'
     });
     expect(toastService.success).toHaveBeenCalled();

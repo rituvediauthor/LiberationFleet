@@ -68,7 +68,8 @@
 
     <app-library-item-card
       *ngIf="libraryUnitPreview as p"
-      [item]="p.unit">
+      [item]="p.unit"
+      [showFavorite]="true">
     </app-library-item-card>
 
     <article *ngIf="libraryQuestPreview as p" class="preview-quest">
@@ -78,24 +79,25 @@
       <p class="value">${{ p.task.value | number:'1.0-2' }}</p>
     </article>
 
-    <div *ngIf="libraryPreview as p" class="library-carousel-meta">
-      <div class="library-carousel-nav" *ngIf="hasLibraryCarouselControls">
-        <button
-          type="button"
-          class="library-carousel-button"
-          aria-label="Previous library preview"
-          (click)="showPreviousLibraryItem($event)">
-          <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
-        </button>
-        <span class="library-carousel-count">{{ activeLibraryIndex + 1 }} / {{ p.items.length }}</span>
-        <button
-          type="button"
-          class="library-carousel-button"
-          aria-label="Next library preview"
-          (click)="showNextLibraryItem($event)">
-          <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
-        </button>
-      </div>
+  </div>
+
+  <div *ngIf="libraryPreview as p" class="library-carousel-meta">
+    <div class="library-carousel-nav" *ngIf="hasLibraryCarouselControls">
+      <button
+        type="button"
+        class="library-carousel-button"
+        aria-label="Previous library preview"
+        (click)="showPreviousLibraryItem($event)">
+        <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+      </button>
+      <span class="library-carousel-count">{{ activeLibraryIndex + 1 }} / {{ p.items.length }}</span>
+      <button
+        type="button"
+        class="library-carousel-button"
+        aria-label="Next library preview"
+        (click)="showNextLibraryItem($event)">
+        <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+      </button>
     </div>
   </div>
 </div>

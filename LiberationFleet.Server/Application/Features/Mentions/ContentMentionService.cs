@@ -130,6 +130,13 @@ public class ContentMentionService(
             context.Preview,
             mentionTitle + ".");
 
+        var mutePostId = context.ContentType switch
+        {
+            MentionedContentType.ForumPost => context.ResourceId,
+            MentionedContentType.ForumComment => context.ParentResourceId,
+            _ => null
+        };
+
         await notificationService.NotifyUsersAsync(
             notifyUserIds.Select(userId => new CreateNotificationRequest
             {
@@ -141,7 +148,10 @@ public class ContentMentionService(
                 ActionUrl = context.ActionUrl,
                 RelatedEntityId = context.ResourceId,
                 SecondaryEntityId = context.ParentResourceId,
-                ActorUserId = context.OmitNotificationActorIdentity ? null : context.AuthorUserId
+                ActorUserId = context.OmitNotificationActorIdentity ? null : context.AuthorUserId,
+                MuteForumPostId = mutePostId,
+                MuteCrewSpaceId = mutePostId.HasValue && !context.FleetId.HasValue ? context.CrewId : null,
+                MuteFleetSpaceId = mutePostId.HasValue ? context.FleetId : null
             }),
             cancellationToken);
     }

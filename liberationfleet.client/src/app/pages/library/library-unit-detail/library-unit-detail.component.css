@@ -39,8 +39,15 @@
   gap: 8px;
 }
 
+.detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .detail-title {
   margin: 0;
+  flex: 1;
   font-size: 24px;
   font-weight: 700;
   color: var(--lf-color-text-body);

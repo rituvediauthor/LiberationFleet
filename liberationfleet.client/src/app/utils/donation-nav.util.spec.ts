@@ -1,4 +1,5 @@
 import {
+  donationNavigation,
   GOFUNDME_DONATION_URL,
   isProductionDonationHost,
   isStagingDonationHost,
@@ -30,7 +31,7 @@ describe('donation-nav.util', () => {
   });
 
   it('navigates to in-app donate on production', () => {
-    const assignSpy = spyOn(window.location, 'assign');
+    const assignSpy = spyOn(donationNavigation, 'assign');
     const router = jasmine.createSpyObj('Router', ['navigate']);
 
     navigateToDonate(router as never, 'liberationfleet.org');
@@ -40,7 +41,7 @@ describe('donation-nav.util', () => {
   });
 
   it('assigns GoFundMe on staging', () => {
-    const assignSpy = spyOn(window.location, 'assign');
+    const assignSpy = spyOn(donationNavigation, 'assign');
     const router = jasmine.createSpyObj('Router', ['navigate']);
 
     navigateToDonate(router as never, 'staging.example.com');
@@ -50,7 +51,7 @@ describe('donation-nav.util', () => {
   });
 
   it('navigates to in-app donate on localhost', () => {
-    const assignSpy = spyOn(window.location, 'assign');
+    const assignSpy = spyOn(donationNavigation, 'assign');
     const router = jasmine.createSpyObj('Router', ['navigate']);
 
     navigateToDonate(router as never, 'localhost');

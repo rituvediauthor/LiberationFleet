@@ -25,6 +25,7 @@ class StubUserAvatarComponent {
 })
 class StubLibraryItemCardComponent {
   @Input() item: unknown;
+  @Input() showFavorite = false;
 }
 
 describe('CrewDashboardPreviewComponent', () => {
@@ -135,6 +136,9 @@ describe('CrewDashboardPreviewComponent', () => {
 
     const buttons = fixture.nativeElement.querySelectorAll('.library-carousel-button');
     expect(buttons.length).toBe(2);
+    const preview = fixture.nativeElement.querySelector('.dash-preview');
+    expect(preview?.querySelector('.library-carousel-button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.library-carousel-nav')?.parentElement?.classList.contains('dash-preview')).toBeFalse();
 
     fixture.nativeElement.querySelector('.dash-preview')?.click();
     expect(spy).toHaveBeenCalledWith(jasmine.objectContaining({

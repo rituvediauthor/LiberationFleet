@@ -63,6 +63,10 @@ export class FleetLibraryHubComponent implements OnInit {
     this.router.navigate(['/app/crew/library-of-things/digital']);
   }
 
+  openFavorites() {
+    this.router.navigate(['/app/fleet/library/favorites']);
+  }
+
   openQuestBoard() {
     this.router.navigate(['/app/crew/library-of-things/tasks']);
   }

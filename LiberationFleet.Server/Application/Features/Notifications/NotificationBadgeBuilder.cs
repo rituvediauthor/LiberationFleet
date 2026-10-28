@@ -34,16 +34,29 @@ public static class NotificationBadgeBuilder
             .Select(p => p.Kind)
             .ToHashSet();
 
-        var mutedChatRoomIds = mutedContents
+        var utcNow = DateTime.UtcNow;
+        var activeMutes = mutedContents
+            .Where(m => MuteDurationCalculator.IsActive(m.MutedUntil, utcNow))
+            .ToList();
+
+        var mutedChatRoomIds = activeMutes
             .Where(m => m.ContentType == MutedContentType.ChatRoom)
             .Select(m => m.ResourceId)
             .ToHashSet();
-        var mutedForumIds = mutedContents
+        var mutedForumIds = activeMutes
             .Where(m => m.ContentType == MutedContentType.Forum)
             .Select(m => m.ResourceId)
             .ToHashSet();
-        var mutedFriendIds = mutedContents
+        var mutedFriendIds = activeMutes
             .Where(m => m.ContentType == MutedContentType.Friend)
+            .Select(m => m.ResourceId)
+            .ToHashSet();
+        var mutedCrewSpaceIds = activeMutes
+            .Where(m => m.ContentType == MutedContentType.CrewSpace)
+            .Select(m => m.ResourceId)
+            .ToHashSet();
+        var mutedFleetSpaceIds = activeMutes
+            .Where(m => m.ContentType == MutedContentType.FleetSpace)
             .Select(m => m.ResourceId)
             .ToHashSet();
         var hiddenChatRoomIds = hiddenContents
@@ -67,6 +80,8 @@ public static class NotificationBadgeBuilder
                     mutedChatRoomIds,
                     mutedForumIds,
                     mutedFriendIds,
+                    mutedCrewSpaceIds,
+                    mutedFleetSpaceIds,
                     hiddenChatRoomIds,
                     hiddenForumIds,
                     hiddenUserIds))
@@ -104,11 +119,18 @@ public static class NotificationBadgeBuilder
         HashSet<int> mutedChatRoomIds,
         HashSet<int> mutedForumIds,
         HashSet<int> mutedFriendIds,
+        HashSet<int> mutedCrewSpaceIds,
+        HashSet<int> mutedFleetSpaceIds,
         HashSet<int> hiddenChatRoomIds,
         HashSet<int> hiddenForumIds,
         IReadOnlySet<int> hiddenUserIds)
     {
         if (disabledKinds.Contains(notification.Kind))
+        {
+            return true;
+        }
+
+        if (IsSpaceMuted(notification, mutedCrewSpaceIds, mutedFleetSpaceIds))
         {
             return true;
         }
@@ -148,6 +170,23 @@ public static class NotificationBadgeBuilder
         }
 
         return false;
+    }
+
+    private static bool IsSpaceMuted(
+        Notification notification,
+        HashSet<int> mutedCrewSpaceIds,
+        HashSet<int> mutedFleetSpaceIds)
+    {
+        var path = NotificationLegacySupport.PathPrefix(notification.ActionUrl);
+        if (path.StartsWith("/app/crew/forums/", StringComparison.Ordinal)
+            && notification.CrewId is int crewId
+            && mutedCrewSpaceIds.Contains(crewId))
+        {
+            return true;
+        }
+
+        return path.StartsWith("/app/fleet/forums/", StringComparison.Ordinal)
+            && mutedFleetSpaceIds.Count > 0;
     }
 
     private static bool IsMutedOrHiddenChatRoom(

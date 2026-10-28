@@ -134,12 +134,14 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         }
 
         var ids = userIds as IList<int> ?? userIds.ToList();
+        var utcNow = DateTime.UtcNow;
         var muted = await context.UserMutedContents
             .AsNoTracking()
             .Where(m =>
                 ids.Contains(m.UserId)
                 && m.ContentType == contentType
-                && m.ResourceId == resourceId)
+                && m.ResourceId == resourceId
+                && (m.MutedUntil == null || m.MutedUntil > utcNow))
             .Select(m => m.UserId)
             .ToListAsync(cancellationToken);
 
@@ -273,17 +275,35 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
         return preference?.IsEnabled ?? true;
     }
 
-    public Task<bool> IsContentMutedAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default) =>
-        context.UserMutedContents.AnyAsync(
+    public Task<bool> IsContentMutedAsync(int userId, MutedContentType contentType, int resourceId, CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        return context.UserMutedContents.AnyAsync(
+            m => m.UserId == userId
+                && m.ContentType == contentType
+                && m.ResourceId == resourceId
+                && (m.MutedUntil == null || m.MutedUntil > utcNow),
+            cancellationToken);
+    }
+
+    public Task<UserMutedContent?> FindTrackedMuteAsync(
+        int userId,
+        MutedContentType contentType,
+        int resourceId,
+        CancellationToken cancellationToken = default) =>
+        context.UserMutedContents.FirstOrDefaultAsync(
             m => m.UserId == userId && m.ContentType == contentType && m.ResourceId == resourceId,
             cancellationToken);
 
-    public async Task<IReadOnlyList<UserMutedContent>> GetMutedContentsAsync(int userId, CancellationToken cancellationToken = default) =>
-        await context.UserMutedContents
+    public async Task<IReadOnlyList<UserMutedContent>> GetMutedContentsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        return await context.UserMutedContents
             .AsNoTracking()
-            .Where(m => m.UserId == userId)
+            .Where(m => m.UserId == userId && (m.MutedUntil == null || m.MutedUntil > utcNow))
             .OrderByDescending(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
+    }
 
     public async Task AddMutedContentAsync(UserMutedContent mutedContent, CancellationToken cancellationToken = default) =>
         await context.UserMutedContents.AddAsync(mutedContent, cancellationToken);

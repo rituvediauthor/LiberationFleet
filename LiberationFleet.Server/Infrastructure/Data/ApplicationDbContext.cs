@@ -85,6 +85,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<ContentMention> ContentMentions => Set<ContentMention>();
     public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
     public DbSet<UserMutedContent> UserMutedContents => Set<UserMutedContent>();
+    public DbSet<UserLibraryFavorite> UserLibraryFavorites => Set<UserLibraryFavorite>();
     public DbSet<UserHiddenContent> UserHiddenContents => Set<UserHiddenContent>();
     public DbSet<DirectConversation> DirectConversations => Set<DirectConversation>();
     public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
@@ -1565,6 +1566,20 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserLibraryFavorite>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.LibraryUnitId }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.LibraryUnit)
+                .WithMany()
+                .HasForeignKey(e => e.LibraryUnitId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

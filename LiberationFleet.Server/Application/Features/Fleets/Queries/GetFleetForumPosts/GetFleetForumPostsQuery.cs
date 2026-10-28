@@ -84,7 +84,7 @@ public class GetFleetForumPostsQueryHandler(
         return new ForumListResponse
         {
             Success = true,
-            Message = "Forum posts loaded.",
+            Message = "Posts loaded.",
             Items = items,
             HasMore = page.HasMore
         };

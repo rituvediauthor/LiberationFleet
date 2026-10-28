@@ -12,24 +12,36 @@
             [enabled]="!!status?.hasFleet">
           </app-donation-campaign-widget>
 
-          <button
-            type="button"
-            class="info-widget info-widget-button"
+          <div
+            class="info-widget next-aid-widget"
             *ngIf="showNextAidWidget"
-            [attr.aria-busy]="!nextAidLoaded"
-            [disabled]="!nextAidLoaded"
-            (click)="goToNextAidAction()"
-            aria-label="Open next aid action">
-            <span class="info-label">Next aid</span>
-            <ng-container *ngIf="nextAidLoaded; else nextAidSkeleton">
-              <p class="info-text">{{ nextAidHeadline }}</p>
-              <p class="info-platform" *ngIf="nextAidPlatformLine">{{ nextAidPlatformLine }}</p>
-            </ng-container>
-            <ng-template #nextAidSkeleton>
-              <p class="info-text info-skeleton" aria-hidden="true">&nbsp;</p>
-              <p class="info-platform info-skeleton" aria-hidden="true">&nbsp;</p>
-            </ng-template>
-          </button>
+            [attr.aria-busy]="!nextAidLoaded">
+            <button
+              type="button"
+              class="info-widget-open"
+              [disabled]="!nextAidLoaded"
+              (click)="goToNextAidAction()"
+              aria-label="Open next aid action">
+              <span class="info-label">Next aid</span>
+              <ng-container *ngIf="nextAidLoaded; else nextAidSkeleton">
+                <p class="info-text">{{ nextAidHeadline }}</p>
+              </ng-container>
+              <ng-template #nextAidSkeleton>
+                <p class="info-text info-skeleton" aria-hidden="true">&nbsp;</p>
+                <p class="info-platform info-skeleton" aria-hidden="true">&nbsp;</p>
+              </ng-template>
+            </button>
+            <p class="info-platform info-platform-row" *ngIf="nextAidLoaded && nextAidPlatformLine">
+              <button type="button" class="info-platform-open" (click)="goToNextAidAction()">
+                {{ nextAidPlatformLine }}
+              </button>
+              <app-copy-text-button
+                *ngIf="nextAidHandle"
+                [value]="nextAidHandle"
+                label="payment handle">
+              </app-copy-text-button>
+            </p>
+          </div>
         </div>
 
         <nav class="fleet-menu" aria-label="Fleet actions">
@@ -42,20 +54,32 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <button type="button" class="menu-link fleet-name-link" (click)="goToForums()">
-            <span class="menu-icon-wrap">
-              <app-brand-logo
-                class="menu-brand-logo"
-                variant="fleet"
-                size="sm"
-                alt=""
-                [customSrc]="fleetImageSrc">
-              </app-brand-logo>
-              <app-content-badge [count]="areaCounts.fleetForums"></app-content-badge>
-            </span>
-            <span class="menu-label">{{ status?.fleetName }}</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <div class="menu-link menu-link-split fleet-name-link">
+            <button type="button" class="menu-link-main" (click)="goToForums()">
+              <span class="menu-icon-wrap">
+                <app-brand-logo
+                  class="menu-brand-logo"
+                  variant="fleet"
+                  size="sm"
+                  alt=""
+                  [customSrc]="fleetImageSrc">
+                </app-brand-logo>
+                <app-content-badge [count]="areaCounts.fleetForums"></app-content-badge>
+              </span>
+              <span class="menu-label">{{ status?.fleetName }}</span>
+            </button>
+            <button
+              type="button"
+              class="space-mute-btn"
+              [class.active]="spaceMuted"
+              (click)="openSpaceMute($event)"
+              [attr.aria-label]="spaceMuted ? 'Posts muted. Change mute' : 'Mute posts'">
+              <i class="fa-solid" [class.fa-bell-slash]="spaceMuted" [class.fa-bell]="!spaceMuted" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="menu-chevron-btn" (click)="goToForums()" aria-label="Open posts">
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </div>
 
           <button type="button" class="menu-link" (click)="goToChats()">
             <span class="menu-icon-wrap">
@@ -170,4 +194,11 @@
       </ng-container>
     </ng-template>
   </div>
+  <app-mute-duration-dialog
+    [visible]="muteTarget !== null"
+    (durationChosen)="onMuteDuration($event)"
+    (cancelMute)="onCancelMute()"
+    (dismissed)="dismissMuteDialog()">
+  </app-mute-duration-dialog>
+
 </app-nav-layout>

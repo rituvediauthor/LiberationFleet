@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { JoinCrewComponent } from './join-crew.component';
 import { CrewService } from '../../services/crew.service';
 import { ToastService } from '../../components/toast/toast.component';
-import { createCrewServiceMock, createToastServiceMock } from '../../testing/test-helpers';
+import { createCrewServiceMock, createToastServiceMock, provideAppShellMocks } from '../../testing/test-helpers';
 
 describe('JoinCrewComponent', () => {
   let fixture: ComponentFixture<JoinCrewComponent>;
@@ -43,6 +43,7 @@ describe('JoinCrewComponent', () => {
       imports: [JoinCrewComponent],
       providers: [
         provideRouter([]),
+        ...provideAppShellMocks(),
         { provide: CrewService, useValue: crewService },
         { provide: ToastService, useValue: toastService }
       ]

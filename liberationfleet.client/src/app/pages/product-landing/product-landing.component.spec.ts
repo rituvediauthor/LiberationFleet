@@ -1,36 +1,41 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { DevMutualAidService } from '../../components/dev-toolbar/dev-mutual-aid.service';
 import { ToastService } from '../../components/toast/toast.component';
+import { AuthService } from '../../services/auth.service';
 import { DevToolsService } from '../../services/dev-tools.service';
+import { createAuthServiceMock, provideAppShellMocks } from '../../testing/test-helpers';
 import { ProductLandingComponent } from './product-landing.component';
 
 describe('ProductLandingComponent', () => {
   let fixture: ComponentFixture<ProductLandingComponent>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
   let devMutualAid: jasmine.SpyObj<DevMutualAidService>;
   let devTools: jasmine.SpyObj<DevToolsService>;
   let toastService: jasmine.SpyObj<ToastService>;
 
   beforeEach(async () => {
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
-    router.navigate.and.returnValue(Promise.resolve(true));
     devMutualAid = jasmine.createSpyObj<DevMutualAidService>('DevMutualAidService', ['resetApp']);
-    devTools = jasmine.createSpyObj<DevToolsService>('DevToolsService', ['load']);
+    devTools = jasmine.createSpyObj<DevToolsService>('DevToolsService', ['load'], { isEnabled: false });
     toastService = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error']);
     devTools.load.and.returnValue(of({ enabled: false }));
 
     await TestBed.configureTestingModule({
       imports: [ProductLandingComponent],
       providers: [
-        { provide: Router, useValue: router },
+        provideRouter([]),
+        ...provideAppShellMocks(),
+        { provide: AuthService, useValue: createAuthServiceMock() },
         { provide: DevMutualAidService, useValue: devMutualAid },
         { provide: DevToolsService, useValue: devTools },
         { provide: ToastService, useValue: toastService }
       ]
     }).compileComponents();
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
 
     fixture = TestBed.createComponent(ProductLandingComponent);
     fixture.detectChanges();

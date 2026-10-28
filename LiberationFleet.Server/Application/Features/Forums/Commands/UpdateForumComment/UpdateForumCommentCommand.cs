@@ -40,12 +40,12 @@ public class UpdateForumCommentCommandHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
+            return new ForumOperationResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.CrewId.HasValue)
         {
-            return new ForumOperationResponse { Success = false, Message = "Not a crew forum post." };
+            return new ForumOperationResponse { Success = false, Message = "Not a crew post." };
         }
 
         var crewId = post.CrewId.Value;

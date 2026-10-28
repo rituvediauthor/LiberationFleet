@@ -1,0 +1,8 @@
+<button
+  type="button"
+  class="copy-text-btn"
+  (click)="copy($event)"
+  [attr.aria-label]="'Copy ' + label"
+  [title]="'Copy ' + label">
+  <i class="fa-regular fa-copy" aria-hidden="true"></i>
+</button>

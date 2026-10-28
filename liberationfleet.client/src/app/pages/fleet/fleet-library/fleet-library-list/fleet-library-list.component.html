@@ -35,9 +35,9 @@
     </p>
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">
-      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openItem(item)">
-        <app-library-item-card [item]="item" [holderLabel]="holderLabel"></app-library-item-card>
-      </button>
+      <div class="item-card-button" *ngFor="let item of items" (click)="openItem(item)">
+        <app-library-item-card [item]="item" [holderLabel]="holderLabel" [showFavorite]="true"></app-library-item-card>
+      </div>
       <div *ngIf="hasMore" class="load-more-sentinel" #loadMoreSentinel aria-hidden="true"></div>
       <p *ngIf="loadingMore" class="state-text">Loading more...</p>
     </div>

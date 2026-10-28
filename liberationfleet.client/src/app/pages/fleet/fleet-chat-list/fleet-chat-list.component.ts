@@ -9,7 +9,8 @@ import { NavigationService } from '../../../services/navigation.service';
 import { FleetService } from '../../../services/fleet.service';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatRoomListItem } from '../../../models/chat.model';
-import { HiddenContentItem, MutedContentItem } from '../../../models/notification.model';
+import { HiddenContentItem, MuteDuration, MutedContentItem, MutedContentType, withMute } from '../../../models/notification.model';
+import { MuteDurationDialogComponent } from '../../../components/mute-duration-dialog/mute-duration-dialog.component';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
 import { EncryptionContentService } from '../../../services/encryption-content.service';
@@ -22,7 +23,7 @@ import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError, isR
 @Component({
   selector: 'app-fleet-chat-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent, MuteDurationDialogComponent],
   templateUrl: './fleet-chat-list.component.html',
   styleUrl: './fleet-chat-list.component.css'
 })
@@ -33,6 +34,7 @@ export class FleetChatListComponent implements OnInit, OnDestroy {
   pageMenuOpen = false;
   openMenuRoomId: number | null = null;
   mutedItems: MutedContentItem[] = [];
+  muteTarget: { contentType: MutedContentType; resourceId: number; noun: string } | null = null;
   hiddenItems: HiddenContentItem[] = [];
   showHiddenExpanded = false;
   showAdultGate = false;
@@ -187,22 +189,41 @@ export class FleetChatListComponent implements OnInit, OnDestroy {
   muteRoom(room: ChatRoomListItem, event: Event) {
     event.stopPropagation();
     this.openMenuRoomId = null;
-    const muted = !this.isRoomMuted(room.id);
-    this.notificationService.setMute('ChatRoom', room.id, muted).subscribe({
+    this.muteTarget = { contentType: 'ChatRoom', resourceId: room.id, noun: 'Chat room' };
+  }
+
+  onMuteDuration(duration: MuteDuration) {
+    this.commitMute(duration);
+  }
+
+  onCancelMute() {
+    const target = this.muteTarget;
+    if (!target || !this.notificationService.isMuted(this.mutedItems, target.contentType, target.resourceId)) {
+      this.muteTarget = null;
+      return;
+    }
+    this.commitMute(null);
+  }
+
+  dismissMuteDialog() {
+    this.muteTarget = null;
+  }
+
+  private commitMute(duration: MuteDuration | null) {
+    const target = this.muteTarget;
+    this.muteTarget = null;
+    if (!target) {
+      return;
+    }
+    const muted = duration !== null;
+    this.notificationService.setMute(target.contentType, target.resourceId, muted, duration).subscribe({
       next: response => {
         if (!response.success) {
           this.toastService.error(response.message || 'Failed to update mute setting');
           return;
         }
-        if (muted) {
-          this.mutedItems = [...this.mutedItems, { contentType: 'ChatRoom', resourceId: room.id }];
-          this.toastService.success('Chat room muted');
-        } else {
-          this.mutedItems = this.mutedItems.filter(
-            item => !(item.contentType === 'ChatRoom' && item.resourceId === room.id)
-          );
-          this.toastService.success('Chat room unmuted');
-        }
+        this.mutedItems = withMute(this.mutedItems, target.contentType, target.resourceId, duration);
+        this.toastService.success(muted ? `${target.noun} muted` : `${target.noun} unmuted`);
       },
       error: (error: unknown) => this.toastService.error(describeLoadError(error, 'Failed to update mute setting'))
     });

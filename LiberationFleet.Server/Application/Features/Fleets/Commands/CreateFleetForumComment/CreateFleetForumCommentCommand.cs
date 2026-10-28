@@ -47,12 +47,12 @@ public class CreateFleetForumCommentCommandHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
+            return new ForumOperationResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.FleetId.HasValue)
         {
-            return new ForumOperationResponse { Success = false, Message = "Not a fleet forum post." };
+            return new ForumOperationResponse { Success = false, Message = "Not a fleet post." };
         }
 
         var fleetId = post.FleetId.Value;
@@ -126,11 +126,13 @@ public class CreateFleetForumCommentCommandHandler(
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.NewFleetReply,
                 Title = NotificationCopy.RepliedOnFleetForum(actorName, toComment: true),
-                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your fleet forum comment."),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your fleet comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
                 ActorUserId = userId,
+                MuteForumPostId = post.Id,
+                MuteFleetSpaceId = fleetId,
                 RecipientWasMentioned = mentionedUserIds.Contains(parentComment.AuthorUserId)
             }, cancellationToken);
         }
@@ -144,11 +146,13 @@ public class CreateFleetForumCommentCommandHandler(
                 CrewId = membership.CrewId,
                 Kind = NotificationKind.NewFleetForumComment,
                 Title = NotificationCopy.RepliedOnFleetForum(actorName, toComment: false),
-                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} commented on your fleet forum post."),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} commented on your fleet post."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
                 ActorUserId = userId,
+                MuteForumPostId = post.Id,
+                MuteFleetSpaceId = fleetId,
                 RecipientWasMentioned = mentionedUserIds.Contains(post.AuthorUserId)
             }, cancellationToken);
         }

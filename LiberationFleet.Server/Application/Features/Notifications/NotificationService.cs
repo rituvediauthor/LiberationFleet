@@ -20,6 +20,11 @@ public class NotificationService(
             return;
         }
 
+        if (await IsSuppressedByContentMuteAsync(request, cancellationToken))
+        {
+            return;
+        }
+
         if (!await notificationRepository.IsKindEnabledAsync(request.UserId, request.Kind, cancellationToken))
         {
             return;
@@ -78,12 +83,21 @@ public class NotificationService(
             }
         }
 
-        if (enabledRequests.Count == 0)
+        var deliverable = new List<CreateNotificationRequest>(enabledRequests.Count);
+        foreach (var request in enabledRequests)
+        {
+            if (!await IsSuppressedByContentMuteAsync(request, cancellationToken))
+            {
+                deliverable.Add(request);
+            }
+        }
+
+        if (deliverable.Count == 0)
         {
             return;
         }
 
-        var notifications = enabledRequests.Select(MapToEntity).ToList();
+        var notifications = deliverable.Select(MapToEntity).ToList();
         await notificationRepository.AddRangeAsync(notifications, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -191,6 +205,43 @@ public class NotificationService(
         await realtimeNotifier.NotifyUnreadCountUpdatedAsync(userId, summary.UnreadCount, cancellationToken);
         await realtimeNotifier.NotifyBadgeSummaryUpdatedAsync(userId, summary, cancellationToken);
         return summary;
+    }
+
+    private async Task<bool> IsSuppressedByContentMuteAsync(
+        CreateNotificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.MuteForumPostId is > 0
+            && await notificationRepository.IsContentMutedAsync(
+                request.UserId,
+                MutedContentType.Forum,
+                request.MuteForumPostId.Value,
+                cancellationToken))
+        {
+            return true;
+        }
+
+        if (request.MuteCrewSpaceId is > 0
+            && await notificationRepository.IsContentMutedAsync(
+                request.UserId,
+                MutedContentType.CrewSpace,
+                request.MuteCrewSpaceId.Value,
+                cancellationToken))
+        {
+            return true;
+        }
+
+        if (request.MuteFleetSpaceId is > 0
+            && await notificationRepository.IsContentMutedAsync(
+                request.UserId,
+                MutedContentType.FleetSpace,
+                request.MuteFleetSpaceId.Value,
+                cancellationToken))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public static string GetKindLabel(NotificationKind kind) => kind switch

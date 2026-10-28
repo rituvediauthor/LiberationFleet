@@ -32,6 +32,28 @@ class StubNavLayoutComponent {
 }
 
 @Component({
+  selector: 'app-mute-duration-dialog',
+  standalone: true,
+  template: ''
+})
+class StubMuteDurationDialogComponent {
+  @Input() visible = false;
+  @Output() durationChosen = new EventEmitter<unknown>();
+  @Output() cancelMute = new EventEmitter<void>();
+  @Output() dismissed = new EventEmitter<void>();
+}
+
+@Component({
+  selector: 'app-copy-text-button',
+  standalone: true,
+  template: ''
+})
+class StubCopyTextButtonComponent {
+  @Input() value = '';
+  @Input() label = '';
+}
+
+@Component({
   selector: 'app-donation-campaign-widget',
   standalone: true,
   template: ''
@@ -155,7 +177,13 @@ describe('CrewHomeComponent', () => {
   let unlocked$: BehaviorSubject<boolean>;
   let cryptoUnlocked = false;
   let areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>;
-  let notificationService: { areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>; refreshBadges: jasmine.Spy };
+  let notificationService: {
+    areaCounts$: BehaviorSubject<ReturnType<typeof emptyAreaCounts>>;
+    refreshBadges: jasmine.Spy;
+    getMutes: jasmine.Spy;
+    isMuted: jasmine.Spy;
+    setMute: jasmine.Spy;
+  };
   let dashboardPreviewService: {
     loadPreviews: jasmine.Spy;
     loadPreview: jasmine.Spy;
@@ -187,7 +215,10 @@ describe('CrewHomeComponent', () => {
     areaCounts$ = new BehaviorSubject(emptyAreaCounts());
     notificationService = {
       areaCounts$,
-      refreshBadges: jasmine.createSpy('refreshBadges')
+      refreshBadges: jasmine.createSpy('refreshBadges'),
+      getMutes: jasmine.createSpy('getMutes').and.returnValue(of({ success: true, message: '', items: [] })),
+      isMuted: jasmine.createSpy('isMuted').and.returnValue(false),
+      setMute: jasmine.createSpy('setMute').and.returnValue(of({ success: true, message: '' }))
     };
     dashboardPreviewService = {
       loadPreviews: jasmine.createSpy('loadPreviews').and.resolveTo({
@@ -276,7 +307,9 @@ describe('CrewHomeComponent', () => {
             StubCrewFindPanelComponent,
             StubCollapsibleSectionComponent,
             StubConfirmDialogComponent,
-            StubCharCounterComponent
+            StubCharCounterComponent,
+            StubMuteDurationDialogComponent,
+            StubCopyTextButtonComponent
           ]
         }
       })

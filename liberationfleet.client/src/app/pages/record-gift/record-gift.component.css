@@ -169,6 +169,10 @@ label {
 }
 
 .preferred-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 8px 0 0;
   font-size: 13px;
   color: var(--lf-color-text-secondary);

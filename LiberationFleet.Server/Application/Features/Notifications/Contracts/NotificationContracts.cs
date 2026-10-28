@@ -71,6 +71,15 @@ public class CreateNotificationRequest
     /// (or fleet mention) notifications enabled. They get the mention instead.
     /// </summary>
     public bool RecipientWasMentioned { get; set; }
+
+    /// <summary>When set, skip this notification if the recipient muted that post.</summary>
+    public int? MuteForumPostId { get; set; }
+
+    /// <summary>When set, skip this notification if the recipient muted that crew's posts.</summary>
+    public int? MuteCrewSpaceId { get; set; }
+
+    /// <summary>When set, skip this notification if the recipient muted that fleet's posts.</summary>
+    public int? MuteFleetSpaceId { get; set; }
 }
 
 public class NotificationBadgeSummaryResponse
@@ -92,6 +101,7 @@ public class MutedContentDto
 {
     public MutedContentType ContentType { get; set; }
     public int ResourceId { get; set; }
+    public DateTime? MutedUntil { get; set; }
 }
 
 public class MutedContentListResponse
@@ -106,6 +116,8 @@ public class SetMutedContentRequest
     public MutedContentType ContentType { get; set; }
     public int ResourceId { get; set; }
     public bool Muted { get; set; }
+    /// <summary>Ignored when <see cref="Muted"/> is false. Null means the mute does not expire.</summary>
+    public MuteDuration? Duration { get; set; }
 }
 
 public class HiddenContentDto

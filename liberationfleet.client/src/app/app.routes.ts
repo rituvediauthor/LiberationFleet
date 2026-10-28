@@ -172,6 +172,12 @@ export const routes: Routes = [
     data: { parentTab: 'fleet', locationHeader: 'Library of Things' }
   },
   {
+    path: 'app/fleet/library/favorites',
+    loadComponent: () => import('./pages/library/library-favorites/library-favorites.component').then(m => m.LibraryFavoritesComponent),
+    canActivate: [authGuard, fleetRulesAcceptedGuard],
+    data: { parentTab: 'fleet', locationHeader: 'Favorites', scope: 'fleet' }
+  },
+  {
     path: 'app/fleet/library/durable',
     loadComponent: () => import('./pages/fleet/fleet-library/fleet-library-list/fleet-library-list.component').then(m => m.FleetLibraryListComponent),
     canActivate: [authGuard, fleetRulesAcceptedGuard],
@@ -740,6 +746,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/library/library-tasks/library-task-board/library-task-board.component').then(m => m.LibraryTaskBoardComponent),
     canActivate: [authGuard, libraryAccessGuard],
     data: { parentTab: 'crew', locationHeader: 'Quest Board' }
+  },
+  {
+    path: 'app/crew/library-of-things/favorites',
+    loadComponent: () => import('./pages/library/library-favorites/library-favorites.component').then(m => m.LibraryFavoritesComponent),
+    canActivate: [authGuard, libraryAccessGuard],
+    data: { parentTab: 'crew', locationHeader: 'Favorites', scope: 'crew' }
   },
   {
     path: 'app/crew/library-of-things/durable',

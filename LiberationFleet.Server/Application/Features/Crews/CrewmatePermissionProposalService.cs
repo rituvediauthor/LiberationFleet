@@ -134,7 +134,7 @@ public class CrewmatePermissionProposalService(
         var (title, description) = grantType == CrewmatePermissionGrantType.AttachFiles
             ? (
                 $"Grant file attachments to {targetName}",
-                $"Allow {targetName} to attach files to crew chats, forums, comments, and library offerings.")
+                $"Allow {targetName} to attach files to crew chats, posts, comments, and library offerings.")
             : (
                 $"Grant proposal creation to {targetName}",
                 $"Allow {targetName} to create crew proposals regardless of tenure or contribution requirements.");

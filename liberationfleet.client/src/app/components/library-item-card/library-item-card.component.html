@@ -1,4 +1,9 @@
 <div class="library-item-card">
+  <app-library-favorite-button
+    *ngIf="showFavorite"
+    [unitId]="item.unitId"
+    placement="overlay">
+  </app-library-favorite-button>
   <div class="card-thumb" *ngIf="item.thumbnailUrl; else placeholderThumb">
     <img [src]="item.thumbnailUrl" [alt]="item.title" />
   </div>

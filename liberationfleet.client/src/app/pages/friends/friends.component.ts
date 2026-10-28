@@ -12,6 +12,8 @@ import { NotificationService } from '../../services/notification.service';
 import { NotificationContentService } from '../../services/notification-content.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { FriendListItem } from '../../models/friend.model';
+import { MuteDuration } from '../../models/notification.model';
+import { MuteDurationDialogComponent } from '../../components/mute-duration-dialog/mute-duration-dialog.component';
 import { formatLastActive } from '../../models/crewmate.model';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 import { USERNAME_MAX_LENGTH } from '../../utils/username.util';
@@ -19,7 +21,7 @@ import { USERNAME_MAX_LENGTH } from '../../utils/username.util';
 @Component({
   selector: 'app-friends',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent, ContentBadgeComponent],
+  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent, ContentBadgeComponent, MuteDurationDialogComponent],
   templateUrl: './friends.component.html',
   styleUrl: './friends.component.css'
 })
@@ -29,6 +31,7 @@ export class FriendsComponent implements OnInit, OnDestroy {
   errorMessage = '';
   searchQuery = '';
   openMenuUserId: number | null = null;
+  muteTarget: FriendListItem | null = null;
   actionLoading = false;
   showBlockDialog = false;
   blockTarget: FriendListItem | null = null;
@@ -115,14 +118,41 @@ export class FriendsComponent implements OnInit, OnDestroy {
   muteFriend(friend: FriendListItem, event: Event) {
     event.stopPropagation();
     this.openMenuUserId = null;
-    this.notificationService.setMute('Friend', friend.userId, !friend.isMuted).subscribe({
+    this.muteTarget = friend;
+  }
+
+  onMuteDuration(duration: MuteDuration) {
+    this.commitFriendMute(duration);
+  }
+
+  onCancelMute() {
+    const friend = this.muteTarget;
+    if (!friend?.isMuted) {
+      this.muteTarget = null;
+      return;
+    }
+    this.commitFriendMute(null);
+  }
+
+  dismissMuteDialog() {
+    this.muteTarget = null;
+  }
+
+  private commitFriendMute(duration: MuteDuration | null) {
+    const friend = this.muteTarget;
+    this.muteTarget = null;
+    if (!friend) {
+      return;
+    }
+    const muted = duration !== null;
+    this.notificationService.setMute('Friend', friend.userId, muted, duration).subscribe({
       next: response => {
         if (!response.success) {
           this.toastService.error(response.message || 'Failed to update mute');
           return;
         }
-        friend.isMuted = !friend.isMuted;
-        this.toastService.success(friend.isMuted ? 'Friend muted' : 'Friend unmuted');
+        friend.isMuted = muted;
+        this.toastService.success(muted ? 'Direct messages muted' : 'Direct messages unmuted');
       },
       error: () => this.toastService.error('Failed to update mute')
     });

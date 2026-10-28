@@ -62,7 +62,7 @@
               (click)="$event.stopPropagation()"
               (keydown.escape)="closeMenus()">
               <button type="button" role="menuitem" (click)="toggleMute(item, $event)">
-                {{ isItemMuted(item.id) ? 'Unmute' : 'Mute' }}
+                Mute
               </button>
               <button type="button" role="menuitem" (click)="hideItem(item, $event)">Hide</button>
             </div>
@@ -238,3 +238,10 @@
   [fleetId]="fleetId || null"
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>
+
+<app-mute-duration-dialog
+  [visible]="muteTarget !== null"
+  (durationChosen)="onMuteDuration($event)"
+  (cancelMute)="onCancelMute()"
+  (dismissed)="dismissMuteDialog()">
+</app-mute-duration-dialog>

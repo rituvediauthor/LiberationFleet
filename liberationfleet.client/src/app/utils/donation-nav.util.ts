@@ -35,6 +35,13 @@ export function isProductionDonationHost(
   );
 }
 
+/** Lets tests observe external navigation without replacing `window.location`. */
+export const donationNavigation = {
+  assign(url: string): void {
+    window.location.assign(url);
+  }
+};
+
 /** External GoFundMe when staging, or when the live bypass flag is on. */
 export function shouldUseExternalDonationCheckout(
   hostname: string = typeof location !== 'undefined' ? location.hostname : ''
@@ -55,7 +62,7 @@ export function navigateToDonate(
   hostname: string = typeof location !== 'undefined' ? location.hostname : ''
 ): void {
   if (shouldUseExternalDonationCheckout(hostname)) {
-    window.location.assign(GOFUNDME_DONATION_URL);
+    donationNavigation.assign(GOFUNDME_DONATION_URL);
     return;
   }
 

@@ -37,7 +37,7 @@ public class ToggleForumCommentLikeCommandHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumLikeToggleResponse { Success = false, Message = "Forum post not found." };
+            return new ForumLikeToggleResponse { Success = false, Message = "Post not found." };
         }
 
         int? crewId = null;
@@ -66,7 +66,7 @@ public class ToggleForumCommentLikeCommandHandler(
         }
         else
         {
-            return new ForumLikeToggleResponse { Success = false, Message = "Forum post not found." };
+            return new ForumLikeToggleResponse { Success = false, Message = "Post not found." };
         }
 
         var comment = await forumRepository.GetCommentByIdAsync(request.CommentId, cancellationToken);
@@ -102,11 +102,14 @@ public class ToggleForumCommentLikeCommandHandler(
                     Body = NotificationCopy.PreviewOr(
                         request.NotificationPreview,
                         comment.Body,
-                        $"{actorName} liked your {(isFleet ? "fleet " : "")}forum comment."),
+                        $"{actorName} liked your {(isFleet ? "fleet " : "")}comment."),
                     ActionUrl = actionUrl,
                     RelatedEntityId = post.Id,
                     SecondaryEntityId = comment.Id,
-                    ActorUserId = userId
+                    ActorUserId = userId,
+                    MuteForumPostId = post.Id,
+                    MuteCrewSpaceId = isFleet ? null : crewId,
+                    MuteFleetSpaceId = post.FleetId
                 }, cancellationToken);
                 like.AuthorNotified = true;
             }

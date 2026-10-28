@@ -23,7 +23,7 @@ public class DeleteForumPostCommandHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
+            return new ForumOperationResponse { Success = false, Message = "Post not found." };
         }
 
         if (post.AuthorUserId != userId)
@@ -35,6 +35,6 @@ public class DeleteForumPostCommandHandler(
         post.LastActivityAt = DateTime.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new ForumOperationResponse { Success = true, Message = "Forum post deleted." };
+        return new ForumOperationResponse { Success = true, Message = "Post deleted." };
     }
 }

@@ -101,7 +101,7 @@ public class CreateFleetForumPostCommandHandler(
         return new ForumOperationResponse
         {
             Success = true,
-            Message = "Forum post created.",
+            Message = "Post created.",
             PostId = post.Id
         };
     }

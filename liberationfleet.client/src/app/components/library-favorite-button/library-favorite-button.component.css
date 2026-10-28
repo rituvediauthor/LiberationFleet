@@ -1,0 +1,33 @@
+:host {
+  display: inline-flex;
+}
+
+.favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 999px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-secondary);
+  cursor: pointer;
+}
+
+.favorite-btn.overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+
+.favorite-btn.active {
+  color: var(--lf-color-accent);
+  border-color: var(--lf-color-accent);
+}
+
+.favorite-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}

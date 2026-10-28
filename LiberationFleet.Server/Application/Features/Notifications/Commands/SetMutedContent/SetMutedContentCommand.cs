@@ -8,7 +8,11 @@ using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Notifications.Commands.SetMutedContent;
 
-public record SetMutedContentCommand(MutedContentType ContentType, int ResourceId, bool Muted)
+public record SetMutedContentCommand(
+    MutedContentType ContentType,
+    int ResourceId,
+    bool Muted,
+    MuteDuration? Duration = null)
     : IRequest<NotificationOperationResponse>;
 
 public class SetMutedContentCommandHandler(
@@ -50,21 +54,29 @@ public class SetMutedContentCommandHandler(
 
         if (request.Muted)
         {
-            var alreadyMuted = await notificationRepository.IsContentMutedAsync(
+            var utcNow = DateTime.UtcNow;
+            var mutedUntil = MuteDurationCalculator.Until(request.Duration, utcNow);
+            var existing = await notificationRepository.FindTrackedMuteAsync(
                 userId,
                 request.ContentType,
                 request.ResourceId,
                 cancellationToken);
 
-            if (!alreadyMuted)
+            if (existing is null)
             {
                 await notificationRepository.AddMutedContentAsync(new UserMutedContent
                 {
                     UserId = userId,
                     ContentType = request.ContentType,
                     ResourceId = request.ResourceId,
-                    CreatedAt = DateTime.UtcNow
+                    MutedUntil = mutedUntil,
+                    CreatedAt = utcNow
                 }, cancellationToken);
+            }
+            else
+            {
+                existing.MutedUntil = mutedUntil;
+                existing.CreatedAt = utcNow;
             }
         }
         else

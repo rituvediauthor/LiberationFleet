@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { BehaviorSubject, Observable, map } from 'rxjs';
 import {
   LibraryCategory,
   LibraryCategoryListResponse,
@@ -50,8 +50,61 @@ import {
 })
 export class LibraryService {
   private readonly basePath = '/api/library';
+  private favoriteIds = new Set<number>();
+  private favoriteIdsRequested = false;
+  readonly favoriteIdsChanged$ = new BehaviorSubject<ReadonlySet<number>>(this.favoriteIds);
 
   constructor(private http: HttpClient) {}
+
+  ensureFavoriteIdsLoaded() {
+    if (this.favoriteIdsRequested) {
+      return;
+    }
+    this.favoriteIdsRequested = true;
+    this.http.get<{ success: boolean; message: string; unitIds: number[] }>(`${this.basePath}/favorites/ids`).subscribe({
+      next: response => {
+        this.favoriteIds = new Set(response.unitIds ?? []);
+        this.favoriteIdsChanged$.next(this.favoriteIds);
+      },
+      error: () => {
+        this.favoriteIdsRequested = false;
+      }
+    });
+  }
+
+  isFavorited(unitId: number): boolean {
+    return this.favoriteIds.has(unitId);
+  }
+
+  setFavorite(unitId: number, favorited: boolean): Observable<boolean> {
+    return this.http.put<{ success: boolean; message: string; favorited: boolean }>(
+      `${this.basePath}/units/${unitId}/favorite`,
+      { favorited }
+    ).pipe(
+      map(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to update favorites');
+        }
+        if (response.favorited) {
+          this.favoriteIds.add(unitId);
+        } else {
+          this.favoriteIds.delete(unitId);
+        }
+        this.favoriteIds = new Set(this.favoriteIds);
+        this.favoriteIdsChanged$.next(this.favoriteIds);
+        return response.favorited;
+      })
+    );
+  }
+
+  getFavorites(options?: {
+    search?: string;
+    categoryIds?: number[];
+    limit?: number;
+    offset?: number;
+  }): Observable<LibraryUnitListPage> {
+    return this.getUnitListPage('favorites', options);
+  }
 
   getCategories(options?: { inUseOnly?: boolean; kind?: LibraryOfferingKind | 'Durable' }): Observable<LibraryCategory[]> {
     let params = new HttpParams();

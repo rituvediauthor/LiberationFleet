@@ -52,6 +52,11 @@
             <li *ngFor="let platform of profile.paymentPlatforms">
               <span class="platform-name">{{ platform.platformName }}</span>
               <span class="platform-handle">{{ platform.handle }}</span>
+              <app-copy-text-button
+                *ngIf="platform.handle"
+                [value]="platform.handle"
+                label="payment handle">
+              </app-copy-text-button>
               <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
             </li>
           </ul>

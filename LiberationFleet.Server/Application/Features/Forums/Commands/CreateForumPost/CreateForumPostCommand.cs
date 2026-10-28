@@ -87,7 +87,7 @@ public class CreateForumPostCommandHandler(
         return new ForumOperationResponse
         {
             Success = true,
-            Message = "Forum post created.",
+            Message = "Post created.",
             PostId = post.Id
         };
     }

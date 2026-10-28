@@ -7,6 +7,7 @@ import {
   MarkNotificationsReadByContentRequest,
   MutedContentItem,
   MutedContentListResponse,
+  MuteDuration,
   MutedContentType,
   NotificationBadgeSummaryResponse,
   NotificationFilterCategory,
@@ -161,11 +162,17 @@ export class NotificationService {
     return this.http.get<MutedContentListResponse>(`${this.apiUrl}/mutes`);
   }
 
-  setMute(contentType: MutedContentType, resourceId: number, muted: boolean): Observable<NotificationOperationResponse> {
+  setMute(
+    contentType: MutedContentType,
+    resourceId: number,
+    muted: boolean,
+    duration?: MuteDuration | null
+  ): Observable<NotificationOperationResponse> {
     return this.http.put<NotificationOperationResponse>(`${this.apiUrl}/mutes`, {
       contentType,
       resourceId,
-      muted
+      muted,
+      duration: muted ? (duration ?? 'Always') : null
     }).pipe(
       tap(response => {
         if (response.success) {
@@ -176,7 +183,15 @@ export class NotificationService {
   }
 
   isMuted(items: MutedContentItem[], contentType: MutedContentType, resourceId: number): boolean {
-    return items.some(item => item.contentType === contentType && item.resourceId === resourceId);
+    const item = items.find(entry => entry.contentType === contentType && entry.resourceId === resourceId);
+    if (!item) {
+      return false;
+    }
+    if (!item.mutedUntil) {
+      return true;
+    }
+    const until = Date.parse(item.mutedUntil);
+    return Number.isNaN(until) || until > Date.now();
   }
 
   getHidden(): Observable<HiddenContentListResponse> {

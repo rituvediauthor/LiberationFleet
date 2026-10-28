@@ -26,7 +26,8 @@ public class GetMutedContentQueryHandler(
             Items = items.Select(item => new MutedContentDto
             {
                 ContentType = item.ContentType,
-                ResourceId = item.ResourceId
+                ResourceId = item.ResourceId,
+                MutedUntil = item.MutedUntil
             }).ToList()
         };
     }

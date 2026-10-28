@@ -16,6 +16,7 @@ import { FleetService } from '../../../services/fleet.service';
 import { formatIdentityGroupLabels } from '../../../utils/identity-groups.util';
 import { CrewmateAidStatField, AidSeasonAccounting, AidSurvivalThresholdDraft, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
 import { CrewService } from '../../../services/crew.service';
+import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
 
 @Component({
   selector: 'app-crewmate-detail',
@@ -30,7 +31,8 @@ import { CrewService } from '../../../services/crew.service';
     ReportContentDialogComponent,
     CrewmateIdCardComponent,
     CollapsibleSectionComponent,
-    PriorityScoreAlgorithmsComponent
+    PriorityScoreAlgorithmsComponent,
+    CopyTextButtonComponent
   ],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'

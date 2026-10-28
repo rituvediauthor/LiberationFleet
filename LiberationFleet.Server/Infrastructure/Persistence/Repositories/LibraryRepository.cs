@@ -835,4 +835,82 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
             offering.UpdatedAt = utcNow;
         }
     }
+
+    public async Task<IReadOnlyList<int>> GetFavoriteUnitIdsAsync(int userId, CancellationToken cancellationToken = default) =>
+        await context.UserLibraryFavorites
+            .AsNoTracking()
+            .Where(f => f.UserId == userId)
+            .Select(f => f.LibraryUnitId)
+            .ToListAsync(cancellationToken);
+
+    public Task<bool> IsUnitFavoritedAsync(int userId, int unitId, CancellationToken cancellationToken = default) =>
+        context.UserLibraryFavorites.AnyAsync(
+            f => f.UserId == userId && f.LibraryUnitId == unitId,
+            cancellationToken);
+
+    public async Task AddFavoriteAsync(UserLibraryFavorite favorite, CancellationToken cancellationToken = default) =>
+        await context.UserLibraryFavorites.AddAsync(favorite, cancellationToken);
+
+    public async Task RemoveFavoriteAsync(int userId, int unitId, CancellationToken cancellationToken = default)
+    {
+        var existing = await context.UserLibraryFavorites
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.LibraryUnitId == unitId, cancellationToken);
+        if (existing is not null)
+        {
+            context.UserLibraryFavorites.Remove(existing);
+        }
+    }
+
+    public async Task<LibraryUnitListPage> GetFavoriteUnitsAsync(
+        int userId,
+        IReadOnlyCollection<int> crewIds,
+        int viewerCrewId,
+        string? search,
+        IReadOnlyCollection<int> categoryIds,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (crewIds.Count == 0)
+        {
+            return new LibraryUnitListPage { Items = Array.Empty<LibraryUnit>(), HasMore = false };
+        }
+
+        var favoriteIds = context.UserLibraryFavorites
+            .Where(f => f.UserId == userId)
+            .Select(f => f.LibraryUnitId);
+
+        var query = context.LibraryUnits
+            .AsNoTracking()
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Categories)
+                .ThenInclude(c => c.Category)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.AllowedZipCodes)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.CreatorUser)
+            .Include(u => u.Offering)
+                .ThenInclude(o => o.Crew)
+            .Include(u => u.CurrentPossessorUser)
+            .Where(u => favoriteIds.Contains(u.Id)
+                && crewIds.Contains(u.Offering.CrewId)
+                && (u.Offering.CrewId == viewerCrewId || u.Offering.Visibility == LibraryOfferingVisibility.FleetWide)
+                && !u.Offering.IsDeleted);
+
+        if (categoryIds.Count > 0)
+        {
+            query = query.Where(u => u.Offering.Categories.Any(c => categoryIds.Contains(c.CategoryId)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalized = search.Trim().ToLowerInvariant();
+            query = query.Where(u =>
+                u.Offering.TitleNormalized.Contains(normalized)
+                || u.Offering.CreatorUser.Username.ToLower().Contains(normalized)
+                || (u.CurrentPossessorUser != null && u.CurrentPossessorUser.Username.ToLower().Contains(normalized)));
+        }
+
+        return await ToUnitListPageAsync(query, limit, offset, cancellationToken);
+    }
 }

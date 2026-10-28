@@ -56,8 +56,8 @@ describe('UserHomeComponent', () => {
     expect(links[1].textContent).toContain('Gift History');
     expect(links[2].textContent).toContain('Activity center');
     expect(links[3].textContent).toContain('Preferences');
-    expect(links[4].textContent).toContain('Donate');
-    expect(links[5].textContent).toContain('How to use this app');
+    expect(links[4].textContent).toContain('How to use this app');
+    expect(links[5].textContent).toContain('Donate');
   });
 
   it('should show Join/Create a crew when user has a crew', () => {
@@ -72,9 +72,9 @@ describe('UserHomeComponent', () => {
 
     const links = fixture.nativeElement.querySelectorAll('.menu-link');
     expect(links.length).toBe(7);
-    expect(links[4].textContent).toContain('Donate');
+    expect(links[4].textContent).toContain('Join/Create a crew');
     expect(links[5].textContent).toContain('How to use this app');
-    expect(links[6].textContent).toContain('Join/Create a crew');
+    expect(links[6].textContent).toContain('Donate');
   });
 
   it('should navigate to join/create crew page', () => {

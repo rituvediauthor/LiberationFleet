@@ -86,7 +86,7 @@ describe('DonationService', () => {
 
     const req = httpMock.expectOne('/api/donations/checkout');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ amountCents: 1000 });
+    expect(req.request.body).toEqual({ amountCents: 1000, receiptEmail: undefined });
     req.flush({
       success: true,
       message: 'ok',

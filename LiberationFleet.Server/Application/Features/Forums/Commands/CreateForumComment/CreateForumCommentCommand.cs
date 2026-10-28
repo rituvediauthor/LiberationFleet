@@ -46,12 +46,12 @@ public class CreateForumCommentCommandHandler(
         var post = await forumRepository.GetByIdAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumOperationResponse { Success = false, Message = "Forum post not found." };
+            return new ForumOperationResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.CrewId.HasValue)
         {
-            return new ForumOperationResponse { Success = false, Message = "Not a crew forum post." };
+            return new ForumOperationResponse { Success = false, Message = "Not a crew post." };
         }
 
         var crewId = post.CrewId.Value;
@@ -119,11 +119,13 @@ public class CreateForumCommentCommandHandler(
                 CrewId = crewId,
                 Kind = NotificationKind.NewReply,
                 Title = NotificationCopy.RepliedOnForum(actorName, toComment: true),
-                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your forum comment."),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} replied to your comment."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
                 ActorUserId = userId,
+                MuteForumPostId = post.Id,
+                MuteCrewSpaceId = crewId,
                 RecipientWasMentioned = mentionedUserIds.Contains(parentComment.AuthorUserId)
             }, cancellationToken);
         }
@@ -137,11 +139,13 @@ public class CreateForumCommentCommandHandler(
                 CrewId = crewId,
                 Kind = NotificationKind.NewForumComment,
                 Title = NotificationCopy.RepliedOnForum(actorName, toComment: false),
-                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} commented on your forum post."),
+                Body = NotificationCopy.PreviewOr(request.Preview, $"{actorName} commented on your post."),
                 ActionUrl = actionUrl,
                 RelatedEntityId = post.Id,
                 SecondaryEntityId = comment.Id,
                 ActorUserId = userId,
+                MuteForumPostId = post.Id,
+                MuteCrewSpaceId = crewId,
                 RecipientWasMentioned = mentionedUserIds.Contains(post.AuthorUserId)
             }, cancellationToken);
         }

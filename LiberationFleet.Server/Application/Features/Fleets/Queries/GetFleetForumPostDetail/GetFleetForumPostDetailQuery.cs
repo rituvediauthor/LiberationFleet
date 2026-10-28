@@ -30,12 +30,12 @@ public class GetFleetForumPostDetailQueryHandler(
         var post = await forumRepository.GetByIdWithAuthorAsync(request.PostId, cancellationToken);
         if (post is null)
         {
-            return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
+            return new ForumDetailResponse { Success = false, Message = "Post not found." };
         }
 
         if (!post.FleetId.HasValue)
         {
-            return new ForumDetailResponse { Success = false, Message = "Not a fleet forum post." };
+            return new ForumDetailResponse { Success = false, Message = "Not a fleet post." };
         }
 
         var fleetId = post.FleetId.Value;
@@ -54,13 +54,13 @@ public class GetFleetForumPostDetailQueryHandler(
         var preference = user?.AdultContentPreference ?? AdultContentPreference.Block;
         if (AdultContentAccess.IsBlocked(preference, post.IsAdultContent))
         {
-            return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
+            return new ForumDetailResponse { Success = false, Message = "Post not found." };
         }
 
         var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         if (hiddenUserIds.Contains(post.AuthorUserId))
         {
-            return new ForumDetailResponse { Success = false, Message = "Forum post not found." };
+            return new ForumDetailResponse { Success = false, Message = "Post not found." };
         }
 
         var postEnvelope = await cryptoRepository.GetEnvelopeAsync(
@@ -102,7 +102,7 @@ public class GetFleetForumPostDetailQueryHandler(
         return new ForumDetailResponse
         {
             Success = true,
-            Message = "Forum post loaded.",
+            Message = "Post loaded.",
             Post = ForumMapper.MapDetail(
                 post,
                 postEnvelope,

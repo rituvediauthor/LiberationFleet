@@ -11,8 +11,8 @@
     </p>
 
     <div class="item-cards" *ngIf="!loading && items.length > 0">
-      <button type="button" class="item-card-button" *ngFor="let item of items" (click)="openUnit(item)">
-        <app-library-item-card [item]="item"></app-library-item-card>
+      <div class="item-card-button" *ngFor="let item of items" (click)="openUnit(item)">
+        <app-library-item-card [item]="item" [showFavorite]="true"></app-library-item-card>
         <span
           class="availability-badge"
           [class.available]="item.availableNow"
@@ -25,7 +25,7 @@
             Currently unavailable
           </ng-container>
         </span>
-      </button>
+      </div>
     </div>
   </div>
 </app-page-layout>

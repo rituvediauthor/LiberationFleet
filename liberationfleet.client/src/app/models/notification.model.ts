@@ -62,11 +62,49 @@ export type NotificationPreferenceCategory = 'Crew' | 'Fleet' | 'Friends';
 
 export type NotificationFilterCategory = 'All' | 'Comments' | 'Mentions' | 'Proposals' | 'Rules';
 
-export type MutedContentType = 'ChatRoom' | 'Forum' | 'Friend';
+export type MutedContentType = 'ChatRoom' | 'Forum' | 'Friend' | 'CrewSpace' | 'FleetSpace';
+
+export type MuteDuration = 'OneHour' | 'EightHours' | 'OneDay' | 'OneWeek' | 'Always';
+
+export const MUTE_DURATION_OPTIONS: { value: MuteDuration; label: string }[] = [
+  { value: 'OneHour', label: '1 hour' },
+  { value: 'EightHours', label: '8 hours' },
+  { value: 'OneDay', label: '1 day' },
+  { value: 'OneWeek', label: '1 week' },
+  { value: 'Always', label: 'Always' }
+];
+
+const MUTE_DURATION_MS: Record<Exclude<MuteDuration, 'Always'>, number> = {
+  OneHour: 60 * 60 * 1000,
+  EightHours: 8 * 60 * 60 * 1000,
+  OneDay: 24 * 60 * 60 * 1000,
+  OneWeek: 7 * 24 * 60 * 60 * 1000
+};
+
+export function mutedUntilFor(duration: MuteDuration): string | null {
+  if (duration === 'Always') {
+    return null;
+  }
+  return new Date(Date.now() + MUTE_DURATION_MS[duration]).toISOString();
+}
+
+export function withMute(
+  items: MutedContentItem[],
+  contentType: MutedContentType,
+  resourceId: number,
+  duration: MuteDuration | null
+): MutedContentItem[] {
+  const next = items.filter(item => !(item.contentType === contentType && item.resourceId === resourceId));
+  if (!duration) {
+    return next;
+  }
+  return [...next, { contentType, resourceId, mutedUntil: mutedUntilFor(duration) }];
+}
 
 export interface MutedContentItem {
   contentType: MutedContentType;
   resourceId: number;
+  mutedUntil?: string | null;
 }
 
 export interface MutedContentListResponse {

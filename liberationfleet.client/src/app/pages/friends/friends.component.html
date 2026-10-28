@@ -74,7 +74,7 @@
             (click)="$event.stopPropagation()"
             (keydown.escape)="closeMenus()">
             <button type="button" role="menuitem" (click)="muteFriend(friend, $event)">
-              {{ friend.isMuted ? 'Unmute' : 'Mute' }}
+              Mute
             </button>
             <button type="button" role="menuitem" (click)="unfriend(friend, $event)">Unfriend</button>
             <button type="button" role="menuitem" (click)="blockFriend(friend, $event)">Block</button>
@@ -95,3 +95,10 @@
   (cancelled)="onCancelBlock()"
   (dismissed)="onCancelBlock()">
 </app-confirm-dialog>
+
+<app-mute-duration-dialog
+  [visible]="muteTarget !== null"
+  (durationChosen)="onMuteDuration($event)"
+  (cancelMute)="onCancelMute()"
+  (dismissed)="dismissMuteDialog()">
+</app-mute-duration-dialog>

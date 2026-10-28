@@ -21,6 +21,7 @@ import {
 import { EmergencyRequestListItem } from '../../models/emergency-request.model';
 import { EmergencyRequestService } from '../../services/emergency-request.service';
 import { PullRefreshController } from '../../utils/pull-refresh.controller';
+import { CopyTextButtonComponent } from '../../components/copy-text-button/copy-text-button.component';
 
 interface PlatformInfoLabel {
   prefix: 'Preferred' | 'Selected';
@@ -37,7 +38,7 @@ interface EntryFormValue {
 @Component({
   selector: 'app-record-gift',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageLayoutComponent, ConfirmDialogComponent, CopyTextButtonComponent],
   templateUrl: './record-gift.component.html',
   styleUrl: './record-gift.component.css'
 })
