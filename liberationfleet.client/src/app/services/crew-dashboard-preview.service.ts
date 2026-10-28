@@ -31,9 +31,11 @@ import { getUserIdFromToken } from '../utils/jwt.util';
 import {
   formatQuestDueLabel,
   giftCategoryLabel,
+  hasUsableLibraryPreviewTitle,
+  isLibraryPreviewCandidateEligible,
   LibraryPreviewCandidate,
-  pickLibraryPreviewCarousel,
   pickFirstAllowedAdult,
+  shuffleArray,
   truncateDashboardPreview
 } from '../utils/dashboard-preview.util';
 
@@ -395,38 +397,27 @@ export class CrewDashboardPreviewService {
     ].slice(0, LIBRARY_TASK_SAMPLE_LIMIT);
 
     const candidates: LibraryPreviewCandidate[] = [
-      ...rawUnits
-        .filter(unit => !!unit.title && unit.title !== 'Encrypted quest')
-        .map(unit => ({ type: 'unit' as const, unit })),
-      ...rawTasks
-        .filter(task => !!task.title && task.title !== 'Encrypted quest')
-        .map(task => ({ type: 'quest' as const, task }))
-    ];
-    const picked = pickLibraryPreviewCarousel(candidates, LIBRARY_CAROUSEL_SIZE);
-    const pickedUnits = picked
-      .filter((candidate): candidate is { type: 'unit'; unit: typeof rawUnits[number] } => candidate.type === 'unit')
-      .map(candidate => candidate.unit);
-    const pickedTasks = picked
-      .filter((candidate): candidate is { type: 'quest'; task: typeof rawTasks[number] } => candidate.type === 'quest')
-      .map(candidate => candidate.task);
-    const [units, tasks] = await Promise.all([
-      this.libraryCrypto.enrichUnitListItems(pickedUnits, crewId),
-      this.libraryCrypto.enrichTaskListItems(pickedTasks, crewId)
-    ]);
-    const unitById = new Map(units.map(unit => [unit.unitId, unit]));
-    const taskById = new Map(tasks.map(task => [task.taskId, task]));
-    const items = picked
-      .map(candidate => {
-        if (candidate.type === 'unit') {
-          const unit = unitById.get(candidate.unit.unitId);
-          return unit ? this.toLibraryPreviewItem({ type: 'unit', unit }) : null;
+      ...rawUnits.map(unit => ({ type: 'unit' as const, unit })),
+      ...rawTasks.map(task => ({ type: 'quest' as const, task }))
+    ].filter(isLibraryPreviewCandidateEligible);
+    const shuffled = shuffleArray(candidates);
+    const items: LibraryDashboardPreviewItem[] = [];
+    let cursor = 0;
+    while (items.length < LIBRARY_CAROUSEL_SIZE && cursor < shuffled.length) {
+      const batchSize = Math.min(
+        LIBRARY_CAROUSEL_SIZE - items.length,
+        shuffled.length - cursor
+      );
+      const batch = shuffled.slice(cursor, cursor + batchSize);
+      cursor += batchSize;
+      const resolved = await this.resolveLibraryPreviewItems(batch, crewId);
+      for (const item of resolved) {
+        if (items.length >= LIBRARY_CAROUSEL_SIZE) {
+          break;
         }
-        const task = taskById.get(candidate.task.taskId);
-        return task && task.title !== 'Encrypted quest'
-          ? this.toLibraryPreviewItem({ type: 'quest', task })
-          : null;
-      })
-      .filter((item): item is LibraryDashboardPreviewItem => !!item);
+        items.push(item);
+      }
+    }
     if (!items.length) {
       return null;
     }
@@ -435,6 +426,38 @@ export class CrewDashboardPreviewService {
       kind: 'library',
       items
     };
+  }
+
+  private async resolveLibraryPreviewItems(
+    picked: LibraryPreviewCandidate[],
+    crewId: number
+  ): Promise<LibraryDashboardPreviewItem[]> {
+    const pickedUnits = picked
+      .filter((candidate): candidate is Extract<LibraryPreviewCandidate, { type: 'unit' }> => candidate.type === 'unit')
+      .map(candidate => candidate.unit);
+    const pickedTasks = picked
+      .filter((candidate): candidate is Extract<LibraryPreviewCandidate, { type: 'quest' }> => candidate.type === 'quest')
+      .map(candidate => candidate.task);
+    const [units, tasks] = await Promise.all([
+      this.libraryCrypto.enrichUnitListItems(pickedUnits, crewId),
+      this.libraryCrypto.enrichTaskListItems(pickedTasks, crewId)
+    ]);
+    const unitById = new Map(units.map(unit => [unit.unitId, unit]));
+    const taskById = new Map(tasks.map(task => [task.taskId, task]));
+    return picked
+      .map(candidate => {
+        if (candidate.type === 'unit') {
+          const unit = unitById.get(candidate.unit.unitId);
+          return unit && hasUsableLibraryPreviewTitle(unit.title)
+            ? this.toLibraryPreviewItem({ type: 'unit', unit })
+            : null;
+        }
+        const task = taskById.get(candidate.task.taskId);
+        return task && hasUsableLibraryPreviewTitle(task.title)
+          ? this.toLibraryPreviewItem({ type: 'quest', task })
+          : null;
+      })
+      .filter((item): item is LibraryDashboardPreviewItem => !!item);
   }
 
   private toLibraryPreviewItem(candidate: LibraryPreviewCandidate): LibraryDashboardPreviewItem {

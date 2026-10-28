@@ -1,6 +1,9 @@
 import {
   giftCategoryLabel,
+  hasUsableLibraryPreviewTitle,
+  isLibraryPreviewCandidateEligible,
   pickFirstAllowedAdult,
+  pickLibraryPreviewCarousel,
   pickRandomLibraryPreview,
   truncateDashboardPreview
 } from './dashboard-preview.util';
@@ -79,6 +82,64 @@ describe('dashboard-preview.util', () => {
       const pool = [unit, quest];
       expect(pickRandomLibraryPreview(pool, () => 0)).toEqual(unit);
       expect(pickRandomLibraryPreview(pool, () => 0.99)).toEqual(quest);
+    });
+  });
+
+  describe('library preview eligibility', () => {
+    it('rejects blank and encrypted-quest placeholder titles', () => {
+      expect(hasUsableLibraryPreviewTitle('')).toBeFalse();
+      expect(hasUsableLibraryPreviewTitle('   ')).toBeFalse();
+      expect(hasUsableLibraryPreviewTitle('Encrypted quest')).toBeFalse();
+      expect(hasUsableLibraryPreviewTitle('Mow lawn')).toBeTrue();
+    });
+
+    it('keeps encrypted quests even before their titles decrypt', () => {
+      const encryptedQuest = {
+        type: 'quest' as const,
+        task: {
+          taskId: 8,
+          title: '',
+          creatorUsername: 'Kai',
+          creatorUserId: 3,
+          value: 10,
+          scheduleSummary: 'Weekly',
+          hasEncryptedContent: true
+        }
+      };
+      const blankUnit = {
+        type: 'unit' as const,
+        unit: {
+          unitId: 1,
+          offeringId: 1,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: '',
+          descriptionPreview: '',
+          categories: []
+        }
+      };
+      expect(isLibraryPreviewCandidateEligible(encryptedQuest)).toBeTrue();
+      expect(isLibraryPreviewCandidateEligible(blankUnit)).toBeFalse();
+    });
+  });
+
+  describe('pickLibraryPreviewCarousel', () => {
+    it('returns up to maxItems in shuffled order', () => {
+      const pool = [1, 2, 3, 4, 5, 6].map(unitId => ({
+        type: 'unit' as const,
+        unit: {
+          unitId,
+          offeringId: unitId,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: `Item ${unitId}`,
+          descriptionPreview: '',
+          categories: []
+        }
+      }));
+      const picked = pickLibraryPreviewCarousel(pool, 5, () => 0);
+      expect(picked.length).toBe(5);
+      expect(new Set(picked.map(item => item.type === 'unit' ? item.unit.unitId : 0)).size).toBe(5);
     });
   });
 

@@ -60,6 +60,34 @@ export type LibraryPreviewCandidate =
   | { type: 'unit'; unit: LibraryUnitListItem }
   | { type: 'quest'; task: LibraryTaskListItem };
 
+export const ENCRYPTED_QUEST_PLACEHOLDER_TITLE = 'Encrypted quest';
+
+/** True when a decrypted title is safe to show on the dashboard carousel. */
+export function hasUsableLibraryPreviewTitle(title: string | null | undefined): boolean {
+  const normalized = (title ?? '').trim();
+  return !!normalized && normalized !== ENCRYPTED_QUEST_PLACEHOLDER_TITLE;
+}
+
+/**
+ * Keep plaintext items with a title, plus encrypted quests whose title is still
+ * empty until the crew key decrypts them.
+ */
+export function isLibraryPreviewCandidateEligible(candidate: LibraryPreviewCandidate): boolean {
+  if (candidate.type === 'unit') {
+    return hasUsableLibraryPreviewTitle(candidate.unit.title);
+  }
+  return !!candidate.task.hasEncryptedContent || hasUsableLibraryPreviewTitle(candidate.task.title);
+}
+
+export function shuffleArray<T>(items: T[], random: () => number = Math.random): T[] {
+  const pool = [...items];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+  return pool;
+}
+
 /** Pick a random candidate from the pool, or null when empty. */
 export function pickRandomLibraryPreview(
   candidates: LibraryPreviewCandidate[],
@@ -81,12 +109,7 @@ export function pickLibraryPreviewCarousel(
   if (!candidates.length || maxItems <= 0) {
     return [];
   }
-  const pool = [...candidates];
-  for (let i = pool.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
-  }
-  return pool.slice(0, maxItems);
+  return shuffleArray(candidates, random).slice(0, maxItems);
 }
 
 /**

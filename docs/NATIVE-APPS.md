@@ -524,6 +524,8 @@ You do **not** need `npx cap add android` / `ios` again.
 
 | Symptom | Fix |
 |---------|-----|
+| Emulator still shows an old app after an Android Studio rebuild | Studio only rebuilds the Java shell. From `liberationfleet.client` run `npm run cap:sync`, then click **Run** (green play). Do not use **Build → Clean and Assemble Project with Tests** to refresh the app |
+| Gradle: `honem-native-video-compressor` minSdk 22 vs Capacitor 24 | Expected if Assemble **with tests** hits that plugin’s androidTest APK. The app already uses minSdk 24; `android/build.gradle` forces the plugin to 24. Prefer **Run** or `gradlew :app:assembleDebug` |
 | `android platform already exists` | Expected if `android/` is present — skip add; run `npm run cap:sync` |
 | Emulator runs but app never appears | Emulator ≠ install. In Android Studio click green **Run**. Also fix Gradle JDK (see Step 6a) — sync/build must succeed first |
 | Gradle: compatible with Java 9 / `JAVA_HOME` is jdk-9 | Install Temurin 17; set **Gradle JDK** to 17 in Android Studio (Step 6a) |

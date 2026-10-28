@@ -461,6 +461,146 @@ describe('CrewDashboardPreviewService', () => {
     expect(libraryCrypto.enrichTaskListItems.calls.mostRecent().args[0].length).toBeLessThanOrEqual(5);
   });
 
+  it('includes encrypted quests whose titles are empty until decrypt', async () => {
+    libraryService.getDurableUnits.and.returnValue(of({
+      items: [
+        {
+          unitId: 1,
+          offeringId: 1,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Tent',
+          descriptionPreview: 'Large',
+          categories: []
+        },
+        {
+          unitId: 2,
+          offeringId: 2,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Stove',
+          descriptionPreview: 'Portable',
+          categories: []
+        },
+        {
+          unitId: 3,
+          offeringId: 3,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Lamp',
+          descriptionPreview: 'Bright',
+          categories: []
+        },
+        {
+          unitId: 4,
+          offeringId: 4,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Canoe',
+          descriptionPreview: 'River',
+          categories: []
+        }
+      ],
+      hasMore: false
+    }));
+    libraryService.getTasks.and.returnValue(of([
+      {
+        taskId: 88,
+        title: '',
+        creatorUsername: 'Kai',
+        creatorUserId: 3,
+        value: 12,
+        scheduleSummary: 'Soon',
+        hasDeadline: true,
+        hasEncryptedContent: true
+      }
+    ]));
+    libraryCrypto.enrichTaskListItems.and.callFake(async items => items.map(item => ({
+      ...item,
+      title: item.taskId === 88 ? 'Mow lawn' : item.title
+    })));
+
+    const result = await service.loadPreview(7, 'library');
+    expect(result?.items.length).toBe(5);
+    expect(result?.items.some(item => item.libraryKind === 'quest' && item.task.title === 'Mow lawn')).toBeTrue();
+  });
+
+  it('backfills the carousel when a picked quest cannot be decrypted', async () => {
+    spyOn(Math, 'random').and.returnValue(0);
+    libraryService.getDurableUnits.and.returnValue(of({
+      items: [
+        {
+          unitId: 1,
+          offeringId: 1,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Tent',
+          descriptionPreview: 'Large',
+          categories: []
+        },
+        {
+          unitId: 2,
+          offeringId: 2,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Stove',
+          descriptionPreview: 'Portable',
+          categories: []
+        },
+        {
+          unitId: 3,
+          offeringId: 3,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Lamp',
+          descriptionPreview: 'Bright',
+          categories: []
+        },
+        {
+          unitId: 4,
+          offeringId: 4,
+          holderUserId: 1,
+          holderUsername: 'Ada',
+          title: 'Canoe',
+          descriptionPreview: 'River',
+          categories: []
+        }
+      ],
+      hasMore: false
+    }));
+    libraryService.getTasks.and.returnValue(of([
+      {
+        taskId: 91,
+        title: '',
+        creatorUsername: 'Kai',
+        creatorUserId: 3,
+        value: 12,
+        scheduleSummary: 'Soon',
+        hasDeadline: true,
+        hasEncryptedContent: true
+      },
+      {
+        taskId: 92,
+        title: '',
+        creatorUsername: 'Kai',
+        creatorUserId: 3,
+        value: 8,
+        scheduleSummary: 'Today',
+        hasDeadline: false,
+        hasEncryptedContent: true
+      }
+    ]));
+    libraryCrypto.enrichTaskListItems.and.callFake(async items => items.map(item => ({
+      ...item,
+      title: item.taskId === 92 ? 'Help neighbor' : 'Encrypted quest'
+    })));
+
+    const result = await service.loadPreview(7, 'library');
+    expect(result?.items.length).toBe(5);
+    expect(result?.items.some(item => item.libraryKind === 'quest' && item.task.title === 'Help neighbor')).toBeTrue();
+    expect(result?.items.some(item => item.libraryKind === 'quest' && item.task.title === 'Encrypted quest')).toBeFalse();
+  });
+
   it('decrypts only the first allowed forum post', async () => {
     discussionService.getPosts.and.returnValue(of({
       items: [

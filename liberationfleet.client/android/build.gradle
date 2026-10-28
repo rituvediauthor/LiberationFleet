@@ -24,6 +24,21 @@ allprojects {
     }
 }
 
+// @honem/native-video-compressor hardcodes minSdk 22. Capacitor 6 is 24, so
+// "Assemble Project with Tests" fails merging that plugin's androidTest manifest.
+subprojects { sub ->
+    sub.afterEvaluate {
+        if (sub.name != 'honem-native-video-compressor') {
+            return
+        }
+        def androidExt = sub.extensions.findByName('android')
+        if (androidExt == null) {
+            return
+        }
+        androidExt.defaultConfig.minSdk = rootProject.ext.minSdkVersion
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
