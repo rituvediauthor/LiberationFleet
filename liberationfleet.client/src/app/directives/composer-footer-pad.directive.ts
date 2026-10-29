@@ -1,5 +1,9 @@
 import { AfterViewInit, Directive, ElementRef, Input, OnDestroy } from '@angular/core';
-import { readKeyboardInset } from '../utils/keyboard-inset.util';
+import {
+  composerClearance,
+  keyboardInsetChangeEventName,
+  readAppliedKeyboardInset
+} from '../utils/keyboard-inset.util';
 
 @Directive({
   selector: '[appComposerFooterPad]',
@@ -11,6 +15,7 @@ export class ComposerFooterPadDirective implements AfterViewInit, OnDestroy {
   private observer?: ResizeObserver;
   private footer?: HTMLElement;
   private scroll?: HTMLElement;
+  private content?: HTMLElement;
   private readonly onViewportChange = () => this.apply();
 
   constructor(private readonly host: ElementRef<HTMLElement>) {}
@@ -24,12 +29,15 @@ export class ComposerFooterPadDirective implements AfterViewInit, OnDestroy {
 
     this.footer = footer;
     this.scroll = scroll;
+    const content = scroll.firstElementChild;
+    this.content = content instanceof HTMLElement ? content : undefined;
     if (typeof ResizeObserver !== 'undefined') {
       this.observer = new ResizeObserver(() => this.apply());
       this.observer.observe(footer);
     }
     window.visualViewport?.addEventListener('resize', this.onViewportChange);
     window.visualViewport?.addEventListener('scroll', this.onViewportChange);
+    window.addEventListener(keyboardInsetChangeEventName, this.onViewportChange);
     this.apply();
   }
 
@@ -37,6 +45,10 @@ export class ComposerFooterPadDirective implements AfterViewInit, OnDestroy {
     this.observer?.disconnect();
     window.visualViewport?.removeEventListener('resize', this.onViewportChange);
     window.visualViewport?.removeEventListener('scroll', this.onViewportChange);
+    window.removeEventListener(keyboardInsetChangeEventName, this.onViewportChange);
+    this.scroll?.style.removeProperty('margin-bottom');
+    this.scroll?.style.removeProperty('padding-bottom');
+    this.content?.style.removeProperty('padding-bottom');
   }
 
   private apply() {
@@ -45,9 +57,22 @@ export class ComposerFooterPadDirective implements AfterViewInit, OnDestroy {
     if (!footer || !scroll) {
       return;
     }
-    const height = Math.ceil(footer.getBoundingClientRect().height);
-    const keyboard = readKeyboardInset();
-    scroll.style.paddingBottom = `${Math.max(height, 72) + keyboard}px`;
+    const distanceFromBottom = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
+    const stickToBottom = distanceFromBottom < 80;
+    const clearance = composerClearance(
+      footer.getBoundingClientRect().height,
+      readAppliedKeyboardInset()
+    );
+    // Shrink the scrollport to the visible band above the composer. Padding on
+    // the scroll box itself is not part of the scroll range in a flex column.
+    scroll.style.marginBottom = `${clearance}px`;
+    scroll.style.paddingBottom = '0px';
+    if (this.content) {
+      this.content.style.paddingBottom = '16px';
+    }
+    if (stickToBottom) {
+      scroll.scrollTop = scroll.scrollHeight;
+    }
   }
 
   private resolveScroll(): HTMLElement | null {

@@ -4,6 +4,7 @@ import type { PluginListenerHandle } from '@capacitor/core';
 import { isNativeIos } from '../utils/app-platform.util';
 import {
   applyKeyboardInsetToDocument,
+  notifyKeyboardInsetChange,
   readKeyboardInset,
   readVisualOffsetTop
 } from '../utils/keyboard-inset.util';
@@ -61,6 +62,7 @@ export class KeyboardInsetService implements OnDestroy {
       readVisualOffsetTop()
     );
     this.pinComposers(inset);
+    notifyKeyboardInsetChange();
   }
 
   private pinComposers(inset: number): void {

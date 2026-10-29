@@ -1,6 +1,8 @@
 import {
   applyKeyboardInsetToDocument,
-  computeKeyboardInset
+  composerClearance,
+  computeKeyboardInset,
+  readAppliedKeyboardInset
 } from './keyboard-inset.util';
 
 describe('keyboard-inset.util', () => {
@@ -30,5 +32,17 @@ describe('keyboard-inset.util', () => {
 
     applyKeyboardInsetToDocument(root, host.classList, 0, 0);
     expect(host.classList.contains('lf-keyboard-open')).toBeFalse();
+  });
+
+  it('reads the inset written on the document when the visual viewport stays full', () => {
+    document.documentElement.style.setProperty('--lf-keyboard-inset', '336px');
+    expect(readAppliedKeyboardInset()).toBe(336);
+    document.documentElement.style.removeProperty('--lf-keyboard-inset');
+  });
+
+  it('reserves the composer and the keyboard so messages can scroll above both', () => {
+    expect(composerClearance(88, 0)).toBe(88);
+    expect(composerClearance(96.2, 336)).toBe(433);
+    expect(composerClearance(0, 300)).toBe(372);
   });
 });
