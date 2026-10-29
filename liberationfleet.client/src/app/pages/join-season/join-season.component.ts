@@ -24,6 +24,7 @@ import { PaymentPlatformOption } from '../../models/gift.model';
 import { mergePaymentPlatformOptions } from '../../utils/payment-platform-options.util';
 import { isControlInvalidForA11y } from '../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../utils/identity-groups.util';
+import { extractHttpErrorMessage } from '../../utils/http-error.util';
 import { EMERGENCY_LEVEL_HINT } from '../../constants/emergency-level';
 
 /** Allows 0; rejects empty/NaN/negative. */
@@ -272,23 +273,23 @@ export class JoinSeasonComponent implements OnInit {
                   void this.router.navigate(['/app/crew/gift-log'], { replaceUrl: true });
                 }
               },
-              error: () => {
+              error: (err) => {
                 this.isSubmitting = false;
-                this.toastService.error('Failed to join season');
+                this.toastService.error(extractHttpErrorMessage(err, 'Failed to join season'));
                 this.updateReadyButton();
               }
             });
           },
-          error: () => {
+          error: (err) => {
             this.isSubmitting = false;
-            this.toastService.error('Failed to save season setup');
+            this.toastService.error(extractHttpErrorMessage(err, 'Failed to save season setup'));
             this.updateReadyButton();
           }
         });
       },
-      error: () => {
+      error: (err) => {
         this.isSubmitting = false;
-        this.toastService.error('Failed to save profile');
+        this.toastService.error(extractHttpErrorMessage(err, 'Failed to save profile'));
         this.updateReadyButton();
       }
     });

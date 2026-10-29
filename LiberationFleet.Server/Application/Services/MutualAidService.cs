@@ -670,7 +670,12 @@ public partial class MutualAidService(
         }
 
         var members = await mutualAidRepository.GetActiveMembersWithUsersAsync(membership.CrewId, cancellationToken);
-        var current = members.First(m => m.UserId == userId);
+        var current = members.FirstOrDefault(m => m.UserId == userId);
+        if (current is null)
+        {
+            return new SeasonReadyResultDto { Success = false, Message = "You are not an active member of this crew." };
+        }
+
         if (current.User.PaymentPlatforms.Count == 0)
         {
             return new SeasonReadyResultDto { Success = false, Message = "Register at least one payment platform before marking ready." };
@@ -1277,6 +1282,13 @@ public partial class MutualAidService(
                 cancellationToken);
         }
 
+        // The incomplete-primary floor reads the database. Unsaved future rows are invisible
+        // to it, so a joiner who only has this season's primary looks short and the loop
+        // below would insert the same extra season twice (unique index on the primary).
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var ensuredDates = new HashSet<DateTime>(GetFutureSeasonStarts(crew));
+
         // Keep adding future seasons until every participant has ≥2 incomplete primaries.
         const int minIncomplete = 2;
         for (var guard = 0; guard < 5; guard++)
@@ -1290,8 +1302,13 @@ public partial class MutualAidService(
                 crew.Id,
                 crew.CurrentSeasonStartDate.Value,
                 cancellationToken)).ToList();
+            knownDates.AddRange(ensuredDates);
             knownDates.AddRange(GetFutureSeasonStarts(crew));
             var extraStart = knownDates.DefaultIfEmpty(crew.CurrentSeasonStartDate.Value).Max().AddTicks(1);
+            while (!ensuredDates.Add(extraStart))
+            {
+                extraStart = extraStart.AddTicks(1);
+            }
 
             await EnsureSeasonCyclesForParticipantsAsync(
                 crew,
@@ -1300,9 +1317,8 @@ public partial class MutualAidService(
                 lockLeaderSlots: false,
                 provisional: true,
                 cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private static void EnsureFutureSeasonPlaceholders(Crew crew)
@@ -1978,7 +1994,13 @@ public async Task<bool> IsFinancialMemberAsync(
             crew,
             membership,
             cancellationToken,
-            markCompleted: !inNeedOfAid);
+            markCompleted: !inNeedOfAid,
+            appendToEnd: true);
+
+        // Store the in-season flag and this season's primary before future-season work.
+        // Those queries filter IsInSeason in SQL and do not see unsaved rows, so a future
+        // date that matches this season would otherwise insert a second primary.
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await EnsureNextSeasonCyclesAsync(crew.Id, cancellationToken);
     }
@@ -1998,7 +2020,8 @@ public async Task<bool> IsFinancialMemberAsync(
         Crew crew,
         CrewMembership membership,
         CancellationToken cancellationToken,
-        bool markCompleted = false)
+        bool markCompleted = false,
+        bool appendToEnd = false)
     {
         if (!crew.CurrentSeasonStartDate.HasValue)
         {
@@ -2018,6 +2041,10 @@ public async Task<bool> IsFinancialMemberAsync(
                 existingPrimary.CycleCompletedAt ??= DateTime.UtcNow;
                 existingPrimary.HasCycleStarted = false;
             }
+            else if (!markCompleted && existingPrimary.CycleCompleted)
+            {
+                await ReopenPrimaryIfUnsatisfiedAsync(crew, membership, existingPrimary, cancellationToken);
+            }
 
             return;
         }
@@ -2029,10 +2056,20 @@ public async Task<bool> IsFinancialMemberAsync(
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var isMember = await IsFinancialMemberAsync(membership.UserId, crew.Id, membership, cancellationToken);
         var cycleCap = GetEffectiveCycleCap(isMember, crew, capacityContext);
-        var insertPosition = GetInsertPositionForNewCycle(cycles, membership.CurrentPriorityScore);
-        foreach (var cycle in cycles.Where(c => c.ReceptionOrderPosition >= insertPosition))
+        int insertPosition;
+        if (appendToEnd)
         {
-            cycle.ReceptionOrderPosition++;
+            // A mid-season join must not splice into an accountant's order or split an
+            // emergency/payback package by shifting every later row.
+            insertPosition = cycles.Count == 0 ? 0 : cycles.Max(c => c.ReceptionOrderPosition) + 1;
+        }
+        else
+        {
+            insertPosition = GetInsertPositionForNewCycle(cycles, membership.CurrentPriorityScore);
+            foreach (var cycle in cycles.Where(c => c.ReceptionOrderPosition >= insertPosition))
+            {
+                cycle.ReceptionOrderPosition++;
+            }
         }
 
         var now = DateTime.UtcNow;
@@ -2546,6 +2583,10 @@ public async Task<bool> IsFinancialMemberAsync(
     {
         var (leader, runnerUp) = FindLockedLeaderAndRunnerUp(cycles);
         var minAllowed = GetMinInsertPosition(leader, runnerUp);
+        if (cycles.Count == 0)
+        {
+            return minAllowed;
+        }
 
         var target = cycles
             .Where(c => IsPrimaryCycle(c) && !c.CycleCompleted && c.PriorityScoreAtSeasonStart < priorityScore)
@@ -2554,10 +2595,33 @@ public async Task<bool> IsFinancialMemberAsync(
 
         if (target is null)
         {
-            return Math.Max((cycles.Max(c => (int?)c.ReceptionOrderPosition) ?? -1) + 1, minAllowed);
+            return Math.Max(cycles.Max(c => c.ReceptionOrderPosition) + 1, minAllowed);
         }
 
         return Math.Max(target.ReceptionOrderPosition, minAllowed);
+    }
+
+    private async Task ReopenPrimaryIfUnsatisfiedAsync(
+        Crew crew,
+        CrewMembership membership,
+        SeasonCycle primary,
+        CancellationToken cancellationToken)
+    {
+        var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var isMember = await IsFinancialMemberAsync(membership.UserId, crew.Id, membership, cancellationToken);
+        var effectiveCap = EmergencySplitService.ResolveSegmentCap(
+            primary,
+            isMember,
+            GetEffectiveCycleCap(true, crew, capacityContext),
+            GetEffectiveCycleCap(false, crew, capacityContext));
+        if (primary.CycleReceived >= effectiveCap)
+        {
+            return;
+        }
+
+        primary.CycleCompleted = false;
+        primary.CycleCompletedAt = null;
+        primary.PriorityScoreAtSeasonStart = membership.CurrentPriorityScore;
     }
 
     private async Task InitializeSeasonStateAsync(
