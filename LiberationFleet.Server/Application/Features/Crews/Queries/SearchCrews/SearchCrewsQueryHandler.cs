@@ -49,11 +49,18 @@ public class SearchCrewsQueryHandler : IRequestHandler<SearchCrewsQuery, CrewSea
         }
 
         var candidates = await _crewRepository.SearchPublicAsync(scope, cancellationToken);
+        var candidateIds = candidates.Select(crew => crew.Id).ToList();
+        var bannedCrewIds = candidateIds.Count == 0
+            ? (IReadOnlySet<int>)new HashSet<int>()
+            : await _membershipRepository.GetBannedCrewIdsForUserAsync(userId.Value, candidateIds, cancellationToken);
+        var memberCounts = candidateIds.Count == 0
+            ? (IReadOnlyDictionary<int, int>)new Dictionary<int, int>()
+            : await _crewRepository.CountMembersByCrewIdsAsync(candidateIds, cancellationToken);
         var results = new List<CrewDto>();
 
         foreach (var crew in candidates)
         {
-            if (await _membershipRepository.IsUserBannedFromCrewAsync(userId.Value, crew.Id, cancellationToken))
+            if (bannedCrewIds.Contains(crew.Id))
             {
                 continue;
             }
@@ -68,7 +75,7 @@ public class SearchCrewsQueryHandler : IRequestHandler<SearchCrewsQuery, CrewSea
                 continue;
             }
 
-            var memberCount = await _crewRepository.CountMembersAsync(crew.Id, cancellationToken);
+            var memberCount = memberCounts.GetValueOrDefault(crew.Id);
             if (memberCount == 0 || memberCount >= crew.MaxSize)
             {
                 continue;

@@ -34,6 +34,34 @@ public class UserBlockRepository : IUserBlockRepository
         return ids.ToHashSet();
     }
 
+    public async Task<(IReadOnlySet<int> BlockedByUser, IReadOnlySet<int> BlockingUser)> GetBlockSetsForUserAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var edges = await _context.UserBlocks
+            .AsNoTracking()
+            .Where(b => b.BlockerUserId == userId || b.BlockedUserId == userId)
+            .Select(b => new { b.BlockerUserId, b.BlockedUserId })
+            .ToListAsync(cancellationToken);
+
+        var blockedByUser = new HashSet<int>();
+        var blockingUser = new HashSet<int>();
+        foreach (var edge in edges)
+        {
+            if (edge.BlockerUserId == userId)
+            {
+                blockedByUser.Add(edge.BlockedUserId);
+            }
+
+            if (edge.BlockedUserId == userId)
+            {
+                blockingUser.Add(edge.BlockerUserId);
+            }
+        }
+
+        return (blockedByUser, blockingUser);
+    }
+
     public async Task<IReadOnlySet<int>> GetHiddenUserIdsForViewerAsync(int viewerUserId, CancellationToken cancellationToken = default)
     {
         var blockedByViewer = await _context.UserBlocks

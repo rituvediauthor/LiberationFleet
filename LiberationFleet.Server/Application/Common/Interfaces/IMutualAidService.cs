@@ -64,6 +64,26 @@ public interface IMutualAidService
         bool excludeActiveSeasonContributions = false,
         bool assumeInNeedNonOrganizerForLot = false,
         DateTime? seasonStartAnchor = null);
+    /// <summary>
+    /// Giving-season and Library of Things breakdowns for one crewmate, sharing the crew-wide reads.
+    /// </summary>
+    Task<(PriorityScoreBreakdown GivingSeason, PriorityScoreBreakdown Library)> GetProfilePriorityBreakdownsAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Library of Things priority scores for many memberships. Crew-wide reads run once per crew.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, decimal>> GetLibraryPriorityScoresForMembersAsync(
+        IReadOnlyList<CrewMembership> members,
+        CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Giving-season priority scores for many memberships. Crew-wide reads run once per crew.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, decimal>> GetGivingPriorityScoresForMembersAsync(
+        IReadOnlyList<CrewMembership> members,
+        DateTime? seasonStartAnchor = null,
+        CancellationToken cancellationToken = default);
     Task<decimal> GetCrewMonthlyGivingCapacityAsync(int crewId, CancellationToken cancellationToken = default);
     Task<decimal> GetMonthlyContributionExcludingLotAsync(int userId, int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<int>> GetLockedCycleUserIdsAsync(int crewId, CancellationToken cancellationToken = default);

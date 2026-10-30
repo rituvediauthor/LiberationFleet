@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { LibraryService } from '../../services/library.service';
@@ -11,7 +11,7 @@ import { ToastService } from '../toast/toast.component';
   templateUrl: './library-favorite-button.component.html',
   styleUrl: './library-favorite-button.component.css'
 })
-export class LibraryFavoriteButtonComponent implements OnInit, OnDestroy {
+export class LibraryFavoriteButtonComponent implements OnInit, OnChanges, OnDestroy {
   @Input({ required: true }) unitId = 0;
   @Input() placement: 'overlay' | 'inline' = 'overlay';
   @Output() favoriteChange = new EventEmitter<boolean>();
@@ -25,14 +25,24 @@ export class LibraryFavoriteButtonComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.libraryService.ensureFavoriteIdsLoaded();
-    this.favorited = this.libraryService.isFavorited(this.unitId);
+    this.syncFavorited();
     this.subscription = this.libraryService.favoriteIdsChanged$.subscribe(() => {
-      this.favorited = this.libraryService.isFavorited(this.unitId);
+      this.syncFavorited();
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['unitId'] && !changes['unitId'].firstChange) {
+      this.syncFavorited();
+    }
   }
 
   ngOnDestroy() {
     this.subscription?.unsubscribe();
+  }
+
+  private syncFavorited() {
+    this.favorited = this.unitId > 0 && this.libraryService.isFavorited(this.unitId);
   }
 
   toggle(event: Event) {
@@ -43,11 +53,14 @@ export class LibraryFavoriteButtonComponent implements OnInit, OnDestroy {
     }
 
     const next = !this.favorited;
+    const unitId = this.unitId;
     this.busy = true;
-    this.libraryService.setFavorite(this.unitId, next).subscribe({
+    this.libraryService.setFavorite(unitId, next).subscribe({
       next: favorited => {
         this.busy = false;
-        this.favorited = favorited;
+        if (unitId === this.unitId) {
+          this.favorited = favorited;
+        }
         this.favoriteChange.emit(favorited);
         this.toastService.success(favorited ? 'Saved to favorites' : 'Removed from favorites');
       },

@@ -228,6 +228,41 @@ public static class HandlerTestFixture
                 PercentBoost: 0,
                 SacrificeBonusFactor: 1m,
                 IsFinancialMember: false));
+        mock.Setup(m => m.GetProfilePriorityBreakdownsAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new PriorityScoreBreakdown(
+                    Score: 0m,
+                    CrewLifetimeContributions: 0m,
+                    EmergencyLevel: 0,
+                    MembershipBonus: 0m,
+                    UserLifetimeContributions: 0m,
+                    SurvivalThresholdAmount: 0m,
+                    BaseScore: 0m,
+                    PeopleRepresentedCount: 0,
+                    DisabilityLevel: 0,
+                    TargetedMinorityGroupCount: 0,
+                    PriorityMultiplier: 1,
+                    PercentBoost: 0,
+                    SacrificeBonusFactor: 1m,
+                    IsFinancialMember: false),
+                new PriorityScoreBreakdown(
+                    Score: 0m,
+                    CrewLifetimeContributions: 0m,
+                    EmergencyLevel: 0,
+                    MembershipBonus: 0m,
+                    UserLifetimeContributions: 0m,
+                    SurvivalThresholdAmount: 0m,
+                    BaseScore: 0m,
+                    PeopleRepresentedCount: 0,
+                    DisabilityLevel: 0,
+                    TargetedMinorityGroupCount: 0,
+                    PriorityMultiplier: 1,
+                    PercentBoost: 0,
+                    SacrificeBonusFactor: 1m,
+                    IsFinancialMember: false)));
         mock.Setup(m => m.GetMonthlyContributionExcludingLotAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);
         mock.Setup(m => m.IsFinancialMemberAsync(

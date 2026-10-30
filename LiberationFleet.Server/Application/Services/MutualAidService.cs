@@ -1615,91 +1615,30 @@ public partial class MutualAidService(
         bool assumeInNeedNonOrganizerForLot = false,
         DateTime? seasonStartAnchor = null)
     {
-        var membership = await mutualAidRepository.GetMembershipWithUserAsync(userId, crewId, cancellationToken);
-        if (membership is null)
-        {
-            return new PriorityScoreBreakdown(
-                Score: 0m,
-                CrewLifetimeContributions: 0m,
-                EmergencyLevel: 0,
-                MembershipBonus: 0m,
-                UserLifetimeContributions: 0m,
-                SurvivalThresholdAmount: 0m,
-                BaseScore: 0m,
-                PeopleRepresentedCount: 0,
-                DisabilityLevel: 0,
-                TargetedMinorityGroupCount: 0,
-                PriorityMultiplier: 1,
-                PercentBoost: 0,
-                SacrificeBonusFactor: 1m,
-                IsFinancialMember: false);
-        }
-
-        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-        DateTime? contributionCutoff = null;
-        if (excludeActiveSeasonContributions
-            && crew?.SeasonStarted == true
-            && crew.CurrentSeasonStartDate.HasValue)
-        {
-            contributionCutoff = crew.CurrentSeasonStartDate.Value;
-        }
-
-        var crewLifetime = await mutualAidRepository.GetCrewLifetimeContributionsAsync(
-            crewId,
-            contributionCutoff,
-            cancellationToken);
-        var userLifetime = await mutualAidRepository.GetLifetimeContributionsAsync(
+        var inputs = await LoadPriorityInputsAsync(
             userId,
             crewId,
-            contributionCutoff,
+            excludeActiveSeasonContributions,
+            seasonStartAnchor,
             cancellationToken);
-
-        var anchor = seasonStartAnchor
-            ?? crew?.CurrentSeasonStartDate
-            ?? DateTime.UtcNow;
-        if (await IsCrewFirstGivingSeasonAsync(crewId, anchor, cancellationToken))
+        if (inputs is null)
         {
-            (crewLifetime, userLifetime) = await ApplyFirstSeasonEstimateSeedsAsync(
-                crewId,
-                userId,
-                userLifetime,
-                membership.EstimatedMonthlyContribution,
-                contributionCutoff,
-                cancellationToken);
+            return EmptyPriorityBreakdown();
         }
-
-        // Honorary members keep pace with the crew: use at least the peer-average monthly
-        // contribution so their priority rises with the crew even when they cannot give.
-        if (membership.IsHonoraryMember)
-        {
-            var peerAverage = await GetHonoraryPeerAverageContributionsAsync(
-                crewId,
-                userId,
-                contributionCutoff,
-                cancellationToken);
-            if (peerAverage > userLifetime)
-            {
-                userLifetime = peerAverage;
-            }
-        }
-
-        var capacityContext = crew is not null
-            ? await BuildCapacityContextAsync(crew, cancellationToken)
-            : new CapacityContext();
 
         return MutualAidCalculationService.CalculatePriorityScoreBreakdown(
-            membership.User,
-            membership,
+            inputs.Membership.User,
+            inputs.Membership,
             await IsFinancialMemberAsync(
                 userId,
                 crewId,
-                membership,
+                inputs.Membership,
                 cancellationToken,
                 excludeActiveSeasonContributions,
                 ignoreOrganizerRole: assumeInNeedNonOrganizerForLot),
-            crewLifetime,
-            userLifetime,
-            capacityContext.SurvivalThresholdAmount,
+            inputs.CrewLifetime,
+            inputs.UserLifetime,
+            inputs.SurvivalThresholdAmount,
             demoteOrganizerToLastPlace: !assumeInNeedNonOrganizerForLot);
     }
 
@@ -1767,20 +1706,17 @@ public partial class MutualAidService(
         CancellationToken cancellationToken)
     {
         var peers = await mutualAidRepository.GetActiveMembersWithUsersAsync(crewId, cancellationToken);
-        var totals = new List<decimal>();
-        foreach (var peer in peers)
-        {
-            if (peer.UserId == honoraryUserId || peer.IsBanned)
-            {
-                continue;
-            }
-
-            totals.Add(await mutualAidRepository.GetLifetimeContributionsAsync(
-                peer.UserId,
-                crewId,
-                contributionCutoff,
-                cancellationToken));
-        }
+        var peerIds = peers
+            .Where(peer => peer.UserId != honoraryUserId && !peer.IsBanned)
+            .Select(peer => peer.UserId)
+            .Distinct()
+            .ToList();
+        var lifetimes = await mutualAidRepository.GetLifetimeContributionsForUsersAsync(
+            crewId,
+            peerIds,
+            contributionCutoff,
+            cancellationToken);
+        var totals = peerIds.Select(id => lifetimes.GetValueOrDefault(id)).ToList();
 
         if (totals.Count == 0)
         {
@@ -2644,9 +2580,11 @@ public async Task<bool> IsFinancialMemberAsync(
         crew.SeasonNonMemberCycleCap = capacityContext.NonMemberCycleCap;
 
         var ordered = new List<(CrewMembership Member, decimal Score)>();
+        var priorityScores = await GetGivingPriorityScoresForMembersAsync(participants, cancellationToken: cancellationToken);
+        var financialMembers = await BuildFinancialMemberStatusAsync(crew, participants, cancellationToken);
         foreach (var member in participants)
         {
-            var score = await GetPriorityScoreForUserAsync(member.UserId, crew.Id, cancellationToken);
+            var score = priorityScores.GetValueOrDefault(member.UserId);
             member.CurrentPriorityScore = score;
             ordered.Add((member, score));
         }
@@ -2656,7 +2594,7 @@ public async Task<bool> IsFinancialMemberAsync(
         foreach (var (member, score) in ordered)
         {
             var inNeed = member.User?.InNeedOfAid != false;
-            var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
+            var isMember = financialMembers.GetValueOrDefault(member.UserId, false);
             var cycleCap = isMember ? capacityContext.MemberCycleCap : capacityContext.NonMemberCycleCap;
             var now = DateTime.UtcNow;
 
@@ -2798,15 +2736,7 @@ public async Task<bool> IsFinancialMemberAsync(
             cancellationToken)).ToList();
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
         var participants = await mutualAidRepository.GetSeasonParticipantsAsync(crew.Id, cancellationToken);
-        var memberStatus = new Dictionary<int, bool>();
-        foreach (var participant in participants)
-        {
-            memberStatus[participant.UserId] = await IsFinancialMemberAsync(
-                participant.UserId,
-                crew.Id,
-                participant,
-                cancellationToken);
-        }
+        var memberStatus = await BuildFinancialMemberStatusAsync(crew, participants, cancellationToken);
 
         var effectiveMemberCap = GetEffectiveCycleCap(true, crew, capacityContext);
         var effectiveNonMemberCap = GetEffectiveCycleCap(false, crew, capacityContext);
@@ -2872,6 +2802,7 @@ public async Task<bool> IsFinancialMemberAsync(
             cancellationToken);
         var created = false;
         var changed = false;
+        var removedThresholds = new HashSet<MonthlySurvivalThreshold>();
 
         foreach (var threshold in existingForMonth)
         {
@@ -2886,6 +2817,7 @@ public async Task<bool> IsFinancialMemberAsync(
                 if (threshold.ReceivedAmount <= 0m && !threshold.Satisfied)
                 {
                     mutualAidRepository.RemoveThreshold(threshold);
+                    removedThresholds.Add(threshold);
                     changed = true;
                 }
                 else if (!threshold.Satisfied)
@@ -2927,14 +2859,13 @@ public async Task<bool> IsFinancialMemberAsync(
 
             // Append only — never insert ahead of / between existing open thresholds.
             var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
+            var usersWithMonthThreshold = existingForMonth
+                .Where(threshold => !removedThresholds.Contains(threshold))
+                .Select(threshold => threshold.UserId)
+                .ToHashSet();
             foreach (var member in eligibleRecipients)
             {
-                if (await mutualAidRepository.HasThresholdForMonthAsync(
-                        crew.Id,
-                        member.UserId,
-                        year,
-                        month,
-                        cancellationToken))
+                if (usersWithMonthThreshold.Contains(member.UserId))
                 {
                     continue;
                 }
@@ -2956,6 +2887,7 @@ public async Task<bool> IsFinancialMemberAsync(
                     ReceptionOrderPosition = position++,
                     Satisfied = false
                 }, cancellationToken);
+                usersWithMonthThreshold.Add(member.UserId);
                 activeCounts[member.UserId] = activeCounts.GetValueOrDefault(member.UserId) + 1;
                 created = true;
                 changed = true;
@@ -3359,15 +3291,7 @@ public async Task<bool> IsFinancialMemberAsync(
             var activeMemberIds = (await membershipRepository.GetActiveMembersByCrewIdAsync(crew.Id, cancellationToken))
                 .Select(m => m.UserId)
                 .ToHashSet();
-            var memberStatus = new Dictionary<int, bool>();
-            foreach (var participant in participants)
-            {
-                memberStatus[participant.UserId] = await IsFinancialMemberAsync(
-                    participant.UserId,
-                    crew.Id,
-                    participant,
-                    cancellationToken);
-            }
+            var memberStatus = await BuildFinancialMemberStatusAsync(crew, participants, cancellationToken);
 
             foreach (var cycle in cycles)
             {
@@ -3429,15 +3353,16 @@ public async Task<bool> IsFinancialMemberAsync(
             cancellationToken)).ToList();
 
         var scored = new List<(CrewMembership Member, decimal Score)>();
+        var priorityScores = await GetGivingPriorityScoresForMembersAsync(
+            nextParticipants,
+            seasonStartAnchor: promotedSeasonStart,
+            cancellationToken: cancellationToken);
+        var financialMembers = await BuildFinancialMemberStatusAsync(crew, nextParticipants, cancellationToken);
         foreach (var member in nextParticipants)
         {
             // Score against the season being promoted into so first-season estimate seeding
             // does not apply once a prior season start date already exists.
-            var score = await GetPriorityScoreForUserAsync(
-                member.UserId,
-                crew.Id,
-                cancellationToken,
-                seasonStartAnchor: promotedSeasonStart);
+            var score = priorityScores.GetValueOrDefault(member.UserId);
             member.CurrentPriorityScore = score;
             scored.Add((member, score));
         }
@@ -3448,7 +3373,7 @@ public async Task<bool> IsFinancialMemberAsync(
         foreach (var (member, score) in scored)
         {
             var inNeed = member.User?.InNeedOfAid != false;
-            var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
+            var isMember = financialMembers.GetValueOrDefault(member.UserId, false);
             var cycleCap = isMember ? capacityContextForNext.MemberCycleCap : capacityContextForNext.NonMemberCycleCap;
             var primary = promotedCycles.FirstOrDefault(c =>
                 c.UserId == member.UserId && IsPrimaryCycle(c) && !c.CycleCompleted)
@@ -3671,6 +3596,14 @@ public async Task<bool> IsFinancialMemberAsync(
             seasonStartDate,
             cancellationToken)).ToList();
         var capacityContext = await BuildCapacityContextAsync(crew, cancellationToken);
+        var financialMembers = await BuildFinancialMemberStatusAsync(crew, participants, cancellationToken);
+        var needingScore = participants
+            .Where(member => member.CurrentPriorityScore == 0m
+                && !cycles.Any(c => c.UserId == member.UserId && IsPrimaryCycle(c)))
+            .ToList();
+        var priorityScores = await GetGivingPriorityScoresForMembersAsync(
+            needingScore,
+            cancellationToken: cancellationToken);
 
         foreach (var member in participants)
         {
@@ -3685,11 +3618,11 @@ public async Task<bool> IsFinancialMemberAsync(
             var score = member.CurrentPriorityScore;
             if (score == 0m)
             {
-                score = await GetPriorityScoreForUserAsync(member.UserId, crew.Id, cancellationToken);
+                score = priorityScores.GetValueOrDefault(member.UserId);
                 member.CurrentPriorityScore = score;
             }
 
-            var isMember = await IsFinancialMemberAsync(member.UserId, crew.Id, member, cancellationToken);
+            var isMember = financialMembers.GetValueOrDefault(member.UserId, false);
             var cycleCap = provisional ? 0m : GetEffectiveCycleCap(isMember, crew, capacityContext);
             var insertPosition = lockLeaderSlots
                 ? GetInsertPositionForNewCycle(cycles, score)

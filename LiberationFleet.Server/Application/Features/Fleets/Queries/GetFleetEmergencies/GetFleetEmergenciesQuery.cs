@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.EmergencyRequests.Contracts;
+using LiberationFleet.Server.Domain.Entities;
 using MediatR;
 using LiberationFleet.Server.Application.Common;
 
@@ -39,43 +40,55 @@ public class GetFleetEmergenciesQueryHandler(
 
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
         var crewNames = fleetCrews.ToDictionary(fc => fc.CrewId, fc => fc.Crew.Name);
-
-        var items = new List<EmergencyRequestListItemDto>();
-        foreach (var fleetCrew in fleetCrews)
+        var crewIds = fleetCrews.Select(fc => fc.CrewId).ToList();
+        var openRequests = await emergencyRequestRepository.GetOpenByCrewIdsAsync(crewIds, cancellationToken);
+        var activeUserIdsByCrew = await membershipRepository.GetActiveNonPlaceholderUserIdsByCrewIdsAsync(
+            crewIds,
+            cancellationToken);
+        var requestsByCrew = openRequests
+            .GroupBy(request => request.CrewId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var visible = new List<EmergencyRequest>();
+        foreach (var crewId in crewIds)
         {
-            var requests = await emergencyRequestRepository.GetOpenByCrewIdAsync(fleetCrew.CrewId, cancellationToken);
-            var activeMemberIds = (await membershipRepository.GetActiveMembersByCrewIdAsync(
-                    fleetCrew.CrewId,
-                    cancellationToken))
-                .Where(m => !m.IsPlaceholderMember)
-                .Select(m => m.UserId)
-                .ToHashSet();
-            var visible = requests.Where(r => activeMemberIds.Contains(r.RequesterUserId)).ToList();
-            var pendingByRequest = await giftRepository.GetPendingAmountsByEmergencyRequestIdsAsync(
-                visible.Select(r => r.Id),
-                cancellationToken);
-            items.AddRange(visible.Select(r =>
+            if (!requestsByCrew.TryGetValue(crewId, out var requests))
             {
-                pendingByRequest.TryGetValue(r.Id, out var pending);
-                var amounts = EmergencyRequestDtoMapper.MapAmounts(r, pending);
-                return new EmergencyRequestListItemDto
-                {
-                    Id = r.Id,
-                    CrewId = fleetCrew.CrewId,
-                    CrewName = crewNames.GetValueOrDefault(fleetCrew.CrewId, string.Empty),
-                    RequesterUserId = r.RequesterUserId,
-                    RequesterUsername = UserDisplay.Name(r.RequesterUser),
-                    PurposePreview = r.Purpose.Length > 120 ? r.Purpose[..117] + "..." : r.Purpose,
-                    AmountNeeded = r.AmountNeeded,
-                    AmountFulfilled = amounts.AmountReceived,
-                    AmountReceived = amounts.AmountReceived,
-                    AmountSplitCommitted = amounts.AmountSplitCommitted,
-                    AmountUncovered = amounts.AmountUncovered,
-                    AmountRemaining = amounts.AmountRemaining,
-                    CreatedAt = r.CreatedAt
-                };
-            }));
+                continue;
+            }
+
+            var activeUserIds = activeUserIdsByCrew.GetValueOrDefault(crewId);
+            if (activeUserIds is null)
+            {
+                continue;
+            }
+
+            visible.AddRange(requests.Where(request => activeUserIds.Contains(request.RequesterUserId)));
         }
+        var pendingByRequest = await giftRepository.GetPendingAmountsByEmergencyRequestIdsAsync(
+            visible.Select(request => request.Id),
+            cancellationToken);
+
+        var items = visible.Select(request =>
+        {
+            pendingByRequest.TryGetValue(request.Id, out var pending);
+            var amounts = EmergencyRequestDtoMapper.MapAmounts(request, pending);
+            return new EmergencyRequestListItemDto
+            {
+                Id = request.Id,
+                CrewId = request.CrewId,
+                CrewName = crewNames.GetValueOrDefault(request.CrewId, string.Empty),
+                RequesterUserId = request.RequesterUserId,
+                RequesterUsername = UserDisplay.Name(request.RequesterUser),
+                PurposePreview = request.Purpose.Length > 120 ? request.Purpose[..117] + "..." : request.Purpose,
+                AmountNeeded = request.AmountNeeded,
+                AmountFulfilled = amounts.AmountReceived,
+                AmountReceived = amounts.AmountReceived,
+                AmountSplitCommitted = amounts.AmountSplitCommitted,
+                AmountUncovered = amounts.AmountUncovered,
+                AmountRemaining = amounts.AmountRemaining,
+                CreatedAt = request.CreatedAt
+            };
+        }).ToList();
 
         items = items.OrderByDescending(i => i.CreatedAt).ToList();
 

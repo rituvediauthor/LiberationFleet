@@ -7,6 +7,17 @@ public interface ICrewMembershipRepository
     Task<CrewMembership?> GetActiveMembershipAsync(int userId, CancellationToken cancellationToken = default);
     Task<bool> IsUserBannedFromCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default);
     Task<bool> IsUserInCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default);
+    Task<IReadOnlySet<int>> GetActiveCrewIdsForUserAsync(int userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlySet<int>> GetUserIdsWithActiveMembershipAsync(
+        IReadOnlyCollection<int> userIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlySet<int>> GetBannedCrewIdsForUserAsync(
+        int userId,
+        IReadOnlyCollection<int> crewIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, IReadOnlySet<int>>> GetActiveNonPlaceholderUserIdsByCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetActiveMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CrewMembership>> GetBannedMembersByCrewIdAsync(int crewId, CancellationToken cancellationToken = default);
     Task<CrewMembership?> GetMembershipAsync(int userId, int crewId, CancellationToken cancellationToken = default);

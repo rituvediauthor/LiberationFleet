@@ -42,4 +42,29 @@ public class CrewRepository : ICrewRepository
         _context.CrewMemberships.CountAsync(
             m => m.CrewId == crewId && !m.IsBanned && m.LeftAt == null && !m.IsPlaceholderMember,
             cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, int>> CountMembersByCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = crewIds.Distinct().ToList();
+        var counts = ids.ToDictionary(id => id, _ => 0);
+        if (ids.Count == 0)
+        {
+            return counts;
+        }
+
+        var rows = await _context.CrewMemberships
+            .AsNoTracking()
+            .Where(m => ids.Contains(m.CrewId) && !m.IsBanned && m.LeftAt == null && !m.IsPlaceholderMember)
+            .GroupBy(m => m.CrewId)
+            .Select(g => new { CrewId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        foreach (var row in rows)
+        {
+            counts[row.CrewId] = row.Count;
+        }
+
+        return counts;
+    }
 }

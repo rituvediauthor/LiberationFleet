@@ -36,21 +36,17 @@ public class SearchCrewsQueryHandlerTests
             .ReturnsAsync(new List<Crew> { availableCrew, fullCrew, bannedCrew });
 
         membershipRepository
-            .Setup(r => r.IsUserBannedFromCrewAsync(userId, availableCrew.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        membershipRepository
-            .Setup(r => r.IsUserBannedFromCrewAsync(userId, fullCrew.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        membershipRepository
-            .Setup(r => r.IsUserBannedFromCrewAsync(userId, bannedCrew.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .Setup(r => r.GetBannedCrewIdsForUserAsync(userId, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int> { bannedCrew.Id });
 
         crewRepository
-            .Setup(r => r.CountMembersAsync(availableCrew.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(3);
-        crewRepository
-            .Setup(r => r.CountMembersAsync(fullCrew.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(r => r.CountMembersByCrewIdsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, int>
+            {
+                [availableCrew.Id] = 3,
+                [fullCrew.Id] = 1,
+                [bannedCrew.Id] = 4
+            });
 
         var handler = CreateHandler(currentUserId: userId, crewRepository: crewRepository, membershipRepository: membershipRepository);
 
@@ -84,12 +80,13 @@ public class SearchCrewsQueryHandlerTests
             .ReturnsAsync(new List<Crew> { nearbyCrew, farCrew });
 
         membershipRepository
-            .Setup(r => r.IsUserBannedFromCrewAsync(userId, It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .Setup(r => r.GetBannedCrewIdsForUserAsync(userId, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
 
         crewRepository
-            .Setup(r => r.CountMembersAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(r => r.CountMembersByCrewIdsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyCollection<int> crewIds, CancellationToken _) =>
+                crewIds.ToDictionary(id => id, _ => 1));
 
         var handler = CreateHandler(
             currentUserId: userId,

@@ -11,6 +11,8 @@ public class LibraryPriorityTierService(
     IFleetRepository fleetRepository,
     IUserBlockRepository blockRepository)
 {
+    private readonly Dictionary<int, LibraryPriorityTierSnapshot> _crewmateSnapshots = new();
+    private readonly Dictionary<string, LibraryPriorityTierSnapshot> _fleetMateSnapshots = new();
     /// <summary>
     /// Crewmate tiers (4–6) among the home crew. Used for profile / crew dashboards.
     /// </summary>
@@ -18,8 +20,15 @@ public class LibraryPriorityTierService(
         int homeCrewId,
         CancellationToken cancellationToken = default)
     {
+        if (_crewmateSnapshots.TryGetValue(homeCrewId, out var cached))
+        {
+            return cached;
+        }
+
         var members = await GetScorableMembersAsync([homeCrewId], cancellationToken);
-        return await BuildSnapshotAsync(members, LibraryPriorityTier.CrewmateMinTier, cancellationToken);
+        var snapshot = await BuildSnapshotAsync(members, LibraryPriorityTier.CrewmateMinTier, cancellationToken);
+        _crewmateSnapshots[homeCrewId] = snapshot;
+        return snapshot;
     }
 
     /// <summary>Backward-compatible alias for crewmate snapshot on the home crew.</summary>
@@ -39,10 +48,15 @@ public class LibraryPriorityTierService(
         var offeringMembers = await GetScorableMembersAsync([offeringCrewId], cancellationToken);
         if (offeringMembers.Any(m => m.UserId == viewerUserId))
         {
-            var crewSnapshot = await BuildSnapshotAsync(
-                offeringMembers,
-                LibraryPriorityTier.CrewmateMinTier,
-                cancellationToken);
+            if (!_crewmateSnapshots.TryGetValue(offeringCrewId, out var crewSnapshot))
+            {
+                crewSnapshot = await BuildSnapshotAsync(
+                    offeringMembers,
+                    LibraryPriorityTier.CrewmateMinTier,
+                    cancellationToken);
+                _crewmateSnapshots[offeringCrewId] = crewSnapshot;
+            }
+
             return crewSnapshot.GetTierForUser(viewerUserId);
         }
 
@@ -69,10 +83,16 @@ public class LibraryPriorityTierService(
             return LibraryPriorityTier.MinTier;
         }
 
-        var fleetSnapshot = await BuildSnapshotAsync(
-            fleetMateMembers,
-            LibraryPriorityTier.FleetMateMinTier,
-            cancellationToken);
+        var fleetMateKey = string.Join(',', otherCrewIds.OrderBy(id => id));
+        if (!_fleetMateSnapshots.TryGetValue(fleetMateKey, out var fleetSnapshot))
+        {
+            fleetSnapshot = await BuildSnapshotAsync(
+                fleetMateMembers,
+                LibraryPriorityTier.FleetMateMinTier,
+                cancellationToken);
+            _fleetMateSnapshots[fleetMateKey] = fleetSnapshot;
+        }
+
         return fleetSnapshot.GetTierForUser(viewerUserId);
     }
 
@@ -305,23 +325,10 @@ public class LibraryPriorityTierService(
         IReadOnlyList<CrewMembership> members,
         CancellationToken cancellationToken)
     {
-        var scores = new Dictionary<int, decimal>();
-        foreach (var member in members)
-        {
-            if (scores.ContainsKey(member.UserId))
-            {
-                continue;
-            }
-
-            var score = await mutualAidService.GetPriorityScoreForUserAsync(
-                member.UserId,
-                member.CrewId,
-                cancellationToken,
-                assumeInNeedNonOrganizerForLot: true);
-            scores[member.UserId] = score;
-        }
-
-        return scores;
+        var scored = await mutualAidService.GetLibraryPriorityScoresForMembersAsync(members, cancellationToken);
+        return scored is null
+            ? new Dictionary<int, decimal>()
+            : new Dictionary<int, decimal>(scored);
     }
 
     private async Task<IReadOnlyList<CrewMembership>> GetScorableMembersAsync(

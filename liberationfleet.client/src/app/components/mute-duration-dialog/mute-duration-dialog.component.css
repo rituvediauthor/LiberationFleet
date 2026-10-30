@@ -3,18 +3,24 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  z-index: 40;
+  z-index: 2000;
   padding: 16px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .dialog-card {
   width: min(420px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  margin-block: auto;
   background: var(--lf-color-bg-surface);
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
 }
 
 .dialog-title {
@@ -48,10 +54,4 @@
 
 .mute-options button.cancel {
   color: var(--lf-color-text-secondary);
-}
-
-@media (min-width: 640px) {
-  .dialog-backdrop {
-    align-items: center;
-  }
 }

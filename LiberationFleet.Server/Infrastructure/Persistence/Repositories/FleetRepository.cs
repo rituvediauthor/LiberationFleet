@@ -115,6 +115,63 @@ public class FleetRepository : IFleetRepository
             cancellationToken);
     }
 
+    public async Task<IReadOnlySet<int>> GetFleetIdsForUserAsync(
+        int userId,
+        IReadOnlyCollection<int> fleetIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = fleetIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var viaCrew = await _context.CrewMemberships
+            .AsNoTracking()
+            .Where(m => m.UserId == userId && !m.IsBanned && m.LeftAt == null)
+            .Join(
+                _context.FleetCrews.Where(fc => ids.Contains(fc.FleetId)),
+                membership => membership.CrewId,
+                fleetCrew => fleetCrew.CrewId,
+                (_, fleetCrew) => fleetCrew.FleetId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var viaFleet = await _context.FleetMemberships
+            .AsNoTracking()
+            .Where(m => m.UserId == userId && ids.Contains(m.FleetId))
+            .Select(m => m.FleetId)
+            .ToListAsync(cancellationToken);
+
+        var accessible = viaCrew.ToHashSet();
+        accessible.UnionWith(viaFleet);
+        return accessible;
+    }
+
+    public async Task<IReadOnlyDictionary<int, int>> CountCrewsByFleetIdsAsync(
+        IReadOnlyCollection<int> fleetIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = fleetIds.Distinct().ToList();
+        var counts = ids.ToDictionary(id => id, _ => 0);
+        if (ids.Count == 0)
+        {
+            return counts;
+        }
+
+        var rows = await _context.FleetCrews
+            .AsNoTracking()
+            .Where(fc => ids.Contains(fc.FleetId))
+            .GroupBy(fc => fc.FleetId)
+            .Select(g => new { FleetId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        foreach (var row in rows)
+        {
+            counts[row.FleetId] = row.Count;
+        }
+
+        return counts;
+    }
+
     public async Task<IReadOnlyList<int>> GetActiveFleetMemberUserIdsAsync(int fleetId, CancellationToken cancellationToken = default)
     {
         var crewUserIds = await _context.CrewMemberships

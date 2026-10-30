@@ -18,6 +18,13 @@ public interface IFleetRepository
     Task<FleetCrew?> GetFleetCrewAsync(int fleetId, int crewId, CancellationToken cancellationToken = default);
     Task<int> CountActiveFleetMembersAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<bool> IsUserInFleetAsync(int userId, int fleetId, CancellationToken cancellationToken = default);
+    Task<IReadOnlySet<int>> GetFleetIdsForUserAsync(
+        int userId,
+        IReadOnlyCollection<int> fleetIds,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, int>> CountCrewsByFleetIdsAsync(
+        IReadOnlyCollection<int> fleetIds,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<int>> GetActiveFleetMemberUserIdsAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FleetRule>> GetPublicRulesAsync(int fleetId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FleetRule>> GetRulesAsync(int fleetId, CancellationToken cancellationToken = default);

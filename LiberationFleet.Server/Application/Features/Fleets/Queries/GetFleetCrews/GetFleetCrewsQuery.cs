@@ -35,15 +35,17 @@ public class GetFleetCrewsQueryHandler(
         }
 
         var fleetCrews = await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken);
+        var memberCounts = await crewRepository.CountMembersByCrewIdsAsync(
+            fleetCrews.Select(fc => fc.CrewId).ToList(),
+            cancellationToken);
         var items = new List<FleetCrewListItemDto>();
         foreach (var fc in fleetCrews)
         {
-            var memberCount = await crewRepository.CountMembersAsync(fc.CrewId, cancellationToken);
             items.Add(new FleetCrewListItemDto
             {
                 CrewId = fc.CrewId,
                 CrewName = fc.Crew?.Name ?? "Unknown crew",
-                MemberCount = memberCount,
+                MemberCount = memberCounts.GetValueOrDefault(fc.CrewId),
                 JoinedAt = fc.JoinedAt,
                 IsOwnCrew = membership?.CrewId == fc.CrewId
             });

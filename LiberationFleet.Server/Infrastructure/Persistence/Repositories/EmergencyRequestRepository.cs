@@ -30,11 +30,24 @@ public class EmergencyRequestRepository : IEmergencyRequestRepository
     public async Task<IReadOnlyList<EmergencyRequest>> GetOpenByCrewIdAsync(
         int crewId,
         CancellationToken cancellationToken = default) =>
-        await _context.EmergencyRequests
+        await GetOpenByCrewIdsAsync([crewId], cancellationToken);
+
+    public async Task<IReadOnlyList<EmergencyRequest>> GetOpenByCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = crewIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return Array.Empty<EmergencyRequest>();
+        }
+
+        return await _context.EmergencyRequests
             .Include(r => r.RequesterUser)
-            .Where(r => r.CrewId == crewId && r.Status == EmergencyRequestStatus.Open)
+            .Where(r => ids.Contains(r.CrewId) && r.Status == EmergencyRequestStatus.Open)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
+    }
 
     public async Task AddAsync(EmergencyRequest request, CancellationToken cancellationToken = default) =>
         await _context.EmergencyRequests.AddAsync(request, cancellationToken);

@@ -10,6 +10,7 @@ public interface IUserRepository
     /// <summary>Lightweight lookup without payment-platform includes (uses local tracker when possible).</summary>
     Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<User?> GetByIdWithProfileAsync(int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<User>> GetByIdsAsync(IReadOnlyCollection<int> userIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<int, string?>> GetAvatarResourceIdsAsync(
         IReadOnlyList<int> userIds,
         CancellationToken cancellationToken = default);

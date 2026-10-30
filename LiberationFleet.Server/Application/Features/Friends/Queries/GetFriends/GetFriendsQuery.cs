@@ -68,22 +68,17 @@ public class GetFriendsQueryHandler(
             .ToHashSet();
 
         var search = request.Search?.Trim();
+        var friends = await userRepository.GetByIdsAsync(friendIds, cancellationToken);
         var items = new List<FriendListItemDto>();
-        foreach (var friendId in friendIds)
+        foreach (var friend in friends)
         {
-            var friend = await userRepository.GetByIdWithProfileAsync(friendId, cancellationToken);
-            if (friend is null)
-            {
-                continue;
-            }
-
             if (!string.IsNullOrWhiteSpace(search)
                 && !friend.Username.Contains(search, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            lastMessageAtByFriendId.TryGetValue(friendId, out var lastMessageAt);
+            lastMessageAtByFriendId.TryGetValue(friend.Id, out var lastMessageAt);
             items.Add(new FriendListItemDto
             {
                 UserId = friend.Id,
@@ -91,7 +86,7 @@ public class GetFriendsQueryHandler(
                 AvatarResourceId = friend.AvatarResourceId,
                 LastLoginAt = friend.LastLoginAt,
                 LastMessageAt = lastMessageAt,
-                IsMuted = mutedFriendIds.Contains(friendId)
+                IsMuted = mutedFriendIds.Contains(friend.Id)
             });
         }
 

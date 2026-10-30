@@ -54,6 +54,7 @@ public class SearchCrewmatesForMentionQueryHandler(
             ranked = ranked.OrderBy(m => UserDisplay.Name(m.User), StringComparer.OrdinalIgnoreCase);
         }
 
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(viewerId, cancellationToken);
         foreach (var member in ranked)
         {
             if (items.Count >= MaxResults)
@@ -61,8 +62,7 @@ public class SearchCrewmatesForMentionQueryHandler(
                 break;
             }
 
-            if (await blockRepository.IsBlockedAsync(viewerId, member.UserId, cancellationToken)
-                || await blockRepository.IsBlockedAsync(member.UserId, viewerId, cancellationToken))
+            if (hiddenUserIds.Contains(member.UserId))
             {
                 continue;
             }

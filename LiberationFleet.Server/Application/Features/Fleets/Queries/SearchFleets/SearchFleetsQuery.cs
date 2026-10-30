@@ -76,12 +76,13 @@ public class SearchFleetsQueryHandler(
             .ToList();
 
         var totalCount = ordered.Count;
-        var items = new List<FleetDto>();
-        foreach (var fleet in ordered.Skip((page - 1) * pageSize).Take(pageSize))
-        {
-            var crewCount = (await fleetRepository.GetFleetCrewsAsync(fleet.Id, cancellationToken)).Count;
-            items.Add(FleetMapper.MapFleet(fleet, crewCount));
-        }
+        var pageFleets = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var crewCounts = await fleetRepository.CountCrewsByFleetIdsAsync(
+            pageFleets.Select(fleet => fleet.Id).ToList(),
+            cancellationToken);
+        var items = pageFleets
+            .Select(fleet => FleetMapper.MapFleet(fleet, crewCounts.GetValueOrDefault(fleet.Id)))
+            .ToList();
 
         return new FleetSearchResponse
         {

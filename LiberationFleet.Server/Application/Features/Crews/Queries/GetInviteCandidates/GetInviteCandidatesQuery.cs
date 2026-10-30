@@ -40,15 +40,11 @@ public class GetInviteCandidatesQueryHandler(
 
         if (request.FriendsOnly || string.IsNullOrWhiteSpace(request.Username))
         {
-            foreach (var friendId in friendIds)
+            var friendsInCrew = await membershipRepository.GetUserIdsWithActiveMembershipAsync(friendIds, cancellationToken);
+            var friends = await userRepository.GetByIdsAsync(friendIds, cancellationToken);
+            foreach (var friend in friends)
             {
-                if (await membershipRepository.GetActiveMembershipAsync(friendId, cancellationToken) is not null)
-                {
-                    continue;
-                }
-
-                var friend = await userRepository.GetByIdWithProfileAsync(friendId, cancellationToken);
-                if (friend is null || friend.IsUnclaimedPlaceholder)
+                if (friendsInCrew.Contains(friend.Id) || friend.IsUnclaimedPlaceholder)
                 {
                     continue;
                 }
@@ -65,19 +61,11 @@ public class GetInviteCandidatesQueryHandler(
         if (!string.IsNullOrWhiteSpace(request.Username) && !request.FriendsOnly)
         {
             var users = await userRepository.SearchByUsernameAsync(request.Username, 20, cancellationToken);
+            var searchIds = users.Select(user => user.Id).Where(id => id != userId).ToList();
+            var usersInCrew = await membershipRepository.GetUserIdsWithActiveMembershipAsync(searchIds, cancellationToken);
             foreach (var user in users)
             {
-                if (user.Id == userId)
-                {
-                    continue;
-                }
-
-                if (await membershipRepository.GetActiveMembershipAsync(user.Id, cancellationToken) is not null)
-                {
-                    continue;
-                }
-
-                if (candidates.Any(c => c.UserId == user.Id))
+                if (user.Id == userId || usersInCrew.Contains(user.Id) || candidates.Any(c => c.UserId == user.Id))
                 {
                     continue;
                 }

@@ -10,4 +10,7 @@ public interface ICrewRepository
     Task AddAsync(Crew crew, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Crew>> SearchPublicAsync(CrewScope scope, CancellationToken cancellationToken = default);
     Task<int> CountMembersAsync(int crewId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, int>> CountMembersByCrewIdsAsync(
+        IReadOnlyCollection<int> crewIds,
+        CancellationToken cancellationToken = default);
 }

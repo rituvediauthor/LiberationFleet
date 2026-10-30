@@ -46,13 +46,14 @@ public class GetCrewmatesQueryHandler(
         var friendshipByUserId = friendships
             .GroupBy(f => f.RequesterUserId == viewerId ? f.AddresseeUserId : f.RequesterUserId)
             .ToDictionary(g => g.Key, g => g.OrderBy(f => f.CreatedAt).First());
+        var (blockedByViewer, blockingViewer) = await blockRepository.GetBlockSetsForUserAsync(viewerId, cancellationToken);
 
         var items = new List<CrewmateListItemDto>();
         foreach (var member in members.OrderBy(m => UserDisplay.Name(m.User)))
         {
             friendshipByUserId.TryGetValue(member.UserId, out var friendship);
-            var viewerBlockedTarget = await blockRepository.IsBlockedAsync(viewerId, member.UserId, cancellationToken);
-            var targetBlockedViewer = await blockRepository.IsBlockedAsync(member.UserId, viewerId, cancellationToken);
+            var viewerBlockedTarget = blockedByViewer.Contains(member.UserId);
+            var targetBlockedViewer = blockingViewer.Contains(member.UserId);
 
             items.Add(new CrewmateListItemDto
             {

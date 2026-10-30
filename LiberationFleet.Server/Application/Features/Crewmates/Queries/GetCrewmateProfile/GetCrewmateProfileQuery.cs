@@ -71,16 +71,10 @@ public class GetCrewmateProfileQueryHandler(
             targetMembership,
             cancellationToken);
 
-        var givingSeasonBreakdown = await mutualAidService.GetPriorityScoreBreakdownForUserAsync(
+        var (givingSeasonBreakdown, libraryBreakdown) = await mutualAidService.GetProfilePriorityBreakdownsAsync(
             request.UserId,
             viewerMembership.CrewId,
             cancellationToken);
-
-        var libraryBreakdown = await mutualAidService.GetPriorityScoreBreakdownForUserAsync(
-            request.UserId,
-            viewerMembership.CrewId,
-            cancellationToken,
-            assumeInNeedNonOrganizerForLot: true);
         var priorityScore = libraryBreakdown.Score;
 
         var unsatisfiedThresholds = await mutualAidRepository.GetUnsatisfiedThresholdsAsync(
