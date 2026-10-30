@@ -1,3 +1,4 @@
+<ng-container appOutsideMenuClose (appOutsideMenuClose)="closeMenus()"></ng-container>
 <div class="proposal-detail-page" *ngIf="!loading && proposal as p">
   <app-location-header *ngIf="locationHeaderView" [info]="locationHeaderView"></app-location-header>
 

@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../services/navigation.service';
@@ -7,11 +7,12 @@ import { CrewService } from '../../services/crew.service';
 import { ProposalService } from '../../services/proposal.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { JoinRequestListItem } from '../../models/crew.model';
+import { OutsideMenuCloseDirective } from '../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-my-join-requests',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, OutsideMenuCloseDirective],
   templateUrl: './my-join-requests.component.html',
   styleUrl: './my-join-requests.component.css'
 })
@@ -39,7 +40,6 @@ export class MyJoinRequestsComponent implements OnInit {
     this.loadRequests();
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMenuProposalId = null;
   }

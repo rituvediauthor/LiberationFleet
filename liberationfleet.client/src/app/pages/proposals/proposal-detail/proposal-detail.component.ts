@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -47,6 +47,7 @@ import { ComposerFooterPadDirective } from '../../../directives/composer-footer-
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-proposal-detail',
@@ -67,7 +68,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     UserAvatarComponent,
     LocationHeaderComponent,
     NotificationTargetDirective,
-    ComposerFooterPadDirective
+    ComposerFooterPadDirective,
+    OutsideMenuCloseDirective
   ],
   templateUrl: './proposal-detail.component.html',
   styleUrl: './proposal-detail.component.css'
@@ -215,7 +217,6 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.encryptionReload?.subscription.unsubscribe();
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openCommentMenuId = null;
     this.openProposalAuthorMenu = false;

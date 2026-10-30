@@ -2,7 +2,6 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   QueryList,
@@ -43,6 +42,7 @@ import {
   TypingActivityController,
   TypingPresenceTracker
 } from '../../../utils/typing-indicator.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-friend-dm',
@@ -56,7 +56,8 @@ import {
     ReportContentDialogComponent,
     UserAvatarComponent,
     LocationHeaderComponent,
-    ComposerFooterPadDirective
+    ComposerFooterPadDirective,
+    OutsideMenuCloseDirective
   ],
   templateUrl: './friend-dm.component.html',
   styleUrl: './friend-dm.component.css'
@@ -121,7 +122,6 @@ export class FriendDmComponent implements OnInit, AfterViewInit, OnDestroy {
     this.typingLabel = label;
   });
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMessageMenuId = null;
   }

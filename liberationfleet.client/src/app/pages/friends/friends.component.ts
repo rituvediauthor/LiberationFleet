@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,11 +17,12 @@ import { MuteDurationDialogComponent } from '../../components/mute-duration-dial
 import { formatLastActive } from '../../models/crewmate.model';
 import { UserAvatarComponent } from '../../components/user-avatar/user-avatar.component';
 import { USERNAME_MAX_LENGTH } from '../../utils/username.util';
+import { OutsideMenuCloseDirective } from '../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-friends',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent, ContentBadgeComponent, MuteDurationDialogComponent],
+  imports: [CommonModule, FormsModule, NavLayoutComponent, ConfirmDialogComponent, UserAvatarComponent, ContentBadgeComponent, MuteDurationDialogComponent, OutsideMenuCloseDirective],
   templateUrl: './friends.component.html',
   styleUrl: './friends.component.css'
 })
@@ -76,7 +77,6 @@ export class FriendsComponent implements OnInit, OnDestroy {
     }
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMenuUserId = null;
   }

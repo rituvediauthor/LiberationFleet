@@ -2,7 +2,6 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   QueryList,
@@ -63,6 +62,7 @@ import { LocationHeaderComponent } from '../../../components/location-header/loc
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
 import { describeLoadError } from '../../../utils/http-error.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 interface ChatOutboxEntry {
   localId: string;
@@ -96,7 +96,8 @@ interface ChatOutboxEntry {
     AccessibleDialogDirective,
     LocationHeaderComponent,
     NotificationTargetDirective,
-    ComposerFooterPadDirective
+    ComposerFooterPadDirective,
+    OutsideMenuCloseDirective
   ],
   templateUrl: './chat-text.component.html',
   styleUrl: './chat-text.component.css'
@@ -204,7 +205,6 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.typingLabel = label;
   });
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMessageMenuId = null;
   }

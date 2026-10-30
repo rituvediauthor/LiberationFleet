@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NavigationService } from '../../../services/navigation.service';
@@ -22,11 +22,12 @@ import { VoicePresenceService } from '../../../services/voice-presence.service';
 import { VoiceLiveKitService } from '../../../services/voice-livekit.service';
 import { VoiceParticipant, VoiceRoomPresence } from '../../../models/voice.model';
 import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError, isRetryableLoadError } from '../../../utils/http-error.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-chat-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent, MuteDurationDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent, MuteDurationDialogComponent, OutsideMenuCloseDirective],
   templateUrl: './chat-list.component.html',
   styleUrl: './chat-list.component.css'
 })
@@ -114,7 +115,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMenuRoomId = null;
     this.pageMenuOpen = false;

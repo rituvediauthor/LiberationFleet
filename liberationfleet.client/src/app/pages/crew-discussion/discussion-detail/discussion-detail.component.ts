@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -51,6 +51,7 @@ import { ComposerFooterPadDirective } from '../../../directives/composer-footer-
 import { LocationHeaderComponent } from '../../../components/location-header/location-header.component';
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { LocationHeaderInfo } from '../../../utils/location-header.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-discussion-detail',
@@ -73,7 +74,8 @@ import { LocationHeaderInfo } from '../../../utils/location-header.util';
     ContentLikersDialogComponent,
     LocationHeaderComponent,
     NotificationTargetDirective,
-    ComposerFooterPadDirective
+    ComposerFooterPadDirective,
+    OutsideMenuCloseDirective
   ],
   templateUrl: './discussion-detail.component.html',
   styleUrl: './discussion-detail.component.css'
@@ -218,7 +220,6 @@ export class DiscussionDetailComponent implements OnInit, OnDestroy {
     return (this.post?.resolvedAttachments ?? []).filter(attachment => attachment.type !== 'image');
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openCommentMenuId = null;
     this.openPostMenu = false;

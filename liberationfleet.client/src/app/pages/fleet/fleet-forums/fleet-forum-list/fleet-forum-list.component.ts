@@ -2,7 +2,6 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -37,6 +36,7 @@ import {
 import { ForumListPrefetchService } from '../../../../services/forum-list-prefetch.service';
 import { ContentLiker } from '../../../../models/gift.model';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
+import { OutsideMenuCloseDirective } from '../../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-fleet-forum-list',
@@ -50,7 +50,8 @@ import { truncateNotificationPreview } from '../../../../utils/notification-prev
     UserAvatarComponent,
     ForumEngagementBarComponent,
     ContentLikersDialogComponent,
-    MuteDurationDialogComponent
+    MuteDurationDialogComponent,
+    OutsideMenuCloseDirective
   ],
   templateUrl: './fleet-forum-list.component.html',
   styleUrl: './fleet-forum-list.component.css'
@@ -158,7 +159,6 @@ export class FleetForumListComponent implements OnInit, AfterViewInit, OnDestroy
     this.unbindScrollContainer();
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMenuItemId = null;
   }

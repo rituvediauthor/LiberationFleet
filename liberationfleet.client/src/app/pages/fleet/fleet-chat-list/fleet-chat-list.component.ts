@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { firstValueFrom, Subscription } from 'rxjs';
@@ -19,11 +19,12 @@ import { AdultContentService } from '../../../services/adult-content.service';
 import { ContentPreferenceService } from '../../../services/content-preference.service';
 import { CrewService } from '../../../services/crew.service';
 import { CONNECTIVITY_ERROR_MESSAGE, describeLoadError, isConnectivityError, isRetryableLoadError } from '../../../utils/http-error.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-fleet-chat-list',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent, MuteDurationDialogComponent],
+  imports: [CommonModule, PageLayoutComponent, AdultContentGateComponent, ContentBadgeComponent, MuteDurationDialogComponent, OutsideMenuCloseDirective],
   templateUrl: './fleet-chat-list.component.html',
   styleUrl: './fleet-chat-list.component.css'
 })
@@ -85,7 +86,6 @@ export class FleetChatListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMenuRoomId = null;
     this.pageMenuOpen = false;

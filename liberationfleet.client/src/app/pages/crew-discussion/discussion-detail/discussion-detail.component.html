@@ -1,3 +1,4 @@
+<ng-container appOutsideMenuClose (appOutsideMenuClose)="closeMenus()"></ng-container>
 <div class="discussion-detail-page" *ngIf="loading || loadError">
   <div class="detail-action-bar">
     <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">

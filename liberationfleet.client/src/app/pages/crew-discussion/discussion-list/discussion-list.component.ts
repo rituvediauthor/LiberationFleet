@@ -2,7 +2,6 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -39,6 +38,7 @@ import {
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
 import { ContentLiker } from '../../../models/gift.model';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
+import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
 
 @Component({
   selector: 'app-discussion-list',
@@ -52,7 +52,8 @@ import { truncateNotificationPreview } from '../../../utils/notification-preview
     UserAvatarComponent,
     ForumEngagementBarComponent,
     ContentLikersDialogComponent,
-    MuteDurationDialogComponent
+    MuteDurationDialogComponent,
+    OutsideMenuCloseDirective
   ],
   templateUrl: './discussion-list.component.html',
   styleUrl: './discussion-list.component.css'
@@ -158,7 +159,6 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
     this.unbindScrollContainer();
   }
 
-  @HostListener('document:click')
   closeMenus() {
     this.openMenuItemId = null;
   }
