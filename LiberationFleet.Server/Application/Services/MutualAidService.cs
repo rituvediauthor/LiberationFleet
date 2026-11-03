@@ -2418,8 +2418,24 @@ public async Task<bool> IsFinancialMemberAsync(
                     if (otherActive >= MaxActiveSurvivalThresholdsPerUser)
                     {
                         // Cap stacking: do not reopen a satisfied row as a third active threshold.
+                        // Cycles are separate and do not count toward this limit.
                         continue;
                     }
+                }
+
+                if (TryGetExplicitThresholdMonth(draft, out var editYear, out var editMonth)
+                    && (row.Year != editYear || row.Month != editMonth))
+                {
+                    if (assignedMonths.Contains((editYear, editMonth))
+                        || existingById.Values.Any(t =>
+                            t.Id != row.Id && t.Year == editYear && t.Month == editMonth))
+                    {
+                        continue;
+                    }
+
+                    assignedMonths.Remove((row.Year, row.Month));
+                    row.Year = editYear;
+                    row.Month = editMonth;
                 }
 
                 row.ThresholdAmount = thresholdAmount;
@@ -2440,14 +2456,28 @@ public async Task<bool> IsFinancialMemberAsync(
                 if (willBeActive && activeCount >= MaxActiveSurvivalThresholdsPerUser)
                 {
                     // Cap stacking: do not open a third concurrent survival threshold.
+                    // Cycles are separate and do not count toward this limit.
                     continue;
                 }
 
-                var (year, month) = AllocateFreeThresholdMonth(
-                    now.Year,
-                    now.Month,
-                    existingById.Values,
-                    assignedMonths);
+                int year;
+                int month;
+                if (TryGetExplicitThresholdMonth(draft, out year, out month))
+                {
+                    if (assignedMonths.Contains((year, month))
+                        || existingById.Values.Any(t => t.Year == year && t.Month == month))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    (year, month) = AllocateFreeThresholdMonth(
+                        now.Year,
+                        now.Month,
+                        existingById.Values,
+                        assignedMonths);
+                }
 
                 row = new MonthlySurvivalThreshold
                 {
@@ -2510,6 +2540,23 @@ public async Task<bool> IsFinancialMemberAsync(
         }
 
         return (startYear, startMonth);
+    }
+
+    private static bool TryGetExplicitThresholdMonth(
+        AidSurvivalThresholdDraftDto draft,
+        out int year,
+        out int month)
+    {
+        if (draft.Year is int y && draft.Month is int m && y is >= 2000 and <= 2100 && m is >= 1 and <= 12)
+        {
+            year = y;
+            month = m;
+            return true;
+        }
+
+        year = 0;
+        month = 0;
+        return false;
     }
 
 
@@ -2852,17 +2899,40 @@ public async Task<bool> IsFinancialMemberAsync(
 
         if (survivalAmount > 0m)
         {
-            // Re-read after eligibility removals / auto-satisfy so stack limits stay accurate.
-            var activeCounts = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(crew.Id, cancellationToken))
+            // Normalize ALL open rows (not just this month) so stale "active" rows where
+            // received already meets need do not block a legitimate monthly insert.
+            // Season cycles never count toward this cap.
+            var openThresholdsForCap = (await mutualAidRepository.GetUnsatisfiedThresholdsAsync(
+                    crew.Id,
+                    cancellationToken))
+                .Where(threshold => !removedThresholds.Contains(threshold))
+                .ToList();
+            foreach (var threshold in openThresholdsForCap)
+            {
+                if (threshold.ThresholdAmount > 0m
+                    && threshold.ReceivedAmount >= threshold.ThresholdAmount)
+                {
+                    threshold.ReceivedAmount = threshold.ThresholdAmount;
+                    threshold.Satisfied = true;
+                    changed = true;
+                }
+            }
+
+            var activeCounts = openThresholdsForCap
+                .Where(threshold => !threshold.Satisfied)
                 .GroupBy(t => t.UserId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            // Append only — never insert ahead of / between existing open thresholds.
-            var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
+            // Unique (CrewId, UserId, Year, Month): any existing row for this calendar month
+            // blocks another insert (including satisfied ones).
             var usersWithMonthThreshold = existingForMonth
                 .Where(threshold => !removedThresholds.Contains(threshold))
                 .Select(threshold => threshold.UserId)
                 .ToHashSet();
+
+            // Append only — never insert ahead of / between existing open thresholds.
+            // Financial member vs non-member does not matter: NeedsSurvivalAid + in season.
+            var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
             foreach (var member in eligibleRecipients)
             {
                 if (usersWithMonthThreshold.Contains(member.UserId))
@@ -2872,7 +2942,7 @@ public async Task<bool> IsFinancialMemberAsync(
 
                 if (activeCounts.GetValueOrDefault(member.UserId) >= MaxActiveSurvivalThresholdsPerUser)
                 {
-                    // Already has the max stacked open thresholds — skip this month's auto row.
+                    // Already has two active survival thresholds — do not generate a third.
                     continue;
                 }
 

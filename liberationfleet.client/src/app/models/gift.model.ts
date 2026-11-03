@@ -254,6 +254,12 @@ export interface ReceptionOrderEditorThreshold {
   amountNeeded: number;
   amountRemaining: number;
   receptionOrder: number;
+  /** Calendar year this threshold is tied to. */
+  year?: number | null;
+  /** Calendar month 1–12 this threshold is tied to. */
+  month?: number | null;
+  /** Client-only MM/YYYY draft while editing. */
+  monthLabel?: string;
   /** Client-only key for *ngFor stability on new rows. */
   clientKey?: string;
   /** Draft text while typing an order (committed on blur). */

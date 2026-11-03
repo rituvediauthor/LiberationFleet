@@ -46,7 +46,9 @@ public static class AidStatDraftSerializer
                 ThresholdAmount = t.ThresholdAmount,
                 AmountRemaining = Math.Max(0m, t.ThresholdAmount - t.ReceivedAmount),
                 // Crew-wide 1-based order (not local index among this crewmate's rows).
-                Order = t.ReceptionOrderPosition + 1
+                Order = t.ReceptionOrderPosition + 1,
+                Year = t.Year,
+                Month = t.Month
             })
             .ToList();
 

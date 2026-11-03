@@ -32,6 +32,10 @@ public sealed class ReceptionOrderEditorThresholdDto
     public decimal AmountRemaining { get; set; }
     /// <summary>1-based crew-wide order among survival thresholds.</summary>
     public int ReceptionOrder { get; set; }
+    /// <summary>Calendar year this threshold is tied to (with <see cref="Month"/>).</summary>
+    public int? Year { get; set; }
+    /// <summary>Calendar month 1–12 this threshold is tied to (with <see cref="Year"/>).</summary>
+    public int? Month { get; set; }
 }
 
 public sealed class ReceptionOrderEditorCycleDto

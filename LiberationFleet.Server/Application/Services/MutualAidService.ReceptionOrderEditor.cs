@@ -197,6 +197,23 @@ public partial class MutualAidService
                         Message = $"Cannot change the owner of survival threshold #{id}."
                     };
                 }
+
+                if (TryGetExplicitThresholdMonth(draft, out var editYear, out var editMonth)
+                    && (row.Year != editYear || row.Month != editMonth))
+                {
+                    assignedMonths.Remove((row.UserId, row.Year, row.Month));
+                    if (assignedMonths.Contains((row.UserId, editYear, editMonth)))
+                    {
+                        return new SaveReceptionOrderEditorResponse
+                        {
+                            Success = false,
+                            Message = $"Crewmate already has a survival threshold for {editMonth:D2}/{editYear}."
+                        };
+                    }
+
+                    row.Year = editYear;
+                    row.Month = editMonth;
+                }
             }
             else
             {
@@ -247,10 +264,20 @@ public partial class MutualAidService
                     {
                         existingThresholds[row.Id] = row;
                     }
+
+                    if (TryGetExplicitThresholdMonth(draft, out var reuseYear, out var reuseMonth)
+                        && (row.Year != reuseYear || row.Month != reuseMonth)
+                        && !assignedMonths.Contains((row.UserId, reuseYear, reuseMonth)))
+                    {
+                        assignedMonths.Remove((row.UserId, row.Year, row.Month));
+                        row.Year = reuseYear;
+                        row.Month = reuseMonth;
+                    }
                 }
                 else
                 {
-                    var (year, month) = AllocateFreeThresholdMonthForUser(
+                    var (year, month) = ResolveThresholdMonthForEditor(
+                        draft,
                         draft.UserId,
                         now.Year,
                         now.Month,
@@ -262,8 +289,10 @@ public partial class MutualAidService
                         {
                             Success = false,
                             Message =
-                                $"Could not allocate a free survival-threshold month for this crewmate. " +
-                                "Edit an existing row instead of adding another."
+                                draft.Year is int && draft.Month is >= 1 and <= 12
+                                    ? $"Crewmate already has a survival threshold for {draft.Month:D2}/{draft.Year}."
+                                    : "Could not allocate a free survival-threshold month for this crewmate. " +
+                                      "Edit an existing row instead of adding another."
                         };
                     }
 
@@ -463,7 +492,9 @@ public partial class MutualAidService
                 Username = UserDisplay.Name(t.User),
                 AmountNeeded = t.ThresholdAmount,
                 AmountRemaining = Math.Max(0m, t.ThresholdAmount - t.ReceivedAmount),
-                ReceptionOrder = i + 1
+                ReceptionOrder = i + 1,
+                Year = t.Year,
+                Month = t.Month
             });
         }
 
@@ -626,5 +657,37 @@ public partial class MutualAidService
         }
 
         return (startYear, startMonth);
+    }
+
+    private static (int Year, int Month) ResolveThresholdMonthForEditor(
+        ReceptionOrderEditorThresholdDto draft,
+        int userId,
+        int startYear,
+        int startMonth,
+        ISet<(int UserId, int Year, int Month)> assignedMonths)
+    {
+        if (TryGetExplicitThresholdMonth(draft, out var year, out var month))
+        {
+            return (year, month);
+        }
+
+        return AllocateFreeThresholdMonthForUser(userId, startYear, startMonth, assignedMonths);
+    }
+
+    private static bool TryGetExplicitThresholdMonth(
+        ReceptionOrderEditorThresholdDto draft,
+        out int year,
+        out int month)
+    {
+        if (draft.Year is int y && draft.Month is int m && y is >= 2000 and <= 2100 && m is >= 1 and <= 12)
+        {
+            year = y;
+            month = m;
+            return true;
+        }
+
+        year = 0;
+        month = 0;
+        return false;
     }
 }

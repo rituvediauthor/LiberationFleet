@@ -11,6 +11,11 @@ import {
   ReceptionOrderEditorMember,
   ReceptionOrderEditorThreshold
 } from '../../../models/gift.model';
+import {
+  currentSurvivalThresholdMonth,
+  formatSurvivalThresholdMonth,
+  parseSurvivalThresholdMonth
+} from '../../../utils/survival-threshold-month.util';
 
 type OrderRow = { receptionOrder: number; orderDraft?: string | number | null };
 
@@ -77,6 +82,7 @@ export class EditReceptionOrderComponent implements OnInit {
       return;
     }
     const nextOrder = this.nextAvailableOrder(this.thresholds);
+    const month = currentSurvivalThresholdMonth();
     this.thresholds = [
       ...this.thresholds,
       {
@@ -87,9 +93,20 @@ export class EditReceptionOrderComponent implements OnInit {
         amountNeeded: 0,
         amountRemaining: 0,
         receptionOrder: nextOrder,
-        orderDraft: String(nextOrder)
+        orderDraft: String(nextOrder),
+        year: month.year,
+        month: month.month,
+        monthLabel: formatSurvivalThresholdMonth(month.year, month.month)
       }
     ];
+    this.updateSaveButton();
+  }
+
+  onThresholdMonthLabelChange(row: ReceptionOrderEditorThreshold, value: string): void {
+    row.monthLabel = value;
+    const parsed = parseSurvivalThresholdMonth(value);
+    row.year = parsed?.year ?? null;
+    row.month = parsed?.month ?? null;
     this.updateSaveButton();
   }
 
@@ -265,12 +282,19 @@ export class EditReceptionOrderComponent implements OnInit {
   ): void {
     this.members = members ?? [];
     this.thresholds = (thresholds ?? [])
-      .map(t => ({
-        ...t,
-        receptionOrder: Number(t.receptionOrder) || 0,
-        orderDraft: String(Number(t.receptionOrder) || 0),
-        clientKey: this.newClientKey()
-      }))
+      .map(t => {
+        const year = t.year ?? null;
+        const month = t.month ?? null;
+        return {
+          ...t,
+          year,
+          month,
+          monthLabel: formatSurvivalThresholdMonth(year, month),
+          receptionOrder: Number(t.receptionOrder) || 0,
+          orderDraft: String(Number(t.receptionOrder) || 0),
+          clientKey: this.newClientKey()
+        };
+      })
       .sort((a, b) => a.receptionOrder - b.receptionOrder);
     this.cycles = (cycles ?? [])
       .map(c => ({
@@ -313,13 +337,17 @@ export class EditReceptionOrderComponent implements OnInit {
         if (!t.id && amountNeeded > 0 && amountRemaining <= 0) {
           amountRemaining = amountNeeded;
         }
+        const parsedMonth = parseSurvivalThresholdMonth(t.monthLabel)
+          ?? (t.year != null && t.month != null ? { year: t.year, month: t.month } : null);
         return {
           id: t.id ?? null,
           userId: Number(t.userId),
           username: t.username,
           amountNeeded,
           amountRemaining,
-          receptionOrder: i + 1
+          receptionOrder: i + 1,
+          year: parsedMonth?.year ?? null,
+          month: parsedMonth?.month ?? null
         };
       }),
       removedThresholdIds: this.removedThresholdIds,
@@ -365,6 +393,15 @@ export class EditReceptionOrderComponent implements OnInit {
   private describeThresholdAmountProblem(): string | null {
     if (this.thresholds.some(t => !t.id && (Number(t.amountNeeded) || 0) <= 0)) {
       return 'New survival thresholds need an amount greater than $0.';
+    }
+    if (this.thresholds.some(t => {
+      const label = (t.monthLabel ?? '').trim();
+      if (!label) {
+        return false;
+      }
+      return !parseSurvivalThresholdMonth(label);
+    })) {
+      return 'Survival threshold months must use MM/YYYY.';
     }
     return null;
   }

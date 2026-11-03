@@ -126,6 +126,12 @@ export interface AidSurvivalThresholdDraft {
   /** Client-only edit helper: money already received (threshold − remaining). */
   amountReceived?: number;
   order: number;
+  /** Calendar year this threshold is tied to. */
+  year?: number | null;
+  /** Calendar month 1–12 this threshold is tied to. */
+  month?: number | null;
+  /** Client-only MM/YYYY draft while editing. */
+  monthLabel?: string;
 }
 
 export interface AidSeasonAccounting {

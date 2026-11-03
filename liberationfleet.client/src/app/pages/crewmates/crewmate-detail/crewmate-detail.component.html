@@ -144,11 +144,23 @@
             *ngFor="let row of activeThresholdRows; let i = index">
             <div class="aid-card-title-row">
               <span class="aid-card-title">Survival threshold</span>
+              <span class="aid-card-badge" *ngIf="row.monthLabel">{{ row.monthLabel }}</span>
               <span class="aid-card-badge" *ngIf="(row.amountRemaining || 0) > 0">Active</span>
               <span class="aid-card-badge muted" *ngIf="(row.amountRemaining || 0) <= 0">Satisfied</span>
             </div>
 
             <ng-container *ngIf="profile.canProposeAidStatEdits">
+              <label class="aid-stat-field">
+                <span>Month (MM/YYYY)</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="MM/YYYY"
+                  class="form-input"
+                  [ngModel]="row.monthLabel"
+                  (ngModelChange)="onThresholdMonthLabelChange(row, $event)"
+                  autocomplete="off">
+              </label>
               <label class="aid-stat-field">
                 <span>Amount to be received ($)</span>
                 <input
@@ -180,6 +192,10 @@
               </div>
             </ng-container>
             <div class="readonly-grid" *ngIf="!profile.canProposeAidStatEdits">
+              <div class="readonly-item" *ngIf="row.monthLabel">
+                <span class="readonly-label">Month</span>
+                <span class="readonly-value">{{ row.monthLabel }}</span>
+              </div>
               <div class="readonly-item">
                 <span class="readonly-label">Amount to be received</span>
                 <span class="readonly-value">${{ row.amountRemaining || 0 }}</span>

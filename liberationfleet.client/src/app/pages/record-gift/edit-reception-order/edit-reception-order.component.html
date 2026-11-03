@@ -43,6 +43,19 @@
                 </select>
               </div>
               <div class="form-group">
+                <label [attr.for]="'th-month-' + i">Month (MM/YYYY)</label>
+                <input
+                  [id]="'th-month-' + i"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="MM/YYYY"
+                  class="form-input"
+                  [ngModel]="row.monthLabel"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="onThresholdMonthLabelChange(row, $event)"
+                  autocomplete="off">
+              </div>
+              <div class="form-group">
                 <label [attr.for]="'th-needed-' + i">Amount needed ($)</label>
                 <input
                   [id]="'th-needed-' + i"

@@ -153,9 +153,21 @@
 
           <h3 class="aid-stat-subtitle">Survival thresholds</h3>
           <p class="hint-text">
-            One threshold per calendar month; additional rows apply to prior months when the season starts.
+            One threshold per calendar month (MM/YYYY). Additional rows should use other months.
           </p>
           <div class="aid-stat-threshold-card" *ngFor="let row of aidDraft.survivalThresholds; let i = index">
+            <label class="aid-stat-field">
+              <span>Month (MM/YYYY)</span>
+              <input
+                type="text"
+                inputmode="numeric"
+                placeholder="MM/YYYY"
+                class="form-input"
+                [ngModel]="row.monthLabel"
+                [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="onThresholdMonthLabelChange(row, $event)"
+                autocomplete="off">
+            </label>
             <label class="aid-stat-field">
               <span>Threshold amount ($)</span>
               <input type="number" min="0" step="0.01" [(ngModel)]="row.thresholdAmount" [ngModelOptions]="{standalone: true}" class="form-input">

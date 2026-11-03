@@ -14,6 +14,11 @@ import { CollapsibleSectionComponent } from '../../../components/collapsible-sec
 import { PriorityScoreAlgorithmsComponent } from '../../../components/priority-score-algorithms/priority-score-algorithms.component';
 import { FleetService } from '../../../services/fleet.service';
 import { formatIdentityGroupLabels } from '../../../utils/identity-groups.util';
+import {
+  currentSurvivalThresholdMonth,
+  formatSurvivalThresholdMonth,
+  parseSurvivalThresholdMonth
+} from '../../../utils/survival-threshold-month.util';
 import { CrewmateAidStatField, AidSeasonAccounting, AidSurvivalThresholdDraft, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
 import { CrewService } from '../../../services/crew.service';
 import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
@@ -644,11 +649,18 @@ export class CrewmateDetailComponent implements OnInit {
       if (!Number.isInteger(order) || order < 1) {
         throw new Error(`Survival threshold #${index + 1}: order must be a whole number of 1 or greater.`);
       }
+      const parsedMonth = parseSurvivalThresholdMonth(row.monthLabel)
+        ?? (row.year != null && row.month != null ? { year: row.year, month: row.month } : null);
+      if (row.monthLabel?.trim() && !parsedMonth) {
+        throw new Error(`Survival threshold #${index + 1}: month must be MM/YYYY.`);
+      }
       return {
         id: row.id ?? null,
         thresholdAmount,
         amountRemaining,
-        order
+        order,
+        year: parsedMonth?.year ?? null,
+        month: parsedMonth?.month ?? null
       };
     });
 
@@ -716,6 +728,9 @@ export class CrewmateDetailComponent implements OnInit {
       if ((a?.order ?? i + 1) !== b.order) {
         return true;
       }
+      if ((a?.year ?? null) !== (b.year ?? null) || (a?.month ?? null) !== (b.month ?? null)) {
+        return true;
+      }
     }
 
     return false;
@@ -776,6 +791,7 @@ export class CrewmateDetailComponent implements OnInit {
       (max, row) => Math.max(max, Number(row.order) || 0),
       0
     );
+    const month = currentSurvivalThresholdMonth();
     this.aidDraft.survivalThresholds = [
       ...this.aidDraft.survivalThresholds,
       {
@@ -783,9 +799,19 @@ export class CrewmateDetailComponent implements OnInit {
         thresholdAmount: 0,
         amountRemaining: 0,
         amountReceived: 0,
-        order: maxOrder + 1
+        order: maxOrder + 1,
+        year: month.year,
+        month: month.month,
+        monthLabel: formatSurvivalThresholdMonth(month.year, month.month)
       }
     ];
+  }
+
+  onThresholdMonthLabelChange(row: AidSurvivalThresholdDraft, value: string): void {
+    row.monthLabel = value;
+    const parsed = parseSurvivalThresholdMonth(value);
+    row.year = parsed?.year ?? null;
+    row.month = parsed?.month ?? null;
   }
 
   removeSurvivalThresholdRow(index: number) {
@@ -828,12 +854,17 @@ export class CrewmateDetailComponent implements OnInit {
       survivalThresholds: (accounting?.survivalThresholds ?? []).map((row, index) => {
         const thresholdAmount = row.thresholdAmount ?? 0;
         const amountRemaining = row.amountRemaining ?? 0;
+        const year = row.year ?? null;
+        const month = row.month ?? null;
         return {
           id: row.id ?? null,
           thresholdAmount,
           amountRemaining,
           amountReceived: Math.max(0, thresholdAmount - amountRemaining),
-          order: row.order ?? index + 1
+          order: row.order ?? index + 1,
+          year,
+          month,
+          monthLabel: formatSurvivalThresholdMonth(year, month)
         };
       }),
       removedThresholdIds: []

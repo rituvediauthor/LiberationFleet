@@ -19,6 +19,11 @@ import {
 } from '../../../models/crewmate.model';
 import { isControlInvalidForA11y } from '../../../utils/a11y-form.util';
 import { normalizeIdentityGroups } from '../../../utils/identity-groups.util';
+import {
+  currentSurvivalThresholdMonth,
+  formatSurvivalThresholdMonth,
+  parseSurvivalThresholdMonth
+} from '../../../utils/survival-threshold-month.util';
 import { CharCounterComponent } from '../../../components/char-counter/char-counter.component';
 import { TextFieldLimits } from '../../../utils/text-field-limits';
 import { EMERGENCY_LEVEL_HINT } from '../../../constants/emergency-level';
@@ -156,19 +161,30 @@ export class CreatePlaceholderComponent implements OnInit {
       (max, row) => Math.max(max, Number(row.order) || 0),
       0
     );
+    const month = currentSurvivalThresholdMonth();
     this.aidDraft.survivalThresholds = [
       ...this.aidDraft.survivalThresholds,
       {
         id: null,
         thresholdAmount: 0,
         amountRemaining: 0,
-        order: maxOrder + 1
+        order: maxOrder + 1,
+        year: month.year,
+        month: month.month,
+        monthLabel: formatSurvivalThresholdMonth(month.year, month.month)
       }
     ];
   }
 
   removeSurvivalThresholdRow(index: number) {
     this.aidDraft.survivalThresholds = this.aidDraft.survivalThresholds.filter((_, i) => i !== index);
+  }
+
+  onThresholdMonthLabelChange(row: AidSurvivalThresholdDraft, value: string): void {
+    row.monthLabel = value;
+    const parsed = parseSurvivalThresholdMonth(value);
+    row.year = parsed?.year ?? null;
+    row.month = parsed?.month ?? null;
   }
 
   private updateSaveButton() {
@@ -204,12 +220,18 @@ export class CreatePlaceholderComponent implements OnInit {
       hasActiveCycle: !!this.aidDraft.hasActiveCycle,
       receptionOrder: this.aidDraft.receptionOrder ? Math.max(1, Number(this.aidDraft.receptionOrder)) : null,
       autoJoinSeasonOnStart: !!this.aidDraft.autoJoinSeasonOnStart,
-      survivalThresholds: this.aidDraft.survivalThresholds.map((row, index) => ({
-        id: row.id ?? null,
-        thresholdAmount: Math.max(0, Number(row.thresholdAmount) || 0),
-        amountRemaining: Math.max(0, Number(row.amountRemaining) || 0),
-        order: Math.max(1, Number(row.order) || index + 1)
-      })),
+      survivalThresholds: this.aidDraft.survivalThresholds.map((row, index) => {
+        const parsedMonth = parseSurvivalThresholdMonth(row.monthLabel)
+          ?? (row.year != null && row.month != null ? { year: row.year, month: row.month } : null);
+        return {
+          id: row.id ?? null,
+          thresholdAmount: Math.max(0, Number(row.thresholdAmount) || 0),
+          amountRemaining: Math.max(0, Number(row.amountRemaining) || 0),
+          order: Math.max(1, Number(row.order) || index + 1),
+          year: parsedMonth?.year ?? null,
+          month: parsedMonth?.month ?? null
+        };
+      }),
       removedThresholdIds: []
     };
   }

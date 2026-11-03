@@ -193,7 +193,9 @@ public static class CrewmateAidStatChangeDescriber
                 var changed =
                     prior.ThresholdAmount != row.ThresholdAmount
                     || prior.AmountRemaining != row.AmountRemaining
-                    || prior.Order != row.Order;
+                    || prior.Order != row.Order
+                    || prior.Year != row.Year
+                    || prior.Month != row.Month;
                 if (!changed)
                 {
                     continue;
@@ -201,6 +203,7 @@ public static class CrewmateAidStatChangeDescriber
 
                 sb.AppendLine(
                     $"• Adjust survival threshold #{id}: " +
+                    $"month {FormatThresholdMonth(prior)} → {FormatThresholdMonth(row)}; " +
                     $"order #{prior.Order} → #{row.Order}; " +
                     $"need {Money(prior.ThresholdAmount)} → {Money(row.ThresholdAmount)}; " +
                     $"received {Money(priorReceived)} → {Money(received)}; " +
@@ -210,7 +213,7 @@ public static class CrewmateAidStatChangeDescriber
             else
             {
                 sb.AppendLine(
-                    $"• Add survival threshold: order #{row.Order}, need {Money(row.ThresholdAmount)}, " +
+                    $"• Add survival threshold ({FormatThresholdMonth(row)}): order #{row.Order}, need {Money(row.ThresholdAmount)}, " +
                     $"received {Money(received)}, still owed {Money(row.AmountRemaining)}");
                 anyThresholdLine = true;
             }
@@ -272,6 +275,11 @@ public static class CrewmateAidStatChangeDescriber
 
     private static string OrderText(int? order) =>
         order is int o && o > 0 ? $"#{o}" : "(none)";
+
+    private static string FormatThresholdMonth(AidSurvivalThresholdDraftDto row) =>
+        row.Year is int y && row.Month is int m && m is >= 1 and <= 12
+            ? $"{m:D2}/{y}"
+            : "(month unset)";
 
     private static decimal ParseDecimal(string value) =>
         decimal.Parse(value, CultureInfo.InvariantCulture);

@@ -1183,6 +1183,99 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task CreateSurvivalThresholds_SkipsRecipientAlreadyAtTwoActive()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = 30m;
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        fixture.Alice.NeedsSurvivalAid = true;
+        fixture.Bob.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var priorYear = DateTime.UtcNow.Month == 1 ? DateTime.UtcNow.Year - 1 : DateTime.UtcNow.Year;
+        var priorMonth = DateTime.UtcNow.Month == 1 ? 12 : DateTime.UtcNow.Month - 1;
+        var olderMonth = priorMonth == 1 ? 12 : priorMonth - 1;
+        var olderYear = priorMonth == 1 ? priorYear - 1 : priorYear;
+
+        await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 0,
+            year: olderYear,
+            month: olderMonth);
+        await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 1,
+            year: priorYear,
+            month: priorMonth);
+
+        await fixture.Service.EnsureCurrentMonthSurvivalThresholdsAsync(fixture.Alice.Id, CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        var bobCurrent = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id
+                && t.UserId == fixture.Bob.Id
+                && t.Year == now.Year
+                && t.Month == now.Month)
+            .ToListAsync();
+        bobCurrent.Should().BeEmpty();
+
+        var aliceCurrent = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id
+                && t.UserId == fixture.Alice.Id
+                && t.Year == now.Year
+                && t.Month == now.Month)
+            .ToListAsync();
+        aliceCurrent.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task CreateSurvivalThresholds_AppendsWhenRecipientHasOneActiveIncludingNonMember()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = 30m;
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        // Non-member who still opted into survival aid should receive a monthly row.
+        var bobMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Bob.Id && m.CrewId == fixture.Crew.Id);
+        bobMembership.IsHonoraryMember = true;
+
+        fixture.Bob.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var priorYear = DateTime.UtcNow.Month == 1 ? DateTime.UtcNow.Year - 1 : DateTime.UtcNow.Year;
+        var priorMonth = DateTime.UtcNow.Month == 1 ? 12 : DateTime.UtcNow.Month - 1;
+        var prior = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 0,
+            year: priorYear,
+            month: priorMonth);
+
+        await fixture.Service.EnsureCurrentMonthSurvivalThresholdsAsync(fixture.Alice.Id, CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        var bobRows = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id && t.UserId == fixture.Bob.Id && !t.Satisfied)
+            .OrderBy(t => t.ReceptionOrderPosition)
+            .ToListAsync();
+        bobRows.Should().HaveCount(2);
+        bobRows[0].Id.Should().Be(prior.Id);
+        bobRows[1].Year.Should().Be(now.Year);
+        bobRows[1].Month.Should().Be(now.Month);
+        bobRows[1].ReceptionOrderPosition.Should().BeGreaterThan(prior.ReceptionOrderPosition);
+    }
+
+    [Fact]
     public async Task SimulateNewMonth_AppendsNewThresholdsBelowExistingWithoutReorderingThem()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);

@@ -38,4 +38,8 @@ public sealed class AidSurvivalThresholdDraftDto
     public decimal AmountRemaining { get; set; }
     /// <summary>1-based crew-wide reception order among all survival thresholds (1 = front of queue).</summary>
     public int Order { get; set; }
+    /// <summary>Calendar year this threshold is tied to (with <see cref="Month"/>).</summary>
+    public int? Year { get; set; }
+    /// <summary>Calendar month 1–12 this threshold is tied to (with <see cref="Year"/>).</summary>
+    public int? Month { get; set; }
 }
