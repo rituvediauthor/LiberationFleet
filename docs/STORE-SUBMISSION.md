@@ -1122,7 +1122,7 @@ Xcode has no Terminal for these commands. The panel at the bottom of Xcode (**Vi
     - **Display Name:** `Liberation Fleet`
     - **Bundle Identifier:** `com.liberationfleet.app`
     - **Version:** `1.0.0`
-    - **Build:** `1`
+    - **Build:** `11`
     - **Supported Destinations:** iPhone only. iPad is already removed, so App Store Connect will not ask for iPad screenshots.
     - **Minimum Deployments:** `15.0`
     - **Privacy - Microphone Usage Description:** `Liberation Fleet needs the microphone for crew voice chat.`
@@ -1305,7 +1305,7 @@ Users open `https://your-domain`. Ensure:
 | Platform | Field | Example |
 |----------|-------|---------|
 | Angular / marketing | `package.json` version | `1.0.0` |
-| Android | `versionName` / `versionCode` | `1.0.0` / `1` |
-| iOS | CFBundleShortVersionString / CFBundleVersion | `1.0.0` / `1` |
+| Android | `versionName` / `versionCode` | `1.0.0` / `26` |
+| iOS | CFBundleShortVersionString / CFBundleVersion | `1.0.0` / `11` |
 
 Bump native **build numbers** on every store upload; keep marketing version aligned across web + stores when possible.
