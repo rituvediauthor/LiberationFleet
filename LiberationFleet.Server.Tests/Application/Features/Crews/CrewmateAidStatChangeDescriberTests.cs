@@ -45,7 +45,9 @@ public class CrewmateAidStatChangeDescriberTests
                     Id = 10,
                     ThresholdAmount = 50m,
                     AmountRemaining = 20m,
-                    Order = 3
+                    Order = 3,
+                    Year = 2026,
+                    Month = 10
                 }
             ]
         };
@@ -63,13 +65,17 @@ public class CrewmateAidStatChangeDescriberTests
                     Id = 10,
                     ThresholdAmount = 50m,
                     AmountRemaining = 10m,
-                    Order = 1
+                    Order = 1,
+                    Year = 2026,
+                    Month = 10
                 },
                 new AidSurvivalThresholdDraftDto
                 {
                     ThresholdAmount = 25m,
                     AmountRemaining = 25m,
-                    Order = 5
+                    Order = 5,
+                    Year = 2026,
+                    Month = 11
                 }
             ]
         };
@@ -92,7 +98,8 @@ public class CrewmateAidStatChangeDescriberTests
         text.Should().Contain("Reception order (1 = front of queue): #2 → #1");
         text.Should().Contain("Auto-join when the next season starts: Yes (unchanged)");
         text.Should().Contain("Adjust survival threshold #10:");
-        text.Should().Contain("Add survival threshold:");
+        text.Should().Contain("month 10/2026 → 10/2026");
+        text.Should().Contain("Add survival threshold (11/2026):");
         CrewmateAidStatChangeDescriber.BuildTitle(
             "Alice",
             [
