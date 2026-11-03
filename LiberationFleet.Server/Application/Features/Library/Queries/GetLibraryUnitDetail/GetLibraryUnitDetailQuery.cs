@@ -54,13 +54,21 @@ public class GetLibraryUnitDetailQueryHandler(
         var viewerCountry = viewerLocation.CountryCode;
         var viewerZip = viewerLocation.ZipCode;
 
-        if (!LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
-            || !LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))
+        if (!LibraryOfferingRules.CanViewerAccessOffering(
+                unit.Offering,
+                userId,
+                viewerTier,
+                viewerCountry,
+                viewerZip,
+                unit.CurrentPossessorUserId))
         {
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
 
-        if (LibraryOfferingRules.UsesPerTierStock(unit.Offering)
+        var isOwnerOrHolder = unit.Offering.CreatorUserId == userId
+            || unit.CurrentPossessorUserId == userId;
+        if (!isOwnerOrHolder
+            && LibraryOfferingRules.UsesPerTierStock(unit.Offering)
             && !LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier)
             && !unit.Offering.QuantityNotApplicable)
         {

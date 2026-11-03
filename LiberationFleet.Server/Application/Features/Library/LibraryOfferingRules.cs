@@ -261,6 +261,28 @@ public static class LibraryOfferingRules
             viewerCountryCode,
             viewerZip);
 
+    /// <summary>
+    /// Creators and current holders always see their item, even when postal or tier
+    /// audience rules would hide it from other crewmates.
+    /// </summary>
+    public static bool CanViewerAccessOffering(
+        LibraryOffering offering,
+        int viewerUserId,
+        int viewerTier,
+        string? viewerCountryCode,
+        string? viewerZip,
+        int? currentPossessorUserId = null)
+    {
+        if (offering.CreatorUserId == viewerUserId
+            || (currentPossessorUserId.HasValue && currentPossessorUserId.Value == viewerUserId))
+        {
+            return true;
+        }
+
+        return IsVisibleToViewerTier(offering, viewerTier)
+            && IsVisibleToViewerZip(offering, viewerCountryCode, viewerZip);
+    }
+
     public static decimal CalculateCreatorContributionAmount(LibraryOffering offering, int quantity) =>
         offering.ValuePerUnit * quantity;
 

@@ -165,15 +165,31 @@ export class LibraryDurableListComponent implements OnInit, AfterViewInit, OnDes
       const enriched = this.crewId > 0
         ? await this.libraryCrypto.enrichUnitListItems(page.items, this.crewId)
         : page.items;
-      this.items = reset ? enriched : [...this.items, ...enriched];
+      this.items = reset ? enriched : this.mergeUniqueUnits(this.items, enriched);
       this.hasMore = page.hasMore;
     } catch {
-      this.items = reset ? page.items : [...this.items, ...page.items];
+      this.items = reset ? page.items : this.mergeUniqueUnits(this.items, page.items);
       this.hasMore = page.hasMore;
     } finally {
       this.loading = false;
       this.loadingMore = false;
       setTimeout(() => this.setupLoadMoreObserver(), 0);
     }
+  }
+
+  private mergeUniqueUnits(
+    existing: LibraryUnitListItem[],
+    incoming: LibraryUnitListItem[]
+  ): LibraryUnitListItem[] {
+    const seen = new Set(existing.map(item => item.unitId));
+    const merged = [...existing];
+    for (const item of incoming) {
+      if (seen.has(item.unitId)) {
+        continue;
+      }
+      seen.add(item.unitId);
+      merged.push(item);
+    }
+    return merged;
   }
 }

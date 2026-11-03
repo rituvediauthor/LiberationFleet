@@ -62,8 +62,12 @@ export class LibraryCategoryPickerComponent {
     this.dropdownOpen = true;
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
+  // pointerdown covers touch devices where document:click often never fires.
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointerDown(event: PointerEvent) {
+    if (!this.dropdownOpen) {
+      return;
+    }
     const root = this.dropdownRoot?.nativeElement;
     if (root && !root.contains(event.target as Node)) {
       this.dropdownOpen = false;

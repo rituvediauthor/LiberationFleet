@@ -49,38 +49,53 @@ public class GetStockLibraryOfferingsQueryHandler(
         var viewerUserId = currentUser.UserId.Value;
         var tierByOfferingCrewId = new Dictionary<int, int>();
 
-        // Over-fetch then filter by tier/zip so paging still returns a full page when possible.
         var fetchLimit = Math.Clamp(request.Limit, 1, 100);
         var fetchOffset = Math.Max(request.Offset, 0);
-        var page = await libraryRepository.GetStockUnitsForCrewIdsAsync(
-            crewIds,
-            membership.CrewId,
-            request.Kind,
-            request.Search,
-            request.CategoryIds,
-            Math.Min(100, fetchLimit * 3),
-            fetchOffset,
-            cancellationToken);
 
-        foreach (var offeringCrewId in page.Items.Select(u => u.Offering.CrewId).Distinct())
+        async Task<int> TierForAsync(int offeringCrewId, CancellationToken ct)
         {
-            tierByOfferingCrewId[offeringCrewId] = await priorityTierService.GetViewerTierForOfferingAsync(
-                viewerUserId,
-                offeringCrewId,
-                cancellationToken);
+            if (!tierByOfferingCrewId.TryGetValue(offeringCrewId, out var tier))
+            {
+                tier = await priorityTierService.GetViewerTierForOfferingAsync(
+                    viewerUserId,
+                    offeringCrewId,
+                    ct);
+                tierByOfferingCrewId[offeringCrewId] = tier;
+            }
+
+            return tier;
         }
 
-        var items = page.Items
-            .Where(unit =>
+        var (visibleUnits, hasMore) = await LibraryVisibleUnitPaging.TakeVisibleAsync(
+            (limit, offset, ct) => libraryRepository.GetStockUnitsForCrewIdsAsync(
+                crewIds,
+                membership.CrewId,
+                request.Kind,
+                request.Search,
+                request.CategoryIds,
+                limit,
+                offset,
+                ct),
+            async (unit, ct) =>
             {
-                var viewerTier = tierByOfferingCrewId[unit.Offering.CrewId];
-                return LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
-                    && LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip)
+                var viewerTier = await TierForAsync(unit.Offering.CrewId, ct);
+                return LibraryOfferingRules.CanViewerAccessOffering(
+                        unit.Offering,
+                        viewerUserId,
+                        viewerTier,
+                        viewerCountry,
+                        viewerZip,
+                        unit.CurrentPossessorUserId)
                     && (unit.Offering.QuantityNotApplicable
                         || !LibraryOfferingRules.UsesPerTierStock(unit.Offering)
-                        || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier));
-            })
-            .Take(fetchLimit)
+                        || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier)
+                        || unit.Offering.CreatorUserId == viewerUserId);
+            },
+            fetchOffset,
+            fetchLimit,
+            cancellationToken);
+
+        var items = visibleUnits
             .Select(unit => LibraryMapper.MapUnitListItem(unit, tierByOfferingCrewId[unit.Offering.CrewId]))
             .ToList();
 
@@ -89,7 +104,7 @@ public class GetStockLibraryOfferingsQueryHandler(
             Success = true,
             Message = "Offerings loaded.",
             Items = items,
-            HasMore = page.HasMore || page.Items.Count > items.Count
+            HasMore = hasMore
         };
     }
 }

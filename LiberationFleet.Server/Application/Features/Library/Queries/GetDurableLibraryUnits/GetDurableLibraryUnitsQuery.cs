@@ -42,24 +42,35 @@ public class GetDurableLibraryUnitsQueryHandler(
             fleetRepository,
             cancellationToken);
 
+        var viewerUserId = currentUser.UserId.Value;
         var viewerCountry = viewerLocation.CountryCode;
         var viewerZip = viewerLocation.ZipCode;
 
         var fetchLimit = Math.Clamp(request.Limit, 1, 100);
         var fetchOffset = Math.Max(request.Offset, 0);
-        var page = await libraryRepository.GetDurableUnitsForCrewIdsAsync(
-            crewIds,
-            membership.CrewId,
-            request.Search,
-            request.CategoryIds,
-            Math.Min(100, fetchLimit * 3),
+
+        var (visibleUnits, hasMore) = await LibraryVisibleUnitPaging.TakeVisibleAsync(
+            (limit, offset, ct) => libraryRepository.GetDurableUnitsForCrewIdsAsync(
+                crewIds,
+                membership.CrewId,
+                request.Search,
+                request.CategoryIds,
+                limit,
+                offset,
+                ct),
+            unit => LibraryOfferingRules.CanViewerAccessOffering(
+                unit.Offering,
+                viewerUserId,
+                viewerTier: 1,
+                viewerCountry,
+                viewerZip,
+                unit.CurrentPossessorUserId),
             fetchOffset,
+            fetchLimit,
             cancellationToken);
 
         var now = DateTime.UtcNow;
-        var items = page.Items
-            .Where(unit => LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip))
-            .Take(fetchLimit)
+        var items = visibleUnits
             .Select(unit =>
             {
                 var dto = LibraryMapper.MapUnitListItem(unit);
@@ -84,7 +95,7 @@ public class GetDurableLibraryUnitsQueryHandler(
             Success = true,
             Message = "Durable goods loaded.",
             Items = items,
-            HasMore = page.HasMore || page.Items.Count > items.Count
+            HasMore = hasMore
         };
     }
 }

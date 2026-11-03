@@ -66,7 +66,12 @@ public static class LibraryMapper
         new()
         {
             OfferingId = offering.Id,
-            UnitId = offering.Units.FirstOrDefault()?.Id,
+            UnitId = offering.Units
+                .Where(u => !u.IsRetired && u.Status != LibraryUnitStatus.Broken)
+                .OrderBy(u => u.Id)
+                .Select(u => (int?)u.Id)
+                .FirstOrDefault()
+                ?? offering.Units.OrderBy(u => u.Id).Select(u => (int?)u.Id).FirstOrDefault(),
             Title = offering.Title,
             DescriptionPreview = offering.DescriptionPreview,
             Categories = offering.Categories

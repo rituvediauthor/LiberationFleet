@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
 import type { PluginListenerHandle } from '@capacitor/core';
-import { isNativeIos } from '../utils/app-platform.util';
+import { isNativeApp, isNativeIos } from '../utils/app-platform.util';
 import {
   applyKeyboardInsetToDocument,
   notifyKeyboardInsetChange,
@@ -9,10 +9,11 @@ import {
   readVisualOffsetTop
 } from '../utils/keyboard-inset.util';
 
-const COMPOSER_SELECTOR = '.chat-action-bar, .detail-action-bar, .gift-action-bar, .dialog-backdrop';
+const COMPOSER_SELECTOR =
+  '.chat-action-bar, .detail-action-bar, .gift-action-bar, .dialog-backdrop, .form-keyboard-accessory';
 
 /**
- * Keeps fixed composers above the software keyboard.
+ * Keeps fixed composers / form accessories above the software keyboard.
  * iOS WKWebView often reports a zero visualViewport inset, so native builds
  * use the Capacitor keyboard height and pin the composer bars directly.
  */
@@ -63,6 +64,9 @@ export class KeyboardInsetService implements OnDestroy {
     );
     this.pinComposers(inset);
     notifyKeyboardInsetChange();
+    if (inset > 40) {
+      this.scrollFocusedFieldIntoView(inset);
+    }
   }
 
   private pinComposers(inset: number): void {
@@ -74,6 +78,21 @@ export class KeyboardInsetService implements OnDestroy {
         node.style.removeProperty('bottom');
       }
     });
+  }
+
+  private scrollFocusedFieldIntoView(inset: number): void {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    if (active.closest('.form-keyboard-accessory, .chat-action-bar, .detail-action-bar, .gift-action-bar')) {
+      return;
+    }
+    const rect = active.getBoundingClientRect();
+    const safeBottom = window.innerHeight - inset - 72;
+    if (rect.bottom > safeBottom || rect.top < 8) {
+      active.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+    }
   }
 
   private onKeyboardShow = (info: KeyboardInfo): void => {
@@ -89,16 +108,19 @@ export class KeyboardInsetService implements OnDestroy {
   };
 
   private async configureNativeKeyboard(): Promise<void> {
-    if (!isNativeIos()) {
+    if (!isNativeApp()) {
       return;
     }
     try {
-      await Keyboard.setAccessoryBarVisible({ isVisible: false });
-      await Keyboard.setScroll({ isDisabled: true });
+      if (isNativeIos()) {
+        await Keyboard.setAccessoryBarVisible({ isVisible: false });
+        await Keyboard.setScroll({ isDisabled: true });
+      }
       this.listeners.push(
         await Keyboard.addListener('keyboardWillShow', this.onKeyboardShow),
         await Keyboard.addListener('keyboardDidShow', this.onKeyboardShow),
-        await Keyboard.addListener('keyboardWillHide', this.onKeyboardHide)
+        await Keyboard.addListener('keyboardWillHide', this.onKeyboardHide),
+        await Keyboard.addListener('keyboardDidHide', this.onKeyboardHide)
       );
     } catch {
       // Plugin unavailable in some test / simulator shells.

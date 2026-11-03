@@ -10,6 +10,7 @@ import { DevToolbarComponent } from './components/dev-toolbar/dev-toolbar.compon
 import { CryptoUnlockDialogComponent } from './components/crypto-unlock-dialog/crypto-unlock-dialog.component';
 import { MediaUploadProgressComponent } from './components/media-upload-progress/media-upload-progress.component';
 import { PlayStoreBannerComponent } from './components/play-store-banner/play-store-banner.component';
+import { FormKeyboardAccessoryComponent } from './components/form-keyboard-accessory/form-keyboard-accessory.component';
 import { AuthService } from './services/auth.service';
 import { CrewService } from './services/crew.service';
 import { CryptoSessionService } from './services/crypto/crypto-session.service';
@@ -37,7 +38,8 @@ import { NativeSplashService } from './native/native-splash.service';
     DevToolbarComponent,
     CryptoUnlockDialogComponent,
     MediaUploadProgressComponent,
-    PlayStoreBannerComponent
+    PlayStoreBannerComponent,
+    FormKeyboardAccessoryComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'

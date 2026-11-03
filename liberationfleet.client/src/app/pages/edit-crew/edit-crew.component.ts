@@ -236,7 +236,7 @@ export class EditCrewComponent implements OnInit {
         // the server partially applied leave before returning an error.
         this.crewService.clearMembershipCache();
         if (result.success) {
-          this.toastService.success(result.message);
+          this.toastService.success(result.message || 'You have left the crew.');
           this.router.navigate(['/app/crew']);
           return;
         }
@@ -245,8 +245,21 @@ export class EditCrewComponent implements OnInit {
       },
       error: () => {
         this.crewService.clearMembershipCache();
-        this.toastService.error('Failed to leave crew');
-        this.router.navigate(['/app/crew']);
+        // Leave can commit before a post-leave cleanup fails; verify membership.
+        this.crewService.getMembership(true).subscribe({
+          next: membership => {
+            if (!membership?.hasCrew) {
+              this.toastService.success('You have left the crew.');
+            } else {
+              this.toastService.error('Failed to leave crew');
+            }
+            this.router.navigate(['/app/crew']);
+          },
+          error: () => {
+            this.toastService.error('Failed to leave crew');
+            this.router.navigate(['/app/crew']);
+          }
+        });
       }
     });
   }

@@ -1,0 +1,31 @@
+<div
+  class="form-keyboard-accessory"
+  *ngIf="visible"
+  role="group"
+  aria-label="Keyboard field editor">
+  <textarea
+    *ngIf="multiline; else singleLine"
+    class="accessory-input accessory-textarea"
+    [ngModel]="draft"
+    (ngModelChange)="onDraftChange($event)"
+    rows="2"
+    enterkeyhint="done"
+    aria-label="Edit field value"></textarea>
+  <ng-template #singleLine>
+    <input
+      type="text"
+      class="accessory-input"
+      [ngModel]="draft"
+      (ngModelChange)="onDraftChange($event)"
+      enterkeyhint="done"
+      aria-label="Edit field value"
+      (keydown.enter)="$event.preventDefault(); done()" />
+  </ng-template>
+  <button
+    type="button"
+    class="accessory-done"
+    (click)="done()"
+    aria-label="Done editing this field">
+    <i class="fa-solid fa-check" aria-hidden="true"></i>
+  </button>
+</div>
