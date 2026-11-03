@@ -341,9 +341,19 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     this.composerFocused = true;
   }
 
+  attachReasonOpen = false;
+
+  onAttachReasonOpenChange(open: boolean) {
+    this.attachReasonOpen = open;
+    if (open) {
+      this.composerUiMinimized = false;
+      this.composerFocused = true;
+    }
+  }
+
   onComposerBlur() {
     setTimeout(() => {
-      if (this.pickingFile || isMentionSelectionPending()) {
+      if (this.pickingFile || this.attachReasonOpen || isMentionSelectionPending()) {
         this.composerUiMinimized = false;
         this.composerFocused = true;
         return;
@@ -382,12 +392,13 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get composerExpanded(): boolean {
-    if (this.composerUiMinimized) {
+    if (this.composerUiMinimized && !this.attachReasonOpen) {
       return false;
     }
     return (
       this.composerFocused ||
       this.pickingFile ||
+      this.attachReasonOpen ||
       this.messageAttachments.length > 0 ||
       this.editingMessageId != null ||
       !!this.messageText.trim()

@@ -1,9 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { PushNotifications, type Token, type ActionPerformed, type PushNotificationSchema } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { isNativeApp, isNativeAndroid, getAppRuntimePlatform } from '../utils/app-platform.util';
+import { foregroundNotificationId, shouldPresentForegroundPush } from '../utils/foreground-push.util';
 import { AppStorageService, StorageScope } from './storage/app-storage.service';
 import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from './storage/storage-keys';
 import { isJwtExpired } from '../utils/jwt.util';
@@ -85,6 +87,7 @@ export class PushNotificationRegistrationService {
 
     try {
       await PushNotifications.removeAllListeners();
+      await LocalNotifications.removeAllListeners();
     } catch {
       // ignore
     }
@@ -126,10 +129,17 @@ export class PushNotificationRegistrationService {
 
     await PushNotifications.addListener(
       'pushNotificationReceived',
-      (_notification: PushNotificationSchema) => {
-        // Foreground delivery — SignalR already updates the in-app feed.
+      (notification: PushNotificationSchema) => {
+        void this.presentForegroundNotification(notification);
       }
     );
+
+    if (isNativeAndroid()) {
+      await LocalNotifications.addListener('localNotificationActionPerformed', action => {
+        const extra = action.notification.extra as { actionUrl?: string } | undefined;
+        this.openActionUrl(typeof extra?.actionUrl === 'string' ? extra.actionUrl : '');
+      });
+    }
 
     this.listenersAttached = true;
   }
@@ -206,13 +216,62 @@ export class PushNotificationRegistrationService {
     return id;
   }
 
-  private openFromNotification(notification: PushNotificationSchema): void {
-    const data = notification.data as Record<string, unknown> | undefined;
-    const actionUrl =
-      (typeof data?.['actionUrl'] === 'string' && data['actionUrl']) ||
-      (typeof data?.['actionurl'] === 'string' && data['actionurl']) ||
-      '';
+  /**
+   * Android does not post an FCM alert while the app is in the foreground.
+   * Crew chat is usually received with the app backgrounded, so it still
+   * appears. DMs and other alerts often arrive while the app is open.
+   */
+  private async presentForegroundNotification(notification: PushNotificationSchema): Promise<void> {
+    if (!isNativeAndroid()) {
+      return;
+    }
 
+    const actionUrl = this.readActionUrl(notification);
+    if (!shouldPresentForegroundPush(this.router.url, actionUrl)) {
+      return;
+    }
+
+    const data = notification.data as Record<string, unknown> | undefined;
+    const rawId = typeof data?.['notificationId'] === 'string'
+      ? data['notificationId']
+      : typeof data?.['notificationid'] === 'string'
+        ? data['notificationid']
+        : undefined;
+
+    try {
+      const permission = await LocalNotifications.checkPermissions();
+      if (permission.display !== 'granted') {
+        return;
+      }
+
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: foregroundNotificationId(rawId),
+          title: notification.title || 'Liberation Fleet',
+          body: notification.body || 'Open Liberation Fleet to read this.',
+          channelId: ANDROID_PUSH_CHANNEL_ID,
+          smallIcon: 'ic_stat_notify',
+          iconColor: '#0B1220',
+          extra: { actionUrl }
+        }]
+      });
+    } catch (err) {
+      console.warn('Failed to show foreground notification', err);
+    }
+  }
+
+  private openFromNotification(notification: PushNotificationSchema): void {
+    this.openActionUrl(this.readActionUrl(notification));
+  }
+
+  private readActionUrl(notification: PushNotificationSchema): string {
+    const data = notification.data as Record<string, unknown> | undefined;
+    return (typeof data?.['actionUrl'] === 'string' && data['actionUrl'])
+      || (typeof data?.['actionurl'] === 'string' && data['actionurl'])
+      || '';
+  }
+
+  private openActionUrl(actionUrl: string): void {
     if (!actionUrl) {
       void this.router.navigate(['/app/notifications']);
       return;

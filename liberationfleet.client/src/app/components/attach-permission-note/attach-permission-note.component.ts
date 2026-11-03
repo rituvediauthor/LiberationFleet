@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { CrewService } from '../../services/crew.service';
@@ -15,7 +15,8 @@ import { attachmentUnmetReason } from '../../utils/attach-permission-copy.util';
         type="button"
         class="info-btn"
         aria-label="Why you cannot attach files"
-        (click)="showReason = true">
+        (mousedown)="$event.preventDefault()"
+        (click)="openReason($event)">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
       </button>
     </p>
@@ -24,8 +25,8 @@ import { attachmentUnmetReason } from '../../utils/attach-permission-copy.util';
       title="File attachments"
       [message]="reasonText"
       confirmLabel="Close"
-      (confirmed)="showReason = false"
-      (dismissed)="showReason = false">
+      (confirmed)="closeReason()"
+      (dismissed)="closeReason()">
     </app-confirm-dialog>
   `,
   styles: [`
@@ -49,6 +50,8 @@ import { attachmentUnmetReason } from '../../utils/attach-permission-copy.util';
 })
 export class AttachPermissionNoteComponent implements OnInit {
   @Input() scope: 'crew' | 'fleet' = 'crew';
+  /** Parents with collapsing composers keep the tools row mounted while this is true. */
+  @Output() reasonOpenChange = new EventEmitter<boolean>();
 
   showReason = false;
   reasonText = 'File attachments are disabled, request an override from a moderator.';
@@ -73,5 +76,17 @@ export class AttachPermissionNoteComponent implements OnInit {
         );
       }
     });
+  }
+
+  openReason(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.showReason = true;
+    this.reasonOpenChange.emit(true);
+  }
+
+  closeReason() {
+    this.showReason = false;
+    this.reasonOpenChange.emit(false);
   }
 }

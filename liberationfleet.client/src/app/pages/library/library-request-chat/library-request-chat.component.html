@@ -90,7 +90,8 @@
           <app-attach-permission-note
             *ngIf="!canAttachFiles"
             class="composer-permission-note"
-            scope="crew">
+            scope="crew"
+            (reasonOpenChange)="onAttachReasonOpenChange($event)">
           </app-attach-permission-note>
         </div>
       </div>

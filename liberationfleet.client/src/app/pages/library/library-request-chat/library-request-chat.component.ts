@@ -203,9 +203,19 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
     this.typingActivity.onInput(!!this.messageText.trim());
   }
 
+  attachReasonOpen = false;
+
+  onAttachReasonOpenChange(open: boolean) {
+    this.attachReasonOpen = open;
+    if (open) {
+      this.composerUiMinimized = false;
+      this.composerFocused = true;
+    }
+  }
+
   onComposerBlur() {
     setTimeout(() => {
-      if (this.pickingFile || isMentionSelectionPending()) {
+      if (this.pickingFile || this.attachReasonOpen || isMentionSelectionPending()) {
         this.composerUiMinimized = false;
         this.composerFocused = true;
         return;
@@ -243,10 +253,11 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   }
 
   get composerExpanded(): boolean {
-    if (this.composerUiMinimized) {
+    if (this.composerUiMinimized && !this.attachReasonOpen) {
       return false;
     }
     return this.composerFocused
+      || this.attachReasonOpen
       || Boolean(this.messageText.trim())
       || this.messageAttachments.length > 0;
   }

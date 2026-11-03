@@ -169,9 +169,19 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
     this.commentFocused = true;
   }
 
+  attachReasonOpen = false;
+
+  onAttachReasonOpenChange(open: boolean) {
+    this.attachReasonOpen = open;
+    if (open) {
+      this.commentUiMinimized = false;
+      this.commentFocused = true;
+    }
+  }
+
   onCommentBlur() {
     setTimeout(() => {
-      if (this.pickingFile || isMentionSelectionPending()) {
+      if (this.pickingFile || this.attachReasonOpen || isMentionSelectionPending()) {
         this.commentUiMinimized = false;
         this.commentFocused = true;
         return;
@@ -215,13 +225,14 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
   }
 
   get commentExpanded(): boolean {
-    if (this.commentUiMinimized) {
+    if (this.commentUiMinimized && !this.attachReasonOpen) {
       return false;
     }
     return (
       this.commentFocused ||
       !!this.replyParentId ||
       this.pickingFile ||
+      this.attachReasonOpen ||
       this.commentAttachments.length > 0 ||
       !!this.commentText.trim()
     );

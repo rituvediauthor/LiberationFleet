@@ -10,6 +10,9 @@ import { NavigationService } from '../../services/navigation.service';
 import { CrewMembershipStatus } from '../../models/crew.model';
 import { CrewFindPanelComponent } from './crew-find-panel.component';
 
+/** While waiting for a join approval SignalR event, refresh membership on this cadence. */
+const MEMBERSHIP_POLL_MS = 4000;
+
 @Component({
   selector: 'app-crew-find',
   standalone: true,
@@ -27,6 +30,8 @@ export class CrewFindComponent implements OnInit, OnDestroy {
   private navigation = inject(NavigationService);
   private crewService = inject(CrewService);
   private subscriptions = new Subscription();
+  private membershipPollId: ReturnType<typeof setInterval> | null = null;
+  private hadCrew: boolean | null = null;
 
   constructor() {
     this.backButton = this.navigation.createBackButton(['/app/profile']);
@@ -42,6 +47,7 @@ export class CrewFindComponent implements OnInit, OnDestroy {
               this.membership = null;
               this.loadError = true;
               this.loading = false;
+              this.stopMembershipPoll();
               return of(null);
             })
           )
@@ -53,11 +59,23 @@ export class CrewFindComponent implements OnInit, OnDestroy {
         this.membership = status;
         this.loadError = false;
         this.loading = false;
+
+        const nowHasCrew = !!status.hasCrew;
+        if (this.hadCrew === false && nowHasCrew) {
+          this.stopMembershipPoll();
+          void this.router.navigate(['/app/crew'], { replaceUrl: true });
+        } else if (nowHasCrew) {
+          this.stopMembershipPoll();
+        } else {
+          this.startMembershipPoll();
+        }
+        this.hadCrew = nowHasCrew;
       })
     );
   }
 
   ngOnDestroy() {
+    this.stopMembershipPoll();
     this.subscriptions.unsubscribe();
   }
 
@@ -97,5 +115,24 @@ export class CrewFindComponent implements OnInit, OnDestroy {
     }
     this.crewService.clearMembershipCache();
     void this.router.navigate(['/app/crew']);
+  }
+
+  private startMembershipPoll() {
+    if (this.membershipPollId != null) {
+      return;
+    }
+    this.membershipPollId = setInterval(() => {
+      this.crewService.getMembership(true).subscribe({
+        error: () => undefined
+      });
+    }, MEMBERSHIP_POLL_MS);
+  }
+
+  private stopMembershipPoll() {
+    if (this.membershipPollId == null) {
+      return;
+    }
+    clearInterval(this.membershipPollId);
+    this.membershipPollId = null;
   }
 }

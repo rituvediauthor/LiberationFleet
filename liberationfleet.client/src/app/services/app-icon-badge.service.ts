@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { registerPlugin } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { isNativeApp } from '../utils/app-platform.util';
+import { isNativeAndroid, isNativeApp } from '../utils/app-platform.util';
 
 interface AppIconBadgePlugin {
   set(options: { count: number }): Promise<void>;
@@ -46,6 +47,14 @@ export class AppIconBadgeService {
         await PushNotifications.removeAllDeliveredNotifications();
       } catch {
         // ignore
+      }
+
+      if (isNativeAndroid()) {
+        try {
+          await LocalNotifications.removeAllDeliveredNotifications();
+        } catch {
+          // ignore
+        }
       }
     }
   }

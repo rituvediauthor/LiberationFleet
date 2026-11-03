@@ -167,14 +167,14 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
             var entityId = relatedEntityId.Value;
             // Match either RelatedEntityId or SecondaryEntityId so comment/message
             // targets clear the right notification when they scroll into view.
-            query = query.Where(n =>
-                n.ActionUrl.StartsWith(prefix)
-                && (n.RelatedEntityId == entityId || n.SecondaryEntityId == entityId));
+            query = query
+                .Where(NotificationActionUrl.MatchesPrefix(prefix))
+                .Where(n => n.RelatedEntityId == entityId || n.SecondaryEntityId == entityId);
         }
         else if (hasPrefix)
         {
             var prefix = actionUrlPrefix!.Trim();
-            query = query.Where(n => n.ActionUrl.StartsWith(prefix));
+            query = query.Where(NotificationActionUrl.MatchesPrefix(prefix));
         }
         else
         {
