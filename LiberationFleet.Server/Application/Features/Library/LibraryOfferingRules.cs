@@ -262,8 +262,8 @@ public static class LibraryOfferingRules
             viewerZip);
 
     /// <summary>
-    /// Creators and current holders always see their item, even when postal or tier
-    /// audience rules would hide it from other crewmates.
+    /// Creators/holders always see their item. Same-crew viewers skip the postal
+    /// allowlist (that gate is for cross-crew / fleet discovery). Tier rules still apply.
     /// </summary>
     public static bool CanViewerAccessOffering(
         LibraryOffering offering,
@@ -271,7 +271,8 @@ public static class LibraryOfferingRules
         int viewerTier,
         string? viewerCountryCode,
         string? viewerZip,
-        int? currentPossessorUserId = null)
+        int? currentPossessorUserId = null,
+        int? viewerCrewId = null)
     {
         if (offering.CreatorUserId == viewerUserId
             || (currentPossessorUserId.HasValue && currentPossessorUserId.Value == viewerUserId))
@@ -279,8 +280,19 @@ public static class LibraryOfferingRules
             return true;
         }
 
-        return IsVisibleToViewerTier(offering, viewerTier)
-            && IsVisibleToViewerZip(offering, viewerCountryCode, viewerZip);
+        if (!IsVisibleToViewerTier(offering, viewerTier))
+        {
+            return false;
+        }
+
+        // Postal allowlist is a geographic discovery gate for other crews in a fleet,
+        // not a filter among members of the offering's own crew.
+        if (viewerCrewId.HasValue && viewerCrewId.Value == offering.CrewId)
+        {
+            return true;
+        }
+
+        return IsVisibleToViewerZip(offering, viewerCountryCode, viewerZip);
     }
 
     public static decimal CalculateCreatorContributionAmount(LibraryOffering offering, int quantity) =>

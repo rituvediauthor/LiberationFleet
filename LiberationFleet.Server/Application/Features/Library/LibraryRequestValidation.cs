@@ -148,7 +148,8 @@ internal static class LibraryRequestValidation
         int viewerUserId,
         int viewerTier = 1,
         string? viewerCountryCode = null,
-        string? viewerZip = null)
+        string? viewerZip = null,
+        int? viewerCrewId = null)
     {
         var offering = unit.Offering;
         var tierStock = LibraryOfferingRules.UsesPerTierStock(offering)
@@ -172,8 +173,14 @@ internal static class LibraryRequestValidation
         };
 
         if (unit.IsRetired
-            || !LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier)
-            || !LibraryOfferingRules.IsVisibleToViewerZip(offering, viewerCountryCode, viewerZip))
+            || !LibraryOfferingRules.CanViewerAccessOffering(
+                offering,
+                viewerUserId,
+                viewerTier,
+                viewerCountryCode,
+                viewerZip,
+                unit.CurrentPossessorUserId,
+                viewerCrewId))
         {
             viewer.CanRequest = false;
             viewer.CanRecordAcquisition = false;

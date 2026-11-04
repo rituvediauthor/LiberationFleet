@@ -86,22 +86,21 @@ public class RecordLibraryAcquisitionCommandHandler(
             offering.CrewId,
             cancellationToken);
 
-        if (!LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier))
+        if (!LibraryOfferingRules.CanViewerAccessOffering(
+                offering,
+                userId,
+                viewerTier,
+                viewerLocation.CountryCode,
+                viewerLocation.ZipCode,
+                unit.CurrentPossessorUserId,
+                membership.CrewId))
         {
             return new LibraryCompleteRequestResponse
             {
                 Success = false,
-                Message = "This service is not available at your priority tier."
-            };
-        }
-
-        if (!LibraryOfferingRules.IsVisibleToViewerZip(
-                offering, viewerLocation.CountryCode, viewerLocation.ZipCode))
-        {
-            return new LibraryCompleteRequestResponse
-            {
-                Success = false,
-                Message = "This offering is not available in your postal area."
+                Message = LibraryOfferingRules.IsVisibleToViewerTier(offering, viewerTier)
+                    ? "This offering is not available in your postal area."
+                    : "This service is not available at your priority tier."
             };
         }
 

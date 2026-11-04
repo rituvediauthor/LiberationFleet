@@ -221,6 +221,10 @@ export interface ReceptionOrderEntry {
   amountNeeded: number;
   entryType: ReceptionEntryType;
   thresholdId?: number;
+  /** Calendar year for survival-threshold entries. */
+  year?: number | null;
+  /** Calendar month 1–12 for survival-threshold entries. */
+  month?: number | null;
   cycleUserId?: number;
   seasonCycleId?: number;
   middlemanOptions: MiddlemanOption[];

@@ -91,11 +91,18 @@ public class GetFleetStockLibraryOfferingsQueryHandler(
             .Where(unit =>
             {
                 var viewerTier = tierByOfferingCrewId[unit.Offering.CrewId];
-                return LibraryOfferingRules.IsVisibleToViewerTier(unit.Offering, viewerTier)
-                    && LibraryOfferingRules.IsVisibleToViewerZip(unit.Offering, viewerCountry, viewerZip)
+                return LibraryOfferingRules.CanViewerAccessOffering(
+                        unit.Offering,
+                        viewerUserId,
+                        viewerTier,
+                        viewerCountry,
+                        viewerZip,
+                        unit.CurrentPossessorUserId,
+                        membership.CrewId)
                     && (unit.Offering.QuantityNotApplicable
                         || !LibraryOfferingRules.UsesPerTierStock(unit.Offering)
-                        || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier));
+                        || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier)
+                        || unit.Offering.CreatorUserId == viewerUserId);
             })
             .Take(fetchLimit)
             .Select(unit => LibraryMapper.MapUnitListItem(unit, tierByOfferingCrewId[unit.Offering.CrewId]))

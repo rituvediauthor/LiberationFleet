@@ -1,8 +1,13 @@
 <app-nav-layout activeTab="fleet">
   <div class="fleet-home">
     <app-hub-loading *ngIf="loading" variant="fleet" label="Loading fleet..."></app-hub-loading>
+    <app-hub-loading
+      *ngIf="!loading && status?.hasFleet && !encryptionReady"
+      variant="fleet"
+      label="Unlocking encrypted content...">
+    </app-hub-loading>
 
-    <ng-container *ngIf="!loading && status?.hasFleet; else noFleet">
+    <ng-container *ngIf="!loading && status?.hasFleet && encryptionReady">
       <div class="fleet-dashboard">
         <h1 class="sr-only">{{ status?.fleetName || 'Fleet' }}</h1>
 
@@ -144,8 +149,8 @@
       </div>
     </ng-container>
 
-    <ng-template #noFleet>
-      <ng-container *ngIf="!loading && loadError">
+    <ng-container *ngIf="!loading && !status?.hasFleet">
+      <ng-container *ngIf="loadError">
         <div class="hero">
           <h1>Couldn't load your fleet</h1>
           <p class="subtitle">We couldn't confirm your fleet membership. Try again before creating or joining another fleet.</p>
@@ -158,7 +163,7 @@
           </button>
         </nav>
       </ng-container>
-      <ng-container *ngIf="!loading && !loadError">
+      <ng-container *ngIf="!loadError">
         <div class="hero">
           <h1>Welcome to your Fleet</h1>
           <p class="subtitle">
@@ -192,7 +197,7 @@
           </button>
         </nav>
       </ng-container>
-    </ng-template>
+    </ng-container>
   </div>
   <app-mute-duration-dialog
     [visible]="muteTarget !== null"

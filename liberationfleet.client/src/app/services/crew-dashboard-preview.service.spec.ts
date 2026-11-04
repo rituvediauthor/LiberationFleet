@@ -283,7 +283,7 @@ describe('CrewDashboardPreviewService', () => {
     expect(discussionService.getPosts).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps decrypted preview chrome while encryption is locked', async () => {
+  it('does not expose decrypted preview chrome while encryption is locked', async () => {
     localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, testJwt(1));
     discussionService.getPosts.and.returnValue(of({
       items: [
@@ -306,7 +306,7 @@ describe('CrewDashboardPreviewService', () => {
     cryptoSession.isUnlocked.and.returnValue(false);
     discussionService.getPosts.calls.reset();
 
-    expect(service.peekCachedPreview(7, 'forum')?.title).toBe('Safe');
+    expect(service.peekCachedPreview(7, 'forum')).toBeUndefined();
     await service.loadPreview(7, 'forum', { force: true });
     expect(discussionService.getPosts).not.toHaveBeenCalled();
   });

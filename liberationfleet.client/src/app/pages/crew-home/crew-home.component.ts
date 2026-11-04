@@ -81,6 +81,8 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   /** True only when season has started — known from membership before the menu paints. */
   showNextAidWidget = false;
   nextAidLoaded = false;
+  /** Membership/status may load while locked; dashboard chrome waits for decrypt unlock. */
+  encryptionReady = false;
   mutedItems: MutedContentItem[] = [];
   muteTarget: { contentType: MutedContentType; resourceId: number; noun: string } | null = null;
   libraryOfThingsEnabled = true;
@@ -134,8 +136,10 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     });
     this.paintPersistedMembership();
     void this.crewCryptoSync.syncActiveCrewKeyDistributions();
+    this.encryptionReady = this.cryptoSession.isUnlocked();
     this.subscriptions.add(
       this.cryptoSession.unlocked$.subscribe(unlocked => {
+        this.encryptionReady = unlocked;
         if (unlocked) {
           void this.crewCryptoSync.syncActiveCrewKeyDistributions();
           const crewId = this.membership?.crewId;
@@ -147,12 +151,14 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
           if (this.membership) {
             this.maybeShowCycleThankYou(this.membership);
           }
+          void this.refreshCrewImage();
         } else {
           // Never stack cycle thank-you over the recovery-phrase unlock dialog.
           this.showCycleThankYouPrompt = false;
           this.showCycleThankYouCompose = false;
+          this.crewImageSrc = null;
+          this.clearPreviews();
         }
-        void this.refreshCrewImage();
       })
     );
 

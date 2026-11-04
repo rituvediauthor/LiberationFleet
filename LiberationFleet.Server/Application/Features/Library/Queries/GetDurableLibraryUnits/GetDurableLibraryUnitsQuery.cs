@@ -64,7 +64,8 @@ public class GetDurableLibraryUnitsQueryHandler(
                 viewerTier: 1,
                 viewerCountry,
                 viewerZip,
-                unit.CurrentPossessorUserId),
+                unit.CurrentPossessorUserId,
+                membership.CrewId),
             fetchOffset,
             fetchLimit,
             cancellationToken);

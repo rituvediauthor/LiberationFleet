@@ -1,13 +1,16 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ProposalCryptoService, ProposalCryptoScope } from './crypto/proposal-crypto.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
+import { CryptoApiService } from './crypto/crypto-api.service';
 import { EncryptedContentType } from '../models/crypto.model';
 import { resolveBlobMime } from '../utils/media-mime.util';
 
 type AvatarContentType = Extract<EncryptedContentType, 'ProfileAvatar' | 'ImageAsset'>;
 
 const DB_NAME = 'lf-encrypted-image-cache';
-const DB_VERSION = 1;
+/** v2: persist keyVersion + nonce so unchanged media skips download/decrypt. */
+const DB_VERSION = 2;
 const STORE_NAME = 'images';
 const MAX_ENTRIES = 200;
 const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
@@ -19,12 +22,15 @@ interface ImageCacheRecord {
   mime: string;
   size: number;
   lastAccessed: number;
+  keyVersion?: number;
+  nonce?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class EncryptedImageCacheService {
   private readonly proposalCrypto = inject(ProposalCryptoService);
   private readonly cryptoSession = inject(CryptoSessionService);
+  private readonly cryptoApi = inject(CryptoApiService);
   private readonly cache = new Map<string, Promise<string | null>>();
   private dbPromise: Promise<IDBDatabase> | null = null;
   private persistReady: Promise<void> = Promise.resolve();
@@ -36,6 +42,11 @@ export class EncryptedImageCacheService {
   ): Promise<string | null> {
     const id = resourceId?.trim();
     if (!id) {
+      return Promise.resolve(null);
+    }
+
+    // Never surface decrypted images until the 12-word session is unlocked.
+    if (!this.cryptoSession.isUnlocked()) {
       return Promise.resolve(null);
     }
 
@@ -88,13 +99,28 @@ export class EncryptedImageCacheService {
     contentType: AvatarContentType,
     key: string
   ): Promise<string | null> {
-    const persisted = await this.readPersisted(key);
-    if (persisted) {
-      return URL.createObjectURL(persisted);
-    }
-
     if (!this.cryptoSession.isUnlocked()) {
       return null;
+    }
+
+    const persisted = await this.readPersisted(key);
+    if (persisted) {
+      const fingerprint = await this.probeFingerprint(scope, id, contentType);
+      if (
+        fingerprint
+        && persisted.record.keyVersion === fingerprint.keyVersion
+        && persisted.record.nonce === fingerprint.nonce
+      ) {
+        void this.touch(persisted.record);
+        return URL.createObjectURL(persisted.blob);
+      }
+      if (!fingerprint) {
+        // Offline / meta unavailable: reuse last good bytes rather than blocking UI.
+        void this.touch(persisted.record);
+        return URL.createObjectURL(persisted.blob);
+      }
+      // Envelope changed — drop stale plaintext and re-decrypt.
+      void this.deletePersistedKey(key);
     }
 
     const url = await this.proposalCrypto.decryptImageDataUrl(scope, id, contentType).catch(() => null);
@@ -102,11 +128,43 @@ export class EncryptedImageCacheService {
       return null;
     }
 
-    await this.persistFromObjectUrl(key, url);
+    const fingerprint = await this.probeFingerprint(scope, id, contentType);
+    await this.persistFromObjectUrl(key, url, fingerprint);
     return url;
   }
 
-  private async persistFromObjectUrl(key: string, url: string): Promise<void> {
+  private async probeFingerprint(
+    scope: ProposalCryptoScope,
+    resourceId: string,
+    contentType: AvatarContentType
+  ): Promise<{ keyVersion: number; nonce: string } | null> {
+    const crewId = scope.crewId && scope.crewId > 0 ? scope.crewId : undefined;
+    const fleetId = scope.fleetId && scope.fleetId > 0 ? scope.fleetId : undefined;
+    try {
+      const meta = await firstValueFrom(
+        this.cryptoApi.getEncryptedContentMeta(contentType, resourceId, crewId, fleetId)
+      );
+      return { keyVersion: meta.keyVersion, nonce: meta.nonce };
+    } catch {
+      if (contentType === 'ProfileAvatar' && (crewId || fleetId)) {
+        try {
+          const personal = await firstValueFrom(
+            this.cryptoApi.getEncryptedContentMeta(contentType, resourceId)
+          );
+          return { keyVersion: personal.keyVersion, nonce: personal.nonce };
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    }
+  }
+
+  private async persistFromObjectUrl(
+    key: string,
+    url: string,
+    fingerprint: { keyVersion: number; nonce: string } | null
+  ): Promise<void> {
     try {
       const blob = await fetch(url).then(response => response.blob());
       if (!blob || blob.size <= 0 || blob.size > MAX_ENTRY_BYTES) {
@@ -121,14 +179,18 @@ export class EncryptedImageCacheService {
         data,
         mime: resolveBlobMime(blob.type, data),
         size: data.byteLength,
-        lastAccessed: Date.now()
+        lastAccessed: Date.now(),
+        keyVersion: fingerprint?.keyVersion,
+        nonce: fingerprint?.nonce
       });
     } catch {
       // Persistence is best-effort.
     }
   }
 
-  private async readPersisted(key: string): Promise<Blob | null> {
+  private async readPersisted(
+    key: string
+  ): Promise<{ blob: Blob; record: ImageCacheRecord } | null> {
     try {
       await this.persistReady;
       const db = await this.openDb();
@@ -140,8 +202,7 @@ export class EncryptedImageCacheService {
       }
       const mime = resolveBlobMime(record.mime, record.data);
       const blob = new Blob([record.data], { type: mime });
-      void this.touch(record);
-      return blob.size > 0 ? blob : null;
+      return blob.size > 0 ? { blob, record } : null;
     } catch {
       return null;
     }
@@ -165,6 +226,17 @@ export class EncryptedImageCacheService {
           ...record,
           lastAccessed: Date.now()
         })
+      );
+    } catch {
+      // Ignore.
+    }
+  }
+
+  private async deletePersistedKey(key: string): Promise<void> {
+    try {
+      const db = await this.openDb();
+      await this.idbRequest(
+        db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(key)
       );
     } catch {
       // Ignore.
@@ -253,9 +325,11 @@ export class EncryptedImageCacheService {
       request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+        // Wipe on upgrade so legacy records without fingerprints cannot serve stale media.
+        if (db.objectStoreNames.contains(STORE_NAME)) {
+          db.deleteObjectStore(STORE_NAME);
         }
+        db.createObjectStore(STORE_NAME, { keyPath: 'key' });
       };
       request.onsuccess = () => resolve(request.result);
     });

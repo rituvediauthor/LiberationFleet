@@ -53,6 +53,8 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   libraryOfThingsEnabled = true;
   loading = true;
   loadError = false;
+  /** Status may load while locked; dashboard chrome waits for decrypt unlock. */
+  encryptionReady = false;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
   fleetImageSrc: string | null = null;
 
@@ -73,12 +75,18 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
       }
     });
     this.paintPersistedStatus();
+    this.encryptionReady = this.cryptoSession.isUnlocked();
     this.subscriptions.add(
       this.cryptoSession.unlocked$.subscribe(unlocked => {
-        if (unlocked && this.status?.fleetId) {
-          this.forumPrefetch.prefetchFleetSpace(this.status.fleetId);
+        this.encryptionReady = unlocked;
+        if (unlocked) {
+          if (this.status?.fleetId) {
+            this.forumPrefetch.prefetchFleetSpace(this.status.fleetId);
+          }
+          void this.refreshFleetImage();
+        } else {
+          this.fleetImageSrc = null;
         }
-        void this.refreshFleetImage();
       })
     );
 

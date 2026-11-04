@@ -22,6 +22,7 @@ import { EmergencyRequestListItem } from '../../models/emergency-request.model';
 import { EmergencyRequestService } from '../../services/emergency-request.service';
 import { PullRefreshController } from '../../utils/pull-refresh.controller';
 import { CopyTextButtonComponent } from '../../components/copy-text-button/copy-text-button.component';
+import { formatSurvivalThresholdMonth } from '../../utils/survival-threshold-month.util';
 
 interface PlatformInfoLabel {
   prefix: 'Preferred' | 'Selected';
@@ -165,7 +166,8 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
 
   entryTypeLabel(entry: ReceptionOrderEntry): string {
     if (entry.entryType === 'survivalThreshold') {
-      return 'Survival threshold';
+      const monthLabel = formatSurvivalThresholdMonth(entry.year, entry.month);
+      return monthLabel ? `Survival threshold · ${monthLabel}` : 'Survival threshold';
     }
     if (entry.entryType === 'catchUp') {
       return 'Catch-up';

@@ -228,7 +228,9 @@ public partial class MutualAidService(
                     giverPlatforms,
                     middlemanPool,
                     pending,
-                    pending > 0));
+                    pending > 0,
+                    year: threshold.Year,
+                    month: threshold.Month));
             }
         }
 
@@ -1803,7 +1805,9 @@ public async Task<bool> IsFinancialMemberAsync(
         bool hasUnverifiedPending = false,
         bool isUnlimitedNeed = false,
         bool isEmergencyCycle = false,
-        bool isPaybackCycle = false)
+        bool isPaybackCycle = false,
+        int? year = null,
+        int? month = null)
     {
         var recipientMember = members.FirstOrDefault(m => m.UserId == recipientUserId);
         var recipientPlatforms = recipientMember?.PlatformIds ?? Array.Empty<int>();
@@ -1835,6 +1839,8 @@ public async Task<bool> IsFinancialMemberAsync(
             AmountNeeded = MutualAidCalculationService.CeilingToWholeDollar(need),
             EntryType = entryType,
             ThresholdId = thresholdId,
+            Year = year,
+            Month = month,
             CycleUserId = cycleUserId,
             SeasonCycleId = seasonCycleId,
             MiddlemanOptions = middlemanOptions,

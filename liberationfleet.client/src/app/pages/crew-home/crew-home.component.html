@@ -2,8 +2,13 @@
 
   <div class="crew-home">
     <app-hub-loading *ngIf="loading" variant="crew" label="Loading crew..."></app-hub-loading>
+    <app-hub-loading
+      *ngIf="!loading && membership?.hasCrew && !encryptionReady"
+      variant="crew"
+      label="Unlocking encrypted content...">
+    </app-hub-loading>
 
-    <ng-container *ngIf="!loading && membership?.hasCrew; else noCrew">
+    <ng-container *ngIf="!loading && membership?.hasCrew && encryptionReady">
       <ng-container *ngIf="membership as currentMembership">
       <div class="crew-dashboard">
         <h1 class="sr-only">{{ currentMembership.crewName || 'Crew' }}</h1>
@@ -174,20 +179,18 @@
 
     </ng-container>
 
-    <ng-template #noCrew>
-      <app-crew-find-panel
-        *ngIf="!loading"
-        [hasCrew]="false"
-        [loadError]="loadError"
-        (retry)="retryMembership()"
-        (createCrew)="goToCreateCrew()"
-        (joinCrew)="goToJoinCrew()"
-        (invitations)="goToInvitations()"
-        (joinRequests)="goToJoinRequests()"
-        (crewDashboard)="goToCrewDashboard()"
-        (howToUse)="goToHowToUse()">
-      </app-crew-find-panel>
-    </ng-template>
+    <app-crew-find-panel
+      *ngIf="!loading && !membership?.hasCrew"
+      [hasCrew]="false"
+      [loadError]="loadError"
+      (retry)="retryMembership()"
+      (createCrew)="goToCreateCrew()"
+      (joinCrew)="goToJoinCrew()"
+      (invitations)="goToInvitations()"
+      (joinRequests)="goToJoinRequests()"
+      (crewDashboard)="goToCrewDashboard()"
+      (howToUse)="goToHowToUse()">
+    </app-crew-find-panel>
 
     <app-confirm-dialog
       [visible]="showCycleThankYouPrompt"

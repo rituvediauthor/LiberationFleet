@@ -564,6 +564,36 @@ export class ProposalCryptoService {
         continue;
       }
 
+      // Cheap meta probe: reuse IndexedDB plaintext when envelope keyVersion matches.
+      if (contentType === 'ImageAsset' || contentType === 'ProfileAvatar') {
+        const stillPending: string[] = [];
+        await Promise.all(pendingIds.map(async resourceId => {
+          const meta = await this.tryGetContentMeta(
+            contentType as EncryptedContentType,
+            resourceId,
+            normalizedScope.crewId,
+            normalizedScope.fleetId
+          );
+          if (meta) {
+            const hit = await this.tryCachedMediaUrl(
+              normalizedScope,
+              resourceId,
+              meta.keyVersion
+            );
+            if (hit) {
+              dataUrlByResourceId.set(resourceId, hit);
+              return;
+            }
+          }
+          stillPending.push(resourceId);
+        }));
+        pendingIds.length = 0;
+        pendingIds.push(...stillPending);
+        if (pendingIds.length === 0) {
+          continue;
+        }
+      }
+
       const useBinaryDownload = contentType === 'VideoAsset'
         || contentType === 'AudioAsset'
         || bucket.some(attachment => attachment.encrypted === false);
@@ -1587,20 +1617,55 @@ export class ProposalCryptoService {
       return null;
     }
 
-    let scopeKey = await this.resolveScopeKey(normalizedScope);
+    const sessionKeyVersion = this.resolveScopeKeyVersion(normalizedScope);
+    const cached = await this.tryCachedMediaUrl(normalizedScope, resourceId, sessionKeyVersion);
+    if (cached) {
+      return cached;
+    }
+
+    const crewId = normalizedScope.crewId && normalizedScope.crewId > 0 ? normalizedScope.crewId : undefined;
+    const fleetId = normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined;
+    let usePersonalKey = !crewId && !fleetId && !normalizedScope.friendUserId;
+    let meta = await this.tryGetContentMeta(contentType, resourceId, crewId, fleetId);
+
+    if (
+      !meta
+      && contentType === 'ProfileAvatar'
+      && (crewId || fleetId)
+    ) {
+      meta = await this.tryGetContentMeta(contentType, resourceId);
+      if (meta) {
+        usePersonalKey = true;
+      }
+    }
+
+    if (meta) {
+      const cachedForMeta = await this.tryCachedMediaUrl(
+        usePersonalKey ? {} : normalizedScope,
+        resourceId,
+        meta.keyVersion
+      );
+      if (cachedForMeta) {
+        return cachedForMeta;
+      }
+    }
+
+    let scopeKey = usePersonalKey
+      ? await this.cryptoSession.ensureUserContentKeyReady()
+      : await this.resolveScopeKey(normalizedScope);
     let envelopes = await firstValueFrom(
       this.cryptoApi.getEncryptedContents(
         contentType,
         [resourceId],
-        normalizedScope.crewId && normalizedScope.crewId > 0 ? normalizedScope.crewId : undefined,
-        normalizedScope.fleetId && normalizedScope.fleetId > 0 ? normalizedScope.fleetId : undefined
+        usePersonalKey ? undefined : crewId,
+        usePersonalKey ? undefined : fleetId
       )
     );
-    let usePersonalKey = !normalizedScope.crewId && !normalizedScope.fleetId && !normalizedScope.friendUserId;
     if (
       !envelopes[0]
       && contentType === 'ProfileAvatar'
-      && ((normalizedScope.crewId && normalizedScope.crewId > 0) || (normalizedScope.fleetId && normalizedScope.fleetId > 0))
+      && !usePersonalKey
+      && (crewId || fleetId)
     ) {
       envelopes = await firstValueFrom(
         this.cryptoApi.getEncryptedContents(contentType, [resourceId])
@@ -1616,19 +1681,28 @@ export class ProposalCryptoService {
     }
 
     try {
-      // Personal avatars use the user content key; crew/fleet media use version fallback.
-      if (usePersonalKey) {
-        return await this.cryptoService.decryptMediaToObjectUrl(
-          scopeKey,
-          envelope.nonce,
-          envelope.ciphertext
-        );
-      }
-
-      return await this.decryptMediaWithScopeFallback(
-        normalizedScope,
+      return await this.decryptMediaCached(
+        scopeKey,
+        usePersonalKey ? {} : normalizedScope,
+        envelope.resourceId || resourceId,
         envelope.keyVersion,
-        key => this.cryptoService.decryptMediaToObjectUrl(key, envelope.nonce, envelope.ciphertext)
+        envelope.nonce,
+        envelope.ciphertext
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  private async tryGetContentMeta(
+    contentType: EncryptedContentType,
+    resourceId: string,
+    crewId?: number,
+    fleetId?: number
+  ): Promise<{ resourceId: string; keyVersion: number; nonce: string } | null> {
+    try {
+      return await firstValueFrom(
+        this.cryptoApi.getEncryptedContentMeta(contentType, resourceId, crewId, fleetId)
       );
     } catch {
       return null;

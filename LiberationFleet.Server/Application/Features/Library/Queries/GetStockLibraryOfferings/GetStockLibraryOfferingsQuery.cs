@@ -85,7 +85,8 @@ public class GetStockLibraryOfferingsQueryHandler(
                         viewerTier,
                         viewerCountry,
                         viewerZip,
-                        unit.CurrentPossessorUserId)
+                        unit.CurrentPossessorUserId,
+                        membership.CrewId)
                     && (unit.Offering.QuantityNotApplicable
                         || !LibraryOfferingRules.UsesPerTierStock(unit.Offering)
                         || LibraryOfferingRules.HasAvailableStockForTier(unit.Offering, viewerTier)

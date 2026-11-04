@@ -76,7 +76,7 @@
           [zipCodes]="form.get('allowedZipCodes')?.value || []"
           (zipCodesChange)="onAllowedZipCodesChange($event)"
           label="Allowed postal codes (optional)"
-          hint="Only members whose profile country and postal code match an entry in this list can see this offering. Leave empty for no postal restriction.">
+          hint="Optional. Limits who in other fleet crews can discover this offering. Your own crewmates always see it. Leave empty for no postal restriction.">
         </app-zip-code-list-editor>
       </div>
 

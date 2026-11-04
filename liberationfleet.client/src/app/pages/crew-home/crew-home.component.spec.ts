@@ -210,8 +210,8 @@ describe('CrewHomeComponent', () => {
       platformHandle: '@ritu'
     }));
 
-    cryptoUnlocked = false;
-    unlocked$ = new BehaviorSubject(false);
+    cryptoUnlocked = true;
+    unlocked$ = new BehaviorSubject(true);
     areaCounts$ = new BehaviorSubject(emptyAreaCounts());
     notificationService = {
       areaCounts$,
@@ -434,6 +434,8 @@ describe('CrewHomeComponent', () => {
   }));
 
   it('should defer the cycle thank-you prompt until encryption is unlocked', () => {
+    cryptoUnlocked = false;
+    unlocked$.next(false);
     crewService.getMembership.and.returnValue(of({
       hasCrew: true,
       crewId: 1,
@@ -475,23 +477,12 @@ describe('CrewHomeComponent', () => {
     fixture.destroy();
   });
 
-  it('paints persisted preview tiles immediately and waits for crypto before refreshing', fakeAsync(() => {
+  it('loads membership while locked but only renders the dashboard after unlock', fakeAsync(() => {
+    cryptoUnlocked = false;
+    unlocked$.next(false);
     const resolvers = new Map<keyof CrewDashboardPreviews, (value: CrewDashboardPreview | null) => void>();
     dashboardPreviewService.loadPreview.and.callFake((_crewId: number, key: keyof CrewDashboardPreviews) => {
       return new Promise(resolve => resolvers.set(key, resolve));
-    });
-    dashboardPreviewService.peekCachedPreview.and.callFake((_crewId: number, key: keyof CrewDashboardPreviews) => {
-      if (key !== 'forum') {
-        return undefined;
-      }
-      return {
-        kind: 'forum',
-        id: 55,
-        authorUsername: 'Ada',
-        lastActivityAt: new Date(),
-        title: 'Cached post',
-        body: 'Hello'
-      };
     });
     crewService.getMembership.and.returnValue(of({
       hasCrew: true,
@@ -504,14 +495,19 @@ describe('CrewHomeComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    expect(component.previews.forum?.id).toBe(55);
-    expect(component.previewLoading.forum).toBeFalse();
-    expect(component.previewLoading.chat).toBeTrue();
+    expect(component.loading).toBeFalse();
+    expect(component.encryptionReady).toBeFalse();
+    expect(component.membership?.crewName).toBe('Alpha Fleet');
+    expect(fixture.nativeElement.querySelector('.crew-dashboard')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-hub-loading')).toBeTruthy();
     expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalled();
 
     cryptoUnlocked = true;
     unlocked$.next(true);
+    fixture.detectChanges();
 
+    expect(component.encryptionReady).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.crew-dashboard')).toBeTruthy();
     expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'forum', { force: true });
     expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'chat', { force: true });
 

@@ -19,6 +19,7 @@ import {
 } from '../../../models/gift.model';
 import { PullRefreshController } from '../../../utils/pull-refresh.controller';
 import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
+import { formatSurvivalThresholdMonth } from '../../../utils/survival-threshold-month.util';
 
 interface PlatformInfoLabel {
   prefix: 'Preferred' | 'Selected';
@@ -127,7 +128,8 @@ export class FleetRecordGiftComponent implements OnInit, AfterViewInit, OnDestro
 
   entryTypeLabel(entry: ReceptionOrderEntry): string {
     if (entry.entryType === 'survivalThreshold') {
-      return 'Survival threshold';
+      const monthLabel = formatSurvivalThresholdMonth(entry.year, entry.month);
+      return monthLabel ? `Survival threshold · ${monthLabel}` : 'Survival threshold';
     }
     if (entry.entryType === 'catchUp') {
       return 'Catch-up';

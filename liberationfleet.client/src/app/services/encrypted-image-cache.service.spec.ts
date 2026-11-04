@@ -1,24 +1,33 @@
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { EncryptedImageCacheService } from './encrypted-image-cache.service';
 import { ProposalCryptoService } from './crypto/proposal-crypto.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
+import { CryptoApiService } from './crypto/crypto-api.service';
 
 describe('EncryptedImageCacheService', () => {
   let service: EncryptedImageCacheService;
   let proposalCrypto: jasmine.SpyObj<ProposalCryptoService>;
   let cryptoSession: { isUnlocked: jasmine.Spy };
+  let cryptoApi: { getEncryptedContentMeta: jasmine.Spy };
 
   beforeEach(() => {
     proposalCrypto = jasmine.createSpyObj<ProposalCryptoService>('ProposalCryptoService', [
       'decryptImageDataUrl'
     ]);
     cryptoSession = { isUnlocked: jasmine.createSpy('isUnlocked').and.returnValue(true) };
+    cryptoApi = {
+      getEncryptedContentMeta: jasmine.createSpy('getEncryptedContentMeta').and.returnValue(
+        of({ resourceId: 'x', keyVersion: 1, nonce: 'nonce-1' })
+      )
+    };
 
     TestBed.configureTestingModule({
       providers: [
         EncryptedImageCacheService,
         { provide: ProposalCryptoService, useValue: proposalCrypto },
-        { provide: CryptoSessionService, useValue: cryptoSession }
+        { provide: CryptoSessionService, useValue: cryptoSession },
+        { provide: CryptoApiService, useValue: cryptoApi }
       ]
     });
 
@@ -56,7 +65,7 @@ describe('EncryptedImageCacheService', () => {
     expect(proposalCrypto.decryptImageDataUrl).toHaveBeenCalledTimes(1);
   });
 
-  it('returns a persisted image while encryption is locked without decrypting again', async () => {
+  it('does not return cached images while encryption is locked', async () => {
     proposalCrypto.decryptImageDataUrl.and.resolveTo(objectUrlForPng());
     await service.getDataUrl({}, 'avatar-locked');
 
@@ -65,8 +74,38 @@ describe('EncryptedImageCacheService', () => {
     proposalCrypto.decryptImageDataUrl.calls.reset();
 
     const restored = await service.getDataUrl({}, 'avatar-locked');
+    expect(restored).toBeNull();
+    expect(proposalCrypto.decryptImageDataUrl).not.toHaveBeenCalled();
+  });
+
+  it('reuses persisted bytes when meta fingerprint is unchanged', async () => {
+    proposalCrypto.decryptImageDataUrl.and.resolveTo(objectUrlForPng());
+    await service.getDataUrl({}, 'avatar-meta');
+    expect(proposalCrypto.decryptImageDataUrl).toHaveBeenCalledTimes(1);
+
+    dropMemoryCache(service);
+    proposalCrypto.decryptImageDataUrl.calls.reset();
+
+    const restored = await service.getDataUrl({}, 'avatar-meta');
     expect(restored).toBeTruthy();
     expect(proposalCrypto.decryptImageDataUrl).not.toHaveBeenCalled();
+  });
+
+  it('re-decrypts when the envelope fingerprint changes', async () => {
+    proposalCrypto.decryptImageDataUrl.and.resolveTo(objectUrlForPng());
+    await service.getDataUrl({}, 'avatar-changed');
+    expect(proposalCrypto.decryptImageDataUrl).toHaveBeenCalledTimes(1);
+
+    dropMemoryCache(service);
+    proposalCrypto.decryptImageDataUrl.calls.reset();
+    proposalCrypto.decryptImageDataUrl.and.resolveTo(objectUrlForPng());
+    cryptoApi.getEncryptedContentMeta.and.returnValue(
+      of({ resourceId: 'avatar-changed', keyVersion: 2, nonce: 'nonce-2' })
+    );
+
+    const restored = await service.getDataUrl({}, 'avatar-changed');
+    expect(restored).toBeTruthy();
+    expect(proposalCrypto.decryptImageDataUrl).toHaveBeenCalledTimes(1);
   });
 
   it('restores persisted crew and fleet profile images after a restart', async () => {

@@ -175,6 +175,10 @@ public class ReceptionOrderEntryDto
     public decimal AmountNeeded { get; set; }
     public string EntryType { get; set; } = string.Empty;
     public int? ThresholdId { get; set; }
+    /// <summary>Calendar year for survival-threshold entries (with <see cref="Month"/>).</summary>
+    public int? Year { get; set; }
+    /// <summary>Calendar month 1–12 for survival-threshold entries (with <see cref="Year"/>).</summary>
+    public int? Month { get; set; }
     public int? CycleUserId { get; set; }
     public int? SeasonCycleId { get; set; }
     public IReadOnlyList<MiddlemanOptionDto> MiddlemanOptions { get; set; } = Array.Empty<MiddlemanOptionDto>();

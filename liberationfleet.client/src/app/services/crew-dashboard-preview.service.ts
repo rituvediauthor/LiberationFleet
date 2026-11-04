@@ -154,13 +154,13 @@ export class CrewDashboardPreviewService {
     }
 
     this.ensureHydrated();
+    // Never paint decrypted preview tiles before the 12-word unlock succeeds.
+    if (!this.cryptoSession.isUnlocked()) {
+      return undefined;
+    }
     const current = this.cache.get(this.getCacheKey(crewId, previewKey));
     if (current) {
       return current.preview as CrewDashboardPreviews[K];
-    }
-    if (!this.cryptoSession.isUnlocked()) {
-      const unlocked = this.cache.get(this.getCacheKey(crewId, previewKey, true));
-      return unlocked ? unlocked.preview as CrewDashboardPreviews[K] : undefined;
     }
     return undefined;
   }

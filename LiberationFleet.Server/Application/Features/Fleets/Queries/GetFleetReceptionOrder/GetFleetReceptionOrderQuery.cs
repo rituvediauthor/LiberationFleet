@@ -131,6 +131,8 @@ public class GetFleetReceptionOrderQueryHandler(
         AmountNeeded = entry.AmountNeeded,
         EntryType = entry.EntryType,
         ThresholdId = entry.ThresholdId,
+        Year = entry.Year,
+        Month = entry.Month,
         CycleUserId = entry.CycleUserId,
         SeasonCycleId = entry.SeasonCycleId,
         MiddlemanOptions = entry.MiddlemanOptions,

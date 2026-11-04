@@ -60,7 +60,8 @@ public class GetLibraryUnitDetailQueryHandler(
                 viewerTier,
                 viewerCountry,
                 viewerZip,
-                unit.CurrentPossessorUserId))
+                unit.CurrentPossessorUserId,
+                membership.CrewId))
         {
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }
@@ -93,7 +94,8 @@ public class GetLibraryUnitDetailQueryHandler(
             userId,
             viewerTier,
             viewerCountry,
-            viewerZip);
+            viewerZip,
+            membership.CrewId);
 
         return new LibraryUnitDetailResponse
         {
