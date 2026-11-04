@@ -3,24 +3,43 @@
   *ngIf="visible"
   role="group"
   aria-label="Keyboard field editor">
-  <textarea
-    *ngIf="multiline; else singleLine"
-    class="accessory-input accessory-textarea"
-    [ngModel]="draft"
-    (ngModelChange)="onDraftChange($event)"
-    rows="2"
-    enterkeyhint="done"
-    aria-label="Edit field value"></textarea>
-  <ng-template #singleLine>
-    <input
-      type="text"
-      class="accessory-input"
+  <div class="accessory-field">
+    <textarea
+      *ngIf="multiline; else singleLine"
+      class="accessory-input accessory-textarea"
       [ngModel]="draft"
       (ngModelChange)="onDraftChange($event)"
+      rows="2"
       enterkeyhint="done"
-      aria-label="Edit field value"
-      (keydown.enter)="$event.preventDefault(); done()" />
-  </ng-template>
+      [attr.maxlength]="maxLength > 0 ? maxLength : null"
+      [attr.minlength]="minLength > 0 ? minLength : null"
+      [attr.required]="required ? '' : null"
+      [attr.inputmode]="inputMode"
+      aria-label="Edit field value"></textarea>
+    <ng-template #singleLine>
+      <input
+        [type]="inputType"
+        class="accessory-input"
+        [ngModel]="draft"
+        (ngModelChange)="onDraftChange($event)"
+        enterkeyhint="done"
+        [attr.maxlength]="maxLength > 0 ? maxLength : null"
+        [attr.minlength]="minLength > 0 ? minLength : null"
+        [attr.required]="required ? '' : null"
+        [attr.pattern]="pattern"
+        [attr.inputmode]="inputMode"
+        [attr.autocapitalize]="inputType === 'password' ? 'off' : null"
+        [attr.autocomplete]="inputType === 'password' ? 'current-password' : null"
+        [attr.spellcheck]="inputType === 'password' ? false : null"
+        aria-label="Edit field value"
+        (keydown.enter)="$event.preventDefault(); done()" />
+    </ng-template>
+    <app-char-counter
+      *ngIf="showCharCounter"
+      [current]="draftLength"
+      [max]="maxLength">
+    </app-char-counter>
+  </div>
   <button
     type="button"
     class="accessory-done"
