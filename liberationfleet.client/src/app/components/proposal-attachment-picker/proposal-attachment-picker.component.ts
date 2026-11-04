@@ -96,12 +96,28 @@ export class ProposalAttachmentPickerComponent implements OnDestroy {
     // iOS often fires window focus BEFORE the file input `change` event. Closing the
     // dialog immediately lets parent chat composers collapse and destroy this picker
     // before files are applied. Delay the focus fallback; change/cancel close sooner.
+    // Taking a photo keeps the app backgrounded longer — never treat focus as "done"
+    // while the document is still hidden (camera / Photos UI).
     this.windowFocusListener = () => {
       this.clearWindowFocusListener();
       window.setTimeout(() => {
-        if (this.fileDialogOpen) {
-          this.setFileDialogOpen(false);
+        if (!this.fileDialogOpen) {
+          return;
         }
+        if (typeof document !== 'undefined' && document.hidden) {
+          // Still in camera/picker; wait for the next focus after it closes.
+          this.windowFocusListener = () => {
+            this.clearWindowFocusListener();
+            window.setTimeout(() => {
+              if (this.fileDialogOpen && !document.hidden) {
+                this.setFileDialogOpen(false);
+              }
+            }, 1500);
+          };
+          window.addEventListener('focus', this.windowFocusListener);
+          return;
+        }
+        this.setFileDialogOpen(false);
       }, 1500);
     };
     window.addEventListener('focus', this.windowFocusListener);

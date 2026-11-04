@@ -253,10 +253,11 @@ export class LibraryRequestChatComponent implements OnInit, AfterViewInit, OnDes
   }
 
   get composerExpanded(): boolean {
-    if (this.composerUiMinimized && !this.attachReasonOpen) {
+    if (this.composerUiMinimized && !this.attachReasonOpen && !this.pickingFile) {
       return false;
     }
     return this.composerFocused
+      || this.pickingFile
       || this.attachReasonOpen
       || Boolean(this.messageText.trim())
       || this.messageAttachments.length > 0;
