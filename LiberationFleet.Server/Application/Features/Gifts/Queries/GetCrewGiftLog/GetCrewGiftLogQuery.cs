@@ -20,6 +20,7 @@ public class GetCrewGiftLogQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository,
     ILogger<GetCrewGiftLogQueryHandler> logger) : IRequestHandler<GetCrewGiftLogQuery, GiftLogResponse>
 {
     public async Task<GiftLogResponse> Handle(GetCrewGiftLogQuery request, CancellationToken cancellationToken)
@@ -44,8 +45,15 @@ public class GetCrewGiftLogQueryHandler(
         {
             try
             {
-                page = await giftRepository.GetLogPageByCrewIdAsync(
-                    membership.CrewId,
+                var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+                page = await GiftLogVisibility.TakeVisiblePageAsync(
+                    (cursorAt, cursorId, ct) => giftRepository.GetLogPageByCrewIdAsync(
+                        membership.CrewId,
+                        limit,
+                        cursorAt,
+                        cursorId,
+                        ct),
+                    hiddenUserIds,
                     limit,
                     request.BeforeCreatedAt,
                     request.BeforeId,

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -16,7 +17,8 @@ public class GetFavoriteLibraryUnitsQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
-    ILibraryRepository libraryRepository) : IRequestHandler<GetFavoriteLibraryUnitsQuery, LibraryUnitListResponse>
+    ILibraryRepository libraryRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetFavoriteLibraryUnitsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
         GetFavoriteLibraryUnitsQuery request,
@@ -39,6 +41,7 @@ public class GetFavoriteLibraryUnitsQueryHandler(
             fleetRepository,
             cancellationToken);
 
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
         var page = await libraryRepository.GetFavoriteUnitsAsync(
             userId,
             crewIds,
@@ -53,7 +56,10 @@ public class GetFavoriteLibraryUnitsQueryHandler(
         {
             Success = true,
             Message = "Favorites loaded.",
-            Items = page.Items.Select(unit => LibraryMapper.MapUnitListItem(unit)).ToList(),
+            Items = page.Items
+                .Where(unit => !BlockVisibility.HidesAny(hiddenUserIds, unit.Offering.CreatorUserId, unit.CurrentPossessorUserId))
+                .Select(unit => LibraryMapper.MapUnitListItem(unit))
+                .ToList(),
             HasMore = page.HasMore
         };
     }

@@ -29,6 +29,7 @@ export class VoiceLiveKitService {
   private room: Room | null = null;
   private localMuted = false;
   private localDeafened = false;
+  private hiddenUserIds = new Set<number>();
   private devicePreferences: VoiceDevicePreferences = {
     inputDeviceId: '',
     outputDeviceId: ''
@@ -98,6 +99,11 @@ export class VoiceLiveKitService {
     }
   }
 
+  setHiddenUserIds(userIds: number[]): void {
+    this.hiddenUserIds = new Set(userIds);
+    this.room?.remoteParticipants.forEach(participant => this.applyBlockToParticipant(participant));
+  }
+
   async startAudio(): Promise<void> {
     if (!this.room) {
       return;
@@ -134,12 +140,16 @@ export class VoiceLiveKitService {
         this.activeSpeakers$.next(speakers.map(speaker => Number(speaker.identity)).filter(id => !Number.isNaN(id)));
       })
       .on(RoomEvent.ParticipantConnected, participant => {
-        this.participantConnected$.next(participant);
+        this.applyBlockToParticipant(participant);
+        if (!this.isHiddenParticipant(participant)) {
+          this.participantConnected$.next(participant);
+        }
       })
       .on(RoomEvent.ParticipantDisconnected, participant => {
         this.participantDisconnected$.next(participant);
       })
       .on(RoomEvent.TrackSubscribed, (_track, _pub, participant) => {
+        this.applyBlockToParticipant(participant);
         this.applyDeafenToParticipant(participant);
       })
       .on(RoomEvent.AudioPlaybackStatusChanged, () => {
@@ -172,6 +182,7 @@ export class VoiceLiveKitService {
     }
 
     this.localDeafened = false;
+    this.room.remoteParticipants.forEach(participant => this.applyBlockToParticipant(participant));
     this.connectionState$.next({
       connected: true,
       reconnecting: false,
@@ -282,7 +293,27 @@ export class VoiceLiveKitService {
     };
   }
 
+  private isHiddenParticipant(participant: RemoteParticipant): boolean {
+    const userId = Number(participant.identity);
+    return !Number.isNaN(userId) && this.hiddenUserIds.has(userId);
+  }
+
+  private applyBlockToParticipant(participant: RemoteParticipant): void {
+    if (!this.isHiddenParticipant(participant)) {
+      return;
+    }
+
+    participant.audioTrackPublications.forEach(publication => {
+      publication.setSubscribed(false);
+      publication.track?.detach();
+    });
+  }
+
   private applyDeafenToParticipant(participant: RemoteParticipant | LocalParticipant): void {
+    if (participant instanceof RemoteParticipant && this.isHiddenParticipant(participant)) {
+      return;
+    }
+
     participant.audioTrackPublications.forEach(publication => {
       const track = publication.track;
       if (!track || track.kind !== Track.Kind.Audio) {

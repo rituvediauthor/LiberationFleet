@@ -32,6 +32,7 @@ public class ToggleChatMessageLikeCommandHandler(
     IChatRepository chatRepository,
     IChatRealtimeNotifier chatRealtimeNotifier,
     NotificationService notificationService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<ToggleChatMessageLikeCommand, ChatMessageLikeToggleResponse>
 {
     public async Task<ChatMessageLikeToggleResponse> Handle(
@@ -58,6 +59,12 @@ public class ToggleChatMessageLikeCommandHandler(
 
         var message = await chatRepository.GetMessageByIdWithAuthorAsync(request.MessageId, cancellationToken);
         if (message is null || message.ChatRoomId != room.Id || message.IsDeleted)
+        {
+            return new ChatMessageLikeToggleResponse { Success = false, Message = "Message not found." };
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.Hides(hiddenUserIds, message.AuthorUserId))
         {
             return new ChatMessageLikeToggleResponse { Success = false, Message = "Message not found." };
         }

@@ -24,9 +24,15 @@ public static class VoicePresenceMapper
     public static async Task<VoicePresenceSnapshotResponse> BuildSnapshotAsync(
         IVoicePresenceRepository repository,
         int crewId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlySet<int>? hiddenUserIds = null)
     {
         var sessions = await repository.GetActiveByCrewIdAsync(crewId, cancellationToken);
+        if (hiddenUserIds is { Count: > 0 })
+        {
+            sessions = sessions.Where(session => !hiddenUserIds.Contains(session.UserId)).ToList();
+        }
+
         var rooms = sessions
             .GroupBy(session => session.ChatRoomId)
             .Select(group => new VoiceRoomPresenceDto

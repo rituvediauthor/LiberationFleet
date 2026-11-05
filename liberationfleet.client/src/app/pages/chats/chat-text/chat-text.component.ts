@@ -20,6 +20,7 @@ import { CharCounterComponent } from '../../../components/char-counter/char-coun
 import { AdultContentGateComponent } from '../../../components/adult-content-gate/adult-content-gate.component';
 import { ToastService } from '../../../components/toast/toast.component';
 import { ChatService } from '../../../services/chat.service';
+import { FriendService } from '../../../services/friend.service';
 import { ChatHubService } from '../../../services/chat-hub.service';
 import { ChatCryptoService } from '../../../services/crypto/chat-crypto.service';
 import { CrewService } from '../../../services/crew.service';
@@ -178,6 +179,8 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   private navigation = inject(NavigationService);
   private notificationContent = inject(NotificationContentService);
   private chatService = inject(ChatService);
+  private friendService = inject(FriendService);
+  private hiddenUserIds = new Set<number>();
   private chatHub = inject(ChatHubService);
   private chatCrypto = inject(ChatCryptoService);
   private crewService = inject(CrewService);
@@ -228,6 +231,12 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     const token = this.authService.getToken();
     this.currentUserId = token ? getUserIdFromToken(token) : null;
 
+    this.friendService.getHiddenUserIds().subscribe({
+      next: ids => {
+        this.hiddenUserIds = new Set(ids);
+      }
+    });
+
     this.hubSubscription = this.chatHub.messageReceived$.subscribe(message => {
       void this.onMessageReceived(message);
     });
@@ -242,6 +251,9 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     this.hubTypingSubscription = this.chatHub.typing$.subscribe(event => {
       if (event.scope !== 'room' || event.roomId !== this.roomId) {
+        return;
+      }
+      if (event.userId && this.hiddenUserIds.has(event.userId)) {
         return;
       }
       const key = event.isAnonymous
@@ -934,7 +946,16 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private isHiddenAuthor(message: ChatMessage): boolean {
+    return !!message.authorUserId && this.hiddenUserIds.has(message.authorUserId);
+  }
+
   private async onMessageUpdated(message: ChatMessage) {
+    if (this.isHiddenAuthor(message)) {
+      this.messages = this.messages.filter(existing => existing.id !== message.id);
+      return;
+    }
+
     // Like-only hub payloads omit body/ciphertext — merge counts without wiping content.
     if (message.isRemovedByModerator) {
       this.messages = this.messages.map(existing => {
@@ -997,7 +1018,7 @@ export class ChatTextComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async onMessageReceived(message: ChatMessage) {
-    if (message.id <= 0) {
+    if (message.id <= 0 || this.isHiddenAuthor(message)) {
       return;
     }
 

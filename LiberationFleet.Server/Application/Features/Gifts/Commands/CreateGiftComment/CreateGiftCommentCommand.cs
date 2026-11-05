@@ -28,6 +28,7 @@ public class CreateGiftCommentCommandHandler(
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateGiftCommentCommand, GiftEngagementOperationResponse>
 {
     public async Task<GiftEngagementOperationResponse> Handle(
@@ -71,6 +72,13 @@ public class CreateGiftCommentCommandHandler(
             (threadRootId, replyToCommentId) = CommentThread.ResolveNewReply(
                 parentComment.Id,
                 parentComment.ParentCommentId);
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.HidesGift(hiddenUserIds, gift)
+            || (parentComment is not null && BlockVisibility.Hides(hiddenUserIds, parentComment.AuthorUserId)))
+        {
+            return new GiftEngagementOperationResponse { Success = false, Message = "Gift not found." };
         }
 
         var utcNow = DateTime.UtcNow;

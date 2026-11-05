@@ -363,6 +363,7 @@ public class GetCrewGiftLogQueryHandlerTests
             membershipRepository.Object,
             giftRepository.Object,
             cryptoRepository.Object,
+            HandlerTestFixture.CreateUserBlockRepositoryMock().Object,
             new Mock<ILogger<GetCrewGiftLogQueryHandler>>().Object);
     }
 }

@@ -22,6 +22,7 @@ public class GetFleetGiftLogQueryHandler(
     IFleetRepository fleetRepository,
     IGiftRepository giftRepository,
     ICryptoRepository cryptoRepository,
+    IUserBlockRepository blockRepository,
     ILogger<GetFleetGiftLogQueryHandler> logger) : IRequestHandler<GetFleetGiftLogQuery, GiftLogResponse>
 {
     public async Task<GiftLogResponse> Handle(GetFleetGiftLogQuery request, CancellationToken cancellationToken)
@@ -59,8 +60,15 @@ public class GetFleetGiftLogQueryHandler(
         }
 
         var limit = request.Limit <= 0 ? 50 : Math.Min(request.Limit, 100);
-        var page = await giftRepository.GetLogPageByCrewIdsAsync(
-            crewIds,
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        var page = await GiftLogVisibility.TakeVisiblePageAsync(
+            (cursorAt, cursorId, ct) => giftRepository.GetLogPageByCrewIdsAsync(
+                crewIds,
+                limit,
+                cursorAt,
+                cursorId,
+                ct),
+            hiddenUserIds,
             limit,
             request.BeforeCreatedAt,
             request.BeforeId,

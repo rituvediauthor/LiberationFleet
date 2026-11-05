@@ -4,6 +4,7 @@ using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Chats;
 using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Domain.Enums;
+using LiberationFleet.Server.Infrastructure.Realtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
@@ -18,7 +19,9 @@ public class ChatHub(
     IUserRepository userRepository,
     IFriendshipRepository friendshipRepository,
     ILibraryRepository libraryRepository,
-    IUserPresenceService presenceService) : Hub
+    IUserPresenceService presenceService,
+    IUserBlockRepository blockRepository,
+    ChatRoomConnectionRegistry roomConnections) : Hub
 {
     public async Task JoinCrew(int crewId)
     {
@@ -74,10 +77,12 @@ public class ChatHub(
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomId));
+        roomConnections.Join(Context.ConnectionId, roomId, userId);
     }
 
     public async Task LeaveRoom(int roomId)
     {
+        roomConnections.Leave(Context.ConnectionId, roomId);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomGroup(roomId));
     }
 
@@ -121,18 +126,36 @@ public class ChatHub(
             payloadUserId = userId;
         }
 
-        await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync(
-            "Typing",
-            new
-            {
-                scope = "room",
-                roomId,
-                userId = payloadUserId,
-                displayName,
-                isAnonymous,
-                isTyping
-            },
-            Context.ConnectionAborted);
+        var typingPayload = new
+        {
+            scope = "room",
+            roomId,
+            userId = payloadUserId,
+            displayName,
+            isAnonymous,
+            isTyping
+        };
+        var presentUserIds = roomConnections.UsersInRoom(roomId);
+        if (presentUserIds.Count == 0)
+        {
+            await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync(
+                "Typing",
+                typingPayload,
+                Context.ConnectionAborted);
+            return;
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, Context.ConnectionAborted);
+        var recipientIds = presentUserIds
+            .Where(id => id != userId && !hiddenUserIds.Contains(id))
+            .Select(id => id.ToString())
+            .ToList();
+        if (recipientIds.Count == 0)
+        {
+            return;
+        }
+
+        await Clients.Users(recipientIds).SendAsync("Typing", typingPayload, Context.ConnectionAborted);
     }
 
     /// <summary>Ephemeral typing signal for a friend DM conversation.</summary>
@@ -223,6 +246,12 @@ public class ChatHub(
         presenceService.RecordActivity(userId);
         await Groups.AddToGroupAsync(Context.ConnectionId, UserGroup(userId));
         await base.OnConnectedAsync();
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        roomConnections.Disconnect(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
     }
 
     internal static string CrewGroup(int crewId) => $"crew:{crewId}";

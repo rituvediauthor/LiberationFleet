@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -18,7 +19,8 @@ public class GetFleetDurableLibraryUnitsQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
-    IViewerLocationAccessor viewerLocation) : IRequestHandler<GetFleetDurableLibraryUnitsQuery, LibraryUnitListResponse>
+    IViewerLocationAccessor viewerLocation,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetFleetDurableLibraryUnitsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
         GetFleetDurableLibraryUnitsQuery request,
@@ -55,6 +57,7 @@ public class GetFleetDurableLibraryUnitsQueryHandler(
         var viewerUserId = currentUser.UserId.Value;
         var viewerCountry = viewerLocation.CountryCode;
         var viewerZip = viewerLocation.ZipCode;
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(viewerUserId, cancellationToken);
         var fetchLimit = Math.Clamp(request.Limit, 1, 100);
         var fetchOffset = Math.Max(request.Offset, 0);
 
@@ -68,13 +71,14 @@ public class GetFleetDurableLibraryUnitsQueryHandler(
                 offset,
                 ct),
             unit => LibraryOfferingRules.CanViewerAccessOffering(
-                unit.Offering,
-                viewerUserId,
-                viewerTier: 1,
-                viewerCountry,
-                viewerZip,
-                unit.CurrentPossessorUserId,
-                membership.CrewId),
+                    unit.Offering,
+                    viewerUserId,
+                    viewerTier: 1,
+                    viewerCountry,
+                    viewerZip,
+                    unit.CurrentPossessorUserId,
+                    membership.CrewId)
+                && !BlockVisibility.HidesAny(hiddenUserIds, unit.Offering.CreatorUserId, unit.CurrentPossessorUserId),
             fetchOffset,
             fetchLimit,
             cancellationToken);

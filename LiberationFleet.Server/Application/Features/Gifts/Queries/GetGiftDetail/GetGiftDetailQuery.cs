@@ -49,6 +49,12 @@ public class GetGiftDetailQueryHandler(
             return new GiftDetailResponse { Success = false, Message = "Gift not found." };
         }
 
+        var hiddenUserIdsForGift = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.HidesGift(hiddenUserIdsForGift, gift))
+        {
+            return new GiftDetailResponse { Success = false, Message = "Gift not found." };
+        }
+
         var completedByInitiated = await giftRepository.GetCompletedGiftsByInitiatedIdsAsync(
             gift.CrewId,
             gift.Type == GiftType.Initiated ? [gift.Id] : null,
@@ -134,8 +140,7 @@ public class GetGiftDetailQueryHandler(
         {
             comments = Array.Empty<GiftComment>();
         }
-        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
-        var visibleComments = comments.Where(c => !hiddenUserIds.Contains(c.AuthorUserId)).ToList();
+        var visibleComments = comments.Where(c => !hiddenUserIdsForGift.Contains(c.AuthorUserId)).ToList();
         var topLevel = visibleComments.Where(c => !c.ParentCommentId.HasValue).ToList();
         var commentIds = visibleComments.Select(c => c.Id.ToString()).ToList();
         var commentEnvelopes = await cryptoRepository.GetEnvelopesAsync(

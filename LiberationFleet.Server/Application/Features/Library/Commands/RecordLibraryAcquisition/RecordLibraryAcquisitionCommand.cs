@@ -31,6 +31,7 @@ public class RecordLibraryAcquisitionCommandHandler(
     LibraryContributionGiftService contributionGiftService,
     IMutualAidService mutualAidService,
     LibraryPriorityTierService priorityTierService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordLibraryAcquisitionCommand, LibraryCompleteRequestResponse>
 {
     public async Task<LibraryCompleteRequestResponse> Handle(
@@ -63,6 +64,12 @@ public class RecordLibraryAcquisitionCommandHandler(
             membership.CrewId,
             cancellationToken);
         if (unit is null)
+        {
+            return new LibraryCompleteRequestResponse { Success = false, Message = "Item not found." };
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.HidesAny(hiddenUserIds, unit.Offering.CreatorUserId, unit.CurrentPossessorUserId))
         {
             return new LibraryCompleteRequestResponse { Success = false, Message = "Item not found." };
         }

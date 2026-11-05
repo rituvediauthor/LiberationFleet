@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Features.Friends.Commands.SendDirectMes
 using LiberationFleet.Server.Application.Features.Friends.Commands.UpdateDirectMessage;
 using LiberationFleet.Server.Application.Features.Friends.Contracts;
 using LiberationFleet.Server.Application.Features.Friends.Queries.GetBlockedUsers;
+using LiberationFleet.Server.Application.Features.Friends.Queries.GetHiddenUserIds;
 using LiberationFleet.Server.Application.Features.Friends.Queries.GetDirectMessages;
 using LiberationFleet.Server.Application.Features.Friends.Queries.GetFriendRequests;
 using LiberationFleet.Server.Application.Features.Friends.Queries.GetFriends;
@@ -45,6 +46,13 @@ public class FriendsController : ControllerBase
     public async Task<IActionResult> GetBlocked()
     {
         var result = await _mediator.Send(new GetBlockedUsersQuery());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("hidden-ids")]
+    public async Task<IActionResult> GetHiddenIds()
+    {
+        var result = await _mediator.Send(new GetHiddenUserIdsQuery());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

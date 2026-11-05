@@ -68,10 +68,8 @@ public static class LibraryVisibleUnitPaging
             if (collected.Count >= take)
             {
                 return (collected, await HasAnyVisibleBeyondAsync(
-                    fetchPage,
                     isVisibleAsync,
                     page,
-                    scanOffset,
                     collected[^1].Id,
                     cancellationToken));
             }
@@ -86,10 +84,8 @@ public static class LibraryVisibleUnitPaging
     }
 
     private static async Task<bool> HasAnyVisibleBeyondAsync(
-        Func<int, int, CancellationToken, Task<LibraryUnitListPage>> fetchPage,
         Func<LibraryUnit, CancellationToken, Task<bool>> isVisibleAsync,
         LibraryUnitListPage lastPage,
-        int nextScanOffset,
         int lastTakenUnitId,
         CancellationToken cancellationToken)
     {
@@ -112,34 +108,8 @@ public static class LibraryVisibleUnitPaging
             }
         }
 
-        if (!lastPage.HasMore)
-        {
-            return false;
-        }
-
-        var scanOffset = nextScanOffset;
-        const int peekBatch = 40;
-        while (true)
-        {
-            var page = await fetchPage(peekBatch, scanOffset, cancellationToken);
-            if (page.Items.Count == 0)
-            {
-                return false;
-            }
-
-            foreach (var unit in page.Items)
-            {
-                if (await isVisibleAsync(unit, cancellationToken))
-                {
-                    return true;
-                }
-            }
-
-            scanOffset += page.Items.Count;
-            if (!page.HasMore)
-            {
-                return false;
-            }
-        }
+        // One more database page may exist. Do not walk the rest of the catalog
+        // just to prove a later row is visible; an extra empty client page is cheaper.
+        return lastPage.HasMore;
     }
 }

@@ -10,6 +10,8 @@ import { VoiceParticipant, VoicePresenceSnapshot, VoiceRoomPresence } from '../m
 import { AuthService } from './auth.service';
 import { ApiUrlService } from './api-url.service';
 import { VoiceApiService } from './voice-api.service';
+import { FriendService } from './friend.service';
+import { VoiceLiveKitService } from './voice-livekit.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +20,7 @@ export class VoicePresenceService implements OnDestroy {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
   private joinedCrewId: number | null = null;
+  private hiddenUserIds = new Set<number>();
   private readonly presenceSubject = new BehaviorSubject<VoiceRoomPresence[]>([]);
 
   readonly presence$ = this.presenceSubject.asObservable();
@@ -27,7 +30,9 @@ export class VoicePresenceService implements OnDestroy {
     private authService: AuthService,
     private voiceApi: VoiceApiService,
     private apiUrl: ApiUrlService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private friendService: FriendService,
+    private voiceLiveKit: VoiceLiveKitService
   ) {}
 
   ngOnDestroy() {
@@ -45,6 +50,7 @@ export class VoicePresenceService implements OnDestroy {
   async ensureCrewSubscribed(crewId: number): Promise<void> {
     const connection = await this.ensureConnected();
     if (this.joinedCrewId === crewId) {
+      await this.refreshHiddenUserIds();
       return;
     }
 
@@ -54,6 +60,7 @@ export class VoicePresenceService implements OnDestroy {
 
     await connection.invoke('JoinCrew', crewId);
     this.joinedCrewId = crewId;
+    await this.refreshHiddenUserIds();
     await this.refreshPresence(crewId);
   }
 
@@ -62,7 +69,7 @@ export class VoicePresenceService implements OnDestroy {
       this.voiceApi.getVoicePresence(crewId).subscribe({
         next: response => {
           if (response.success) {
-            this.presenceSubject.next(response.rooms ?? []);
+            this.presenceSubject.next(this.withoutHiddenParticipants(response.rooms ?? []));
           }
           resolve();
         },
@@ -159,11 +166,15 @@ export class VoicePresenceService implements OnDestroy {
       .build();
 
     this.connection.on('VoicePresenceUpdated', (snapshot: VoicePresenceSnapshot) => {
-      this.ngZone.run(() => this.presenceSubject.next(snapshot.rooms ?? []));
+      this.ngZone.run(() => this.presenceSubject.next(this.withoutHiddenParticipants(snapshot.rooms ?? [])));
     });
 
     this.connection.on('VoiceStateUpdated', (participant: VoiceParticipant) => {
       this.ngZone.run(() => {
+        if (this.hiddenUserIds.has(participant.userId)) {
+          return;
+        }
+
         this.stateUpdated$.next(participant);
         const rooms = this.snapshot.map(room => {
           if (room.chatRoomId !== participant.chatRoomId) {
@@ -201,5 +212,30 @@ export class VoicePresenceService implements OnDestroy {
     });
 
     await this.connection.start();
+  }
+
+  private refreshHiddenUserIds(): Promise<void> {
+    return new Promise(resolve => {
+      this.friendService.getHiddenUserIds().subscribe({
+        next: ids => {
+          this.hiddenUserIds = new Set(ids);
+          this.voiceLiveKit.setHiddenUserIds(ids);
+          this.presenceSubject.next(this.withoutHiddenParticipants(this.snapshot));
+          resolve();
+        },
+        error: () => resolve()
+      });
+    });
+  }
+
+  private withoutHiddenParticipants(rooms: VoiceRoomPresence[]): VoiceRoomPresence[] {
+    if (this.hiddenUserIds.size === 0) {
+      return rooms;
+    }
+
+    return rooms.map(room => ({
+      ...room,
+      participants: room.participants.filter(participant => !this.hiddenUserIds.has(participant.userId))
+    }));
   }
 }

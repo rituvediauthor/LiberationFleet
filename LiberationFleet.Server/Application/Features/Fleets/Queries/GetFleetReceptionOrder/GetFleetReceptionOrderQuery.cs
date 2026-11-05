@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Services;
@@ -21,7 +22,8 @@ public class GetFleetReceptionOrderQueryHandler(
     ICrewMembershipRepository membershipRepository,
     IFleetRepository fleetRepository,
     IMutualAidRepository mutualAidRepository,
-    IMutualAidService mutualAidService) : IRequestHandler<GetFleetReceptionOrderQuery, IReadOnlyList<FleetReceptionOrderEntryDto>>
+    IMutualAidService mutualAidService,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetFleetReceptionOrderQuery, IReadOnlyList<FleetReceptionOrderEntryDto>>
 {
     public async Task<IReadOnlyList<FleetReceptionOrderEntryDto>> Handle(
         GetFleetReceptionOrderQuery request,
@@ -114,11 +116,14 @@ public class GetFleetReceptionOrderQueryHandler(
             }
         }
 
-        return survivalEntries
-            .Concat(representativeEntries)
-            .Concat(cycleEntries)
-            .Take(limit)
-            .ToList();
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        return BlockVisibility.OmitHiddenReceptionEntries(
+            survivalEntries
+                .Concat(representativeEntries)
+                .Concat(cycleEntries)
+                .Take(limit)
+                .ToList(),
+            hiddenUserIds);
     }
 
     private static FleetReceptionOrderEntryDto MapEntry(

@@ -137,6 +137,7 @@ public class LibraryRepository(ApplicationDbContext context) : ILibraryRepositor
 
         var query = context.LibraryUnits
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(u => u.Offering)
                 .ThenInclude(o => o.Categories)
                 .ThenInclude(c => c.Category)

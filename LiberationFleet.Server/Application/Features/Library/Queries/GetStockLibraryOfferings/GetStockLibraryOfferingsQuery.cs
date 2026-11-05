@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -20,7 +21,8 @@ public class GetStockLibraryOfferingsQueryHandler(
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
     IViewerLocationAccessor viewerLocation,
-    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetStockLibraryOfferingsQuery, LibraryUnitListResponse>
+    LibraryPriorityTierService priorityTierService,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetStockLibraryOfferingsQuery, LibraryUnitListResponse>
 {
     public async Task<LibraryUnitListResponse> Handle(
         GetStockLibraryOfferingsQuery request,
@@ -47,6 +49,7 @@ public class GetStockLibraryOfferingsQueryHandler(
         var viewerCountry = viewerLocation.CountryCode;
         var viewerZip = viewerLocation.ZipCode;
         var viewerUserId = currentUser.UserId.Value;
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(viewerUserId, cancellationToken);
         var tierByOfferingCrewId = new Dictionary<int, int>();
 
         var fetchLimit = Math.Clamp(request.Limit, 1, 100);
@@ -79,7 +82,8 @@ public class GetStockLibraryOfferingsQueryHandler(
             async (unit, ct) =>
             {
                 var viewerTier = await TierForAsync(unit.Offering.CrewId, ct);
-                return LibraryOfferingRules.CanViewerAccessOffering(
+                return !BlockVisibility.HidesAny(hiddenUserIds, unit.Offering.CreatorUserId, unit.CurrentPossessorUserId)
+                    && LibraryOfferingRules.CanViewerAccessOffering(
                         unit.Offering,
                         viewerUserId,
                         viewerTier,

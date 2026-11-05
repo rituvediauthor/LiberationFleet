@@ -84,6 +84,7 @@ public static class ChatMapper
         return new ChatMessageDto
         {
             Id = message.Id,
+            DeliveryAuthorUserId = message.AuthorUserId,
             AuthorUserId = hideIdentity ? 0 : message.AuthorUserId,
             AuthorUsername = hideIdentity
                 ? "Anonymous"

@@ -29,6 +29,7 @@ public class CreateProposalCommentCommandHandler(
     ProposalAnonymousAliasService aliasService,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateProposalCommentCommand, ProposalOperationResponse>
 {
     public async Task<ProposalOperationResponse> Handle(CreateProposalCommentCommand request, CancellationToken cancellationToken)
@@ -83,6 +84,13 @@ public class CreateProposalCommentCommandHandler(
             (threadRootId, replyToCommentId) = CommentThread.ResolveNewReply(
                 parentComment.Id,
                 parentComment.ParentCommentId);
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.Hides(hiddenUserIds, proposal.AuthorUserId)
+            || (parentComment is not null && BlockVisibility.Hides(hiddenUserIds, parentComment.AuthorUserId)))
+        {
+            return new ProposalOperationResponse { Success = false, Message = "Proposal not found." };
         }
 
         var utcNow = DateTime.UtcNow;

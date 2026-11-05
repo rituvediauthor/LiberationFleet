@@ -115,6 +115,7 @@ public class CreateProposalCommentCommandHandlerTests
             new ProposalAnonymousAliasService(proposalRepository.Object),
             notificationService,
             contentMentionService,
+            HandlerTestFixture.CreateUserBlockRepositoryMock().Object,
             HandlerTestFixture.CreateUnitOfWorkMock().Object);
 
         var result = await handler.Handle(

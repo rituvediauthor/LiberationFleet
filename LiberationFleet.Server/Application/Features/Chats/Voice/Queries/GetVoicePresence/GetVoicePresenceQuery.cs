@@ -11,7 +11,8 @@ public record GetVoicePresenceQuery(int CrewId) : IRequest<VoicePresenceSnapshot
 public class GetVoicePresenceQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IVoicePresenceRepository voicePresenceRepository) : IRequestHandler<GetVoicePresenceQuery, VoicePresenceSnapshotResponse>
+    IVoicePresenceRepository voicePresenceRepository,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetVoicePresenceQuery, VoicePresenceSnapshotResponse>
 {
     public async Task<VoicePresenceSnapshotResponse> Handle(GetVoicePresenceQuery request, CancellationToken cancellationToken)
     {
@@ -25,6 +26,13 @@ public class GetVoicePresenceQueryHandler(
             return new VoicePresenceSnapshotResponse { Success = false, Message = "You are not in this crew." };
         }
 
-        return await VoicePresenceMapper.BuildSnapshotAsync(voicePresenceRepository, request.CrewId, cancellationToken);
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(
+            currentUser.UserId.Value,
+            cancellationToken);
+        return await VoicePresenceMapper.BuildSnapshotAsync(
+            voicePresenceRepository,
+            request.CrewId,
+            cancellationToken,
+            hiddenUserIds);
     }
 }

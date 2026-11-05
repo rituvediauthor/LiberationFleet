@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using LiberationFleet.Server.Application.Features.Crypto.Contracts;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -26,6 +27,13 @@ public class ChatRoomDetailDto : ChatRoomListItemDto
 
 public class ChatMessageDto
 {
+    /// <summary>
+    /// Real author, including anonymous messages. Never serialized.
+    /// Live delivery uses it to skip people in a block relationship.
+    /// </summary>
+    [JsonIgnore]
+    public int DeliveryAuthorUserId { get; set; }
+
     public int AuthorUserId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
     public string? AuthorAvatarResourceId { get; set; }

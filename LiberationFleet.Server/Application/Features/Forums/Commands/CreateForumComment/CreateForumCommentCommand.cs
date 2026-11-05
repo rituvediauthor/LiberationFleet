@@ -28,6 +28,7 @@ public class CreateForumCommentCommandHandler(
     ICryptoRepository cryptoRepository,
     NotificationService notificationService,
     ContentMentionService contentMentionService,
+    IUserBlockRepository blockRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateForumCommentCommand, ForumOperationResponse>
 {
     public async Task<ForumOperationResponse> Handle(CreateForumCommentCommand request, CancellationToken cancellationToken)
@@ -74,6 +75,13 @@ public class CreateForumCommentCommandHandler(
             (threadRootId, replyToCommentId) = CommentThread.ResolveNewReply(
                 parentComment.Id,
                 parentComment.ParentCommentId);
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.Hides(hiddenUserIds, post.AuthorUserId)
+            || (parentComment is not null && BlockVisibility.Hides(hiddenUserIds, parentComment.AuthorUserId)))
+        {
+            return new ForumOperationResponse { Success = false, Message = "Post not found." };
         }
 
         var utcNow = DateTime.UtcNow;

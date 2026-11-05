@@ -45,6 +45,12 @@ export class FriendService {
     return this.http.get<BlockedUserListResponse>(`${this.apiUrl}/blocked`);
   }
 
+  getHiddenUserIds(): Observable<number[]> {
+    return this.http.get<{ userIds?: number[] }>(`${this.apiUrl}/hidden-ids`).pipe(
+      map(response => response.userIds ?? [])
+    );
+  }
+
   searchUsers(username: string): Observable<UserSearchResponse> {
     const params = new HttpParams().set('username', username);
     return this.http.get<UserSearchResponse>(`${this.apiUrl}/search`, { params }).pipe(

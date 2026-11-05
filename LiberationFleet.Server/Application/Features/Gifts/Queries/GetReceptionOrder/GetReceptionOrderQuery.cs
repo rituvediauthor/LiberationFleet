@@ -11,7 +11,8 @@ public record GetReceptionOrderQuery(int Limit = 30, int? ImpersonateAsUserId = 
 public class GetReceptionOrderQueryHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
-    IMutualAidService mutualAidService) : IRequestHandler<GetReceptionOrderQuery, IReadOnlyList<ReceptionOrderEntryDto>>
+    IMutualAidService mutualAidService,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetReceptionOrderQuery, IReadOnlyList<ReceptionOrderEntryDto>>
 {
     public async Task<IReadOnlyList<ReceptionOrderEntryDto>> Handle(
         GetReceptionOrderQuery request,
@@ -47,12 +48,14 @@ public class GetReceptionOrderQueryHandler(
             giverUserId = impersonateAs;
         }
 
-        return await mutualAidService.GetReceptionOrderAsync(
+        var entries = await mutualAidService.GetReceptionOrderAsync(
             giverUserId,
             request.Limit,
             requireGiverInSeason: true,
             excludeSelfAsRecipient: false,
             forRecordGift: true,
             cancellationToken);
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(viewerId, cancellationToken);
+        return BlockVisibility.OmitHiddenReceptionEntries(entries, hiddenUserIds);
     }
 }

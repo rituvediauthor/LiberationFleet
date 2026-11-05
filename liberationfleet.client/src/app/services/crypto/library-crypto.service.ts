@@ -212,37 +212,18 @@ export class LibraryCryptoService {
       return items;
     }
 
-    const crewKey = await this.cryptoSession.ensureCrewKeyReady(crewId);
+    await this.cryptoSession.ensureCrewKeyReady(crewId);
     const thumbnailIds = new Set(
       items
         .map(item => item.thumbnailResourceId)
         .filter((id): id is string => !!id)
     );
-
-    // Recover list thumbs from ciphertext when the API column was never set (video posters, etc.).
-    const recoveredIds = new Map<number, string>();
-    await Promise.all(items.map(async item => {
-      if (item.thumbnailResourceId || !item.hasEncryptedContent) {
-        return;
-      }
-      const payload = await this.decryptOfferingPayload(item.offeringId, crewId, crewKey);
-      const recovered = payload?.thumbnailResourceId
-        ?? payload?.attachments?.find(attachment => attachment.type === 'image')?.resourceId
-        ?? payload?.attachments?.find(attachment => attachment.type === 'video')?.posterResourceId
-        ?? null;
-      if (recovered) {
-        recoveredIds.set(item.unitId, recovered);
-        thumbnailIds.add(recovered);
-      }
-    }));
-
     const thumbnailMap = await this.resolveThumbnailsBatch([...thumbnailIds], crewId);
 
     return items.map(item => {
-      const thumbId = item.thumbnailResourceId ?? recoveredIds.get(item.unitId) ?? null;
+      const thumbId = item.thumbnailResourceId ?? null;
       return {
         ...item,
-        thumbnailResourceId: thumbId ?? item.thumbnailResourceId,
         thumbnailUrl: (thumbId ? thumbnailMap.get(thumbId) : null)
           ?? item.thumbnailUrl
           ?? null

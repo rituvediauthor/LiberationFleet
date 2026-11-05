@@ -104,6 +104,7 @@ public static class DependencyInjection
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5)
             });
         services.AddScoped<IPushNotificationSender, Infrastructure.Push.FcmApnsPushNotificationSender>();
+        services.AddSingleton<ChatRoomConnectionRegistry>();
         services.AddSingleton<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddSingleton<IDirectMessageRealtimeNotifier, DirectMessageRealtimeNotifier>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

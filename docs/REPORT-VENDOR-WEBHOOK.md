@@ -51,13 +51,20 @@ Skip Path B until you actually need help.
 
 **Cadence**
 
-- **Daily (or every few days while traffic is low):** list open reports (metadata only).
-- **Immediately if you see `QueuedForNcmec`:** open evidence and file CyberTipline the same day you become aware.
+Do the click-by-click below every day, or every few days while traffic is low. If any row has `status` `QueuedForNcmec`, finish that row the same day you see it.
 
-**List open reports (metadata — safe default)**
+### Ongoing review (click by click)
+
+There is no Reports page in the app. Each check is a PowerShell call against production.
+
+1. Click the Windows **Start** button.
+2. Type `PowerShell`.
+3. Click **Windows PowerShell** (the desktop app, not ISE).
+4. Click once inside the blue window so the cursor is blinking.
+5. Paste this block. Replace the key with the vendor key from your password manager. Leave the quotes.
 
 ```powershell
-$base = "https://liberationfleet.org"   # your production origin
+$base = "https://liberationfleet.org"
 $key  = "<your-vendor-api-key>"
 
 Invoke-RestMethod -Method GET -Uri "$base/api/reports/ops?limit=50" -Headers @{
@@ -65,9 +72,16 @@ Invoke-RestMethod -Method GET -Uri "$base/api/reports/ops?limit=50" -Headers @{
 } | ConvertTo-Json -Depth 6
 ```
 
-Look at each item’s `status` / `reason`. Prioritize `QueuedForNcmec`.
+6. Press **Enter**.
+7. If the window says `401` or `403`, the key is wrong. Copy the key from the password manager again and repeat step 5. Do not continue.
+8. If the result is `[]` or an empty list, you are done for this check. Close the window.
+9. For each object in the list, read `reportId`, `status`, and `reason`. Do `QueuedForNcmec` first, then everything else.
 
-**Open evidence only when you need it** (access is logged)
+#### A. `status` is `QueuedForNcmec`
+
+The app already quarantined the content and froze the author. `QueuedForNcmec` means you still have to file. It does not mean NCMEC already has the report.
+
+1. In the same PowerShell window, paste this and press **Enter**. This decrypts evidence. The server writes an access log for this call.
 
 ```powershell
 Invoke-RestMethod -Method GET -Uri "$base/api/reports/ops?includeEvidence=true&limit=20" -Headers @{
@@ -75,23 +89,66 @@ Invoke-RestMethod -Method GET -Uri "$base/api/reports/ops?includeEvidence=true&l
 } | ConvertTo-Json -Depth 8
 ```
 
-**Apply a decision** (replace `123` with the real `reportId`)
+2. Find the object whose `reportId` matches the row you are filing.
+3. Copy these fields into a note: `reportId`, `reason`, `createdAt`, `escalatedToNcmecAt`, author user id / username, snapshot text, and any media resource ids.
+4. Open the CyberTipline **provider** form NCMEC emailed you after ESP approval (not the public “Make a Report” page).
+5. Sign in with the ESP credentials stored in your password manager.
+6. Start a new provider report.
+7. Paste the incident description, user ids, snapshot text, media refs, timestamps, and `https://liberationfleet.org` as the service.
+8. Submit the CyberTipline report.
+9. Copy the confirmation date.
+10. Back in PowerShell, paste this. Replace `123` with that `reportId` and the date with the filing date. Press **Enter**.
 
 ```powershell
-# Close as benign
-$body = @{ reportId = 123; label = "none"; notes = "Reviewed — no violation" } | ConvertTo-Json
-
-# Or quarantine-style action for violence / other illegal (see labels table)
-# $body = @{ reportId = 123; label = "violence"; notes = "Threats — quarantined" } | ConvertTo-Json
-
-# Or after NCMEC filing / follow-up close
-# $body = @{ reportId = 123; label = "closed"; notes = "CyberTipline filed YYYY-MM-DD" } | ConvertTo-Json
-
+$body = @{ reportId = 123; label = "closed"; notes = "CyberTipline filed YYYY-MM-DD" } | ConvertTo-Json
 Invoke-RestMethod -Method POST -Uri "$base/api/reports/vendor/webhook" -Headers @{
   "X-Report-Vendor-Key" = $key
   "Content-Type" = "application/json"
 } -Body $body
 ```
+
+11. Repeat A for every other `QueuedForNcmec` row before you look at ordinary reports.
+
+#### B. Reason is non-consensual intimate imagery
+
+The content is already quarantined. You only decide whether the report is real.
+
+1. If you have not already loaded evidence in this session, run the `includeEvidence=true` command from A step 1.
+2. Read the snapshot for that `reportId`.
+3. If it is a real violation, paste this, replace `123`, and press **Enter**:
+
+```powershell
+$body = @{ reportId = 123; label = "ncii"; notes = "Confirmed NCII — left quarantined" } | ConvertTo-Json
+Invoke-RestMethod -Method POST -Uri "$base/api/reports/vendor/webhook" -Headers @{
+  "X-Report-Vendor-Key" = $key
+  "Content-Type" = "application/json"
+} -Body $body
+```
+
+4. If it is a false positive, use the close command in section C instead.
+
+#### C. Harassment, spam, threats, or other
+
+Nothing has been removed yet. Block, if the reporter used it, is separate from this queue.
+
+1. Open evidence with the `includeEvidence=true` command only if the metadata is not enough to decide.
+2. If there is no violation, paste this, replace `123`, and press **Enter**:
+
+```powershell
+$body = @{ reportId = 123; label = "none"; notes = "Reviewed — no violation" } | ConvertTo-Json
+Invoke-RestMethod -Method POST -Uri "$base/api/reports/vendor/webhook" -Headers @{
+  "X-Report-Vendor-Key" = $key
+  "Content-Type" = "application/json"
+} -Body $body
+```
+
+3. If it is a real threat, change the label to `violence` and the note to what you saw. That quarantines the content.
+4. If it is other illegal content that is not CSAM or NCII, change the label to `other`.
+
+#### After the list is empty of open rows
+
+1. Close the PowerShell window.
+2. Do not leave the vendor key in a file on the desktop. It stays in the password manager only.
 
 **Practical tips**
 

@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library;
@@ -14,7 +15,8 @@ public class GetLibraryUnitDetailQueryHandler(
     IFleetRepository fleetRepository,
     ILibraryRepository libraryRepository,
     IViewerLocationAccessor viewerLocation,
-    LibraryPriorityTierService priorityTierService) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
+    LibraryPriorityTierService priorityTierService,
+    IUserBlockRepository blockRepository) : IRequestHandler<GetLibraryUnitDetailQuery, LibraryUnitDetailResponse>
 {
     public async Task<LibraryUnitDetailResponse> Handle(
         GetLibraryUnitDetailQuery request,
@@ -43,6 +45,12 @@ public class GetLibraryUnitDetailQueryHandler(
             membership.CrewId,
             cancellationToken);
         if (unit is null)
+        {
+            return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
+        }
+
+        var hiddenUserIds = await blockRepository.GetHiddenUserIdsForViewerAsync(userId, cancellationToken);
+        if (BlockVisibility.HidesAny(hiddenUserIds, unit.Offering.CreatorUserId, unit.CurrentPossessorUserId))
         {
             return new LibraryUnitDetailResponse { Success = false, Message = "Item not found." };
         }

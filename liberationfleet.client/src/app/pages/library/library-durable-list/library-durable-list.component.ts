@@ -160,20 +160,23 @@ export class LibraryDurableListComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private async applyPage(page: { items: LibraryUnitListItem[]; hasMore: boolean }, reset: boolean) {
+    this.items = reset ? page.items : this.mergeUniqueUnits(this.items, page.items);
+    this.hasMore = page.hasMore;
+    this.loading = false;
+    this.loadingMore = false;
+    setTimeout(() => this.setupLoadMoreObserver(), 0);
+
     try {
       await this.encryptionContent.whenReady();
-      const enriched = this.crewId > 0
-        ? await this.libraryCrypto.enrichUnitListItems(page.items, this.crewId)
-        : page.items;
-      this.items = reset ? enriched : this.mergeUniqueUnits(this.items, enriched);
-      this.hasMore = page.hasMore;
+      if (this.crewId <= 0) {
+        return;
+      }
+
+      const enriched = await this.libraryCrypto.enrichUnitListItems(page.items, this.crewId);
+      const enrichedByUnitId = new Map(enriched.map(item => [item.unitId, item]));
+      this.items = this.items.map(item => enrichedByUnitId.get(item.unitId) ?? item);
     } catch {
-      this.items = reset ? page.items : this.mergeUniqueUnits(this.items, page.items);
-      this.hasMore = page.hasMore;
-    } finally {
-      this.loading = false;
-      this.loadingMore = false;
-      setTimeout(() => this.setupLoadMoreObserver(), 0);
+      // Keep the plaintext list if thumbnail decryption fails.
     }
   }
 
