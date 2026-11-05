@@ -22,8 +22,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Liberation Fleet needs the camera to take photos and videos for messages and crew content.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Liberation Fleet needs the microphone for crew voice chat.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Liberation Fleet needs access to your photo library to attach images and videos.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -255,8 +255,8 @@ Full store path (signing, simulator download, screenshots, archive) is [STORE-SU
 | Network | ATS HTTPS (default) | `INTERNET`, `ACCESS_NETWORK_STATE` |
 | Microphone (voice + audio notes) | `NSMicrophoneUsageDescription` | `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` |
 | Bluetooth headset (voice) | (system) | `BLUETOOTH` (≤API 30), `BLUETOOTH_CONNECT` |
-| Camera | only if you add capture | **Do not declare** until used |
-| Photos / files | `NSPhotoLibraryUsageDescription` if needed | System file picker — **no** `READ_MEDIA_*` unless you bypass the picker |
+| Camera (Take Photo / Video from chat attach) | `NSCameraUsageDescription` | System camera via file picker — **no** app `CAMERA` permission |
+| Photos / files | `NSPhotoLibraryUsageDescription` | System file picker — **no** `READ_MEDIA_*` unless you bypass the picker |
 
 ### Android — current manifest permissions
 
@@ -269,13 +269,17 @@ Open `android/app/src/main/AndroidManifest.xml`. You should see:
 
 Save → rebuild / **Run**. On first mic use, tap **Allow**. Bluetooth headset may prompt for nearby-devices / Bluetooth on Android 12+.
 
-### iOS — microphone usage string
+### iOS — privacy usage strings
 
-Already set in `ios/App/App/Info.plist` as **Privacy - Microphone Usage Description**:
+Already set in `ios/App/App/Info.plist`:
 
-> Liberation Fleet needs the microphone for crew voice chat.
+| Key | String |
+|-----|--------|
+| **Privacy - Camera Usage Description** | Liberation Fleet needs the camera to take photos and videos for messages and crew content. |
+| **Privacy - Microphone Usage Description** | Liberation Fleet needs the microphone for crew voice chat. |
+| **Privacy - Photo Library Usage Description** | Liberation Fleet needs access to your photo library to attach images and videos. |
 
-Save is not required. Re-run the app after you pull this change.
+Without the camera string, iOS **terminates the app** when the user chooses **Take Photo** from the attachment sheet. Re-run / rebuild the native app after pulling plist changes.
 
 LiveKit WebRTC works inside the Capacitor WebView when mic permission is granted. See [LIVEKIT-SETUP.md](./LIVEKIT-SETUP.md).
 

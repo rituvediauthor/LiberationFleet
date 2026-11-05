@@ -1125,7 +1125,9 @@ Xcode has no Terminal for these commands. The panel at the bottom of Xcode (**Vi
     - **Build:** `13`
     - **Supported Destinations:** iPhone only. iPad is already removed, so App Store Connect will not ask for iPad screenshots.
     - **Minimum Deployments:** `15.0`
+    - **Privacy - Camera Usage Description:** `Liberation Fleet needs the camera to take photos and videos for messages and crew content.`
     - **Privacy - Microphone Usage Description:** `Liberation Fleet needs the microphone for crew voice chat.`
+    - **Privacy - Photo Library Usage Description:** `Liberation Fleet needs access to your photo library to attach images and videos.`
 11. **Push Notifications** and **Background Modes → Remote notifications** are already in the project. Do not add **Sign in with Apple**. On **Signing & Capabilities**, the Team must be your name **without** “(Personal Team)”. If that tab shows a red “No profiles” or “team has no devices” line, plug in a physical iPhone, unlock it, tap **Trust**, choose that iPhone in the destination menu, and click **Try Again**. A simulator cannot complete that step. After the profile exists, you can select the simulator again.
 
 #### C. Run on the iOS Simulator
